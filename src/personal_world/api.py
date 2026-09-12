@@ -6,6 +6,7 @@ compared with hmac.compare_digest and never logged.
 """
 
 import json
+import logging
 import secrets
 import os
 import time
@@ -33,6 +34,43 @@ from .source_control import (
 )
 from .world import MutationDenied, World
 
+
+
+_logger = logging.getLogger("personal_world.api")
+
+
+def _cached_file(request: Request, path: Path, media_type: str | None,
+                 cache_private: bool = False) -> Response:
+    """Serve a static file with explicit revalidation, no `immutable`.
+
+    UAT contract (owner directive, 2026-09-12): the browser must never
+    hold an asset it cannot revalidate. The ETag is computed from the
+    file's own stat (mtime+size, matching Starlette's formula) so
+    If-None-Match can be answered synchronously with an explicit 304 —
+    this starlette version sets the header only at send time and has
+    no native If-None-Match handling. A file that vanishes or becomes
+    unreadable mid-request is answered 404 with a logged error rather
+    than a half-response or a crash.
+    """
+    try:
+        stat_result = path.stat()
+        response = FileResponse(path, media_type=media_type,
+                                stat_result=stat_result, headers={
+            "Cache-Control": ("private" if cache_private else "public")
+            + ", max-age=0, must-revalidate",
+        })
+    except OSError as exc:
+        _logger.error("static file unreadable %s: %s", path.name, exc)
+        raise HTTPException(status_code=404, detail="file unavailable")
+    etag = response.headers.get("etag")
+    if_none_match = request.headers.get("if-none-match")
+    if etag and if_none_match:
+        candidates = [
+            tag.strip().removeprefix("W/") for tag in if_none_match.split(",")
+        ]
+        if etag in candidates:
+            return Response(status_code=304, headers={"ETag": etag})
+    return response
 
 
 def _token() -> str | None:
@@ -1440,7 +1478,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return FileResponse(path, media_type="image/svg+xml")
 
     @app.get("/fonts/{name}")
-    async def webfont(name: str) -> Response:
+    async def webfont(name: str, request: Request) -> Response:
         # Self-hosted Figma-export families (design/tokens.json
         # font.expressive / font.interface). Public: OFL-licensed
         # font binaries, no world state.
@@ -1454,8 +1492,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         path = static_dir / "fonts" / name
         if not path.exists():
             raise HTTPException(status_code=404, detail="font missing")
-        return FileResponse(path, media_type=ctype, headers={
-            "Cache-Control": "public, max-age=604800, immutable"})
+        return _cached_file(request, path, ctype)
 
     # SPA fallback: registered LAST so /api/*, /healthz, /companions/*,
     # /icons/* and /fonts/* keep winning by registration order.
@@ -1471,15 +1508,14 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                     frontend_dist).as_posix()] = candidate.resolve()
 
     @app.get("/{full_path:path}", include_in_schema=False)
-    async def spa_fallback(full_path: str):
+    async def spa_fallback(full_path: str, request: Request):
         if full_path == "healthz" or full_path.startswith("api/") or full_path == "api":
             raise HTTPException(status_code=404, detail="not found")
         allowed = _spa_files.get(full_path)
         if allowed is not None and allowed.is_file():
-            headers = {}
-            if full_path.startswith("assets/"):
-                headers["Cache-Control"] = "public, max-age=31536000, immutable"
-            return FileResponse(allowed, headers=headers)
+            ctype = "text/css" if full_path.endswith(".css") else None
+            return _cached_file(request, allowed, ctype,
+                                cache_private=full_path.startswith("assets/"))
         return _spa_index()
 
     return app
