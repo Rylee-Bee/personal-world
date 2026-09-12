@@ -11,6 +11,8 @@ Current packs:
 |---|---|---|---|---|
 | `figma` | design-service | **ACCEPTED** | PASS | ACTIVE |
 | `big-pickle` | agent | **OPTIONAL / NON-AUTHORITATIVE** | N/A | NONE (no act of adoption) |
+| `kilo` | agent-harness (application layer) | **OBSERVED** (not a contract adopter) | N/A | N/A |
+| `minimax` | agent-brain (model layer) | **OPTIONAL / NON-AUTHORITATIVE** | N/A | NONE (no act of adoption) |
 
 - 2026-09-12 (re-pass): Figma re-relayed her six corrected files in a
   second pass (9 + 6 task-impact sentences). The foreman verified her
@@ -41,6 +43,22 @@ Current packs:
   the figma pack structure. NOT a self-attested acceptance gate and no
   ACTIVE commitment; real mutation tasks still run the full task gate in
   the pack's `attestation:` block.
+- 2026-09-12: `kilo/` added as the **application-layer harness profile**
+  (`participant.yaml`, `capabilities.yaml`, `interaction.md`,
+  `help-routing.yaml`, `ONBOARDING.md`). It describes the Kilo
+  CLI/TUI independently of whichever brain is loaded; its authority
+  is over the tool surface, confirmation policy, and session
+  lifecycle, NOT over reasoning quality. A future Kilo session can
+  bootstrap itself by reading `kilo/ONBOARDING.md`. The pack is
+  intentionally not a contract adopter.
+- 2026-09-12: `minimax/` added as the **brain-layer profile for the
+  MiniMax-M3 model** running inside the Kilo harness in a single
+  onboarding experiment session. **Optional, non-authoritative,
+  PROVISIONAL** — claims derive from one session's observed behavior
+  only. Coexists with `big-pickle/` (different session, different
+  variant per its own provenance) rather than replacing it; both are
+  preserved so future sessions can see observations from multiple
+  brains without rewriting history.
 - A pack NEVER becomes canonical project truth. Deleting any pack directory
   must not corrupt this project.
 - Packs carry no secrets — authentication is symbolic references only.
