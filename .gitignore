@@ -61,6 +61,6 @@ id_ed25519
 # Play-Nice contract session commitment artifacts (contractctl commit):
 # ephemeral, session/role/task-keyed, secret-free but not durable project
 # truth — never committed, per the library's own convention.
-.contracts/
+.contracts/sessions/
 .contract-commitment.json
 # Design PNG/SVG/ZIP/dotLottie deliverables are intentional source assets.
