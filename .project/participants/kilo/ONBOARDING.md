@@ -49,6 +49,15 @@ In this order, stop when you have enough to act:
    explicitly adopted and stays pinned unless the owner asks for a
    bump.
 
+   **Escape hatch — canonical upstream unreachable.** If `git fetch`
+   fails (offline, credential expired, network partitioned), do NOT
+   pretend the local checkout is current. Record the observed local
+   SHA, the timestamp of the failed fetch, and treat any work in this
+   session as `PROVISIONAL` until freshness can be re-verified. The
+   validator `personal-world framework validate-packs` still runs
+   locally; only the cross-check against canonical upstream is
+   deferred.
+
 1. This file (you're reading it).
 2. `.project/README.md` — the three-layer model (Play-Nice contracts →
    project context → participant packs).

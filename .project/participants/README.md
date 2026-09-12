@@ -62,3 +62,35 @@ Current packs:
 - A pack NEVER becomes canonical project truth. Deleting any pack directory
   must not corrupt this project.
 - Packs carry no secrets — authentication is symbolic references only.
+
+## Adding or modifying a participant pack
+
+Authoring guidance — not a new canonical contract. Derived from
+observed session friction (2026-09-12) and enforced by the
+`personal-world framework validate-packs` CLI subcommand plus the
+`pack-id-collision` rule in `src/personal_world/framework.py`.
+
+Before writing:
+
+1. Discover global and applicable project-local participant packs
+   (list `.project/participants/` and read its `README.md`).
+2. Check whether the participant ID or scope already exists. If a pack
+   with the same `id` already exists, you are in a collision case —
+   go to the collision block below.
+3. If ownership or identity is ambiguous (e.g. another pack's
+   provenance suggests a different session, model, or host), preserve
+   both and ask before writing.
+4. Validate before committing:
+   `uv run personal-world framework validate-packs` (or the
+   equivalent `uv run pytest tests/test_framework.py::TestParticipantPackValidation`).
+
+If there is a collision, valid outcomes are:
+
+```text
+UPDATE EXISTING      only with explicit owner authority and provenance
+CREATE SIBLING       keep both packs, add a NEW id, cross-reference
+ABORT / ASK FOR HELP surface the collision and let the owner decide
+```
+
+Never silently merge, overwrite, or replace another participant's
+evidence. The harness exposes file-write; the project authorizes it.

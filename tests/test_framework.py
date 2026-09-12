@@ -24,6 +24,7 @@ from personal_world.cli import main as cli_main  # noqa: E402
 from personal_world.framework import (  # noqa: E402
     validate_connections,
     validate_compose_file,
+    validate_participant_packs,
     validate_settings_export,
 )
 from personal_world.init import init_world  # noqa: E402
@@ -518,3 +519,105 @@ class TestDesignToolIndependence:
 
 FakeSourceControl  # re-exported import used above; keep name for clarity
 Gitea  # ditto
+
+
+# ---------------------------------------------------------------------------
+# Participant pack validation — canonical gate for .project/participants/
+# ---------------------------------------------------------------------------
+
+
+class TestParticipantPackValidation:
+    """``validate_participant_packs`` is the canonical, project-neutral
+    gate for participant packs. Lives in the Python package (NOT in any
+    harness config) so any agent, CI, or human can drive it. Validates
+    parseability, required top-level keys, schema namespace, and id
+    uniqueness — does NOT attest contracts."""
+
+    REAL_PACKS = Path(__file__).resolve().parents[1] / ".project" / "participants"
+
+    def test_real_packs_validate_clean(self):
+        """Every existing pack in the repo must pass the validator.
+        This test will fail loudly if anyone commits a malformed pack."""
+        result = validate_participant_packs(self.REAL_PACKS)
+        assert result.ok, [str(v) for v in result.violations]
+        assert result.violations == []
+
+    def test_missing_participants_dir_is_a_violation(self, tmp_path: Path):
+        result = validate_participant_packs(tmp_path / "does-not-exist")
+        assert not result.ok
+        assert any(v.rule == "pack-discovery" for v in result.violations)
+
+    def test_empty_participants_dir_is_a_violation(self, tmp_path: Path):
+        result = validate_participant_packs(tmp_path)
+        assert not result.ok
+        assert any(v.rule == "pack-discovery" for v in result.violations)
+
+    def test_malformed_yaml_is_a_violation(self, tmp_path: Path):
+        """The exact failure mode observed twice this session: a
+        participant.yaml that does not parse. The validator must
+        catch it without leaving any malformed state behind."""
+        (tmp_path / "broken").mkdir()
+        bad = tmp_path / "broken" / "participant.yaml"
+        # Tab indent + dangling colon: a real YAML parse failure.
+        bad.write_text("schema: play-nice/participant-v1\n"
+                       "id: broken\n"
+                       "\tmixed: [unclosed\n")
+        result = validate_participant_packs(tmp_path)
+        assert not result.ok
+        rules = {v.rule for v in result.violations}
+        assert "pack-parse" in rules
+
+    def test_missing_required_keys_is_a_violation(self, tmp_path: Path):
+        (tmp_path / "x").mkdir()
+        (tmp_path / "x" / "participant.yaml").write_text("name: no-id-no-schema\n")
+        result = validate_participant_packs(tmp_path)
+        assert not result.ok
+        rules = {v.rule for v in result.violations}
+        assert rules & {"pack-shape", "pack-parse"}
+
+    def test_schema_namespace_must_start_with_play_nice(self, tmp_path: Path):
+        (tmp_path / "x").mkdir()
+        (tmp_path / "x" / "participant.yaml").write_text(
+            "schema: some-other-namespace/v1\n"
+            "id: x\n"
+        )
+        result = validate_participant_packs(tmp_path)
+        assert not result.ok
+        assert any(v.rule == "pack-schema-namespace" for v in result.violations)
+
+    def test_duplicate_pack_id_is_a_violation(self, tmp_path: Path):
+        for name in ("a", "b"):
+            (tmp_path / name).mkdir()
+            (tmp_path / name / "participant.yaml").write_text(
+                "schema: play-nice/participant-v1\n"
+                "id: duplicate\n"
+            )
+        result = validate_participant_packs(tmp_path)
+        assert not result.ok
+        assert any(v.rule == "pack-id-collision" for v in result.violations)
+
+    def test_top_level_must_be_a_mapping(self, tmp_path: Path):
+        (tmp_path / "x").mkdir()
+        (tmp_path / "x" / "participant.yaml").write_text("- 1\n- 2\n")
+        result = validate_participant_packs(tmp_path)
+        assert not result.ok
+        assert any(v.rule == "pack-shape" for v in result.violations)
+
+    def test_well_formed_packs_pass(self, tmp_path: Path):
+        for name in ("alpha", "beta"):
+            (tmp_path / name).mkdir()
+            (tmp_path / name / "participant.yaml").write_text(
+                "schema: play-nice/participant-v1\n"
+                f"id: {name}\n"
+                "name: t\n"
+            )
+        result = validate_participant_packs(tmp_path)
+        assert result.ok, [str(v) for v in result.violations]
+
+    def test_cli_subcommand_drives_validator(self, capsys):
+        """`personal-world framework validate-packs` must wire to the
+        validator end-to-end (no harness-specific config)."""
+        rc = cli_main(["framework", "validate-packs"])
+        out = capsys.readouterr().out
+        assert rc == 0, out
+        assert "healthy" in out
