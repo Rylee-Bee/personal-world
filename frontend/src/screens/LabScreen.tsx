@@ -1,10 +1,12 @@
+import React from "react";
 import { EmptyState } from "../shell/EmptyState";
 import { ErrorState } from "../shell/ErrorState";
 import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
-import { TechnicalDetails } from "../primitives/Disclosure";
+import { TechnicalDetails, Disclosure } from "../primitives/Disclosure";
 import { useLabState, useLabHealth } from "../lib/hooks";
 import type { LabEnvelope } from "../lib/api";
 import { Loader2 } from "../lib/icons";
+import LabOperationsPanel from "./LabOperationsPanel";
 
 /**
  * LabScreen (P1 T13, FOUNDATION-SPEC §7 parity row 3): the REAL operator
@@ -246,6 +248,30 @@ export default function LabScreen() {
             raw={JSON.stringify(r.observations?.[0] ?? {})}
           />
         ))}
+
+      {/* Lab operations (capability wiring, 2026-09-12): the remaining
+          read-only lab routes (settings drift, deploy, secret audit,
+          resources) behind a Level-3 disclosure — the panel mounts only
+          after the disclosure first opens (zero fetches in the calm
+          default view, the same lazy pattern as the Journal audit
+          trail) and stays mounted for revisit. */}
+      <LabOperationsDisclosure />
     </section>
+  );
+}
+
+/** Lazy mount wrapper: renders nothing until the disclosure opens. */
+function LabOperationsDisclosure() {
+  const [mounted, setMounted] = React.useState(false);
+  return (
+    <Disclosure
+      summary="More lab observations"
+      level={3}
+      onOpenChange={(open) => {
+        if (open) setMounted(true);
+      }}
+    >
+      {mounted ? <LabOperationsPanel /> : null}
+    </Disclosure>
   );
 }
