@@ -8,6 +8,16 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
+> **2026-09-12, UAT round 1 PASSED — T15 cutover landed.** The React
+> frontend is the only product UI (legacy deleted, no fallback), the
+> no-immutable revalidation contract is deployed, and the standing
+> UAT-data-discipline rule is in `.project/DECISIONS.md`. Full closure,
+> deployment truth, known defects, and next actions live in
+> **[`.project/HANDOFF-UAT-ROUND-1.md`](./HANDOFF-UAT-ROUND-1.md)** —
+> the next agent starts there. Sections below predate the cutover and
+> describe the T10–T14 construction era; the handoff supersedes them
+> for current state.
+
 Verified 2026-09-12 by bcode/claude (evidence: `git log`/`git
 merge-base`/`git rev-parse` against the real GitHub repository, `gh pr`
 CI status, `contractctl` tool output, live CDP-driven browser checks —
