@@ -38,6 +38,10 @@ export interface DisclosureProps {
   summary: string;
   level: DisclosureLevel;
   defaultOpen?: boolean;
+  /** Optional open-state notification (additive, 2026-09-12): lets a
+   * host lazy-mount children only after the disclosure first opens
+   * (e.g. the Lab operations panel — zero fetches in the calm view). */
+  onOpenChange?: (open: boolean) => void;
   children?: React.ReactNode;
 }
 
@@ -45,6 +49,7 @@ export function Disclosure({
   summary,
   level,
   defaultOpen = false,
+  onOpenChange,
   children,
 }: DisclosureProps) {
   const [open, setOpen] = React.useState(defaultOpen);
@@ -52,7 +57,12 @@ export function Disclosure({
   if (idRef.current === null) idRef.current = nextDisclosureId();
   const id = idRef.current;
 
-  const toggle = React.useCallback(() => setOpen((v) => !v), []);
+  const toggle = React.useCallback(() => {
+    setOpen((v) => {
+      onOpenChange?.(!v);
+      return !v;
+    });
+  }, [onOpenChange]);
 
   return (
     <details

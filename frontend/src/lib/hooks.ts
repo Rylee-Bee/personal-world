@@ -31,6 +31,10 @@ import {
   fetchChatProviders,
   fetchLabState,
   fetchLabHealth,
+  fetchLabSettings,
+  fetchLabDeploy,
+  fetchLabSecrets,
+  fetchLabResources,
   type LabEnvelope,
   fetchMemorySearch,
   fetchPrefsSchema,
@@ -313,6 +317,25 @@ export function useLabState() {
 
 export function useLabHealth() {
   return useApiQuery<LabEnvelope>(() => fetchLabHealth());
+}
+
+// ── Lab operations (capability wiring, 2026-09-12): envelopes preserved
+// like state/health; fetched lazily by the Lab operations disclosure —
+// hooks exist for consumers, nothing fetches until the panel mounts. ──
+export function useLabSettings(enabled: boolean) {
+  return useApiQuery<LabEnvelope>(() => fetchLabSettings(), [], [], { enabled });
+}
+
+export function useLabDeploy(enabled: boolean) {
+  return useApiQuery<LabEnvelope>(() => fetchLabDeploy(), [], [], { enabled });
+}
+
+export function useLabSecrets(enabled: boolean) {
+  return useApiQuery<LabEnvelope>(() => fetchLabSecrets(), [], [], { enabled });
+}
+
+export function useLabResources(enabled: boolean) {
+  return useApiQuery<LabEnvelope>(() => fetchLabResources(), [], [], { enabled });
 }
 
 // ── Memory Search hook ──

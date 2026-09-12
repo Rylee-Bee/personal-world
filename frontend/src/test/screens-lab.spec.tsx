@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { MemoryRouter } from "react-router-dom";
 import { CompanionProvider } from "../lib/companion-context";
@@ -78,6 +78,59 @@ function labHealthEnvelope() {
   };
 }
 
+/* Lab operations envelopes (capability wiring): same honest shape the
+   backend providers return; used by the Level-3 "More lab observations"
+   disclosure. */
+function labSettingsEnvelope() {
+  return {
+    ok: true,
+    status: "healthy",
+    data: {
+      total: 4,
+      drifted: 1,
+      healthy: 3,
+      services: [
+        { service: "authelia", status: "STABLE" },
+        { service: "homepage", status: "DRIFT" },
+      ],
+    },
+  };
+}
+
+function labDeployEnvelope() {
+  return {
+    ok: true,
+    status: "healthy",
+    data: {
+      total: 5,
+      running: 5,
+      containers: [{}],
+      recent_deploys: [{ stack: "media", sha: "abc" }],
+    },
+  };
+}
+
+function labSecretsEnvelope() {
+  return {
+    ok: true,
+    status: "healthy",
+    data: { total_services: 3, rendered: 3, sops_decryptable: false },
+  };
+}
+
+function labResourcesEnvelope() {
+  return {
+    ok: true,
+    status: "healthy",
+    data: {
+      cpu: "top - x\n%Cpu(s):  4.0 us",
+      memory: "MiB Mem : total\nMem: 1G used",
+      disk: "Filesystem x\n/dev/sda1 10G",
+      docker: "TYPE TOTAL",
+    },
+  };
+}
+
 /** Install a fetch mock that answers the lab envelopes. */
 function mockLab(state: Record<string, unknown>, health = labHealthEnvelope()) {
   vi.stubGlobal(
@@ -91,7 +144,15 @@ function mockLab(state: Record<string, unknown>, health = labHealthEnvelope()) {
         ? state
         : path.includes("/api/lab/health")
           ? health
-          : { ok: false, status: "not_configured", warnings: ["unexpected fetch"] };
+          : path.includes("/api/lab/settings")
+            ? labSettingsEnvelope()
+            : path.includes("/api/lab/deploy")
+              ? labDeployEnvelope()
+              : path.includes("/api/lab/secrets")
+                ? labSecretsEnvelope()
+                : path.includes("/api/lab/resources")
+                  ? labResourcesEnvelope()
+                  : { ok: false, status: "not_configured", warnings: ["unexpected fetch"] };
       return Promise.resolve(
         new Response(JSON.stringify(body), {
           status: 200,
@@ -208,8 +269,13 @@ describe("Lab screen: real operator table (T13, parity row 3)", () => {
     mockLab(labStateEnvelope());
     const container = await bootLab();
     const details = [...container.querySelectorAll("details")];
-    expect(details.length).toBe(1); // only rows with observations
-    const d = details[0] as HTMLDetailsElement;
+    // Level-4 per-row disclosures (rows with observations) — the
+    // Level-3 operations disclosure is level 3 and closed, so filter.
+    const l4 = details.filter(
+      (d) => d.getAttribute("data-pw-disclosure-level") === "4"
+    );
+    expect(l4.length).toBe(1); // only rows with observations
+    const d = l4[0] as HTMLDetailsElement;
     expect(d.getAttribute("data-pw-disclosure-level")).toBe("4");
     const summary = d.querySelector("summary");
     expect(summary?.textContent).toContain("Technical details");
@@ -227,7 +293,9 @@ describe("Lab screen: real operator table (T13, parity row 3)", () => {
   it("observation detail is visible in the provenance disclosure", async () => {
     mockLab(labStateEnvelope());
     const container = await bootLab();
-    const d = container.querySelector("details") as HTMLDetailsElement;
+    const d = container.querySelector(
+      "details[data-pw-disclosure-level='4']"
+    ) as HTMLDetailsElement;
     expect(d.textContent).toContain("d1");
   });
 
@@ -302,6 +370,156 @@ describe("Lab screen: honest degradation (T13)", () => {
     const { container } = render(<LabScreen />, { wrapper: labProviders() });
     await waitFor(() => {
       expect(document.querySelector("[data-pw-state='empty']")).not.toBeNull();
+    });
+    expect(await axeNoContrast(container)).toHaveNoViolations();
+  });
+
+  it("lab operations stay behind the Level-3 disclosure: zero fetches while closed", async () => {
+    const fetchSpy = vi.fn().mockImplementation((_input: unknown) => {
+      return Promise.resolve(
+        new Response(JSON.stringify({ ok: false, status: "not_configured" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    render(<LabScreen />, { wrapper: labProviders() });
+    // This mock answers not_configured for state too, so the screen is
+    // in the absent state — where no operations disclosure exists at
+    // all. The calm-assertion: absent state makes ZERO lab calls.
+    await waitFor(() => {
+      expect(document.querySelector("[data-pw-lab='absent']")).not.toBeNull();
+    });
+    // Every fetch this state made went to state/health only — never an
+    // operations route (an exact count is brittle across environments;
+    // the honesty claim is the absence of the four operations paths).
+    const opsCalls = fetchSpy.mock.calls.filter((call) =>
+      String(call[0]).match(/api\/lab\/(settings|deploy|secrets|resources)/)
+    );
+    expect(opsCalls.length).toBe(0);
+  });
+
+  it("successful table: the closed operations disclosure makes no operations fetches", async () => {
+    const fetchSpy = vi.fn().mockImplementation((input: unknown) => {
+      const path = typeof input === "string" ? input : String(input);
+      const body = path.includes("/api/lab/state")
+        ? labStateEnvelope()
+        : path.includes("/api/lab/health")
+          ? labHealthEnvelope()
+          : path.includes("/api/lab/settings")
+            ? labSettingsEnvelope()
+            : path.includes("/api/lab/deploy")
+              ? labDeployEnvelope()
+              : path.includes("/api/lab/secrets")
+                ? labSecretsEnvelope()
+                : path.includes("/api/lab/resources")
+                  ? labResourcesEnvelope()
+                  : { ok: false, status: "not_configured" };
+      return Promise.resolve(
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    render(<LabScreen />, { wrapper: labProviders() });
+    await waitFor(() => {
+      expect(document.querySelector("[data-pw-lab='table']")).not.toBeNull();
+    });
+    const labCalls = fetchSpy.mock.calls.filter((call) =>
+      String(call[0]).includes("/api/lab/")
+    );
+    // state + health only; the four operations routes stay unfetched
+    // (the count can vary across environments; the honesty claim is
+    // the absence of the four operations paths).
+    const opsCalls = labCalls.filter((call) =>
+      String(call[0]).match(/api\/lab\/(settings|deploy|secrets|resources)/)
+    );
+    expect(opsCalls.length).toBe(0);
+    expect(labCalls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("opening the disclosure mounts the operations panel and fetches the four read-only routes", async () => {
+    mockLab(labStateEnvelope());
+    render(<LabScreen />, { wrapper: labProviders() });
+    await waitFor(() => {
+      expect(document.querySelector("[data-pw-lab='table']")).not.toBeNull();
+    });
+    fireEvent.click(screen.getByText("More lab observations"));
+    await waitFor(() => {
+      expect(
+        document.querySelector("[data-pw-lab='operations']")
+      ).not.toBeNull();
+    });
+    // Settings: the drift sentence from the envelope's own numbers.
+    await waitFor(() => {
+      expect(
+        screen.getByText("1 of 4 services drifted from desired state.")
+      ).toBeTruthy();
+    });
+    expect(
+      screen.getByText("5 of 5 containers running; 1 recent deploys in the ledger.")
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "3 of 3 services have secrets rendered on the VM; the audit reports names only, never values."
+      )
+    ).toBeTruthy();
+  });
+
+  it("operations degrade honestly when the capability is absent: warnings, never invented rows", async () => {
+    // state is fine; every operations route answers not_configured with
+    // the server's warning — the panel must surface that warning, never
+    // a synthesized row.
+    vi.stubGlobal("fetch", vi.fn().mockImplementation((input: unknown) => {
+      const path = typeof input === "string" ? input : String(input);
+      const body = path.includes("/api/lab/state")
+        ? labStateEnvelope()
+        : {
+            ok: false,
+            status: "not_configured",
+            warnings: ["Lab provider not configured — set `PW_LAB_CLI`"],
+          };
+      return Promise.resolve(
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    }));
+    render(<LabScreen />, { wrapper: labProviders() });
+    await waitFor(() => {
+      expect(document.querySelector("[data-pw-lab='table']")).not.toBeNull();
+    });
+    fireEvent.click(screen.getByText("More lab observations"));
+    await waitFor(() => {
+      expect(
+        document.querySelector("[data-pw-lab='operations']")
+      ).not.toBeNull();
+    });
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/Lab provider not configured/).length
+      ).toBeGreaterThanOrEqual(4);
+    });
+    // No operations route invented data rows: the section carries the
+    // warning text and nothing shaped like a service table.
+    expect(document.querySelector("[data-pw-lab-operation]")).not.toBeNull();
+  });
+
+  it("axe: 0 violations in the operations-open state", async () => {
+    mockLab(labStateEnvelope());
+    const { container } = render(<LabScreen />, { wrapper: labProviders() });
+    await waitFor(() => {
+      expect(document.querySelector("[data-pw-lab='table']")).not.toBeNull();
+    });
+    fireEvent.click(screen.getByText("More lab observations"));
+    await waitFor(() => {
+      expect(
+        document.querySelector("[data-pw-lab='operations']")
+      ).not.toBeNull();
     });
     expect(await axeNoContrast(container)).toHaveNoViolations();
   });

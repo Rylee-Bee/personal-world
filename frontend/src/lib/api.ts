@@ -736,6 +736,30 @@ export async function fetchLabHealth(): Promise<LabEnvelope> {
   return labEnvelope("/api/lab/health");
 }
 
+/**
+ * Lab operations (capability wiring, 2026-09-12): the remaining
+ * read-only lab routes the backend already serves
+ * (`/api/lab/settings`, `/api/lab/deploy`, `/api/lab/secrets`,
+ * `/api/lab/resources`) over the same homelab Lab CLI. Same envelope
+ * contract as state/health: honest `ok:false` + warnings on absent
+ * capability or CLI failure, never a guessed payload.
+ */
+export async function fetchLabSettings(): Promise<LabEnvelope> {
+  return labEnvelope("/api/lab/settings");
+}
+
+export async function fetchLabDeploy(): Promise<LabEnvelope> {
+  return labEnvelope("/api/lab/deploy");
+}
+
+export async function fetchLabSecrets(): Promise<LabEnvelope> {
+  return labEnvelope("/api/lab/secrets");
+}
+
+export async function fetchLabResources(): Promise<LabEnvelope> {
+  return labEnvelope("/api/lab/resources");
+}
+
 export async function fetchMemorySearch(query: string): Promise<unknown> {
   return apiFetch<unknown>(`/api/memory/search?q=${encodeURIComponent(query)}`);
 }
