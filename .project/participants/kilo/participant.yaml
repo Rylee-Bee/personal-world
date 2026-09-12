@@ -122,4 +122,64 @@ limitations:
   - context-does-not-persist-across-sessions-unless-explicitly-written
   - long-jobs-look-frozen-without-explicit-progress
   - external-system-access-requires-separate-authentication
+
+claims:
+  - id: config-file-location
+    grade: observed
+    observed_at: 2026-09-12T19:15:00Z
+    claim: >-
+      The Kilo harness reads its runtime configuration from
+      ~/.config/kilo/kilo.jsonc (JSONC format with $schema
+      https://app.kilo.ai/config.json)
+    check:
+      command: ls -la ~/.config/kilo/kilo.jsonc
+      expected: file exists
+
+  - id: version-discrepancy
+    grade: observed
+    observed_at: 2026-09-12T19:15:00Z
+    claim: >-
+      The Kilo harness version reported in environment variables
+      (KILOCODE_VERSION=7.6.2) differs from v7.5.9 noted in this pack's
+      capabilities.yaml (created during the prior 2026-09-12 session).
+      This is a version bump between sessions, not a contradiction.
+    check:
+      command: echo $KILOCODE_VERSION
+      expected: 7.6.2
+
+  - id: environment-variables-observed
+    grade: observed
+    observed_at: 2026-09-12T19:15:00Z
+    claim: >-
+      Environment variables KILO=1, KILOCODE_VERSION=7.6.2,
+      KILOCODE_FEATURE=cli, KILO_PROCESS_ROLE=worker,
+      KILO_RUN_ID=<uuid>, KILO_BACKGROUND_PROCESS_PORTS=true are present
+      in the session environment
+    check:
+      command: env | grep -E '^KILO'
+
+  - id: model-field-in-config
+    grade: observed
+    observed_at: 2026-09-12T19:15:00Z
+    claim: >-
+      ~/.config/kilo/kilo.jsonc contains "model": "kilo/minimax/minimax-m3"
+      and "small_model": "kilo/minimax/minimax-m3" — the harness config
+      records a model selection, but the session provider mode is described
+      as "Auto Free" (system prompt: kilo/kilo-auto/free). Whether the config
+      value matches the actual responding model is UNKNOWN (see the
+      auto-free participant pack).
+    check:
+      command: grep '"model"' ~/.config/kilo/kilo.jsonc
+
+  - id: autostash-on-ff-pull
+    grade: observed
+    observed_at: 2026-09-12T19:10:00Z
+    claim: >-
+      `git pull --ff-only origin main` with a dirty working tree (modified
+      minimax/participant.yaml) automatically created an autostash
+      ("Created autostash"), fast-forwarded, then re-applied the stash
+      ("Applied autostash") without data loss
+    check:
+      command: git log --oneline -1
+      expected: f8428af
   - destructive-actions-require-explicit-owner-authority-not-just-tool-access
