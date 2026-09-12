@@ -9,7 +9,12 @@ from pathlib import Path
 from . import export, prefs
 from .app import build_registry, load_world, save_world
 from .envelope import EXIT_DENIED, EXIT_DRIFT, EXIT_ERROR, EXIT_OK, Result
-from .framework import validate_connections, validate_compose_file, validate_settings_export
+from .framework import (
+    validate_connections,
+    validate_compose_file,
+    validate_settings_export,
+    validate_participant_packs,
+)
 from .init import init_world
 from .journal import Journal
 from .loop import daily
@@ -325,6 +330,31 @@ def cmd_framework_validate(world, registry, journal, args) -> int:
     )
 
 
+def cmd_framework_validate_packs(world, registry, journal, args) -> int:
+    """Validate every participant pack under .project/participants/.
+
+    Pure deterministic check: parse every *.yaml, fail closed on
+    malformed YAML, missing required keys, schema-namespace violations,
+    and duplicate pack ids. Does NOT attest contracts; that is the
+    role of the upstream play-nice-contracts library. Project-neutral
+    so any agent harness, CI run, or human can drive it."""
+    project_root = Path(__file__).resolve().parents[2]
+    packs_dir = project_root / ".project" / "participants"
+    result = validate_participant_packs(packs_dir, project_root=project_root)
+    payload = {
+        "packs_dir": str(packs_dir),
+        "violations": [str(v) for v in result.violations],
+        "count": len(result.violations),
+    }
+    if result.ok:
+        return _emit(Result(ok=True, status="healthy", data=payload), args.json)
+    return _emit(
+        Result(ok=False, status="unhealthy",
+               warnings=[str(v) for v in result.violations], data=payload),
+        args.json, EXIT_ERROR,
+    )
+
+
 def _updates_manager(world, registry, journal, args) -> tuple:
     """Build the updates provider + manager, or None (not configured)."""
     provider = build_provider(
@@ -501,6 +531,13 @@ def main(argv: list[str] | None = None) -> int:
                              help="validate config against framework invariants")
     fw_v.add_argument("--json", action="store_true")
     fw_v.set_defaults(fn=cmd_framework_validate)
+    fw_vp = fw_sub.add_parser(
+        "validate-packs",
+        help="validate every participant pack under .project/participants/ "
+             "(parse, required keys, schema namespace, id uniqueness)",
+    )
+    fw_vp.add_argument("--json", action="store_true")
+    fw_vp.set_defaults(fn=cmd_framework_validate_packs)
 
     up = sub.add_parser("updates",
                         help="safe update flow: check/preview/apply/rollback")

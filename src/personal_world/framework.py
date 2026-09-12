@@ -179,3 +179,120 @@ def validate_settings_export(export: dict) -> ValidationResult:
                         f"'{forbidden}'",
                     )
     return out
+
+
+PACK_REQUIRED_TOP_KEYS = (
+    "schema",
+    "id",
+)
+
+
+def validate_participant_packs(
+    participants_dir: Path,
+    project_root: Path | None = None,
+) -> ValidationResult:
+    """Validate participant packs under ``participants_dir``.
+
+    This is the canonical Play-Nice participant-pack gate for Project
+    Worlds. It is intentionally project-neutral (lives in the
+    ``personal_world`` package, not in any harness config) so it can be
+    driven from any agent harness, CI, or a human running pytest.
+
+    Scope: only files named ``participant.yaml`` are treated as the
+    participant record itself. Sidecar files
+    (``capabilities.yaml``, ``help-routing.yaml``, ``attestation.yaml``,
+    ``interaction.md``, ``ONBOARDING.md``) live alongside the
+    participant record and are referenced from it via
+    ``capabilities_file``, ``interaction_file``, etc.; they are NOT
+    participant records and are out of scope for this validator.
+    Concretely: a participant pack is one directory containing one
+    ``participant.yaml`` plus optional sidecars.
+
+    Checks (deterministic, fail-closed):
+
+    - every ``participant.yaml`` under ``participants_dir`` parses with
+      ``yaml.safe_load``; malformed YAML is a hard violation
+      (``pack-parse``).
+    - every pack declares at minimum the ``schema`` and ``id`` keys
+      (``pack-shape``); missing keys fail closed.
+    - no two packs may share the same ``id`` (``pack-id-collision``).
+    - the ``schema`` value, if present, must be a string starting with
+      ``play-nice/`` (``pack-schema-namespace``). This is a coarse
+      shape check; per-schema structural validation lives upstream in
+      ``play-nice-contracts`` and is not duplicated here.
+
+    The function does NOT validate cross-pack contracts, run contract
+    attestation, or interpret semantics beyond the schema string. That
+    is the role of the canonical ``play-nice-contracts`` library and
+    belongs upstream, not in this project.
+
+    The function is pure and side-effect free; it does not write any
+    file under ``participants_dir``.
+    """
+    out = ValidationResult()
+    root = Path(participants_dir)
+    if not root.exists():
+        out.add("pack-discovery", f"participants directory '{root}' does not exist")
+        return out
+    if not root.is_dir():
+        out.add("pack-discovery", f"participants path '{root}' is not a directory")
+        return out
+
+    yaml_files = sorted(
+        p for p in root.rglob("participant.yaml") if p.is_file()
+    )
+    if not yaml_files:
+        out.add(
+            "pack-discovery",
+            f"no participant.yaml files found under '{root}' "
+            f"(a participant pack is one directory containing "
+            f"participant.yaml plus optional sidecars)",
+        )
+        return out
+
+    seen_ids: dict[str, Path] = {}
+    for path in yaml_files:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            out.add("pack-read", f"could not read '{path}': {exc}")
+            continue
+        try:
+            data = yaml.safe_load(text)
+        except yaml.YAMLError as exc:
+            msg = str(exc).splitlines()[0] if exc else "unknown"
+            out.add("pack-parse", f"'{path}' is not valid YAML: {msg}")
+            continue
+        if not isinstance(data, dict):
+            out.add(
+                "pack-shape",
+                f"'{path}' top-level YAML is not a mapping "
+                f"(got {type(data).__name__})",
+            )
+            continue
+        for required_key in PACK_REQUIRED_TOP_KEYS:
+            if required_key not in data:
+                out.add(
+                    "pack-shape",
+                    f"'{path}' is missing required top-level key "
+                    f"'{required_key}'",
+                )
+        schema_val = data.get("schema")
+        if schema_val is not None:
+            if not isinstance(schema_val, str) or not schema_val.startswith("play-nice/"):
+                out.add(
+                    "pack-schema-namespace",
+                    f"'{path}' schema must be a string starting with "
+                    f"'play-nice/' (got {schema_val!r})",
+                )
+        pack_id = data.get("id")
+        if isinstance(pack_id, str):
+            if pack_id in seen_ids:
+                out.add(
+                    "pack-id-collision",
+                    f"participant id '{pack_id}' is declared in both "
+                    f"'{seen_ids[pack_id]}' and '{path}'",
+                )
+            else:
+                seen_ids[pack_id] = path
+    return out

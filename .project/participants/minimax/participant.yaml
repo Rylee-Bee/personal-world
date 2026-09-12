@@ -287,6 +287,159 @@ limitations:
   - does-not-represent-the-kilo-harness
   - structured-file-output-needs-deterministic-validation-before-acceptance
 
+claims:
+  # Machine-checkable evidence ledger. Each claim has a grade and a
+  # command the reader can re-run to verify the result. Do not
+  # retrofit figma or big-pickle — this is a format the minimax pack
+  # itself owns.
+  - id: canonical-freshness-verified-before-pack-authoring
+    grade: observed
+    observed_at: 2026-09-12T17:33:48Z
+    claim: local checkout was fast-forwarded to the canonical upstream HEAD before any pack authoring
+    evidence:
+      command: git rev-list --left-right --count HEAD...origin/main
+      expected_after_pull: "0	0"
+      captured_after_pull_at_turn_1: "0	0 (post-pull of 21-commit drift)"
+      captured_after_pull_at_turn_2: "0	0 (post-pull of 1-commit drift)"
+  - id: sibling-participant-preservation
+    grade: observed
+    observed_at: 2026-09-12T17:33:48Z
+    claim: discovered existing .project/participants/big-pickle/ and left it byte-identical to HEAD; created a separate sibling pack instead of overwriting
+    evidence:
+      command: git diff --quiet HEAD -- .project/participants/big-pickle/participant.yaml
+      expected_exit_code: 0
+  - id: harness-brain-separation
+    grade: observed
+    observed_at: 2026-09-12T17:33:48Z
+    claim: authored two distinct packs (kilo/ for harness, minimax/ for brain) with explicit not_authoritative_for boundaries excluding the other layer's scope
+    evidence:
+      command: git ls-files .project/participants/kilo .project/participants/minimax
+      expected_non_empty: true
+  - id: deterministic-yaml-validation-caught-format-failure
+    grade: observed
+    observed_at: 2026-09-12T17:33:48Z
+    observed_at_second: 2026-09-12T17:46:01Z
+    claim: yaml.safe_load rejected malformed pack content on two separate occasions this session; both were repaired before commit
+    evidence:
+      command: uv run python -c "import yaml; [yaml.safe_load(p.read_text()) for p in __import__('pathlib').Path('.project/participants').rglob('*.yaml')]"
+      expected_outcome: silent success (no exception)
+      captured_at_turn_2_post_repair: all 10 participant YAML files parse clean
+  - id: framework-test-suite-passed
+    grade: observed
+    observed_at: 2026-09-12T17:33:48Z
+    claim: tests/test_framework.py remained green before and after participant-pack authoring
+    evidence:
+      command: uv run pytest tests/test_framework.py --timeout=30
+      expected_outcome: 33 passed
+      captured: "33 passed in 43.24s"
+  - id: adoption-pin-unchanged-across-session
+    grade: observed
+    observed_at: 2026-09-12T18:12:25Z
+    claim: .project/contracts/adoption.yaml revision pin (21b6841a, v0.6.0) was honored unchanged through two repo-freshness updates
+    evidence:
+      command: git log -1 --format=%H -- .project/contracts/adoption.yaml
+      expected_hash_unchanged: 21b6841a50a1b0d459a760861385e99679852430
+  - id: protected-packs-unchanged
+    grade: observed
+    observed_at: 2026-09-12T18:14:49Z
+    claim: figma and big-pickle participant packs were not modified during this session
+    evidence:
+      command: git diff --quiet HEAD -- .project/participants/figma/participant.yaml .project/participants/figma/attestation.yaml .project/participants/big-pickle/participant.yaml
+      expected_exit_code: 0
+  - id: structured-pack-validator-introduced
+    grade: observed
+    observed_at: 2026-09-12T18:19:32Z
+    claim: src/personal_world/framework.py gained validate_participant_packs(); personal-world framework validate-packs runs it
+    evidence:
+      command: uv run personal-world framework validate-packs --json
+      expected_status: healthy with zero violations
+
+library_proposals:
+  # Proposals derived from observed session friction. NOT adopted here.
+  # NOT project-local contracts. Submit each to
+  # Rylee-Bee/play-nice-contracts separately. Recording them here so a
+  # future session can find them and so a future Play-Nice maintainer
+  # can see what the project actually hit, not what reputation says
+  # should have been hit.
+  based_on_observed_session: 2026-09-12T17:33:48Z..18:14:49Z
+  status: NOT ADOPTED
+  status_detail: |
+    These are friction-derived proposals for the upstream
+    Rylee-Bee/play-nice-contracts library. They are recorded here for
+    traceability, not as a substitute for upstream review. A future
+    session may copy them into a project issue or PR; they MUST NOT
+    be implemented as project-local contracts in this repo.
+  proposals:
+    - id: task-aware-contract-resolution
+      targets_contract: ask-for-help + explicit-state
+      problem: >-
+        Agents cannot know which subset of an adopted contract bundle
+        applies to a given task without re-reading every contract. The
+        canonical library has the resolution logic; projects need a
+        deterministic invocation surface.
+      proposed_shape: >-
+        A canonical CLI / library entry point
+        (e.g. ``play-nice resolve --manifest <path> --task <tag>``)
+        that returns the resolved contract subset with their SHAs, so
+        sessions can cite contracts by ID without re-reading their text.
+      observed_cost: this session never re-read contracts; cited adoption.yaml
+        names only, never their content.
+    - id: richer-structured-participant-evidence
+      targets_contract: truth-and-evidence + provenance-and-audit
+      problem: >-
+        Participant packs currently rely on narrative provenance; a
+        future agent reading the pack has no machine-checkable way to
+        grade each claim. The MiniMax pack now embeds a structured
+        ``claims:`` list with re-runnable commands, but the project-local
+        format is not a project-local contract — it is a candidate for
+        upstream standardization.
+      proposed_shape: >-
+        Extend ``play-nice/participant-v1`` with an optional
+        ``claims:`` list whose entries carry ``grade``, ``observed_at``,
+        ``evidence.command``, and ``evidence.expected_outcome`` — so any
+        downstream validator can re-run the command and grade the claim.
+    - id: participant-collision-semantics
+      targets_contract: mutual-contribution + participation-and-contribution
+      problem: >-
+        When two packs claim the same id or overlapping scope, there is
+        no canonical rule. This session had to invent a question-tool
+        flow to ask the owner; that flow should be a deterministic
+        contract step.
+      proposed_shape: >-
+        A trigger contract that names the collision case explicitly:
+        ``participant-collision: when two packs claim the same id or
+        overlapping scope, surface both with provenance and ask before
+        merging, overwriting, or replacing. Valid outcomes: UPDATE
+        EXISTING, CREATE SIBLING, ABORT / ASK FOR HELP.``
+    - id: structured-pack-format-conformance
+      targets_contract: contract-attestation + stable-truth-replaceable-machinery
+      problem: >-
+        ATTESTATION requires verifying hash and receipt but does not
+        extend that discipline to file-level conformance for the pack
+        itself. This session's dominant observed failure (twice) was a
+        structured file that satisfied the semantic request but failed
+        format validation, caught only by ``yaml.safe_load`` after
+        write.
+      proposed_shape: >-
+        A rule that ``a parse-failing structured pack has not been
+        ATTESTED, regardless of semantic correctness``, with the
+        conformance check expressed as a per-schema declaration rather
+        than per-project parsers.
+    - id: canonical-freshness
+      targets_contract: stable-truth-replaceable-machinery + provenance-and-audit
+      problem: >-
+        ``stable-truth-replaceable-machinery`` says "one canonical
+        current truth; other documents may point to it" but does not
+        say how to verify your local checkout IS that truth before you
+        start pointing at it. This session caught 22 commits of drift
+        across two pulls before any pack authoring.
+      proposed_shape: >-
+        A derived rule that ``before authoring any new project-context
+        artifact, verify the local checkout matches the canonical
+        upstream OR explicitly record why freshness could not be
+        established.`` With an explicit escape hatch for unreachable
+        canonical: ``mark the work PROVISIONAL until reachable``.
+
 unknowns:
   # Capabilities NOT demonstrated in this session. Listing them here
   # prevents silent generalization from one onboarding experiment.
