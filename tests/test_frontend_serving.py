@@ -80,7 +80,27 @@ class TestSpaIsTheOnlyFrontend:
         r = client.get("/assets/app-abc123.js")
         assert r.status_code == 200
         assert r.text == 'console.log("app")'
-        assert "immutable" in r.headers["Cache-Control"]
+        # UAT contract (2026-09-12): no `immutable` — assets must always
+        # be revalidatable. ETag revalidation is explicit (this starlette
+        # sets the header but has no If-None-Match handling).
+        assert "immutable" not in r.headers["Cache-Control"]
+        assert "must-revalidate" in r.headers["Cache-Control"]
+        assert r.headers.get("etag")
+
+    def test_asset_revalidation_answers_304(self, tmp_path, monkeypatch, fake_dist):
+        client, _ = _react(tmp_path, monkeypatch, fake_dist)
+        r = client.get("/assets/app-abc123.js")
+        etag = r.headers["etag"]
+        reval = client.get("/assets/app-abc123.js",
+                           headers={"If-None-Match": etag})
+        assert reval.status_code == 304
+        assert not reval.content
+        assert reval.headers["etag"] == etag
+        # A stale etag gets the full body again.
+        full = client.get("/assets/app-abc123.js",
+                          headers={"If-None-Match": '"stale-etag"'})
+        assert full.status_code == 200
+        assert full.text == 'console.log("app")'
 
     def test_favicon_served(self, tmp_path, monkeypatch, fake_dist):
         client, _ = _react(tmp_path, monkeypatch, fake_dist)
