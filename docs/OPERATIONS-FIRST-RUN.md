@@ -6,8 +6,10 @@ local files.
 
 > **Scope correction (2026-09-10):** this is a dated bring-up record, not a
 > universal current deployment recipe. Use [Operations](OPERATIONS.md) and
-> [Architecture](ARCHITECTURE.md) first. Tracked Compose includes host-specific
-> mounts; no container name, timezone, backup job, or external provider is
+> [Architecture](ARCHITECTURE.md) first. The tracked `compose.yaml` is the
+> portable image-only base; host-specific mounts live in the opt-in
+> `compose.homelab.yaml` override, and source builds in `compose.dev.yaml`.
+> No container name, timezone, backup job, or external provider is
 > guaranteed on a fresh install. Confirm which configuration files
 > `app.py::build_registry` actually reads before adding provider wiring.
 > `/setup-wizard` now exists; optional depth-limited Git discovery also exists.
@@ -19,7 +21,7 @@ local files.
 ## 1. Clone + install
 
 ```bash
-git clone https://github.com/burgeswe/personal-world.git
+git clone https://github.com/Rylee-Bee/personal-world.git
 cd personal-world
 uv sync --frozen --extra test --extra crypto
 ```
@@ -60,7 +62,7 @@ rm .env-tmp
 recursion); point them at the repo dir itself:
 
 ```bash
-docker exec personal-world sh -c \\\"git clone --bare https://github.com/burgeswe/personal-world.git /data/repos/personal-world.git\\\" || true
+docker exec personal-world sh -c \\\"git clone --bare https://github.com/Rylee-Bee/personal-world.git /data/repos/personal-world.git\\\" || true
 ```
 
 (or plain `git clone` non-bare: same result for status).
