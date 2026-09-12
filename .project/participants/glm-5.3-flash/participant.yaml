@@ -66,7 +66,26 @@ profile:
     generalize beyond the observed sessions.
 
   observed_tasks_this_session:
+    - lab-integration-against-real-truth
+      # 2026-09-12 lab phase: chose sshfs(ro) + bind(ro) as the thinnest
+      # test-env connection after discovering production runs the same
+      # image without ssh/yaml (CLI's ssh collectors degrade honestly);
+      # verified the design in a throwaway container BEFORE touching
+      # compose; durable mount via systemd user unit; full UAT probe
+      # with real operator rows + provenance + operations drill-ins.
+    - restart-survivable-auth-fix
+      # boot-time token reconciliation (f8428af): the first test wrote
+      # assertions against an UNAUTHENTICATED route (/api/setup/status
+      # has no require_auth) and passed vacuously; re-read the auth
+      # seam, switched the assertions to /api/sections, then
+      # live-verified on the test env (wizard token survives restart,
+      # stale compose token rejected).
+    - named-use-case-discipline
+      # two named volume-persisting verifications (Lab UAT, auth
+      # restart check), each wiped immediately after with healthz
+      # setup_needed:true proof printed.
     - canonical-freshness-verification-before-work
+    - play-nice-onboarding-via-contractctl
       # fetched before interpreting state; detected another participant's
       # push landing on main mid-work (05aa727) BEFORE pushing, rebased
       # the single local commit (no file overlap) and re-verified.
@@ -128,6 +147,13 @@ profile:
           Wrote a degrade-test whose mock contradicted the production
           mock wiring (three debugging iterations). Fix: build mocks
           from the exact envelopes the production mock path returns.
+      - id: vacuous-assertion-on-wrong-endpoint
+        note: >-
+          2026-09-12 lab phase: auth-fix test asserted 401 on an
+          unauthenticated route and passed for the wrong reason; caught
+          it only because the live-restart probe contradicted the pass.
+          Fix: check which routes actually carry require_auth before
+          writing auth assertions; live verification is the backstop.
     self_reported:
       - "long-context drift on very large multi-file reads (mitigated by
         bounded reads; not independently measured)"
@@ -164,10 +190,13 @@ unknowns:
 provenance:
   supplied_by: glm-5.3-flash
   observed_at: 2026-09-12T00:00:00Z
-  source_revision: ce328c6660bd32713bb1c8632e3cd5ef0d8be55f
+  source_revision: 448bc27efe7faea214b824562923742496ae70ac
   canonical_status: optional-non-authoritative
   import_method: >-
     Self-authored during the 2026-09-12 next-phase orchestration session
-    (commit ce328c6), following the existing participant-v1 pack
-    conventions; evidence from that session's commits (aa5e2da cache
-    rework, ce328c6 lab wiring) and probes recorded in .project files.
+    (commit 9343152), following the existing participant-v1 pack
+    conventions; extended the same day with the lab-integration phase's
+    observed evidence (lab UAT against real truth, restart-survivable
+    auth fix, vacuous-assertion failure mode) — evidence from commits
+    f8428af and the live test-env probes; original session evidence
+    (aa5e2da cache rework, ce328c6 lab wiring) preserved.
