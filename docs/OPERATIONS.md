@@ -51,15 +51,12 @@ storage in a local install. The Dockerfile already installs the crypto extra.
 Without it, current Vault code falls back to base64 while its status endpoint
 still reports encrypted; do not use that response alone as encryption evidence.
 
-### Frontend serving (transitional)
+### Frontend serving (single UI since the T15 cutover)
 
-During P1 the server has two serving modes, chosen by the `PW_FRONTEND`
-environment variable:
-
-- `legacy` (default): the built-in server-rendered HTML pages are served
-  exactly as before. Nothing changes for existing deployments.
-- `react`: the server serves the built React interface from a dist
-  directory instead of the built-in HTML pages.
+The React interface built into the image at `/app/frontend/dist` is the
+only product frontend. The legacy server-rendered pages and the old
+`PW_FRONTEND` mode switch were deleted in the cutover commit; a stray
+`PW_FRONTEND` value in the environment is inert.
 
 `PW_FRONTEND_DIST` points at a built `dist/` directory. It defaults to
 `frontend/dist` relative to the repository in a local install and
@@ -67,10 +64,9 @@ environment variable:
 produces it. When the dist directory has no `index.html`, page requests
 answer `503` with an HTML explanation ("Project Worlds' interface is
 not built") and the API remains fully available; the response never
-contains filesystem or environment values.
-
-The default stays `legacy` for all of P1; it flips to `react` at the P1
-parity cutover. No action is needed now.
+contains filesystem or environment values. There is no fallback UI
+behind the 503 — a missing frontend is an honest error, never a
+silently served retired interface.
 
 ## Containers
 

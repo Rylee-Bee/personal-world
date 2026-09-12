@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import TodayScreen from "./screens/TodayScreen";
 import ChatRoute from "./screens/ChatRoute";
 import LoginScreen from "./screens/LoginScreen";
@@ -82,6 +82,9 @@ function AppRoutes() {
       <Route path="/vault" element={<VaultScreen />} />
       <Route path="/world" element={<WorldScreen />} />
       <Route path="/settings" element={<SettingsScreen />} />
+      {/* Legacy server-era path kept as an alias: the old wizard URL
+          now lands on the same first-run flow (T15 cutover). */}
+      <Route path="/setup-wizard" element={<Navigate to="/setup" replace />} />
     </Routes>
   );
 }

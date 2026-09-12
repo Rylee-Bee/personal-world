@@ -1,9 +1,10 @@
-"""P1 T3: frontend serving boundary (PW_FRONTEND / PW_FRONTEND_DIST).
+"""T15 cutover: the React SPA is the ONE product frontend.
 
-Proves the legacy default is untouched, react mode serves the SPA
-honestly (with an honest 503 when dist is missing), API/static routes
-keep winning by registration order, traversal cannot escape dist, and
-no private value is echoed into any served HTML.
+The legacy server-rendered pages and the PW_FRONTEND switch are gone.
+The server always serves the built SPA (honest 503 when dist is
+missing — no legacy fallback UI behind it), API/static routes keep
+winning by registration order, traversal cannot escape dist, and no
+private value is echoed into any served HTML.
 """
 import sys
 from pathlib import Path
@@ -48,46 +49,13 @@ def _app(tmp_path, monkeypatch, dist=None):
     return TestClient(app), app
 
 
-def _legacy(tmp_path, monkeypatch):
-    return _app(tmp_path, monkeypatch)
-
-
 def _react(tmp_path, monkeypatch, dist):
-    monkeypatch.setenv("PW_FRONTEND", "react")
     return _app(tmp_path, monkeypatch, dist=dist)
 
 
-class TestLegacyDefault:
-    def test_env_unset_defaults_to_legacy(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("PW_FRONTEND", raising=False)
-        client, app = _legacy(tmp_path, monkeypatch)
-        assert app.state.frontend_mode == "legacy"
-        assert "frontend" in str(app.state.frontend_dist)
-
-    def test_no_catch_all_route_registered(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("PW_FRONTEND", raising=False)
-        client, app = _legacy(tmp_path, monkeypatch)
-        paths = [r.path for r in app.routes]
-        assert "/{full_path:path}" not in paths
-
-    def test_root_is_legacy_dashboard(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("PW_FRONTEND", raising=False)
-        client, _ = _legacy(tmp_path, monkeypatch)
-        r = client.get("/")
-        assert r.status_code == 200
-        assert "Project Worlds — Today" in r.text
-
-    def test_unknown_page_is_404(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("PW_FRONTEND", raising=False)
-        client, _ = _legacy(tmp_path, monkeypatch)
-        r = client.get("/no/such/page")
-        assert r.status_code == 404
-
-
-class TestReactMode:
+class TestSpaIsTheOnlyFrontend:
     def test_serves_index_with_no_cache(self, tmp_path, monkeypatch, fake_dist):
         client, app = _react(tmp_path, monkeypatch, fake_dist)
-        assert app.state.frontend_mode == "react"
         r = client.get("/")
         assert r.status_code == 200
         assert 'data-marker="fake-dist"' in r.text
@@ -99,7 +67,7 @@ class TestReactMode:
         assert r.status_code == 200
         assert 'data-marker="fake-dist"' in r.text
 
-    def test_legacy_pages_return_index(self, tmp_path, monkeypatch, fake_dist):
+    def test_auth_pages_return_index(self, tmp_path, monkeypatch, fake_dist):
         client, _ = _react(tmp_path, monkeypatch, fake_dist)
         for path in ("/setup", "/setup-wizard", "/login"):
             r = client.get(path)
@@ -118,6 +86,45 @@ class TestReactMode:
         client, _ = _react(tmp_path, monkeypatch, fake_dist)
         r = client.get("/favicon.svg")
         assert r.status_code == 200
+
+
+class TestLegacyUiCannotReturn:
+    """The T15 cutover deleted the legacy HTML. These guards keep it
+    deleted: no HTML constants, no PW_FRONTEND mode switch, no legacy
+    route handlers — and a stray PW_FRONTEND value in the environment
+    must not resurrect anything."""
+
+    def test_no_legacy_html_constants_in_api(self):
+        src = (Path(__file__).parent.parent / "src" / "personal_world"
+               / "api.py").read_text()
+        for name in ("DASHBOARD_HTML", "WIZARD_HTML", "SETUP_HTML",
+                     "LOGIN_HTML", "PREFS_STYLE_MARKER"):
+            assert name not in src, name
+
+    def test_pw_frontend_env_has_no_effect(self, tmp_path, monkeypatch, fake_dist):
+        # The switch is gone: any value (even "legacy") must be inert —
+        # the SPA is served regardless. Unknown must never equal a
+        # silently resurrected legacy mode.
+        monkeypatch.setenv("PW_FRONTEND", "legacy")
+        client, app = _react(tmp_path, monkeypatch, fake_dist)
+        r = client.get("/")
+        assert r.status_code == 200
+        assert 'data-marker="fake-dist"' in r.text
+        assert not hasattr(app.state, "frontend_mode")
+
+    def test_no_mode_switch_branch(self, tmp_path, monkeypatch, fake_dist):
+        monkeypatch.setenv("PW_FRONTEND", "banana")
+        client, _ = _react(tmp_path, monkeypatch, fake_dist)
+        # Same honest behavior as any other value: the SPA.
+        r = client.get("/")
+        assert r.status_code == 200
+        assert 'data-marker="fake-dist"' in r.text
+
+    def test_unknown_page_is_spa_index_not_404(self, tmp_path, monkeypatch, fake_dist):
+        client, _ = _react(tmp_path, monkeypatch, fake_dist)
+        r = client.get("/no/such/page")
+        assert r.status_code == 200
+        assert 'data-marker="fake-dist"' in r.text
 
 
 class TestApiRoutesNeverSwallowed:
@@ -201,7 +208,6 @@ class TestMissingDist:
     def test_honest_503_without_api_disruption(self, tmp_path, monkeypatch):
         empty = tmp_path / "empty-dist"
         empty.mkdir()
-        monkeypatch.setenv("PW_FRONTEND", "react")
         client, _ = _app(tmp_path, monkeypatch, dist=empty)
         r = client.get("/")
         assert r.status_code == 503
@@ -215,19 +221,17 @@ class TestMissingDist:
     def test_503_page_exact_heading(self, tmp_path, monkeypatch):
         empty = tmp_path / "empty-dist"
         empty.mkdir()
-        monkeypatch.setenv("PW_FRONTEND", "react")
         client, _ = _app(tmp_path, monkeypatch, dist=empty)
         r = client.get("/")
         assert "<h1>Project Worlds' interface is not built</h1>" in r.text
 
-
-class TestInvalidMode:
-    def test_invalid_value_treated_as_legacy(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("PW_FRONTEND", "banana")
-        client, app = _app(tmp_path, monkeypatch)
-        assert app.state.frontend_mode == "legacy"
-        paths = [r.path for r in app.routes]
-        assert "/{full_path:path}" not in paths
-        r = client.get("/")
-        assert r.status_code == 200
-        assert "Project Worlds — Today" in r.text
+    def test_missing_dist_never_serves_a_legacy_page(self, tmp_path, monkeypatch):
+        """The fallback for a missing dist is the honest 503, never a
+        retired interface."""
+        empty = tmp_path / "empty-dist"
+        empty.mkdir()
+        client, _ = _app(tmp_path, monkeypatch, dist=empty)
+        for path in ("/", "/setup", "/login", "/today", "/settings"):
+            r = client.get(path)
+            assert r.status_code == 503, path
+            assert "interface is not built" in r.text

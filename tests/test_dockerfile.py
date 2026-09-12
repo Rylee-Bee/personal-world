@@ -2,8 +2,8 @@
 
 Stage 1 builds frontend/ when present and tolerates its absence; stage 2
 is the existing python image with the built dist copied in and
-PW_FRONTEND_DIST pointed at it. The default PW_FRONTEND stays legacy
-(cutover is T15) — it must not be flipped here.
+PW_FRONTEND_DIST pointed at it. Since the T15 cutover the React SPA is
+the only product frontend — no PW_FRONTEND switch may exist.
 """
 import sys
 from pathlib import Path
@@ -31,9 +31,13 @@ class TestDockerfile:
     def test_dist_env_set(self):
         assert "PW_FRONTEND_DIST=/app/frontend/dist" in _dockerfile_text()
 
-    def test_default_mode_not_flipped(self):
-        assert "PW_FRONTEND=react" not in _dockerfile_text()
-        assert "ENV PW_FRONTEND" not in _dockerfile_text()
+    def test_no_frontend_mode_switch(self):
+        # T15 cutover guard: the PW_FRONTEND legacy/react switch is
+        # deleted from the product. No ENV may set it, and the serving
+        # code must not read it back.
+        assert "PW_FRONTEND=" not in _dockerfile_text()
+        api_src = (REPO_ROOT / "src" / "personal_world" / "api.py").read_text()
+        assert 'os.environ.get("PW_FRONTEND"' not in api_src
 
     def test_node_stage_tolerates_missing_frontend(self):
         text = _dockerfile_text()

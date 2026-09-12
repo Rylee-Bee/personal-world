@@ -57,12 +57,3 @@ def test_journal_note_rejects_empty(tmp_path, monkeypatch):
     c, _ = _mk(tmp_path, monkeypatch)
     r = c.post("/api/journal", json={"text": ""}, headers=_headers())
     assert r.status_code == 422
-
-
-def test_dashboard_has_services_and_composer(tmp_path, monkeypatch):
-    c, _ = _mk(tmp_path, monkeypatch)
-    (tmp_path / "setup-complete").write_text("")
-    r = c.get("/", headers=_headers())
-    html = r.text
-    assert "today-services" in html
-    assert "note-save" in html
