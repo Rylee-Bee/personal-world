@@ -4,7 +4,7 @@
 icon "Personal World" keeps its name.)
 
 **Prepared:** September 2026  
-**Repository:** `burgeswe/personal-world`  
+**Repository:** `Rylee-Bee/personal-world`  
 **Validated asset commit:** `7b92a236902b626f12d9459eaa4d6dc522273468`  
 **Pack path:** `design/assets/icons/`
 
@@ -16,10 +16,10 @@ Chat is a first-class Project Worlds surface. Its complete family must remain ea
 
 ## Pinned sources
 
-- Import library: https://raw.githubusercontent.com/burgeswe/personal-world/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/figma-icon-library.svg
-- Manifest: https://raw.githubusercontent.com/burgeswe/personal-world/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/manifest.json
-- Individual SVGs: https://github.com/burgeswe/personal-world/tree/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/svg
-- Visual reference: https://raw.githubusercontent.com/burgeswe/personal-world/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/contact-sheet.png
+- Import library: https://raw.githubusercontent.com/Rylee-Bee/personal-world/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/figma-icon-library.svg
+- Manifest: https://raw.githubusercontent.com/Rylee-Bee/personal-world/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/manifest.json
+- Individual SVGs: https://github.com/Rylee-Bee/personal-world/tree/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/svg
+- Visual reference: https://raw.githubusercontent.com/Rylee-Bee/personal-world/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/contact-sheet.png
 
 ## Build the library
 
