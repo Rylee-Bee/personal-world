@@ -46,6 +46,16 @@ authentication does not cover them. See [Architecture](ARCHITECTURE.md) for the
 route inventory and the limits of the current extra write check called step-up.
 It is not verified SSO/MFA re-authentication.
 
+### Token reconciliation at boot (setup-created tokens survive restarts)
+
+The setup wizard writes the access code you create to `<data_dir>/.env`.
+At boot the app prefers that file over the compose/supplied
+`PW_API_TOKEN` environment value when both exist and differ, so the
+credential a human created survives a container restart. To return
+authority to a rotated compose token, delete `<data_dir>/.env` and
+restart — a deliberate, visible act. If the file is unreadable or
+carries no `PW_API_TOKEN` line, boot leaves the environment untouched
+(it fails toward the deployment token, never toward lockout).
 Native Vault needs `uv sync --frozen --extra test --extra crypto` for encrypted
 storage in a local install. The Dockerfile already installs the crypto extra.
 Without it, current Vault code falls back to base64 while its status endpoint
