@@ -80,6 +80,35 @@ Regression gate: `tests/test_public_safety.py`.
 
 Rationale: [`docs/adr/0001-capabilities-core-owned-providers-optional.md`](docs/adr/0001-capabilities-core-owned-providers-optional.md).
 
+### Play-Nice Contracts (shared library)
+
+- **Applies when:** Work touches any governed surface — UI, API,
+  agents, providers, design, or engineering.
+- **Purpose:** Shared constitution for how humans, bots, services,
+  APIs, interfaces, and tools interact. 65 canonical contracts across
+  8 layers: core safety, human experience, product behavior,
+  interoperability, security, engineering, agents, and interfaces.
+- **Contract:** [`.contracts/adoption.yaml`](.contracts/adoption.yaml)
+  — adoption manifest, pinned to Play-Nice revision
+  `88effb1007d6e99827f1081cc2427baaf2b361ad`.
+- **Source:** [`Rylee-Bee/play-nice-contracts`](https://github.com/Rylee-Bee/play-nice-contracts)
+  — public shared library, MIT license.
+
+This project adopts the full Play-Nice library. Applicable contracts
+are resolved per task using the adoption manifest's `always` and
+`triggers` sections. The local contracts below are the project-specific
+authoritative sources where they exist; Play-Nice provides the shared
+floors beneath them.
+
+Cross-references between local contracts and Play-Nice layers:
+
+| Local contract | Play-Nice layer / contracts |
+|---|---|
+| Accessibility (`docs/accessibility/`) | `accessibility-floor`, `migraine-and-sensory-safety`, `low-vision-and-reflow`, `attention-and-focus`, `complexity-on-demand`, `progressive-disclosure` |
+| Human Reliability (`docs/HUMAN_RELIABILITY_CONTRACT.md`) | `human-reliability`, `interruption-and-resumption`, `what-why-next` |
+| Provider-Neutral Baseline (`docs/NATIVE-BASELINE-AND-ENRICHMENT.md`) | `capability-first`, `provider-neutrality`, `discovery-and-negotiation`, `failure-and-degradation` |
+| Security (`SECURITY.md`) | `authorization`, `authentication`, `secrets`, `data-classification`, `public-private-boundaries`, `least-privilege` |
+
 ## Contract Discovery Rule
 
 If this repository defines additional contracts, add them to this
