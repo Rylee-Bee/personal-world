@@ -13,6 +13,7 @@ Current packs:
 | `big-pickle` | agent | **OPTIONAL / NON-AUTHORITATIVE** | N/A | NONE (no act of adoption) |
 | `kilo` | agent-harness (application layer) | **OBSERVED** (not a contract adopter) | N/A | N/A |
 | `minimax` | agent-brain (model layer) | **OPTIONAL / NON-AUTHORITATIVE** | N/A | NONE (no act of adoption) |
+| `glm-5.3-flash` | agent-brain (model layer) | **PROVISIONAL** | N/A | NONE (no act of adoption) |
 
 - 2026-09-12 (re-pass): Figma re-relayed her six corrected files in a
   second pass (9 + 6 task-impact sentences). The foreman verified her
@@ -59,6 +60,12 @@ Current packs:
   variant per its own provenance) rather than replacing it; both are
   preserved so future sessions can see observations from multiple
   brains without rewriting history.
+- 2026-09-12: `glm-5.3-flash/` added as the **brain-layer profile for
+  the GLM-5.3-Flash orchestrator brain** (opencode harness).
+  **Optional, non-authoritative, PROVISIONAL** — self-authored from
+  that session's observed work (orchestration, lab wiring, freshness
+  handling), validated by `validate-packs`. Claims are routing
+  evidence, not capability authority.
 - A pack NEVER becomes canonical project truth. Deleting any pack directory
   must not corrupt this project.
 - Packs carry no secrets — authentication is symbolic references only.
