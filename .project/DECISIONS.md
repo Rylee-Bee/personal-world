@@ -126,3 +126,24 @@ dated entry superseding the old one (append-only, like the journal).
   no security boundary is crossed by publishing the source image
   publicly; private visibility would add an access-handling layer
   for no defensive gain.
+
+## UAT data discipline
+
+- **2026-09-12 — No persisted user data in the test environment until
+  the owner calls the product at least beta.** Standing rule (owner
+  directive during UAT, task `project-worlds-test-environment` and
+  successors): the isolated `project-worlds-test` deployment must not
+  accumulate real/persistent personal data. Every UAT walk starts
+  from a verified clean slate (`podman compose -p
+  project-worlds-test down -v` then `up -d`, with `GET /healthz`
+  showing `setup_needed:true` as the proof, printed to the owner).
+  Persistence in the test instance is only allowed for a specific,
+  named test use case that requires surviving state (e.g. verifying
+  restart persistence), and the volume is wiped again immediately
+  after that check. Fixture/synthetic data only — `pw-safety`
+  discipline applies. Real data waits for a deployment the owner
+  has explicitly designated as persistent, which does not exist yet.
+  Reason: during UAT the person must never wonder whether what they
+  see is leftover state; a confusing slate is a trust failure, and
+  Rylee's real data is too valuable to rest in a system whose
+  persistence and auth seams are still being walked.
