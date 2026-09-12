@@ -77,6 +77,43 @@ def _token() -> str | None:
     return os.environ.get("PW_API_TOKEN")
 
 
+def _reconcile_boot_token(data_dir: Path) -> None:
+    """Survive a restart after first-run setup (P2 auth groundwork).
+
+    POST /api/setup writes the token the human created to
+    ``<data_dir>/.env`` and into the live process env — but nothing
+    read that file at boot, so the next container restart restored the
+    compose-supplied ``PW_API_TOKEN`` and the wizard-created access
+    code 401'd: the owner was locked out of their own world until the
+    infra token came back. (Observed live twice, 2026-09-12.)
+
+    Semantics: the setup file is the human-facing credential store —
+    the token a person created through the setup flow outranks the
+    deployment-infra env at boot. If both exist and differ, the file
+    wins and the process env is updated so every reader (healthz,
+    auth, identity bootstrap) sees one coherent token. An operator who
+    wants the compose token back deletes the file (documented in
+    OPERATIONS) — a deliberate, visible act, never a silent one.
+
+    Malformed/missing-file handling: unreadable file → leave the
+    environment untouched (fail toward the deployment's token, never
+    toward lockout); a file with no PW_API_TOKEN line → same.
+    """
+    env_file = data_dir / ".env"
+    if not env_file.is_file():
+        return
+    try:
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("PW_API_TOKEN=") and not line.startswith("#"):
+                value = line.split("=", 1)[1].strip().strip('"').strip("'")
+                if value and value != os.environ.get("PW_API_TOKEN"):
+                    os.environ["PW_API_TOKEN"] = value
+                return
+    except OSError:
+        return
+
+
 def _step_up_authorized(request: Request) -> bool:
     """Write path semantics. Loopback OR non-forwarded Header X-PW-StepUp: 1.
 
@@ -159,6 +196,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # Identity seam state (issue #8 phase 0/1, per multi-user review
     # 2026-09-09): local users as trust root, PW_IDENTITY_MODE picks
     # single (bootstrap-primary bypass) or multi (hashed-token users).
+    # Boot-time token reconciliation FIRST so every reader below sees
+    # the setup-created credential, not the stale infra one.
+    _reconcile_boot_token(data_dir)
     from .identity import IdentityStore
     _identity_mode = os.environ.get("PW_IDENTITY_MODE", "single")
     _identity_store = IdentityStore(data_dir)
