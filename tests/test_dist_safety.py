@@ -117,3 +117,23 @@ def test_dist_matches_a_fresh_build() -> None:
         "frontend/dist is older than frontend/src — rebuild "
         "(npm run build) before serving"
     )
+
+def test_dist_contains_no_legacy_ui() -> None:
+    """T15 regression guard (b): the built bundle must not contain any
+    legacy-UI root marker. The legacy server-rendered pages were
+    deleted at the cutover; if one ever gets baked back into the
+    bundle, this fails loudly instead of quietly serving a retired
+    interface."""
+    markers = (
+        "Project Worlds — Today</title>",      # legacy dashboard <title>
+        'id="view-settings"',                  # legacy hash-routed views
+        "data-setup-needed",                   # legacy login page flag
+        "PW-PREFS-STYLE",                      # legacy server prefs marker
+    )
+    for path in _scannable(_dist_files()):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for marker in markers:
+            assert marker not in text, (
+                f"{path.relative_to(DIST)} contains legacy UI marker "
+                f"{marker!r}"
+            )

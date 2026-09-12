@@ -1,6 +1,5 @@
 """P0.5 correctness pins for pre-existing API/auth defects.
 
-- /login returned an empty body (handler never returned its HTML)
 - POST /api/chat/test was an unauthenticated provider probe
 - POST /api/world/policy crashed (500) on a cemented key
 - GET /api/daily mutated and saved the world on every page view
@@ -35,21 +34,6 @@ AUTH = {"Authorization": "Bearer instancetoken"}
 # P2 replaces it with real session-level step-up. Tests pin the *route
 # requirement*, not the gate's strength.
 STEP = {**AUTH, "X-PW-StepUp": "1"}
-
-
-class TestLogin:
-    def test_login_returns_html_body(self, env):
-        c, _ = env
-        r = c.get("/login")
-        assert r.status_code == 200
-        assert "text/html" in r.headers["content-type"]
-        assert "<title>Project Worlds — Login</title>" in r.text
-        assert 'data-setup-needed="false"' in r.text
-
-    def test_login_flags_fresh_install(self, env):
-        c, tmp = env
-        (tmp / "setup-complete").unlink()
-        assert 'data-setup-needed="true"' in c.get("/login").text
 
 
 class TestChatProbe:

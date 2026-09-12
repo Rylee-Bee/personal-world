@@ -501,11 +501,13 @@ class TestDesignToolIndependence:
         assert Accessibility.model_fields["motion"] is not None
 
     def test_dashboard_is_repo_native(self):
-        """The executable design reference is repo HTML/CSS, requiring
-        no design tool to understand or modify (addendum)."""
+        """The executable design reference is the React frontend, built
+        from repo sources — no design tool needed (addendum, updated at
+        the T15 cutover: the legacy HTML constants are gone)."""
         repo_root = Path(__file__).parent.parent
+        assert (repo_root / "frontend" / "src" / "App.tsx").is_file()
         html = (repo_root / "src" / "personal_world" / "api.py").read_text()
-        assert "DASHBOARD_HTML" in html
+        assert "DASHBOARD_HTML" not in html
         assert ".fig" not in html
         assert "figma.com" not in html
 

@@ -37,6 +37,8 @@ COPY --from=frontend /out /app/frontend/dist
 ENV PW_DATA_DIR=/data \
     PW_CONFIG_DIR=/config \
     PW_FRONTEND_DIST=/app/frontend/dist
+# T15 cutover: the React SPA in /app/frontend/dist is the only product
+# frontend; the legacy HTML and the PW_FRONTEND switch are deleted.
 
 VOLUME /data
 

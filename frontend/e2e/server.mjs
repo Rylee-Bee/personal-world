@@ -73,7 +73,6 @@ const env = {
   PW_IDENTITY_MODE: "single",
   PW_DATA_DIR: dataDir,
   PW_CONFIG_DIR: configDir,
-  PW_FRONTEND: "react",
   PW_FRONTEND_DIST: dist,
   PW_LAB_CLI: "/nonexistent/lab-cli", // Lab stays honestly UNAVAILABLE
   // (a configured-but-unreachable CLI: the backend reports

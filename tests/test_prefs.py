@@ -336,69 +336,6 @@ class TestApiPrefs:
         assert c.put("/api/prefs", json={}).status_code == 401
 
 
-class TestDashboardPrefsPlumbing:
-    """Preferences flow world -> API -> HTML with zero JavaScript."""
-
-    def _dashboard(self, tmp_path, accessibility):
-        import json
-        from fastapi.testclient import TestClient
-        from personal_world.api import create_app
-        (tmp_path / "world.json").write_text(json.dumps({
-            "schema_version": "1", "facts": {}, "intents": {},
-            "policies": {}, "lore": {}, "capabilities": {},
-            "providers": {}, "packs": {},
-            "accessibility": accessibility,
-        }))
-        (tmp_path / "setup-complete").write_text("ok")
-        c = TestClient(create_app(tmp_path, tmp_path))
-        return c.get("/").text
-
-    def test_default_snapshot_has_attrs_css_and_media_query(self, tmp_path):
-        html = self._dashboard(tmp_path, {})
-        assert 'data-pw-motion="reduced"' in html
-        assert 'data-pw-density="comfortable"' in html
-        assert 'data-pw-target-size="44"' in html
-        assert 'data-pw-contrast="comfortable"' in html
-        assert 'data-pw-text-scale="1"' in html
-        assert '<style id="pw-prefs">' in html
-        assert "--pw-target-size: 44px;" in html
-        assert "@media (prefers-reduced-motion: reduce)" in html
-
-    def test_set_prefs_change_the_rendered_html(self, tmp_path):
-        html = self._dashboard(
-            tmp_path, {"text_scale": 1.5, "target_size": 56,
-                       "density": "compact"}
-        )
-        assert 'data-pw-text-scale="1.5"' in html
-        assert 'data-pw-target-size="56"' in html
-        assert 'data-pw-density="compact"' in html
-        assert "--pw-text-scale: 1.5;" in html
-        assert "--pw-target-size: 56px;" in html
-
-    def test_no_script_for_preference_application(self, tmp_path):
-        # Zero-JS requirement: the only <script> in the shell is the
-        # pre-existing data-loading script; preference application is
-        # pure server-rendered CSS.
-        html = self._dashboard(tmp_path, {})
-        scripts = [s for s in html.split("<script")[1:]]
-        assert scripts, "dashboard data script expected"
-        for s in scripts:
-            assert "pw-prefs" not in s
-            assert "prefers-reduced-motion" not in s
-        # The prefs style block itself carries the media query, outside JS.
-        style = html[html.find('<style id="pw-prefs">'):]
-        assert "@media (prefers-reduced-motion: reduce)" in style
-
-    def test_dashboard_css_consumes_target_size_var(self):
-        from personal_world.api import DASHBOARD_HTML
-        assert "min-width: var(--pw-target-size, 44px)" in DASHBOARD_HTML
-        assert "min-height: var(--pw-target-size, 44px)" in DASHBOARD_HTML
-
-    def test_dashboard_css_consumes_text_scale_var(self):
-        from personal_world.api import DASHBOARD_HTML
-        assert "var(--pw-text-scale, 1)" in DASHBOARD_HTML
-
-
 class TestCliPrefs:
     """`personal-world prefs show` / `prefs set` follow cli conventions."""
 

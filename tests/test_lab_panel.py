@@ -180,16 +180,3 @@ def test_api_route_maps_provider_status(monkeypatch):
         assert body["ok"] is True
         assert body["status"] in ("healthy", "stale")
         assert body["data"]["schema"] == "lab-lowbw/1"
-
-
-def test_dashboard_wires_the_panel(monkeypatch):
-    """Panel section, route fetch, and render hook all present in the
-    served HTML shell."""
-    import re
-    from personal_world.api import DASHBOARD_HTML
-    assert 'id="world-lab-h2"' in DASHBOARD_HTML
-    assert "/api/lab/state" in DASHBOARD_HTML
-    assert "state.lab" in DASHBOARD_HTML
-    # aria-labelled section in the World view
-    m = re.search(r'<section aria-labelledby="world-lab-h2">', DASHBOARD_HTML)
-    assert m is not None
