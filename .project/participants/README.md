@@ -14,6 +14,7 @@ Current packs:
 | `kilo` | agent-harness (application layer) | **OBSERVED** (not a contract adopter) | N/A | N/A |
 | `minimax` | agent-brain (model layer) | **OPTIONAL / NON-AUTHORITATIVE** | N/A | NONE (no act of adoption) |
 | `glm-5.3-flash` | agent-brain (model layer) | **PROVISIONAL** | N/A | NONE (no act of adoption) |
+| `auto-free` | agent (Kilo routing mode) | **PROVISIONAL** | N/A | NONE (no act of adoption) |
 
 - 2026-09-12 (re-pass): Figma re-relayed her six corrected files in a
   second pass (9 + 6 task-impact sentences). The foreman verified her
@@ -66,6 +67,13 @@ Current packs:
   that session's observed work (orchestration, lab wiring, freshness
   handling), validated by `validate-packs`. Claims are routing
   evidence, not capability authority.
+- 2026-09-12: `auto-free/` added as the **brain-provider routing-mode
+  profile** for the Kilo "Auto Free" session (Kilo Auto tier, Free plan).
+  **Optional, non-authoritative, PROVISIONAL** — the actual model
+  identifier is not self-verifiable from within the session (config says
+  `kilo/minimax/minimax-m3`; system prompt says `kilo/kilo-auto/free`);
+  this pack profiles the routing mode, not a fixed model. Coexists with
+  `minimax/` (different identity boundary: routing mode vs model variant).
 - A pack NEVER becomes canonical project truth. Deleting any pack directory
   must not corrupt this project.
 - Packs carry no secrets — authentication is symbolic references only.
