@@ -7,7 +7,6 @@ import {
   fetchPrefsSchema,
   fetchReminders,
   fetchSections,
-  fetchThemes,
   fetchWorldStatus,
   savePrefsPartial,
   saveSections,
@@ -16,7 +15,6 @@ import {
   type PrefsSchema,
   type Reminder,
   type SectionData,
-  type ThemePackData,
   type WorldStatus,
 } from "../lib/api";
 import { useCompanion, COMPANIONS } from "../lib/companion-context";
@@ -154,8 +152,6 @@ function SettingsScreen() {
 
   const [statusData, setStatusData] = useState<WorldStatus | null>(null);
 
-  const [themes, setThemes] = useState<ThemePackData[] | null>(null);
-
   // ── Confirmation dialogs (danger = destructive, A11y §4.4) ──
   const [resetConfirm, setResetConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Reminder | null>(null);
@@ -211,13 +207,6 @@ function SettingsScreen() {
       .catch(() => {
         /* capability panel renders its own honest failure */
       });
-    fetchThemes()
-      .then((list) => {
-        if (!cancelled) setThemes(list as ThemePackData[]);
-      })
-      .catch(() => {
-        if (!cancelled) setThemes(null); // companion list works without theme packs
-      });
     return () => {
       cancelled = true;
     };
@@ -230,15 +219,31 @@ function SettingsScreen() {
 
   // ── Preference write: PUT /api/prefs through step-up. The server's
   // 400 detail names the field and the reason; render it VERBATIM next
-  // to the control (honest, specific — never a generic failure). ──
+  // to the control (honest, specific — never a generic failure).
+  // After ANY outcome the screen re-reads GET /api/prefs: the server
+  // is the truth for what is stored, so a failed write shows the
+  // server's actual values again and a successful one shows exactly
+  // what the server normalized. Optimistic context updates are
+  // reverted by that same re-read (companion context below). ──
   const [prefErrors, setPrefErrors] = useState<Record<string, string>>({});
   const [savingPref, setSavingPref] = useState<string | null>(null);
+
+  const refreshPrefs = useCallback(async () => {
+    try {
+      const fresh = await fetchPrefs();
+      setCurrentPrefs(fresh as unknown as Record<string, string | number>);
+    } catch {
+      // Unreachable server: keep rendering what we had; the next
+      // successful load corrects it. Errors surface on the next write.
+    }
+  }, []);
 
   const savePref = useCallback(
     async (key: string, value: string | number) => {
       // Companion choice is context machinery (prefs-context): "off"
       // never reaches the server; real vocabulary values update the
       // context and the server pref together.
+      const companionBefore = companion;
       if (key === "companion") {
         if (value === COMPANION_OFF) {
           setCompanion(COMPANION_OFF);
@@ -273,11 +278,21 @@ function SettingsScreen() {
         } else {
           setPrefErrors((prev) => ({ ...prev, [key]: e instanceof Error ? e.message : "Could not save this preference." }));
         }
+        // The optimistic context update lied — undo it so the UI shows
+        // the server's actual stored value, not the attempt.
+        if (key === "companion") {
+          setCompanion(companionBefore);
+        } else {
+          await refreshPrefs();
+        }
       } finally {
         setSavingPref(null);
+        // Server truth after every attempt: success shows what the
+        // server normalized; failure shows what actually persisted.
+        void refreshPrefs();
       }
     },
-    [announce, setCompanion, setPref, withStepUp]
+    [announce, companion, refreshPrefs, setCompanion, setPref, withStepUp]
   );
 
   // ── Sections write: PUT /api/sections through step-up, then re-read
@@ -586,41 +601,14 @@ function SettingsScreen() {
         </div>
       </section>
 
-      {/* ── Companion theme packs (GET /api/themes; legacy parity) ──
-          Selecting a pack sets the companion pref to the pack name —
-          offered only when the name is in the server's companion
-          vocabulary, so Settings never offers a value the server
-          would 400. ── */}
-      {themes !== null && themes.length > 0 && (
-        <section aria-labelledby="themes-heading" data-testid="themes-panel">
-          <h2 id="themes-heading" className={headingClasses}>Companion themes</h2>
-          <div className={`mt-3 ${panelClasses} divide-y divide-[var(--pw-color-border-subtle)]`}>
-            {themes.map((pack) => {
-              const offered = companionChoicesList.includes(pack.name);
-              return (
-                <div key={pack.name} className="flex items-center justify-between gap-3 p-4">
-                  <span className="text-sm text-[var(--pw-color-text-primary)]">
-                    {pack.display_name || pack.name}
-                  </span>
-                  {offered ? (
-                    <button
-                      type="button"
-                      className={actionButtonClasses}
-                      aria-pressed={companion === pack.name}
-                      aria-label={companion === pack.name ? `${pack.display_name || pack.name}, selected` : `Select ${pack.display_name || pack.name}`}
-                      onClick={() => void savePref("companion", pack.name)}
-                    >
-                      {companion === pack.name ? "Selected" : "Select"}
-                    </button>
-                  ) : (
-                    <span className={`text-xs ${mutedClasses}`}>Not a companion option on this server.</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* ── Theme packs (GET /api/themes) are artwork packages for the
+          selected companion, NOT a second companion selector — the one
+          canonical selection control is the Companion panel above (the
+          server's companion vocabulary owns what is selectable; a pack
+          name that is not in that vocabulary was previously rendered
+          here as a permanently-dead "Not a companion option" row).
+          Pack artwork application is deferred until a pack exists that
+          the server vocabulary can actually address. ── */}
 
       {/* ── Reminders ── */}
       <section aria-labelledby="reminders-heading" data-testid="reminders-panel">

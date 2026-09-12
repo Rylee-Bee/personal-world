@@ -352,6 +352,45 @@ describe("Settings: prefs render from GET /api/prefs/schema (parity row 6)", () 
     expect(screen.getByLabelText("Motion")).toBeTruthy();
   });
 
+  it("after a failed write the screen re-reads the server (no optimistic lie)", async () => {
+    const detail = "motion: 'warp' is not an allowed value";
+    let prefsReads = 0;
+    const fetchMock = vi.fn((url: string | URL, init: RequestInit = {}) => {
+      const target = String(url);
+      if (target.endsWith("/api/prefs/schema")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, data: SCHEMA }));
+      }
+      if (target.endsWith("/api/prefs") && (init.method ?? "GET") === "PUT") {
+        return Promise.resolve(jsonResponse(400, { detail }));
+      }
+      if (target.endsWith("/api/prefs")) {
+        prefsReads += 1;
+        return Promise.resolve(jsonResponse(200, { ok: true, data: PREFS }));
+      }
+      return Promise.resolve(jsonResponse(200, { ok: true, data: [] }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderScreen();
+    await screen.findByLabelText("Motion");
+    const readsAfterLoad = prefsReads;
+    fireEvent.change(screen.getByLabelText("Motion"), { target: { value: "subtle" } });
+    await screen.findByTestId("pref-error-motion");
+    // A fresh GET /api/prefs re-anchored the screen to server truth.
+    expect(prefsReads).toBeGreaterThan(readsAfterLoad);
+  });
+
+  it("does NOT render a second companion selector from theme packs (dead rows removed)", async () => {
+    // world-keeper and not-a-companion are both outside the server's
+    // companion vocabulary — the old panel rendered them as permanent
+    // "Not a companion option on this server." no-ops.
+    mockFetch(standardRoutes());
+    renderScreen();
+    await screen.findByTestId("companion-panel");
+    expect(screen.queryByTestId("themes-panel")).toBeNull();
+    expect(screen.queryByText("Not a companion option on this server.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Select World Keeper (Globe)" })).toBeNull();
+  });
+
   it("schema load failure is named honestly and does not invent options", async () => {
     mockFetch([
       (url) =>
