@@ -1,16 +1,19 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { fetchPrefs } from "../lib/api";
+import { CompanionSlot } from "../primitives/CompanionSlot";
+import { Icon } from "../lib/icons";
 import "./login-screen.css";
 
 /**
- * LoginScreen (P1 T12, FOUNDATION-SPEC §1.5 + §7 row 9): the
- * transitional token login. The token lives in
+ * LoginScreen (P1 T12, FOUNDATION-SPEC §1.5 + §7 row 9; Workshop v3
+ * warmth pass 2026-09-13, frame 17:1681 "Project Worlds login",
+ * GENEROUS register): the transitional token login. The token lives in
  * localStorage["pw_token"] (the legacy key, so existing browsers keep
  * working) until P2 replaces it with real sessions.
  *
  * Honest verification: the token is checked by fetching /api/prefs —
- * the same probe the legacy dashboard uses on load — so "Sign in"
+ * the same probe the legacy dashboard uses on load — so "Enter"
  * means "the server accepted this token", never "a value was stored".
  * A wrong token is reported as wrong; a reachable server is never
  * confused with a successful one.
@@ -20,7 +23,24 @@ import "./login-screen.css";
  * wired in App.tsx.
  *
  * The /setup link is the recovery path when no account has been
- * configured yet (fresh install deep-link parity, row 8).
+ * configured yet (fresh install deep-link parity, row 8) — the frame
+ * renames it "Build your world →" (17:1723).
+ *
+ * Composition (frame 17:1681): the entrance column (title card +
+ * portal card + footer) is the page's task order; the welcome
+ * companion scene (17:1696–1703 — water halos + the Mermaid guide +
+ * "I've been keeping the lanterns lit for you.") is decorative
+ * presence beside it at ≥900px, a captioned presence row below the
+ * portal on smaller screens. The frame's 220px Mermaid illustration
+ * normalizes to the canonical rig via CompanionSlot (mermaid-art
+ * reservation — presence scale recorded, not resolved; the guide is
+ * design voice, not the user's selected companion, so the slot is
+ * overridden to the canonical Mermaid identity). Background glow +
+ * halo rings are token gradients; the frame's door line-art and
+ * per-particle stars are design-agent art, rendered here as
+ * aria-hidden Unicode ✦ marks only (decoration-encoding reservation).
+ * Controls stay literal: the label is "Access code", the submit is
+ * "Enter" (audit LITERAL), the link keeps its /setup href.
  */
 function LoginScreen() {
   const navigate = useNavigate();
@@ -49,35 +69,83 @@ function LoginScreen() {
 
   return (
     <section aria-labelledby="login-heading" className="pw-login">
-      <h1 id="login-heading">Project Worlds</h1>
-      <p className="pw-login-lede">Paste your access code to open your world.</p>
-      <form
-        onSubmit={(e: FormEvent) => {
-          e.preventDefault();
-          void signIn();
-        }}
-      >
-        <label htmlFor="pw-login-token">Access code</label>
-        <input
-          id="pw-login-token"
-          type="password"
-          autoComplete="current-password"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          disabled={busy}
-        />
-        <button type="submit" className="pw-login-submit" disabled={busy || !token.trim()}>
-          {busy ? "Opening your world…" : "Enter"}
-        </button>
-        {error ? (
-          <p className="pw-login-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-      </form>
-      <p className="pw-login-alt">
-        First time here? <Link to="/setup">Set up your world</Link>
-      </p>
+      <div className="pw-login-grid">
+        {/* Entrance column (17:1704): title card + portal. */}
+        <div className="pw-login-entrance">
+          <div className="pw-login-title-card">
+            <h1 id="login-heading" className="pw-login-title">
+              Project Worlds
+              <span aria-hidden="true" className="pw-login-title-spark">
+                ✦
+              </span>
+            </h1>
+            <p className="pw-login-waiting">Your world is waiting.</p>
+          </div>
+          <div className="pw-login-portal">
+            <form
+              onSubmit={(e: FormEvent) => {
+                e.preventDefault();
+                void signIn();
+              }}
+            >
+              <label htmlFor="pw-login-token">Access code</label>
+              <div className="pw-login-field">
+                <Icon
+                  name="icon-system-device-lock"
+                  size={17}
+                  aria-hidden={true}
+                  className="pw-login-field-icon"
+                />
+                <input
+                  id="pw-login-token"
+                  type="password"
+                  autoComplete="current-password"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  disabled={busy}
+                />
+              </div>
+              <button type="submit" className="pw-login-submit" disabled={busy || !token.trim()}>
+                {busy ? "Opening your world…" : "Enter"}
+                {!busy ? (
+                  <span aria-hidden="true" className="pw-login-submit-arrow">
+                    →
+                  </span>
+                ) : null}
+              </button>
+              {error ? (
+                <p className="pw-login-error" role="alert">
+                  {error}
+                </p>
+              ) : null}
+            </form>
+            <div className="pw-login-divider" aria-hidden="true">
+              <span className="pw-login-divider-line" />
+              <span className="pw-login-divider-star">✦</span>
+              <span className="pw-login-divider-line" />
+            </div>
+            <p className="pw-login-alt">
+              First time here?{" "}
+              <Link to="/setup" className="pw-login-build">
+                Build your world <span aria-hidden="true">→</span>
+              </Link>
+            </p>
+          </div>
+          <p className="pw-login-footer">A private place, made just for you.</p>
+        </div>
+
+        {/* Welcome companion (17:1696–1703): decorative presence —
+            aria-hidden unit (artwork + the guide's caption speak as
+            one decoration; the page works without it). */}
+        <div aria-hidden="true" className="pw-login-companion">
+          <div className="pw-login-halo">
+            <div className="pw-login-halo-inner">
+              <CompanionSlot size="empty" companion="mermaid" />
+            </div>
+          </div>
+          <p className="pw-login-companion-line">I've been keeping the lanterns lit for you.</p>
+        </div>
+      </div>
     </section>
   );
 }

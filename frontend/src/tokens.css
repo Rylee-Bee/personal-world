@@ -34,6 +34,13 @@
   --pw-color-vault-store-panel: rgba(26,23,36,0.91);
   --pw-color-vault-store-border: #493847;
   --pw-color-vault-input-border: #40364d;
+  --pw-color-warmth-login-gradient: radial-gradient(ellipse at 52% 48%, rgba(22,16,29,1) 0%, rgba(14,11,21,1) 62%, rgba(10,8,16,1) 100%);
+  --pw-color-warmth-login-field-glow: 0 0 14px 0 rgba(114,177,177,0.15);
+  --pw-color-warmth-login-card-glow: 0 18px 50px 2px rgba(114,177,177,0.14);
+  --pw-color-warmth-enter-glow: 0 8px 22px 0 rgba(114,177,177,0.22);
+  --pw-color-warmth-login-field-bg: #0f0c17;
+  --pw-color-warmth-login-line: rgba(114,177,177,0.29);
+  --pw-color-warmth-halo-water: radial-gradient(circle, rgba(114,177,177,0.12) 0%, rgba(0,0,0,0) 65%);
 }
 
 [data-pw-theme="light"] {
