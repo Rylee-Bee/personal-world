@@ -115,7 +115,17 @@ function VaultHeading({
             size={72}
             className="relative text-[var(--pw-color-text-secondary)] opacity-80"
           />
-          <span className="absolute right-2 top-1 select-none text-[var(--pw-color-accent-primary-bright)] opacity-50">
+          {/* Decorative frame-composition marks (17:corner).
+              The frame intent was a faint ornament; the previous
+              opacity-50 reduced rendered contrast to 3.86:1
+              against the canvas — a serious WCAG 2 AA failure on
+              16px text. With opacity removed the marks render at
+              accent.primary_bright at 13.0:1 (well above
+              4.5:1). The element is aria-hidden, so the visual
+              strength change is the only impact — recorded
+              deviation: ornament reads more strongly than the
+              original frame intended. See design/deviations.md. */}
+          <span className="absolute right-2 top-1 select-none text-[var(--pw-color-accent-primary-bright)]">
             °<br />◦<br />✦
           </span>
         </div>
@@ -526,10 +536,18 @@ function VaultScreen() {
               </div>
             </div>
             {/* The frame's sea-charm (17:1136): warmth framing stays
-                real text (Young Serif, gold), controls stay literal. */}
+                real text (Young Serif, gold), controls stay literal.
+                Decorative ornament line — accessibility record: the
+                previous opacity-0.44 reduced rendered contrast to
+                3.06:1 (serious WCAG AA failure on 14px text). With
+                opacity removed the line renders at accent.gold at
+                12.01:1 (well above 4.5:1). Visual strength change
+                recorded as a deviation; the words read more strongly
+                than the original frame intent. See
+                design/deviations.md. */}
             <p
               className="mt-6 text-center text-[14px]"
-              style={{ fontFamily: "var(--pw-typography-font-expressive)", color: "var(--pw-color-accent-gold)", opacity: 0.44 }}
+              style={{ fontFamily: "var(--pw-typography-font-expressive)", color: "var(--pw-color-accent-gold)" }}
             >
               ·  the sea keeps what it is told  ·
             </p>
