@@ -1,25 +1,38 @@
 """Traefik ingress rollups capability.
 
-Read-only against the router API (192.168.2.145:8080 default). Honors
-the "degrades honestly" rule: if the API is unreachable, the
-capability returns UNKNOWN (never fake HEALTHY).
+Read-only against the router API. Honors the "degrades honestly"
+rule: if the API is unreachable, the capability returns UNKNOWN
+(never fake HEALTHY).
+
+The router base URL is supplied per deployment via the constructor
+argument or the PW_TRAEFIK_BASE_URL environment variable. There is
+no silent default — the provider fails closed if neither is set.
 """
 from __future__ import annotations
 
 import json
+import os
 import urllib.request
 
 from ..envelope import Result, fail, ok
 from .registry import StatusContract
 
 TRAEFIK_TIMEOUT = 8
+TRAEFIK_ENV = "PW_TRAEFIK_BASE_URL"
 
 
 class TraefikIngress(StatusContract):
     """Aggregate ingress routes + TLS expiry status."""
 
-    def __init__(self, base_url: str = "http://192.168.2.145:8080") -> None:
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: str | None = None) -> None:
+        configured = base_url or os.environ.get(TRAEFIK_ENV)
+        if not configured:
+            raise ValueError(
+                f"TraefikIngress needs an explicit base_url argument or "
+                f"the {TRAEFIK_ENV} environment variable; no silent "
+                f"default for an internal-network endpoint."
+            )
+        self.base_url = configured.rstrip("/")
 
     def _get(self, path: str):
         try:
