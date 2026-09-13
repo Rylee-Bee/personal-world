@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, fireEvent, within } from "@testing-library/react";
+import { screen, waitFor, fireEvent, within, render } from "@testing-library/react";
 import { axe } from "vitest-axe";
-import TodayScreen from "../screens/TodayScreen";
+import TodayScreen, { NotificationCard } from "../screens/TodayScreen";
 import {
   screenProviders,
   mockFetchByRoute,
@@ -182,14 +182,15 @@ describe("TodayScreen (T10, parity rows 1–3)", () => {
 
   it("renders the attention list from /api/daily attention", async () => {
     await bootToday(defaultHandlers());
-    expect(screen.getByText("Attention")).toBeTruthy();
-    // Scoped to the Attention region: the same humanized sentence now
-    // also appears in "What changed" (shared voice, task brief §3).
-    const attention = screen.getByRole("region", { name: "Attention" });
-    expect(within(attention).getByText(/Reasoning: unavailable/)).toBeTruthy();
+    // The DAILY_BUSY fixture has 2+ actionable items, so it renders
+    // the Bad Day triage (17:2117) instead of the plain attention list.
+    expect(screen.getByText("What needs you now")).toBeTruthy();
+    expect(screen.getByText("Needs attention")).toBeTruthy();
+    // The humanized sentences appear in both the triage and "What changed"
+    expect(screen.getAllByText(/Reasoning: unavailable/).length).toBeGreaterThanOrEqual(1);
     expect(
-      within(attention).getByText(/Source control is ready for looking, not changing things\./)
-    ).toBeTruthy();
+      screen.getAllByText(/Source control is ready for looking, not changing things\./).length
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it("a quiet day shows NO what-changed list (no fabricated Recent Changes) and renders the quiet companion message (frame 17:481)", async () => {
@@ -523,8 +524,9 @@ describe("TodayScreen (T10, parity rows 1–3)", () => {
       expect(h2, `missing real h2#${id}`).toBeTruthy();
       expect(h2?.closest("section")?.getAttribute("aria-labelledby")).toBe(id);
     }
-    // the busy fixture's Attention section keeps its own labeled h2
-    expect(container.querySelector("h2#today-attention-heading")).toBeTruthy();
+    // the busy fixture's Attention section renders the Bad Day triage
+    // (17:2117) which uses h2#today-bad-day-heading
+    expect(container.querySelector("h2#today-bad-day-heading")).toBeTruthy();
     expect(screen.getByRole("list", { name: "Recent entries" })).toBeTruthy();
     // the bordered/shadowed Card boxes are gone from Today
     // (transition-shadow is the Card chrome signature — buttons have
@@ -584,6 +586,128 @@ describe("TodayScreen (T10, parity rows 1–3)", () => {
         .find((el) => el.tagName === "SPAN") as HTMLElement
     );
     expect(await axeNoContrast(container)).toHaveNoViolations();
+  });
+
+  it("bad day triage (17:2117): 2+ actionable items render the three-tier hierarchy", async () => {
+    await bootToday(defaultHandlers());
+    // Tier 1: "What needs you now" with rose border
+    expect(screen.getByText("What needs you now")).toBeTruthy();
+    expect(screen.getByText("Needs attention")).toBeTruthy();
+    expect(screen.getByText(/things could use your attention\./)).toBeTruthy();
+    // Companion note
+    expect(screen.getByText(/I'll keep watching this\./)).toBeTruthy();
+    // Reassurance message
+    expect(
+      screen.getByText("This isn't broken. It's waiting for you when you're ready.")
+    ).toBeTruthy();
+    // data-pw-today-bad-day attribute present
+    const triage = document.querySelector("[data-pw-today-bad-day]");
+    expect(triage).toBeTruthy();
+    // Companion present in triage, decorative, not a trigger
+    const slot = triage?.querySelector("[data-pw-companion-slot]");
+    expect(slot?.querySelector("button")).toBeNull();
+    // axe holds in the bad day state
+    const results = await axeNoContrast(document.body);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("bad day triage with informational items shows tier 2 'Good to know' section", async () => {
+    const DAILY_BAD_DAY_WITH_INFO = {
+      ok: true,
+      status: "healthy",
+      warnings: ["source_control: unavailable", "reasoning: unavailable"],
+      actions: ["drift: focus: 'resting' != intent 'shipping'"],
+      data: {
+        world: { facts: 3, intents: 1, policies: 1, cemented_policies: 0, capabilities: 3, providers: 2, packs: 0 },
+        capabilities: CAPABILITIES_FIXTURE,
+        attention: [
+          "source_control: unavailable",
+          "reasoning: unavailable",
+          "drift: focus: 'resting' != intent 'shipping'",
+          "ingress: unknown",
+        ],
+      },
+    };
+    await bootToday(defaultHandlers({ daily: DAILY_BAD_DAY_WITH_INFO }));
+    // Tier 1 present
+    expect(screen.getByText("What needs you now")).toBeTruthy();
+    // Tier 2 present because "ingress: unknown" is informational
+    expect(screen.getByText("Good to know — no action needed")).toBeTruthy();
+    expect(screen.getByText("Watching quietly")).toBeTruthy();
+  });
+
+  it("single actionable item renders the plain attention list, not the triage", async () => {
+    const DAILY_SINGLE = {
+      ok: true,
+      status: "healthy",
+      warnings: ["reasoning: unavailable"],
+      actions: [],
+      data: {
+        world: { facts: 3, intents: 1, policies: 1, cemented_policies: 0, capabilities: 3, providers: 2, packs: 0 },
+        capabilities: CAPABILITIES_FIXTURE,
+        attention: ["reasoning: unavailable"],
+      },
+    };
+    await bootToday(defaultHandlers({ daily: DAILY_SINGLE }));
+    // Plain attention list, not triage
+    expect(screen.getByRole("heading", { name: "Attention", level: 2 })).toBeTruthy();
+    expect(screen.queryByText("What needs you now")).toBeNull();
+  });
+});
+
+describe("NotificationCard (Workshop v3 17:6369)", () => {
+  it("good-news tone: teal border, GOOD NEWS label, heart avatar", () => {
+    const { container } = render(
+      <NotificationCard tone="good-news" headline="Deploy completed" detail="Your site is live." />
+    );
+    const card = container.querySelector("[data-pw-notification='good-news']");
+    expect(card).toBeTruthy();
+    expect(card?.textContent).toContain("GOOD NEWS");
+    expect(card?.textContent).toContain("Deploy completed");
+    expect(card?.textContent).toContain("Your site is live.");
+  });
+
+  it("small-update tone: muted border, A SMALL UPDATE label", () => {
+    const { container } = render(
+      <NotificationCard tone="small-update" headline="Calendar synced" detail="3 new events this week." />
+    );
+    const card = container.querySelector("[data-pw-notification='small-update']");
+    expect(card).toBeTruthy();
+    expect(card?.textContent).toContain("A SMALL UPDATE");
+    expect(card?.textContent).toContain("Calendar synced");
+  });
+
+  it("action-required tone: rose border, WHEN YOU'RE READY label, persists", () => {
+    const { container } = render(
+      <NotificationCard tone="action-required" headline="PR needs review" detail="It's been open for 2 days." actionLabel="View PR →" />
+    );
+    const card = container.querySelector("[data-pw-notification='action-required']");
+    expect(card).toBeTruthy();
+    expect(card?.textContent).toContain("WHEN YOU'RE READY");
+    expect(card?.textContent).toContain("PR needs review");
+    expect(card?.textContent).toContain("View PR →");
+  });
+
+  it("dismiss button fires onDismiss", () => {
+    const onDismiss = vi.fn();
+    const { container } = render(
+      <NotificationCard tone="good-news" headline="Test" detail="Detail" onDismiss={onDismiss} />
+    );
+    const btn = container.querySelector("[aria-label='Dismiss notification']");
+    expect(btn).toBeTruthy();
+    btn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it("action button fires onAction", () => {
+    const onAction = vi.fn();
+    const { container } = render(
+      <NotificationCard tone="action-required" headline="Test" detail="Detail" actionLabel="View →" onAction={onAction} />
+    );
+    const btn = container.querySelector("button:not([aria-label])");
+    expect(btn?.textContent).toBe("View →");
+    btn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(onAction).toHaveBeenCalled();
   });
 });
 /** One agent-sync project record (mirrors the sensor's model). */

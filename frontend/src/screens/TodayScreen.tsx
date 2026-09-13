@@ -12,7 +12,7 @@ import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 import { CompanionSlot } from "../primitives/CompanionSlot";
 import { ErrorState } from "../shell/ErrorState";
 import { Button } from "../components/ui/button";
-import { Loader2, AlertCircle, BookOpen, Clock, Plus, Sparkles } from "../lib/icons";
+import { Loader2, AlertCircle, BookOpen, Clock, Plus, Sparkles, X, Inbox, Heart, Bell } from "../lib/icons";
 
 /**
  * TodayScreen (P1 T10, parity rows 1–3, FOUNDATION-SPEC §7; Workshop v3
@@ -365,6 +365,194 @@ function QuietDayMessage() {
   );
 }
 
+// ── Bad Day triage (Workshop v3 frame 17:2117 "Today — Bad Day",
+//    ATTENTIVE register) ──
+
+/** The Figma frame's "What needs you now" items carry a
+ *  "capability · issue" headline and a suggested-action pill.
+ *  We parse the real attention string to surface the same shape. */
+function triageItemOf(warning: string): { capability: string; detail: string } | null {
+  const match = CAPABILITY_WARNING_SHAPE.exec(String(warning || ""));
+  if (!match) return null;
+  return { capability: match[1], detail: match[2] };
+}
+
+/** Bad day items are actionable attention — not uncertainty-only.
+ *  Uncertainty is curiosity, not a bad day. */
+function badDayItems(items: string[]): { actionable: string[]; informational: string[] } {
+  const actionable: string[] = [];
+  const informational: string[] = [];
+  for (const item of items) {
+    const parsed = triageItemOf(item);
+    if (parsed && QUESTION_STATUSES.has(parsed.detail.trim())) {
+      informational.push(item);
+    } else {
+      actionable.push(item);
+    }
+  }
+  return { actionable, informational };
+}
+
+/** Tier 1 — "What needs you now" (frame 17:2161): rose-bordered panel
+ *  with attention items and companion note. The companion's restrained
+ *  message matches the frame: "I'll keep watching this." */
+function BadDayTriage({ items }: { items: string[] }) {
+  const { actionable, informational } = badDayItems(items);
+  if (actionable.length < 2) return null;
+  return (
+    <section
+      aria-labelledby="today-bad-day-heading"
+      className="space-y-4"
+      data-pw-today-bad-day=""
+    >
+      {/* Tier 1: What needs you now */}
+      <div
+        className="flex gap-5 overflow-hidden rounded-3xl p-5"
+        style={{
+          backgroundColor: "var(--pw-color-surface-panel)",
+          border: "1px solid var(--pw-color-accent-secondary)",
+          borderLeft: "4px solid var(--pw-color-accent-secondary)",
+        }}
+      >
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <h2
+                id="today-bad-day-heading"
+                className="text-xl"
+                style={{ fontFamily: "var(--pw-typography-font-expressive)", color: "var(--pw-color-text-primary)" }}
+              >
+                What needs you now
+              </h2>
+              <p className="text-xs" style={{ color: "var(--pw-color-text-secondary)" }}>
+                {actionable.length === 2
+                  ? "Two things could use your attention."
+                  : `${actionable.length} things could use your attention.`}
+              </p>
+            </div>
+            <span
+              className="text-[11px] uppercase"
+              style={{ color: "var(--pw-color-accent-secondary)" }}
+            >
+              Needs attention
+            </span>
+          </div>
+          <ul className="space-y-2" role="list">
+            {actionable.map((item, i) => (
+              <li key={`${i}-${item}`}>
+                <div
+                  className="flex items-center gap-3.5 rounded-xl px-4 py-3.5"
+                  style={{ backgroundColor: "var(--pw-color-surface-elevated)" }}
+                >
+                  <div
+                    className="flex size-[38px] shrink-0 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: "var(--pw-color-warmth-rose-wash-soft)" }}
+                  >
+                    <AlertCircle size={19} aria-hidden={true} style={{ color: "var(--pw-color-accent-secondary)" }} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm" style={{ color: "var(--pw-color-text-primary)" }}>
+                      {humanizeAttention(item)}
+                    </p>
+                  </div>
+                  <span
+                    className="shrink-0 rounded-full border px-3 py-2 text-xs"
+                    style={{
+                      borderColor: "var(--pw-color-accent-secondary)",
+                      color: "var(--pw-color-accent-secondary)",
+                    }}
+                  >
+                    Review
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {/* Companion note (17:2184): restrained presence beside the
+            triage — the companion watches, not acts. */}
+        <div className="hidden w-[178px] shrink-0 flex-col items-center justify-center self-stretch sm:flex">
+          <div className="flex items-center justify-center">
+            <CompanionSlot size="empty" />
+          </div>
+          <p className="mt-2 opacity-55" style={{ color: "var(--pw-color-accent-primary)" }}>
+            <span aria-hidden="true">✦</span>
+          </p>
+          <p
+            className="mt-1 text-center text-[15px] italic"
+            style={{ fontFamily: "var(--pw-typography-font-expressive)", color: "var(--pw-color-text-secondary)" }}
+          >
+            "I'll keep watching this."
+          </p>
+        </div>
+      </div>
+
+      {/* Tier 2: Good to know — no action needed (17:2188) */}
+      {informational.length > 0 ? (
+        <div
+          className="flex flex-col gap-3.5 overflow-hidden rounded-3xl p-5"
+          style={{
+            backgroundColor: "var(--pw-color-surface-panel)",
+            border: "1px solid var(--pw-color-border-subtle)",
+            borderLeft: "3px solid var(--pw-color-accent-primary)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <h2
+              className="text-xl"
+              style={{ fontFamily: "var(--pw-typography-font-expressive)", color: "var(--pw-color-text-primary)" }}
+            >
+              Good to know — no action needed
+            </h2>
+            <span
+              className="text-[11px] uppercase"
+              style={{ color: "var(--pw-color-accent-primary)" }}
+            >
+              Watching quietly
+            </span>
+          </div>
+          <div className="grid gap-3.5 min-[900px]:grid-cols-2">
+            {informational.map((item, i) => (
+              <div
+                key={`${i}-${item}`}
+                className="flex items-center gap-3.5 rounded-2xl p-4"
+                style={{ backgroundColor: "var(--pw-color-warmth-teal-wash)" }}
+              >
+                <div
+                  className="flex size-[38px] shrink-0 items-center justify-center rounded-full"
+                  style={{ border: "1px solid var(--pw-color-accent-primary)" }}
+                >
+                  <Inbox size={18} aria-hidden={true} style={{ color: "var(--pw-color-accent-primary)" }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm" style={{ color: "var(--pw-color-text-primary)" }}>
+                    {humanizeAttention(item)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Reassurance (17:2205/17:2215): the frame's "Waiting for help"
+          section carries this message — the triage ends with warmth. */}
+      <div
+        className="flex items-center gap-4 overflow-hidden rounded-3xl p-5"
+        style={{
+          backgroundColor: "var(--pw-color-surface-elevated)",
+          border: "1px solid var(--pw-color-border-subtle)",
+          borderLeft: "3px solid var(--pw-color-accent-secondary)",
+        }}
+      >
+        <p className="text-sm leading-relaxed" style={{ color: "var(--pw-color-text-secondary)" }}>
+          This isn't broken. It's waiting for you when you're ready.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function AttentionSection({ daily }: { daily: DailyState }) {
   if (daily.isLoading || daily.isError || !daily.data?.ok) return null;
   const items = daily.data.data?.attention ?? [];
@@ -402,6 +590,21 @@ function AttentionSection({ daily }: { daily: DailyState }) {
           items={items}
           caps={daily.data.data?.capabilities ?? {}}
         />
+      </section>
+    );
+  }
+  // Bad Day state (17:2117): multiple actionable attention items render
+  // the triage hierarchy — "What needs you now" + "Good to know" +
+  // reassurance. The companion stays at restrained volume; the world
+  // doesn't panic, it triages warmly.
+  const { actionable } = badDayItems(items);
+  if (actionable.length >= 2) {
+    return (
+      <section
+        aria-label="Your world today"
+        className="pt-[var(--pw-spacing-section)]"
+      >
+        <BadDayTriage items={items} />
       </section>
     );
   }
@@ -1219,6 +1422,114 @@ function ageText(value: string): string {
 
 function detailOf(error: Error | null): string | null {
   return error instanceof ApiError ? error.detail : null;
+}
+
+// ── Notification card pattern (Workshop v3 frame 17:6369
+//    "How the World Tells You Things") ──
+
+export type NotificationTone = "good-news" | "small-update" | "action-required";
+
+export interface NotificationCardProps {
+  tone: NotificationTone;
+  headline: string;
+  detail: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  onDismiss?: () => void;
+}
+
+const NOTIFICATION_TONE_META: Record<
+  NotificationTone,
+  { label: string; borderColor: string; glowColor: string; avatarBg: string; avatarIcon: typeof Heart }
+> = {
+  "good-news": {
+    label: "GOOD NEWS",
+    borderColor: "var(--pw-color-accent-primary)",
+    glowColor: "var(--pw-color-warmth-teal-tint)",
+    avatarBg: "var(--pw-color-accent-primary)",
+    avatarIcon: Heart,
+  },
+  "small-update": {
+    label: "A SMALL UPDATE",
+    borderColor: "var(--pw-color-text-muted)",
+    glowColor: "transparent",
+    avatarBg: "var(--pw-color-text-muted)",
+    avatarIcon: Bell,
+  },
+  "action-required": {
+    label: "WHEN YOU'RE READY",
+    borderColor: "var(--pw-color-accent-secondary)",
+    glowColor: "var(--pw-color-warmth-rose-tint)",
+    avatarBg: "var(--pw-color-accent-secondary)",
+    avatarIcon: AlertCircle,
+  },
+};
+
+/** NotificationCard (Workshop v3 17:6369): a notification moment card
+ *  with three emotional tiers — good news (teal glow), small update
+ *  (muted), action-required (rose glow). The world doesn't shout.
+ *  It tells you things clearly, warmly, without making you anxious.
+ *
+ *  Timed notifications auto-dismiss after 8s (caller manages timing).
+ *  Action-required notifications persist until dismissed. */
+export function NotificationCard({
+  tone,
+  headline,
+  detail,
+  actionLabel,
+  onAction,
+  onDismiss,
+}: NotificationCardProps) {
+  const meta = NOTIFICATION_TONE_META[tone];
+  const AvatarIcon = meta.avatarIcon;
+  return (
+    <div
+      data-pw-notification={tone}
+      className="flex items-start gap-3 rounded-[18px] p-3.5"
+      style={{
+        backgroundColor: "var(--pw-color-surface-elevated)",
+        border: `1px solid ${meta.borderColor}`,
+        borderLeft: `3px solid ${meta.borderColor}`,
+        boxShadow: `0 6px 26px 0 ${meta.glowColor}, var(--pw-color-warmth-panel-shadow)`,
+      }}
+    >
+      <div
+        className="flex size-[26px] shrink-0 items-center justify-center rounded-full"
+        style={{ backgroundColor: meta.avatarBg }}
+      >
+        <AvatarIcon size={20} aria-hidden={true} style={{ color: "var(--pw-color-surface-canvas)" }} />
+      </div>
+      <div className="min-w-0 flex-1 space-y-[7px]">
+        <p className="text-[10px] font-bold" style={{ color: meta.borderColor }}>
+          {meta.label}
+        </p>
+        <p className="text-[13px] leading-[1.35]" style={{ color: "var(--pw-color-text-primary)" }}>
+          <span aria-hidden="true">✦</span> {headline}
+        </p>
+        <p className="text-xs leading-[1.45]" style={{ color: "var(--pw-color-text-secondary)" }}>
+          {detail}
+        </p>
+        {actionLabel ? (
+          <button
+            type="button"
+            onClick={onAction}
+            className="text-xs underline decoration-[var(--pw-color-border-subtle)] underline-offset-4 hover:decoration-current focus-visible:outline-2 focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-offset-2 rounded-sm"
+            style={{ color: meta.borderColor }}
+          >
+            {actionLabel}
+          </button>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        aria-label="Dismiss notification"
+        onClick={onDismiss}
+        className="flex size-[var(--pw-target-minimum)] shrink-0 items-center justify-center text-[var(--pw-color-text-muted)] hover:text-[var(--pw-color-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-offset-2 rounded"
+      >
+        <X size={16} aria-hidden={true} />
+      </button>
+    </div>
+  );
 }
 
 export default TodayScreen;

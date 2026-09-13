@@ -217,25 +217,29 @@ function JournalScreen() {
 
   return (
     <div className="space-y-6">
-      <section aria-labelledby="journal-page-heading" className="space-y-2">
-        <h1
-          id="journal-page-heading"
-          className="text-3xl font-bold"
-          style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-        >
-          Journal
-        </h1>
-        <p className="text-[var(--pw-color-text-muted)]">
-          What has happened in your world, as it was recorded.
+      <section aria-labelledby="journal-page-heading" className="space-y-[9px]">
+        <div className="flex items-center gap-3">
+          <BookOpen size={24} aria-hidden={true} className="text-[var(--pw-color-text-muted)]" />
+          <h1
+            id="journal-page-heading"
+            className="text-[36px] leading-[1.1]"
+            style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+          >
+            Journal &amp; Memory
+          </h1>
+        </div>
+        <p className="text-sm text-[var(--pw-color-text-secondary)]">
+          Your words, kept safe.
         </p>
       </section>
 
-      {/* Composer — same treatment as Today's journal composer: real
-          h2 + quiet divider, no card chrome; the textarea keeps its
-          input-field border. */}
+      {/* Composer — notebook-page writing experience (frame 17:2268):
+          rose rule divider, quiet textarea, page footer with save status
+          and companion whisper. Near-silence: companion is barely present
+          during private writing. */}
       <section
         aria-labelledby="journal-composer-heading"
-        className="space-y-3 border-t border-[var(--pw-color-border-subtle)] pt-[var(--pw-spacing-section)]"
+        className="space-y-4 border-t border-[var(--pw-color-accent-secondary)] border-opacity-40 pt-[var(--pw-spacing-section)]"
       >
         <h2
           id="journal-composer-heading"
@@ -252,9 +256,9 @@ function JournalScreen() {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="What happened? What did you notice?"
-          rows={3}
+          rows={4}
           maxLength={2000}
-          className="w-full resize-none rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] p-3 text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="w-full resize-none rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] p-4 text-[16px] leading-[1.7] text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
         />
         <div className="flex items-center justify-between gap-3">
           <Button type="button" onClick={() => void saveNote()} disabled={!note.trim() || saving}>
@@ -263,6 +267,17 @@ function JournalScreen() {
           <span className="text-sm text-[var(--pw-color-text-muted)]" role="status">
             {saving ? "Saving…" : noteStatus}
           </span>
+        </div>
+        {/* Page footer (17:2268): lock + save status + companion whisper */}
+        <div className="flex items-center justify-between text-[11px] text-[var(--pw-color-text-muted)] opacity-56">
+          <span className="flex items-center gap-[7px]">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+              <path d="M8.25 5H2.75C2.34 5 2 5.34 2 5.75V9.25C2 9.66 2.34 10 2.75 10H8.25C8.66 10 9 9.66 9 9.25V5.75C9 5.34 8.66 5 8.25 5Z" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M3.5 5V3.5C3.5 2.57 4.07 1.74 5 1.45C5.93 1.74 6.5 2.57 6.5 3.5V5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Saved · just now
+          </span>
+          <span className="opacity-50">✦ quietly here</span>
         </div>
       </section>
 
@@ -287,7 +302,9 @@ function JournalScreen() {
         </div>
       </section>
 
-      {/* Entries */}
+      {/* Entries — warm, nostalgic reading experience (frame 17:5763):
+          rose dates, serif entry titles, sparkle decorations between
+          entries, progressive opacity for older entries. */}
       {journal.isLoading ? (
         <p className="flex items-center gap-2 text-[var(--pw-color-text-muted)]" role="status">
           <Loader2 size={16} aria-hidden={true} className="loader-static" />
@@ -333,60 +350,94 @@ function JournalScreen() {
           </p>
         </section>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-0">
           {groups.map((group, gi) => (
             <section key={`${group.key}-${gi}`} aria-labelledby={`journal-day-${gi}`}>
               <h2
                 id={`journal-day-${gi}`}
-                className="text-base font-semibold"
-                style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+                className="mb-3 text-sm font-semibold"
+                style={{
+                  fontFamily: "var(--pw-typography-font-expressive)",
+                  color: "var(--pw-color-accent-secondary)",
+                }}
               >
                 {group.heading}
               </h2>
               <ul className="space-y-0" role="list">
-                {group.entries.map((entry, i) => (
-                  <li
-                    key={`${entry.ts}-${i}`}
-                    className="space-y-2 border-b border-[var(--pw-color-border-subtle)] py-3 last:border-0 last:pb-0"
-                  >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="text-[var(--pw-color-text-primary)]">{eventSummary(entry)}</p>
-                      <time dateTime={entry.ts} className="shrink-0 text-sm text-[var(--pw-color-text-muted)]">
-                        {eventTime(entry.ts)}
-                      </time>
-                    </div>
-                    <p className="text-sm text-[var(--pw-color-text-muted)]">
-                      Kind: {entry.kind}
-                    </p>
-                    {entry.supersedes ? (
-                      <p className="text-sm text-[var(--pw-color-text-secondary)]" data-pw-corrected="true">
-                        Corrected — an earlier version of this entry is in its history.
-                      </p>
-                    ) : null}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Disclosure summary="Source" level={3}>
-                        <div className="space-y-1 pt-1 text-sm">
-                          <p>
-                            Recorded by {entry.provenance?.source ?? "an unknown source"}.
-                          </p>
-                          <p>Recorded at {fullTime(entry.provenance?.observed_at ?? entry.ts)}.</p>
+                {group.entries.map((entry, i) => {
+                  const entryOpacity = gi > 2 ? "opacity-72" : gi > 1 ? "opacity-80" : gi > 0 ? "opacity-94" : "";
+                  return (
+                    <li
+                      key={`${entry.ts}-${i}`}
+                      className={`${entryOpacity}`}
+                    >
+                      <div className="flex gap-[18px] py-3">
+                        {/* Page edge: rose vertical line + sparkle mark */}
+                        <div className="relative flex w-[22px] shrink-0 flex-col items-center pt-[8px]">
+                          <div
+                            className="absolute left-[2px] top-0 h-full w-px opacity-72"
+                            style={{ backgroundColor: "var(--pw-color-accent-secondary)" }}
+                          />
+                          <div className="relative z-10 flex size-[18px] items-center justify-center rounded-full bg-[var(--pw-color-surface-canvas)]">
+                            <span className="text-[12px] text-[var(--pw-color-accent-secondary)]" aria-hidden="true">✦</span>
+                          </div>
                         </div>
-                      </Disclosure>
-                      <TechnicalProvenance entry={entry} />
-                      <EntryHistory entry={entry} />
-                      <CorrectEntryButton
-                        entry={entry}
-                        onCorrected={onEntryCorrected}
-                        pendingDraft={
-                          correctTarget && sameEntryTs(entry.ts, correctTarget)
-                            ? draft
-                            : null
-                        }
-                        onDraftConsumed={onDraftConsumed}
-                      />
-                    </div>
-                  </li>
-                ))}
+                        {/* Entry content */}
+                        <div className="min-w-0 flex-1 space-y-[7px]">
+                          <time
+                            dateTime={entry.ts}
+                            className="block text-[12px] text-[var(--pw-color-accent-secondary)]"
+                          >
+                            {eventTime(entry.ts)}
+                          </time>
+                          <p
+                            className="text-[22px] leading-[1.2] text-[var(--pw-color-text-primary)]"
+                            style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+                          >
+                            {eventSummary(entry)}
+                          </p>
+                          <p className="text-sm leading-[1.45] text-[var(--pw-color-text-secondary)] opacity-85">
+                            Kind: {entry.kind}
+                          </p>
+                          {entry.supersedes ? (
+                            <p className="text-sm text-[var(--pw-color-text-secondary)]" data-pw-corrected="true">
+                              Corrected — an earlier version of this entry is in its history.
+                            </p>
+                          ) : null}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Disclosure summary="Source" level={3}>
+                              <div className="space-y-1 pt-1 text-sm">
+                                <p>
+                                  Recorded by {entry.provenance?.source ?? "an unknown source"}.
+                                </p>
+                                <p>Recorded at {fullTime(entry.provenance?.observed_at ?? entry.ts)}.</p>
+                              </div>
+                            </Disclosure>
+                            <TechnicalProvenance entry={entry} />
+                            <EntryHistory entry={entry} />
+                            <CorrectEntryButton
+                              entry={entry}
+                              onCorrected={onEntryCorrected}
+                              pendingDraft={
+                                correctTarget && sameEntryTs(entry.ts, correctTarget)
+                                  ? draft
+                                  : null
+                              }
+                              onDraftConsumed={onDraftConsumed}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {/* Sparkle divider between entries (17:5763 waves-ladder) */}
+                      {i < group.entries.length - 1 && (
+                        <div className="flex items-center gap-2 py-1 pl-[31px] text-[11px] text-[var(--pw-color-accent-secondary)] opacity-40">
+                          <span aria-hidden="true">✦</span>
+                          <div className="h-px flex-1 bg-[var(--pw-color-border-subtle)] opacity-60" />
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))}
@@ -399,6 +450,21 @@ function JournalScreen() {
           <Button type="button" variant="outline" onClick={loadMore}>
             Load more entries
           </Button>
+        </div>
+      ) : null}
+
+      {/* Entry count footer (17:5763): warm, nostalgic bottom bar */}
+      {entries.length > 0 && !journal.isLoading && !journal.isError ? (
+        <div className="border-t border-[var(--pw-color-border-subtle)] flex items-center justify-between py-4 text-[12px]">
+          <span className="flex items-center gap-2 text-[var(--pw-color-accent-secondary)]">
+            <span aria-hidden="true">✦</span>
+            <span className="text-[var(--pw-color-text-muted)]">
+              {entries.length} {entries.length === 1 ? "entry" : "entries"} kept safe
+            </span>
+          </span>
+          <span className="font-semibold text-[var(--pw-color-accent-primary)]">
+            Write something new →
+          </span>
         </div>
       ) : null}
 

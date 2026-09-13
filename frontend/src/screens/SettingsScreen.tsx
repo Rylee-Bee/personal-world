@@ -25,6 +25,7 @@ import { useStepUp } from "../primitives/StepUpPrompt";
 import { Dialog } from "../primitives/Dialog";
 import { Disclosure } from "../primitives/Disclosure";
 import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
+import { Icon, sectionIconToShimName, type IconName } from "../lib/icons";
 
 /**
  * Settings screen (P1 T11, FOUNDATION-SPEC §10 row T11 / parity row 6).
@@ -55,34 +56,50 @@ import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 
 // ── Small local styles (token vars only; no hex anywhere) ──
 
-const panelClasses = "rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)]";
-const headingClasses = "text-lg font-semibold text-[var(--pw-color-text-primary)]";
+const panelClasses = "rounded-2xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] p-5 flex flex-col gap-4 overflow-hidden";
 const mutedClasses = "text-[var(--pw-color-text-muted)]";
 
 const actionButtonClasses = [
   "inline-flex min-h-[var(--pw-target-minimum)] items-center justify-center gap-2",
-  "rounded-xl border border-[var(--pw-color-border-subtle)] bg-transparent",
-  "px-4 text-[var(--pw-color-text-primary)]",
+  "rounded-lg border border-[var(--pw-color-border-subtle)] bg-transparent",
+  "px-2.5 text-[11px] text-[var(--pw-color-text-primary)]",
   "hover:border-[var(--pw-color-accent-primary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const selectClasses = [
-  "min-h-[var(--pw-target-minimum)] rounded-xl border border-[var(--pw-color-border-subtle)]",
-  "bg-[var(--pw-color-surface-panel)] px-3 text-[var(--pw-color-text-primary)]",
+  "min-h-[var(--pw-target-minimum)] w-[138px] rounded-lg border border-[var(--pw-color-accent-primary)]",
+  "bg-[var(--pw-color-surface-panel)] px-2.5 text-[11px] text-[var(--pw-color-text-secondary)]",
+  "shadow-[0_0_12px_1px_rgba(114,177,177,0.18)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const textInputClasses = [
-  "min-h-[var(--pw-target-minimum)] w-full rounded-xl border border-[var(--pw-color-border-subtle)]",
-  "bg-[var(--pw-color-surface-panel)] px-3 text-[var(--pw-color-text-primary)]",
+  "min-h-[var(--pw-target-minimum)] flex-1 rounded-lg border border-[var(--pw-color-border-subtle)]",
+  "bg-[var(--pw-color-surface-elevated)] px-3 text-[11px] text-[var(--pw-color-text-secondary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const screenButtonClasses = [
-  actionButtonClasses,
-  "bg-[var(--pw-color-accent-primary)] text-[var(--pw-color-surface-canvas)]",
+  "inline-flex min-h-[var(--pw-target-minimum)] items-center justify-center",
+  "rounded-lg bg-[var(--pw-color-accent-primary)] px-3.5 text-[12px] font-medium",
+  "text-[var(--pw-color-surface-canvas)]",
+  "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
+
+const waveDivider = (
+  <div className="w-full py-1" aria-hidden="true">
+    <svg width="100%" height="8" viewBox="0 0 534 8" preserveAspectRatio="none" className="block">
+      <path
+        d="M0 4C44.5 1.7 133.5 6.3 267 4C400.5 1.7 489.5 6.3 534 4"
+        stroke="var(--pw-color-border-subtle)"
+        strokeWidth="1"
+        fill="none"
+        opacity="0.5"
+      />
+    </svg>
+  </div>
+);
 
 /** The preference keys this screen renders, in panel order. */
 const PREF_PANEL_ORDER = [
@@ -100,6 +117,11 @@ const PREF_LABELS: Record<string, string> = {
   density: "Density",
   text_scale: "Text scale",
   target_size: "Target size",
+};
+
+/** Icons for pref keys, matching the Figma design. */
+const PREF_ICONS: Partial<Record<string, IconName>> = {
+  motion: "icon-system-device-accessibility",
 };
 
 function formatPrefOption(value: string | number, entry: PrefSchemaEntry): string {
@@ -418,188 +440,409 @@ function SettingsScreen() {
 
   const prefPanels = PREF_PANEL_ORDER.filter((key) => schema ? schema[key] !== undefined : false);
   const hasSections = sections !== null;
-  const settingsPinnedNote = "Settings is always reachable — it cannot be hidden.";
 
   return (
-    <div className="space-y-6">
-      <h1 className={`${headingClasses} text-3xl font-bold`} style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
-        Settings
-      </h1>
-
-      {/* ── Preferences (from GET /api/prefs/schema) ── */}
-      <section aria-labelledby="prefs-heading" data-testid="prefs-panel">
-        <h2 id="prefs-heading" className={headingClasses}>Reading &amp; interaction</h2>
-        <p className={`mt-1 text-sm ${mutedClasses}`}>
-          These preferences apply everywhere. Options come from your server's preference vocabulary.
+    <div className="flex flex-col gap-6">
+      {/* ── Page heading ── */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <Icon name="icon-system-device-theme" size={24} className="text-[var(--pw-color-text-primary)]" />
+          <h1 className="text-[36px] leading-tight" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+            Settings
+          </h1>
+        </div>
+        <p className={`text-sm ${mutedClasses}`}>
+          How your world behaves. Everything here is yours to adjust.
         </p>
-        {schemaError !== null && (
-          <p role="alert" className="mt-2 text-sm text-[var(--pw-color-text-primary)]">
-            Preference options are unavailable: {schemaError} Your current settings still apply.
-          </p>
-        )}
-        <div className={`mt-3 ${panelClasses} divide-y divide-[var(--pw-color-border-subtle)]`}>
-          {schema === null && schemaError === null && (
-            <p className="p-4 text-sm text-[var(--pw-color-text-muted)]">Loading preference options…</p>
+      </div>
+
+      {/* ── Settings columns ── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+
+        {/* ═══════════ LEFT COLUMN: Reading + Companion + Reminders ═══════════ */}
+
+        {/* ── Preferences (from GET /api/prefs/schema) ── */}
+        <section aria-labelledby="prefs-heading" data-testid="prefs-panel" className={panelClasses}>
+          <div className="flex flex-col gap-1.5">
+            <h2 id="prefs-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+              How you read
+            </h2>
+            <p className={`text-xs leading-relaxed ${mutedClasses}`}>
+              These apply everywhere in your world.
+            </p>
+          </div>
+          {schemaError !== null && (
+            <p role="alert" className="text-sm text-[var(--pw-color-text-primary)]">
+              Preference options are unavailable: {schemaError} Your current settings still apply.
+            </p>
           )}
-          {prefPanels.map((key) => {
-            const entry = schema?.[key];
-            if (!entry) return null;
-            const options = entry.allowed ?? [];
-            const value = (currentPrefs?.[key] ?? entry.default) as string | number;
-            const error = prefErrors[key];
-            return (
-              <div key={key} className="flex flex-wrap items-center justify-between gap-2 p-4">
-                <label htmlFor={`pref-${key}`} className="text-sm text-[var(--pw-color-text-primary)]">
-                  {PREF_LABELS[key] ?? key}
-                </label>
-                <span className="flex flex-col items-end gap-1">
-                  <select
-                    id={`pref-${key}`}
-                    className={selectClasses}
-                    value={String(value)}
-                    disabled={savingPref === key}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      const parsed = entry.type === "number" ? Number(raw) : raw;
-                      void savePref(key, parsed);
-                    }}
-                  >
-                    {options.map((opt) => (
-                      <option key={String(opt)} value={String(opt)}>
-                        {formatPrefOption(opt, entry)}
-                      </option>
-                    ))}
-                  </select>
-                  {error && (
-                    <span role="alert" data-testid={`pref-error-${key}`} className="max-w-md text-right text-xs text-[var(--pw-color-text-primary)]">
-                      {`Not saved: ${error}`}
-                    </span>
-                  )}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── Companion (schema vocabulary + frontend-only off) ── */}
-      <section aria-labelledby="companion-heading" data-testid="companion-panel">
-        <h2 id="companion-heading" className={headingClasses}>Companion</h2>
-        <p className={`mt-1 text-sm ${mutedClasses}`}>
-          Turning the companion off hides its artwork everywhere. The World assistant stays reachable.
-        </p>
-        <div className={`mt-3 ${panelClasses} divide-y divide-[var(--pw-color-border-subtle)]`}>
-          {companionChoicesList.map((choice) => {
-            const isActive = companion === choice;
-            const name = choice === COMPANION_OFF ? "Off (artwork hidden)" : humanCompanion(choice);
-            return (
-              <div key={choice} className="flex items-center justify-between gap-3 p-4">
-                <span className="text-sm text-[var(--pw-color-text-primary)]">{name}</span>
-                <button
-                  type="button"
-                  className={actionButtonClasses}
-                  aria-pressed={isActive}
-                  aria-label={isActive ? `${name}, selected` : `Select ${name}`}
-                  onClick={() => void savePref("companion", choice)}
-                >
-                  {isActive ? "Selected" : "Select"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── Sections panel (the core deliverable, GET/PUT /api/sections) ── */}
-      <section aria-labelledby="sections-heading" data-testid="sections-panel">
-        <h2 id="sections-heading" className={headingClasses}>Sections</h2>
-        <p className={`mt-1 text-sm ${mutedClasses}`}>
-          Reorder with the move buttons, hide what you do not use, or restore the defaults.
-        </p>
-        {sectionsError !== null && (
-          <p role="alert" data-testid="sections-error" className="mt-2 text-sm text-[var(--pw-color-text-primary)]">
-            Sections update failed: {sectionsError} Nothing was changed.
+          <div className="rounded-xl bg-[var(--pw-color-surface-elevated)] overflow-hidden divide-y divide-[var(--pw-color-border-subtle)]">
+            {schema === null && schemaError === null && (
+              <p className="px-3.5 py-3 text-xs text-[var(--pw-color-text-muted)]">Loading preference options…</p>
+            )}
+            {prefPanels.map((key) => {
+              const entry = schema?.[key];
+              if (!entry) return null;
+              const options = entry.allowed ?? [];
+              const value = (currentPrefs?.[key] ?? entry.default) as string | number;
+              const error = prefErrors[key];
+              const prefIcon = PREF_ICONS[key];
+              return (
+                <div key={key} className="flex h-[42px] items-center justify-between px-3.5">
+                  <label htmlFor={`pref-${key}`} className="flex items-center gap-2 text-xs text-[var(--pw-color-text-primary)]">
+                    {prefIcon && <Icon name={prefIcon} size={16} className="shrink-0 text-[var(--pw-color-text-secondary)]" />}
+                    {PREF_LABELS[key] ?? key}
+                  </label>
+                  <span className="flex flex-col items-end gap-1">
+                    <select
+                      id={`pref-${key}`}
+                      className={selectClasses}
+                      value={String(value)}
+                      disabled={savingPref === key}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const parsed = entry.type === "number" ? Number(raw) : raw;
+                        void savePref(key, parsed);
+                      }}
+                    >
+                      {options.map((opt) => (
+                        <option key={String(opt)} value={String(opt)}>
+                          {formatPrefOption(opt, entry)}
+                        </option>
+                      ))}
+                    </select>
+                    {error && (
+                      <span role="alert" data-testid={`pref-error-${key}`} className="max-w-md text-right text-[10px] text-[var(--pw-color-text-primary)]">
+                        {`Not saved: ${error}`}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-[var(--pw-color-accent-primary)]">
+            ✦ Your companion respects these preferences too.
           </p>
-        )}
-        {sections === null && sectionsError === null && (
-          <p className={`mt-2 p-4 text-sm ${mutedClasses}`}>Loading sections…</p>
-        )}
-        {hasSections && (
-          <ul className="mt-3 space-y-2" data-testid="sections-list">
-            {sections.map((s, index) => (
-              <li
-                key={s.id}
-                data-testid={`section-row-${s.id}`}
-                className={`${panelClasses} flex flex-wrap items-center justify-between gap-2 p-3`}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="text-sm text-[var(--pw-color-text-primary)]">{s.label}</span>
-                  {s.status !== null && isCanonicalStatus(s.status) ? (
-                    <StatusChip status={s.status} size="sm" />
-                  ) : null}
-                </span>
-                <span className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className={actionButtonClasses}
-                    disabled={index === 0 || sectionsBusy}
-                    aria-label={`Move ${s.label} up`}
-                    onClick={() => moveSection(s.id, -1)}
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    className={actionButtonClasses}
-                    disabled={index === sections.length - 1 || sectionsBusy}
-                    aria-label={`Move ${s.label} down`}
-                    onClick={() => moveSection(s.id, 1)}
-                  >
-                    ↓
-                  </button>
-                  {s.visible ? (
-                    s.pinned ? null : (
+        </section>
+
+        {waveDivider}
+
+        {/* ── Companion (schema vocabulary + frontend-only off) ── */}
+        <section aria-labelledby="companion-heading" data-testid="companion-panel" className={panelClasses}>
+          <div className="flex flex-col gap-1.5">
+            <h2 id="companion-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+              Who keeps watch
+            </h2>
+            <p className={`text-xs leading-relaxed ${mutedClasses}`}>
+              Your companion lives throughout your world. Turning them off hides their artwork — the assistant still works.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {companionChoicesList.map((choice) => {
+              const isActive = companion === choice;
+              const name = choice === COMPANION_OFF ? "Off (artwork hidden)" : humanCompanion(choice);
+              const companionMeta = choice !== COMPANION_OFF ? COMPANIONS[choice] : null;
+              return (
+                <div
+                  key={choice}
+                  className={[
+                    "flex flex-col gap-2 h-[88px] overflow-hidden rounded-xl border p-2.5",
+                    isActive
+                      ? "bg-[var(--pw-color-warmth-teal-tint)] border-[var(--pw-color-accent-primary)] shadow-[0_0_12px_1px_rgba(114,177,177,0.18)]"
+                      : "bg-[var(--pw-color-surface-elevated)] border-[var(--pw-color-border-subtle)]",
+                    choice === COMPANION_OFF ? "w-full flex-row items-center justify-between" : "w-[240px]",
+                  ].join(" ")}
+                >
+                  {choice === COMPANION_OFF ? (
+                    <>
+                      <span className="text-[11px] text-[var(--pw-color-text-secondary)]">{name}</span>
                       <button
                         type="button"
                         className={actionButtonClasses}
-                        disabled={sectionsBusy}
-                        aria-label={`Hide ${s.label}`}
-                        data-testid={`hide-${s.id}`}
-                        onClick={() => setSectionHidden(s.id, true)}
+                        aria-pressed={isActive}
+                        aria-label={isActive ? `${name}, selected` : `Select ${name}`}
+                        onClick={() => void savePref("companion", choice)}
                       >
-                        Hide
+                        {isActive ? "Selected" : "Select"}
                       </button>
-                    )
+                    </>
                   ) : (
+                    <>
+                      <div className="flex items-center gap-2.5">
+                        <div className={[
+                          "flex items-center justify-center rounded-full size-9 shrink-0",
+                          isActive ? "bg-[var(--pw-color-accent-secondary)]" : "bg-[var(--pw-color-surface-panel)]",
+                        ].join(" ")}>
+                          {companionMeta && isActive ? (
+                            <img src={companionMeta.icon} alt="" className="size-5" aria-hidden="true" />
+                          ) : (
+                            <Icon name="icon-world-content-world" size={22} className="text-[var(--pw-color-text-secondary)]" />
+                          )}
+                        </div>
+                        <span className="flex-1 min-w-0 text-[11px] text-[var(--pw-color-text-primary)] truncate">{name}</span>
+                      </div>
+                      {isActive ? (
+                        <span className="text-[10px] text-[var(--pw-color-accent-primary)]">✦ keeping watch</span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={actionButtonClasses}
+                          aria-label={`Select ${name}`}
+                          onClick={() => void savePref("companion", choice)}
+                        >
+                          Select
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {waveDivider}
+
+        {/* ── Reminders ── */}
+        <section aria-labelledby="reminders-heading" data-testid="reminders-panel" className={panelClasses}>
+          <div className="flex flex-col gap-1.5">
+            <h2 id="reminders-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+              Reminders
+            </h2>
+            <p className={`text-xs leading-relaxed ${mutedClasses}`}>
+              Things you&apos;ve asked your world to remember.
+            </p>
+          </div>
+          {remindersError !== null && (
+            <p role="alert" className="text-sm text-[var(--pw-color-text-primary)]">
+              Reminders problem: {remindersError}
+            </p>
+          )}
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void addReminderNow();
+            }}
+          >
+            <label htmlFor="reminder-text" className="sr-only">New reminder text</label>
+            <input
+              id="reminder-text"
+              className={textInputClasses}
+              value={reminderText}
+              placeholder="What should we remember?"
+              onChange={(e) => setReminderText(e.target.value)}
+            />
+            <button type="submit" className={screenButtonClasses} disabled={reminderText.trim() === ""}>
+              Add reminder
+            </button>
+          </form>
+          <ul className="flex flex-col gap-0" data-testid="reminders-list">
+            {Array.isArray(reminders) && reminders.length === 0 && (
+              <li className={`py-2 text-xs ${mutedClasses}`}>No reminders yet.</li>
+            )}
+            {Array.isArray(reminders) &&
+              reminders.map((r) => (
+                <li key={r.id} className="flex items-center justify-between py-2">
+                  <span className="flex items-center gap-2">
+                    <Icon name="icon-status-feedback-notification" size={15} className="shrink-0 text-[var(--pw-color-accent-primary)]" />
+                    <span className="text-[11px] text-[var(--pw-color-text-primary)]">{r.text}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
                     <button
                       type="button"
                       className={actionButtonClasses}
-                      disabled={sectionsBusy}
-                      aria-label={`Show ${s.label}`}
-                      data-testid={`show-${s.id}`}
-                      onClick={() => setSectionHidden(s.id, false)}
+                      aria-pressed={r.enabled}
+                      aria-label={r.enabled ? `Pause reminder ${r.text}` : `Resume reminder ${r.text}`}
+                      onClick={() => void toggleReminderNow(r)}
                     >
-                      Show
+                      {r.enabled ? "Pause" : "Resume"}
                     </button>
-                  )}
-                  {s.pinned && <span className="text-xs text-[var(--pw-color-text-muted)]">{settingsPinnedNote}</span>}
-                </span>
-              </li>
-            ))}
+                    <button
+                      type="button"
+                      className={actionButtonClasses}
+                      aria-label={`Delete reminder ${r.text}`}
+                      data-testid={`delete-reminder-${r.id}`}
+                      onClick={() => setDeleteTarget(r)}
+                    >
+                      Delete
+                    </button>
+                  </span>
+                </li>
+              ))}
           </ul>
-        )}
-        <div className="mt-3">
-          <button
-            type="button"
-            className={actionButtonClasses}
-            data-testid="restore-sections"
-            disabled={sectionsBusy}
-            onClick={() => setResetConfirm(true)}
-          >
-            Restore default sections
-          </button>
-        </div>
-      </section>
+        </section>
+
+        {/* ═══════════ RIGHT COLUMN: Sections + Capabilities ═══════════ */}
+
+        {/* ── Sections panel (GET/PUT /api/sections) ── */}
+        <section aria-labelledby="sections-heading" data-testid="sections-panel" className={panelClasses}>
+          <div className="flex flex-col gap-1.5">
+            <h2 id="sections-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+              What you see
+            </h2>
+            <p className={`text-xs leading-relaxed ${mutedClasses}`}>
+              Reorder, show, or hide sections. Settings is always here.
+            </p>
+          </div>
+          {sectionsError !== null && (
+            <p role="alert" data-testid="sections-error" className="text-sm text-[var(--pw-color-text-primary)]">
+              Sections update failed: {sectionsError} Nothing was changed.
+            </p>
+          )}
+          {sections === null && sectionsError === null && (
+            <p className={`text-xs ${mutedClasses}`}>Loading sections…</p>
+          )}
+          {hasSections && (
+            <ul className="flex flex-col gap-2" data-testid="sections-list">
+              {sections.map((s, index) => {
+                const sectionIconName = s.icon ? sectionIconToShimName(s.icon) : null;
+                return (
+                  <li
+                    key={s.id}
+                    data-testid={`section-row-${s.id}`}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--pw-color-surface-elevated)] min-h-[48px] px-3 py-2"
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      {sectionIconName && (
+                        <Icon name={sectionIconName} size={16} className="shrink-0 text-[var(--pw-color-text-secondary)]" />
+                      )}
+                      <span className="flex flex-col gap-0.5">
+                        <span className="text-xs font-semibold text-[var(--pw-color-text-primary)]">{s.label}</span>
+                        {s.pinned && (
+                          <span className="text-[9px] text-[var(--pw-color-text-secondary)]">
+                            always reachable — cannot be hidden.
+                          </span>
+                        )}
+                      </span>
+                      {s.status !== null && isCanonicalStatus(s.status) ? (
+                        <StatusChip status={s.status} size="sm" />
+                      ) : null}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        className={actionButtonClasses}
+                        disabled={index === 0 || sectionsBusy}
+                        aria-label={`Move ${s.label} up`}
+                        onClick={() => moveSection(s.id, -1)}
+                      >
+                        ↑ Move up
+                      </button>
+                      <button
+                        type="button"
+                        className={actionButtonClasses}
+                        disabled={index === sections.length - 1 || sectionsBusy}
+                        aria-label={`Move ${s.label} down`}
+                        onClick={() => moveSection(s.id, 1)}
+                      >
+                        ↓ Move down
+                      </button>
+                      {s.visible ? (
+                        s.pinned ? null : (
+                          <button
+                            type="button"
+                            className={actionButtonClasses}
+                            disabled={sectionsBusy}
+                            aria-label={`Hide ${s.label}`}
+                            data-testid={`hide-${s.id}`}
+                            onClick={() => setSectionHidden(s.id, true)}
+                          >
+                            Hide
+                          </button>
+                        )
+                      ) : (
+                        <button
+                          type="button"
+                          className={actionButtonClasses}
+                          disabled={sectionsBusy}
+                          aria-label={`Show ${s.label}`}
+                          data-testid={`show-${s.id}`}
+                          onClick={() => setSectionHidden(s.id, false)}
+                        >
+                          Show
+                        </button>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <div>
+            <button
+              type="button"
+              className={actionButtonClasses}
+              data-testid="restore-sections"
+              disabled={sectionsBusy}
+              onClick={() => setResetConfirm(true)}
+            >
+              Restore default sections
+            </button>
+          </div>
+        </section>
+
+        {waveDivider}
+
+        {/* ── Capability table (GET /api/status) ── */}
+        <section aria-labelledby="capabilities-heading" data-testid="capabilities-panel" className={panelClasses}>
+          <div className="flex flex-col gap-1.5">
+            <h2 id="capabilities-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+              What your world can see
+            </h2>
+            <p className={`text-xs leading-relaxed ${mutedClasses}`}>
+              A clear view of what is available to your world.
+            </p>
+          </div>
+          {statusData === null ? (
+            <p className={`text-sm ${mutedClasses}`}>
+              Capability status is unavailable right now. Everything else on this screen still works.
+            </p>
+          ) : (
+            <Disclosure summary="Capability details" level={2} defaultOpen>
+              <table className="w-full text-left">
+                <caption className="sr-only">Capability status and warnings</caption>
+                <thead className="sr-only">
+                  <tr>
+                    <th scope="col">Capability</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Warnings</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--pw-color-border-subtle)]">
+                  {capabilities.map(([name, cap]) => (
+                    <tr key={name} className="h-[45px]">
+                      <th scope="row" className="pr-4 font-normal">
+                        <span className="flex items-center gap-2.5">
+                          <Icon name={capabilityIcon(name)} size={16} className="shrink-0 text-[var(--pw-color-text-secondary)]" />
+                          <span className="text-xs text-[var(--pw-color-text-primary)]">{humanizeName(name)}</span>
+                        </span>
+                      </th>
+                      <td className="pr-4">
+                        <StatusChip status={isCanonicalStatus(cap.status) ? cap.status : "unknown"} />
+                      </td>
+                      <td className="text-[var(--pw-color-text-secondary)] text-xs">
+                        {cap.warnings && cap.warnings.length > 0 ? cap.warnings.join("; ") : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                  {capabilities.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="py-2 text-xs text-[var(--pw-color-text-muted)]">
+                        No capabilities are defined.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </Disclosure>
+          )}
+          <p className="text-[11px] text-[var(--pw-color-accent-primary)]">
+            ✦ Your world watches these for you.
+          </p>
+        </section>
+      </div>
 
       {/* ── Theme packs (GET /api/themes) are artwork packages for the
           selected companion, NOT a second companion selector — the one
@@ -609,109 +852,6 @@ function SettingsScreen() {
           here as a permanently-dead "Not a companion option" row).
           Pack artwork application is deferred until a pack exists that
           the server vocabulary can actually address. ── */}
-
-      {/* ── Reminders ── */}
-      <section aria-labelledby="reminders-heading" data-testid="reminders-panel">
-        <h2 id="reminders-heading" className={headingClasses}>Reminders</h2>
-        {remindersError !== null && (
-          <p role="alert" className="mt-2 text-sm text-[var(--pw-color-text-primary)]">
-            Reminders problem: {remindersError}
-          </p>
-        )}
-        <form
-          className="mt-3 flex flex-wrap items-end gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void addReminderNow();
-          }}
-        >
-          <label htmlFor="reminder-text" className="sr-only">New reminder text</label>
-          <input
-            id="reminder-text"
-            className={`${textInputClasses} max-w-sm`}
-            value={reminderText}
-            placeholder="New reminder text"
-            onChange={(e) => setReminderText(e.target.value)}
-          />
-          <button type="submit" className={screenButtonClasses} disabled={reminderText.trim() === ""}>
-            Add reminder
-          </button>
-        </form>
-        <ul className="mt-3 space-y-2" data-testid="reminders-list">
-          {Array.isArray(reminders) && reminders.length === 0 && (
-            <li className={`p-3 text-sm ${mutedClasses}`}>No reminders yet.</li>
-          )}
-          {Array.isArray(reminders) &&
-            reminders.map((r) => (
-              <li key={r.id} className={`${panelClasses} flex flex-wrap items-center justify-between gap-2 p-3`}>
-                <span className="text-sm text-[var(--pw-color-text-primary)]">{r.text}</span>
-                <span className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className={actionButtonClasses}
-                    aria-pressed={r.enabled}
-                    aria-label={r.enabled ? `Pause reminder ${r.text}` : `Resume reminder ${r.text}`}
-                    onClick={() => void toggleReminderNow(r)}
-                  >
-                    {r.enabled ? "Pause" : "Resume"}
-                  </button>
-                  <button
-                    type="button"
-                    className={actionButtonClasses}
-                    aria-label={`Delete reminder ${r.text}`}
-                    data-testid={`delete-reminder-${r.id}`}
-                    onClick={() => setDeleteTarget(r)}
-                  >
-                    Delete
-                  </button>
-                </span>
-              </li>
-            ))}
-        </ul>
-      </section>
-
-      {/* ── Capability table (GET /api/status) ── */}
-      <section aria-labelledby="capabilities-heading" data-testid="capabilities-panel">
-        <h2 id="capabilities-heading" className={headingClasses}>Capabilities</h2>
-        {statusData === null ? (
-          <p className={`mt-2 text-sm ${mutedClasses}`}>
-            Capability status is unavailable right now. Everything else on this screen still works.
-          </p>
-        ) : (
-          <Disclosure summary="Capability details" level={2} defaultOpen>
-            <table className="w-full text-left text-sm">
-              <caption className="sr-only">Capability status and warnings</caption>
-              <thead>
-                <tr>
-                  <th scope="col" className="py-2 pr-4">Capability</th>
-                  <th scope="col" className="py-2 pr-4">Status</th>
-                  <th scope="col" className="py-2">Warnings</th>
-                </tr>
-              </thead>
-              <tbody>
-                {capabilities.map(([name, cap]) => (
-                  <tr key={name} className="border-t border-[var(--pw-color-border-subtle)]">
-                    <th scope="row" className="py-2 pr-4 font-normal">{humanizeName(name)}</th>
-                    <td className="py-2 pr-4">
-                      <StatusChip status={isCanonicalStatus(cap.status) ? cap.status : "unknown"} />
-                    </td>
-                    <td className="py-2 text-[var(--pw-color-text-secondary)]">
-                      {cap.warnings && cap.warnings.length > 0 ? cap.warnings.join("; ") : "—"}
-                    </td>
-                  </tr>
-                ))}
-                {capabilities.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="py-2 text-[var(--pw-color-text-muted)]">
-                      No capabilities are defined.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </Disclosure>
-        )}
-      </section>
 
       {/* ── Dialogs ── */}
       <Dialog
@@ -761,6 +901,22 @@ function humanCompanion(id: string): string {
 
 function humanizeName(name: string): string {
   return name.replace(/_/g, " ");
+}
+
+/** Map capability names to icon sprite names. */
+function capabilityIcon(name: string): IconName {
+  switch (name) {
+    case "journal":
+      return "icon-world-content-story";
+    case "media":
+      return "icon-world-content-story";
+    case "discovery":
+      return "icon-world-content-world";
+    case "reminders":
+      return "icon-status-feedback-notification";
+    default:
+      return "icon-world-content-world";
+  }
 }
 
 export default SettingsScreen;

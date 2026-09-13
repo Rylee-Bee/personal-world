@@ -136,8 +136,11 @@ describe("AppShell landmarks and structure (T9)", () => {
     // closes, focus returns to the trigger, background stays
     // interactive; companion artwork is aria-hidden (§7.2/7.3).
     const { container } = shellProviders(withRoute(<h1>Today</h1>));
+    // The header trigger (not the rail rest companion) opens the drawer.
     const trigger = await waitFor(() => {
-      const el = screen.getByRole("button", { name: ASSISTANT_TRIGGER_LABEL });
+      const el = container.querySelector(
+        ".pw-header-end button[aria-label='" + ASSISTANT_TRIGGER_LABEL + "']"
+      ) as HTMLElement;
       expect(el).toBeTruthy();
       return el;
     });
@@ -154,8 +157,9 @@ describe("AppShell landmarks and structure (T9)", () => {
     expect(artwork?.closest("[aria-hidden='true']")).not.toBeNull();
     expect(triggerSlot?.querySelector(":scope > button")).not.toBeNull();
     expect(triggerSlot?.querySelector("button")?.closest("[aria-hidden='true']")).toBeNull();
-    // exactly one companion slot in the whole shell (finding D)
-    expect(container.querySelectorAll("[data-pw-companion-slot]").length).toBe(1);
+    // companion slots exist in the header and the rail (progressive
+    // disclosure pattern 17:4565)
+    expect(container.querySelectorAll("[data-pw-companion-slot]").length).toBe(2);
 
     // A real click focuses the button; jsdom's fireEvent does not, so
     // set it explicitly (the Drawer restores focus to its invoker).
@@ -181,9 +185,11 @@ describe("AppShell landmarks and structure (T9)", () => {
     // the trigger now shows the visible label as aria-hidden
     // decoration so the accessible name stays EXACTLY the contract
     // label (A11y §7.2).
-    shellProviders(withRoute(<h1>Today</h1>));
+    const { container } = shellProviders(withRoute(<h1>Today</h1>));
     const trigger = await waitFor(() => {
-      const el = screen.getByRole("button", { name: ASSISTANT_TRIGGER_LABEL });
+      const el = container.querySelector(
+        ".pw-header-end button[aria-label='" + ASSISTANT_TRIGGER_LABEL + "']"
+      ) as HTMLElement;
       expect(el).toBeTruthy();
       return el;
     });

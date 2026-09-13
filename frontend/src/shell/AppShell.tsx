@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { SectionNav } from "./SectionNav";
 import { Drawer } from "../primitives/Drawer";
 import { CompanionSlot } from "../primitives/CompanionSlot";
+import { CompanionPopover } from "../primitives/CompanionPopover";
 import { ChatPanel } from "../components/ChatPanel";
 import { stashCorrectionDraft } from "../lib/correction-draft";
 import type { ChatJournalCorrectionProposal } from "../lib/api";
 import { useSections } from "../lib/hooks";
+import type { CompanionMode } from "../primitives/CompanionSlot";
 
 /**
  * AppShell (P1 T9, FOUNDATION-SPEC §5 shell components, A11y §2.6/§4.2/
@@ -96,7 +98,21 @@ export function AppShell({ children }: AppShellProps) {
   // Assistant Drawer. No new context or global machinery.
   const [assistantOpen, setAssistantOpen] = useState(false);
   const openAssistant = () => setAssistantOpen(true);
-  const closeAssistant = () => setAssistantOpen(false);
+
+  // Companion progressive disclosure (17:4565): three states —
+  // rest (quietly here), focus (popover), open (drawer).
+  const [companionMode, setCompanionMode] = useState<CompanionMode>("rest");
+  const handleRestClick = () => setCompanionMode("focus");
+  const handlePopoverClose = () => setCompanionMode("rest");
+  const handlePopoverOpenAssistant = () => {
+    setCompanionMode("open");
+    setAssistantOpen(true);
+  };
+  // When the drawer closes, return to rest
+  const handleCloseAssistant = () => {
+    setAssistantOpen(false);
+    setCompanionMode("rest");
+  };
 
   // Assistant-drafted correction proposals (assistant participation:
   // drafting is not acting): "Prepare correction" stashes the draft
@@ -104,7 +120,7 @@ export function AppShell({ children }: AppShellProps) {
   // UI state; the mutation path stays where it has always been.
   const onPrepareCorrection = (proposal: ChatJournalCorrectionProposal) => {
     stashCorrectionDraft(proposal);
-    setAssistantOpen(false);
+    handleCloseAssistant();
     navigate(`/journal?correct=${encodeURIComponent(proposal.entry_ts)}`);
   };
 
@@ -185,6 +201,20 @@ export function AppShell({ children }: AppShellProps) {
       {bucket === "rail" ? (
         <nav aria-label="Main" className="pw-rail">
           <SectionNav compact />
+          {/* Companion progressive disclosure (17:4565): rest state at
+              the rail bottom, with focus popover anchored nearby. */}
+          <div className="pw-rail-companion">
+            <CompanionSlot
+              size="inline"
+              mode={companionMode === "open" ? "default" : "rest"}
+              onRestClick={handleRestClick}
+            />
+            <CompanionPopover
+              open={companionMode === "focus"}
+              onClose={handlePopoverClose}
+              onOpenAssistant={handlePopoverOpenAssistant}
+            />
+          </div>
         </nav>
       ) : null}
       {bucket === "bottom" ? (
@@ -208,7 +238,7 @@ export function AppShell({ children }: AppShellProps) {
       <Drawer
         open={assistantOpen}
         title="World Assistant"
-        onClose={closeAssistant}
+        onClose={handleCloseAssistant}
         side={bucket === "bottom" ? "bottom" : "right"}
       >
         <ChatPanel sectionContext={sectionContext} onPrepareCorrection={onPrepareCorrection} />

@@ -39,19 +39,15 @@ afterEach(() => {
 });
 
 describe("section stubs: honest EmptyStates (T13)", () => {
-  it("Interests names the discovery capability and the Settings knob", () => {
+  it("Interests names the discovery capability and the warm invitation", () => {
     render(stubProviders(<InterestsScreen />));
     expect(screen.getByRole("heading", { name: "Interests" })).toBeTruthy();
     expect(
       screen.getByText(
-        "Interests collect things you care about and find more like them."
+        "Interests helps your world learn what you care about — bookmarks, saved articles, and things you want to explore later."
       )
     ).toBeTruthy();
-    expect(
-      screen.getByText(
-        /discovery connection in Settings → Connections/
-      )
-    ).toBeTruthy();
+    expect(screen.getByText("This room is still empty.")).toBeTruthy();
     expect(screen.getByText("not configured")).toBeTruthy();
   });
 

@@ -231,7 +231,7 @@ describe("Journal: page h1 with sequential h2 sections (empty state)", () => {
     });
     const headings = expectSoundOutline(container, "/journal empty");
     expect(headings.map((h) => h.level)).toEqual([1, 2, 2, 2]);
-    expect(headings[0]).toEqual({ level: 1, text: "Journal" });
+    expect(headings[0]).toEqual({ level: 1, text: "Journal & Memory" });
   });
 });
 
@@ -293,17 +293,14 @@ describe("World: page h1 with h2 summary/capability sections", () => {
       expect(container.querySelector("h1")?.textContent).toBe("Your World");
     });
     const headings = expectSoundOutline(container, "/world success");
-    expect(headings.map((h) => h.level)).toEqual([1, 2, 2, 2, 2, 2, 2, 3, 3]);
+    expect(headings.map((h) => h.level)).toEqual([1, 2, 3, 3, 2, 2]);
     expect(headings.map((h) => h.text)).toEqual([
       "Your World",
-      "Summary",
-      "Facts",
-      "Intents",
-      "Policies",
-      "Reminders",
-      "Capabilities",
+      "What your world can see",
       "Source Control",
       "Media",
+      "Intent and Policies",
+      "Reminders",
     ]);
   });
 });
