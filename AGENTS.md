@@ -28,6 +28,12 @@ agent's WIP into its commit. The rules:
 
 ## Where truth lives (read before trusting)
 
+- **Figma-to-code workflow:** use
+  [personal-world-implement-figma](.agents/skills/personal-world-implement-figma/SKILL.md)
+  for approved-frame implementation, repo token/component/art reuse, and
+  region-by-region browser comparison. It routes to the canonical contracts;
+  it does not replace them.
+
 - **Current architecture:** `docs/ARCHITECTURE.md`. World model and
   invariants: `docs/NATIVE-BASELINE-AND-ENRICHMENT.md` (normative,
   enforced by `personal-world framework validate`).
