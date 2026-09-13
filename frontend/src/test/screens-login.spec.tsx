@@ -152,10 +152,11 @@ describe("LoginScreen (T12, parity row 9)", () => {
     expect(submit.disabled).toBe(false);
   });
 
-  it("offers the setup deep-link for fresh installs", async () => {
+  it("offers the setup deep-link for fresh installs (frame 17:1723 wording: Build your world)", async () => {
     renderLogin();
-    const link = screen.getByRole("link", { name: "Set up your world" });
-    expect(link.getAttribute("href")).toBe("/setup");
+    const link = document.querySelector('a[href="/setup"]') as HTMLAnchorElement;
+    expect(link).toBeTruthy();
+    expect(link.textContent).toContain("Build your world");
   });
 
   it("axe: 0 violations (color-contrast off only)", async () => {
