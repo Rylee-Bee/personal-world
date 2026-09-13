@@ -96,6 +96,17 @@ function emit(root) {
     lines.push("");
   }
 
+  // ── Layout (shell geometry) ────────────────────────────────
+  const layout = sectionEntries(root.layout ?? {});
+  if (layout.length) {
+    lines.push(":root {");
+    for (const [name, value] of layout) {
+      lines.push(`  ${cssName("layout", name.replace(/^layout\./, ""))}: ${value};`);
+    }
+    lines.push("}");
+    lines.push("");
+  }
+
   // ── Target sizes (44px floor) ───────────────────────────────
   const targets = sectionEntries(root.targets ?? {});
   if (targets.length) {
