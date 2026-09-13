@@ -58,6 +58,10 @@ dated entry superseding the old one (append-only, like the journal).
   schema URIs); historical references are preserved rather than
   rewritten. Reason: continuity of tooling and truthful history.
 
+## Milestones
+
+- **2026-09-13 — Workshop v3 implementation milestone: the bridge works.** Today — Quiet Day (Figma node `17:481`) became the first canonical Workshop v3 frame implemented in the working product at commit `874fb69`. This does **not** mark the Workshop v3 rollout complete: design convergence is 16/16, while implementation is 1/16. It establishes that the full design-to-product path works end-to-end: approved Figma design → repository design authority → Figma MCP → `personal-world-implement-figma` → canonical repository components/assets → rendered comparison → D0–D4 acceptance. The first unattended attempt correctly produced zero code when canonical evidence was unavailable; the project fixed the evidence chain rather than weakening the guardrail. Once that evidence existed, the implementation completed quickly while preserving truthful data, accessibility, repository behavior, and explicit reservations where design and implementation authority differed. Engineering acceptance reached D0–D3 PASS; D4 remained intentionally pending owner review. This is the point where Workshop v3 stopped being only a design language and became part of the working world. **The world knows how loudly to exist.**
+
 ## Source of truth
 
 - **2026-09-12 — Project Worlds does not compute repository
