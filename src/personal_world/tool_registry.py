@@ -230,6 +230,16 @@ def build_default_tools(
         handler=lambda: _lab_resources(),
     ))
 
+    tools.register(Tool(
+        id="inspect_lab_settings",
+        capability="lab",
+        operation="settings",
+        description="Inspect native lab settings: services with desired state defined.",
+        read_write="read",
+        parameters={"type": "object", "properties": {}, "required": []},
+        handler=lambda: _lab_settings(),
+    ))
+
     # ── Reconciler ──
 
     tools.register(Tool(
@@ -240,6 +250,22 @@ def build_default_tools(
         read_write="read",
         parameters={"type": "object", "properties": {}, "required": []},
         handler=lambda: _reconciler_status(),
+    ))
+
+    tools.register(Tool(
+        id="inspect_reconciler_diff",
+        capability="reconciler",
+        operation="diff",
+        description="Inspect desired-vs-observed diff for a service. Shows what differs from what was asked for.",
+        read_write="read",
+        parameters={
+            "type": "object",
+            "properties": {
+                "service": {"type": "string", "description": "Service name to inspect drift for"}
+            },
+            "required": ["service"],
+        },
+        handler=lambda service: _reconciler_diff(service),
     ))
 
     # ── Discovery ──
@@ -419,6 +445,16 @@ def _lab_resources() -> Result:
         return fail("unavailable", warnings=[f"lab resources: {e}"])
 
 
+def _lab_settings() -> Result:
+    """Get native lab settings."""
+    try:
+        from .providers.native_lab import NativeLabSettings
+        settings = NativeLabSettings()
+        return settings.observe()
+    except Exception as e:
+        return fail("unavailable", warnings=[f"lab settings: {e}"])
+
+
 def _reconciler_status() -> Result:
     """Get reconciler status."""
     try:
@@ -427,6 +463,26 @@ def _reconciler_status() -> Result:
         return reconciler.observe()
     except Exception as e:
         return fail("unavailable", warnings=[f"reconciler: {e}"])
+
+
+def _reconciler_diff(service: str) -> Result:
+    """Get desired-vs-observed diff for a service."""
+    try:
+        from .providers.native_reconciler import NativeSettingsReconciler
+        reconciler = NativeSettingsReconciler()
+        # For now, return the desired state for the service.
+        # The actual diff requires observed state, which would come from
+        # a provider. Return what we have.
+        desired = reconciler._desired.get(service)
+        if not desired:
+            return fail("not_found", warnings=[f"no desired state for service '{service}'"])
+        return ok("healthy", data={
+            "service": service,
+            "desired": desired.to_dict(),
+            "note": "Observed state not available for diff. Desired state shown.",
+        })
+    except Exception as e:
+        return fail("unavailable", warnings=[f"reconciler diff: {e}"])
 
 
 def _discovery_status() -> Result:
