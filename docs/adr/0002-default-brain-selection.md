@@ -1,0 +1,56 @@
+# Small Model Decision — Project Worlds
+
+Date: 2026-09-13
+Benchmark commit: ec40163
+
+## Decision
+
+**Default small brain: Qwen3 1.7B Q4_K_M**
+
+**Fallback: LFM2.5 2.6B Q4_K_M**
+
+## Evidence
+
+Quick-final pass: 14 high-signal tasks, 1 run each, CPU-only (AMD Ryzen 7 7800X3D).
+
+| Model | PASS | PARTIAL | FAIL | Avg latency |
+|-------|------|---------|------|-------------|
+| Qwen3 1.7B | 6 | 8 | 0 | 12.4s |
+| LFM2.5 2.6B | 4 | 10 | 0 | 15.4s |
+
+## Why Qwen3
+
+- Produces structured prose with clear status, reasoning, and action
+- Correctly handles "boring healthy" — says "nothing needs attention" without inventing work
+- Preserves UNKNOWN — says "unknown" when data is missing
+- Identifies reservation patterns — flags "backup completed in 2 minutes" as suspicious
+- Preserves unknown enum values — does not coerce unrecognized values to defaults
+- Notices lock/sensor mismatches in multi-step scenarios
+- Faster average latency (12.4s vs 15.4s)
+
+## Why not LFM2.5 as default
+
+- Tends to output tool-call syntax (`<|tool_call_start|>[tool()]`) instead of prose reasoning
+- For "boring healthy" states, calls `read_tool` instead of reporting "nothing needs attention"
+- Empty response observed on trusted-translation task
+- More PARTIAL results overall (10 vs 8)
+
+## Architecture
+
+The brain is wired through the existing `reasoning` capability in the provider registry:
+
+```
+config/connections.json
+  type: openai_compat
+  capability: reasoning
+  base_url: <llama.cpp endpoint serving Qwen3>
+  model: <alias>
+```
+
+The brain helps the world operate without becoming the world. It does not have write access to world state, policies, or authoritative facts.
+
+## Files
+
+- Quick-final results: `bench/finals/runs/quick-worlds-qwen3-1.7b-*.jsonl`
+- Decision packet: `bench/finals/DECISION-PACKET.md`
+- This document: `docs/adr/0002-default-brain-selection.md`
