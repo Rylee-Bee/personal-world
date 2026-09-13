@@ -374,9 +374,48 @@ hypothetical):
 `design/tokens.json` (canonical tokens; repo-owned), `docs/DESIGN-HANDOFF.md`
 (V0.1 baseline reference, partly superseded), `docs/accessibility/`
 (non-negotiable floor). `design/handoff/` is an archived Figma spec
-package — historical, never edit to change design. `design/CURRENT.md`
-(top-level `.project/design/CURRENT.md`) answers "what is approved right
-now" in more detail, including frame-by-frame approval status.
+package — historical, never edit to change design. `.project/design/CURRENT.md`
+answers "what is approved right now" in more detail, including
+frame-by-frame approval status.
+
+**Workshop v3 is the current implementation design authority
+(2026-09-13).** See `.project/design/WORKSHOP-V3-MANIFEST.yaml` for the
+16 canonical frames with exact node IDs, philosophy/audit artifacts, and
+the 8 verbatim reservations. **Today — Quiet Day = node `17:481` in file
+`Wbg1rdt9fVCjWAXEKI1pTc` — implementation target #1** (not `13:14`, not
+V0.1 `3:722`).
+
+## Figma bridge (how to reach the design evidence)
+
+- **Remote MCP** (`https://mcp.figma.com/mcp`) rejects opencode — Figma
+  allowlists only catalog-listed clients (Claude Code, Cursor, VS Code…;
+  opencode is not yet in the catalog; new clients register via the Figma
+  account team). Configured in `~/.config/opencode/opencode.jsonc` but
+  unusable until Figma allowlists opencode.
+- **Working path (verified 2026-09-13):** the Figma **desktop Dev Mode MCP
+  server** (localhost:3845) on the operator's Figma machine (a separate
+  LAN host; coordinates live in the operator's user-level config
+  `~/.ssh/config` / host aliases, never in tracked files). Expose it via
+  an SSH reverse tunnel to this box: run on the Figma machine
+  `ssh -N -R 13845:127.0.0.1:3845 figma-tunnel@<this-box>` (one-time
+  bridge account; password set by the owner, not stored in any tracked
+  file). Then the MCP endpoint is `http://127.0.0.1:13845/mcp`.
+  Requires Figma desktop open with the Workshop file and
+  *Preferences → Enable Dev Mode MCP Server* on.
+- NOTE: sshd on this box can bind reverse-forward port 13845 because it
+  was SELinux-labeled `ssh_port_t` (Bazzite/Fedora default policy denied
+  `sshd_session_t` binds; `sudo semanage port -a -t ssh_port_t -p tcp
+  13845`). If the forward fails again after a policy relabel, that is
+  the first thing to re-check.
+- The desktop server exposes `get_design_context`, `get_screenshot`,
+  `get_metadata`, `get_variable_defs`, `get_motion_context`, `get_figjam`
+  — the retrieval roles `personal-world-implement-figma` requires.
+  Retrieval verified against the Workshop v3 file on 2026-09-13.
+- The Figma machine's LAN address is private topology; per SECURITY.md
+  it must not enter tracked files. This note describes the mechanism
+  (SSH alias/tunnel), and these files deliberately reference
+  "the operator's Figma machine" rather than pinning addresses or
+  credentials.
 
 ## Play-Nice adoption
 
