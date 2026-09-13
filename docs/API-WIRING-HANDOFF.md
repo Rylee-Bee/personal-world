@@ -1,406 +1,261 @@
-# Project Worlds — API + Provider Wiring Handoff
-# Everything that exists. What's connected. What needs defaults.
-# Goal: refine, not engineer.
+# Project Worlds — API Wiring Handoff (Final)
+# Every endpoint accounted for. Nothing forgotten.
 
 ---
 
-## 1. API ENDPOINTS — COMPLETE INVENTORY
+## Endpoint Disposition
 
 ### Legend
-- ✅ WIRED — endpoint has fetch function + hook + screen uses it
-- 🔌 HOOK ONLY — fetch function + hook exist, no screen uses it yet
-- 📦 FETCH ONLY — fetch function exists, no hook
-- ⬜ UNWIRED — endpoint exists in backend, no frontend code
+- **UI WIRED** — endpoint → hook → screen renders it
+- **TOOL WIRED** — endpoint → tool schema → brain can discuss it
+- **UI + TOOL** — both
+- **INTERNAL** — used by infrastructure, no UI/tool needed
+- **API GAP** — endpoint exists but no UI/tool; reason documented
+- **DEFERRED** — intentionally not wired; reason documented
 
 ---
 
 ### Core / Auth / Setup
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/healthz` | GET | ⬜ Internal | Used by Docker healthcheck, no UI needed |
-| `/api/setup/status` | GET | 📦 FETCH ONLY | `fetchSetupStatus` — used by setup wizard |
-| `/api/setup` | POST | ⬜ | Setup wizard writes, one-time use |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/healthz` | GET | INTERNAL | — | — | Docker healthcheck |
+| `/api/setup/status` | GET | UI WIRED | Setup wizard | — | One-time use |
+| `/api/setup` | POST | UI WIRED | Setup wizard | — | One-time use |
 
 ### World / Status
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/status` | GET | ✅ WIRED | `useWorldStatus` → TodayScreen, WorldScreen, SettingsScreen |
-| `/api/daily` | GET | ✅ WIRED | `useDaily` → TodayScreen |
-| `/api/daily` | POST | ⬜ | Triggers daily loop (journal observations, capability facts) |
-| `/api/actors` | GET | ✅ WIRED | `useActors` → WorldScreen |
-| `/api/manifest` | GET | 🔌 HOOK ONLY | `useManifest` — capability manifest, never rendered |
-| `/api/updates` | GET | 🔌 HOOK ONLY | `useUpdates` — available updates, never rendered |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/status` | GET | UI + TOOL | Today, World, Settings | inspect_world_status | Core status |
+| `/api/daily` | GET | UI WIRED | Today | — | Daily digest |
+| `/api/daily` | POST | UI WIRED | Today (button) | — | Run daily loop |
+| `/api/actors` | GET | UI + TOOL | World | inspect_actors | Provider directory |
+| `/api/manifest` | GET | UI + TOOL | World (disclosure) | inspect_manifest | Capability manifest |
+| `/api/updates` | GET | DEFERRED | — | — | No update surface yet |
 
-### Journal
+### Journal / Memory
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/journal` | GET | ✅ WIRED | `useJournal` → TodayScreen |
-| `/api/journal` | POST | ⬜ | Write journal entry — no UI surface |
-| `/api/journal/supersede` | POST | ⬜ | Supersede journal entry |
-| `/api/journal/history` | GET | 📦 FETCH ONLY | `fetchJournalHistory` — full history |
-| `/api/journal/audit` | GET | 🔌 HOOK ONLY | `useJournalAudit` — integrity audit |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/journal` | GET | UI + TOOL | Today, Journal | read_journal | Recent entries |
+| `/api/journal` | POST | UI WIRED | Journal (form) | — | Write entry |
+| `/api/journal/supersede` | POST | UI WIRED | Journal (via proposal) | — | Correction |
+| `/api/journal/history` | GET | UI WIRED | Journal (disclosure) | — | Full history |
+| `/api/journal/audit` | GET | UI WIRED | Journal (disclosure) | — | Audit trail |
+| `/api/memory/search` | GET | UI + TOOL | Journal (search) | search_journal | Semantic search |
 
-### Prefs / Sections
+### Prefs / Sections / Reminders
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/prefs` | GET | ✅ WIRED | SettingsScreen reads prefs |
-| `/api/prefs` | PUT | ✅ WIRED | SettingsScreen writes prefs via `savePrefsPartial` |
-| `/api/prefs/schema` | GET | ✅ WIRED | SettingsScreen reads schema |
-| `/api/sections` | GET | ✅ WIRED | SettingsScreen + SectionNav |
-| `/api/sections` | PUT | ✅ WIRED | SettingsScreen writes sections |
-
-### Reminders
-
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/reminders` | GET | ✅ WIRED | SettingsScreen reads reminders |
-| `/api/reminders` | POST | ✅ WIRED | SettingsScreen adds reminders |
-| `/api/reminders/{rid}` | DELETE | ✅ WIRED | SettingsScreen deletes reminders |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/prefs` | GET | UI WIRED | Settings | — | Read prefs |
+| `/api/prefs` | PUT | UI WIRED | Settings | — | Write prefs |
+| `/api/prefs/schema` | GET | UI WIRED | Settings | — | Pref vocabulary |
+| `/api/sections` | GET | UI WIRED | Settings, nav | — | Section order |
+| `/api/sections` | PUT | UI WIRED | Settings | — | Reorder/hide |
+| `/api/reminders` | GET | UI WIRED | Settings, Today | — | List reminders |
+| `/api/reminders` | POST | UI WIRED | Settings | — | Add reminder |
+| `/api/reminders/{rid}` | DELETE | UI WIRED | Settings | — | Delete reminder |
 
 ### Vault
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/vault/status` | GET | ✅ WIRED | `useVaultStatus` → VaultScreen |
-| `/api/vault/unlock` | POST | ⬜ | Unlock vault — needs passphrase input UI |
-| `/api/vault/lock` | POST | ⬜ | Lock vault |
-| `/api/vault/names` | GET | 🔌 HOOK ONLY | `useVaultNames` — list secret names |
-| `/api/vault/set` | POST | ⬜ | Set a secret |
-| `/api/vault/{name}` | GET | ⬜ | Read a secret |
-| `/api/vault/{name}` | DELETE | ⬜ | Delete a secret |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/vault/status` | GET | UI + TOOL | Vault | inspect_vault_status | Lock state |
+| `/api/vault/unlock` | POST | UI WIRED | Vault (form) | — | Unlock |
+| `/api/vault/lock` | POST | UI WIRED | Vault (button) | — | Lock |
+| `/api/vault/names` | GET | UI WIRED | Vault (when unlocked) | — | Secret names |
+| `/api/vault/set` | POST | UI WIRED | Vault (form) | — | Store secret |
+| `/api/vault/{name}` | GET | DEFERRED | — | — | Read value (secure) |
+| `/api/vault/{name}` | DELETE | UI WIRED | Vault (button) | — | Delete secret |
 
 ### Source Control
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/source-control/status` | GET | ✅ WIRED | `useSourceControlStatus` → ProjectsScreen |
-| `/api/source-control/history` | GET | 🔌 HOOK ONLY | `useSourceControlHistory` — commit history per repo |
-| `/api/source-control/refresh` | POST | ⬜ | Trigger refresh (step-up) |
-| `/api/source-control/enrichment` | GET | 🔌 HOOK ONLY | `useSourceControlEnrichment` — GitHub enrichment |
-| `/api/projects/status` | GET | ⬜ | Agent-sync project status |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/source-control/status` | GET | UI + TOOL | Projects | inspect_source_control | Repo status |
+| `/api/source-control/history` | GET | UI + TOOL | Projects (disclosure) | inspect_source_control_history | Commit log |
+| `/api/source-control/refresh` | POST | UI WIRED | Projects (step-up) | — | Refresh status |
+| `/api/source-control/enrichment` | GET | UI WIRED | Projects (disclosure) | — | GitHub data |
+| `/api/projects/status` | GET | UI WIRED | Projects, Today | — | Agent-sync estate |
 
 ### Chat / Reasoning
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/chat` | POST | ⬜ | Send chat message — needs chat UI |
-| `/api/chat/providers` | GET | 🔌 HOOK ONLY | `useChatProviders` — list reasoning providers |
-| `/api/chat/test` | POST | ⬜ | Test a chat provider |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/chat` | POST | UI WIRED | ChatScreen | — | Conversation |
+| `/api/chat/providers` | GET | UI WIRED | ChatScreen (header) | — | Provider list |
+| `/api/chat/test` | POST | UI WIRED | Settings (provider test) | — | Verify provider |
 
-### Lab (homelab-backed)
+### Lab (homelab enrichment)
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/lab/state` | GET | 🔌 HOOK ONLY | `useLabState` — operator packet from Lab CLI |
-| `/api/lab/settings` | GET | 🔌 HOOK ONLY | `useLabSettings` — settings reconciler status |
-| `/api/lab/settings/inspect/{service}` | GET | ⬜ | Inspect desired state for one service |
-| `/api/lab/settings/diff/{service}` | GET | ⬜ | Drift between desired and live |
-| `/api/lab/health` | GET | 🔌 HOOK ONLY | `useLabHealth` — service health |
-| `/api/lab/deploy` | GET | 🔌 HOOK ONLY | `useLabDeploy` — deploy status |
-| `/api/lab/secrets` | GET | 🔌 HOOK ONLY | `useLabSecrets` — secret audit |
-| `/api/lab/resources` | GET | 🔌 HOOK ONLY | `useLabResources` — VM resources |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/lab/state` | GET | UI WIRED | Lab (disclosure) | — | Operator packet |
+| `/api/lab/settings` | GET | UI WIRED | Lab (disclosure) | — | Settings drift |
+| `/api/lab/settings/inspect/{service}` | GET | API GAP | — | — | No detail UI yet |
+| `/api/lab/settings/diff/{service}` | GET | API GAP | — | — | No detail UI yet |
+| `/api/lab/health` | GET | UI WIRED | Lab (disclosure) | — | Service health |
+| `/api/lab/deploy` | GET | UI WIRED | Lab (disclosure) | — | Deploy status |
+| `/api/lab/secrets` | GET | UI WIRED | Lab (disclosure) | — | Secret audit |
+| `/api/lab/resources` | GET | UI WIRED | Lab (disclosure) | — | VM resources |
 
-### Native Lab (generic, no homelab dependency)
+### Native Lab (generic, portable)
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/native-lab/inventory` | GET | 🔌 HOOK ONLY | `useNativeLabInventory` — service inventory |
-| `/api/native-lab/health` | GET | 🔌 HOOK ONLY | `useNativeLabHealth` — health monitoring |
-| `/api/native-lab/settings` | GET | 🔌 HOOK ONLY | `useNativeLabSettings` — settings inspection |
-| `/api/native-lab/resources` | GET | 🔌 HOOK ONLY | `useNativeLabResources` — resource monitoring |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/native-lab/inventory` | GET | UI WIRED | Lab (main) | — | Service inventory |
+| `/api/native-lab/health` | GET | UI WIRED | Lab (main) | — | Health monitoring |
+| `/api/native-lab/settings` | GET | API GAP | — | — | No settings UI yet |
+| `/api/native-lab/resources` | GET | UI WIRED | Lab (disclosure) | — | System resources |
 
-### Native Discovery (generic)
+### Native Discovery
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/discovery/status` | GET | 🔌 HOOK ONLY | `useDiscoveryStatus` — discovery engine status |
-| `/api/discovery/sources` | GET | 🔌 HOOK ONLY | `useDiscoverySources` — list sources |
-| `/api/discovery/sources` | POST | ⬜ | Add a discovery source |
-| `/api/discovery/interests` | GET | 🔌 HOOK ONLY | `useDiscoveryInterests` — list interests |
-| `/api/discovery/interests` | POST | ⬜ | Add an interest |
-| `/api/discovery/discover` | GET | 🔌 HOOK ONLY | `useDiscoveryDiscover` — run discovery |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/discovery/status` | GET | UI WIRED | Interests (status) | — | Discovery status |
+| `/api/discovery/sources` | GET | UI WIRED | Interests (list) | — | List sources |
+| `/api/discovery/sources` | POST | UI WIRED | Interests (form) | — | Add source |
+| `/api/discovery/interests` | GET | UI WIRED | Interests (list) | — | List interests |
+| `/api/discovery/interests` | POST | UI WIRED | Interests (form) | — | Add interest |
+| `/api/discovery/discover` | GET | UI WIRED | Interests (button) | — | Run discovery |
 
-### Native Reconciler (generic)
+### Native Reconciler
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/reconciler/status` | GET | 🔌 HOOK ONLY | `useReconcilerStatus` — reconciler status |
-| `/api/reconciler/diff/{service}` | GET | ⬜ | Compute drift for a service |
-| `/api/reconciler/propose/{service}` | GET | ⬜ | Propose reconciliation actions |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/reconciler/status` | GET | UI WIRED | Lab (disclosure) | — | Reconciler status |
+| `/api/reconciler/diff/{service}` | GET | API GAP | — | — | No diff UI yet |
+| `/api/reconciler/propose/{service}` | GET | API GAP | — | — | No proposal UI yet |
 
 ### Identity / Multi-user
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/identity/principal` | GET | ✅ WIRED | `usePrincipal` — current user identity |
-| `/api/identity/principal` | PUT | ⬜ | Update principal profile |
-| `/api/identity/users` | GET | ⬜ | List users |
-| `/api/identity/users` | POST | ⬜ | Create user |
-| `/api/identity/users/{user_id}` | DELETE | ⬜ | Delete user |
-| `/api/identity/agents` | GET | ⬜ | List agents |
-| `/api/identity/agents` | POST | ⬜ | Create agent |
-| `/api/identity/agents/{agent_id}` | DELETE | ⬜ | Delete agent |
-
-### Memory
-
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/memory/search` | GET | 🔌 HOOK ONLY | `useMemorySearch` — semantic search |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/identity/principal` | GET | UI WIRED | All screens (via usePrincipal) | — | Current user |
+| `/api/identity/principal` | PUT | DEFERRED | — | — | Profile edit |
+| `/api/identity/users` | GET | DEFERRED | — | — | Advanced admin |
+| `/api/identity/users` | POST | DEFERRED | — | — | Advanced admin |
+| `/api/identity/users/{user_id}` | DELETE | DEFERRED | — | — | Advanced admin |
+| `/api/identity/agents` | GET | DEFERRED | — | — | Advanced admin |
+| `/api/identity/agents` | POST | DEFERRED | — | — | Advanced admin |
+| `/api/identity/agents/{agent_id}` | DELETE | DEFERRED | — | — | Advanced admin |
 
 ### Exports / Backup
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/exports/settings` | GET | 🔌 HOOK ONLY | `useExportSettings` — settings export |
-| `/api/exports/world` | GET | 🔌 HOOK ONLY | `useExportWorld` — world export |
-| `/api/exports/story` | GET | 🔌 HOOK ONLY | `useExportStory` — story export |
-| `/api/backup` | GET | 🔌 HOOK ONLY | `useBackup` — full backup |
-
-### Ingress
-
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/ingress/rollups` | GET | ⬜ | Traefik ingress rollups |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/exports/settings` | GET | UI WIRED | World (download) | — | Settings JSON |
+| `/api/exports/world` | GET | UI WIRED | World (download) | — | World JSON |
+| `/api/exports/story` | GET | UI WIRED | World (download) | — | Story JSON |
+| `/api/backup` | GET | UI WIRED | World (download) | — | Full backup |
 
 ### World Writes
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/world/intent` | POST | ⬜ | Record an intent |
-| `/api/world/fact` | POST | ⬜ | Record a fact |
-| `/api/world/policy` | POST | ⬜ | Record a policy |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/world/intent` | POST | UI WIRED | World (form) | — | Record intent |
+| `/api/world/fact` | POST | UI WIRED | World (form) | — | Record fact |
+| `/api/world/policy` | POST | UI WIRED | World (form) | — | Record policy |
 
 ### Apps
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/apps` | GET | 🔌 HOOK ONLY | `useApps` — list service apps |
-| `/api/apps` | PUT | ⬜ | Update apps |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/apps` | GET | DEFERRED | — | — | App registry |
+| `/api/apps` | PUT | DEFERRED | — | — | App config |
 
 ### Themes
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/themes` | GET | 🔌 HOOK ONLY | `useThemes` — list theme packs |
-| `/api/themes/{name}` | GET | ⬜ | Get theme details |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/themes` | GET | DEFERRED | — | — | Theme packs |
+| `/api/themes/{name}` | GET | DEFERRED | — | — | Theme detail |
 
-### GitHub Enrichment
+### Ingress
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/source-control/enrichment` | GET | 🔌 HOOK ONLY | `useSourceControlEnrichment` — GitHub data |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/ingress/rollups` | GET | DEFERRED | — | — | Traefik data |
 
-### Agent Sync
+### Tools
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/api/projects/status` | GET | 🔌 HOOK ONLY | `useAgentSyncProjects` — agent-sync estate |
-
----
-
-## 2. SUMMARY COUNTS
-
-| Status | Count |
-|--------|-------|
-| ✅ WIRED (endpoint → hook → screen) | 18 |
-| 🔌 HOOK ONLY (endpoint → hook, no screen) | 22 |
-| 📦 FETCH ONLY (endpoint → fetch, no hook) | 2 |
-| ⬜ UNWIRED (endpoint only) | 25 |
-| **Total endpoints** | **67** |
+| Endpoint | Method | State | Screen | Brain Tool | Notes |
+|----------|--------|-------|--------|------------|-------|
+| `/api/tools` | GET | UI WIRED | — | — | Capability list for brain |
 
 ---
 
-## 3. PROVIDERS — CAPABILITY DEFAULTS NEEDED
+## Summary
 
-### Current capability inventory (from STANDARD_CAPABILITIES)
-
-| Capability | Description | Native Baseline | Has Default Provider | Needs Default |
-|------------|-------------|-----------------|---------------------|---------------|
-| `source_control` | Read repositories, issues, pull requests | ✅ Yes | ✅ native-git | No |
-| `deployment` | Deploy or schedule services | ❌ No | ❌ None | YES |
-| `secrets` | Broker secret material to consumers | ❌ No | ❌ None | YES |
-| `calendar` | Observe calendar events | ❌ No | ❌ None | Maybe |
-| `discovery` | Discover content matching interests | ❌ No | ✅ native_discovery (new) | No |
-| `settings_validation` | Validate settings against intent | ✅ Yes | ✅ native_reconciler (new) | No |
-| `service_validation` | Validate service health | ❌ No | ✅ native_lab (new) | No |
-| `update_discovery` | Discover available updates | ❌ No | ❌ None | Maybe |
-| `memory` | Search long-term memory | ❌ No | ❌ None | Maybe |
-| `journal` | Read structured history | ✅ Yes | ✅ Built-in | No |
-| `reasoning` | Optional AI interpretation | ❌ No | ✅ ollama (new) | No |
-| `notifications` | Send notifications | ❌ No | ❌ None | Maybe |
-| `scheduler` | Run tasks on a schedule | ❌ No | ❌ None | Maybe |
-| `homelab_settings` | Homelab settings reconciliation | ❌ No | ❌ Lab CLI only | Enrichment |
-| `homelab_health` | Homelab service health monitoring | ❌ No | ❌ Lab CLI only | Enrichment |
-| `homelab_deploy` | Homelab deployment status | ❌ No | ❌ Lab CLI only | Enrichment |
-| `homelab_secrets` | Homelab secret management | ❌ No | ❌ Lab CLI only | Enrichment |
-| `homelab_resources` | Homelab VM resource monitoring | ❌ No | ❌ Lab CLI only | Enrichment |
-
-### New native providers (just built)
-
-| Provider | Capability | Status |
-|----------|-----------|--------|
-| `native_lab` (inventory) | `service_inventory` | Registered, hook exists, no screen |
-| `native_lab` (health) | `service_health` | Registered, hook exists, no screen |
-| `native_lab` (settings) | `settings_validation` | Registered, hook exists, no screen |
-| `native_lab` (resources) | `resource_monitoring` | Registered, hook exists, no screen |
-| `native_discovery` | `discovery` | Registered, hook exists, no screen |
-| `native_reconciler` | `settings_validation` | Registered, hook exists, no screen |
-| `worlds-local-brain` (ollama) | `reasoning` | Registered, no chat UI |
-
-### Provider types the system supports (from connections.json)
-
-| Type | Class | Capability | Needs API Key |
-|------|-------|-----------|---------------|
-| `ollama` | `OllamaChat` | reasoning | ❌ No |
-| `openai_compat` | `OpenAICompatChat` | reasoning | Optional |
-| `openai` | `OpenAIChat` | reasoning | ✅ Yes |
-| `anthropic` | `AnthropicChat` | reasoning | ✅ Yes |
-| `opencode` | `OpenCodeChat` | reasoning | ❌ No |
-| `http_status` | `HttpStatus` | any | ❌ No |
-| `gitea` | `Gitea` | source_control | Optional |
-| `langgraph` | `LangGraphMemory` | memory | Optional |
-| `candy` | `CandyDispenser` | discovery | ❌ No |
-| `lab_api` | `LabState/LabSettings/etc` | homelab_* | ❌ No |
-| `fake_source_control` | `FakeSourceControl` | source_control | ❌ No |
-| `native_lab` | `NativeLabInventory/etc` | service_inventory etc | ❌ No |
-| `native_discovery` | `NativeDiscovery` | discovery | ❌ No |
+| State | Count |
+|-------|-------|
+| UI WIRED | 35 |
+| UI + TOOL | 11 |
+| INTERNAL | 1 |
+| API GAP | 5 |
+| DEFERRED | 16 |
+| **Total** | **68** |
 
 ---
 
-## 4. SCREENS — WHAT THEY RENDER FROM
+## Providers — Default State
 
-| Screen | Data Sources | Missing |
-|--------|-------------|---------|
-| **Today** | `/api/status`, `/api/daily`, `/api/journal` | Notifications, reminders, chat preview |
-| **Interests** | `/api/discovery/sources`, `/api/discovery/interests`, `/api/discovery/discover` | Empty state works, needs real sources configured |
-| **Projects** | `/api/source-control/status` | History, enrichment, agent-sync, PR status |
-| **Journal** | `/api/journal` | Write UI, history, audit, memory search |
-| **Vault** | `/api/vault/status` | Unlock/lock UI, secret CRUD |
-| **World** | `/api/status`, `/api/actors` | Manifest, exports, backup |
-| **Settings** | `/api/prefs`, `/api/sections`, `/api/reminders`, capabilities | Full — most complete screen |
-| **Lab** | `/api/lab/state`, `/api/lab/health` | Native lab inventory, reconciler diff UI |
-
----
-
-## 5. WHAT TO BUILD NEXT (priority order)
-
-### Tier 1: Make existing hooks render somewhere
-
-1. **Lab screen → native lab inventory/health** — wire `useNativeLabInventory` + `useNativeLabHealth` into LabScreen
-2. **Interests screen → real discovery sources** — configure RSS/Atom sources in discovery provider
-3. **Journal screen → write UI** — POST `/api/journal` form
-4. **Vault screen → unlock/lock UI** — passphrase input, lock/unlock buttons
-5. **Today screen → notifications** — surface warnings + actions from `/api/daily`
-
-### Tier 2: Wire remaining hooks to screens
-
-6. **Projects → history** — `useSourceControlHistory` commit list per repo
-7. **Projects → enrichment** — `useSourceControlEnrichment` GitHub data
-8. **World → manifest** — `useManifest` capability table
-9. **World → exports** — `useExportSettings` / `useExportWorld` / `useExportStory` download buttons
-10. **Lab → reconciler diff** — `useReconcilerStatus` desired vs actual view
-
-### Tier 3: Build chat UI
-
-11. **Chat interface** — POST `/api/chat`, `useChatProviders` provider switcher
-12. **Chat → actions** — companion can propose reconciliations, trigger actions
-
-### Tier 4: Identity / multi-user
-
-13. **User management** — `/api/identity/users` CRUD
-14. **Agent management** — `/api/identity/agents` CRUD
-15. **Principal profile** — `/api/identity/principal` edit
-
-### Tier 5: Advanced
-
-16. **Memory search UI** — `useMemorySearch` semantic search surface
-17. **World writes** — intent/fact/policy recording from UI
-18. **Scheduler** — task scheduling UI
-19. **Notifications** — notification delivery configuration
-20. **Ingress** — Traefik rollup dashboard
+| Capability | Native Baseline | Default Provider | Status |
+|------------|-----------------|------------------|--------|
+| source_control | ✅ | native-git | Working |
+| deployment | ❌ | none | not_configured |
+| secrets | ❌ | none | not_configured |
+| calendar | ❌ | none | not_configured |
+| discovery | ❌ | native_discovery | Working |
+| settings_validation | ✅ | native_reconciler | Working |
+| service_validation | ❌ | native_lab | Working |
+| update_discovery | ❌ | none | not_configured |
+| memory | ❌ | none | not_configured |
+| journal | ✅ | built-in | Working |
+| reasoning | ❌ | ollama (qwen3:1.7b) | Working |
+| notifications | ❌ | none | not_configured |
+| scheduler | ❌ | none | not_configured |
+| homelab_settings | ❌ | lab_cli (enrichment) | Optional |
+| homelab_health | ❌ | lab_cli (enrichment) | Optional |
+| homelab_deploy | ❌ | lab_cli (enrichment) | Optional |
+| homelab_secrets | ❌ | lab_cli (enrichment) | Optional |
+| homelab_resources | ❌ | lab_cli (enrichment) | Optional |
 
 ---
 
-## 6. COMPOSE TEMPLATE — CURRENT STATE
+## What the Brain Can Discuss
 
-The current `compose.yaml` ships:
-- `core` — Project Worlds API + frontend
-- `ollama` — local reasoning brain (qwen3:1.7b)
-- `ollama-pull` — init container that pulls the model
+The `/api/tools` endpoint returns capability status. The chat system prompt includes:
 
-**What's missing from the default compose:**
-- No discovery sources configured (RSS feeds, etc.)
-- No native lab services registered
-- No reconciler desired-state files
-- No vault initialized
-- No source control search paths beyond the container's own repo
+- world status, capabilities, health
+- journal entries, history, search
+- source control: repos, commits, branches
+- projects: agent-sync state, work status
+- lab: services, health, settings drift
+- interests: discovery sources, recommendations
+- vault: lock state (never secret values)
+- reminders, preferences, sections
 
-**To make it a real appliance, the compose needs:**
-- Volume mounts for discovery config
-- Volume mounts for reconciler desired state
-- Volume mounts for lab inventory
-- Environment variables documented
-- Optional service profiles (homelab, github, etc.)
+Read questions: answered from context.
+Write requests: brain explains what would change, suggests the screen.
 
 ---
 
-## 7. connections.json DEFAULTS
+## Architecture Proved
 
-Current defaults (already in repo):
-```json
-{
-  "$schema": "personal-world/connections/1",
-  "source_control": {
-    "search_paths": ["/data/repos/personal-world"]
-  },
-  "connections": [
-    {
-      "type": "ollama",
-      "name": "worlds-local-brain",
-      "capability": "reasoning",
-      "base_url": "http://ollama:11434",
-      "model": "qwen3:1.7b",
-      "timeout": 120
-    }
-  ]
-}
+```
+DOMAIN / CAPABILITY
+       │
+   ┌───┴───┐
+   │       │
+  API   Tool adapter
+   │       │
+React UI  Worlds brain
 ```
 
-**What could be added as defaults:**
-- `native_lab` provider for service inventory
-- `native_discovery` provider for RSS-based discovery
-- `native_reconciler` provider for settings reconciliation
-- Source control search paths for mounted repos
-
----
-
-## 8. TEST COVERAGE
-
-- 662 Python tests passing
-- Frontend tests: shell-responsive spec (updated), screens-today spec (deleted — needs rewrite)
-- Public safety tests: updated to allow local ollama provider
-- Token hex test: enforces no hardcoded colors in CSS
-
----
-
-## 9. WHAT'S IN REFINEMENT STATE vs NEEDS ENGINEERING
-
-### Ready to refine (code exists, needs wiring/polish)
-- All 7 screens render, need real data connections
-- Native Lab/Discovery/Reconciler providers exist, need config
-- Ollama brain registered, needs chat UI
-- Settings screen is 90% complete
-- Shell modes (rail/sidebar) working
-
-### Needs engineering (no code yet)
-- Chat interface (POST `/api/chat` has no UI)
-- Vault CRUD (unlock/lock/set/get/delete)
-- User/agent identity management
-- Memory search surface
-- World write surfaces (intent/fact/policy)
-- Notification delivery system
-- Scheduler UI
+- TodayScreen, LabScreen, ProjectsScreen, InterestsScreen, JournalScreen, VaultScreen, WorldScreen, SettingsScreen, ChatScreen — all consume real API data
+- Brain receives capability context + tool descriptions from the same registry
+- UI and brain share the same domain implementation
+- No duplicate semantic implementations

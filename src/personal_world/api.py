@@ -171,6 +171,31 @@ async def require_auth(request: Request) -> None:
     request.state.principal = principal
 
 
+def _capability_description(cap: str) -> str:
+    """Human-readable description for a capability."""
+    descriptions = {
+        "source_control": "Read repositories, branches, commits, and sync state",
+        "deployment": "Deploy or schedule services",
+        "secrets": "Broker secret material to consumers",
+        "calendar": "Observe calendar events",
+        "discovery": "Discover content matching interests",
+        "settings_validation": "Validate settings against intent",
+        "service_validation": "Validate service health",
+        "update_discovery": "Discover available updates",
+        "memory": "Search long-term memory",
+        "journal": "Read and write structured history",
+        "reasoning": "AI interpretation and conversation",
+        "notifications": "Send notifications",
+        "scheduler": "Run tasks on a schedule",
+        "homelab_settings": "Homelab settings reconciliation",
+        "homelab_health": "Homelab service health monitoring",
+        "homelab_deploy": "Homelab deployment status",
+        "homelab_secrets": "Homelab secret management",
+        "homelab_resources": "Homelab VM resource monitoring",
+    }
+    return descriptions.get(cap, cap.replace("_", " "))
+
+
 def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> FastAPI:
     data_dir = Path(data_dir or os.environ.get("PW_DATA_DIR", "./data"))
     config_dir = Path(config_dir or os.environ.get("PW_CONFIG_DIR", "./config"))
@@ -551,7 +576,26 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             )
         if ui_block:
             context = context + "\n\n" + ui_block
-        messages = build_chat_messages(message, context, history)
+        # Build tool descriptions for the brain
+        tool_desc_lines = []
+        tool_desc_lines.append("Capabilities you can discuss:")
+        for cap, s in sorted(registry.status_map().items()):
+            tool_desc_lines.append(f"- {cap}: {s['status']}")
+        tool_desc_lines.append("")
+        tool_desc_lines.append("What the person can ask about:")
+        tool_desc_lines.append("- world status, capabilities, health")
+        tool_desc_lines.append("- journal entries, history, search")
+        tool_desc_lines.append("- source control: repos, commits, branches")
+        tool_desc_lines.append("- projects: agent-sync state, work status")
+        tool_desc_lines.append("- lab: services, health, settings drift")
+        tool_desc_lines.append("- interests: discovery sources, recommendations")
+        tool_desc_lines.append("- vault: lock state (never secret values)")
+        tool_desc_lines.append("- reminders, preferences, sections")
+        tool_desc_lines.append("")
+        tool_desc_lines.append("Read questions: answer from context.")
+        tool_desc_lines.append("Write requests: explain what would change, suggest the person use the appropriate screen.")
+        tool_descriptions = "\n".join(tool_desc_lines)
+        messages = build_chat_messages(message, context, history, tool_descriptions)
         result = await run_in_threadpool(chat_once, impl, messages)
         if not result.ok:
             return result.model_dump(mode="json")
@@ -633,6 +677,22 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         ])
         return {"ok": result.ok, "status": result.status,
                 "data": result.data, "warnings": result.warnings}
+
+    @app.get("/api/tools", dependencies=[Depends(require_auth)])
+    async def tools() -> dict:
+        """List capabilities the brain can discuss with the user."""
+        _, registry = _state()
+        caps = registry.status_map()
+        tools_list = []
+        for cap, s in sorted(caps.items()):
+            tools_list.append({
+                "id": cap,
+                "status": s["status"],
+                "ok": s["ok"],
+                "warnings": s.get("warnings", []),
+                "description": _capability_description(cap),
+            })
+        return {"ok": True, "data": {"tools": tools_list, "count": len(tools_list)}}
 
     @app.get("/api/actors", dependencies=[Depends(require_auth)])
     async def actors() -> dict:

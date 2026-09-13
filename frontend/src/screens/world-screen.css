@@ -243,3 +243,131 @@
   color: var(--pw-color-text-muted);
   margin: 0;
 }
+
+/* ── Manifest table ── */
+.pw-world-manifest-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.pw-world-manifest-table th {
+  text-align: left;
+  font-weight: 600;
+  padding: 8px 12px 8px 0;
+  color: var(--pw-color-text-muted);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pw-world-manifest-table td {
+  padding: 8px 12px 8px 0;
+  color: var(--pw-color-text-primary);
+  border-top: 1px solid var(--pw-color-border-subtle);
+}
+
+.pw-world-manifest-empty {
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+}
+
+/* ── Export grid ── */
+.pw-world-export-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pw-world-export-btn {
+  min-height: var(--pw-target-minimum);
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--pw-color-border-strong);
+  background: var(--pw-color-surface-elevated);
+  color: var(--pw-color-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.pw-world-export-btn:hover:not(:disabled) {
+  border-color: var(--pw-color-accent-primary);
+}
+
+.pw-world-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── World write forms ── */
+.pw-world-write-note {
+  font-size: 0.75rem;
+  color: var(--pw-color-text-muted);
+  margin: 0 0 16px;
+}
+
+.pw-world-write-form {
+  margin-bottom: 16px;
+}
+
+.pw-world-write-form:last-of-type {
+  margin-bottom: 0;
+}
+
+.pw-world-write-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pw-world-write-legend {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--pw-color-text-primary);
+  margin-bottom: 8px;
+}
+
+.pw-world-write-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.pw-world-write-label {
+  flex: 1;
+  min-width: 140px;
+}
+
+.pw-world-write-input {
+  width: 100%;
+  min-height: var(--pw-target-minimum);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--pw-color-border-strong);
+  background: var(--pw-color-surface-elevated);
+  color: var(--pw-color-text-primary);
+  font-size: 0.8125rem;
+}
+
+.pw-world-write-input::placeholder {
+  color: var(--pw-color-text-muted);
+}
+
+.pw-world-write-input:focus-visible {
+  outline: 2px solid var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+.pw-world-write-status {
+  font-size: 0.75rem;
+  margin: 8px 0 0;
+  color: var(--pw-color-accent-primary);
+}
+
+.pw-world-write-status--error {
+  color: var(--pw-color-status-error, #e55);
+}

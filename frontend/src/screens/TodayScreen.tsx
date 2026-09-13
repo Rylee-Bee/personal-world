@@ -1,4 +1,14 @@
-import { usePrincipal, useDaily, useJournal, useWorldStatus } from "../lib/hooks";
+import { useCallback, useState } from "react";
+import {
+  usePrincipal,
+  useDaily,
+  useJournal,
+  useWorldStatus,
+  useReminders,
+  useSourceControlStatus,
+  useAgentSyncProjects,
+} from "../lib/hooks";
+import { getAuthToken } from "../lib/api";
 import "./today-screen.css";
 
 /**
@@ -53,6 +63,37 @@ export default function TodayScreen() {
   const daily = useDaily();
   const journal = useJournal();
   const worldStatus = useWorldStatus();
+  const reminders = useReminders();
+  const sourceControl = useSourceControlStatus();
+  const agentSync = useAgentSyncProjects();
+
+  const [dailyRunning, setDailyRunning] = useState(false);
+  const [dailyResult, setDailyResult] = useState<string | null>(null);
+
+  const runDaily = useCallback(async () => {
+    setDailyRunning(true);
+    setDailyResult(null);
+    try {
+      const res = await fetch("/api/daily", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken()}`,
+          "X-PW-StepUp": "1",
+        },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setDailyResult(body?.detail || `Failed (${res.status})`);
+      } else {
+        setDailyResult("Daily loop complete.");
+      }
+    } catch {
+      setDailyResult("Could not reach the server.");
+    } finally {
+      setDailyRunning(false);
+    }
+  }, []);
 
   const name =
     principal.data && !principal.isError
@@ -66,25 +107,35 @@ export default function TodayScreen() {
     day: "numeric",
   });
 
-  // Get world status
   const worldData = worldStatus.data;
   const capabilities = worldData?.capabilities || {};
   const healthyCaps = Object.values(capabilities).filter((c: any) => c.ok).length;
   const attentionCaps = Object.values(capabilities).filter((c: any) => !c.ok).length;
 
-  // Get daily data
   const dailyData = daily.data;
   const warnings = dailyData?.warnings || [];
   const actions = dailyData?.actions || [];
 
-  // Get journal entries
   const journalEntries = journal.data || [];
+
+  const activeReminders = (reminders.data || []).filter((r) => r.enabled);
+
+  const scRepos = sourceControl.data?.data?.repos || [];
+  const reposNeedingAttention = scRepos.filter(
+    (r) => r.error || (r.dirty ?? false) || (r.ahead != null && r.ahead > 0) || (r.behind != null && r.behind > 0)
+  );
+
+  const agentProjects = agentSync.data?.data?.projects || [];
+  const activeAgentProjects = agentProjects.filter(
+    (p) => p.work_state !== "idle" && p.work_state !== "unknown"
+  );
+
+  const totalAttention = attentionCaps + reposNeedingAttention.length + activeAgentProjects.length;
 
   return (
     <div className="pw-today">
       {/* World welcome */}
       <section className="pw-today-welcome" aria-labelledby="today-greeting">
-        {/* Greeting and health */}
         <div className="pw-today-greeting-row">
           <div className="pw-today-greeting">
             <h1 id="today-greeting" className="pw-today-greeting-text">
@@ -102,12 +153,12 @@ export default function TodayScreen() {
               ))}
             </div>
             <p className="pw-today-health-status">
-              {attentionCaps === 0
+              {totalAttention === 0
                 ? "Your world is running well."
-                : `${attentionCaps} capability needs attention.`}
+                : `${totalAttention} thing${totalAttention === 1 ? '' : 's'} need${totalAttention === 1 ? 's' : ''} attention.`}
             </p>
             <p className="pw-today-health-detail">
-              {healthyCaps} connected capabilities healthy · {attentionCaps} attention
+              {healthyCaps} capabilities healthy · {reposNeedingAttention.length} repos attention · {activeAgentProjects.length} agent active
             </p>
           </div>
         </div>
@@ -115,7 +166,6 @@ export default function TodayScreen() {
         {/* Companion message */}
         <div className="pw-today-companion-message" aria-label="Companion message">
           <div className="pw-today-companion-art" aria-hidden="true">
-            {/* Mermaid presence — decorative artwork */}
             <div className="pw-today-companion-figure" />
             <span className="pw-today-companion-bubble" />
             <span className="pw-today-companion-bubble pw-today-companion-bubble--small" />
@@ -123,12 +173,12 @@ export default function TodayScreen() {
           </div>
           <div className="pw-today-companion-copy">
             <p className="pw-today-companion-title">
-              {attentionCaps === 0
+              {totalAttention === 0
                 ? "Nothing needs you right now."
-                : `${attentionCaps} thing${attentionCaps === 1 ? '' : 's'} need${attentionCaps === 1 ? 's' : ''} your attention.`}
+                : `${totalAttention} thing${totalAttention === 1 ? '' : 's'} need${totalAttention === 1 ? 's' : ''} your attention.`}
             </p>
             <p className="pw-today-companion-body">
-              {attentionCaps === 0
+              {totalAttention === 0
                 ? "Your world is running on its own. You can check on things below, or just enjoy the quiet."
                 : "Review the items below to keep your world running smoothly."}
             </p>
@@ -136,9 +186,81 @@ export default function TodayScreen() {
           <div className="pw-today-companion-arrow" aria-hidden="true" />
         </div>
 
-        {/* Waves-ladder divider */}
         <div className="pw-today-divider" aria-hidden="true" />
       </section>
+
+      {/* Active reminders */}
+      {activeReminders.length > 0 && (
+        <section className="pw-today-recent" aria-label="Active reminders">
+          <div className="pw-today-recent-card" style={{ flex: 1 }}>
+            <div className="pw-today-recent-header">
+              <span className="pw-today-recent-icon pw-today-recent-icon--changes" aria-hidden="true" />
+              <h2 className="pw-today-recent-title">Active Reminders</h2>
+            </div>
+            <ul className="pw-today-warnings">
+              {activeReminders.map((r) => (
+                <li key={r.id} className="pw-today-warning">{r.text}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {/* Project attention */}
+      {reposNeedingAttention.length > 0 && (
+        <section className="pw-today-recent" aria-label="Project attention">
+          <div className="pw-today-recent-card" style={{ flex: 1 }}>
+            <div className="pw-today-recent-header">
+              <span className="pw-today-recent-icon pw-today-recent-icon--changes" aria-hidden="true" />
+              <h2 className="pw-today-recent-title">Projects Need Attention</h2>
+            </div>
+            <div className="pw-today-changes">
+              {reposNeedingAttention.map((repo) => (
+                <div key={repo.name} className="pw-today-change">
+                  <span className="pw-today-change-marker" aria-hidden="true" />
+                  <div className="pw-today-change-desc">
+                    <strong>{repo.name}</strong>
+                    {repo.error
+                      ? ` — ${repo.error}`
+                      : repo.dirty
+                        ? " — uncommitted changes"
+                        : repo.ahead != null && repo.ahead > 0
+                          ? ` — ${repo.ahead} ahead`
+                          : repo.behind != null && repo.behind > 0
+                            ? ` — ${repo.behind} behind`
+                            : ""}
+                    {repo.branch ? ` (${repo.branch})` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Agent work state */}
+      {activeAgentProjects.length > 0 && (
+        <section className="pw-today-recent" aria-label="Agent activity">
+          <div className="pw-today-recent-card" style={{ flex: 1 }}>
+            <div className="pw-today-recent-header">
+              <span className="pw-today-recent-icon pw-today-recent-icon--journal" aria-hidden="true" />
+              <h2 className="pw-today-recent-title">Agent Activity</h2>
+            </div>
+            <div className="pw-today-changes">
+              {activeAgentProjects.map((p) => (
+                <div key={p.project} className="pw-today-change">
+                  <span className="pw-today-change-marker" aria-hidden="true" />
+                  <div className="pw-today-change-desc">
+                    <strong>{p.project}</strong>
+                    {` — ${p.work_state}`}
+                    {p.branch ? ` (${p.branch})` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Recent activity */}
       <section className="pw-today-recent" aria-label="Recent activity">
@@ -195,6 +317,34 @@ export default function TodayScreen() {
             )}
           </div>
         </div>
+      </section>
+
+      {/* Run daily */}
+      <section className="pw-today-recent" aria-label="Daily loop">
+        <details className="pw-today-recent-card">
+          <summary className="pw-today-recent-header" style={{ cursor: "pointer" }}>
+            <span className="pw-today-recent-icon pw-today-recent-icon--changes" aria-hidden="true" />
+            <h2 className="pw-today-recent-title" style={{ margin: 0 }}>Run Daily Loop</h2>
+          </summary>
+          <div className="pw-today-changes" style={{ padding: "8px 0" }}>
+            <p className="pw-today-peaceful-note" style={{ marginBottom: 12 }}>
+              Triggers the daily digest — observations, enrichment, and journal entries.
+            </p>
+            <button
+              type="button"
+              className="pw-notification-action"
+              onClick={runDaily}
+              disabled={dailyRunning}
+            >
+              {dailyRunning ? "Running…" : "Run daily"}
+            </button>
+            {dailyResult && (
+              <p className="pw-today-peaceful-note" style={{ marginTop: 12 }}>
+                {dailyResult}
+              </p>
+            )}
+          </div>
+        </details>
       </section>
     </div>
   );

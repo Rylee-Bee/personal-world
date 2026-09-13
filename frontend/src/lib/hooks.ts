@@ -244,22 +244,24 @@ export function useSourceControlStatus() {
 }
 /** GET /api/source-control/history?repo=<name>: the selected repo's
  * recent commits (Projects drill-in; presentation-only). */
-export function useSourceControlHistory(repo: string, limit = 5) {
+export function useSourceControlHistory(repo: string, limit = 5, options?: { enabled?: boolean }) {
   return useApiQuery<SourceControlHistoryData>(
     () => fetchSourceControlHistory(repo, limit),
     [repo, limit],
-    ["source-control-history", repo]
+    ["source-control-history", repo],
+    options
   );
 }
 
 /** GET /api/source-control/enrichment?repo=<name>: GitHub remote
  * facts for the selected repo (Projects drill-in; optional — quiet
  * degradation is the contract, the native table never depends on it). */
-export function useSourceControlEnrichment(repo: string) {
+export function useSourceControlEnrichment(repo: string, options?: { enabled?: boolean }) {
   return useApiQuery<SourceControlEnrichmentEnvelope>(
     () => fetchSourceControlEnrichment(repo),
     [repo],
-    ["source-control-enrichment", repo]
+    ["source-control-enrichment", repo],
+    options
   );
 }
 
