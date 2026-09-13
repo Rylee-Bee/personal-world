@@ -27,15 +27,23 @@ by the current finish line:
   convergence is complete (16/16 canonical frames identified in
   [`.project/design/WORKSHOP-V3-MANIFEST.yaml`](.project/design/WORKSHOP-V3-MANIFEST.yaml),
   philosophy "The world knows how loudly to exist" (17:8873), audit
-  18:2 — all revised frames READY FOR IMPLEMENTATION), and the first
-  frame is implemented: **Today — Quiet Day (17:481)** at `874fb69`
-  (D0–D3 pass; D4 human review pending). Remaining: the other canonical
-  surfaces/states — Mobile Today 17:1929 is the natural next slice —
+  18:2 — all revised frames READY FOR IMPLEMENTATION), and **3/16
+  frames are implemented**: **Today — Quiet Day (17:481)** at `874fb69`,
+  **Question (17:6245)** at `e682654`, and **Mobile Today (17:1929)** at
+  `ed9b3b2` (D0–D3 pass on all three; D4 human review pending as a
+  bundled owner review). Remaining: the other canonical surfaces —
+  Vault 17:1014, Login 17:1681, Chat 17:2536, Projects 17:2752, Setup
+  17:3039, Notifications 17:6369, and the originally-canonical set —
   via the [personal-world-implement-figma](.agents/skills/personal-world-implement-figma/SKILL.md)
-  workflow. Tracked in
+  workflow, **currently blocked on the Figma desktop MCP bridge**
+  (down 2026-09-13; these frames hold metadata only, which the skill
+  rules insufficient). Tracked in
   [issue #37](https://github.com/Rylee-Bee/personal-world/issues/37).
-  Two owner reservations remain open from the first slice: companion
-  presence scale, and the waves-ladder decoration (fetched, unplaced).
+  Owner reservations remain open and accumulate evidence: companion
+  presence scale (three canonical frames now rely on ≤64px tiers in
+  implementation), waves-ladder/waterline placement (Question's
+  17:6353/6359 dividers join the unplaced set), and the mobile-nav
+  item count (shell keeps all registry sections; frame shows 4).
 
 - **Secret vault.** DONE (2026-09-09): Fernet-encrypted file vault
   (`/data/vault.enc`, PBKDF2-600k) behind real unlock/lock/set/
@@ -153,4 +161,8 @@ Preserved ideas, no commitment:
   evidence, `ce4af01`); first Workshop v3 implementation — Today —
   Quiet Day (17:481) — landed at `874fb69` (D0–D3 pass, D4 pending
   owner review); first end-to-end proof of the Figma desktop MCP →
-  SSH-reverse-tunnel → implementation workflow.
+  SSH-reverse-tunnel → implementation workflow. Multi-frame run
+  (2026-09-13): Question (17:6245) at `e682654` and Mobile Today
+  (17:1929) at `ed9b3b2` implemented from preserved canonical
+  evidence during the bridge outage (3/16; remaining frames blocked
+  on fresh MCP retrieval).

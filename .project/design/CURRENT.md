@@ -160,13 +160,49 @@ notes, reservation attachments, and superseded-iteration mapping is
     REVIEW cases are exactly the reservations above. Package:
     `~/.local/share/personal-world/uat/today-quiet-day-17-481/`
     (private; not in the repository).
-- **Vault `17:1014`**, **Login `17:1681`**, **Mobile Today `17:1929`**,
-  **Chat `17:2536`**, **Projects `17:2752`**, **Setup `17:3039`**,
-  **Notifications `17:6369`** (How the World Tells You Things).
+- **Question `17:6245`** (1440×1000, AMBIENT → ATTENTIVE/CURIOUS) —
+  **Implemented 2026-09-13** (commit `e682654`). Uncertainty-shaped
+  attention (digest warnings whose capability status is canonical
+  `unknown`, the loop.py `{capability}: {status}` shape) renders the
+  frame's curious-companion question region: heading 17:6298, canonical
+  framing lines 17:6300/17:6301 verbatim, evidence chip 17:6302–04 as a
+  Level-4 disclosure exposing the capability's REAL warnings + honest
+  observation age. Mixed attention (uncertainty + actionable) keeps the
+  restrained list (importance ≠ urgency ≠ volume). The frame's sample
+  DNS story is design prose, not content (row 15). Waves waterline
+  dividers 17:6353/6359 UNPLACED under the waves-ladder reservation.
+  D0–D3 PASS; **D4 PENDING_BUNDLED_UAT**. Implemented from preserved
+  canonical evidence (complete cached `get_design_context` + reference
+  screenshot retrieved from the live bridge 2026-09-13, provenance in
+  the private multi-frame evidence set) — the live bridge was down at
+  implementation time.
+- **Mobile Today `17:1929`** (390×844, AMBIENT/WARM) — **Implemented
+  2026-09-13** (commit `ed9b3b2`). The ≤599px phone-bucket composition
+  of the implemented Quiet Day: greeting band (17:1937) via
+  `.pw-today-greeting-band` (phone-bucket only; desktop keeps the flat
+  canvas), 28px greeting scale (17:1939), compact health pill
+  (17:1944), italic avatar quiet message (17:1940–43, CompanionSlot
+  micro in an aria-hidden rose circle; desktop keeps the 64px rig),
+  icon-frame change rows (17:1958), rose left-border journal entries
+  (17:1972). New canonical warmth tokens entered `design/tokens.json`
+  first (T5 hex gate): `warmth.mobile_band_gradient`, `warmth.rose_tint`,
+  `warmth.teal_tint`. The shell's shared bottom nav keeps ALL registry
+  sections (≥44px); the frame's 4-item count is the **mobile-nav
+  reservation**, recorded not resolved; the frame's waves decoration
+  (17:2021) stays unplaced under the waves-ladder reservation.
+  D0–D3 PASS; **D4 PENDING_BUNDLED_UAT**. Same preserved-evidence
+  provenance as Question.
+- **Vault `17:1014`**, **Login `17:1681`**, **Chat `17:2536`**,
+  **Projects `17:2752`**, **Setup `17:3039`**, **Notifications
+  `17:6369`** (How the World Tells You Things) — **BLOCKED on the
+  Figma bridge** (down at the 2026-09-13 multi-frame run; these frames
+  hold page metadata only, which the skill rules insufficient).
 - Originally-canonical (converged, not in the revision pass): Empty State —
   Interests `17:1515`, Bad Day `17:2117`, Journal Writing `17:2268`,
-  Settings `17:3762`, Companion Popover `17:4565`, World Overview `17:5485`,
-  Journal Reading `17:5763`, Question `17:6245`.
+  Settings `17:3762`, Companion Popover `17:4565`, World Overview
+  `17:5485`, Journal Reading `17:5763` — BLOCKED on the Figma bridge
+  (same as the revision-pass frames above; Question `17:6245` of this
+  group IS implemented).
 
 **Canonical artifacts:** philosophy `17:8873` ("The world knows how loudly
 to exist."), audit `18:2`, classification `17:9864`, lore registry `17:8255`,
