@@ -381,7 +381,8 @@ img[src*="/icons/"][class*="h-5"] {
     flex-basis: 100%;
   }
   .pw-rail {
-    display: block;
+    display: flex;
+    flex-direction: column;
     flex: 0 0 var(--pw-rail-width, 6.75rem);
     border-right: 1px solid var(--pw-color-border-subtle);
     background: var(--pw-color-surface-panel);
@@ -592,4 +593,166 @@ img[src*="/icons/"][class*="h-5"] {
     padding: var(--pw-spacing-section) var(--pw-spacing-loose) var(--pw-spacing-loose);
     background-image: var(--pw-color-warmth-mobile-band-gradient);
   }
+}
+
+/* ── Companion progressive disclosure (Workshop v3 frame 17:4565) ──
+   Three states: rest (quietly here), focus (popover), open (drawer).
+   The rail companion sits at the bottom of the sidebar rail. ── */
+
+.pw-rail-companion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: auto;
+  padding: var(--pw-spacing-normal) var(--pw-spacing-compact);
+  position: relative;
+}
+
+/* Rest state: "✦ quietly here" — minimal sidebar presence.
+   48px artwork, muted label, opacity 0.62 (17:4581-4585). */
+.pw-companion-rest {
+  display: inline-flex;
+  align-items: center;
+}
+
+.pw-companion-rest-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pw-spacing-compact);
+  padding: var(--pw-spacing-compact);
+  border-radius: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.62;
+  min-height: var(--pw-target-minimum);
+  min-width: var(--pw-target-minimum);
+  transition: opacity 150ms ease;
+  color: var(--pw-color-text-muted);
+}
+
+.pw-companion-rest-trigger:hover {
+  opacity: 1;
+  background: var(--pw-color-warmth-teal-reassure);
+}
+
+.pw-companion-rest-trigger:focus-visible {
+  opacity: 1;
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+.pw-companion-rest-label {
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--pw-color-text-muted);
+}
+
+/* Focus state popover (17:4606): non-modal, anchored to rail companion.
+   Uses surface-elevated background and accent-secondary border per
+   design tokens. Shadow from warmth-panel-shadow token family. */
+
+.pw-companion-popover {
+  position: absolute;
+  bottom: 12px;
+  left: calc(100% + 4px);
+  z-index: 50;
+  width: 286px;
+  background: var(--pw-color-surface-elevated);
+  border: 1px solid var(--pw-color-accent-secondary);
+  border-radius: 18px 22px 18px 12px;
+  box-shadow: var(--pw-color-warmth-panel-shadow);
+  padding: var(--pw-spacing-loose);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pw-companion-popover-pointer {
+  position: absolute;
+  left: -10px;
+  bottom: 23px;
+  width: 18px;
+  height: 18px;
+  transform: rotate(90deg);
+  /* CSS triangle pointer — teal accent */
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  background: var(--pw-color-accent-secondary);
+}
+
+.pw-companion-popover-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pw-companion-popover-intro {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pw-companion-popover-artwork {
+  flex: none;
+  display: inline-flex;
+}
+
+.pw-companion-popover-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pw-companion-popover-greeting {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--pw-color-text-primary);
+}
+
+.pw-companion-popover-spark {
+  color: var(--pw-color-accent-secondary);
+}
+
+.pw-companion-popover-voice {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pw-color-text-secondary);
+}
+
+.pw-companion-popover-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  background: var(--pw-color-accent-primary);
+  color: var(--pw-color-surface-canvas);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: var(--pw-target-minimum);
+}
+
+.pw-companion-popover-action:hover {
+  opacity: 0.9;
+}
+
+.pw-companion-popover-action:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+.pw-companion-popover-hint {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--pw-color-text-muted);
 }

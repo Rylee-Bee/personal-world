@@ -4,7 +4,7 @@ import { EmptyState } from "../shell/EmptyState";
 import { ErrorState } from "../shell/ErrorState";
 import { Disclosure, TechnicalDetails } from "../primitives/Disclosure";
 import { useSourceControlStatus, useSourceControlHistory, useSourceControlEnrichment, useAgentSyncProjects } from "../lib/hooks";
-import { Loader2 } from "../lib/icons";
+import { Loader2, Icon } from "../lib/icons";
 import { refreshSourceControlStatus, type SourceControlRepo, type SourceControlEnrichment } from "../lib/api";
 import { observedSentence, staleSuffix } from "../lib/observation-age";
 import { projectCategory, projectSentence, CATEGORY_ORDER, type ProjectCategory } from "../lib/project-status";
@@ -579,26 +579,63 @@ export default function ProjectsScreen() {
   const list = repos;
   const dirtyCount = list.filter((r) => r.dirty === true).length;
   const aheadCount = list.filter((r) => (r.ahead ?? 0) > 0).length;
+  const healthyCount = list.filter((r) => repoStatusChip(r) === "healthy").length;
+  const needsAttentionCount = list.filter((r) =>
+    repoStatusChip(r) === "warning" || repoStatusChip(r) === "unavailable"
+  ).length;
 
   return (
-    <section aria-labelledby="projects-heading" data-pw-projects="table">
-      <h1 id="projects-heading">Projects</h1>
-
-      {/* Level-1 glance: one quiet line (attention contract: healthy
-          machinery stays quiet; only the counts that matter surface). */}
-      <p>
-        {list.length === 1
-          ? "1 repository watched"
-          : `${list.length} repositories watched`}
-        {dirtyCount > 0 ? ` — ${dirtyCount} with uncommitted changes` : ""}
-        {aheadCount > 0 ? ` — ${aheadCount} ahead of remote` : ""}
-        {dirtyCount === 0 && aheadCount === 0 && list.length > 0
-          ? " — everything clean"
-          : ""}
-      </p>
+    <section aria-labelledby="projects-heading" data-pw-projects="table" className="space-y-8">
+      {/* Projects header (frame 17:2781): title row with icon, description,
+          and status summary with indicators. */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <Icon
+              name="icon-navigation-projects"
+              size={25}
+              className="text-[var(--pw-color-accent-primary)]"
+            />
+            <h1
+              id="projects-heading"
+              className="text-[32px] leading-[1.1] min-[600px]:text-[36px]"
+              style={{
+                fontFamily: "var(--pw-typography-font-expressive)",
+                color: "var(--pw-color-text-primary)",
+              }}
+            >
+              Projects
+            </h1>
+          </div>
+          <p className="text-[15px] text-[var(--pw-color-text-secondary)]">
+            Your repositories, builds, and code.
+          </p>
+        </div>
+        {/* Status summary (frame 17:2787): indicators + glance line. */}
+        <div className="text-right text-[13px]">
+          <div className="flex items-center gap-2 justify-end" aria-hidden="true">
+            {Array.from({ length: healthyCount }, (_, i) => (
+              <span key={`h${i}`} className="text-[var(--pw-color-accent-primary)]">✦</span>
+            ))}
+            {Array.from({ length: needsAttentionCount }, (_, i) => (
+              <span key={`a${i}`} className="text-[var(--pw-color-accent-secondary)]">✦</span>
+            ))}
+          </div>
+          <p className="text-[var(--pw-color-text-secondary)] mt-1">
+            {list.length === 1
+              ? "1 repository watched"
+              : `${list.length} repositories watched`}
+            {dirtyCount > 0 ? ` — ${dirtyCount} with uncommitted changes` : ""}
+            {aheadCount > 0 ? ` — ${aheadCount} ahead of remote` : ""}
+            {dirtyCount === 0 && aheadCount === 0 && list.length > 0
+              ? " — everything clean"
+              : ""}
+          </p>
+        </div>
+      </header>
 
       {/* agent-sync estate status: Rylee's whole project world in
-          five calm categories, one layer above the repo table. */}
+          five calm categories, one layer above the repo cards. */}
       <ProjectStatusPanel />
 
       {list.length === 0 ? (
@@ -607,123 +644,188 @@ export default function ProjectsScreen() {
           found at them yet.
         </p>
       ) : (
-        <table
-          data-pw-projects-table="repos"
-          className="w-full text-left text-sm"
-        >
-          <caption className="sr-only">
-            Repositories with branch state and per-row provenance
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col" className="py-2 pr-4">Repository</th>
-              <th scope="col" className="py-2 pr-4">Branch</th>
-              <th scope="col" className="py-2 pr-4">Last commit</th>
-              <th scope="col" className="py-2">State</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((r) => {
-              const chip = repoStatusChip(r);
-              const isOpen = openRepo === r.name;
-              return (
-                <tr
-                  key={r.name}
+        /* Project list (frame 17:2793): card-based layout. */
+        <div data-pw-projects-table="repos" className="space-y-4" role="list" aria-label="Repositories">
+          {list.map((r) => {
+            const chip = repoStatusChip(r);
+            const isOpen = openRepo === r.name;
+            const needsAttention = chip === "warning" || chip === "unavailable";
+            return (
+              <div key={r.name} role="listitem">
+                {/* Project space card (frame 17:2794/17:2809/17:2823) */}
+                <div
                   data-pw-projects-row={r.name}
-                  className="border-t border-[var(--pw-color-border-subtle)]"
+                  className="rounded-[22px] border px-6 py-6"
+                  style={{
+                    backgroundColor: needsAttention
+                      ? "var(--pw-color-warmth-rose-wash-soft)"
+                      : "var(--pw-color-surface-panel)",
+                    borderColor: needsAttention
+                      ? "var(--pw-color-accent-secondary)"
+                      : "var(--pw-color-border-subtle)",
+                    borderLeftWidth: needsAttention ? "2px" : "1px",
+                  }}
                 >
-                  <th scope="row">
-                    <button
-                      type="button"
-                      className="text-left rounded-md px-2 py-1 -mx-2 text-[var(--pw-color-text-primary)] underline decoration-[var(--pw-color-border-subtle)] underline-offset-4 hover:decoration-current focus-visible:outline-2 focus-visible:outline-[var(--pw-color-focus-ring)]"
-                      aria-expanded={isOpen}
-                      onClick={() => {
-                        setOpenRepo(isOpen ? null : r.name);
+                  <div className="flex gap-6 items-start">
+                    {/* Project glyph (frame 17:2795/17:2810) */}
+                    <div
+                      aria-hidden={true}
+                      className="flex size-[44px] shrink-0 items-center justify-center rounded-[14px]"
+                      style={{
+                        backgroundColor: needsAttention
+                          ? "var(--pw-color-warmth-rose-wash-soft)"
+                          : "var(--pw-color-warmth-teal-wash)",
                       }}
                     >
-                      {r.name}
-                    </button>
-                  </th>
-                  <td>{r.branch ?? "—"}</td>
-                  <td>
-                    {r.last_commit_subject
-                      ? `${r.last_commit_subject} (${relativeCommitDate(r.last_commit_date) ?? r.last_commit_date})`
-                      : "no commits yet"}
-                  </td>
-                  <td>
-                    <ul className="list-disc ml-4 text-[var(--pw-color-text-secondary)]">
+                      <Icon
+                        name="icon-navigation-projects"
+                        size={23}
+                        className={
+                          needsAttention
+                            ? "text-[var(--pw-color-accent-secondary)]"
+                            : "text-[var(--pw-color-accent-primary)]"
+                        }
+                      />
+                    </div>
+                    {/* Project details (frame 17:2797/17:2812) */}
+                    <div className="flex-1 min-w-0 space-y-3">
+                      {/* Project heading (frame 17:2798/17:2813) */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          className="text-left rounded-md text-[21px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-offset-2"
+                          style={{
+                            fontFamily: "var(--pw-typography-font-expressive)",
+                            color: "var(--pw-color-text-primary)",
+                          }}
+                          aria-expanded={isOpen}
+                          onClick={() => {
+                            setOpenRepo(isOpen ? null : r.name);
+                          }}
+                        >
+                          {r.name}
+                        </button>
+                        {/* Status: text + color (frame note: "Status uses text + color") */}
+                        <span
+                          className="text-[13px] flex items-center gap-1"
+                          style={{
+                            color: needsAttention
+                              ? "var(--pw-color-accent-secondary)"
+                              : "var(--pw-color-accent-primary)",
+                          }}
+                        >
+                          {chip === "healthy" ? "healthy" : chip === "warning" ? "needs attention" : chip === "unavailable" ? "unavailable" : "unknown"}
+                          <span aria-hidden="true">✦</span>
+                        </span>
+                      </div>
+                      {/* Activity line (frame 17:2801/17:2816) */}
+                      <p
+                        className="text-[15px]"
+                        style={{
+                          color: needsAttention
+                            ? "var(--pw-color-accent-secondary)"
+                            : "var(--pw-color-text-primary)",
+                        }}
+                      >
+                        {r.last_commit_subject
+                          ? `${r.last_commit_subject} · ${relativeCommitDate(r.last_commit_date) ?? r.last_commit_date ?? "no date"}`
+                          : "No commits recorded yet"}
+                        {r.branch ? ` · ${r.branch}` : ""}
+                      </p>
+                      {/* Project facts (frame 17:2802) or error state */}
                       {r.error ? (
-                        <li data-pw-projects-state="error">{r.error}</li>
-                      ) : null}
-                      {r.dirty === true ? <li>uncommitted changes</li> : null}
-                      {typeof r.ahead === "number" && r.ahead > 0 ? (
-                        <li>{r.ahead} ahead of remote</li>
-                      ) : null}
-                      {typeof r.behind === "number" && r.behind > 0 ? (
-                        <li>{r.behind} behind remote</li>
-                      ) : null}
-                      {r.error || r.dirty === true ? null : <li>clean</li>}
-                    </ul>
-                    <span data-pw-projects-chip={chip} className="sr-only">
-                      Status: {chip}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+                        <p
+                          data-pw-projects-state="error"
+                          className="text-[13px] text-[var(--pw-color-text-secondary)]"
+                        >
+                          {r.error}
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[13px] text-[var(--pw-color-text-secondary)]">
+                          {/* Deployment / branch info */}
+                          <span className="flex items-center gap-2">
+                            <Icon
+                              name="icon-world-content-link"
+                              size={15}
+                              className="text-[var(--pw-color-text-muted)]"
+                            />
+                            <span>{r.branch ?? "—"}</span>
+                            <span aria-hidden="true">→</span>
+                            <span>{r.dirty === true ? "dirty" : "clean"}</span>
+                          </span>
+                          {/* Commit state */}
+                          {typeof r.ahead === "number" && r.ahead > 0 ? (
+                            <span>{r.ahead} ahead of remote</span>
+                          ) : null}
+                          {typeof r.behind === "number" && r.behind > 0 ? (
+                            <span>{r.behind} behind remote</span>
+                          ) : null}
+                          {r.dirty === true ? (
+                            <span>uncommitted changes</span>
+                          ) : null}
+                          {r.dirty === false && (r.ahead ?? 0) === 0 && (r.behind ?? 0) === 0 ? (
+                            <span>in sync</span>
+                          ) : null}
+                        </div>
+                      )}
+                      {/* Screen-reader status chip (preserved from original) */}
+                      <span data-pw-projects-chip={chip} className="sr-only">
+                        Status: {chip}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-      {/* Selected-repo detail: recent commits + provenance. Exactly one
-          expanded repo at a time keeps the default view calm. */}
-      {openRepo ? (
-        <div data-pw-projects-detail={openRepo} className="mt-4 space-y-2">
-          <RepoRefreshApproval
-            repo={openRepo}
-            onRefreshed={() => void query.refetch()}
-          />
-          <Disclosure
-            summary={`Recent commits — ${openRepo}`}
-            level={2}
-            defaultOpen
-          >
-            <RepoHistory repo={openRepo} />
-          </Disclosure>
-          <Disclosure summary="GitHub activity" level={2} defaultOpen>
-            {/* Remote enrichment (optional): one quiet disclosure that
-                degrades to a single sentence when GitHub is absent.
-                Local Git stays canonical; nothing here can affect the
-                native rows above. */}
-            <RepoEnrichment repo={openRepo} />
-          </Disclosure>
-          {(() => {
-            const repo = list.find((r) => r.name === openRepo);
-            if (!repo) return null;
-            return (
-              <Disclosure summary="Repository details" level={2}>
-                <dl className="grid gap-2 text-sm sm:grid-cols-3">
-                  <div>
-                    <dt className="text-[var(--pw-color-text-secondary)]">Path</dt>
-                    <dd>{repo.path}</dd>
+                {/* Selected-repo detail: recent commits + provenance. Exactly one
+                    expanded repo at a time keeps the default view calm. */}
+                {isOpen ? (
+                  <div data-pw-projects-detail={r.name} className="mt-3 space-y-3 px-2">
+                    <RepoRefreshApproval
+                      repo={r.name}
+                      onRefreshed={() => void query.refetch()}
+                    />
+                    <Disclosure
+                      summary={`Recent commits — ${r.name}`}
+                      level={2}
+                      defaultOpen
+                    >
+                      <RepoHistory repo={r.name} />
+                    </Disclosure>
+                    <Disclosure summary="GitHub activity" level={2} defaultOpen>
+                      <RepoEnrichment repo={r.name} />
+                    </Disclosure>
+                    <Disclosure summary="Repository details" level={2}>
+                      <dl className="grid gap-2 text-sm sm:grid-cols-3">
+                        <div>
+                          <dt className="text-[var(--pw-color-text-secondary)]">Path</dt>
+                          <dd>{r.path}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--pw-color-text-secondary)]">Revision</dt>
+                          <dd>{r.revision ?? "unknown"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--pw-color-text-secondary)]">Remote</dt>
+                          <dd>{r.remote ?? "none configured"}</dd>
+                        </div>
+                      </dl>
+                      {r.error ? (
+                        <p className="text-sm text-[var(--pw-color-text-secondary)]">{r.error}</p>
+                      ) : null}
+                    </Disclosure>
                   </div>
-                  <div>
-                    <dt className="text-[var(--pw-color-text-secondary)]">Revision</dt>
-                    <dd>{repo.revision ?? "unknown"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--pw-color-text-secondary)]">Remote</dt>
-                    <dd>{repo.remote ?? "none configured"}</dd>
-                  </div>
-                </dl>
-                {repo.error ? (
-                  <p className="text-sm text-[var(--pw-color-text-secondary)]">{repo.error}</p>
                 ) : null}
-              </Disclosure>
+              </div>
             );
-          })()}
+          })}
+
+          {/* Watching status (frame 17:2831): companion presence. */}
+          <div className="flex items-center justify-center gap-2 pt-3 text-[13px]">
+            <span aria-hidden="true" className="text-[var(--pw-color-accent-primary)]">✦</span>
+            <span className="text-[var(--pw-color-text-muted)]">Watching your projects</span>
+          </div>
         </div>
-      ) : null}
+      )}
 
       {/* Every-repo provenance stays available (nerd mode) without
           cluttering the default view: one collapsed disclosure. */}

@@ -70,15 +70,13 @@ function SetupWizardRoute() {
 }
 
 async function walkToFinish(): Promise<HTMLButtonElement> {
-  // Step 1: world name (leave default) → Next
+  // Step 1: world name + companion (leave defaults) → Next
   fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  // Step 2: companion (personal-world preselected) → Next
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  // Step 3: token ≥8 → Next
+  // Step 2: token ≥8 → Next
   const token = screen.getByLabelText("Login token") as HTMLInputElement;
   fireEvent.change(token, { target: { value: "wizard-token-1" } });
   fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  // Step 4: optional vault (skipped) → summary visible
+  // Step 3: optional vault (skipped) → summary visible
   await waitFor(() =>
     expect(screen.getByText("Finish setup")).toBeTruthy()
   );
@@ -150,7 +148,7 @@ describe("SetupWizard (T12, parity row 8)", () => {
     mockHappyPath();
     const { container } = renderWizard();
     await waitFor(() => {
-      expect(screen.getByRole("heading", { level: 1, name: "Welcome to your Project Worlds" })).toBeTruthy();
+      expect(screen.getByRole("heading", { level: 1, name: "Welcome to your World." })).toBeTruthy();
     });
     const status = wizardCalls.find((c) => c.path.startsWith("/api/setup/status"));
     expect(status).toBeTruthy();
@@ -181,7 +179,7 @@ describe("SetupWizard (T12, parity row 8)", () => {
   it("token ≥8 validation: short token blocks Finish with an honest warning", async () => {
     mockHappyPath();
     renderWizard();
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    // Step 1: name + companion → Next
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
     const token = screen.getByLabelText("Login token") as HTMLInputElement;
@@ -189,7 +187,7 @@ describe("SetupWizard (T12, parity row 8)", () => {
     fireEvent.change(token, { target: { value: "short" } });
 
     expect(screen.getByText(/At least 8 characters/)).toBeTruthy();
-    // Step 4 (Finish) is not reachable with a too-short token.
+    // Step 3 (Finish) is not reachable with a too-short token.
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.queryByRole("button", { name: "Finish setup" })).toBeNull();
   });
@@ -232,11 +230,13 @@ describe("SetupWizard (T12, parity row 8)", () => {
     renderWizard();
     const name = screen.getByLabelText("World name") as HTMLInputElement;
     fireEvent.change(name, { target: { value: "Rylee's Nook" } });
+    // Step 1: name + companion → Next
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    // Step 2: token
     const token = screen.getByLabelText("Login token") as HTMLInputElement;
     fireEvent.change(token, { target: { value: "wizard-token-2" } });
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    // Step 3: vault (skipped) → summary
     const finish = await waitFor(() => {
       const b = screen.getByRole("button", { name: "Finish setup" }) as HTMLButtonElement;
       return b;
@@ -252,12 +252,14 @@ describe("SetupWizard (T12, parity row 8)", () => {
   it("optional vault passphrase: set + mismatch warns; matching passphrase is sent", async () => {
     mockHappyPath();
     renderWizard();
+    // Step 1: name + companion → Next
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    // Step 2: token → Next
     const token = screen.getByLabelText("Login token") as HTMLInputElement;
     fireEvent.change(token, { target: { value: "wizard-token-3" } });
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
+    // Step 3: vault passphrase
     const pass1 = screen.getByLabelText("Vault passphrase (optional)") as HTMLInputElement;
     const pass2 = screen.getByLabelText("Confirm") as HTMLInputElement;
     fireEvent.change(pass1, { target: { value: "vault-pass-9" } });
@@ -280,15 +282,17 @@ describe("SetupWizard (T12, parity row 8)", () => {
   it("companion choice is a radio group; selection flows into POST /api/setup", async () => {
     mockHappyPath();
     renderWizard();
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    // Companion is on step 1 alongside world name
     const group = screen.getByRole("radiogroup", { name: "Companion" });
     expect(group).toBeTruthy();
     const squirrel = screen.getByRole("radio", { name: /Squirrel/ }) as HTMLElement;
     fireEvent.click(squirrel);
     expect(squirrel.getAttribute("aria-checked")).toBe("true");
+    // Step 1 → Step 2 (token)
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     const token = screen.getByLabelText("Login token") as HTMLInputElement;
     fireEvent.change(token, { target: { value: "wizard-token-4" } });
+    // Step 2 → Step 3 (vault/summary)
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
     await waitFor(() => {
@@ -296,9 +300,6 @@ describe("SetupWizard (T12, parity row 8)", () => {
     });
     const setup = wizardCalls.find((c) => c.path === "/api/setup");
     expect(setup?.body.companion).toBe("world-tree-squirrel");
-    // …and into the bundled PUT /api/prefs — the all-or-nothing write
-    // that the old wrong slug ("squirrel") made fail silently, taking
-    // motion/contrast/density/text-scale/target-size down with it.
     const prefsPut = wizardCalls.find(
       (c) => c.path.startsWith("/api/prefs") && c.init?.method === "PUT"
     );
@@ -308,13 +309,15 @@ describe("SetupWizard (T12, parity row 8)", () => {
   it("Tacos & the Morning Paper sends the correct backend slug in BOTH the setup POST and the bundled prefs PUT", async () => {
     mockHappyPath();
     renderWizard();
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    // Companion is on step 1
     const tacos = screen.getByRole("radio", { name: /Tacos/ }) as HTMLElement;
     fireEvent.click(tacos);
     expect(tacos.getAttribute("aria-checked")).toBe("true");
+    // Step 1 → Step 2 (token)
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     const token = screen.getByLabelText("Login token") as HTMLInputElement;
     fireEvent.change(token, { target: { value: "wizard-token-6" } });
+    // Step 2 → Step 3 (vault/summary)
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
     await waitFor(() => {
@@ -326,8 +329,6 @@ describe("SetupWizard (T12, parity row 8)", () => {
       (c) => c.path.startsWith("/api/prefs") && c.init?.method === "PUT"
     );
     expect(prefsPut?.body.companion).toBe("taco-news-truck");
-    // The whole bundle applied: the wizard names the companion saved
-    // (the old wrong slug failed the entire PUT silently).
     expect(screen.getByText(/Companion saved/)).toBeTruthy();
   });
 
@@ -344,8 +345,9 @@ describe("SetupWizard (T12, parity row 8)", () => {
       return Promise.resolve(jsonResponse(200, { ok: true, data: null }));
     });
     renderWizard();
+    // Step 1: name + companion → Next
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    // Step 2: token → Next
     const token = screen.getByLabelText("Login token") as HTMLInputElement;
     fireEvent.change(token, { target: { value: "wizard-token-5" } });
     fireEvent.click(screen.getByRole("button", { name: "Next" }));

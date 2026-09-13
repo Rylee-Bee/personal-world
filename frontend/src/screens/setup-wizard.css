@@ -1,31 +1,131 @@
-/* SetupWizard styles (P1 T12). Component-scoped; token vars only;
-   44px targets (A11y §2.1); the companion artwork is decorative
-   (aria-hidden in markup, A11y §7.2). */
+/* SetupWizard — Workshop v3 (frame 17:3039).
+   Two-panel layout: companion greeting + setup card.
+   Token vars only; 44px targets (A11y §2.1). */
 
 .pw-setup {
   display: flex;
   justify-content: center;
+  align-items: center;
+  min-height: 100vh;
   padding: var(--pw-spacing-section) var(--pw-spacing-loose);
+  background: var(--pw-color-surface-canvas);
 }
 
-.pw-setup-card {
+/* ── Two-panel layout ── */
+.pw-setup-layout {
+  display: flex;
+  gap: 3.625rem;
   width: 100%;
-  max-width: 32rem;
-  border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 0.75rem;
-  background: var(--pw-color-surface-panel);
-  padding: var(--pw-spacing-section) var(--pw-spacing-loose);
+  max-width: 64rem;
+  align-items: center;
+}
+
+/* ── Left: Companion greeting ── */
+.pw-setup-greeting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pw-spacing-loose);
+  width: 24.375rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.pw-setup-greeting-art {
+  position: relative;
+  width: 21.25rem;
+  height: 32.5rem;
+}
+
+.pw-setup-greeting-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pw-setup-greeting-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  overflow: hidden;
+}
+
+.pw-setup-greeting-label {
+  margin: 0;
+  font-family: var(--pw-typography-font-interface);
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pw-color-accent-primary);
+}
+
+.pw-setup-greeting-quote {
+  margin: 0;
+  width: 20rem;
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 1.25rem;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--pw-color-text-primary);
+}
+
+/* ── Right: Setup card ── */
+.pw-setup-card {
   display: flex;
   flex-direction: column;
   gap: var(--pw-spacing-loose);
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 50.25rem;
+  padding: 2.25rem 2.75rem 1.875rem;
+  border: 1px solid var(--pw-color-warmth-glass-pill);
+  border-radius: 1.5rem;
+  background: var(--pw-color-vault-panel-translucent);
+  box-shadow: var(--pw-color-warmth-panel-shadow);
+  overflow: hidden;
+}
+
+/* ── Welcome header ── */
+.pw-setup-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  overflow: hidden;
+}
+
+.pw-setup-eyebrow {
+  margin: 0;
+  font-family: var(--pw-typography-font-interface);
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pw-color-accent-secondary);
 }
 
 .pw-setup-card h1 {
   margin: 0;
-  text-align: center;
-  font-size: 1.4rem;
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 2.75rem;
+  line-height: 1.1;
+  color: var(--pw-color-accent-primary);
 }
 
+.pw-setup-subtitle {
+  margin: 0;
+  font-family: var(--pw-typography-font-interface);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--pw-color-text-secondary);
+}
+
+/* ── Step label ── */
 .pw-setup-step-label {
   margin: 0;
   text-align: center;
@@ -34,75 +134,150 @@
   letter-spacing: 0.05em;
 }
 
+/* ── Step container ── */
 .pw-setup-step {
   display: flex;
   flex-direction: column;
   gap: var(--pw-spacing-normal);
+  flex: 1 1 auto;
+}
+
+/* ── Section (capability / companion) ── */
+.pw-setup-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pw-spacing-normal);
+  overflow: hidden;
+}
+
+.pw-setup-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .pw-setup-question {
   margin: 0;
-  font-size: 1.05rem;
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 1.3125rem;
   color: var(--pw-color-text-primary);
+}
+
+.pw-setup-guidance {
+  margin: 0;
+  font-family: var(--pw-typography-font-interface);
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-secondary);
 }
 
 .pw-setup-hint {
   margin: 0;
-  font-size: 0.88rem;
+  font-family: var(--pw-typography-font-interface);
+  font-size: 0.75rem;
   line-height: 1.5;
-  color: var(--pw-color-text-muted);
+  color: var(--pw-color-text-secondary);
 }
 
-.pw-setup label {
+/* ── Capability tiles ── */
+.pw-setup-capabilities {
+  display: flex;
+  gap: var(--pw-spacing-normal);
+  overflow: hidden;
+}
+
+.pw-setup-cap-tile {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  height: 6rem;
+  min-height: 6rem;
+  border: 1px solid var(--pw-color-warmth-glass-pill);
+  border-radius: 1rem;
+  background: var(--pw-color-surface-raised);
+  color: var(--pw-color-text-secondary);
+  cursor: pointer;
+  font-family: var(--pw-typography-font-interface);
+  font-size: 0.875rem;
   font-weight: 600;
+}
+
+.pw-setup-cap-tile span {
   color: var(--pw-color-text-primary);
 }
 
-.pw-setup input {
-  min-height: var(--pw-target-minimum);
-  border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 0.5rem;
-  background: var(--pw-color-surface-canvas);
-  color: var(--pw-color-text-primary);
-  padding: var(--pw-spacing-normal) var(--pw-spacing-loose);
-  font-size: 1rem;
+.pw-setup-cap-tile:hover {
+  border-color: var(--pw-color-warmth-teal-tint);
 }
-.pw-setup input:focus-visible {
+
+.pw-setup-cap-tile:focus-visible {
   outline: var(--pw-focus-ring);
   outline-offset: 2px;
 }
 
+/* ── Companion choices ── */
 .pw-setup-companions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  display: flex;
   gap: var(--pw-spacing-normal);
 }
+
 .pw-setup-comp-btn {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   align-items: center;
-  gap: var(--pw-spacing-compact);
-  min-height: var(--pw-target-large);
-  padding: var(--pw-spacing-normal) var(--pw-spacing-compact);
-  border: 2px solid var(--pw-color-border-subtle);
-  border-radius: 0.75rem;
-  background: var(--pw-color-surface-canvas);
-  color: var(--pw-color-text-primary);
+  gap: 0.375rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--pw-color-text-secondary);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-family: var(--pw-typography-font-interface);
+  font-size: 0.75rem;
+  font-weight: 500;
 }
-.pw-setup-comp-btn img {
-  width: 2.5rem;
-  height: 2.5rem;
+
+.pw-setup-comp-portrait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--pw-color-warmth-glass-pill);
+  background: var(--pw-color-warmth-glass-pill);
+  overflow: hidden;
+  transition: border-color var(--pw-motion-duration),
+              background var(--pw-motion-duration),
+              box-shadow var(--pw-motion-duration);
 }
-.pw-setup-comp-btn.selected {
-  border-color: var(--pw-color-accent-primary);
+
+.pw-setup-comp-portrait img {
+  width: 3rem;
+  height: 3rem;
 }
+
+.pw-setup-comp-btn.selected .pw-setup-comp-portrait {
+  border: 2px solid var(--pw-color-accent-primary);
+  background: var(--pw-color-warmth-teal-tint);
+  box-shadow: var(--pw-color-warmth-vault-glow);
+}
+
+.pw-setup-comp-btn.selected span {
+  color: var(--pw-color-accent-primary);
+  font-weight: 400;
+}
+
 .pw-setup-comp-btn:focus-visible {
   outline: var(--pw-focus-ring);
   outline-offset: 2px;
 }
 
+/* ── Token actions ── */
 .pw-setup-token-actions {
   display: flex;
   gap: var(--pw-spacing-compact);
@@ -116,6 +291,7 @@
   font-size: 0.9rem;
 }
 
+/* ── Summary ── */
 .pw-setup-summary {
   display: flex;
   flex-direction: column;
@@ -123,6 +299,7 @@
   border-radius: 0.5rem;
   background: var(--pw-color-surface-canvas);
 }
+
 .pw-setup-summary-row {
   display: flex;
   justify-content: space-between;
@@ -132,26 +309,32 @@
   font-size: 0.95rem;
   color: var(--pw-color-text-primary);
 }
+
 .pw-setup-summary-row:last-child {
   border-bottom: none;
 }
+
 .pw-setup-summary-row > span:first-child {
   color: var(--pw-color-text-muted);
 }
 
+/* ── Done state ── */
 .pw-setup-done {
   align-items: center;
   text-align: center;
 }
+
 .pw-setup-done svg {
   width: 2.5rem;
   height: 2.5rem;
   color: var(--pw-color-accent-primary);
 }
+
 .pw-setup-done p {
   margin: 0;
   color: var(--pw-color-text-primary);
 }
+
 .pw-setup-completion {
   margin: 0;
   padding: 0;
@@ -170,10 +353,141 @@
   font-size: 0.9rem;
 }
 
+/* ── Actions ── */
+.pw-setup-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  margin-top: auto;
+}
+
+.pw-setup-build-btn {
+  width: 100%;
+  height: 3.375rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+  box-shadow: var(--pw-color-warmth-vault-glow);
+}
+
+.pw-setup-skip {
+  border: none;
+  background: transparent;
+  font-family: var(--pw-typography-font-interface);
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-secondary);
+  cursor: pointer;
+  padding: var(--pw-spacing-compact) var(--pw-spacing-normal);
+  min-height: var(--pw-target-minimum);
+}
+
+.pw-setup-skip:hover {
+  color: var(--pw-color-text-primary);
+}
+
+.pw-setup-skip:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── Nav (steps 2-4) ── */
 .pw-setup-nav {
   display: flex;
   gap: var(--pw-spacing-normal);
+  width: 100%;
 }
+
 .pw-setup-nav > * {
   flex: 1 1 0;
+}
+
+/* ── Labels and inputs ── */
+.pw-setup label {
+  font-weight: 600;
+  color: var(--pw-color-text-primary);
+}
+
+.pw-setup input {
+  min-height: var(--pw-target-minimum);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 0.5rem;
+  background: var(--pw-color-surface-canvas);
+  color: var(--pw-color-text-primary);
+  padding: var(--pw-spacing-normal) var(--pw-spacing-loose);
+  font-size: 1rem;
+}
+
+.pw-setup input:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 899px) {
+  .pw-setup-layout {
+    flex-direction: column;
+    gap: var(--pw-spacing-section);
+  }
+
+  .pw-setup-greeting {
+    width: 100%;
+    max-width: 24rem;
+  }
+
+  .pw-setup-greeting-art {
+    width: 16rem;
+    height: 24rem;
+  }
+
+  .pw-setup-card {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 599px) {
+  .pw-setup {
+    padding: var(--pw-spacing-normal);
+  }
+
+  .pw-setup-card {
+    padding: var(--pw-spacing-section) var(--pw-spacing-loose);
+    border-radius: 1rem;
+  }
+
+  .pw-setup-card h1 {
+    font-size: 2rem;
+  }
+
+  .pw-setup-capabilities {
+    flex-wrap: wrap;
+  }
+
+  .pw-setup-cap-tile {
+    flex: 1 1 calc(50% - var(--pw-spacing-normal));
+    min-width: 0;
+  }
+
+  .pw-setup-companions {
+    flex-wrap: wrap;
+  }
+
+  .pw-setup-comp-btn {
+    flex: 1 1 calc(50% - var(--pw-spacing-normal));
+    min-width: 0;
+  }
+
+  .pw-setup-greeting {
+    gap: var(--pw-spacing-normal);
+  }
+
+  .pw-setup-greeting-art {
+    width: 12rem;
+    height: 18rem;
+  }
+
+  .pw-setup-greeting-quote {
+    width: 100%;
+    font-size: 1.1rem;
+  }
 }

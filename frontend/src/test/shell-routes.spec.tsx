@@ -115,7 +115,7 @@ describe("routes render with App shell (T9)", () => {
 
   it("stub routes render honest EmptyStates naming capability + knob", async () => {
     const cases = [
-      ["/interests", /discovery connection in Settings/],
+      ["/interests", /keeping the light on/],
       ["/media", /media connection in Settings/],
       ["/projects", /repository locations under Source Control/],
       ["/lab", /lab command-line path/],

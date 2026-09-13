@@ -56,12 +56,23 @@ export const ASSISTANT_TRIGGER_LABEL = "Open World assistant";
  * no motion. */
 export const ASSISTANT_TRIGGER_VISIBLE_LABEL = "Ask your world";
 
+/** Companion progressive disclosure modes (Workshop v3 frame 17:4565).
+ *  rest  — "✦ quietly here" — minimal presence at the sidebar rail bottom
+ *  focus — popover state (handled by CompanionPopover, not this slot)
+ *  default — existing assistant trigger behavior */
+export type CompanionMode = "rest" | "focus" | "open" | "default";
+
 export interface CompanionSlotProps {
   size: CompanionSize;
   /** Artwork pose variant (P13 poses); selects the src suffix. */
   pose?: string;
   asAssistantTrigger?: boolean;
   onOpenAssistant?: () => void;
+  /** Progressive disclosure mode (17:4565). "rest" renders the quiet
+   *  sidebar presence; "default" preserves existing behavior. */
+  mode?: CompanionMode;
+  /** Click handler for rest-mode companion (opens the focus popover). */
+  onRestClick?: () => void;
   /** Test/SSR seam: overrides the pref read (defaults to context). */
   companion?: string | null;
 }
@@ -71,6 +82,8 @@ export function CompanionSlot({
   pose,
   asAssistantTrigger = false,
   onOpenAssistant,
+  mode = "default",
+  onRestClick,
   companion: companionOverride,
 }: CompanionSlotProps) {
   const context = useCompanion();
@@ -85,6 +98,43 @@ export function CompanionSlot({
   const src = pose
     ? `/companions/${baseName}-${pose}.svg`
     : `/companions/${baseName}.svg`;
+
+  // Rest mode (17:4565): "✦ quietly here" — minimal sidebar presence,
+  // 48px artwork with muted label, opacity 0.62. Clickable to open
+  // the focus popover. The button's accessible name is "Open World
+  // assistant" (same contract as the header trigger).
+  if (mode === "rest") {
+    return (
+      <span
+        data-pw-companion-slot=""
+        data-pw-companion={artworkVisible ? baseName : "off"}
+        data-pw-companion-mode="rest"
+        className="pw-companion-rest"
+      >
+        <button
+          type="button"
+          aria-label={ASSISTANT_TRIGGER_LABEL}
+          onClick={onRestClick}
+          className="pw-companion-rest-trigger"
+        >
+          {artworkVisible ? (
+            <span aria-hidden="true" className="inline-flex">
+              <img
+                src={src}
+                alt=""
+                width={48}
+                height={48}
+                className="block"
+              />
+            </span>
+          ) : null}
+          <span aria-hidden="true" className="pw-companion-rest-label">
+            ✦ quietly here
+          </span>
+        </button>
+      </span>
+    );
+  }
 
   return (
     <span
