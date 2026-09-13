@@ -7,11 +7,70 @@
 
 ### Legend
 - **UI WIRED** — endpoint → hook → screen renders it
-- **TOOL WIRED** — endpoint → tool schema → brain can discuss it
+- **TOOL WIRED** — endpoint → tool handler → brain can invoke at runtime and receive structured Result
 - **UI + TOOL** — both
 - **INTERNAL** — used by infrastructure, no UI/tool needed
 - **API GAP** — endpoint exists but no UI/tool; reason documented
 - **DEFERRED** — intentionally not wired; reason documented
+
+### TOOL WIRED means
+The model can actually invoke this operation at runtime via Ollama function-calling
+and receive its structured Result. Not merely "the model was told about it in its
+system prompt." The execution flow is:
+
+```
+User request → Qwen3 1.7B → selects registered tool → Project Worlds tool registry
+→ existing domain operation → structured Result → Qwen explains result
+```
+
+---
+
+## Tool-Calling Architecture
+
+### Read tools (execute immediately)
+These are exposed via Ollama function-calling. The model selects a tool,
+Project Worlds executes it against the same domain operations the HTTP API uses,
+and returns structured truth. The model then explains the result.
+
+| Tool ID | Capability | What it does |
+|---------|-----------|--------------|
+| `inspect_world_status` | world | Facts, intents, policies, lore, capabilities |
+| `inspect_manifest` | manifest | Capability manifest with native/provider status |
+| `read_journal` | journal | Recent journal entries |
+| `search_journal` | journal | Text search across journal |
+| `inspect_source_control` | source_control | Repos with branch, revision, dirty state |
+| `inspect_source_control_history` | source_control | Commit history for a repo |
+| `inspect_projects` | projects | Agent-sync project estate |
+| `inspect_lab_inventory` | lab | Native lab service inventory |
+| `inspect_lab_health` | lab | Health summary |
+| `inspect_lab_resources` | lab | CPU, memory, disk |
+| `inspect_reconciler_status` | reconciler | Services with desired state |
+| `inspect_discovery_status` | discovery | Sources, interests, items count |
+| `list_discovery_sources` | discovery | Configured sources |
+| `list_interests` | discovery | Configured interests |
+| `run_discovery` | discovery | Fetch new content |
+| `inspect_vault_status` | vault | Lock state (never secrets) |
+| `inspect_reminders` | reminders | Active reminders |
+
+### Write tools (not yet exposed)
+Write tools require propose → approval → execution → evidence.
+Not given to the model until the action/approval framework is ready.
+
+### Chat flow
+```
+POST /api/chat
+  ↓
+Build world context + tool schemas
+  ↓
+Ollama chat_with_tools(messages, tools)
+  ↓
+If tool_calls returned:
+  Execute each tool via registry.invoke()
+  Add tool results to messages
+  Continue loop (max 3 rounds)
+If text response returned:
+  Return to user
+```
 
 ---
 
