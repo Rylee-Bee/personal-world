@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { saveApps, saveJournalEntry, ApiError, type JournalEntry, type ServiceApp, type LabEnvelope } from "../lib/api";
+import { saveApps, saveJournalEntry, ApiError, type DailyData, type JournalEntry, type ServiceApp, type LabEnvelope } from "../lib/api";
 import { useDaily, useApps, useLabState, useJournalPage, useJournalKey, useAgentSyncProjects, usePrincipal } from "../lib/hooks";
 import { observationAge } from "../lib/observation-age";
 import { projectCategory, projectSentence, CATEGORY_ORDER, NEEDS_ATTENTION } from "../lib/project-status";
@@ -359,6 +359,29 @@ function AttentionSection({ daily }: { daily: DailyState }) {
       </section>
     );
   }
+  // Question state (17:6245): attention made ONLY of uncertainty
+  // (capability status "unknown") renders the curious-companion
+  // question region — uncertainty is not failure, so it gets curiosity,
+  // not alarm chrome. Anything actionable in the mix keeps the
+  // restrained list (importance ≠ urgency ≠ volume; a real problem is
+  // never softened into a question).
+  const allUncertainty = items.every((item) => {
+    const parsed = questionItemOf(item);
+    return parsed !== null && QUESTION_STATUSES.has(parsed.detail.trim());
+  });
+  if (allUncertainty) {
+    return (
+      <section
+        aria-label="Your world today"
+        className="pt-[var(--pw-spacing-section)]"
+      >
+        <QuestionRegion
+          items={items}
+          caps={daily.data.data?.capabilities ?? {}}
+        />
+      </section>
+    );
+  }
   return (
     <section
       aria-labelledby="today-attention-heading"
@@ -399,6 +422,114 @@ function humanizeAttention(value: string): string {
     ? `${available[1].replaceAll("_", " ")} is ready for looking, not changing things.`
     : text.replaceAll("_", " ");
   return human.charAt(0).toUpperCase() + human.slice(1);
+}
+
+// ── Question state (Workshop v3 frame 17:6245 "Today — Question",
+//    AMBIENT → ATTENTIVE / CURIOUS) ──
+
+/** The digest's warning shape is `"{capability}: {status}"` (loop.py
+ * OBSERVE+VALIDATE). The Question state is for UNCERTAINTY-shaped
+ * attention: a capability whose observation came back unknown — the
+ * world noticed something but cannot say what it means yet. Warnings
+ * with a canonical uncertainty status render here; plain
+ * unavailable/degraded warnings stay in the restrained list (a broken
+ * thing is a fact, not a question; importance ≠ urgency ≠ volume). */
+const QUESTION_STATUSES = new Set(["unknown"]);
+
+const CAPABILITY_WARNING_SHAPE = /^([a-z0-9_]+): (.+)$/;
+
+function questionItemOf(warning: string): { capability: string; detail: string } | null {
+  const match = CAPABILITY_WARNING_SHAPE.exec(String(warning || ""));
+  if (!match) return null;
+  return { capability: match[1], detail: match[2] };
+}
+
+/** The frame's curious posture (17:6290-92): companion beside the
+ * accent-ruled message. Canonical rig via CompanionSlot (mermaid-art
+ * reservation — presence-scale conflict unchanged, recorded); the
+ * frame's "· ✦ / ✧" motes normalize to one aria-hidden spark. */
+function QuestionRegion({
+  items,
+  caps,
+}: {
+  items: string[];
+  caps: DailyData["capabilities"];
+}) {
+  const parsed = items
+    .map((w) => questionItemOf(w))
+    .filter((x): x is { capability: string; detail: string } => x !== null)
+    .filter((x) => QUESTION_STATUSES.has(x.detail.trim()));
+  if (parsed.length === 0) return null;
+  const [first] = parsed;
+  const cap = caps[first.capability];
+  const seen: string[] = [];
+  if (cap?.warnings?.length) seen.push(...cap.warnings);
+  const observed = ageText(cap?.last_observed ?? "");
+
+  return (
+    <section
+      data-pw-today-question
+      aria-labelledby="today-question-heading"
+      className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-7"
+    >
+      <div className="shrink-0 self-center">
+        <CompanionSlot size="empty" />
+      </div>
+      <div className="flex flex-1 items-start gap-[22px]">
+        <span
+          aria-hidden="true"
+          className="w-[3px] shrink-0 self-stretch rounded-full bg-[var(--pw-color-accent-primary)]"
+        />
+        <div className="flex-1 space-y-[13px] py-2">
+          <div className="flex items-center gap-[10px]">
+            <Clock size={18} aria-hidden={true} className="text-[var(--pw-color-accent-primary)]" />
+            <h2
+              id="today-question-heading"
+              className="text-2xl text-[var(--pw-color-text-primary)]"
+              style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+            >
+              Something caught my attention.
+              <span aria-hidden="true"> ✦</span>
+            </h2>
+          </div>
+          <p className="text-[15px] leading-[1.5] text-[var(--pw-color-text-primary)]">
+            {parsed.length === 1
+              ? `${first.capability.replaceAll("_", " ")} has not been checked yet, so its state is unknown.`
+              : `${parsed.length} capabilities have not been checked yet, so their state is unknown.`}
+          </p>
+          <p className="text-sm leading-[1.5] text-[var(--pw-color-text-secondary)]">
+            I'll keep watching. It might resolve on its own.
+          </p>
+          <p
+            className="text-[13px] text-[var(--pw-color-accent-primary)]"
+            style={{ fontStyle: "italic" }}
+          >
+            This isn't a problem yet — just something I noticed.
+          </p>
+          {/* Evidence chip (17:6302-04): the world shows WHAT it can
+              actually see — real warnings + honest observation age,
+              behind the Level-4 disclosure (A11y §4.6). Never invented
+              (row 15: no fabricated evidence lines). */}
+          {seen.length > 0 || observed !== "unknown" ? (
+            <Disclosure summary="✦ What I can see" level={4}>
+              <div className="space-y-1 pt-1">
+                {seen.map((line, i) => (
+                  <p key={i} className="text-xs text-[var(--pw-color-text-secondary)]">
+                    {line}
+                  </p>
+                ))}
+                {observed !== "unknown" ? (
+                  <p className="text-xs text-[var(--pw-color-text-secondary)]">
+                    Last observed {observed} ago.
+                  </p>
+                ) : null}
+              </div>
+            </Disclosure>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 /** What changed renders the "available:" shape through the same voice

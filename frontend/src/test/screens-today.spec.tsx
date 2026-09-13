@@ -210,6 +210,82 @@ describe("TodayScreen (T10, parity rows 1–3)", () => {
     expect(slot?.querySelector("button")).toBeNull();
   });
 
+  it("uncertainty-only attention renders the Question region (frame 17:6245) with real capability data — never a fabricated story", async () => {
+    // The real shape that reaches the Question state: a capability
+    // observed "unknown" (registry.observe fail-closed vocabulary).
+    const DAILY_QUESTION = {
+      ok: true,
+      status: "healthy",
+      warnings: ["ingress: unknown"],
+      actions: [],
+      data: {
+        world: { facts: 3, intents: 1, policies: 1, cemented_policies: 0, capabilities: 3, providers: 2, packs: 0 },
+        capabilities: {
+          ...CAPABILITIES_FIXTURE,
+          ingress: {
+            ok: false,
+            status: "unknown",
+            warnings: ["ingress rollup could not be read — the observation timed out"],
+            last_observed: "2026-09-11T05:00:00Z",
+          },
+        },
+        attention: ["ingress: unknown"],
+      },
+    };
+    await bootToday(defaultHandlers({ daily: DAILY_QUESTION }));
+    // canonical heading (17:6298), reassurance (17:6300), and the
+    // italic de-escalation (17:6301) — the world stays curious, not
+    // alarmed, and uncertainty is not failure.
+    expect(
+      screen.getByRole("heading", { name: /Something caught my attention\./, level: 2 })
+    ).toBeTruthy();
+    expect(screen.getByText("I'll keep watching. It might resolve on its own.")).toBeTruthy();
+    expect(
+      screen.getByText("This isn't a problem yet — just something I noticed.")
+    ).toBeTruthy();
+    // The sentence names the REAL capability (humanized), not the
+    // frame's sample DNS story (row 15: no fabricated content).
+    expect(screen.getByText(/ingress has not been checked yet/)).toBeTruthy();
+    expect(screen.queryByText(/DNS propagation/)).toBeNull();
+    // Evidence chip: "✦ What I can see" exposes the REAL warning behind
+    // the Level-4 disclosure (A11y §4.6), never an invented line.
+    const evidence = screen.getByText("✦ What I can see");
+    expect(evidence).toBeTruthy();
+    // companion present, decorative, not a trigger (A11y §7.2)
+    const region = document.querySelector("[data-pw-today-question]");
+    expect(region).toBeTruthy();
+    const slot = region?.querySelector("[data-pw-companion-slot]");
+    expect(slot?.querySelector("button")).toBeNull();
+    // axe holds in the question state too
+    const results = await axeNoContrast(document.body);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("mixed attention (uncertainty + actionable) keeps the restrained list — a real problem is never softened into a question", async () => {
+    const DAILY_MIXED = {
+      ok: true,
+      status: "healthy",
+      warnings: ["ingress: unknown"],
+      actions: ["drift: focus: 'resting' != intent 'shipping'"],
+      data: {
+        world: { facts: 3, intents: 1, policies: 1, cemented_policies: 0, capabilities: 3, providers: 2, packs: 0 },
+        capabilities: {
+          ...CAPABILITIES_FIXTURE,
+          ingress: {
+            ok: false,
+            status: "unknown",
+            warnings: ["ingress rollup could not be read — the observation timed out"],
+            last_observed: "2026-09-11T05:00:00Z",
+          },
+        },
+        attention: ["ingress: unknown", "drift: focus: 'resting' != intent 'shipping'"],
+      },
+    };
+    await bootToday(defaultHandlers({ daily: DAILY_MIXED }));
+    expect(screen.queryByText(/Something caught my attention\./)).toBeNull();
+    expect(screen.getByRole("heading", { name: "Attention", level: 2 })).toBeTruthy();
+  });
+
   it("a busy day renders the real what-changed items verbatim in the Recent Changes panel (17:533)", async () => {
     await bootToday(defaultHandlers());
     expect(screen.getByRole("heading", { name: "Recent Changes", level: 2 })).toBeTruthy();
