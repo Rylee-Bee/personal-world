@@ -297,8 +297,9 @@ describe("VaultScreen (T10, parity row 5)", () => {
     // No plausible secret-shape text anywhere on the vault screen.
     expect(html).not.toContain("s3cret");
     expect(html).not.toMatch(/(value|secret)="?[A-Za-z0-9+/]{20,}={0,2}/i);
-    // The only "secret" words are the honest labels.
-    expect(screen.getByText("Stored secrets")).toBeTruthy();
+    // The only "secret" words are the honest labels (Workshop v3 frame
+    // 17:1066 renames the list heading; the names-only contract holds).
+    expect(screen.getByText("Treasures in safekeeping")).toBeTruthy();
   });
 
   it("axe: 0 violations (color-contrast disabled)", async () => {
