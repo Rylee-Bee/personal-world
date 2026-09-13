@@ -1,0 +1,159 @@
+/* ── Journal Writing (17:2268) — QUIET register ─────────────────── */
+
+.pw-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+  padding: 70px 84px 92px 64px;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Subtle ambient warmth — barely there, quiet emotional volume */
+.pw-journal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 35% 45%,
+    color-mix(in srgb, var(--pw-color-accent-secondary) 3%, transparent) 0%,
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pw-journal > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header ── */
+
+.pw-journal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pw-journal-title {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 2.25rem;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--pw-color-accent-secondary);
+  margin: 0;
+}
+
+.pw-journal-subtitle {
+  font-size: 0.875rem;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+}
+
+/* ── Notebook page ── */
+
+.pw-journal-page {
+  background: var(--pw-color-surface-panel);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 14px;
+  padding: 36px 40px 44px;
+  position: relative;
+}
+
+/* Rose rule divider at top — notebook aesthetic */
+.pw-journal-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 40px;
+  right: 40px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--pw-color-accent-secondary) 40%, transparent) 0%,
+    color-mix(in srgb, var(--pw-color-accent-secondary) 12%, transparent) 100%
+  );
+}
+
+/* ── Status ── */
+
+.pw-journal-status {
+  font-size: 0.9rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+}
+
+/* ── Empty state ── */
+
+.pw-journal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 56px 24px;
+}
+
+.pw-journal-empty-sparkle {
+  font-size: 1.5rem;
+  color: var(--pw-color-accent-secondary);
+  opacity: 0.6;
+}
+
+.pw-journal-empty-text {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 1.1rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── Entry list ── */
+
+.pw-journal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pw-journal-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--pw-color-border-subtle) 50%, transparent);
+}
+
+.pw-journal-entry:last-child {
+  border-bottom: none;
+}
+
+.pw-journal-entry-time {
+  font-size: 0.75rem;
+  color: var(--pw-color-accent-secondary);
+  font-weight: 500;
+}
+
+.pw-journal-entry-text {
+  font-size: 1rem;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Screen-reader only utility — local to this screen */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

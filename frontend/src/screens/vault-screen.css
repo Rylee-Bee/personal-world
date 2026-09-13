@@ -1,0 +1,128 @@
+/* ── Vault screen (17:1014) — AMBIENT register ─────────────────── */
+
+.pw-vault {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 70px 84px 92px 64px;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Ambient teal glow behind content */
+.pw-vault-ambient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 35% 30%,
+    color-mix(in srgb, var(--pw-color-accent-primary) 5%, transparent) 0%,
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pw-vault > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header ── */
+.pw-vault-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pw-vault-lock-crest {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pw-color-warmth-teal-wash);
+  border: 1px solid color-mix(in srgb, var(--pw-color-accent-primary) 18%, transparent);
+}
+
+.pw-vault-lock-icon {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--pw-color-accent-primary);
+  border-radius: 4px;
+  position: relative;
+}
+
+.pw-vault-lock-icon::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 3px;
+  width: 12px;
+  height: 10px;
+  border: 2px solid var(--pw-color-accent-primary);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+
+.pw-vault-title {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 2.5rem;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--pw-color-accent-primary-bright);
+  margin: 0;
+}
+
+.pw-vault-subtitle {
+  font-size: 0.9375rem;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+/* ── Body / lock state ── */
+.pw-vault-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 32px;
+  background: color-mix(in srgb, var(--pw-color-surface-panel) 85%, transparent);
+  border: 1px solid var(--pw-color-border-strong);
+  border-radius: 20px;
+  box-shadow: var(--pw-color-warmth-panel-shadow);
+  max-width: 520px;
+}
+
+.pw-vault-lock-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 6px 12px;
+  border-radius: 999px;
+  background: var(--pw-color-warmth-teal-wash);
+  border: 1px solid color-mix(in srgb, var(--pw-color-accent-primary) 14%, transparent);
+  box-shadow: var(--pw-color-warmth-vault-glow);
+  width: fit-content;
+}
+
+.pw-vault-lock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pw-color-accent-secondary) 70%, transparent);
+}
+
+.pw-vault-lock-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--pw-color-text-primary);
+}
+
+.pw-vault-hint {
+  font-size: 0.875rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}

@@ -981,6 +981,139 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         r = resources.observe()
         return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
 
+    # --- Native Lab endpoints (generic, no homelab dependency) ---
+
+    @app.get("/api/native-lab/inventory", dependencies=[Depends(require_auth)])
+    async def native_lab_inventory() -> dict:
+        """Native Lab service inventory."""
+        from .providers.native_lab import NativeLabInventory
+        inventory = NativeLabInventory()
+        r = inventory.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/native-lab/health", dependencies=[Depends(require_auth)])
+    async def native_lab_health() -> dict:
+        """Native Lab health monitoring."""
+        from .providers.native_lab import NativeLabInventory, NativeLabHealth
+        inventory = NativeLabInventory()
+        health = NativeLabHealth(inventory)
+        r = health.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/native-lab/settings", dependencies=[Depends(require_auth)])
+    async def native_lab_settings() -> dict:
+        """Native Lab settings inspection."""
+        from .providers.native_lab import NativeLabSettings
+        settings = NativeLabSettings()
+        r = settings.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/native-lab/resources", dependencies=[Depends(require_auth)])
+    async def native_lab_resources() -> dict:
+        """Native Lab resource monitoring."""
+        from .providers.native_lab import NativeLabResources
+        resources = NativeLabResources()
+        r = resources.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    # --- Native Discovery endpoints ---
+
+    @app.get("/api/discovery/status", dependencies=[Depends(require_auth)])
+    async def discovery_status() -> dict:
+        """Native Discovery status."""
+        from .providers.native_discovery import NativeDiscovery
+        discovery = NativeDiscovery()
+        r = discovery.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/discovery/sources", dependencies=[Depends(require_auth)])
+    async def discovery_sources() -> dict:
+        """List discovery sources."""
+        from .providers.native_discovery import NativeDiscovery
+        discovery = NativeDiscovery()
+        r = discovery.observe()
+        if r.ok:
+            sources = r.data.get("sources", [])
+            return {"ok": True, "data": {"sources": sources}}
+        return {"ok": False, "status": r.status, "warnings": r.warnings}
+
+    @app.post("/api/discovery/sources", dependencies=[Depends(require_auth)])
+    async def discovery_add_source(request: Request) -> dict:
+        """Add a discovery source."""
+        from .providers.native_discovery import NativeDiscovery, RSSDiscoverySource
+        discovery = NativeDiscovery()
+        data = await request.json()
+        source = RSSDiscoverySource(
+            id=data.get("id", ""),
+            name=data.get("name", ""),
+            url=data.get("url", ""),
+            tags=data.get("tags", []),
+        )
+        discovery.add_source(source)
+        return {"ok": True, "data": source.to_dict()}
+
+    @app.get("/api/discovery/interests", dependencies=[Depends(require_auth)])
+    async def discovery_interests() -> dict:
+        """List interests."""
+        from .providers.native_discovery import NativeDiscovery
+        discovery = NativeDiscovery()
+        r = discovery.observe()
+        if r.ok:
+            interests = r.data.get("interests", [])
+            return {"ok": True, "data": {"interests": interests}}
+        return {"ok": False, "status": r.status, "warnings": r.warnings}
+
+    @app.post("/api/discovery/interests", dependencies=[Depends(require_auth)])
+    async def discovery_add_interest(request: Request) -> dict:
+        """Add an interest."""
+        from .providers.native_discovery import NativeDiscovery, Interest
+        discovery = NativeDiscovery()
+        data = await request.json()
+        interest = Interest(
+            id=data.get("id", ""),
+            name=data.get("name", ""),
+            category=data.get("category"),
+            weight=data.get("weight", 1.0),
+        )
+        discovery.add_interest(interest)
+        return {"ok": True, "data": interest.to_dict()}
+
+    @app.get("/api/discovery/discover", dependencies=[Depends(require_auth)])
+    async def discovery_discover(source: str | None = None) -> dict:
+        """Discover content from sources."""
+        from .providers.native_discovery import NativeDiscovery
+        discovery = NativeDiscovery()
+        r = discovery.discover(source)
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    # --- Native Reconciler endpoints ---
+
+    @app.get("/api/reconciler/status", dependencies=[Depends(require_auth)])
+    async def reconciler_status() -> dict:
+        """Native Reconciler status."""
+        from .providers.native_reconciler import NativeSettingsReconciler
+        reconciler = NativeSettingsReconciler()
+        r = reconciler.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/reconciler/diff/{service}", dependencies=[Depends(require_auth)])
+    async def reconciler_diff(service: str, request: Request) -> dict:
+        """Compute drift between desired and observed state."""
+        from .providers.native_reconciler import NativeSettingsReconciler
+        reconciler = NativeSettingsReconciler()
+        observed = await request.json()
+        r = reconciler.diff(service, observed)
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/reconciler/propose/{service}", dependencies=[Depends(require_auth)])
+    async def reconciler_propose(service: str, request: Request) -> dict:
+        """Propose reconciliation actions."""
+        from .providers.native_reconciler import NativeSettingsReconciler
+        reconciler = NativeSettingsReconciler()
+        observed = await request.json()
+        r = reconciler.propose(service, observed)
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
     # --- Vault endpoints ---
 
     # --- Vault: one instance per app, survives across requests ---

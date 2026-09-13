@@ -19,10 +19,35 @@
 # docs/OPERATIONS.md).
 
 services:
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+    volumes:
+      - ollama-data:/root/.ollama
+    entrypoint: ["/bin/sh", "-c", "ollama pull qwen3:1.7b"]
+
   core:
     image: ${PW_IMAGE:-ghcr.io/rylee-bee/personal-world:latest}
     pull_policy: always
     restart: unless-stopped
+    depends_on:
+      ollama-pull:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
     environment:
@@ -52,3 +77,4 @@ services:
 
 volumes:
   world-data:
+  ollama-data:
