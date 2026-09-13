@@ -11,6 +11,7 @@ import secrets
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, FileResponse
@@ -511,6 +512,76 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         result = impl.search(q, top_k=top_k)
         return result.model_dump(mode="json")
 
+    def _chat_with_tools_loop(
+        impl: Any,
+        messages: list[dict[str, Any]],
+        tool_reg: Any,
+        tool_schemas: list[dict[str, Any]],
+        max_rounds: int = 3,
+    ) -> Result:
+        """Tool-calling loop: model selects tools, we execute, model explains.
+
+        Max rounds prevents infinite loops. Read-only: no write tools
+        are exposed yet.
+        """
+        from .chat import chat_once
+        current_messages = list(messages)
+        tool_calls_made: list[dict[str, Any]] = []
+
+        for round_num in range(max_rounds):
+            result = impl.chat_with_tools(current_messages, tool_schemas)
+            if not result.ok:
+                return result
+
+            data = result.data or {}
+            tool_calls = data.get("tool_calls")
+
+            if not tool_calls:
+                # Model gave a final text response
+                return result
+
+            # Model wants to call tools
+            # Add the assistant message with tool calls
+            current_messages.append({
+                "role": "assistant",
+                "content": None,
+                "tool_calls": tool_calls,
+            })
+
+            # Execute each tool and add results
+            for tc in tool_calls:
+                func = tc.get("function", {})
+                tool_name = func.get("name", "")
+                tool_args = func.get("arguments", {})
+                if isinstance(tool_args, str):
+                    try:
+                        tool_args = json.loads(tool_args)
+                    except (json.JSONDecodeError, TypeError):
+                        tool_args = {}
+
+                tool_result = tool_reg.invoke(tool_name, tool_args)
+                tool_calls_made.append({
+                    "tool": tool_name,
+                    "args": tool_args,
+                    "ok": tool_result.ok,
+                    "status": tool_result.status,
+                })
+
+                # Add tool result message
+                current_messages.append({
+                    "role": "tool",
+                    "content": json.dumps(tool_result.model_dump(mode="json")),
+                })
+
+            # Continue the loop - model will see tool results
+
+        # Max rounds reached - return what we have
+        return ok("healthy", data={
+            "reply": "I gathered some information but reached the tool call limit. Let me share what I found.",
+            "tool_calls_made": tool_calls_made,
+            "model": data.get("model", "unknown"),
+        })
+
     @app.post("/api/chat", dependencies=[Depends(require_auth)])
     async def chat(request: Request) -> dict:
         """Conversational interface to Project Worlds.
@@ -576,27 +647,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             )
         if ui_block:
             context = context + "\n\n" + ui_block
-        # Build tool descriptions for the brain
-        tool_desc_lines = []
-        tool_desc_lines.append("Capabilities you can discuss:")
-        for cap, s in sorted(registry.status_map().items()):
-            tool_desc_lines.append(f"- {cap}: {s['status']}")
-        tool_desc_lines.append("")
-        tool_desc_lines.append("What the person can ask about:")
-        tool_desc_lines.append("- world status, capabilities, health")
-        tool_desc_lines.append("- journal entries, history, search")
-        tool_desc_lines.append("- source control: repos, commits, branches")
-        tool_desc_lines.append("- projects: agent-sync state, work status")
-        tool_desc_lines.append("- lab: services, health, settings drift")
-        tool_desc_lines.append("- interests: discovery sources, recommendations")
-        tool_desc_lines.append("- vault: lock state (never secret values)")
-        tool_desc_lines.append("- reminders, preferences, sections")
-        tool_desc_lines.append("")
-        tool_desc_lines.append("Read questions: answer from context.")
-        tool_desc_lines.append("Write requests: explain what would change, suggest the person use the appropriate screen.")
-        tool_descriptions = "\n".join(tool_desc_lines)
-        messages = build_chat_messages(message, context, history, tool_descriptions)
-        result = await run_in_threadpool(chat_once, impl, messages)
+        # Build tool registry from current state
+        from .tool_registry import build_default_tools
+        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir)
+        tool_schemas = tool_reg.list_ollama_schemas()
+        messages = build_chat_messages(message, context, history)
+        # Try tool-calling flow if impl supports it
+        if hasattr(impl, 'chat_with_tools') and tool_schemas:
+            result = await run_in_threadpool(
+                _chat_with_tools_loop, impl, messages, tool_reg, tool_schemas
+            )
+        else:
+            result = await run_in_threadpool(chat_once, impl, messages)
         if not result.ok:
             return result.model_dump(mode="json")
         # Assistant-drafted correction proposals (Play-Nice:
@@ -680,19 +742,16 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/tools", dependencies=[Depends(require_auth)])
     async def tools() -> dict:
-        """List capabilities the brain can discuss with the user."""
-        _, registry = _state()
-        caps = registry.status_map()
-        tools_list = []
-        for cap, s in sorted(caps.items()):
-            tools_list.append({
-                "id": cap,
-                "status": s["status"],
-                "ok": s["ok"],
-                "warnings": s.get("warnings", []),
-                "description": _capability_description(cap),
-            })
-        return {"ok": True, "data": {"tools": tools_list, "count": len(tools_list)}}
+        """List tools the brain can invoke at runtime.
+
+        Returns the actual callable tool registry, not just capability descriptions.
+        Each tool has: id, capability, operation, description, read/write,
+        parameters schema, availability, approval requirement.
+        """
+        world, registry = _state()
+        from .tool_registry import build_default_tools
+        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir)
+        return {"ok": True, "data": {"tools": tool_reg.list_metadata(), "count": len(tool_reg.list_tools())}}
 
     @app.get("/api/actors", dependencies=[Depends(require_auth)])
     async def actors() -> dict:

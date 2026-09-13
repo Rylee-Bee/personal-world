@@ -119,6 +119,64 @@ class OllamaChat(ChatContract):
             "prompt_eval_count": payload.get("prompt_eval_count"),
         })
 
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> Result:
+        """Chat with optional tool-calling support.
+
+        Returns either:
+        - data.reply (final text response)
+        - data.tool_calls (list of tool calls the model wants to make)
+        """
+        body: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+        }
+        if tools:
+            body["tools"] = tools
+        data = json.dumps(body).encode()
+        req = urllib.request.Request(
+            f"{self.base_url}/api/chat",
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                payload = json.loads(resp.read().decode())
+        except Exception as e:
+            return Result(
+                ok=False,
+                status="unavailable",
+                warnings=[f"ollama chat: {e}"],
+            )
+        message = payload.get("message") or {}
+
+        # Check for tool calls
+        tool_calls = message.get("tool_calls")
+        if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
+            return ok("healthy", data={
+                "tool_calls": tool_calls,
+                "model": payload.get("model", self.model),
+            })
+
+        # Plain text response
+        content = (message.get("content") or "").strip()
+        if not content:
+            return Result(
+                ok=False,
+                status="unavailable",
+                warnings=["ollama returned an empty reply"],
+            )
+        return ok("healthy", data={
+            "reply": content,
+            "thinking": message.get("thinking"),
+            "model": payload.get("model", self.model),
+        })
+
 
 class OpenAICompatChat(ChatContract):
     """Chat over any OpenAI-compatible /v1/chat/completions endpoint
