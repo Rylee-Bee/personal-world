@@ -23,6 +23,20 @@ it; items below are direction and history, not the execution plan.
 Work that completes or hardens what 0.1 already promises or is required
 by the current finish line:
 
+- **Workshop v3 implementation.** STARTED (2026-09-13): the design
+  convergence is complete (16/16 canonical frames identified in
+  [`.project/design/WORKSHOP-V3-MANIFEST.yaml`](.project/design/WORKSHOP-V3-MANIFEST.yaml),
+  philosophy "The world knows how loudly to exist" (17:8873), audit
+  18:2 — all revised frames READY FOR IMPLEMENTATION), and the first
+  frame is implemented: **Today — Quiet Day (17:481)** at `874fb69`
+  (D0–D3 pass; D4 human review pending). Remaining: the other canonical
+  surfaces/states — Mobile Today 17:1929 is the natural next slice —
+  via the [personal-world-implement-figma](.agents/skills/personal-world-implement-figma/SKILL.md)
+  workflow. Tracked in
+  [issue #37](https://github.com/Rylee-Bee/personal-world/issues/37).
+  Two owner reservations remain open from the first slice: companion
+  presence scale, and the waves-ladder decoration (fetched, unplaced).
+
 - **Secret vault.** DONE (2026-09-09): Fernet-encrypted file vault
   (`/data/vault.enc`, PBKDF2-600k) behind real unlock/lock/set/
   delete/names endpoints; the image now installs `cryptography` so
@@ -77,12 +91,18 @@ Relevant remaining work and partially implemented seams:
 
 Preserved ideas, no commitment:
 
-- Open design questions from the Figma stage (navigation style,
-  density, mascot microcopy, personal-mode presentation) — see the
-  design handoff's open-questions section.
+- Open design questions from the Workshop v3 stage beyond the
+  implemented frames (per-frame composition, emotional volume, and
+  the emotional-volume principle "The world knows how loudly to
+  exist" — now an implementation/design principle, not copywriting;
+  see [`.project/design/CURRENT.md`](.project/design/CURRENT.md)).
 - Further mobile refinement; the current CSS already has phone bottom navigation
   and larger-target adaptations (see canonical responsive rules).
 - Capability/accessibility interview beyond the implemented five-step setup wizard.
+- The Figma remote MCP (mcp.figma.com) rejects non-catalog clients;
+  if OpenCode is ever catalog-listed, the desktop-MCP bridge could be
+  simplified (tracked in
+  [issue #39](https://github.com/Rylee-Bee/personal-world/issues/39)).
 
 ## Completed
 
@@ -125,3 +145,12 @@ Preserved ideas, no commitment:
   encrypted vault (issue: base64 fallback + missing `cryptography`
   found and closed), provider-key env passthrough, world seeded for
   first daily use, full suite green.
+- 2026-09-12: trunk unification, product rename to Project Worlds,
+  Play-Nice adoption, OCI image distribution via GHCR, T15 React-UI
+  cutover.
+- 2026-09-13: Workshop v3 becomes the implementation design authority
+  (16 canonical frames + philosophy + audit committed from Figma MCP
+  evidence, `ce4af01`); first Workshop v3 implementation — Today —
+  Quiet Day (17:481) — landed at `874fb69` (D0–D3 pass, D4 pending
+  owner review); first end-to-end proof of the Figma desktop MCP →
+  SSH-reverse-tunnel → implementation workflow.

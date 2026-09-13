@@ -127,6 +127,14 @@ Implemented in the current source, with repository tests and CI gates:
 - Dashboard pages **Today, Chat, World, Journal, Vault, Settings**,
   real data loading, explicit partial/error states, journal notes and
   kind filtering.
+- **Design: Workshop v3 is the implementation design authority** — 16
+  canonical frames with exact node IDs, the philosophy "The world
+  knows how loudly to exist", and a convergence audit all live in
+  repository evidence (see the [design authority](.project/design/CURRENT.md)).
+  The first frame, **Today — Quiet Day**, is implemented with a
+  region-by-region Figma-to-code workflow (tokens-first, visual
+  comparison, accessibility floor); the remaining surfaces are the
+  tracked work ahead.
 - Two propose→approve→act workflows, both server-enforced with
   step-up: a repository status refresh (Projects) and journal entry
   correction with preserved history (Journal).
@@ -184,7 +192,7 @@ and rollback by SHA tag.
 |---|---|
 | Understand the application | [Architecture](docs/ARCHITECTURE.md) and [native baseline](docs/NATIVE-BASELINE-AND-ENRICHMENT.md) |
 | Understand the target daily-use experience | [Project Worlds finish line](docs/PERSONAL-WORLD-FINISH-LINE.md) |
-| Explore the design | [Handoff index](design/handoff/README.md) and [frame index](design/handoff/FRAME_INDEX.md) |
+| Explore the design | [Workshop v3 design authority](.project/design/CURRENT.md) — the canonical frames, philosophy ("The world knows how loudly to exist"), and the Figma-to-code workflow ([personal-world-implement-figma](.agents/skills/personal-world-implement-figma/SKILL.md)); historical baseline in the [handoff index](design/handoff/README.md) |
 | Companions and animation | [Asset index](design/assets/README.md) |
 | Everything, one page | [Documentation index](docs/INDEX.md) |
 | Engineering constitution | [Play-Nice Contracts](https://github.com/Rylee-Bee/play-nice-contracts) |

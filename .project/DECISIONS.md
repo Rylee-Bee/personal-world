@@ -20,6 +20,36 @@ dated entry superseding the old one (append-only, like the journal).
   Reason: a personal control plane must never become a disguised
   dependency on one external system.
 
+- **2026-09-13 — "The world knows how loudly to exist" is an
+  implementation/design principle, not copywriting.** Workshop v3
+  (file `Wbg1rdt9fVCjWAXEKI1pTc`, philosophy artifact 17:8873,
+  convergence audit 18:2) is the current implementation design
+  authority for all 16 canonical frames, and its emotional-volume
+  system (GENEROUS → AMBIENT → PRACTICAL → ATTENTIVE → QUIET) governs
+  how loudly any surface may speak. Screens must be evaluated for
+  what is visually loudest and whether importance reads as urgency —
+  recorded per frame as AUTOMATED/AGENT REVIEW vs OWNER EXPERIENCE,
+  never collapsed into one claim. Reason: the convergence process
+  (Rylee described the converged design as more magical than she had
+  imagined; the audit's register lines) produced volume rules that
+  are the design's substance, and tonight's first implementation
+  proved they are enforceable in code, not just prose.
+
+- **2026-09-13 — The design-to-code guardrail held, and that outcome
+  is the precedent.** The first unattended implementation attempt
+  produced zero code because Figma evidence was unavailable. Rather
+  than weakening the guardrail, the project established the full
+  chain: Figma evidence (both `get_design_context` and
+  `get_screenshot` from the desktop Dev Mode MCP server) → repository
+  authority (`.project/design/CURRENT.md` + `WORKSHOP-V3-MANIFEST.yaml`)
+  → MCP bridge (SSH reverse tunnel, no credentials in tracked files)
+  → implementation skill (`personal-world-implement-figma`) → visual
+  comparison → D0–D4 report. With the chain in place, the first
+  implementation (Today — Quiet Day, `874fb69`) completed in one
+  session because ambiguity had been removed in advance. Reason:
+  evidence-first made honesty cheaper than fabrication; keep the
+  chain mandatory.
+
 - **2026-09-12 — The product is "Project Worlds"; the companion
   character keeps the name "Personal World."** "Project Worlds is the
   environment; Personal World is the companion inside it." Technical
