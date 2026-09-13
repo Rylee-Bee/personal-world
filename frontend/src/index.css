@@ -553,7 +553,7 @@ img[src*="/icons/"][class*="h-5"] {
 
 .pw-auth-main {
   width: 100%;
-  max-width: 40rem;
+  max-width: 72rem;
   padding: var(--pw-spacing-section) var(--pw-spacing-loose);
 }
 
