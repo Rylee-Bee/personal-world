@@ -252,24 +252,22 @@ img[src*="/icons/"][class*="h-5"] {
 :root {
   --pw-header-height: 3.5rem;
   --pw-content-measure: 64rem;
+  --pw-sidebar-width: var(--pw-layout-sidebar-width, 248px);
 }
 
 .pw-main {
   flex: 1 1 auto;
   min-width: 0;
-  /* Fixed header + one measure (T14 human gate 1+2): route content
-     lives in a centered column of --pw-content-measure; margin
-     discipline keeps route content from leaking geometry upward. */
+  /* Phase 4: contextual width — the old global 64rem dashboard column
+     is removed. Individual screens own their readable measures.
+     Content fills the space beside the sidebar naturally. */
   width: 100%;
-  max-width: var(--pw-content-measure);
-  margin-inline: auto;
   padding: var(--pw-spacing-section) var(--pw-spacing-loose);
   overflow-x: hidden;
 }
 
-/* Header: FIXED compact geometry — identical height on every route
-   and bucket. Route content cannot influence it (h1 margins live
-   inside .pw-main's padding, not collapsed into the header). */
+/* Header: FIXED compact geometry — hidden on desktop ≥900px where the
+   sidebar owns identity and navigation. Visible on tablet/mobile. */
 .pw-header {
   display: flex;
   align-items: center;
@@ -360,32 +358,30 @@ img[src*="/icons/"][class*="h-5"] {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Rail (≥900px): left rail beside main. The AppShell renders exactly
-   one nav per bucket (same breakpoints); CSS seams restate visibility.
-   Rail width is a shell-local geometry var (see --pw-content-measure
-   note above): sized for 24px icons + 0.8rem labels to stay legible
-   without becoming a second content column (T14 human gate 3). */
+/* Rail (≥900px): the world's edge. Sidebar owns identity, navigation,
+   and companion presence. Phase 1-3: Workshop v3 shell rearchitecture. */
 @media (min-width: 900px) {
   :root {
-    --pw-rail-width: 6.75rem;
+    --pw-rail-width: var(--pw-layout-sidebar-width, 248px);
   }
   .pw-shell {
     flex-direction: row;
     flex-wrap: wrap;
-    /* line 2 pins under the header; leftover cross-space goes BELOW
-       content, never between header and content (attention contract §4:
-       predictable geometry; finding A) */
     align-content: flex-start;
   }
+  /* Phase 3: header hidden on desktop — sidebar owns identity. */
   .pw-shell > .pw-header {
-    flex-basis: 100%;
+    display: none;
   }
   .pw-rail {
     display: flex;
     flex-direction: column;
-    flex: 0 0 var(--pw-rail-width, 6.75rem);
-    border-right: 1px solid var(--pw-color-border-subtle);
-    background: var(--pw-color-surface-panel);
+    flex: 0 0 var(--pw-rail-width, 248px);
+    /* Organic edge is a separate element, not a CSS border */
+    border-right: none;
+    background: var(--pw-color-shell-sidebar-bg);
+    padding: var(--pw-spacing-loose) var(--pw-spacing-normal);
+    gap: var(--pw-spacing-normal);
   }
   .pw-shell > main {
     flex: 1 1 0;
@@ -409,8 +405,8 @@ img[src*="/icons/"][class*="h-5"] {
 
 .pw-rail .pw-nav-list {
   flex-direction: column;
-  gap: var(--pw-spacing-loose);
-  padding: var(--pw-spacing-normal) var(--pw-spacing-compact);
+  gap: var(--pw-spacing-compact);
+  padding: 0;
 }
 
 .pw-bottom-bar .pw-nav-list {
@@ -425,27 +421,26 @@ img[src*="/icons/"][class*="h-5"] {
 .pw-nav-link {
   display: flex;
   align-items: center;
-  gap: var(--pw-spacing-normal);
+  gap: 12px;
   min-height: var(--pw-target-minimum);
   min-width: var(--pw-target-minimum);
-  padding: var(--pw-spacing-compact) var(--pw-spacing-normal);
-  border-radius: 0.5rem;
+  padding: 0 12px;
+  border-radius: 8px;
   color: var(--pw-color-text-secondary);
   text-decoration: none;
-  font-weight: 500;
-  font-size: 0.8rem;
+  font-weight: 400;
+  font-size: 13px;
 }
 
-/* Rail (≥900px): icon over label at the nav-presence scale
-   (COMPANION_INTEGRATION) — 24px icons, 0.8rem labels; targets stay
-   ≥44px via --pw-target-minimum (A11y §2.1). */
+/* Rail (≥900px): icon + label horizontal — room-like items,
+   not an icon-over-label admin rail. */
 .pw-nav-link--rail {
-  flex-direction: column;
-  gap: 0.2rem;
-  justify-content: center;
-  text-align: center;
-  font-size: 0.8rem;
-  padding: var(--pw-spacing-compact) 0.25rem;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 13px;
+  padding: 0 12px;
   width: 100%;
 }
 
@@ -463,8 +458,9 @@ img[src*="/icons/"][class*="h-5"] {
 }
 
 .pw-nav-link--active {
-  background: var(--pw-color-surface-elevated);
+  background: var(--pw-color-shell-nav-active-bg);
   color: var(--pw-color-accent-primary);
+  font-weight: 600;
 }
 
 .pw-nav-icon {
@@ -595,6 +591,75 @@ img[src*="/icons/"][class*="h-5"] {
   }
 }
 
+/* ── World identity (Workshop v3 sidebar top) ──
+   The world's name and mark at the top of the world edge.
+   Derived from canonical frames (17:1515, 17:2117, 17:2268, etc.):
+   icon/moon-star (38px) + "Project world" (11px uppercase) + world name (18px serif). */
+
+.pw-world-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.pw-world-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: var(--pw-color-surface-elevated);
+  box-shadow: var(--pw-color-warmth-vault-glow);
+  flex-shrink: 0;
+}
+
+.pw-world-mark img {
+  width: 21px;
+  height: 21px;
+}
+
+.pw-world-name-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pw-world-label {
+  margin: 0;
+  font-family: var(--pw-typography-font-interface);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pw-color-shell-world-identity-label);
+  line-height: 1.2;
+}
+
+.pw-world-name {
+  margin: 0;
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 18px;
+  color: var(--pw-color-text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Organic sidebar edge ──
+   Workshop v3 uses an environmental edge, not a rigid admin border.
+   The gradient creates a soft fade at the sidebar boundary. */
+
+.pw-sidebar-edge {
+  width: 1px;
+  align-self: stretch;
+  background: var(--pw-color-shell-sidebar-organic-edge);
+  flex-shrink: 0;
+}
+
 /* ── Companion progressive disclosure (Workshop v3 frame 17:4565) ──
    Three states: rest (quietly here), focus (popover), open (drawer).
    The rail companion sits at the bottom of the sidebar rail. ── */
@@ -604,7 +669,7 @@ img[src*="/icons/"][class*="h-5"] {
   flex-direction: column;
   align-items: center;
   margin-top: auto;
-  padding: var(--pw-spacing-normal) var(--pw-spacing-compact);
+  padding: var(--pw-spacing-normal) 0;
   position: relative;
 }
 
