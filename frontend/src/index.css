@@ -579,3 +579,17 @@ img[src*="/icons/"][class*="h-5"] {
   white-space: nowrap;
   border: 0;
 }
+
+/* ── Today phone greeting band (Workshop v3 frame 17:1929): the warm
+   fade — rose top edge through teal into the canvas — behind the
+   greeting + health chip, PHONE BUCKET ONLY (≤599px). Desktop keeps
+   17:481's flat canvas. Token-component rgba stops (no new hexes;
+   D0 gate). Negative margins reach the .pw-main edges; padding
+   restores the content measure. ── */
+@media (max-width: 599px) {
+  .pw-today-greeting-band {
+    margin: calc(-1 * var(--pw-spacing-section)) calc(-1 * var(--pw-spacing-loose)) 0;
+    padding: var(--pw-spacing-section) var(--pw-spacing-loose) var(--pw-spacing-loose);
+    background-image: var(--pw-color-warmth-mobile-band-gradient);
+  }
+}

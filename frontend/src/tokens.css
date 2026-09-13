@@ -16,6 +16,9 @@
   --pw-color-warmth-quiet-gradient: linear-gradient(90deg, rgba(114,177,177,0.15) 0%, rgba(181,127,139,0.12) 64%, rgba(18,16,26,0.13) 100%);
   --pw-color-warmth-quiet-glow: 0 0 28px 0 rgba(114,177,177,0.2);
   --pw-color-warmth-panel-shadow: 0 10px 30px 0 rgba(0,0,0,0.25);
+  --pw-color-warmth-mobile-band-gradient: linear-gradient(180deg, rgba(181,127,139,0.14) 0%, rgba(114,177,177,0.16) 55%, rgba(0,0,0,0) 100%);
+  --pw-color-warmth-rose-tint: rgba(181,127,139,0.14);
+  --pw-color-warmth-teal-tint: rgba(114,177,177,0.16);
 }
 
 [data-pw-theme="light"] {
