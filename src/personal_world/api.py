@@ -1508,6 +1508,25 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     static_dir = Path(__file__).parent / "static"
 
+    @app.get("/today/{name}.svg")
+    async def today_art(name: str, request: Request) -> Response:
+        # Frame-specific decorative exports for Today (Workshop v3,
+        # design/assets/today/): the quiet-day settle gesture and
+        # waterline. Public: decorative geometry, carries no world
+        # state. Allowlist pattern matches /fonts and /companions
+        # ({name}.svg binds the parameter WITHOUT the suffix).
+        allowed = {
+            "settle-gesture": "image/svg+xml",
+            "waves-ladder": "image/svg+xml",
+        }
+        ctype = allowed.get(name)
+        if ctype is None or "/" in name or ".." in name:
+            raise HTTPException(status_code=404, detail="unknown artwork")
+        path = static_dir / "today" / f"{name}.svg"
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="artwork missing")
+        return _cached_file(request, path, ctype)
+
     @app.get("/icons/sprite.svg")
     async def icon_sprite() -> Response:
         # 72-glyph production icon system (design/assets/icons/). Public:

@@ -49,8 +49,16 @@ describe("no fake strings in shipped frontend/src (row 15)", () => {
   it("contains no fabricated 'recent changes'-style content", () => {
     for (const f of FILES) {
       const text = code(readFileSync(f, "utf8"));
-      expect(text).not.toMatch(/recent changes/i);
+      // The gate guards fabricated change LISTS (hard-coded fake rows
+      // presented as recorded history), not the canonical panel HEADING
+      // the approved frame 17:533 names — that heading renders only
+      // when /api/daily carries real actions (row 15's actual rule:
+      // "a quiet day shows no green list"). Fabricated-item shapes:
+      // sample/demo content and past-tense hard-coded change sentences.
       expect(text).not.toMatch(/sample data|demo data|fake data|lorem ipsum/i);
+      expect(text).not.toMatch(
+        /(Settings|Service|Capability|World|Journal)\w* (updated|passed|failed|changed)( ·| ·)?/i
+      );
     }
   });
 

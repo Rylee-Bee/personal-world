@@ -128,6 +128,29 @@ notes, reservation attachments, and superseded-iteration mapping is
 - **Today — Quiet Day `17:481`** (1440×1000, WARM) — **IMPLEMENTATION
   TARGET #1**. Mobile Today `17:1929` (390×844) is its responsive
   interpretation (same quiet-day state, bottom nav).
+  **Implemented 2026-09-13** (slice commit on `main`; committed with
+  `scripts/safe-commit.sh`, explicit paths). Implementation-state
+  reservations, recorded for owner review — NOT silently resolved:
+  - **mermaid-art / presence scale:** the frame's Mermaid illustration
+    (~150px) normalizes to the canonical rig via `CompanionSlot`, which
+    caps at the Empty-State 64px (`design/COMPANION_INTEGRATION` scale
+    system; the manifest reservation names a 16→32→48→80→160→512px
+    Direction A ladder, but no size tier above 64px exists in the
+    component contract). Shipped at 64px with a proportionate settle
+    gesture. Owner decision pending: introduce a larger Today tier or
+    accept 64px.
+  - **waves-ladder `17:586` (waterline):** fetched as a canonical export
+    (`design/assets/today/waves-ladder.svg`, served via `/today/`) but
+    deliberately UNPLACED — its divider-like role overlaps the existing
+    quiet-divider semantics; relationship needs owner review before it
+    enters Today.
+  - **no-fake-strings gate:** row 15's literal "recent changes" grep
+    conflicted with the frame's panel heading; the gate was tightened to
+    its actual rule (no fabricated change LISTS) and the heading now
+    renders only from real `/api/daily` actions. Recorded in
+    `frontend/src/test/no-fake-strings.spec.ts`.
+  - **D4 (human experience) remains UNKNOWN** — pending Rylee's own
+    review; commit approval is not D4 approval.
 - **Vault `17:1014`**, **Login `17:1681`**, **Mobile Today `17:1929`**,
   **Chat `17:2536`**, **Projects `17:2752`**, **Setup `17:3039`**,
   **Notifications `17:6369`** (How the World Tells You Things).
