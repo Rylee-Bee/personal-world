@@ -20,8 +20,8 @@ Canonical Freshness rule. Nothing here changes any canonical contract.
      2026-08-26) is strictly behind GitHub main (641022d, 2026-09-12)
      by 1007 commits; the lab CLI the Project Worlds providers consume
      was added on GitHub AFTER the local checkout diverged. The LAN
-     origin (192.168.2.216 Gitea) is unreachable from this host, so a
-     local `git fetch` cannot see any of it.
+     origin (the historical Gitea mirror) is unreachable from this
+     host, so a local `git fetch` cannot see any of it.
    - Handling: cloned GitHub main read-only to /tmp for surface
      verification; did NOT fast-forward the local checkout (owner-
      decision-grade action on another repo; recorded, preserved).
