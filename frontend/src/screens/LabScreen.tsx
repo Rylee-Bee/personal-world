@@ -1,35 +1,16 @@
-import React from "react";
 import { EmptyState } from "../shell/EmptyState";
-import { ErrorState } from "../shell/ErrorState";
 import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 import { TechnicalDetails, Disclosure } from "../primitives/Disclosure";
-import { useLabState, useLabHealth } from "../lib/hooks";
+import {
+  useLabState,
+  useNativeLabInventory,
+  useNativeLabHealth,
+  useNativeLabResources,
+  useReconcilerStatus,
+} from "../lib/hooks";
 import type { LabEnvelope } from "../lib/api";
 import { Loader2 } from "../lib/icons";
 import LabOperationsPanel from "./LabOperationsPanel";
-
-/**
- * LabScreen (P1 T13, FOUNDATION-SPEC §7 parity row 3): the REAL operator
- * table from `GET /api/lab/state` (the lab-lowbw/1 packet via the homelab
- * Lab CLI). Presentation-only truth, exactly as the backend reports it:
- *
- * - one row per operator row (urgent / review / safe / unknown /
- *   last_known_good / next — plus any unrecognized rows the schema grew,
- *   shown honestly, never dropped);
- * - StatusChip per row, canonical statuses only (stale/healthy on
- *   evidence rows; unknown where the packet gives no claim);
- * - per-row provenance behind a Level-4 Disclosure (TechnicalDetails:
- *   provider, latency as observed-at, raw observation JSON) — A11y §4.6;
- * - when the lab capability is absent the screen degrades to the shell
- *   EmptyState naming the capability and the `PW_LAB_CLI` knob, with the
- *   same language the backend uses ("Lab provider not configured — set
- *   `PW_LAB_CLI`"); a present-but-failing CLI renders `unavailable`
- *   with the server's warning as detail, never a guessed row.
- *
- * Honesty boundaries (HRC explicit state; plan C-2): no invented hosts,
- * services, or statuses; no mount path ever leaks into copy — the only
- * implementation name is the documented server-side knob.
- */
 
 interface LabObservation {
   detail: string;
@@ -53,15 +34,19 @@ interface LabStateData {
   reason?: string;
 }
 
-interface LabHealthData {
-  total?: number;
-  healthy?: number;
-  unhealthy?: number;
-  restarting?: number;
-  stopped?: number;
+interface NativeService {
+  name: string;
+  type: string;
+  status: string;
 }
 
-/** Canonical-status guard: statuses outside status.py render as unknown. */
+interface NativeHealthSummary {
+  total: number;
+  healthy: number;
+  unhealthy: number;
+  unknown: number;
+}
+
 function asCanonicalStatus(raw: string | undefined | null): CanonicalStatus {
   const known: readonly string[] = [
     "healthy", "warning", "unknown", "needs_attention",
@@ -70,7 +55,6 @@ function asCanonicalStatus(raw: string | undefined | null): CanonicalStatus {
   return raw && known.includes(raw) ? (raw as CanonicalStatus) : "unknown";
 }
 
-/** Humanized operator-row name ("last_known_good" → "last known good"). */
 function rowLabel(row: string): string {
   return row.replace(/_/g, " ");
 }
@@ -84,9 +68,14 @@ function observedAtLabel(observed_at: string | undefined): string | undefined {
 
 export default function LabScreen() {
   const lab = useLabState();
-  const health = useLabHealth();
+  const nativeInventory = useNativeLabInventory();
+  const nativeHealth = useNativeLabHealth();
+  const nativeResources = useNativeLabResources();
+  const reconciler = useReconcilerStatus();
 
-  if (lab.isLoading || health.isLoading) {
+  const isLoading = lab.isLoading || nativeInventory.isLoading;
+
+  if (isLoading) {
     return (
       <div data-pw-lab="loading">
         <h1 id="lab-heading">Lab</h1>
@@ -98,180 +87,177 @@ export default function LabScreen() {
     );
   }
 
-  if (lab.isError || health.isError) {
-    const error = (lab.error ?? health.error) as Error | null;
-    return (
-      <div data-pw-lab="error">
-        <ErrorState
-          title="Lab"
-          headingLevel={1}
-          failed="could not load the lab operator table"
-          detail={error instanceof Error ? error.message : null}
-          onRetry={() => {
-            void lab.refetch();
-            void health.refetch();
-          }}
-        />
-      </div>
-    );
-  }
+  const nativeInventoryData = nativeInventory.data?.data;
+  const nativeHealthData = nativeHealth.data?.data;
+  const nativeResourcesData = nativeResources.data?.data;
+  const reconcilerData = reconciler.data?.data;
+
+  const nativeServices: NativeService[] = nativeInventoryData?.services || [];
+  const healthSummary: NativeHealthSummary | null = nativeHealthData?.summary || null;
 
   const state: LabEnvelope | null = lab.data ?? null;
-  const healthEnvelope: LabEnvelope | null = health.data ?? null;
   const stateData = (state?.data ?? null) as LabStateData | null;
-  const healthCounts = (healthEnvelope?.data ?? null) as LabHealthData | null;
-
-  // Absent capability: the backend answers ok:false with status
-  // not_configured when no provider serves the homelab_health
-  // capability (registry.observe: "no provider for capability").
-  // Mirror its language and name the PW_LAB_CLI knob. A present-but-
-  // failing CLI is `unavailable` — the server's warning is the detail.
-  // The wrapper is a div: EmptyState/ErrorState carry the region and
-  // (headingLevel 1) the page's single h1 — never a stacked duplicate.
-  if (!state || state.ok === false) {
-    const status = asCanonicalStatus(state?.status ?? "not_configured");
-    const absent =
-      status === "not_configured" || status === "disabled" || !state;
-    return (
-      <div data-pw-lab="absent">
-        {absent ? (
-          <EmptyState
-            title="Lab"
-            headingLevel={1}
-            capability="Lab watches the health of your homelab services."
-            knob="Lab provider not configured — set the lab command-line path (PW_LAB_CLI) in your server settings to enable this section."
-            status={status}
-          />
-        ) : (
-          <ErrorState
-            title="Lab"
-            headingLevel={1}
-            failed="the lab command-line could not be reached"
-            detail={state?.warnings?.[0] ?? null}
-            onRetry={() => {
-              void lab.refetch();
-              void health.refetch();
-            }}
-          />
-        )}
-      </div>
-    );
-  }
-
   const rows = stateData?.rows ?? [];
 
-  // An envelope that never carried rows (null data) is honest unknown,
-  // not a fabricated empty table: degrade to the EmptyState with the
-  // canonical unknown chip.
-  if (!stateData || !Array.isArray(stateData.rows)) {
-    return (
-      <div data-pw-lab="unknown">
-        <EmptyState
-          title="Lab"
-          headingLevel={1}
-          capability="Lab watches the health of your homelab services."
-          knob="Lab provider not configured — set the lab command-line path (PW_LAB_CLI) in your server settings to enable this section."
-          status="unknown"
-        />
-      </div>
-    );
-  }
+  const hasNativeData = nativeServices.length > 0;
+  const hasHomelabData = state?.ok && rows.length > 0;
 
   return (
-    <section aria-labelledby="lab-heading" data-pw-lab="table">
+    <div data-pw-lab="screen">
       <h1 id="lab-heading">Lab</h1>
 
-      {/* Level-1 glance: one quiet line; the counts are the packet's own. */}
-      <p>
-        {healthCounts && typeof healthCounts.total === "number"
-          ? `${healthCounts.total} services checked` +
-            (healthCounts.unhealthy || healthCounts.restarting
-              ? ` — ${healthCounts.unhealthy} unhealthy, ${healthCounts.restarting} restarting`
-              : " — all reported healthy")
-          : "Operator rows from your homelab; evidence freshness is enforced upstream."}
-      </p>
+      {/* Native Lab — service inventory + health */}
+      <section aria-label="Service inventory" data-pw-lab="native-inventory">
+        <h2>Services</h2>
+        {nativeInventory.data?.ok ? (
+          <>
+            <p>
+              {healthSummary
+                ? `${healthSummary.total} service${healthSummary.total === 1 ? "" : "s"} — ${healthSummary.healthy} healthy, ${healthSummary.unhealthy} unhealthy, ${healthSummary.unknown} unknown`
+                : `${nativeServices.length} service${nativeServices.length === 1 ? "" : "s"} in inventory`}
+            </p>
+            {nativeServices.length > 0 ? (
+              <table data-pw-lab-table="native-services">
+                <caption className="sr-only">Native Lab service inventory</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Service</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nativeServices.map((s) => (
+                    <tr key={s.name}>
+                      <th scope="row">{s.name}</th>
+                      <td>{s.type}</td>
+                      <td>
+                        <StatusChip status={asCanonicalStatus(s.status)} size="sm" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No services configured yet. Add services to your lab inventory to monitor them.</p>
+            )}
+          </>
+        ) : (
+          <p>Native Lab inventory unavailable.</p>
+        )}
+      </section>
 
-      {rows.length === 0 ? (
-        <p data-pw-lab="empty-packet">The lab packet arrived but reported no operator rows.</p>
-      ) : (
-        <table data-pw-lab-table="operator-rows">
-          <caption className="sr-only">
-            Lab operator rows with per-row provenance
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Row</th>
-              <th scope="col">Items</th>
-              <th scope="col">State</th>
-              <th scope="col">Freshness</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const chipStatus: CanonicalStatus = r.unrecognized
-                ? "unknown"
-                : r.stale
-                  ? "stale"
-                  : "healthy";
-              return (
-                <tr key={r.row} data-pw-lab-row={r.row}>
-                  <th scope="row">{rowLabel(r.row)}</th>
-                  <td>{r.count}</td>
-                  <td>
-                    {r.unrecognized
-                      ? "unrecognized row (schema grew upstream)"
-                      : r.observations && r.observations.length > 0
-                        ? (r.observations[0].state ?? "unknown").replace(/_/g, " ")
-                        : "clear"}
-                  </td>
-                  <td>
-                    <StatusChip status={chipStatus} size="sm" />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* Native Lab — resources */}
+      {nativeResourcesData && (
+        <Disclosure summary="System resources" level={2}>
+          <section aria-label="System resources" data-pw-lab="native-resources">
+            <ul>
+              {nativeResourcesData.cpu_count && (
+                <li>CPU cores: {nativeResourcesData.cpu_count}</li>
+              )}
+              {nativeResourcesData.memory && (
+                <li>
+                  Memory: {nativeResourcesData.memory.available
+                    ? `${Math.round(nativeResourcesData.memory.available / 1024 / 1024 / 1024)} GB available`
+                    : "unknown"}
+                </li>
+              )}
+              {nativeResourcesData.disk && (
+                <li>
+                  Disk: {nativeResourcesData.disk.free
+                    ? `${Math.round(nativeResourcesData.disk.free / 1024 / 1024 / 1024)} GB free`
+                    : "unknown"}
+                </li>
+              )}
+            </ul>
+          </section>
+        </Disclosure>
       )}
 
-      {/* Per-row provenance: Level 4 (technical) progressive disclosure.
-          Glance truth stays above; the disclosure only adds provenance. */}
-      {rows
-        .filter((r) => (r.observations?.length ?? 0) > 0)
-        .map((r) => (
-          <TechnicalDetails
-            key={r.row}
-            provider="lab state (homelab Lab CLI)"
-            latency={observedAtLabel(
-              r.observations?.[0]?.observed_at
-            )}
-            raw={JSON.stringify(r.observations?.[0] ?? {})}
-          />
-        ))}
+      {/* Reconciler — desired state drift */}
+      {reconcilerData && reconcilerData.services.length > 0 && (
+        <Disclosure summary="Settings reconciliation" level={2}>
+          <section aria-label="Settings reconciliation" data-pw-lab="reconciler">
+            <p>{reconcilerData.services.length} service{reconcilerData.services.length === 1 ? "" : "s"} with desired state defined.</p>
+            <ul>
+              {reconcilerData.services.map((s: any) => (
+                <li key={s.name}>
+                  <StatusChip status="healthy" size="sm" /> {s.name}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </Disclosure>
+      )}
 
-      {/* Lab operations (capability wiring, 2026-09-12): the remaining
-          read-only lab routes (settings drift, deploy, secret audit,
-          resources) behind a Level-3 disclosure — the panel mounts only
-          after the disclosure first opens (zero fetches in the calm
-          default view, the same lazy pattern as the Journal audit
-          trail) and stays mounted for revisit. */}
-      <LabOperationsDisclosure />
-    </section>
-  );
-}
+      {/* Homelab enrichment — Lab CLI operator rows (when available) */}
+      {hasHomelabData && (
+        <Disclosure summary="Homelab operator data" level={2}>
+          <section aria-label="Homelab operator data" data-pw-lab="homelab">
+            <p>
+              Enriched from your homelab Lab CLI. This supplements the native inventory above.
+            </p>
+            <table data-pw-lab-table="operator-rows">
+              <caption className="sr-only">Homelab operator rows</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Row</th>
+                  <th scope="col">Items</th>
+                  <th scope="col">State</th>
+                  <th scope="col">Freshness</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const chipStatus: CanonicalStatus = r.unrecognized
+                    ? "unknown"
+                    : r.stale
+                      ? "stale"
+                      : "healthy";
+                  return (
+                    <tr key={r.row} data-pw-lab-row={r.row}>
+                      <th scope="row">{rowLabel(r.row)}</th>
+                      <td>{r.count}</td>
+                      <td>
+                        {r.unrecognized
+                          ? "unrecognized row"
+                          : r.observations && r.observations.length > 0
+                            ? (r.observations[0].state ?? "unknown").replace(/_/g, " ")
+                            : "clear"}
+                      </td>
+                      <td>
+                        <StatusChip status={chipStatus} size="sm" />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {rows
+              .filter((r) => (r.observations?.length ?? 0) > 0)
+              .map((r) => (
+                <TechnicalDetails
+                  key={r.row}
+                  provider="lab state (homelab Lab CLI)"
+                  latency={observedAtLabel(r.observations?.[0]?.observed_at)}
+                  raw={JSON.stringify(r.observations?.[0] ?? {})}
+                />
+              ))}
+            <LabOperationsPanel />
+          </section>
+        </Disclosure>
+      )}
 
-/** Lazy mount wrapper: renders nothing until the disclosure opens. */
-function LabOperationsDisclosure() {
-  const [mounted, setMounted] = React.useState(false);
-  return (
-    <Disclosure
-      summary="More lab observations"
-      level={3}
-      onOpenChange={(open) => {
-        if (open) setMounted(true);
-      }}
-    >
-      {mounted ? <LabOperationsPanel /> : null}
-    </Disclosure>
+      {/* Neither available */}
+      {!hasNativeData && !hasHomelabData && (
+        <EmptyState
+          title="Lab"
+          headingLevel={2}
+          capability="Lab monitors your services, health, and settings."
+          knob="No services configured. Add services to your lab inventory or connect a homelab Lab CLI."
+          status="not_configured"
+        />
+      )}
+    </div>
   );
 }
