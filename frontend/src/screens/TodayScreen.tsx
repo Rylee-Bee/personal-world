@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { saveApps, saveJournalEntry, ApiError, type JournalEntry, type ServiceApp, type LabEnvelope } from "../lib/api";
-import { useDaily, useApps, useLabState, useJournalPage, useJournalKey, useAgentSyncProjects } from "../lib/hooks";
+import { useDaily, useApps, useLabState, useJournalPage, useJournalKey, useAgentSyncProjects, usePrincipal } from "../lib/hooks";
 import { observationAge } from "../lib/observation-age";
 import { projectCategory, projectSentence, CATEGORY_ORDER, NEEDS_ATTENTION } from "../lib/project-status";
 import { useAnnounce } from "../primitives/LiveRegion";
@@ -11,18 +12,27 @@ import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 import { CompanionSlot } from "../primitives/CompanionSlot";
 import { ErrorState } from "../shell/ErrorState";
 import { Button } from "../components/ui/button";
-import { Loader2, AlertCircle, BookOpen, Plus } from "../lib/icons";
+import { Loader2, AlertCircle, BookOpen, Clock, Plus, Sparkles } from "../lib/icons";
 
 /**
- * TodayScreen (P1 T10, parity rows 1–3, FOUNDATION-SPEC §7):
+ * TodayScreen (P1 T10, parity rows 1–3, FOUNDATION-SPEC §7; Workshop v3
+ * warmth pass 2026-09-13, frame 17:481 "Today — Quiet Day" / WARM):
  *
  * Everything renders from real data via the typed client:
- * - health sentence from /api/status (capability counts, canonical words);
- * - attention list from /api/daily (daily.data.attention) — a quiet day
- *   renders the honest "Nothing needs your attention", never a green list;
+ * - greeting h1 from the principal display name when the world knows it
+ *   (never fabricated), time-of-day warmth, host-local date (row 15);
+ * - health sentence from /api/status (capability counts, canonical words)
+ *   in the design's Health summary chip (17:513);
+ * - the quiet-day state renders the 17:522 companion message —
+ *   "Nothing needs you right now." — with the canonical companion rig
+ *   via CompanionSlot (audit reservation mermaid-art) and a static warm
+ *   gradient; a day WITH attention renders the restrained list instead
+ *   (ATTENTIVE register, no alarm chrome);
  * - "what changed" from /api/daily actions — ABSENT entirely on a quiet
- *   day (no fabricated "Recent Changes", row 15);
- * - journal composer + recent entries from /api/journal?n=;
+ *   day (no fabricated "Recent Changes", row 15); the 17:533 panel
+ *   design applies only to real recorded actions;
+ * - journal composer + recent entries from /api/journal?n= in the
+ *   17:546 panel design;
  * - "More from your world": Services launcher (GET/PUT /api/apps with
  *   step-up via useStepUp), Subscription usage (lab packet rows),
  *   Capabilities table with per-row StatusChip + Disclosure provenance.
@@ -31,13 +41,13 @@ import { Loader2, AlertCircle, BookOpen, Plus } from "../lib/icons";
  * it. Dates render from the host (toLocaleDateString); no hard-coded
  * version/timezone/host strings anywhere (row 15).
  *
- * Composition (T14 warmth, DESIGN-HANDOFF N.7/N.8): no Card chrome —
- * sections are real <h2> headings (A11y §4.1) separated by quiet
- * --pw-color-border-subtle dividers, a time-of-day greeting with the
- * decorative 48px greeting-area companion (COMPANION_INTEGRATION
- * "Inline"), and the healthy/not-yet-connected capability majority
- * collapsed behind one honest count line (Finish Line: "healthy
- * systems stay quiet") — never removed from the DOM.
+ * Composition (Workshop v3 / WARM register): the two activity panels use
+ * the frame's surface-panel treatment with real h2 headings (A11y §4.1);
+ * quiet dividers separate unframed sections; the healthy/not-yet-connected
+ * capability majority stays collapsed behind one honest count line
+ * (Finish Line: "healthy systems stay quiet") — never removed from the
+ * DOM. No motion is added; the glow shadows are static (motion tokens
+ * default 0ms, prefers-reduced-motion unconditionally overrides).
  */
 
 /** "chat exchange with …" is humanized like the legacy journal (api.py
@@ -80,14 +90,21 @@ function asCanonicalStatus(status: string): CanonicalStatus | null {
     : null;
 }
 
-/** Time-of-day greeting (design/screens greeting-block pattern). No
- * name is fabricated: no personal-name field is sent to this screen,
- * so the greeting stays generic and honest. */
-function greetingForNow(now: Date): string {
+/** Time-of-day greeting (design/screens greeting-block pattern). The
+ * name comes from the principal the world actually knows
+ * (/api/identity/principal via usePrincipal); when it is unknown or
+ * still loading the greeting stays generic and honest — a name is
+ * never fabricated (frame 17:511 greets by name; repo truth decides
+ * whether it can). */
+function greetingForNow(now: Date, name: string | null): string {
   const hour = now.getHours();
-  if (hour >= 5 && hour < 12) return "Good morning.";
-  if (hour >= 12 && hour < 18) return "Good afternoon.";
-  return "Good evening.";
+  const timeOfDay =
+    hour >= 5 && hour < 12
+      ? "Good morning"
+      : hour >= 12 && hour < 18
+        ? "Good afternoon"
+        : "Good evening";
+  return name ? `${timeOfDay}, ${name}.` : `${timeOfDay}.`;
 }
 
 function localIsoDate(now: Date): string {
@@ -95,26 +112,29 @@ function localIsoDate(now: Date): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-/** The greeting area: warm greeting + decorative 48px companion
- * (COMPANION_INTEGRATION "Inline" — aria-hidden artwork, never a
- * second trigger), the h1, and the host-local date (no hard-coded
- * locale/timezone, same toLocale* pattern as eventTime). */
+/** The greeting area (frame 17:509–17:512): the greeting IS the page
+ * h1 (Young Serif, accent teal, 40px, with the aria-hidden ✦), the
+ * host-local date in the rose accent (17:512), and the decorative
+ * greeting companion beside it — aria-hidden artwork, never a second
+ * trigger, absent entirely when the companion pref is off. */
 function TodayHeading() {
   const now = new Date();
+  const principal = usePrincipal();
+  const name =
+    principal.data && !principal.isError
+      ? String(principal.data.display_name || "").trim() || null
+      : null;
   return (
     <div className="space-y-2">
-      <p className="flex items-center gap-[var(--pw-spacing-loose)] text-lg text-[var(--pw-color-text-secondary)]">
-        <CompanionSlot size="inline" />
-        {greetingForNow(now)}
-      </p>
       <h1
         id="today-health-heading"
-        className="text-3xl font-bold"
-        style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+        className="text-[40px] leading-[1.15]"
+        style={{ fontFamily: "var(--pw-typography-font-expressive)", color: "var(--pw-color-accent-primary)" }}
       >
-        Today
+        {greetingForNow(now, name)}
+        <span aria-hidden="true"> ✦</span>
       </h1>
-      <p className="text-sm text-[var(--pw-color-text-muted)]">
+      <p className="text-base" style={{ color: "var(--pw-color-accent-secondary)" }}>
         <time dateTime={localIsoDate(now)}>
           {now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
         </time>
@@ -137,13 +157,19 @@ function TodayScreen() {
       {stepUp.prompt}
       {/* The shell owns the content measure (index.css .pw-main); this
           screen renders bare inside it — one width system per route
-          (T14 human gate 2). */}
+          (T14 human gate 2). The two activity panels form the frame's
+          side-by-side row (17:533) at the desktop bucket (≥900px,
+          RESPONSIVE_RULES) and stack below it; DOM order (changes,
+          journal) is the semantic source order (A11y §5.2) at every
+          width. */}
       <div className="space-y-6">
         <HealthSection daily={daily} />
         <AttentionSection daily={daily} />
         <ProjectsTodaySection />
-        <WhatChangedSection daily={daily} />
-        <JournalSection journal={journal} onSaved={() => { bumpJournal(); announce("Note saved to your journal.", { kind: "action_completed", key: "today-journal-note" }); }} />
+        <div className="grid gap-6 min-[900px]:grid-cols-2 min-[900px]:items-start">
+          <WhatChangedSection daily={daily} />
+          <JournalSection journal={journal} onSaved={() => { bumpJournal(); announce("Note saved to your journal.", { kind: "action_completed", key: "today-journal-note" }); }} />
+        </div>
         <MoreFromWorld daily={daily} apps={apps} lab={lab} stepUp={stepUp} announce={announce} />
       </div>
     </>
@@ -198,42 +224,141 @@ function HealthSection({ daily }: { daily: DailyState }) {
   const vacant = caps.filter(([, c]) => c.status === "not_configured").length;
 
   let sentence: string;
+  let wellbeing: string;
   if (caps.length === 0) {
     sentence = "Your world is ready. Nothing is connected yet.";
+    wellbeing = "Your world is ready.";
   } else if (vacant === caps.length) {
     // A fresh install where nothing is connected is a valid, non-error
     // state (NATIVE-BASELINE-AND-ENRICHMENT) — it is "ready", not "0
     // are healthy".
     sentence =
       "Your world is ready. Nothing is connected yet — capabilities will show up here as you add them.";
+    wellbeing = "Your world is ready.";
   } else if (actionable > 0) {
     sentence =
       `${actionable} ${actionable === 1 ? "thing needs" : "things need"} a look. ` +
       `${healthy} ${healthy === 1 ? "capability is" : "capabilities are"} healthy.`;
+    wellbeing = `${actionable} ${actionable === 1 ? "thing needs" : "things need"} a look.`;
   } else if (uncertain > 0) {
     sentence =
       `Nothing urgent, but ${uncertain} ` +
       `${uncertain === 1 ? "capability has" : "capabilities have"} not been checked yet. ` +
       `${healthy} ${healthy === 1 ? "is" : "are"} healthy.`;
+    wellbeing = "Your world is mostly quiet.";
   } else {
     sentence =
       `Nothing urgent. ${healthy} ${healthy === 1 ? "capability is" : "capabilities are"} healthy` +
       (vacant > 0 ? `, and ${vacant} are waiting until you need them.` : ".");
+    wellbeing = "Your world is running well.";
+  }
+
+  const detailBits: string[] = [];
+  if (healthy > 0) {
+    detailBits.push(
+      `${healthy} connected ${healthy === 1 ? "capability" : "capabilities"} healthy`
+    );
+  }
+  detailBits.push(`${actionable} attention`);
+  if (vacant > 0) {
+    detailBits.push(`${vacant} not configured`);
   }
 
   return (
     <section aria-labelledby="today-health-heading" className="space-y-3">
-      <TodayHeading />
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <TodayHeading />
+        <div
+          data-pw-today-health-chip
+          className="rounded-3xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-[22px] py-[18px]"
+        >
+          <div className="flex items-center gap-[10px]">
+            <Sparkles size={16} aria-hidden={true} className="shrink-0 text-[var(--pw-color-accent-primary)]" />
+            <p
+              className="text-lg"
+              style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+            >
+              {wellbeing}
+            </p>
+          </div>
+          <p className="mt-2 text-[13px] text-[var(--pw-color-text-secondary)]">
+            {detailBits.join("  ·  ")}
+          </p>
+        </div>
+      </div>
       <p className="text-lg text-[var(--pw-color-text-primary)]">{sentence}</p>
     </section>
   );
 }
 
-// ── Attention (/api/daily attention) ──
+// ── Attention (/api/daily attention) — quiet state = companion message ──
+
+/** The quiet-day block (frame 17:522): a static warm gradient panel —
+ * teal edge fading through rose into the canvas — carrying the frame's
+ * exact message and the canonical companion rig (audit reservation
+ * mermaid-art: the design's illustrated Mermaid normalizes to the
+ * repository artwork via CompanionSlot; artwork is aria-hidden and
+ * absent entirely when the companion pref is off, A11y §7.4). The
+ * frame's settle gesture (17:583) sits beneath the presence — the
+ * world settling, decoration only. No motion, no glow animation —
+ * stillness is the design. */
+function QuietDayMessage() {
+  return (
+    <div
+      data-pw-today-quiet
+      className="relative flex flex-col items-start gap-6 overflow-hidden rounded-3xl px-[38px] py-[30px] sm:min-h-[240px] sm:flex-row sm:items-center"
+      style={{
+        backgroundImage: "var(--pw-color-warmth-quiet-gradient)",
+        boxShadow: "var(--pw-color-warmth-quiet-glow)",
+      }}
+    >
+      <div className="shrink-0 self-center">
+        <CompanionSlot size="empty" />
+      </div>
+      {/* The frame's settle gesture (17:583) sits beneath the presence,
+          clipped by the panel's bottom edge exactly as exported. With
+          the canonical 64px rig (vs the frame's 150px illustration) it
+          centers under the artwork column. */}
+      <img
+        src="/today/settle-gesture.svg"
+        alt=""
+        aria-hidden="true"
+        width={90}
+        height={29}
+        className="pointer-events-none absolute bottom-[-6px] left-[-16px] hidden sm:block"
+      />
+      <div className="space-y-[13px]">
+        <p
+          className="text-[29px] leading-[1.2] text-[var(--pw-color-text-primary)]"
+          style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+        >
+          Nothing needs you right now.
+        </p>
+        <p className="max-w-[690px] text-base leading-[1.6] text-[var(--pw-color-text-secondary)]">
+          Your world is running on its own. You can check on it anytime.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function AttentionSection({ daily }: { daily: DailyState }) {
   if (daily.isLoading || daily.isError || !daily.data?.ok) return null;
   const items = daily.data.data?.attention ?? [];
+  if (items.length === 0) {
+    // The quiet state IS the design's centerpiece (17:522): the world
+    // says plainly that nothing is needed. No heading, no icon, no
+    // invented tasks — quiet is a feature, and the section keeps a
+    // labeled region for structure without shouting.
+    return (
+      <section
+        aria-label="Your world today"
+        className="pt-[var(--pw-spacing-section)]"
+      >
+        <QuietDayMessage />
+      </section>
+    );
+  }
   return (
     <section
       aria-labelledby="today-attention-heading"
@@ -247,19 +372,13 @@ function AttentionSection({ daily }: { daily: DailyState }) {
         <AlertCircle size={18} aria-hidden={true} />
         Attention
       </h2>
-      {items.length === 0 ? (
-        <p className="text-[var(--pw-color-text-secondary)]">
-          Nothing needs your attention.
-        </p>
-      ) : (
-        <ul className="space-y-2" role="list">
-          {items.slice(0, 5).map((item, i) => (
-            <li key={`${i}-${item}`} className="text-[var(--pw-color-text-primary)]">
-              {humanizeAttention(item)}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="space-y-2" role="list">
+        {items.slice(0, 5).map((item, i) => (
+          <li key={`${i}-${item}`} className="text-[var(--pw-color-text-primary)]">
+            {humanizeAttention(item)}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -390,38 +509,96 @@ function ProjectsTodaySection() {
   );
 }
 
+// ── Activity panels (frames 17:533 / 17:546) ──
+
+/** Shared panel treatment for real activity: surface-panel box with the
+ * frame's radius/padding and a static resting shadow. The design's
+ * per-entry tints in the frame have no token equivalent —
+ * --pw-color-surface-elevated is the canonical nearest (mapping ledger
+ * #4); ad-hoc hexes never enter components. */
+function ActivityPanel({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-3xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] p-[28px] ${className}`}
+      style={{ boxShadow: "var(--pw-color-warmth-panel-shadow)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Panel section title (17:535): canonical icon + Young Serif 24px. */
+function PanelTitle({
+  id,
+  icon,
+  children,
+}: {
+  id: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <h2
+      id={id}
+      className="flex items-center gap-[10px] text-2xl"
+      style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+    >
+      {icon}
+      {children}
+    </h2>
+  );
+}
+
 // ── What changed (/api/daily actions; ABSENT on a quiet day) ──
 
 function WhatChangedSection({ daily }: { daily: DailyState }) {
   const changed = daily.data?.actions ?? [];
   const digestOk = daily.data?.ok === true;
   if (!digestOk || changed.length === 0) {
-    // A quiet day shows NO "what changed" list — parity row 1: no
-    // fabricated content, the section simply does not exist.
+    // A quiet day shows NO "what changed" list — parity row 15: no
+    // fabricated content, the section simply does not exist. The frame
+    // (17:533) depicts a day with recorded actions; the panel design
+    // applies only to real ones (behavior outranks literal visuals).
     return null;
   }
   return (
     <section
       aria-labelledby="today-changes-heading"
-      className="space-y-3 border-t border-[var(--pw-color-border-subtle)] pt-[var(--pw-spacing-section)]"
+      className="h-full pt-0"
     >
-      <div className="space-y-1">
-        <h2
-          id="today-changes-heading"
-          className="text-lg font-semibold"
-          style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-        >
-          What changed
-        </h2>
-        <p className="text-sm text-[var(--pw-color-text-muted)]">Recorded by your world today</p>
-      </div>
-      <ul className="space-y-2" role="list">
-        {changed.slice(0, 5).map((item, i) => (
-          <li key={`${i}-${item}`} className="text-[var(--pw-color-text-primary)]">
-            {humanizeWhatChanged(item)}
-          </li>
-        ))}
-      </ul>
+      <ActivityPanel className="h-full">
+        <div className="space-y-4">
+          <PanelTitle
+            id="today-changes-heading"
+            icon={<Clock size={20} aria-hidden={true} className="text-[var(--pw-color-accent-primary)]" />}
+          >
+            Recent Changes
+          </PanelTitle>
+          <ul className="space-y-[2px]" role="list">
+            {changed.slice(0, 5).map((item, i) => (
+              <li
+                key={`${i}-${item}`}
+                className="flex items-center gap-[14px] border-b border-[var(--pw-color-border-subtle)] py-[18px] text-[15px] text-[var(--pw-color-text-primary)] last:border-b-0"
+              >
+                <span
+                  aria-hidden="true"
+                  className="size-[9px] shrink-0 rounded-full bg-[var(--pw-color-accent-primary)] opacity-70"
+                />
+                {humanizeWhatChanged(item)}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-[var(--pw-color-text-secondary)]">
+            The machinery is humming quietly beneath the surface.
+          </p>
+        </div>
+      </ActivityPanel>
     </section>
   );
 }
@@ -481,76 +658,91 @@ function JournalSection({
   return (
     <section
       aria-labelledby="today-journal-heading"
-      className="space-y-3 border-t border-[var(--pw-color-border-subtle)] pt-[var(--pw-spacing-section)]"
+      className="h-full pt-0"
     >
-      <div className="space-y-1">
-        <h2
-          id="today-journal-heading"
-          className="flex items-center gap-2 text-lg font-semibold"
-          style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-        >
-          <BookOpen size={18} aria-hidden={true} />
-          Your journal
-        </h2>
-        <p className="text-sm text-[var(--pw-color-text-muted)]">Leave yourself a note about today.</p>
-      </div>
-      <label htmlFor="today-journal-note" className="sr-only">
-        Journal note
-      </label>
-      <textarea
-        id="today-journal-note"
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="What happened? What did you notice?"
-        rows={3}
-        maxLength={2000}
-        className="w-full resize-none rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] p-3 text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
-      />
-      <div className="flex items-center justify-between gap-3">
-        <Button type="button" onClick={() => void save()} disabled={!note.trim() || saving}>
-          Save entry
-        </Button>
-        <span className="text-sm text-[var(--pw-color-text-muted)]" role="status">
-          {error ?? (saving ? "Saving…" : "")}
-        </span>
-      </div>
+      <ActivityPanel className="h-full">
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <PanelTitle
+              id="today-journal-heading"
+              icon={<BookOpen size={20} aria-hidden={true} className="text-[var(--pw-color-accent-primary)]" />}
+            >
+              Recent Journal
+            </PanelTitle>
+            <p className="text-sm text-[var(--pw-color-text-muted)]">
+              Leave yourself a note about today.
+            </p>
+          </div>
+          <label htmlFor="today-journal-note" className="sr-only">
+            Journal note
+          </label>
+          <textarea
+            id="today-journal-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="What happened? What did you notice?"
+            rows={3}
+            maxLength={2000}
+            className="w-full resize-none rounded-2xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-canvas)] p-3 text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
+          />
+          <div className="flex items-center justify-between gap-3">
+            <Button type="button" onClick={() => void save()} disabled={!note.trim() || saving}>
+              Save entry
+            </Button>
+            <span className="text-sm text-[var(--pw-color-text-muted)]" role="status">
+              {error ?? (saving ? "Saving…" : "")}
+            </span>
+          </div>
 
-      <h2
-        className="text-base font-semibold"
-        style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-      >
-        Recent entries
-      </h2>
-      {journal.isLoading ? (
-        <p className="flex items-center gap-2 text-[var(--pw-color-text-muted)]">
-          <Loader2 size={16} aria-hidden={true} className="loader-static" />
-          Opening your journal…
-        </p>
-      ) : journal.isError ? (
-        <p className="text-[var(--pw-color-text-primary)]">
-          Your journal could not be opened just now. Your note box is unaffected.
-        </p>
-      ) : recent.length === 0 ? (
-        <p className="text-[var(--pw-color-text-secondary)]">
-          No journal entries yet. This is a gentle place to begin.
-        </p>
-      ) : (
-        <ul className="space-y-2" role="list" aria-label="Recent entries">
-          {recent.map((entry, i) => (
-            <li key={`${entry.ts}-${i}`} className="flex items-baseline gap-2">
-              <time dateTime={entry.ts} className="shrink-0 text-sm text-[var(--pw-color-text-muted)]">
-                {eventTime(entry.ts)}
-              </time>
-              <span className="text-[var(--pw-color-text-primary)]">{eventSummary(entry)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="mt-3">
-        <Link to="/journal" className="pw-nav-link inline-flex">
-          View all in Journal
-        </Link>
-      </p>
+          {journal.isLoading ? (
+            <p className="flex items-center gap-2 text-[var(--pw-color-text-muted)]">
+              <Loader2 size={16} aria-hidden={true} className="loader-static" />
+              Opening your journal…
+            </p>
+          ) : journal.isError ? (
+            <p className="text-[var(--pw-color-text-primary)]">
+              Your journal could not be opened just now. Your note box is unaffected.
+            </p>
+          ) : recent.length === 0 ? (
+            <p className="text-[var(--pw-color-text-secondary)]">
+              No journal entries yet. This is a gentle place to begin.
+            </p>
+          ) : (
+            <ul className="space-y-3" role="list" aria-label="Recent entries">
+              {recent.map((entry, i) => (
+                <li
+                  key={`${entry.ts}-${i}`}
+                  className="flex items-center gap-[14px] rounded-2xl bg-[var(--pw-color-surface-elevated)] px-[18px] py-[17px]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="size-[9px] shrink-0 rounded-full bg-[var(--pw-color-accent-secondary)] opacity-80"
+                  />
+                  <div className="min-w-0 space-y-[5px]">
+                    <p
+                      className="text-base text-[var(--pw-color-text-primary)]"
+                      style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+                    >
+                      {eventSummary(entry)}
+                    </p>
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--pw-color-accent-secondary)" }}
+                    >
+                      <time dateTime={entry.ts}>{eventTime(entry.ts)}</time>
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p>
+            <Link to="/journal" className="pw-nav-link inline-flex">
+              View all in Journal
+            </Link>
+          </p>
+        </div>
+      </ActivityPanel>
     </section>
   );
 }

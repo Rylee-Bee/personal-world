@@ -192,16 +192,27 @@ describe("TodayScreen (T10, parity rows 1–3)", () => {
     ).toBeTruthy();
   });
 
-  it("a quiet day shows NO what-changed list (no fabricated Recent Changes)", async () => {
+  it("a quiet day shows NO what-changed list (no fabricated Recent Changes) and renders the quiet companion message (frame 17:481)", async () => {
     await bootToday(defaultHandlers({ daily: DAILY_QUIET }));
     expect(screen.queryByText("What changed")).toBeNull();
     expect(screen.queryByText("Recent Changes")).toBeNull();
-    expect(screen.getByText("Nothing needs your attention.")).toBeTruthy();
+    // Workshop v3 (17:522): the quiet state's exact canonical line —
+    // the world carries the monitoring burden; no tasks are invented.
+    expect(screen.getByText("Nothing needs you right now.")).toBeTruthy();
+    expect(
+      screen.getByText("Your world is running on its own. You can check on it anytime.")
+    ).toBeTruthy();
+    // the companion is decorative artwork inside the quiet block,
+    // never a trigger (A11y §7.2) and removable via the pref (§7.4)
+    const quiet = document.querySelector("[data-pw-today-quiet]");
+    expect(quiet).toBeTruthy();
+    const slot = quiet?.querySelector("[data-pw-companion-slot]");
+    expect(slot?.querySelector("button")).toBeNull();
   });
 
-  it("a busy day renders the real what-changed items verbatim", async () => {
+  it("a busy day renders the real what-changed items verbatim in the Recent Changes panel (17:533)", async () => {
     await bootToday(defaultHandlers());
-    expect(screen.getByText("What changed")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Recent Changes", level: 2 })).toBeTruthy();
     expect(screen.getByText(/drift: focus/)).toBeTruthy();
   });
 
@@ -410,50 +421,44 @@ describe("TodayScreen (T10, parity rows 1–3)", () => {
     });
   });
 
-  it("greets with time-of-day warmth, host-local date, and a decorative greeting companion", async () => {
+  it("greets by name when the world knows it (never fabricated), with host-local date — frame 17:509", async () => {
     const { container } = await bootToday(defaultHandlers());
     const region = container.querySelector('section[aria-labelledby="today-health-heading"]');
     expect(region).toBeTruthy();
-    expect(screen.getByText(/^Good (morning|afternoon|evening)\.$/)).toBeTruthy();
-    expect(region?.querySelector("h1")?.textContent).toBe("Today");
+    // The greeting IS the h1 (17:511): time-of-day warmth; the name
+    // only ever comes from /api/identity/principal — the test env has
+    // no principal handler, so the honest fallback is the generic form.
+    const h1 = region?.querySelector("h1");
+    expect(h1?.textContent).toMatch(/^Good (morning|afternoon|evening)\.($| ✦$)/);
     const date = region?.querySelector("time");
     expect(date).toBeTruthy();
     expect(date?.getAttribute("dateTime")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect((date?.textContent ?? "").length).toBeGreaterThan(0);
-    // the greeting companion is decorative only (COMPANION_INTEGRATION
-    // "Inline" 48px greeting-area placement): aria-hidden artwork with
-    // alt="", never a second trigger/button.
-    const slot = region?.querySelector("[data-pw-companion-slot]");
-    expect(slot).toBeTruthy();
-    expect(slot?.querySelector("button")).toBeNull();
-    const artwork = slot?.querySelector("img");
-    expect(artwork?.getAttribute("alt")).toBe("");
-    expect(Number(artwork?.getAttribute("width"))).toBe(48);
-    expect(artwork?.closest("[aria-hidden='true']")).toBeTruthy();
   });
 
-  it("sections are real h2 headings with quiet dividers — no card chrome (A11y §4.1, DESIGN-HANDOFF N.7)", async () => {
+  it("sections are real h2 headings inside the v3 panels — no card chrome (A11y §4.1, frame 17:533/17:546)", async () => {
     const { container } = await bootToday(defaultHandlers());
     const h1s = container.querySelectorAll("h1");
     expect(h1s.length).toBe(1);
-    expect(h1s[0].textContent).toBe("Today");
-    for (const id of ["today-attention-heading", "today-changes-heading", "today-journal-heading"]) {
+    expect(h1s[0].textContent).toMatch(/^Good (morning|afternoon|evening)\./);
+    // the two activity panels carry real h2 headings (17:535/17:547)
+    for (const id of ["today-changes-heading", "today-journal-heading"]) {
       const h2 = container.querySelector(`h2#${id}`);
       expect(h2, `missing real h2#${id}`).toBeTruthy();
       expect(h2?.closest("section")?.getAttribute("aria-labelledby")).toBe(id);
     }
-    expect(screen.getByRole("heading", { level: 2, name: "Recent entries" })).toBeTruthy();
+    // the busy fixture's Attention section keeps its own labeled h2
+    expect(container.querySelector("h2#today-attention-heading")).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Recent entries" })).toBeTruthy();
     // the bordered/shadowed Card boxes are gone from Today
     // (transition-shadow is the Card chrome signature — buttons have
     // shadow-sm/hover:shadow-md but never transition-shadow)
     expect(container.querySelectorAll('[class*="transition-shadow"]').length).toBe(0);
-    // quiet dividers between the stacked sections
-    expect(container.querySelectorAll("section[class*='border-t']").length).toBeGreaterThanOrEqual(3);
   });
 
-  it("what-changed reads the 'available:' shape in the same humanized voice as Attention", async () => {
+  it("what-changed reads the 'available:' shape in the same humanized voice as Attention (region renamed to 17:533's Recent Changes)", async () => {
     await bootToday(defaultHandlers());
-    const changes = screen.getByRole("region", { name: "What changed" });
+    const changes = screen.getByRole("region", { name: "Recent Changes" });
     expect(
       within(changes).getByText(/Source control is ready for looking, not changing things\./)
     ).toBeTruthy();
@@ -594,7 +599,11 @@ describe("TodayScreen (agent-sync project status)", () => {
       },
     }));
     expect(screen.getByText(/1 has local work/)).toBeTruthy();
-    expect(screen.queryByText(/attention/)).toBeNull();
+    // Project rows carry no attention vocabulary — scoped to the
+    // Projects section (the v3 health chip's "attention" count label
+    // is a count, not project alarm vocabulary).
+    const projects = screen.getByRole("region", { name: /Projects/ });
+    expect(projects.textContent).not.toMatch(/attention/);
     expect(screen.queryByText(/diverged/)).toBeNull();
   });
 

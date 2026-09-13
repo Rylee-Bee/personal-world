@@ -192,6 +192,18 @@ class TestStaticRoutesStillWin:
         r = client.get("/icons/sprite.svg")
         assert r.status_code == 200
 
+    def test_today_art_allowlisted(self, tmp_path, monkeypatch, fake_dist):
+        client, _ = _react(tmp_path, monkeypatch, fake_dist)
+        for name in ("settle-gesture", "waves-ladder"):
+            r = client.get(f"/today/{name}.svg")
+            assert r.status_code == 200, name
+            assert r.headers["content-type"] == "image/svg+xml"
+
+    def test_today_art_unknown_is_404(self, tmp_path, monkeypatch, fake_dist):
+        client, _ = _react(tmp_path, monkeypatch, fake_dist)
+        r = client.get("/today/not-in-allowlist.svg")
+        assert r.status_code == 404
+
 
 class TestTraversal:
     def test_dotdot_path_cannot_escape_dist(self, tmp_path, monkeypatch, fake_dist):
