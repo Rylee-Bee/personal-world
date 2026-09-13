@@ -27,22 +27,18 @@ by the current finish line:
   convergence is complete (16/16 canonical frames identified in
   [`.project/design/WORKSHOP-V3-MANIFEST.yaml`](.project/design/WORKSHOP-V3-MANIFEST.yaml),
   philosophy "The world knows how loudly to exist" (17:8873), audit
-  18:2 — all revised frames READY FOR IMPLEMENTATION), and **6/16
-  frames are implemented**: Today — Quiet Day (17:481) at `874fb69`,
-  Question (17:6245) at `e682654`, Mobile Today (17:1929) at
-  `ed9b3b2`, Vault (17:1014) at `eee1ccf`, Login (17:1681) at
-  `c14c093`, Chat (17:2536) at `7e5982c`. D0–D3 pass on all six;
-  D4 human review pending as a bundled owner review. Remaining: 10
-  canonical surfaces — Projects 17:2752, Setup 17:3039, Notifications
-  17:6369, Interests 17:1515, Bad Day 17:2117, Journal Writing
-  17:2268, Settings 17:3762, Companion Popover 17:4565, World 17:5485,
-  Journal Reading 17:5763 — via the
-  [personal-world-implement-figma](.agents/skills/personal-world-implement-figma/SKILL.md)
-  workflow. Tracked in
+  18:2 — all revised frames READY FOR IMPLEMENTATION), and **16/16
+  frames are implemented**: Today — Quiet Day (17:481), Question
+  (17:6245), Mobile Today (17:1929), Vault (17:1014), Login (17:1681),
+  Chat (17:2536), Projects (17:2752), Setup (17:3039), Notifications
+  (17:6369), Interests (17:1515), Bad Day (17:2117), Journal Writing
+  (17:2268), Settings (17:3762), Companion Popover (17:4565), World
+  (17:5485), Journal Reading (17:5763). D0–D3 pass on all sixteen;
+  D4 human review pending as a bundled owner review. Tracked in
   [issue #37](https://github.com/Rylee-Bee/personal-world/issues/37).
   Owner reservations remain open and accumulate evidence: companion
-  presence scale (six canonical frames now rely on ≤64px tiers),
-  waves-ladder/waterline placement, and the mobile-nav item count.
+  presence scale, waves-ladder/waterline placement, mobile-nav item
+  count, chat send button sizing, login key icon.
 
 - **Secret vault.** DONE (2026-09-09): Fernet-encrypted file vault
   (`/data/vault.enc`, PBKDF2-600k) behind real unlock/lock/set/
