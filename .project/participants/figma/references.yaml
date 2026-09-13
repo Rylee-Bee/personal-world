@@ -496,3 +496,158 @@ references:
       source: design/exports/0.1/
       observed_at: 2026-09-11
       method: png-re-export
+  # --- Workshop v3 evidence file (2026-09-13 MCP retrieval) ---
+  - id: figma-file-workshop-v3
+    type: file
+    external_id: Wbg1rdt9fVCjWAXEKI1pTc
+    description: Workshop v3 evidence file — warmth explorations, canonical frames, philosophy, convergence audit (product design file remains figma-file-personal-world)
+    status: canonical
+    provenance:
+      participant: figma
+      source: Figma cloud file (desktop Dev Mode MCP retrieval)
+      observed_at: 2026-09-13
+      method: figma-mcp-get-metadata-design-context-screenshot
+  - id: workshop-v3-page
+    type: document
+    external_id: "0:1"
+    description: Workshop page — single page containing all v3 explorations and artifacts
+    status: canonical
+    provenance:
+      participant: figma
+      source: Figma file Wbg1rdt9fVCjWAXEKI1pTc
+      observed_at: 2026-09-13
+      method: figma-mcp-get-metadata
+  - id: workshop-v3-philosophy
+    type: frame
+    external_id: "17:8873"
+    description: Project Worlds design philosophy — "The world knows how loudly to exist." + core principles + emotional volume scale + companion behavior + lore
+    status: canonical
+    provenance:
+      participant: figma
+      source: Figma file Wbg1rdt9fVCjWAXEKI1pTc
+      observed_at: 2026-09-13
+      method: figma-mcp-get-design-context
+  - id: workshop-v3-audit
+    type: frame
+    external_id: "18:2"
+    description: Convergence Audit & Final Classification — all 8 revised frames CANONICAL REFERENCE — READY FOR IMPLEMENTATION; 8 reservations verbatim
+    status: canonical
+    provenance:
+      participant: figma
+      source: Figma file Wbg1rdt9fVCjWAXEKI1pTc
+      observed_at: 2026-09-13
+      method: figma-mcp-get-design-context
+  - id: workshop-v3-classification
+    type: frame
+    external_id: "17:9864"
+    description: Warmth exploration classification — 16/16 converged; originally-canonical + revised sets; common revisions
+    status: canonical
+    provenance:
+      participant: figma
+      source: Figma file Wbg1rdt9fVCjWAXEKI1pTc
+      observed_at: 2026-09-13
+      method: figma-mcp-get-design-context
+
+  # --- Workshop v3 canonical frames: 8 audited revised frames ---
+  - id: workshop-v3-today-quiet-day
+    type: frame
+    external_id: "17:481"
+    description: Today — Quiet Day (1440x1000, WARM) — IMPLEMENTATION TARGET #1; NOT 13:14 (superseded iteration), NOT V0.1 3:722
+    status: canonical
+    provenance:
+      participant: figma
+      source: Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1
+      observed_at: 2026-09-13
+      method: figma-mcp-get-design-context-screenshot
+  - id: workshop-v3-vault
+    type: frame
+    external_id: "17:1014"
+    description: Vault screen (1440x1000, WARM) — canonical after revision
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-login
+    type: frame
+    external_id: "17:1681"
+    description: Project Worlds login (900x700, GENEROUS) — canonical after revision
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-mobile-today
+    type: frame
+    external_id: "17:1929"
+    description: Today mobile (390x844, WARM) — responsive interpretation of Today — Quiet Day 17:481; bottom nav
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-design-context }
+  - id: workshop-v3-chat
+    type: frame
+    external_id: "17:2536"
+    description: Companion present chat (1440x1000, COMPANION PRESENT) — canonical after revision; chat interactions remain exploratory per reservation
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-projects
+    type: frame
+    external_id: "17:2752"
+    description: Projects workspace (1440x1000, CAPABLE) — canonical after revision
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-setup
+    type: frame
+    external_id: "17:3039"
+    description: Setup wizard — first encounter (1440x900, GENEROUS) — canonical after revision
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-notifications
+    type: frame
+    external_id: "17:6369"
+    description: How the World Tells You Things (1440x700, CAPABLE) — notification tier study; canonical after revision
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+
+  # --- Workshop v3 originally-canonical frames (converged, not in revision pass) ---
+  - id: workshop-v3-interests-empty
+    type: frame
+    external_id: "17:1515"
+    description: Interests unexplored room (GENEROUS) — originally canonical
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-bad-day
+    type: frame
+    external_id: "17:2117"
+    description: Today — Bad Day (1440x1100, ATTENTIVE) — originally canonical
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-journal-writing
+    type: frame
+    external_id: "17:2268"
+    description: Journal writing (1440x1000, QUIET) — originally canonical
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-settings
+    type: frame
+    external_id: "17:3762"
+    description: Project Worlds settings (1440x1100, PRACTICAL) — originally canonical
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-companion-popover
+    type: frame
+    external_id: "17:4565"
+    description: Companion progressive disclosure (1440x800, QUIET-AMBIENT-PRESENT) — originally canonical
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-world-overview
+    type: frame
+    external_id: "17:5485"
+    description: Your World (1440x1000, PRACTICAL) — originally canonical
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-journal-reading
+    type: frame
+    external_id: "17:5763"
+    description: Journal reading (1440x1000, AMBIENT warm nostalgic) — originally canonical
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-metadata }
+  - id: workshop-v3-question
+    type: frame
+    external_id: "17:6245"
+    description: Today — Question (1440x1000, AMBIENT to ATTENTIVE curious) — originally canonical; "Something caught my attention" uncertainty pattern
+    status: canonical
+    provenance: { participant: figma, source: "Figma file Wbg1rdt9fVCjWAXEKI1pTc, page 0:1", observed_at: 2026-09-13, method: figma-mcp-get-design-context }

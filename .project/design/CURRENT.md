@@ -6,24 +6,45 @@ unaffected. See `.project/CURRENT.md` "Identity pass" for the full
 classification.)*
 
 Answers current design questions from repository evidence, verified
-2026-09-12 by the integration session. **This file routes; canonical files
-govern.** When this file and a canonical file disagree, the canonical file
-wins. `UNKNOWN` is an honest answer, not a gap to fill.
+2026-09-12 by the integration session, and **re-verified + extended
+2026-09-13 by the Figma-bridge bootstrap session** (Workshop v3 authority
+below). **This file routes; canonical files govern.** When this file and a
+canonical file disagree, the canonical file wins. `UNKNOWN` is an honest
+answer, not a gap to fill.
 
 Evidence basis: git history at `8963dda`, README "What works today",
 CHANGELOG (Unreleased + 2026-09-07..09), docs/DESIGN-HANDOFF.md
 (V0.1 baseline note), docs/accessibility/* (canonical),
 design/handoff/FRAME_INDEX.md (archived), design/tokens.json,
-frontend/ sources, live `npm run tokens:check` (passing).
+frontend/ sources, live `npm run tokens:check` (passing); Workshop v3
+evidence retrieved 2026-09-13 from the Figma desktop Dev Mode MCP server
+(see WORKSHOP V3 below and
+[WORKSHOP-V3-MANIFEST.yaml](WORKSHOP-V3-MANIFEST.yaml)).
 
 ## CURRENT DESIGN AUTHORITY
 
 - **Canonical design truth:** `design/tokens.json` (repo-owned, semantic,
   implementation-neutral) + `docs/accessibility/` (the floor).
-- **Design-stage visual source:** Figma file `VATVojyJZT9HKx0CrDS0yr` for
-  explicitly approved frames (see APPROVED FRAMES below — approval means
-  the archived V0.1 handoff status **plus** not being superseded by later
-  repo work).
+- **Current implementation design authority: Workshop v3 warmth frames**
+  (approved 2026-09-12/13; convergence audit passed; all 16 explorations
+  viable, 8 revised frames audited). Machine-readable frame inventory with
+  exact node IDs: [`.project/design/WORKSHOP-V3-MANIFEST.yaml`](WORKSHOP-V3-MANIFEST.yaml).
+  **Today — Quiet Day is implementation target #1** — node `17:481` in
+  Figma file `Wbg1rdt9fVCjWAXEKI1pTc` ("Workshop v3 evidence file"),
+  NOT the older `13:14` same-name iteration and NOT the V0.1 Today-empty
+  frame `3:722`. `personal-world-implement-figma` retrieves design context
+  + screenshot per its workflow.
+- **V0.1 frames are historical provenance, not current implementation
+  targets** (see APPROVED FRAMES below — kept for provenance; superseded
+  for implementation by Workshop v3 where the same route exists).
+- **Design-stage visual sources:** Figma file `VATVojyJZT9HKx0CrDS0yr`
+  (product design file — DO NOT MODIFY per the v3 audit's canonical
+  authorities) for V0.1-era frames; Figma file `Wbg1rdt9fVCjWAXEKI1pTc`
+  for Workshop v3 evidence (frames, philosophy, audit, lore registry).
+  MCP access: Figma desktop Dev Mode MCP server (localhost:3845 on the
+  operator's Figma machine; reach via the operator's tunnel — see
+  "Figma bridge" in `.project/CURRENT.md`). The remote MCP
+  (mcp.figma.com) rejects non-catalog clients, including opencode.
 - **`docs/DESIGN-HANDOFF.md`** is the canonical *V0.1 baseline* reference;
   its dated inventories are historical (per its own 2026-09-10
   reconciliation note). The Finish Line document describes the target
@@ -59,10 +80,13 @@ From `docs/accessibility/RESPONSIVE_RULES.md` (canonical):
 Figma's designed 1440/900 frames map onto this implemented cascade; the
 implemented breakpoints govern.
 
-## APPROVED FRAMES (design-stage authority)
+## APPROVED FRAMES (V0.1 — historical provenance, superseded for implementation by Workshop v3 where the same route exists)
 
 From the archived frame index (`design/handoff/FRAME_INDEX.md`) — V0.1
-handoff status; treated as design-stage approval, not implementation status:
+handoff status; **historical provenance as of 2026-09-13**. For routes
+covered by Workshop v3 frames (Today, Vault, Login, Setup, Projects,
+Chat, Notifications, Journal, Settings, World, Interests), the v3 frame in
+WORKSHOP-V3-MANIFEST.yaml is the current implementation target instead.
 
 - Handoff row: `16:157` (index), `16:5` (accessibility contract visual).
 - Core screens: `4:5` Today Hybrid Desktop 1440, `6:4` World Capability
@@ -89,8 +113,51 @@ closest authoritative detail frames are `7:4` and `7:192` (Feature Detail
 1/2). If `197:902` exists in the live Figma file, it is not represented in
 repo evidence and carries no recorded approval.
 
+## WORKSHOP V3 (current implementation design authority)
+
+Retrieved 2026-09-13 from the Figma desktop Dev Mode MCP server, file
+`Wbg1rdt9fVCjWAXEKI1pTc`, single page "Workshop" (`0:1`). All values below
+were read from the Figma file; the full inventory with node URLs, audit
+notes, reservation attachments, and superseded-iteration mapping is
+[WORKSHOP-V3-MANIFEST.yaml](WORKSHOP-V3-MANIFEST.yaml).
+
+**16 warmth explorations, 16/16 converged** (classification map `17:9864`);
+**8 revised frames audited** across 7 dimensions (audit `18:2`) — all
+**CANONICAL REFERENCE — READY FOR IMPLEMENTATION**:
+
+- **Today — Quiet Day `17:481`** (1440×1000, WARM) — **IMPLEMENTATION
+  TARGET #1**. Mobile Today `17:1929` (390×844) is its responsive
+  interpretation (same quiet-day state, bottom nav).
+- **Vault `17:1014`**, **Login `17:1681`**, **Mobile Today `17:1929`**,
+  **Chat `17:2536`**, **Projects `17:2752`**, **Setup `17:3039`**,
+  **Notifications `17:6369`** (How the World Tells You Things).
+- Originally-canonical (converged, not in the revision pass): Empty State —
+  Interests `17:1515`, Bad Day `17:2117`, Journal Writing `17:2268`,
+  Settings `17:3762`, Companion Popover `17:4565`, World Overview `17:5485`,
+  Journal Reading `17:5763`, Question `17:6245`.
+
+**Canonical artifacts:** philosophy `17:8873` ("The world knows how loudly
+to exist."), audit `18:2`, classification `17:9864`, lore registry `17:8255`,
+design language `17:6852`, volume rules `17:7750` (GENEROUS → AMBIENT →
+PRACTICAL → ATTENTIVE → QUIET), convergence roadmap `17:10084`.
+
+**8 reservations** (normalization gaps, not blockers) with verbatim audit
+wording live in the manifest: mermaid-art → Direction A rig `67:2`;
+companion-art → canonical rigs `78:2`–`82:2`; mobile-nav item count;
+chat-wrapping artifact; chat-patterns exploratory; font (Workshop uses Inter;
+canonical is Young Serif + Instrument Sans); touch targets ≥44px; decoration
+Unicode/aria-hidden encoding.
+
+**Routes not in the revision pass:** Interests, Media, Lab, Journal detail,
+World, Settings — these retain the V0.1/existing implementation as their
+current reference until separately converged.
+
 ## EXPERIMENTAL / REFERENCE / SUPERSEDED
 
+- Superseded Workshop iterations (do not implement): `13:14`, `13:110`,
+  `13:315`, `13:410`, `13:184`, `13:658`, `16:3`, `16:2253`, `15:84`,
+  `15:404`, `16:469` — see `superseded_iterations` in the manifest for the
+  exact replacement node IDs.
 - Reference (not implementation targets): `3:1268` Design Direction,
   `6:230` Reference Studies.
 - Superseded (do not implement): `3:1438`, `7:565`, `9:5`, `14:1147`,
