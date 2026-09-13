@@ -90,6 +90,14 @@ function asCanonicalStatus(status: string): CanonicalStatus | null {
     : null;
 }
 
+// ── Phone composition (Workshop v3 frame 17:1929 "Today", 390×844 —
+//    the responsive interpretation of 17:481's quiet-day state) ──
+
+/** Phone heading scale: the frame's 28px greeting (17:1939) vs the
+ * desktop 40px (17:6279) — same h1, one semantic element, two bucket
+ * scales (A11y §5.3: CSS may change placement, never semantics). */
+const GREETING_DESKTOP_CLASS = "min-[600px]:text-[40px] text-[28px] min-[600px]:leading-[1.15] leading-[1.18]";
+
 /** Time-of-day greeting (design/screens greeting-block pattern). The
  * name comes from the principal the world actually knows
  * (/api/identity/principal via usePrincipal); when it is unknown or
@@ -128,7 +136,7 @@ function TodayHeading() {
     <div className="space-y-2">
       <h1
         id="today-health-heading"
-        className="text-[40px] leading-[1.15]"
+        className={GREETING_DESKTOP_CLASS}
         style={{ fontFamily: "var(--pw-typography-font-expressive)", color: "var(--pw-color-accent-primary)" }}
       >
         {greetingForNow(now, name)}
@@ -266,27 +274,31 @@ function HealthSection({ daily }: { daily: DailyState }) {
 
   return (
     <section aria-labelledby="today-health-heading" className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <TodayHeading />
-        <div
-          data-pw-today-health-chip
-          className="rounded-3xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-[22px] py-[18px]"
-        >
-          <div className="flex items-center gap-[10px]">
-            <Sparkles size={16} aria-hidden={true} className="shrink-0 text-[var(--pw-color-accent-primary)]" />
-            <p
-              className="text-lg"
-              style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-            >
-              {wellbeing}
+      {/* Phone form (17:1937): greeting + health chip live on the warm
+          fade band (index.css, ≤599px); desktop (17:481) keeps the
+          flat canvas. */}
+      <div className="pw-today-greeting-band space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <TodayHeading />
+          <div
+            data-pw-today-health-chip
+            className="rounded-2xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-3 py-2.5 sm:rounded-3xl sm:px-[22px] sm:py-[18px]"
+          >
+            <div className="flex items-center justify-between gap-[10px]">
+              <p className="text-[13px] text-[var(--pw-color-text-secondary)] sm:text-lg sm:text-[var(--pw-color-text-primary)]"
+                style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+              >
+                {wellbeing}
+              </p>
+              <Sparkles size={16} aria-hidden={true} className="shrink-0 text-[var(--pw-color-accent-primary)]" />
+            </div>
+            <p className="hidden text-[13px] text-[var(--pw-color-text-secondary)] min-[600px]:mt-2 min-[600px]:block">
+              {detailBits.join("  ·  ")}
             </p>
           </div>
-          <p className="mt-2 text-[13px] text-[var(--pw-color-text-secondary)]">
-            {detailBits.join("  ·  ")}
-          </p>
         </div>
+        <p className="text-lg text-[var(--pw-color-text-primary)]">{sentence}</p>
       </div>
-      <p className="text-lg text-[var(--pw-color-text-primary)]">{sentence}</p>
     </section>
   );
 }
@@ -306,13 +318,24 @@ function QuietDayMessage() {
   return (
     <div
       data-pw-today-quiet
-      className="relative flex flex-col items-start gap-6 overflow-hidden rounded-3xl px-[38px] py-[30px] sm:min-h-[240px] sm:flex-row sm:items-center"
+      className="relative flex flex-col items-start gap-4 overflow-hidden rounded-3xl px-[22px] py-[18px] sm:gap-6 sm:px-[38px] sm:py-[30px] sm:min-h-[240px] sm:flex-row sm:items-center"
       style={{
         backgroundImage: "var(--pw-color-warmth-quiet-gradient)",
         boxShadow: "var(--pw-color-warmth-quiet-glow)",
       }}
     >
-      <div className="shrink-0 self-center">
+      {/* Phone form (17:1940-42): a small avatar presence beside the
+          message, in the rose circle; desktop (17:522) keeps the full
+          64px Empty-State rig. Same decorative contract: aria-hidden,
+          removed by the companion-off pref (A11y §7.4). */}
+      <div
+        aria-hidden={true}
+        className="flex size-[28px] shrink-0 items-center justify-center rounded-full sm:hidden"
+        style={{ backgroundColor: "var(--pw-color-warmth-rose-tint)" }}
+      >
+        <CompanionSlot size="micro" />
+      </div>
+      <div className="hidden shrink-0 self-center sm:block">
         <CompanionSlot size="empty" />
       </div>
       {/* The frame's settle gesture (17:583) sits beneath the presence,
@@ -327,14 +350,14 @@ function QuietDayMessage() {
         height={29}
         className="pointer-events-none absolute bottom-[-6px] left-[-16px] hidden sm:block"
       />
-      <div className="space-y-[13px]">
+      <div className="space-y-[9px] sm:space-y-[13px]">
         <p
-          className="text-[29px] leading-[1.2] text-[var(--pw-color-text-primary)]"
+          className="text-[14px] leading-[1.45] text-[var(--pw-color-text-secondary)] italic sm:text-[29px] sm:leading-[1.2] sm:not-italic sm:text-[var(--pw-color-text-primary)]"
           style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
         >
           Nothing needs you right now.
         </p>
-        <p className="max-w-[690px] text-base leading-[1.6] text-[var(--pw-color-text-secondary)]">
+        <p className="max-w-[690px] text-sm leading-[1.5] text-[var(--pw-color-text-secondary)] sm:text-base sm:leading-[1.6]">
           Your world is running on its own. You can check on it anytime.
         </p>
       </div>
@@ -711,17 +734,24 @@ function WhatChangedSection({ daily }: { daily: DailyState }) {
           >
             Recent Changes
           </PanelTitle>
-          <ul className="space-y-[2px]" role="list">
+          <ul className="space-y-[2px] sm:space-y-[2px]" role="list">
             {changed.slice(0, 5).map((item, i) => (
               <li
                 key={`${i}-${item}`}
-                className="flex items-center gap-[14px] border-b border-[var(--pw-color-border-subtle)] py-[18px] text-[15px] text-[var(--pw-color-text-primary)] last:border-b-0"
+                className="flex items-start gap-[10px] border-b border-[var(--pw-color-border-subtle)] py-3 text-[13px] leading-[1.45] text-[var(--pw-color-text-secondary)] last:border-b-0 sm:items-center sm:gap-[14px] sm:py-[18px] sm:text-[15px] sm:text-[var(--pw-color-text-primary)]"
               >
+                {/* Phone form (17:1958): the dot becomes the frame's
+                    28px teal-tint icon frame; desktop keeps the dot. */}
                 <span
                   aria-hidden="true"
-                  className="size-[9px] shrink-0 rounded-full bg-[var(--pw-color-accent-primary)] opacity-70"
-                />
-                {humanizeWhatChanged(item)}
+                  className="flex size-[28px] shrink-0 items-center justify-center rounded-[10px] min-[600px]:size-[9px] min-[600px]:rounded-full"
+                  style={{
+                    backgroundColor: "var(--pw-color-warmth-teal-tint)",
+                  }}
+                >
+                  <Clock size={15} aria-hidden={true} className="text-[var(--pw-color-accent-primary)] min-[600px]:hidden" />
+                </span>
+                <span className="min-w-0 flex-1">{humanizeWhatChanged(item)}</span>
               </li>
             ))}
           </ul>
@@ -843,21 +873,25 @@ function JournalSection({
               {recent.map((entry, i) => (
                 <li
                   key={`${entry.ts}-${i}`}
-                  className="flex items-center gap-[14px] rounded-2xl bg-[var(--pw-color-surface-elevated)] px-[18px] py-[17px]"
+                  className="flex items-center gap-[14px] rounded-2xl bg-[var(--pw-color-surface-elevated)] px-[18px] py-[17px] max-[599px]:items-stretch max-[599px]:gap-0 max-[599px]:rounded-none max-[599px]:bg-transparent max-[599px]:px-0 max-[599px]:py-[7px]"
+                  style={{ borderLeft: "2px solid var(--pw-color-accent-secondary)" }}
                 >
+                  {/* Phone form (17:1972-76): rose left-border entries —
+                      expressive 14px summary, rose 12px time; desktop
+                      keeps the elevated chip + dot. */}
                   <span
                     aria-hidden="true"
-                    className="size-[9px] shrink-0 rounded-full bg-[var(--pw-color-accent-secondary)] opacity-80"
+                    className="size-[9px] shrink-0 rounded-full bg-[var(--pw-color-accent-secondary)] opacity-80 max-[599px]:hidden"
                   />
-                  <div className="min-w-0 space-y-[5px]">
+                  <div className="min-w-0 flex-1 space-y-[5px] max-[599px]:pl-3">
                     <p
-                      className="text-base text-[var(--pw-color-text-primary)]"
+                      className="text-base text-[var(--pw-color-text-primary)] max-[599px]:text-[14px]"
                       style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
                     >
                       {eventSummary(entry)}
                     </p>
                     <p
-                      className="text-xs"
+                      className="text-xs max-[599px]:text-[12px] max-[599px]:italic max-[599px]:text-[var(--pw-color-text-secondary)]"
                       style={{ color: "var(--pw-color-accent-secondary)" }}
                     >
                       <time dateTime={entry.ts}>{eventTime(entry.ts)}</time>
