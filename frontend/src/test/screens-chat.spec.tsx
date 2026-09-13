@@ -140,8 +140,9 @@ describe("ChatPanel (T12, parity row 7)", () => {
       fireEvent.submit(input.closest("form") as HTMLFormElement);
     });
 
-    // Thinking text is visible…
-    expect(screen.getByText("Checking your world…")).toBeTruthy();
+    // Thinking text is visible (frame 17:2617 wording — static
+    // status, stars aria-hidden)…
+    expect(screen.getByText(/Thinking/)).toBeTruthy();
     // …but the polite region has not announced it (no chatter).
     const region = container.querySelector("[role='status']") as HTMLElement;
     expect(region.textContent).toBe("");

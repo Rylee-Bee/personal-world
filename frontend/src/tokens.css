@@ -41,6 +41,7 @@
   --pw-color-warmth-login-field-bg: #0f0c17;
   --pw-color-warmth-login-line: rgba(114,177,177,0.29);
   --pw-color-warmth-halo-water: radial-gradient(circle, rgba(114,177,177,0.12) 0%, rgba(0,0,0,0) 65%);
+  --pw-color-warmth-chat-presence-glow: radial-gradient(ellipse, rgba(114,177,177,0.22) 0%, rgba(0,0,0,0) 70%);
 }
 
 [data-pw-theme="light"] {
