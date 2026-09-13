@@ -46,6 +46,11 @@ class Registry:
         self._contracts: dict[str, type[Contract]] = {}
         self._impls: dict[str, Contract] = {}
         self._health_checks: dict[str, Callable[[], bool]] = {}
+        #: Short-lived cache of the last health check result per provider,
+        #: populated by provider_for() and consumed by observe() to avoid
+        #: a redundant impl.observe() call when the health check already
+        #: failed.
+        self._health_cache: dict[str, bool] = {}
         #: capability keys whose native baseline ships with the core
         self.native_baselines: set[str] = set()
 
@@ -69,7 +74,11 @@ class Registry:
 
     def provider_for(self, capability: str) -> Provider | None:
         """First healthy provider for a capability, else the first
-        registered (marked degraded), else None."""
+        registered (marked degraded), else None.
+
+        Populates _health_cache so observe() can short-circuit when the
+        health check already proved the provider is unhealthy.
+        """
         candidates = [
             p for p in self._providers.values() if p.capability == capability
         ]
@@ -77,7 +86,15 @@ class Registry:
             return None
         for p in candidates:
             check = self._health_checks.get(p.name)
-            if check is None or check():
+            if check is None:
+                self._health_cache[p.name] = True
+                return p
+            try:
+                healthy = check()
+            except Exception:
+                healthy = False
+            self._health_cache[p.name] = healthy
+            if healthy:
                 return p
         return candidates[0]
 
@@ -92,6 +109,15 @@ class Registry:
             return fail(
                 Status.NOT_CONFIGURED.value,
                 warnings=[f"no provider for capability '{capability}'"],
+            )
+        # Short-circuit: if provider_for() already ran a health check
+        # and it failed, skip the redundant impl.observe() round-trip.
+        cached = self._health_cache.get(p.name)
+        if cached is False:
+            return Result(
+                ok=False,
+                status="unavailable",
+                warnings=[f"provider '{p.name}' health check failed"],
             )
         impl = self._impls.get(p.name)
         try:
