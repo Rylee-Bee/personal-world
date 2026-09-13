@@ -69,6 +69,11 @@ no longer uses.
    revision or retrieval date, viewport, state, and reference location.
    A verified export of the same frame/revision can supply the visual reference
    when screenshots fail; it does not replace structured design context.
+   **NOTE:** `get_design_context` requires the target frame to be selected/open
+   in Figma Dev Mode on the operator's machine. Unlike `get_metadata` and
+   `get_screenshot` (which accept `nodeId` without selection), design context
+   returns `"Nothing is selected"` if no frame is active. If this error occurs,
+   ask the operator to select the frame in Figma, then retry.
 3. For large or truncated responses, use `get_metadata` to identify child
    regions, then fetch each relevant child's context and screenshot while
    retaining the parent composition reference. Metadata alone is insufficient.
