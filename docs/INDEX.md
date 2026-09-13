@@ -39,6 +39,7 @@ open an issue.
 
 | Doc | Status | What it is |
 |---|---|---|
+| [Workshop v3 design authority](../.project/design/CURRENT.md) | Canonical current | The current implementation design authority: 16 canonical frames in `.project/design/WORKSHOP-V3-MANIFEST.yaml` (file `Wbg1rdt9fVCjWAXEKI1pTc`), the "The world knows how loudly to exist" principle, approvals, and reservations. Implementation workflow: [personal-world-implement-figma](../.agents/skills/personal-world-implement-figma/SKILL.md). |
 | [tokens.json](../design/tokens.json) | Canonical | The repo-owned token file implementations consume. |
 | [COMPANION_INTEGRATION.md](../design/COMPANION_INTEGRATION.md) | Canonical design + baseline/target notes | Five residents and identity design; current standalone Chat versus target contextual/global chat. |
 | [THEME_PACK_FRAMEWORK.md](../design/THEME_PACK_FRAMEWORK.md) | Spec; partial implementation | Pack invariants; manifest registry exists, full frontend pack integration remains incomplete. |
@@ -49,6 +50,7 @@ open an issue.
 | [Screen library](../design/screens/) | Canonical | Today/Journal/Settings/Chat screens, both themes, narrow + desktop. |
 | [Exports (0.1)](../design/exports/0.1/) | Canonical visual source | The Figma export set the palette reconciliation targeted. |
 | [handoff/](../design/handoff/README.md) | Archived | The original 0.1 spec package, preserved verbatim. Canonical accessibility docs now live under [docs/accessibility/](accessibility/ACCESSIBILITY_CONTRACT.md). |
+| [FIGMA-HANDOFF-LESSONS.md](FIGMA-HANDOFF-LESSONS.md) | Canonical lessons | Composition drift is not caught by token gates; browser-side visual comparison is required before composition work merges. |
 
 ## Accessibility
 

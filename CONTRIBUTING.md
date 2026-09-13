@@ -3,7 +3,11 @@
 Project Worlds is in active development. Start with the [README](README.md)
 and [architecture](docs/ARCHITECTURE.md); the full map is the
 [documentation index](docs/INDEX.md), and design work starts at the
-[handoff index](design/handoff/README.md). Public issues are suitable for
+[Workshop v3 design authority](.project/design/CURRENT.md) (the
+[handoff index](design/handoff/README.md) is the archived 0.1 baseline).
+Figma-to-code work uses the
+[personal-world-implement-figma](.agents/skills/personal-world-implement-figma/SKILL.md)
+workflow. Public issues are suitable for
 non-sensitive bugs, questions and ideas. Use [private reporting](SECURITY.md)
 for security concerns. There is no support response-time guarantee.
 

@@ -151,6 +151,15 @@ notes, reservation attachments, and superseded-iteration mapping is
     `frontend/src/test/no-fake-strings.spec.ts`.
   - **D4 (human experience) remains UNKNOWN** — pending Rylee's own
     review; commit approval is not D4 approval.
+  - **UAT (2026-09-13, private local package):** 48 cases — 44 PASS,
+    0 FAIL, 2 REVIEW (owner), 2 N/A — across canonical regions, all
+    nine responsive boundary widths (0px overflow everywhere), zoom
+    100–200% (CSS proxy), quiet-state truthfulness (real fixtures:
+    quiet / activity / attention / degraded / populated journal), a11y
+    visuals, and a Figma comparison sheet. No new defects; the two
+    REVIEW cases are exactly the reservations above. Package:
+    `~/.local/share/personal-world/uat/today-quiet-day-17-481/`
+    (private; not in the repository).
 - **Vault `17:1014`**, **Login `17:1681`**, **Mobile Today `17:1929`**,
   **Chat `17:2536`**, **Projects `17:2752`**, **Setup `17:3039`**,
   **Notifications `17:6369`** (How the World Tells You Things).
