@@ -198,13 +198,11 @@ notes, reservation attachments, and superseded-iteration mapping is
   button 36px vs 44px floor (floor won), login key icon (no canonical
   glyph), chat presence/thinking wording.
 - **Projects `17:2752`**, **Setup `17:3039`**, **Notifications
-  `17:6369`** — evidence captured (design context + screenshots +
-  metadata); implementation pending.
-- Originally-canonical (converged, not in the revision pass): Empty State —
-  Interests `17:1515`, Bad Day `17:2117`, Journal Writing `17:2268`,
-  Settings `17:3762`, Companion Popover `17:4565`, World Overview
-  `17:5485`, Journal Reading `17:5763` — evidence captured; implementation
-  pending.
+  `17:6369`**, **Interests `17:1515`**, **Bad Day `17:2117`**,
+  **Journal Writing `17:2268`**, **Settings `17:3762`**, **Companion
+  Popover `17:4565`**, **World `17:5485`**, **Journal Reading
+  `17:5763`** — **Implemented 2026-09-13** (commit `6d909cc`).
+  D0–D3 PASS; D4 PENDING_BUNDLED_UAT.
 
 **Canonical artifacts:** philosophy `17:8873` ("The world knows how loudly
 to exist."), audit `18:2`, classification `17:9864`, lore registry `17:8255`,
