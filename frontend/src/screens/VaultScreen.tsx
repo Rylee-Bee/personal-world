@@ -13,10 +13,12 @@ import { Dialog } from "../primitives/Dialog";
 import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 import { ErrorState } from "../shell/ErrorState";
 import { Button } from "../components/ui/button";
-import { Loader2, Shield } from "../lib/icons";
+import { Loader2, Sparkles } from "../lib/icons";
+import { Icon } from "../lib/icons";
 
 /**
- * VaultScreen (P1 T10, parity row 5, FOUNDATION-SPEC §7):
+ * VaultScreen (P1 T10, parity row 5, FOUNDATION-SPEC §7; Workshop v3
+ * warmth pass 2026-09-13, frame 17:1014 "Vault screen" / AMBIENT-WARM):
  *
  * Status, unlock, lock, names, set, delete — all through the typed
  * client; every write passes through useStepUp() (StepUpPrompt opens on
@@ -30,15 +32,114 @@ import { Loader2, Shield } from "../lib/icons";
  * outcomes announce through the app LiveRegion (action_completed /
  * error kinds only).
  *
- * Composition (T14 warmth, DESIGN-HANDOFF N.7/N.8, same fix as Today
- * a8a445e / Journal): no Card chrome — sections are real h2 headings
- * (A11y §4.1, same ids as before) separated by quiet
- * --pw-color-border-subtle dividers; the names list keeps its plain
- * ul/li rows with a border-b per row.
+ * Composition (Workshop v3 frame 17:1014): the page keeps the frame's
+ * earned-container layout — a "Treasures in safekeeping" panel with
+ * raised secret rows (surface.raised/border.strong tokens, treasure
+ * marks, per-row Remove pill) beside a "Place a secret inside" panel
+ * (visible field labels, reassurance box, solid-teal Store control,
+ * the frame's sea-charm line). The heading carries the frame's lock
+ * crest and brighter-teal title (accent.primary_bright); the vault
+ * status pill keeps CANONICAL status words (the frame's "Vault
+ * unlocked" is the healthy case; locked renders the honest chip) with
+ * the frame's glow treatment (warmth.vault_glow) and an aria-hidden
+ * gold ✦. The frame's guardian illustration and audio-waveform
+ * dividers are design-agent art / the reserved waterline family —
+ * NOT traced or scattered; deviations recorded in the private mapping
+ * ledger. "Added <date>" per secret has no backend truth (vault.py
+ * stores name→value only) — the row sub-line renders the honest
+ * "Value safely hidden." (row 15: no fabricated metadata).
+ *
+ * Responsive: two-panel workspace row ≥900px, stacked below
+ * (RESPONSIVE_RULES); panels stay earned containers, phone keeps the
+ * same content full-width.
  */
 
 function vaultStatusWord(locked: boolean): CanonicalStatus {
   return locked ? "not_configured" : "healthy";
+}
+
+/** Page heading (17:1046-1056): lock crest + expressive 40px title in
+ * the brighter teal, lede, and the frame's glow status pill. The pill
+ * keeps StatusChip's canonical vocabulary; the glow + gold ✦ are
+ * decoration (aria-hidden; non-color state = the chip's own label). */
+function VaultHeading({
+  locked,
+  message,
+}: {
+  locked: boolean;
+  message: string;
+}) {
+  return (
+    <section aria-labelledby="vault-page-heading" className="space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden={true}
+              className="flex size-[40px] items-center justify-center rounded-full border"
+              style={{
+                backgroundColor: "var(--pw-color-warmth-teal-wash)",
+                borderColor: "var(--pw-color-warmth-teal-wash)",
+              }}
+            >
+              <Icon name="icon-system-device-lock" size={24} className="text-[var(--pw-color-accent-primary)]" />
+            </span>
+            <h1
+              id="vault-page-heading"
+              className="text-[34px] leading-[1.1] min-[600px]:text-[40px]"
+              style={{
+                fontFamily: "var(--pw-typography-font-expressive)",
+                color: "var(--pw-color-accent-primary-bright)",
+              }}
+            >
+              Vault
+            </h1>
+          </div>
+          <p className="max-w-[720px] text-[15px] leading-[1.55] text-[var(--pw-color-text-secondary)]">
+            Your secrets, sealed on this machine. Names are shown; values never leave the vault.
+          </p>
+        </div>
+        {/* Guardian corner (17:1057): the frame's illustration is
+            design-agent art — the warm aura renders as a static token
+            glow behind the canonical lock glyph; no artwork traced. */}
+        <div aria-hidden={true} className="relative hidden h-[120px] w-[190px] shrink-0 items-center justify-center min-[900px]:flex">
+          <span
+            className="absolute size-[110px] rounded-full"
+            style={{
+              background:
+                "var(--pw-color-warmth-aura-rose)",
+            }}
+          />
+          <Icon
+            name="icon-system-device-lock"
+            size={72}
+            className="relative text-[var(--pw-color-text-secondary)] opacity-80"
+          />
+          <span className="absolute right-2 top-1 select-none text-[var(--pw-color-accent-primary-bright)] opacity-50">
+            °<br />◦<br />✦
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <span
+          className="inline-flex items-center gap-[9px] rounded-full border px-3 py-[6px]"
+          style={{
+            backgroundColor: "var(--pw-color-warmth-teal-wash)",
+            borderColor: "var(--pw-color-warmth-teal-wash)",
+            boxShadow: "var(--pw-color-warmth-vault-glow)",
+          }}
+        >
+          <StatusChip status={vaultStatusWord(locked)} label="vault" />
+          <span aria-hidden="true" className="text-[13px]" style={{ color: "var(--pw-color-accent-gold)" }}>
+            ✦
+          </span>
+        </span>
+        <span className="text-sm text-[var(--pw-color-text-secondary)]" role="status">
+          {message}
+        </span>
+      </div>
+    </section>
+  );
 }
 
 function VaultScreen() {
@@ -193,47 +294,28 @@ function VaultScreen() {
   return (
     <div className="space-y-6">
       {stepUp.prompt}
-      <section aria-labelledby="vault-page-heading" className="space-y-2">
-        <h1
-          id="vault-page-heading"
-          className="text-3xl font-bold"
-          style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-        >
-          Vault
-        </h1>
-        <p className="text-[var(--pw-color-text-muted)]">
-          Your secrets, sealed on this machine. Names are shown; values never leave the vault.
-        </p>
-        <div className="flex items-center gap-2">
-          <StatusChip status={vaultStatusWord(locked)} label="vault" />
-          <span className="text-sm text-[var(--pw-color-text-secondary)]" role="status">
-            {message}
-          </span>
-        </div>
-      </section>
+      <VaultHeading locked={locked} message={message} />
 
-      {/* Unlock / lock */}
-      <section
-        aria-labelledby="vault-access-heading"
-        className="space-y-3 border-t border-[var(--pw-color-border-subtle)] pt-[var(--pw-spacing-section)]"
-      >
-        <div className="space-y-1">
-          <h2
-            id="vault-access-heading"
-            className="flex items-center gap-2 text-lg font-semibold"
-            style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-          >
-            <Shield size={18} aria-hidden={true} />
-            {locked ? "Unlock your vault" : "Lock your vault"}
-          </h2>
-          <p className="text-sm text-[var(--pw-color-text-muted)]">
-            {locked
-              ? "Enter your master passphrase to reach your secrets on this device."
-              : "Locking clears the secrets from memory."}
-          </p>
-        </div>
-        {locked ? (
-          <div className="space-y-3">
+      {/* Unlock / lock (17:1105-1109 for the unlocked side; the locked
+          form keeps its own honest section) */}
+      {!unlocked ? (
+        <section
+          aria-labelledby="vault-access-heading"
+          className="space-y-3 border-t border-[var(--pw-color-border-subtle)] pt-[var(--pw-spacing-section)]"
+        >
+          <div className="space-y-1">
+            <h2
+              id="vault-access-heading"
+              className="text-lg font-semibold"
+              style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+            >
+              Unlock your vault
+            </h2>
+            <p className="text-sm text-[var(--pw-color-text-muted)]">
+              Enter your master passphrase to reach your secrets on this device.
+            </p>
+          </div>
+          <div className="max-w-[420px] space-y-3">
             <label htmlFor="vault-passphrase" className="sr-only">
               Master passphrase
             </label>
@@ -243,128 +325,216 @@ function VaultScreen() {
               value={passphrase}
               onChange={(e) => setPassphrase(e.target.value)}
               autoComplete="current-password"
-              className="w-full rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-3 text-[var(--pw-color-text-primary)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="h-12 w-full rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-canvas)] px-4 text-[var(--pw-color-text-primary)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
             />
             <Button type="button" onClick={() => void unlock()} disabled={!passphrase || busy}>
               Unlock vault
             </Button>
           </div>
-        ) : (
-          <Button type="button" variant="outline" onClick={() => void lock()} disabled={busy}>
-            Lock vault
-          </Button>
-        )}
-      </section>
+        </section>
+      ) : null}
 
-      {/* Names + set + delete (only when unlocked) */}
+      {/* Names + set (only when unlocked) — the frame's two-panel
+          workspace (17:1062): Treasures | Store. DOM order (list,
+          then store form) is the semantic source order; the grid is
+          ≥900px only. */}
       {unlocked ? (
-        <>
+        <div className="grid gap-6 min-[900px]:grid-cols-[1fr_398px] min-[900px]:items-start">
           <section
             aria-labelledby="vault-names-heading"
-            className="space-y-3 border-t border-[var(--pw-color-border-subtle)] pt-[var(--pw-spacing-section)]"
+            className="rounded-3xl border border-[var(--pw-color-border-strong)] p-[22px]"
+            style={{
+              backgroundColor: "var(--pw-color-vault-panel-translucent)",
+              boxShadow: "var(--pw-color-warmth-panel-shadow)",
+            }}
           >
-            <div className="space-y-1">
-              <h2
-                id="vault-names-heading"
-                className="text-lg font-semibold"
-                style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-              >
-                Stored secrets
-              </h2>
-              <p className="text-sm text-[var(--pw-color-text-muted)]">
-                Only the names are listed — the vault never shows a value here.
-              </p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <h2
+                  id="vault-names-heading"
+                  className="text-xl text-[var(--pw-color-text-primary)]"
+                  style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+                >
+                  Treasures in safekeeping
+                </h2>
+                <p className="text-[11px] text-[var(--pw-color-text-secondary)]" aria-live="polite">
+                  {(names.data?.names ?? []).length} sealed{" "}
+                  {(names.data?.names ?? []).length === 1 ? "secret" : "secrets"}
+                </p>
+              </div>
+              <span aria-hidden="true" className="text-[var(--pw-color-text-muted)]">
+                <Icon name="icon-status-feedback-offline" size={26} />
+              </span>
             </div>
-            {names.isLoading ? (
-              <p className="text-[var(--pw-color-text-muted)]" role="status">
-                Opening the list…
-              </p>
-            ) : names.isError ? (
-              <p className="text-[var(--pw-color-text-primary)]">
-                {names.error instanceof ApiError && names.error.detail
-                  ? names.error.detail
-                  : "The names list could not be opened."}
-              </p>
-            ) : (names.data?.names ?? []).length === 0 ? (
-              <p className="text-[var(--pw-color-text-secondary)]">
-                No secrets stored yet. Add one below.
-              </p>
-            ) : (
-              <ul className="space-y-2" role="list">
-                {(names.data?.names ?? []).map((name) => (
-                  <li
-                    key={name}
-                    className="flex items-center justify-between gap-3 border-b border-[var(--pw-color-border-subtle)] py-2 last:border-0 last:pb-0"
-                  >
-                    <span className="text-[var(--pw-color-text-primary)]">{name}</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setPendingDelete(name)}
-                      aria-label={`Delete secret ${name}`}
+            <div className="mt-4 space-y-3">
+              {names.isLoading ? (
+                <p className="text-[var(--pw-color-text-muted)]" role="status">
+                  Opening the list…
+                </p>
+              ) : names.isError ? (
+                <p className="text-[var(--pw-color-text-primary)]">
+                  {names.error instanceof ApiError && names.error.detail
+                    ? names.error.detail
+                    : "The names list could not be opened."}
+                </p>
+              ) : (names.data?.names ?? []).length === 0 ? (
+                <p className="text-[var(--pw-color-text-secondary)]">
+                  No secrets stored yet. Add one below.
+                </p>
+              ) : (
+                <ul className="space-y-3" role="list">
+                  {(names.data?.names ?? []).map((name) => (
+                    <li
+                      key={name}
+                      className="flex min-h-[70px] items-center gap-[14px] rounded-xl border border-[var(--pw-color-border-strong)] bg-[var(--pw-color-surface-raised)] px-[18px] py-3"
                     >
-                      Delete
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
+                      <span
+                        aria-hidden={true}
+                        className="flex size-[38px] shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: "var(--pw-color-warmth-rose-wash)" }}
+                      >
+                        <Icon name="icon-world-content-tag" size={19} className="text-[var(--pw-color-accent-secondary)]" />
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="truncate text-[15px] font-semibold text-[var(--pw-color-text-primary)]">
+                          {name}
+                        </p>
+                        <p className="text-[11px] text-[var(--pw-color-text-secondary)]">
+                          Value safely hidden
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPendingDelete(name)}
+                        aria-label={`Delete secret ${name}`}
+                        className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-[var(--pw-color-border-strong)] px-4 text-[13px] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
+                        style={{
+                          backgroundColor: "var(--pw-color-warmth-rose-wash-soft)",
+                          color: "var(--pw-color-accent-secondary)",
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {/* Seal action (17:1105-1109): warm framing sentence +
+                literal Lock vault control. */}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t-0 pt-2">
+              <p className="max-w-[300px] text-[11px] leading-[1.4] text-[var(--pw-color-text-secondary)]">
+                Finished for now? She'll keep watch from the other side.
+              </p>
+              <button
+                type="button"
+                onClick={() => void lock()}
+                disabled={busy}
+                className="inline-flex h-11 items-center gap-2 rounded-full border border-[var(--pw-color-border-strong)] bg-[var(--pw-color-warmth-glass-pill)] px-4 text-[13px] text-[var(--pw-color-text-primary)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60"
+              >
+                <Icon name="icon-system-device-lock" size={17} aria-hidden={true} />
+                Lock vault
+              </button>
+            </div>
           </section>
 
           <section
             aria-labelledby="vault-set-heading"
-            className="space-y-3 border-t border-[var(--pw-color-border-subtle)] pt-[var(--pw-spacing-section)]"
+            className="rounded-3xl border border-[var(--pw-color-vault-store-border)] p-6"
+            style={{
+              backgroundColor: "var(--pw-color-vault-store-panel)",
+              boxShadow: "var(--pw-color-warmth-panel-shadow)",
+            }}
           >
-            <div className="space-y-1">
-              <h2
-                id="vault-set-heading"
-                className="text-lg font-semibold"
-                style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-              >
-                Store a secret
-              </h2>
-              <p className="text-sm text-[var(--pw-color-text-muted)]">
-                Give it a name you will recognize. The value is stored encrypted and never displayed again.
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <h2
+                  id="vault-set-heading"
+                  className="text-2xl"
+                  style={{
+                    fontFamily: "var(--pw-typography-font-expressive)",
+                    color: "var(--pw-color-accent-secondary)",
+                  }}
+                >
+                  Place a secret inside
+                </h2>
+                <p className="max-w-[290px] text-[13px] leading-[1.45] text-[var(--pw-color-text-secondary)]">
+                  A small safe place for something precious.
+                </p>
+              </div>
+              <p aria-hidden="true" className="select-none text-[27px]" style={{ color: "var(--pw-color-accent-gold)" }}>
+                ◖✦◗
               </p>
             </div>
-            <label htmlFor="vault-secret-name" className="sr-only">
-              Secret name
-            </label>
-            <input
-              id="vault-secret-name"
-              type="text"
-              value={setName}
-              onChange={(e) => setSetName(e.target.value)}
-              placeholder="Secret name"
-              autoComplete="off"
-              className="w-full rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-3 text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
-            />
-            <label htmlFor="vault-secret-value" className="sr-only">
-              Secret value
-            </label>
-            <input
-              id="vault-secret-value"
-              type="password"
-              value={setValue}
-              onChange={(e) => setSetValue(e.target.value)}
-              placeholder="Secret value"
-              autoComplete="off"
-              className="w-full rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-3 text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
-            />
-            <div className="flex items-center justify-between gap-3">
-              <Button
-                type="button"
-                onClick={() => void store()}
-                disabled={!setName.trim() || !setValue || storing}
+            <div className="mt-5 space-y-4">
+              <div className="space-y-[7px]">
+                <label
+                  htmlFor="vault-secret-name"
+                  className="text-[13px] font-semibold text-[var(--pw-color-text-primary)]"
+                >
+                  Secret name
+                </label>
+                <input
+                  id="vault-secret-name"
+                  type="text"
+                  value={setName}
+                  onChange={(e) => setSetName(e.target.value)}
+                  placeholder="Give it a name you will recognize"
+                  autoComplete="off"
+                  className="h-12 w-full rounded-xl border border-[var(--pw-color-vault-input-border)] bg-[var(--pw-color-surface-canvas)] px-4 text-[13px] text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-secondary)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
+                />
+              </div>
+              <div className="space-y-[7px]">
+                <label
+                  htmlFor="vault-secret-value"
+                  className="text-[13px] font-semibold text-[var(--pw-color-text-primary)]"
+                >
+                  Secret value
+                </label>
+                <input
+                  id="vault-secret-value"
+                  type="password"
+                  value={setValue}
+                  onChange={(e) => setSetValue(e.target.value)}
+                  placeholder="Paste it here — we won't peek"
+                  autoComplete="off"
+                  className="h-12 w-full rounded-xl border border-[var(--pw-color-vault-input-border)] bg-[var(--pw-color-surface-canvas)] px-4 text-[13px] text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-secondary)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
+                />
+              </div>
+              <div
+                className="flex items-start gap-[10px] rounded-xl p-3"
+                style={{ backgroundColor: "var(--pw-color-warmth-teal-reassure)" }}
               >
-                Store secret
-              </Button>
-              <span className="text-sm text-[var(--pw-color-text-muted)]" role="status">
-                {storing ? "Storing…" : ""}
-              </span>
+                <Icon name="icon-people-community-person" size={18} aria-hidden={true} className="mt-[1px] shrink-0 text-[var(--pw-color-accent-primary)]" />
+                <p className="text-[11px] leading-[1.45] text-[var(--pw-color-text-secondary)]">
+                  Encrypted locally. It stays on this machine, tucked safely out of sight.
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-[var(--pw-color-text-muted)]" role="status">
+                  {storing ? "Storing…" : ""}
+                </span>
+                <Button
+                  type="button"
+                  onClick={() => void store()}
+                  disabled={!setName.trim() || !setValue || storing}
+                  className="gap-2 rounded-full"
+                >
+                  <Sparkles size={17} aria-hidden={true} />
+                  Store secret
+                </Button>
+              </div>
             </div>
+            {/* The frame's sea-charm (17:1136): warmth framing stays
+                real text (Young Serif, gold), controls stay literal. */}
+            <p
+              className="mt-6 text-center text-[14px]"
+              style={{ fontFamily: "var(--pw-typography-font-expressive)", color: "var(--pw-color-accent-gold)", opacity: 0.44 }}
+            >
+              ·  the sea keeps what it is told  ·
+            </p>
           </section>
-        </>
+        </div>
       ) : null}
 
       {/* Danger confirm: verb label, consequence named (A11y §4.4) */}

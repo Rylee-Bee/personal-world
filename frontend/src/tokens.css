@@ -7,18 +7,33 @@
   --pw-color-surface-canvas: #0a0810;
   --pw-color-surface-panel: #12101a;
   --pw-color-surface-elevated: #1a1724;
+  --pw-color-surface-raised: #1e1925;
   --pw-color-border-subtle: #2a2538;
+  --pw-color-border-strong: #3a3045;
   --pw-color-text-primary: #f0eaff;
   --pw-color-text-secondary: #a397b8;
   --pw-color-text-muted: #9185a8;
   --pw-color-accent-primary: #72b1b1;
+  --pw-color-accent-primary-bright: #a5dbd7;
   --pw-color-accent-secondary: #b57f8b;
+  --pw-color-accent-gold: #e4c58d;
   --pw-color-warmth-quiet-gradient: linear-gradient(90deg, rgba(114,177,177,0.15) 0%, rgba(181,127,139,0.12) 64%, rgba(18,16,26,0.13) 100%);
   --pw-color-warmth-quiet-glow: 0 0 28px 0 rgba(114,177,177,0.2);
   --pw-color-warmth-panel-shadow: 0 10px 30px 0 rgba(0,0,0,0.25);
+  --pw-color-warmth-vault-glow: 0 0 22px 0 rgba(114,177,177,0.3);
   --pw-color-warmth-mobile-band-gradient: linear-gradient(180deg, rgba(181,127,139,0.14) 0%, rgba(114,177,177,0.16) 55%, rgba(0,0,0,0) 100%);
   --pw-color-warmth-rose-tint: rgba(181,127,139,0.14);
   --pw-color-warmth-teal-tint: rgba(114,177,177,0.16);
+  --pw-color-warmth-teal-wash: rgba(114,177,177,0.09);
+  --pw-color-warmth-rose-wash: rgba(181,127,139,0.08);
+  --pw-color-warmth-rose-wash-soft: rgba(181,127,139,0.09);
+  --pw-color-warmth-aura-rose: radial-gradient(circle, rgba(181,127,139,0.18) 0%, rgba(0,0,0,0) 70%);
+  --pw-color-warmth-teal-reassure: rgba(114,177,177,0.05);
+  --pw-color-warmth-glass-pill: rgba(255,255,255,0.03);
+  --pw-color-vault-panel-translucent: rgba(18,16,26,0.85);
+  --pw-color-vault-store-panel: rgba(26,23,36,0.91);
+  --pw-color-vault-store-border: #493847;
+  --pw-color-vault-input-border: #40364d;
 }
 
 [data-pw-theme="light"] {
