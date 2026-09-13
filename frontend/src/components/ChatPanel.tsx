@@ -420,7 +420,22 @@ export function ChatPanel({
 
   return (
     <div className="pw-chat" data-pw-chat="">
-      <h2>{heading}</h2>
+      {/* Companion presence (frame 17:2594-96): the companion above the
+          conversation when the host provides one — canonical rig via
+          the existing companionIcon flow + a token glow ellipse.
+          Decorative, aria-hidden, never announced. */}
+      {companionIcon ? (
+        <div aria-hidden="true" className="pw-chat-presence">
+          <img src={companionIcon} alt="" />
+          <span className="pw-chat-presence-glow" />
+        </div>
+      ) : null}
+      <h2>
+        {heading}
+        <span aria-hidden="true" className="pw-chat-heading-spark">
+          ✦
+        </span>
+      </h2>
       {sectionContext ? (
         <p className="pw-chat-context-line">
           You opened this from{" "}
@@ -512,7 +527,26 @@ export function ChatPanel({
             </div>
           ) : (
             <div key={`a${i}`} className="pw-chat-msg pw-chat-msg-assistant">
-              <p>{turn.content}</p>
+              {/* Workshop v3 (17:2600-2612, chat-patterns-exploratory
+                  language): the assistant reply renders as rose-ruled
+                  paragraphs — one ✦-guttered, rose-ruled block per
+                  blank-line-separated paragraph. Real reply text only
+                  (row 15); a single-paragraph reply is one block. */}
+              <div className="pw-chat-reply-blocks">
+                {turn.content
+                  .split(/\n{2,}/)
+                  .filter((para) => para.trim().length > 0)
+                  .map((para, pi) => (
+                    <div key={pi} className="pw-chat-companion-msg">
+                      <span aria-hidden="true" className="pw-chat-companion-star">
+                        ✦
+                      </span>
+                      <div className="pw-chat-companion-body">
+                        <p>{para}</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
               {turn.proposal ? (
                 <SuggestionCard
                   proposal={turn.proposal}
@@ -520,6 +554,12 @@ export function ChatPanel({
                 />
               ) : null}
               <Disclosure summary="Sources" level={3}>
+                {/* Frame 17:2613's quiet provenance line, truthful for
+                    the real source. */}
+                <p className="pw-chat-based-on">
+                  <span aria-hidden="true" className="pw-chat-companion-star">✦</span>{" "}
+                  Based on: Project Worlds snapshot
+                </p>
                 <p>Read-only Project Worlds snapshot</p>
                 {turn.model ? <p>Conversation model: {turn.model}</p> : null}
                 {turn.thinking ? (
@@ -535,7 +575,17 @@ export function ChatPanel({
 
         {busy ? (
           <div className="pw-chat-msg pw-chat-msg-assistant" data-pw-thinking="">
-            <p className="pw-chat-thinking">Checking your world…</p>
+            {/* Frame 17:2617: "Thinking" + three ✦ at decreasing
+                opacity — a static text status (motion floor; never
+                announced, A11y §8). */}
+            <p className="pw-chat-thinking">
+              Thinking{" "}
+              <span aria-hidden="true" className="pw-chat-thinking-stars">
+                <span className="pw-chat-star-1">✦</span>
+                <span className="pw-chat-star-2">✦</span>
+                <span className="pw-chat-star-3">✦</span>
+              </span>
+            </p>
           </div>
         ) : null}
 
