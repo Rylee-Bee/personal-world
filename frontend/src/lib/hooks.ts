@@ -52,6 +52,15 @@ import {
   type ServiceApp,
   type SectionData,
   type ChatProvidersData,
+  fetchNativeLabInventory,
+  fetchNativeLabHealth,
+  fetchNativeLabSettings,
+  fetchNativeLabResources,
+  fetchDiscoveryStatus,
+  fetchDiscoverySources,
+  fetchDiscoveryInterests,
+  fetchDiscoveryDiscover,
+  fetchReconcilerStatus,
 } from "./api";
 
 /**
@@ -363,4 +372,55 @@ export function useSectionsWrite(): () => Promise<void> {
     emitRefresh("sections");
     return Promise.resolve();
   };
+}
+
+// ── Native Lab hooks ──
+
+/** GET /api/native-lab/inventory: service inventory. */
+export function useNativeLabInventory() {
+  return useApiQuery<any>(() => fetchNativeLabInventory(), []);
+}
+
+/** GET /api/native-lab/health: health monitoring. */
+export function useNativeLabHealth() {
+  return useApiQuery<any>(() => fetchNativeLabHealth(), []);
+}
+
+/** GET /api/native-lab/settings: settings inspection. */
+export function useNativeLabSettings() {
+  return useApiQuery<any>(() => fetchNativeLabSettings(), []);
+}
+
+/** GET /api/native-lab/resources: resource monitoring. */
+export function useNativeLabResources() {
+  return useApiQuery<any>(() => fetchNativeLabResources(), []);
+}
+
+// ── Discovery hooks ──
+
+/** GET /api/discovery/status: discovery status. */
+export function useDiscoveryStatus() {
+  return useApiQuery<any>(() => fetchDiscoveryStatus(), []);
+}
+
+/** GET /api/discovery/sources: list discovery sources. */
+export function useDiscoverySources() {
+  return useApiQuery<any>(() => fetchDiscoverySources(), []);
+}
+
+/** GET /api/discovery/interests: list interests. */
+export function useDiscoveryInterests() {
+  return useApiQuery<any>(() => fetchDiscoveryInterests(), []);
+}
+
+/** GET /api/discovery/discover: discover content. */
+export function useDiscoveryDiscover(source?: string) {
+  return useApiQuery<any>(() => fetchDiscoveryDiscover(source), [source]);
+}
+
+// ── Reconciler hooks ──
+
+/** GET /api/reconciler/status: reconciler status. */
+export function useReconcilerStatus() {
+  return useApiQuery<any>(() => fetchReconcilerStatus(), []);
 }

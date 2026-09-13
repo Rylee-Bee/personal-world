@@ -19,13 +19,14 @@ import {
 } from "../lib/api";
 import { useCompanion, COMPANIONS } from "../lib/companion-context";
 import { usePrefs, COMPANION_OFF, companionChoices } from "../lib/prefs-context";
-import { useSectionsWrite } from "../lib/hooks";
+import { usePrincipal, useSectionsWrite } from "../lib/hooks";
 import { useAnnounce } from "../primitives/LiveRegion";
 import { useStepUp } from "../primitives/StepUpPrompt";
 import { Dialog } from "../primitives/Dialog";
 import { Disclosure } from "../primitives/Disclosure";
 import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 import { Icon, sectionIconToShimName, type IconName } from "../lib/icons";
+import "./settings-screen.css";
 
 /**
  * Settings screen (P1 T11, FOUNDATION-SPEC §10 row T11 / parity row 6).
@@ -108,6 +109,7 @@ const PREF_PANEL_ORDER = [
   "density",
   "text_scale",
   "target_size",
+  "accent",
 ] as const;
 
 /** Human labels for pref keys (labels are presentation; values are the server's). */
@@ -117,6 +119,7 @@ const PREF_LABELS: Record<string, string> = {
   density: "Density",
   text_scale: "Text scale",
   target_size: "Target size",
+  accent: "Accent",
 };
 
 /** Icons for pref keys, matching the Figma design. */
@@ -151,6 +154,7 @@ function SettingsScreen() {
   const { announce } = useAnnounce();
   const { companion, setCompanion } = useCompanion();
   const { setPref } = usePrefs();
+  const principal = usePrincipal();
   // Emits the shared "sections" refresh signal: SectionNav (mounted in
   // AppShell, outside this screen) subscribes to the same signal via
   // useSections(), so a sections write here updates the live nav in
@@ -448,7 +452,7 @@ function SettingsScreen() {
         <div className="flex items-center gap-3">
           <Icon name="icon-system-device-theme" size={24} className="text-[var(--pw-color-text-primary)]" />
           <h1 className="text-[36px] leading-tight" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
-            Settings
+            Settings{principal.data ? ` for ${principal.data.display_name}` : ""}
           </h1>
         </div>
         <p className={`text-sm ${mutedClasses}`}>

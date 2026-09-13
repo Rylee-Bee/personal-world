@@ -5,5 +5,14 @@
       "/data/repos/personal-world"
     ]
   },
-  "connections": []
+  "connections": [
+    {
+      "type": "ollama",
+      "name": "worlds-local-brain",
+      "capability": "reasoning",
+      "base_url": "http://ollama:11434",
+      "model": "qwen3:1.7b",
+      "timeout": 120
+    }
+  ]
 }

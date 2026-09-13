@@ -768,6 +768,49 @@ export async function fetchConnections(): Promise<unknown[]> {
   return apiFetch<unknown[]>("/api/connections");
 }
 
+// ── Native Lab ──
+
+export async function fetchNativeLabInventory(): Promise<unknown> {
+  return apiFetch<unknown>("/api/native-lab/inventory");
+}
+
+export async function fetchNativeLabHealth(): Promise<unknown> {
+  return apiFetch<unknown>("/api/native-lab/health");
+}
+
+export async function fetchNativeLabSettings(): Promise<unknown> {
+  return apiFetch<unknown>("/api/native-lab/settings");
+}
+
+export async function fetchNativeLabResources(): Promise<unknown> {
+  return apiFetch<unknown>("/api/native-lab/resources");
+}
+
+// ── Discovery ──
+
+export async function fetchDiscoveryStatus(): Promise<unknown> {
+  return apiFetch<unknown>("/api/discovery/status");
+}
+
+export async function fetchDiscoverySources(): Promise<unknown> {
+  return apiFetch<unknown>("/api/discovery/sources");
+}
+
+export async function fetchDiscoveryInterests(): Promise<unknown> {
+  return apiFetch<unknown>("/api/discovery/interests");
+}
+
+export async function fetchDiscoveryDiscover(source?: string): Promise<unknown> {
+  const url = source ? `/api/discovery/discover?source=${source}` : "/api/discovery/discover";
+  return apiFetch<unknown>(url);
+}
+
+// ── Reconciler ──
+
+export async function fetchReconcilerStatus(): Promise<unknown> {
+  return apiFetch<unknown>("/api/reconciler/status");
+}
+
 // ── Writes (all step-up gated through withStepUp) ──
 
 export async function unlockVault(passphrase: string): Promise<unknown> {

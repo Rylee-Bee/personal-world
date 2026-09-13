@@ -1,0 +1,325 @@
+/* ── Today Quiet Day (17:481) — AMBIENT register ────────────────── */
+
+.pw-today {
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+  padding: 70px 84px 92px 64px;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Ambient warmth background */
+.pw-today::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 30% 40%,
+    color-mix(in srgb, var(--pw-color-accent-primary) 4%, transparent) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pw-today > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Greeting row ── */
+.pw-today-greeting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.pw-today-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pw-today-greeting-text {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 2.25rem;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--pw-color-accent-primary);
+  margin: 0;
+}
+
+.pw-today-date {
+  font-size: 0.875rem;
+  color: var(--pw-color-accent-secondary);
+  margin: 0;
+}
+
+/* Health summary card */
+.pw-today-health {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 22px;
+  background: var(--pw-color-surface-panel);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 12px;
+  min-width: 360px;
+}
+
+.pw-today-health-stars {
+  display: flex;
+  gap: 5px;
+}
+
+.pw-today-health-star {
+  width: 10px;
+  height: 10px;
+  background: var(--pw-color-accent-primary);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.pw-today-health-status {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+}
+
+.pw-today-health-detail {
+  font-size: 0.8rem;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+}
+
+/* ── Companion message ── */
+.pw-today-companion-message {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 30px 38px 42px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--pw-color-accent-primary) 6%, transparent) 0%,
+    color-mix(in srgb, var(--pw-color-accent-secondary) 4%, transparent) 100%
+  );
+  border-radius: 16px;
+}
+
+.pw-today-companion-art {
+  position: relative;
+  width: 150px;
+  height: 180px;
+  flex-shrink: 0;
+}
+
+.pw-today-companion-figure {
+  width: 112px;
+  height: 154px;
+  border: 1px solid var(--pw-color-accent-primary);
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.pw-today-companion-bubble {
+  position: absolute;
+  bottom: 20px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--pw-color-accent-primary);
+}
+
+.pw-today-companion-bubble--small {
+  width: 4px;
+  height: 4px;
+  bottom: 12px;
+  right: 4px;
+  border: none;
+  background: var(--pw-color-accent-secondary);
+}
+
+.pw-today-companion-sparkle {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  background: var(--pw-color-text-primary);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.pw-today-companion-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  flex: 1;
+}
+
+.pw-today-companion-title {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.pw-today-companion-body {
+  font-size: 0.9rem;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 690px;
+}
+
+.pw-today-companion-arrow {
+  width: 210px;
+  height: 68px;
+  flex-shrink: 0;
+  opacity: 0.3;
+}
+
+/* ── Waves-ladder divider ── */
+.pw-today-divider {
+  height: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--pw-color-border-subtle) 0%,
+    transparent 100%
+  );
+  border-radius: 4px;
+  opacity: 0.5;
+}
+
+/* ── Recent activity ── */
+.pw-today-recent {
+  display: flex;
+  gap: 28px;
+}
+
+.pw-today-recent-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 28px;
+  background: var(--pw-color-surface-panel);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 12px;
+}
+
+.pw-today-recent-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pw-today-recent-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.pw-today-recent-icon--changes {
+  border: 1px solid var(--pw-color-accent-primary);
+  border-radius: 50%;
+}
+
+.pw-today-recent-icon--journal {
+  border: 1px solid var(--pw-color-accent-secondary);
+  border-radius: 50%;
+}
+
+.pw-today-recent-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+}
+
+/* Change list */
+.pw-today-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pw-today-change {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-bottom: 1px solid var(--pw-color-border-subtle);
+}
+
+.pw-today-change:last-child {
+  border-bottom: none;
+}
+
+.pw-today-change-marker {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pw-color-accent-primary);
+  flex-shrink: 0;
+}
+
+.pw-today-change-desc {
+  font-size: 0.85rem;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+}
+
+.pw-today-peaceful-note {
+  font-size: 0.75rem;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+  font-style: italic;
+}
+
+/* Journal entries */
+.pw-today-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pw-today-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 17px 18px;
+  background: color-mix(in srgb, var(--pw-color-text-primary) 15%, transparent);
+  border-radius: 8px;
+}
+
+.pw-today-entry-sparkle {
+  width: 9px;
+  height: 9px;
+  background: var(--pw-color-accent-secondary);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.pw-today-entry-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pw-today-entry-title {
+  font-size: 0.9rem;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+}
+
+.pw-today-entry-time {
+  font-size: 0.75rem;
+  color: var(--pw-color-accent-secondary);
+  margin: 0;
+}

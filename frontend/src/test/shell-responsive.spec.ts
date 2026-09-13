@@ -39,7 +39,7 @@ describe("responsive cascade seams (T9)", () => {
   });
 
   it("shell classes exist for every slot", () => {
-    expect(css).toContain(".pw-rail");
+    expect(css).toContain(".pw-edge");
     expect(css).toContain(".pw-bottom-bar");
     expect(css).toContain(".pw-banner-nav");
     expect(css).toContain(".pw-header");
@@ -60,15 +60,13 @@ describe("responsive cascade seams (T9)", () => {
     // Main fills the space beside the sidebar naturally.
     expect(css).toMatch(/\.pw-main\s*\{[^}]*width:\s*100%/);
     // No global max-width or margin-inline auto — contextual width model
-    expect(css).not.toMatch(/\.pw-main\s*\{[^}]*max-width:\s*var\(--pw-content-measure\)/);
-    // The content-measure var still exists for screens that reference it
-    expect(css).toContain("--pw-content-measure: 64rem");
+    expect(css).not.toMatch(/\.pw-main\s*\{[^}]*max-width/);
   });
 
-  it("rail is the world edge: 248px width, 18px icons, 13px labels, 44px targets (Workshop v3)", () => {
-    // Workshop v3 sidebar: 248px via layout token (defined in tokens.css, used in index.css)
-    expect(css).toContain("--pw-layout-sidebar-width");
-    expect(css).toMatch(/--pw-rail-width:\s*var\(--pw-layout-sidebar-width/);
+  it("edge supports rail (112px) and sidebar (token) modes (Workshop v3 mode-based architecture)", () => {
+    // Workshop v3: mode-based shell — rail and sidebar are canonical modes
+    expect(css).toContain("--pw-edge-rail-width: 112px");
+    expect(css).toContain("--pw-edge-sidebar-width");
     // Nav items: horizontal layout, 13px labels, 18px icons
     expect(css).toMatch(/\.pw-nav-link\s*\{[^}]*font-size:\s*13px/);
     const sectionNav = readFileSync(join(here, "..", "shell", "SectionNav.tsx"), "utf8");

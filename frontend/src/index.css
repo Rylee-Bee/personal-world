@@ -231,43 +231,24 @@ img[src*="/icons/"][class*="h-5"] {
   color: var(--pw-color-text-secondary);
 }
 
-/* ── AppShell / SectionNav (T9): token vars only, 44px targets,
-   responsive cascade ≥900 rail / 600–899 banner / <600 bottom bar
-   (FOUNDATION-SPEC §5, RESPONSIVE_RULES). ── */
+/* ── WorldShell (Workshop v3 mode-based architecture) ─────────────
+   Shell mode is a canonical screen/state property: rail | sidebar.
+   Sidebar mode is a structural mode, not a fixed composition.
+   Identity, companion, divider are per-screen, not mandatory. ── */
+
 .pw-shell {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Shell-local sizing vars (NOT generated truth — tokens.json owns
-   colors/spacing/type; these are shell geometry seams so the header
-   and content measure stay consistent across every route):
-   --pw-header-height: fixed compact brand strip; identical on every
-     route and bucket (the banner bucket may wrap its nav taller —
-     bucket-driven, never route-driven).
-   --pw-content-measure: the ONE content width system (DESIGN-HANDOFF
-     §A "calm, cute, highly legible personal control desk"; chat's
-     ~640-720px message column reads comfortably inside 64rem). */
 :root {
   --pw-header-height: 3.5rem;
-  --pw-content-measure: 64rem;
-  --pw-sidebar-width: var(--pw-layout-sidebar-width, 248px);
+  --pw-edge-rail-width: 112px;
+  --pw-edge-sidebar-width: var(--pw-layout-sidebar-width, 248px);
 }
 
-.pw-main {
-  flex: 1 1 auto;
-  min-width: 0;
-  /* Phase 4: contextual width — the old global 64rem dashboard column
-     is removed. Individual screens own their readable measures.
-     Content fills the space beside the sidebar naturally. */
-  width: 100%;
-  padding: var(--pw-spacing-section) var(--pw-spacing-loose);
-  overflow-x: hidden;
-}
-
-/* Header: FIXED compact geometry — hidden on desktop ≥900px where the
-   sidebar owns identity and navigation. Visible on tablet/mobile. */
+/* Header: visible on tablet/mobile, hidden on desktop ≥900px. */
 .pw-header {
   display: flex;
   align-items: center;
@@ -280,8 +261,6 @@ img[src*="/icons/"][class*="h-5"] {
   background: var(--pw-color-surface-panel);
 }
 
-/* Brand + companion identity (CompanionSlot nav size per
-   COMPANION_INTEGRATION "persistent sidebar presence"). */
 .pw-brand-lockup {
   display: inline-flex;
   align-items: center;
@@ -297,7 +276,6 @@ img[src*="/icons/"][class*="h-5"] {
   white-space: nowrap;
 }
 
-/* Header right side: assistant trigger + anything else. */
 .pw-header-end {
   display: inline-flex;
   align-items: center;
@@ -305,10 +283,6 @@ img[src*="/icons/"][class*="h-5"] {
   margin-left: auto;
 }
 
-/* Banner nav (600–899px): rendered in the header only in that bucket
-   (AppShell mirrors the same breakpoint); the seam below restates
-   visibility as defense in depth. Wrapping makes the header taller in
-   THIS bucket only (bucket-driven, not route-driven). */
 .pw-banner-nav {
   display: none;
 }
@@ -322,9 +296,6 @@ img[src*="/icons/"][class*="h-5"] {
   .pw-banner-nav {
     display: block;
     flex: 1 1 100%;
-    /* Reflow floor (A11y §6.4, T14 zoom proxy-b): narrow banner
-       widths and doubled text must WRAP, never overflow the page —
-       8 sections do not fit one 720px row. */
     overflow: hidden;
   }
   .pw-banner-nav .pw-nav-list {
@@ -335,17 +306,90 @@ img[src*="/icons/"][class*="h-5"] {
   }
 }
 
-/* Rail slot: rendered in the ≥900px bucket (AppShell picks the slot by
-   the same breakpoint the CSS below enforces); hidden by default so a
-   server-rendered rail never flashes before the bucket resolves. */
-.pw-rail {
+/* Edge: hidden by default, shown on desktop ≥900px. */
+.pw-edge {
   display: none;
   align-self: stretch;
 }
 
-/* Bottom bar (<600px): fixed, with the platform safe-area inset so no
-   control hides under browser/device UI (A11y §2.7). Rendered only in
-   the <600px bucket; the seam below restates visibility. */
+/* World identity: mark + label + name */
+.pw-world-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pw-world-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--pw-color-accent-primary) 10%, transparent);
+  box-shadow: 0 0 32px color-mix(in srgb, var(--pw-color-accent-primary) 24%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pw-world-mark img {
+  width: 24px;
+  height: 24px;
+}
+
+.pw-world-name-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pw-world-label {
+  font-size: 0.7rem;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pw-world-name {
+  font-size: 0.85rem;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Companion presence: at sidebar bottom */
+.pw-companion-presence {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.pw-companion-portrait {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pw-color-accent-primary) 13%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pw-companion-portrait img {
+  width: 36px;
+  height: 36px;
+}
+
+.pw-companion-label {
+  font-size: 0.7rem;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+  opacity: 0.62;
+}
+
+/* Bottom bar: mobile only. */
 .pw-bottom-bar {
   display: none;
   position: fixed;
@@ -358,31 +402,49 @@ img[src*="/icons/"][class*="h-5"] {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Rail (≥900px): the world's edge. Sidebar owns identity, navigation,
-   and companion presence. Phase 1-3: Workshop v3 shell rearchitecture. */
+/* Main content: fills remaining width. No global max-width. */
+.pw-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  padding: var(--pw-spacing-section) var(--pw-spacing-loose);
+  overflow-x: hidden;
+}
+
+/* ── Desktop ≥900px: edge + content ── */
 @media (min-width: 900px) {
-  :root {
-    --pw-rail-width: var(--pw-layout-sidebar-width, 248px);
-  }
   .pw-shell {
     flex-direction: row;
     flex-wrap: wrap;
     align-content: flex-start;
   }
-  /* Phase 3: header hidden on desktop — sidebar owns identity. */
+
   .pw-shell > .pw-header {
     display: none;
   }
-  .pw-rail {
+
+  .pw-edge {
     display: flex;
     flex-direction: column;
-    flex: 0 0 var(--pw-rail-width, 248px);
-    /* Organic edge is a separate element, not a CSS border */
-    border-right: none;
+    align-self: stretch;
+  }
+
+  /* Rail mode: 112px, brand mark + icon-over-label nav + world assistant */
+  .pw-edge[data-pw-mode="rail"] {
+    flex: 0 0 var(--pw-edge-rail-width);
+    background: var(--pw-color-shell-sidebar-bg);
+    padding: var(--pw-spacing-loose) var(--pw-spacing-compact);
+    gap: var(--pw-spacing-normal);
+  }
+
+  /* Sidebar mode: 236–272px, horizontal nav + optional identity/companion */
+  .pw-edge[data-pw-mode="sidebar"] {
+    flex: 0 0 var(--pw-edge-sidebar-width);
     background: var(--pw-color-shell-sidebar-bg);
     padding: var(--pw-spacing-loose) var(--pw-spacing-normal);
     gap: var(--pw-spacing-normal);
   }
+
   .pw-shell > main {
     flex: 1 1 0;
     min-width: 0;
@@ -403,6 +465,7 @@ img[src*="/icons/"][class*="h-5"] {
   padding: 0;
 }
 
+.pw-edge .pw-nav-list,
 .pw-rail .pw-nav-list {
   flex-direction: column;
   gap: var(--pw-spacing-compact);
