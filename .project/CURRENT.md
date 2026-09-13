@@ -411,6 +411,14 @@ V0.1 `3:722`).
   `get_metadata`, `get_variable_defs`, `get_motion_context`, `get_figjam`
   — the retrieval roles `personal-world-implement-figma` requires.
   Retrieval verified against the Workshop v3 file on 2026-09-13.
+- **`get_design_context` requires the target frame to be selected/open in
+  Figma Dev Mode.** Unlike `get_metadata` and `get_screenshot` (which
+  accept a `nodeId` and work without selection), `get_design_context`
+  returns `"Nothing is selected"` (isError) if no frame is active in
+  Dev Mode. If you see this error, select the frame in Figma and retry.
+  Discovered 2026-09-13 during the multi-frame implementation run —
+  the bridge was healthy, metadata/screenshots worked, but design
+  context silently failed until frames were selected.
 - The Figma machine's LAN address is private topology; per SECURITY.md
   it must not enter tracked files. This note describes the mechanism
   (SSH alias/tunnel), and these files deliberately reference

@@ -192,17 +192,19 @@ notes, reservation attachments, and superseded-iteration mapping is
   (17:2021) stays unplaced under the waves-ladder reservation.
   D0–D3 PASS; **D4 PENDING_BUNDLED_UAT**. Same preserved-evidence
   provenance as Question.
-- **Vault `17:1014`**, **Login `17:1681`**, **Chat `17:2536`**,
-  **Projects `17:2752`**, **Setup `17:3039`**, **Notifications
-  `17:6369`** (How the World Tells You Things) — **BLOCKED on the
-  Figma bridge** (down at the 2026-09-13 multi-frame run; these frames
-  hold page metadata only, which the skill rules insufficient).
+- **Vault `17:1014`**, **Login `17:1681`**, **Chat `17:2536`** —
+  **Implemented 2026-09-13** (commits `eee1ccf`, `c14c093`, `7e5982c`).
+  D0–D3 PASS; D4 PENDING_BUNDLED_UAT. Owner reservations: chat send
+  button 36px vs 44px floor (floor won), login key icon (no canonical
+  glyph), chat presence/thinking wording.
+- **Projects `17:2752`**, **Setup `17:3039`**, **Notifications
+  `17:6369`** — evidence captured (design context + screenshots +
+  metadata); implementation pending.
 - Originally-canonical (converged, not in the revision pass): Empty State —
   Interests `17:1515`, Bad Day `17:2117`, Journal Writing `17:2268`,
   Settings `17:3762`, Companion Popover `17:4565`, World Overview
-  `17:5485`, Journal Reading `17:5763` — BLOCKED on the Figma bridge
-  (same as the revision-pass frames above; Question `17:6245` of this
-  group IS implemented).
+  `17:5485`, Journal Reading `17:5763` — evidence captured; implementation
+  pending.
 
 **Canonical artifacts:** philosophy `17:8873` ("The world knows how loudly
 to exist."), audit `18:2`, classification `17:9864`, lore registry `17:8255`,
