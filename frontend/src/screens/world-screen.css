@@ -369,5 +369,5 @@
 }
 
 .pw-world-write-status--error {
-  color: var(--pw-color-status-error, #e55);
+  color: var(--pw-color-accent-secondary);
 }

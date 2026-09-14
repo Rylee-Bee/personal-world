@@ -7,7 +7,7 @@ import {
   useMemorySearch,
   useJournalKey,
 } from "../lib/hooks";
-import type { JournalEntry } from "../lib/api";
+import { saveJournalEntry, type JournalEntry } from "../lib/api";
 import "./journal-screen.css";
 
 function formatTime(ts: string): string {
@@ -63,20 +63,7 @@ export default function JournalScreen() {
     setWritePending(true);
     setWriteStatus(null);
     try {
-      const token = localStorage.getItem("pw_token") || "";
-      const res = await fetch("/api/journal", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-PW-StepUp": "1",
-        },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.detail ?? `Write failed (${res.status})`);
-      }
+      await saveJournalEntry(text);
       setWriteText("");
       setWriteStatus("Saved.");
       journalKey();

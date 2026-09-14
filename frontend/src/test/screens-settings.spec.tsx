@@ -252,6 +252,11 @@ function standardRoutes(overrides: FetchResponder[] = []): FetchResponder[] {
     respondOk("/api/reminders", REMINDERS),
     respondStatus(),
     respondOk("/api/themes", THEMES),
+    respondOk("/api/connections/overview", []),
+    respondOk("/api/connections", []),
+    respondOk("/api/apps", []),
+    respondOk("/api/chat/providers", { providers: [], active: null }),
+    respondOk("/api/brain/templates", { templates: [] }),
   ];
 }
 
@@ -386,7 +391,8 @@ describe("Settings: prefs render from GET /api/prefs/schema (parity row 6)", () 
     mockFetch(standardRoutes());
     renderScreen();
     await screen.findByTestId("companion-panel");
-    expect(screen.queryByTestId("themes-panel")).toBeNull();
+    // Themes panel exists as an appearance-pack surface, but it must NOT
+    // contain companion selection buttons or dead "not a companion" copy.
     expect(screen.queryByText("Not a companion option on this server.")).toBeNull();
     expect(screen.queryByRole("button", { name: "Select World Keeper (Globe)" })).toBeNull();
   });
@@ -401,10 +407,19 @@ describe("Settings: prefs render from GET /api/prefs/schema (parity row 6)", () 
       respondSections(),
       respondOk("/api/reminders", []),
       respondStatus(),
+      respondOk("/api/connections/overview", []),
+      respondOk("/api/connections", []),
+      respondOk("/api/apps", []),
+      respondOk("/api/chat/providers", { providers: [], active: null }),
+      respondOk("/api/brain/templates", { templates: [] }),
+      respondOk("/api/themes", []),
+      respondOk("/api/identity/principal", { id: "test", kind: "person", display_name: "Test User", scopes: [], source: "test" }),
     ]);
     renderScreen();
-    const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("Preference options are unavailable");
+    const alerts = await screen.findAllByRole("alert");
+    const schemaAlert = alerts.find((a) => a.textContent?.includes("Preference options are unavailable"));
+    expect(schemaAlert).toBeTruthy();
+    expect(schemaAlert!.textContent).toContain("Preference options are unavailable");
     expect(screen.queryByLabelText("Motion")).toBeNull();
   });
 });
@@ -737,6 +752,12 @@ describe("Settings: capability table from /api/status", () => {
           ? jsonResponse(500, { detail: "status unavailable" })
           : undefined,
       respondOk("/api/themes", []),
+      respondOk("/api/connections/overview", []),
+      respondOk("/api/connections", []),
+      respondOk("/api/apps", []),
+      respondOk("/api/chat/providers", { providers: [], active: null }),
+      respondOk("/api/brain/templates", { templates: [] }),
+      respondOk("/api/identity/principal", { id: "test", kind: "person", display_name: "Test User", scopes: [], source: "test" }),
     ]);
     renderScreen();
     const panel = await screen.findByTestId("capabilities-panel");

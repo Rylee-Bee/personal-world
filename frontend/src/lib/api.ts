@@ -70,6 +70,33 @@ function withStepUp(headers: Headers): Headers {
 }
 
 /**
+ * Authenticated headers for direct fetch calls. Use the typed
+ * helpers (apiFetch / apiFetchEnvelope) when possible; this exists
+ * for screens that need raw Response access while keeping the single
+ * Authorization boundary.
+ */
+export function authHeaders(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${getAuthToken()}`,
+  };
+}
+
+/**
+ * Authenticated headers with step-up for direct fetch calls. Use the
+ * typed helpers when possible; this exists for screens that need raw
+ * Response access while keeping the single Authorization + StepUp
+ * boundary.
+ */
+export function authStepUpHeaders(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${getAuthToken()}`,
+    "X-PW-StepUp": "1",
+  };
+}
+
+/**
  * Runtime-safe envelope unwrapping. Most handlers return
  * `{ok, status?, data, warnings?}` (api.py); a few (chat, memory
  * search, daily) return a Result-shaped body where `data` is the
@@ -531,6 +558,16 @@ export async function fetchDaily(): Promise<DailyResult & { data: DailyData }> {
   return apiFetchEnvelope<DailyResult & { data: DailyData }>("/api/daily");
 }
 
+/**
+ * POST /api/daily: trigger the daily loop (step-up gated).
+ */
+export async function runDailyLoop(): Promise<unknown> {
+  return apiFetch<unknown>("/api/daily", {
+    method: "POST",
+    headers: withStepUp(new Headers({ "Content-Type": "application/json" })),
+  });
+}
+
 export async function fetchHealth(): Promise<HealthStatus> {
   const json = await apiFetch<unknown>("/healthz");
   return json as HealthStatus;
@@ -883,6 +920,11 @@ export async function saveNativeConfig(key: string, config: unknown): Promise<un
   });
 }
 
+export async function fetchNativeConfig(key: string): Promise<Record<string, unknown>> {
+  const all = await apiFetch<Record<string, unknown>>("/api/connections/config");
+  return (all?.[key] as Record<string, unknown>) ?? {};
+}
+
 export async function testConnection(payload: {
   capability: string;
   adapter_type: string;
@@ -930,6 +972,32 @@ export async function fetchDiscoveryInterests(): Promise<unknown> {
 export async function fetchDiscoveryDiscover(source?: string): Promise<unknown> {
   const url = source ? `/api/discovery/discover?source=${source}` : "/api/discovery/discover";
   return apiFetch<unknown>(url);
+}
+
+export async function addDiscoverySource(source: {
+  id: string;
+  name: string;
+  url: string;
+  tags: string[];
+}): Promise<unknown> {
+  return apiFetch<unknown>("/api/discovery/sources", {
+    method: "POST",
+    headers: withStepUp(new Headers({ "Content-Type": "application/json" })),
+    body: JSON.stringify(source),
+  });
+}
+
+export async function addDiscoveryInterest(interest: {
+  id: string;
+  name: string;
+  category: string;
+  weight: number;
+}): Promise<unknown> {
+  return apiFetch<unknown>("/api/discovery/interests", {
+    method: "POST",
+    headers: withStepUp(new Headers({ "Content-Type": "application/json" })),
+    body: JSON.stringify(interest),
+  });
 }
 
 // ── Reconciler ──
