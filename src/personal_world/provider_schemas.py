@@ -178,6 +178,7 @@ def _calendar_providers() -> list[ProviderSchema]:
                             placeholder="user@example.com"),
                 ConfigField("password", "Password", "secret", secret_ref=True),
             ],
+            can_test=False,
         ),
     ]
 
@@ -297,6 +298,7 @@ def _updates_providers() -> list[ProviderSchema]:
                 ConfigField("url", "Version URL", "url", required=True,
                             placeholder="https://service.example/version.json"),
             ],
+            can_test=False,
         ),
     ]
 
@@ -356,7 +358,7 @@ def _reasoning_providers() -> list[ProviderSchema]:
                 ConfigField("model", "Model", "text", required=True),
                 ConfigField("api_key", "API Key", "secret", secret_ref=True),
             ],
-            can_test=True,
+            can_test=False,
             multiple=False,
         ),
         ProviderSchema(
@@ -371,7 +373,7 @@ def _reasoning_providers() -> list[ProviderSchema]:
                 ConfigField("api_key", "API Key", "secret", required=True,
                             secret_ref=True),
             ],
-            can_test=True,
+            can_test=False,
             multiple=False,
         ),
         ProviderSchema(
@@ -386,7 +388,7 @@ def _reasoning_providers() -> list[ProviderSchema]:
                 ConfigField("api_key", "API Key", "secret", required=True,
                             secret_ref=True),
             ],
-            can_test=True,
+            can_test=False,
             multiple=False,
         ),
     ]

@@ -974,7 +974,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 url = config.get("url", "")
                 if not url:
                     return {"status": "invalid_configuration", "detail": "URL is required"}
-                return {"status": "healthy", "detail": "Webhook URL accepted (not tested with a real request)"}
+                return {"status": "validated", "detail": "Webhook URL accepted (not tested with a real request)"}
             elif adapter_type == "github_release":
                 repo = config.get("repository", "")
                 if not repo:
@@ -1017,13 +1017,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                     return {"status": "invalid_configuration", "detail": "Compose file path is required"}
                 p = Path(path)
                 if p.exists():
-                    return {"status": "healthy", "detail": f"Compose file found at {path}"}
+                    return {"status": "validated", "detail": f"Compose file found at {path}"}
                 return {"status": "unavailable", "detail": f"Compose file not found at {path}"}
             elif adapter_type == "systemd":
                 service = config.get("service_name", "")
                 if not service:
                     return {"status": "invalid_configuration", "detail": "Service name is required"}
-                return {"status": "healthy", "detail": f"Service '{service}' accepted"}
+                return {"status": "validated", "detail": f"Service '{service}' accepted — no live check performed"}
             else:
                 return {"status": "unknown", "detail": f"Test not implemented for {adapter_type}"}
         except Exception as e:

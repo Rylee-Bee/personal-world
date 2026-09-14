@@ -243,6 +243,7 @@ function TestResult({ result }: { result: ConnectionTestResult | null }) {
   if (!result) return null;
   const statusMap: Record<string, { color: string; label: string }> = {
     healthy: { color: "var(--pw-color-accent-primary)", label: "Connected" },
+    validated: { color: "var(--pw-color-accent-primary)", label: "Configuration validated" },
     unavailable: { color: "var(--pw-color-text-primary)", label: "Unavailable" },
     invalid_configuration: { color: "var(--pw-color-text-primary)", label: "Invalid configuration" },
     unauthorized: { color: "var(--pw-color-text-primary)", label: "Unauthorized" },
