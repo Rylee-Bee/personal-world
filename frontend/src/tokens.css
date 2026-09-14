@@ -47,14 +47,29 @@
   --pw-color-shell-nav-active-bg: rgba(114,177,177,0.1);
   --pw-color-shell-world-identity-label: #9185a8;
   --pw-color-shell-sidebar-organic-edge: linear-gradient(180deg, rgba(41,35,55,0.6) 0%, rgba(41,35,55,0.3) 40%, rgba(41,35,55,0.6) 100%);
-  --pw-color-warmth-teal-ghost: rgba(114,177,177,0.04);
-  --pw-color-warmth-teal-whisper: rgba(114,177,177,0.06);
-  --pw-color-warmth-teal-breath: rgba(114,177,177,0.1);
-  --pw-color-warmth-teal-touch: rgba(114,177,177,0.12);
-  --pw-color-warmth-rose-ghost: rgba(181,127,139,0.04);
-  --pw-color-warmth-rose-whisper: rgba(181,127,139,0.06);
-  --pw-color-warmth-rose-breath: rgba(181,127,139,0.1);
-  --pw-color-warmth-rose-touch: rgba(181,127,139,0.15);
+  --pw-color-warmth-teal-02: rgba(114,177,177,0.02);
+  --pw-color-warmth-teal-03: rgba(114,177,177,0.03);
+  --pw-color-warmth-teal-04: rgba(114,177,177,0.04);
+  --pw-color-warmth-teal-06: rgba(114,177,177,0.06);
+  --pw-color-warmth-teal-07: rgba(114,177,177,0.07);
+  --pw-color-warmth-teal-08: rgba(114,177,177,0.08);
+  --pw-color-warmth-teal-12: rgba(114,177,177,0.12);
+  --pw-color-warmth-teal-14: rgba(114,177,177,0.14);
+  --pw-color-warmth-teal-15: rgba(114,177,177,0.15);
+  --pw-color-warmth-teal-18: rgba(114,177,177,0.18);
+  --pw-color-warmth-teal-20: rgba(114,177,177,0.2);
+  --pw-color-warmth-teal-30: rgba(114,177,177,0.3);
+  --pw-color-warmth-teal-70: rgba(114,177,177,0.7);
+  --pw-color-warmth-rose-02: rgba(181,127,139,0.02);
+  --pw-color-warmth-rose-03: rgba(181,127,139,0.03);
+  --pw-color-warmth-rose-04: rgba(181,127,139,0.04);
+  --pw-color-warmth-rose-05: rgba(181,127,139,0.05);
+  --pw-color-warmth-rose-06: rgba(181,127,139,0.06);
+  --pw-color-warmth-rose-20: rgba(181,127,139,0.2);
+  --pw-color-warmth-rose-25: rgba(181,127,139,0.25);
+  --pw-color-warmth-rose-30: rgba(181,127,139,0.3);
+  --pw-color-warmth-rose-70: rgba(181,127,139,0.7);
+  --pw-color-surface-dark-40: rgba(10,8,16,0.4);
 }
 
 [data-pw-theme="light"] {
@@ -97,8 +112,8 @@
   --pw-typography-line-height-body: 1.6;
 }
 
-:root { --pw-focus-ring: 2px solid var(--pw-color-accent-primary); }
-:root { --pw-focus-ring-high-contrast: 2px solid var(--pw-color-text-primary); }
+:root { --pw-focus-ring: 2px solid #72b1b1; }
+:root { --pw-focus-ring-high-contrast: 2px solid #FFFFFF; }
 
 :root { --pw-motion-duration: 0ms; --pw-motion-ambient: 0; }
 

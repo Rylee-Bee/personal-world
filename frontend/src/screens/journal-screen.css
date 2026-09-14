@@ -11,7 +11,7 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 35% 45%, rgba(181,127,139,0.03) 0%, transparent 55%);
+    radial-gradient(ellipse at 35% 45%, var(--pw-color-warmth-rose-03) 0%, transparent 55%);
   pointer-events: none;
   z-index: 0;
 }
@@ -540,8 +540,8 @@
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--pw-color-accent-secondary);
-  background: rgba(181,127,139,0.08);
-  border: 1px solid rgba(181,127,139,0.2);
+  background: var(--pw-color-warmth-rose-wash);
+  border: 1px solid var(--pw-color-warmth-rose-20);
   border-radius: 8px;
   padding: 8px 16px;
   cursor: pointer;
@@ -549,7 +549,7 @@
 }
 
 .pw-journal-correct-btn:hover {
-  background: rgba(181,127,139,0.14);
+  background: var(--pw-color-warmth-rose-tint);
 }
 
 .pw-journal-correct-btn:focus-visible {
@@ -665,7 +665,7 @@
 
 [data-pw-correction="success"] {
   background: var(--pw-color-warmth-teal-whisper);
-  border: 1px solid rgba(114,177,177,0.15);
+  border: 1px solid var(--pw-color-warmth-teal-15);
 }
 
 .pw-journal-correction-success {

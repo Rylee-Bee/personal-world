@@ -124,7 +124,7 @@ describe("JournalScreen (T10, parity row 4)", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save entry" }));
     await waitFor(() => {
-      expect(screen.getByText("Saved to your journal.")).toBeTruthy();
+      expect(screen.getAllByText("Saved to your journal.").length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -151,7 +151,7 @@ describe("JournalScreen (T10, parity row 4)", () => {
     expect(screen.getByText(/Could not load journal entries/)).toBeTruthy();
   });
 
-  it("audit trail disclosure is collapsed by default and loads audit data on mount", async () => {
+  it("audit trail disclosure is collapsed by default and loads audit data on click", async () => {
     let auditCalls = 0;
     mockFetchByRoute({
       "/api/journal/audit": () => {
@@ -174,7 +174,15 @@ describe("JournalScreen (T10, parity row 4)", () => {
     await waitFor(() => {
       expect(screen.queryByText(/Opening your journal…/)).toBeNull();
     });
-    expect(auditCalls).toBe(1);
+    expect(auditCalls).toBe(0);
+    fireEvent.click(screen.getByText(/Audit trail/));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Show the technical audit log" })).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Show the technical audit log" }));
+    await waitFor(() => {
+      expect(auditCalls).toBe(1);
+    });
     expect(screen.getByText(/\[chat\] \(world\)/)).toBeTruthy();
   });
 
@@ -254,7 +262,7 @@ describe("Journal correction workflow (propose → approve → act; original pre
     });
     fireEvent.click(screen.getByRole("button", { name: "Save entry" }));
     await waitFor(() => {
-      expect(screen.getByText("Saved to your journal.")).toBeTruthy();
+      expect(screen.getAllByText("Saved to your journal.").length).toBeGreaterThanOrEqual(1);
     });
     expect(postCalled).toBe(true);
   });
@@ -441,7 +449,7 @@ describe("Journal assistant-drafted correction handoff (drafting is not acting)"
     });
     fireEvent.click(screen.getByRole("button", { name: "Save entry" }));
     await waitFor(() => {
-      expect(screen.getByText("Saved to your journal.")).toBeTruthy();
+      expect(screen.getAllByText("Saved to your journal.").length).toBeGreaterThanOrEqual(1);
     });
   });
 });

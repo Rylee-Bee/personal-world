@@ -42,13 +42,13 @@ describe("section stubs: honest EmptyStates (T13)", () => {
   it("Interests names the discovery capability and the warm invitation", async () => {
     render(stubProviders(<InterestsScreen />));
     expect(screen.getByRole("heading", { name: "Interests" })).toBeTruthy();
-    expect(
-      screen.getByText("Your discovery room")
-    ).toBeTruthy();
     await waitFor(() => {
       expect(screen.getByText("This room is still empty.")).toBeTruthy();
     });
-    expect(screen.getByText("No discovery sources configured yet.")).toBeTruthy();
+    expect(
+      screen.getByText(/Interests helps your world learn/)
+    ).toBeTruthy();
+    expect(screen.getByText("Start exploring \u2192")).toBeTruthy();
   });
 
   it("Media names the media capability and the Settings knob", async () => {

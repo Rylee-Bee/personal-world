@@ -14,7 +14,7 @@
   inset: 0;
   background:
     radial-gradient(ellipse at 80% 15%, var(--pw-color-warmth-teal-ghost) 0%, transparent 40%),
-    radial-gradient(ellipse at 35% 30%, rgba(114,177,177,0.05) 0%, transparent 55%);
+    radial-gradient(ellipse at 35% 30%, var(--pw-color-warmth-teal-reassure) 0%, transparent 55%);
   pointer-events: none;
   z-index: 0;
 }
@@ -116,7 +116,7 @@
   align-items: center;
   justify-content: center;
   background: var(--pw-color-warmth-teal-wash);
-  border: 1px solid rgba(114,177,177,0.18);
+  border: 1px solid var(--pw-color-warmth-teal-18);
 }
 
 .pw-vault-lock-icon {
@@ -170,7 +170,7 @@
   padding: 5px 14px 5px 10px;
   border-radius: 999px;
   background: var(--pw-color-warmth-teal-wash);
-  border: 1px solid rgba(114,177,177,0.14);
+  border: 1px solid var(--pw-color-warmth-teal-14);
   box-shadow: var(--pw-color-warmth-vault-glow);
   width: fit-content;
   margin-top: 4px;
@@ -180,11 +180,11 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(181,127,139,0.7);
+  background: var(--pw-color-warmth-rose-70);
 }
 
 .pw-vault-lock-dot--unlocked {
-  background: rgba(114,177,177,0.7);
+  background: var(--pw-color-warmth-teal-70);
 }
 
 .pw-vault-lock-label {
@@ -391,8 +391,8 @@
   min-height: var(--pw-target-minimum);
   min-width: var(--pw-target-minimum);
   border-radius: 10px;
-  border: 1px solid rgba(181,127,139,0.25);
-  background: rgba(181,127,139,0.08);
+  border: 1px solid var(--pw-color-warmth-rose-25);
+  background: var(--pw-color-warmth-rose-wash);
   color: var(--pw-color-accent-secondary);
   font-size: 0.8125rem;
   cursor: pointer;
@@ -620,7 +620,7 @@
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--pw-color-warmth-teal-ghost);
-  border: 1px solid rgba(114,177,177,0.08);
+  border: 1px solid var(--pw-color-warmth-teal-08);
 }
 
 .pw-vault-store-note-icon {

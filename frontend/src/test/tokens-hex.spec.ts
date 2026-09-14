@@ -14,7 +14,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const srcRoot = join(here, "..");
 const pkgRoot = join(here, "..", "..");
 
-const HEX_RE = /#[0-9a-fA-F]{3,8}\b|\brgb\(|\brgba\(/;
+const HEX_RE = /(?<!&)#[0-9a-fA-F]{3,8}\b|\brgb\(|\brgba\(/;
 
 function* walk(dir: string): Generator<string> {
   for (const entry of readdirSync(dir)) {
