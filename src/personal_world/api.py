@@ -119,16 +119,28 @@ def _reconcile_boot_token(data_dir: Path) -> None:
 
 
 def _step_up_authorized(request: Request) -> bool:
-    """Write path semantics. Three authorization paths:
+    """Write path trust/elevation check.
 
-    1. Session with active step-up: the owner authenticated through
-       the trusted login + step-up flow (300-second window).
-    2. Loopback / private network: Docker bridge, local install.
-       Intentional: the owner is on the same machine.
-    3. X-PW-StepUp: 1 header: for consumers behind Authelia or
-       similar reverse proxies that handle real authentication.
+    Three paths grant write access. None of these constitute fresh
+    re-authentication or MFA — they are trust elevation mechanisms
+    appropriate for a single-owner personal system:
 
-    A boolean passed by the model is NOT authorization.
+    1. Session elevation: the owner authenticated through the login
+       flow and then explicitly requested step-up within the last
+       300 seconds. The session cookie carries the elevation window.
+
+    2. Trusted local/network: the request originates from loopback,
+       private, or Docker bridge networks. Intentional: the owner
+       is on the same machine or LAN.
+
+    3. Trusted proxy header: X-PW-StepUp: 1 from a consumer behind
+       a reverse proxy (e.g., Authelia) that handles its own
+       authentication. The header is trust delegation, not proof
+       of fresh authentication.
+
+    Genuine fresh re-authentication (password re-entry, MFA challenge)
+    is NOT implemented. The session elevation is a time-window flag,
+    not a re-verification. This is a known remaining gap.
     """
     # Path 1: Check session-based step-up
     session_id = request.cookies.get("pw_session")
@@ -864,7 +876,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         server-side — the model cannot forge it.
         """
         from .tool_registry import _execute_approved_write, get_proposal
-        from .scheduler import Reminder
         # Verify proposal exists and is approved before attempting execution
         p = get_proposal(proposal_id)
         if p is None:
@@ -876,17 +887,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 "warnings": [f"proposal is {p.get('status')}, not approved"],
             }
         world, registry = _state()
-        r = _execute_approved_write(journal, world, proposal_id)
+        r = _execute_approved_write(journal, world, proposal_id, _reminders)
         if r.ok:
             ptype = p.get("type")
             # Persist world mutations
             if ptype in ("world_intent", "world_fact"):
                 save_world(world, world_path)
-            # Schedule reminders through the real scheduler
-            if ptype == "reminder":
-                rid = f"proposal-{proposal_id}"
-                reminder = Reminder(id=rid, text=p.get("text", ""))
-                _reminders.add(reminder)
         return r.model_dump(mode="json")
 
     @app.get("/api/actors", dependencies=[Depends(require_auth)])
@@ -936,23 +942,31 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         for cs in CAPABILITY_SCHEMAS.values():
             cap = cs.capability
             status_info = status_map.get(cap, {})
-            # Determine if configured
+            # Determine if configured — resolve flat UI config to
+            # provider shape before checking
+            from .connection_manager import resolve_native_config
             if cap == "media":
                 media_cfg = config.get("media", {})
-                adapters = media_cfg.get("providers", media_cfg.get("adapters", []))
-                configured = len(adapters) > 0
-            elif cap == "calendar":
-                cal_cfg = config.get("calendar", {})
-                configured = len(cal_cfg.get("sources", [])) > 0
-            elif cap == "notifications":
-                notif_cfg = config.get("notifications", {})
-                configured = len(notif_cfg.get("targets", [])) > 0
-            elif cap == "deployment":
-                deploy_cfg = config.get("deployment", {})
-                configured = len(deploy_cfg.get("targets", [])) > 0
-            elif cap == "update_discovery":
-                updates_cfg = config.get("updates", {})
-                configured = len(updates_cfg.get("sources", [])) > 0
+                # Check both connections[] entries and flat UI config
+                has_conn_entries = any(
+                    c.get("type") in ("plex", "sonarr", "radarr", "lidarr")
+                    for c in config.get("connections", [])
+                )
+                has_ui_config = bool(media_cfg.get("_adapter"))
+                configured = has_conn_entries or has_ui_config
+            elif cap in ("calendar", "notifications", "deployment", "updates"):
+                raw_cfg = config.get(cap, {})
+                resolved = resolve_native_config(raw_cfg, cap)
+                # Check the resolved wrapper key
+                spec_map = {
+                    "calendar": "sources",
+                    "notifications": "targets",
+                    "deployment": "targets",
+                    "updates": "sources",
+                }
+                wrapper = spec_map.get(cap, "")
+                items = resolved.get(wrapper, [])
+                configured = len(items) > 0
             elif cap == "auth":
                 oidc_path = config_dir / "oidc.json"
                 configured = oidc_path.exists()
@@ -1573,20 +1587,34 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     # --- Media endpoints ---
     from .providers.native_media import NativeMediaEngine, build_adapter
+    from .connection_manager import resolve_media_connections
 
     def _build_media_engine():
         """Build media engine from MERGED connection config.
 
-        Uses ConnectionManager so connections.local.json (private
-        config saved through the UI) is included.
+        Resolves both:
+        - connections[] entries (tracked config, provider shape)
+        - flat UI config (connections.local.json, schema-driven shape)
         """
         config = conn_mgr.get_all_config()
         adapters = []
+
+        # 1. connections[] entries (provider shape — has "type" key)
         for conn in config.get("connections", []):
             if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
                 adapter = build_adapter(conn)
                 if adapter:
                     adapters.append(adapter)
+
+        # 2. Flat UI config saved under "media" key
+        media_raw = config.get("media", {})
+        if media_raw and media_raw.get("_adapter"):
+            for conn in resolve_media_connections(media_raw):
+                if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
+                    adapter = build_adapter(conn)
+                    if adapter:
+                        adapters.append(adapter)
+
         return NativeMediaEngine(adapters)
 
     @app.get("/api/media/status", dependencies=[Depends(require_auth)])

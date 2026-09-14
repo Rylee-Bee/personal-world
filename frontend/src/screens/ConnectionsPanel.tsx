@@ -4,6 +4,7 @@ import {
   saveConnection,
   testConnection,
   fetchConnections,
+  fetchNativeConfig,
   type ProviderSchemaDef,
   type ConfigFieldDef,
   type ConnectionTestResult,
@@ -296,35 +297,57 @@ function ConfigurePanel({
   // Load existing config for this capability
   useEffect(() => {
     let cancelled = false;
-    fetchConnections()
-      .then((conns) => {
-        if (cancelled) return;
-        // Find the first connection matching this capability
-        const existing = conns.find(
-          (c) => (c as Record<string, unknown>).capability === cap.capability
-        ) as Record<string, unknown> | undefined;
-        if (existing) {
-          // Extract non-secret field values for the form.
-          // Secret values are never returned — only show the field
-          // exists (empty input is fine for secret fields).
-          const init: Record<string, string> = {};
-          for (const [k, v] of Object.entries(existing)) {
-            if (k === "name" || k === "type" || k === "capability") continue;
-            if (typeof v === "string") {
-              init[k] = v;
+
+    const loadConfig = async () => {
+      try {
+        if (cap.capability === "reasoning") {
+          // Reasoning: fetch from connections array
+          const conns = await fetchConnections();
+          if (cancelled) return;
+          const existing = conns.find(
+            (c) => (c as Record<string, unknown>).capability === cap.capability
+          ) as Record<string, unknown> | undefined;
+          if (existing) {
+            const init: Record<string, string> = {};
+            for (const [k, v] of Object.entries(existing)) {
+              if (k === "name" || k === "type" || k === "capability") continue;
+              if (typeof v === "string") init[k] = v;
+            }
+            setExistingConfig(init);
+            if (!selectedProvider && existing.type) {
+              const match = cap.providers.find(
+                (p) => p.adapter_type === existing.type
+              );
+              if (match) setSelectedProvider(match);
             }
           }
-          setExistingConfig(init);
-          // Auto-select matching provider if available
-          if (!selectedProvider && existing.type) {
-            const match = cap.providers.find(
-              (p) => p.adapter_type === existing.type
-            );
-            if (match) setSelectedProvider(match);
+        } else {
+          // Native capabilities: fetch from /api/connections/config/{key}
+          const nativeCfg = await fetchNativeConfig(cap.capability);
+          if (cancelled) return;
+          if (nativeCfg && Object.keys(nativeCfg).length > 0) {
+            const init: Record<string, string> = {};
+            for (const [k, v] of Object.entries(nativeCfg)) {
+              if (k.startsWith("_")) continue;
+              if (typeof v === "string") init[k] = v;
+            }
+            setExistingConfig(init);
+            // Auto-select matching provider
+            const adapter = nativeCfg._adapter;
+            if (!selectedProvider && typeof adapter === "string") {
+              const match = cap.providers.find(
+                (p) => p.adapter_type === adapter
+              );
+              if (match) setSelectedProvider(match);
+            }
           }
         }
-      })
-      .catch(() => {});
+      } catch {
+        // Config not available — fresh form
+      }
+    };
+
+    loadConfig();
     return () => { cancelled = true; };
   }, [cap.capability]);
 
