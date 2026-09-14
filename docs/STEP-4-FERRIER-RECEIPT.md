@@ -1,7 +1,8 @@
 # STEP 4 RECEIPT: FERRIER TOOL-SPECIALIST ROLE
 # branch: feat/fleet-ferrier
-# HEAD: 29abc20
+# HEAD: a6cb314
 # main: 9c4cc99
+# after: Chat integration (ferrier surface on /api/chat) — see §CHAT INTEGRATION
 
 ---
 
@@ -145,11 +146,31 @@ Benchmark run time per model: 5–30 min depending on device + warm cache.
 
 ## REMAINING GAPS
 
-1. **Production `api.py` `execute_approved_write` exposure** — still present in the approval path. Integration task, not started this pass. This is the actual execution surface; the ferrier role is structurally isolated from it.
+1. **Other production surfaces** — the ferrier surface now bounds the `/api/chat` tool-calling loop. Other routes that build a `ToolRegistry` and expose `execute_approved_write` in their model-visible schema (if any) should be audited for the same treatment. The approval route itself must keep calling execution — that is the human wall.
 2. **Routing/args/multi-step below full bar** — even 9B falls short. Gaps go to the Chat integration task (multi-turn continuity, arg prompting, instruction following).
 3. **Fresh 9B re-run** — deferred to GPU availability window. Existing numbers are pre-description-edit lower bound.
 4. **Small-model candidacy** — unanswered (2B/0.8B remain candidates but below the bar).
 
 ## NEXT TASK
 
-Chat integration — NOT started this pass.
+Action engine (P5): propose → explain → approve → act. The ferrier surface on `/api/chat` is the proposal entry; the approval routes that execute `execute_approved_write` are the export. Connecting them per surface, with risk tiers and step-up, is the next step.
+
+---
+
+## CHAT INTEGRATION (added this pass)
+
+**What changed.** `/api/chat` tool-calling is now bounded to the ferrier surface:
+
+- `tool_schemas = tool_reg.ferrier_schemas()` (was `list_ollama_schemas()`): the model's schema drops from 29 to 28 tools — exactly `execute_approved_write` is hidden.
+- `tool_reg.invoke_ferrier(...)` (was `tool_reg.invoke(...)`): execution/step-up tools are refused with `forbidden` even if the model produces their id.
+- Hoisted `_chat_with_tools_loop` from the `create_app` closure to module level. This fixes a latent `NameError` on the max-rounds path (`ok` was referenced but never imported in scope) and makes the guard directly testable.
+
+**Guards (grep-proof tests).** `tests/test_chat_ferrier_integration.py` (12 tests):
+- `ferrier_schemas()` hides `execute_approved_write`; includes READ + PROPOSAL
+- `invoke_ferrier()` refuses execute + evasion aliases + unknown tool ids
+- the loop routes through `invoke_ferrier` (not raw `.invoke(`)
+- the endpoint selects schemas via `ferrier_schemas()` (not `list_ollama_schemas()`)
+
+**Regression.** 763 passed, 5 skipped, 0 framework violations, bench selftest 60/60. `test_ferrier.py` synthetic secret values now carry the repo's `pw-safety: synthetic` canary so the public-safety gate stays green.
+
+**Commit.** `a6cb314`. Effective surface delta on `/api/chat`: model can no longer see or call `execute_approved_write`.
