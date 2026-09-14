@@ -255,7 +255,7 @@ export default function InterestsScreen() {
 
       {/* Interests */}
       <section className="pw-interests-interests" aria-label="Your interests">
-        <h2 className="pw-interests-section-title">Interests</h2>
+        <h2 className="pw-interests-section-title">Your interests</h2>
         {interestsQuery.isLoading ? (
           <p className="pw-interests-hint">Loading interests…</p>
         ) : interests.length > 0 ? (

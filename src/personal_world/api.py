@@ -2112,7 +2112,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         except ImportError:
             return {"ok": False, "status": "not_configured",
                     "warnings": ["traefik provider missing"]}
-        r = TraefikIngress().observe()
+        try:
+            r = TraefikIngress().observe()
+        except (ValueError, OSError) as e:
+            return {"ok": False, "status": "not_configured",
+                    "warnings": [str(e)]}
         return {"ok": r.ok, "status": r.status, "data": r.data,
                 "warnings": r.warnings}
 

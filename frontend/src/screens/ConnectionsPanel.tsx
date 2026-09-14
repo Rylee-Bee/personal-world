@@ -477,7 +477,7 @@ export function ConnectionsPanel() {
     overview.refetch();
   };
 
-  const caps = overview.data ?? [];
+  const caps = Array.isArray(overview.data) ? overview.data : [];
   const needsSetup = caps.filter((c) => !c.configured && c.needs_setup);
   const connected = caps.filter((c) => c.configured);
   const readyCount = connected.filter((c) => c.ok || c.status === "healthy").length;
