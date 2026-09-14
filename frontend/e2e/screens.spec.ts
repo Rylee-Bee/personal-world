@@ -46,7 +46,7 @@ test.describe("honest states", () => {
     // The e2e fixture points the native source_control baseline at the
     // repo itself: the real cards must render with the repo's own name.
     await expect(
-      page.locator(".pw-project-card-name", { hasText: "pw-integration" })
+      page.locator(".pw-project-card-name", { hasText: "personal-world" })
     ).toBeVisible();
     const glance = await page.locator(".pw-projects-companion").innerText();
     expect(glance).toMatch(/Watching \d+ project/);
