@@ -13,10 +13,29 @@ Adapters in this module never log or persist secret material; keys
 arrive through env indirection (the framework's secret rule). Chat
 context is built from safe read APIs only -- the chat path can observe
 the world but never mutates privileged state.
+
+One merged adapter surface (A5): this module is the single home for all
+providers and the chat helpers. `chat.py` (context/prompt helpers,
+Ollama, OpenAI-compat) and `chat_registry.py` (Ollama/OpenAI-compat/
+OpenAI/Anthropic/OpenCode + registry) were merged here; the duplicate
+module was retired.
+
+Supports:
+  - Ollama (local, any model)
+  - OpenAI-compatible (llama.cpp, vLLM, LiteLLM, OpenWebUI)
+  - OpenAI direct (GPT-4, GPT-4o, etc.)
+  - Anthropic Claude (via messages API)
+  - OpenCode Go CLI
+  - Any future provider that speaks OpenAI-style chat
+
+Providers are configured in connections.json under the "reasoning"
+capability. The active provider can be switched at runtime via the
+API. Preferences persist per-user.
 """
 
 import json
 import os
+import subprocess
 import urllib.request
 from typing import Any
 
@@ -39,7 +58,15 @@ class ChatContract:
     data carries ``reply`` plus provider-specific diagnostics.
     """
 
+    def health(self) -> Result:
+        """Cheap reachability probe. Contract seam used by
+        registry health_check lambdas; default to observe()."""
+        return self.observe()
+
     def chat(self, messages: list[dict[str, str]]) -> Result:
+        raise NotImplementedError
+
+    def observe(self) -> Result:
         raise NotImplementedError
 
 
@@ -54,6 +81,7 @@ class OllamaChat(ChatContract):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
+        self.display_name = f"Ollama ({model})"
 
     def observe(self) -> Result:
         try:
@@ -188,11 +216,13 @@ class OpenAICompatChat(ChatContract):
         model: str,
         api_key_env: str | None = None,
         timeout: int = CHAT_TIMEOUT_SECONDS,
+        display_name: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.api_key_env = api_key_env
         self.timeout = timeout
+        self.display_name = display_name or f"OpenAI-compat ({model})"
 
     def _headers(self) -> dict:
         h = {"Content-Type": "application/json"}
@@ -200,11 +230,21 @@ class OpenAICompatChat(ChatContract):
             h["Authorization"] = f"Bearer {os.environ[self.api_key_env]}"
         return h
 
+    @staticmethod
+    def _chat_url(base_url: str) -> str:
+        base = base_url.rstrip("/")
+        if base.endswith("/v1"):
+            return f"{base}/chat/completions"
+        return f"{base}/v1/chat/completions"
+
     def observe(self) -> Result:
         try:
-            req = urllib.request.Request(
-                f"{self.base_url}/v1/models", headers=self._headers()
-            )
+            base = self.base_url.rstrip("/")
+            if base.endswith("/v1"):
+                url = f"{base}/models"
+            else:
+                url = f"{base}/v1/models"
+            req = urllib.request.Request(url, headers=self._headers())
             with urllib.request.urlopen(req, timeout=5) as resp:
                 payload = json.loads(resp.read().decode())
             ids = [m.get("id", "") for m in payload.get("data", [])]
@@ -227,27 +267,32 @@ class OpenAICompatChat(ChatContract):
                 warnings=[f"openai-compat: {e}"],
             )
 
-    def chat(self, messages: list[dict[str, str]]) -> Result:
-        body = json.dumps({
-            "model": self.model,
-            "messages": messages,
-            "stream": False,
-        }).encode()
+    def _post(self, body: dict[str, Any]) -> Result:
+        data = json.dumps(body).encode()
         req = urllib.request.Request(
-            f"{self.base_url}/v1/chat/completions",
-            data=body,
+            self._chat_url(self.base_url),
+            data=data,
             headers=self._headers(),
             method="POST",
         )
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                payload = json.loads(resp.read().decode())
+                return json.loads(resp.read().decode())
         except Exception as e:
             return Result(
                 ok=False,
                 status="unavailable",
                 warnings=[f"openai-compat chat: {e}"],
             )
+
+    def chat(self, messages: list[dict[str, str]]) -> Result:
+        payload = self._post({
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+        })
+        if isinstance(payload, Result):
+            return payload
         choices = payload.get("choices") or []
         content = ""
         if choices:
@@ -266,6 +311,331 @@ class OpenAICompatChat(ChatContract):
             "prompt_eval_count": payload.get("usage", {}).get("prompt_tokens"),
         })
 
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> Result:
+        body: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+        }
+        if tools:
+            body["tools"] = tools
+        payload = self._post(body)
+        if isinstance(payload, Result):
+            return payload
+        choices = payload.get("choices") or []
+        if not choices:
+            return Result(ok=False, status="unavailable", warnings=["no choices returned"])
+        message = choices[0].get("message") or {}
+        tool_calls = message.get("tool_calls")
+        if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
+            return ok("healthy", data={
+                "tool_calls": tool_calls,
+                "model": payload.get("model", self.model),
+            })
+        content = (message.get("content") or "").strip()
+        if not content:
+            return Result(ok=False, status="unavailable", warnings=["empty reply"])
+        return ok("healthy", data={
+            "reply": content,
+            "model": payload.get("model", self.model),
+        })
+
+
+class OpenAIChat(ChatContract):
+    """Chat with OpenAI's API directly (GPT-4, GPT-4o, etc.)."""
+
+    def __init__(self, model: str, api_key_env: str = "OPENAI_API_KEY",
+                 timeout: int = CHAT_TIMEOUT_SECONDS) -> None:
+        self.model = model
+        self.api_key_env = api_key_env
+        self.timeout = timeout
+        self.display_name = f"OpenAI ({model})"
+
+    def _headers(self) -> dict:
+        h = {"Content-Type": "application/json"}
+        key = os.environ.get(self.api_key_env)
+        if key:
+            h["Authorization"] = f"Bearer {key}"
+        return h
+
+    def observe(self) -> Result:
+        key = os.environ.get(self.api_key_env)
+        if not key:
+            return fail("unavailable", warnings=[f"{self.api_key_env} not set"])
+        try:
+            req = urllib.request.Request("https://api.openai.com/v1/models", headers=self._headers())
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                payload = json.loads(resp.read().decode())
+            ids = [m.get("id", "") for m in payload.get("data", [])]
+            present = any(self.model in m for m in ids)
+            if not present:
+                return fail("unhealthy", warnings=[f"model '{self.model}' not available"])
+            return ok("healthy", data={"model": self.model, "available_models": len(ids)})
+        except Exception as e:
+            return Result(ok=False, status="unavailable", warnings=[f"openai: {e}"])
+
+    def chat(self, messages: list[dict[str, str]]) -> Result:
+        body = json.dumps({"model": self.model, "messages": messages, "stream": False}).encode()
+        req = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=body,
+                                     headers=self._headers(), method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                payload = json.loads(resp.read().decode())
+        except Exception as e:
+            return Result(ok=False, status="unavailable", warnings=[f"openai chat: {e}"])
+        choices = payload.get("choices") or []
+        content = ""
+        if choices:
+            content = ((choices[0].get("message") or {}).get("content") or "").strip()
+        if not content:
+            return Result(ok=False, status="unavailable", warnings=["openai returned an empty reply"])
+        return ok("healthy", data={"reply": content, "thinking": None,
+                                    "model": payload.get("model", self.model)})
+
+    def chat_with_tools(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> Result:
+        body: dict[str, Any] = {"model": self.model, "messages": messages, "stream": False}
+        if tools:
+            body["tools"] = tools
+        data = json.dumps(body).encode()
+        req = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=data, headers=self._headers(), method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                payload = json.loads(resp.read().decode())
+        except Exception as e:
+            return Result(ok=False, status="unavailable", warnings=[f"openai: {e}"])
+        choices = payload.get("choices") or []
+        if not choices:
+            return Result(ok=False, status="unavailable", warnings=["no choices"])
+        message = choices[0].get("message") or {}
+        tool_calls = message.get("tool_calls")
+        if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
+            return ok("healthy", data={"tool_calls": tool_calls, "model": payload.get("model", self.model)})
+        content = (message.get("content") or "").strip()
+        if not content:
+            return Result(ok=False, status="unavailable", warnings=["empty reply"])
+        return ok("healthy", data={"reply": content, "model": payload.get("model", self.model)})
+
+
+class AnthropicChat(ChatContract):
+    """Chat with Anthropic's Claude API."""
+
+    def __init__(self, model: str, api_key_env: str = "ANTHROPIC_API_KEY",
+                 timeout: int = CHAT_TIMEOUT_SECONDS) -> None:
+        self.model = model
+        self.api_key_env = api_key_env
+        self.timeout = timeout
+        self.display_name = f"Claude ({model})"
+
+    def _headers(self) -> dict:
+        h = {
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01",
+        }
+        key = os.environ.get(self.api_key_env)
+        if key:
+            h["x-api-key"] = key
+        return h
+
+    def observe(self) -> Result:
+        key = os.environ.get(self.api_key_env)
+        if not key:
+            return fail("unavailable", warnings=[f"{self.api_key_env} not set"])
+        return ok("healthy", data={"model": self.model, "provider": "anthropic"})
+
+    def chat(self, messages: list[dict[str, str]]) -> Result:
+        # Anthropic uses a different message format
+        system = ""
+        claude_messages = []
+        for m in messages:
+            if m["role"] == "system":
+                system = m["content"]
+            else:
+                claude_messages.append({"role": m["role"], "content": m["content"]})
+
+        body: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": 2048,
+            "messages": claude_messages,
+        }
+        if system:
+            body["system"] = system
+
+        data = json.dumps(body).encode()
+        req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=data,
+                                     headers=self._headers(), method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                payload = json.loads(resp.read().decode())
+        except Exception as e:
+            return Result(ok=False, status="unavailable", warnings=[f"claude chat: {e}"])
+
+        content_blocks = payload.get("content", [])
+        text_parts = [b.get("text", "") for b in content_blocks if b.get("type") == "text"]
+        reply = "\n".join(text_parts).strip()
+        if not reply:
+            return Result(ok=False, status="unavailable", warnings=["claude returned an empty reply"])
+        return ok("healthy", data={"reply": reply, "thinking": None,
+                                    "model": payload.get("model", self.model)})
+
+    def chat_with_tools(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> Result:
+        system = ""
+        claude_messages = []
+        for m in messages:
+            if m.get("role") == "system":
+                system = m.get("content", "")
+            elif m.get("role") == "tool":
+                claude_messages.append({"role": "user", "content": [{"type": "tool_result", "tool_use_id": m.get("tool_call_id", ""), "content": m.get("content", "")}]})
+            else:
+                claude_messages.append({"role": m["role"], "content": m.get("content", "")})
+
+        body: dict[str, Any] = {"model": self.model, "max_tokens": 2048, "messages": claude_messages}
+        if system:
+            body["system"] = system
+        if tools:
+            anthropic_tools = []
+            for t in tools:
+                func = t.get("function", {})
+                anthropic_tools.append({
+                    "name": func.get("name", ""),
+                    "description": func.get("description", ""),
+                    "input_schema": func.get("parameters", {}),
+                })
+            body["tools"] = anthropic_tools
+
+        data = json.dumps(body).encode()
+        req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=data, headers=self._headers(), method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                payload = json.loads(resp.read().decode())
+        except Exception as e:
+            return Result(ok=False, status="unavailable", warnings=[f"anthropic: {e}"])
+
+        content_blocks = payload.get("content", [])
+        tool_uses = [b for b in content_blocks if b.get("type") == "tool_use"]
+        if tool_uses:
+            tool_calls = []
+            for tu in tool_uses:
+                tool_calls.append({
+                    "function": {"name": tu.get("name", ""), "arguments": json.dumps(tu.get("input", {}))},
+                    "id": tu.get("id", ""),
+                })
+            return ok("healthy", data={"tool_calls": tool_calls, "model": payload.get("model", self.model)})
+
+        text_parts = [b.get("text", "") for b in content_blocks if b.get("type") == "text"]
+        reply = "\n".join(text_parts).strip()
+        if not reply:
+            return Result(ok=False, status="unavailable", warnings=["empty reply"])
+        return ok("healthy", data={"reply": reply, "model": payload.get("model", self.model)})
+
+
+class OpenCodeChat(ChatContract):
+    """Chat via OpenCode Go CLI (opencode run).
+
+    Uses the opencode CLI to send messages to any model available
+    through OpenCode Go's provider system. This is the simplest
+    integration — no API server needed, just the CLI binary.
+    """
+
+    def __init__(self, model: str = "opencode-go/mimo-v2.5",
+                 timeout: int = CHAT_TIMEOUT_SECONDS) -> None:
+        self.model = model
+        self.timeout = timeout
+        self.display_name = f"OpenCode ({model.split('/')[-1]})"
+
+    def observe(self) -> Result:
+        try:
+            proc = subprocess.run(
+                ["opencode", "models"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if proc.returncode != 0:
+                return fail("unavailable", warnings=["opencode CLI not working"])
+            models = proc.stdout.strip().split("\n")
+            present = any(self.model in m for m in models)
+            if not present:
+                return fail("unhealthy", warnings=[f"model '{self.model}' not found in opencode"])
+            return ok("healthy", data={"model": self.model, "available": len(models)})
+        except FileNotFoundError:
+            return fail("unavailable", warnings=["opencode CLI not installed"])
+        except Exception as e:
+            return Result(ok=False, status="unavailable", warnings=[f"opencode: {e}"])
+
+    def chat(self, messages: list[dict[str, str]]) -> Result:
+        # Build the prompt from messages
+        prompt_parts = []
+        for m in messages:
+            if m["role"] == "system":
+                prompt_parts.append(f"System: {m['content']}")
+            elif m["role"] == "user":
+                prompt_parts.append(m["content"])
+            elif m["role"] == "assistant":
+                prompt_parts.append(f"Assistant: {m['content']}")
+        prompt = "\n\n".join(prompt_parts)
+
+        try:
+            proc = subprocess.run(
+                ["opencode", "run", "--model", self.model, "--format", "json"],
+                input=prompt,
+                capture_output=True, text=True, timeout=self.timeout,
+            )
+        except subprocess.TimeoutExpired:
+            return Result(ok=False, status="unavailable",
+                          warnings=["opencode timed out"])
+        except FileNotFoundError:
+            return Result(ok=False, status="unavailable",
+                          warnings=["opencode CLI not installed"])
+        except Exception as e:
+            return Result(ok=False, status="unavailable",
+                          warnings=[f"opencode run failed: {e}"])
+
+        if proc.returncode != 0:
+            return Result(ok=False, status="unavailable",
+                          warnings=[f"opencode exited {proc.returncode}: {proc.stderr[:200]}"])
+
+        # Parse JSON events from stdout
+        reply = ""
+        thinking = None
+        model_used = self.model
+        for line in proc.stdout.strip().split("\n"):
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("type") == "text":
+                text = event.get("part", {}).get("text", "")
+                if text:
+                    reply += text
+            elif event.get("type") == "step_finish":
+                tokens = event.get("part", {}).get("tokens", {})
+
+        reply = reply.strip()
+        if not reply:
+            return Result(ok=False, status="unavailable",
+                          warnings=["opencode returned no text"])
+
+        return ok("healthy", data={
+            "reply": reply,
+            "thinking": thinking,
+            "model": model_used,
+        })
+
+
+# --- Provider builders ---
+
+_PROVIDER_BUILDERS: dict[str, type[ChatContract]] = {
+    "ollama": OllamaChat,
+    "openai_compat": OpenAICompatChat,
+    "openai": OpenAIChat,
+    "anthropic": AnthropicChat,
+    "opencode": OpenCodeChat,
+}
+
 
 def build_chat_provider(connection: dict[str, Any]) -> tuple[str, ChatContract] | None:
     """Construct a chat provider from one connections.json entry.
@@ -278,22 +648,92 @@ def build_chat_provider(connection: dict[str, Any]) -> tuple[str, ChatContract] 
         {"type": "openai_compat", "name": "llamacpp",
          "base_url": "http://127.0.0.1:8080", "model": "...",
          "api_key_env": "MY_KEY_ENV"}
+        {"type": "openai", "name": "gpt", "model": "gpt-4o",
+         "api_key_env": "OPENAI_API_KEY"}
+        {"type": "anthropic", "name": "claude", "model": "claude-sonnet",
+         "api_key_env": "ANTHROPIC_API_KEY"}
+        {"type": "opencode", "name": "oc", "model": "opencode-go/mimo-v2.5"}
     """
     ptype = connection.get("type")
     name = connection.get("name")
     base = connection.get("base_url")
     model = connection.get("model")
-    if not base or not model:
-        return None
+
     if ptype == "ollama":
+        if not base or not model:
+            return None
         timeout = int(connection.get("timeout") or CHAT_TIMEOUT_SECONDS)
         return name or "ollama", OllamaChat(base, model, timeout=timeout)
+
     if ptype == "openai_compat":
+        if not base or not model:
+            return None
         timeout = int(connection.get("timeout") or CHAT_TIMEOUT_SECONDS)
         impl = OpenAICompatChat(base, model, connection.get("api_key_env"),
-                                timeout=timeout)
+                                timeout=timeout, display_name=connection.get("display_name"))
         return name or "openai-compat", impl
+
+    if ptype == "openai":
+        if not model:
+            return None
+        timeout = int(connection.get("timeout") or CHAT_TIMEOUT_SECONDS)
+        impl = OpenAIChat(model, connection.get("api_key_env", "OPENAI_API_KEY"), timeout=timeout)
+        return name or "openai", impl
+
+    if ptype == "anthropic":
+        if not model:
+            return None
+        timeout = int(connection.get("timeout") or CHAT_TIMEOUT_SECONDS)
+        impl = AnthropicChat(model, connection.get("api_key_env", "ANTHROPIC_API_KEY"), timeout=timeout)
+        return name or "anthropic", impl
+
+    if ptype == "opencode":
+        model = connection.get("model", "opencode-go/mimo-v2.5")
+        timeout = int(connection.get("timeout") or CHAT_TIMEOUT_SECONDS)
+        impl = OpenCodeChat(model, timeout=timeout)
+        return name or "opencode", impl
+
     return None
+
+
+class ChatProviderRegistry:
+    """Manages multiple chat providers with runtime switching."""
+
+    def __init__(self) -> None:
+        self._providers: dict[str, ChatContract] = {}
+        self._active: str | None = None
+
+    def register(self, name: str, provider: ChatContract) -> None:
+        self._providers[name] = provider
+        if self._active is None:
+            self._active = name
+
+    def set_active(self, name: str) -> Result:
+        if name not in self._providers:
+            return fail("not_found", warnings=[f"provider '{name}' not registered"])
+        self._active = name
+        return ok("healthy", data={"active": name})
+
+    def get_active(self) -> ChatContract | None:
+        if self._active:
+            return self._providers.get(self._active)
+        return None
+
+    def get(self, name: str) -> ChatContract | None:
+        return self._providers.get(name)
+
+    def list_providers(self) -> list[dict[str, Any]]:
+        result = []
+        for name, impl in self._providers.items():
+            r = impl.observe()
+            result.append({
+                "name": name,
+                "display_name": getattr(impl, "display_name", name),
+                "active": name == self._active,
+                "status": r.status,
+                "ok": r.ok,
+            })
+        return result
 
 
 def trim_context(context: str, limit: int = MAX_CONTEXT_CHARS) -> str:
@@ -394,8 +834,6 @@ def extract_proposal(reply: str) -> tuple[str | None, str]:
     (it stays visible in the reply; no proposal is surfaced). The
     returned JSON is a flat object with the validated fields.
     """
-    import json as _json
-
     fence_start = reply.find("```")
     while fence_start != -1:
         fence_end = reply.find("```", fence_start + 3)
@@ -433,7 +871,7 @@ def extract_proposal(reply: str) -> tuple[str | None, str]:
                     + ("\n\n" if reply[fence_end + 3:].lstrip() else "")
                     + reply[fence_end + 3:].lstrip()
                 ).strip()
-                return _json.dumps(proposal), visible
+                return json.dumps(proposal), visible
             # Malformed proposal block: degrade to ordinary text (the
             # block simply remains part of the reply; no proposal).
             return None, reply

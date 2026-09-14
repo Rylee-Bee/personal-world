@@ -21,7 +21,7 @@ from .model import (
     ProviderMode,
     SCHEMA_VERSION,
 )
-from .chat_registry import build_chat_provider
+from .chat import build_chat_provider
 from .providers.adapters import (
     CandyDispenser,
     FakeSourceControl,

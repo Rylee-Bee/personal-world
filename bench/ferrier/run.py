@@ -40,7 +40,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from personal_world.chat_registry import OpenAICompatChat
+from personal_world.chat import OpenAICompatChat
 from personal_world.envelope import Result, ok
 from personal_world.ferrier import Ferrier
 from personal_world.template_registry import TemplateRegistry
