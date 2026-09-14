@@ -196,9 +196,13 @@ load can take minutes.
 The model observes a trimmed text snapshot of your world (capability
 statuses, actors, intents, policies, world-classified lore, recent
 journal events, source-repository summaries) plus the last six chat
-turns. Private-class lore and secret material are never included. The
-chat path is read-only: there is no tool execution and no state
-mutation from chat.
+turns. Private-class lore and secret material are never included.
+
+Read tools execute directly (inspect world status, search journal, check
+lab health, etc.). Write requests create bounded proposals that require
+approval before execution. Step-up auth gates consequential actions (300s
+window). Execution evidence is recorded. The brain does not receive
+arbitrary shell access.
 
 ## Updates and validation
 

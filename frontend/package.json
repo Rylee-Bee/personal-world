@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "oxlint",
     "tokens": "node scripts/gen-tokens.mjs",
-    "tokens:check": "node scripts/gen-tokens.mjs --check"
+    "tokens:check": "node scripts/gen-tokens.mjs --check",
+    "docs:screenshots": "playwright test e2e/docs-screenshots.spec.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

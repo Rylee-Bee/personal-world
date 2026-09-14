@@ -60,9 +60,12 @@ starters** group. The composer has a **Message** textarea and **Send** button.
 Enter submits; Shift+Enter inserts a newline. Sending/failure/completion use
 text status independent of the companion. Response **Sources** are disclosures.
 
-Chat is read-only conversation over a world snapshot through an optional
-reasoning provider. It does not execute model-selected tools or mutate the
-world. Contextual chat across sections and cross-system actions are target work.
+Chat is a conversation over a world snapshot through an optional
+reasoning provider. Read tools execute directly; write requests create
+bounded proposals that require approval. Step-up auth gates consequential
+actions. Execution evidence is recorded. The brain does not receive
+arbitrary shell access. Contextual chat across sections and cross-system
+actions are target work.
 
 ## Other current pages
 
