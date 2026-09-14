@@ -559,7 +559,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         if not hasattr(impl, "search"):
             return {"ok": False, "status": "unavailable",
                     "warnings": [f"provider '{provider.name}' cannot search"]}
-        result = impl.search(q, top_k=top_k)
+        result = impl.search(q, limit=top_k)
         return result.model_dump(mode="json")
 
     def _chat_with_tools_loop(
