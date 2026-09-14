@@ -216,7 +216,7 @@ class TestEndpointProposalValidation:
         monkeypatch.setattr(
             "personal_world.api.chat_once",
             lambda impl, messages: _fp.chat(messages))
-        from personal_world.chat_registry import OpenAICompatChat
+        from personal_world.chat import OpenAICompatChat
         monkeypatch.setattr(
             OpenAICompatChat, "chat_with_tools",
             lambda self, messages, tools=None: _fp.chat(messages))
@@ -238,7 +238,7 @@ class TestEndpointProposalValidation:
         monkeypatch.setattr(
             "personal_world.api.chat_once",
             lambda impl, messages: _fp.chat(messages))
-        from personal_world.chat_registry import OpenAICompatChat
+        from personal_world.chat import OpenAICompatChat
         monkeypatch.setattr(
             OpenAICompatChat, "chat_with_tools",
             lambda self, messages, tools=None: _fp.chat(messages))
@@ -259,7 +259,7 @@ class TestEndpointProposalValidation:
         monkeypatch.setattr(
             "personal_world.api.chat_once",
             lambda impl, messages: _fp.chat(messages))
-        from personal_world.chat_registry import OpenAICompatChat
+        from personal_world.chat import OpenAICompatChat
         monkeypatch.setattr(
             OpenAICompatChat, "chat_with_tools",
             lambda self, messages, tools=None: _fp.chat(messages))
@@ -305,7 +305,7 @@ class TestEndpointProposalValidation:
         monkeypatch.setattr(
             "personal_world.api.chat_once",
             lambda impl, messages: _fp.chat(messages))
-        from personal_world.chat_registry import OpenAICompatChat
+        from personal_world.chat import OpenAICompatChat
         monkeypatch.setattr(
             OpenAICompatChat, "chat_with_tools",
             lambda self, messages, tools=None: _fp.chat(messages))
