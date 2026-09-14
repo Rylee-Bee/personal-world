@@ -6,6 +6,12 @@ cross-links keep the historical identifier. Technical identifiers unchanged.)
 **Status:** Canonical plan (authoritative ordering and acceptance toward the
 finish line). **Version 1, 2026-09-10.**
 
+> **Update (2026-09-14):** The architecture branch merged to main via
+> PR #42 and PR #43. Several findings from A0 below have been resolved:
+> the reminder scheduler (H6) is implemented and running, native providers
+> cover all capabilities, and 726 tests pass with 0 warnings. See
+> [FINAL-RECEIPT.md](FINAL-RECEIPT.md) for current state.
+
 This plan compares the real implementation against
 [`PERSONAL-WORLD-FINISH-LINE.md`](PERSONAL-WORLD-FINISH-LINE.md) and defines
 the dependency-ordered work, acceptance criteria, contracts, and model
