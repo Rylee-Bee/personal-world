@@ -72,6 +72,62 @@ class ToolRegistry:
         """Tool schemas for Ollama function-calling format."""
         return [t.to_ollama_schema() for t in self._tools.values() if t.handler is not None]
 
+    # ── Ferrier tool surface ──
+    # The ferrier role is structurally limited to READ + PROPOSAL tools.
+    # Execution/step-up tools are never in its schema surface, and the
+    # invoke path refuses them even if a model produces their id. This
+    # is fleet work ABOVE the authorization boundary: enforcement in
+    # ToolRegistry is unchanged; the model's view is strictly smaller.
+
+    def ferrier_allows(self, tool_id: str) -> bool:
+        """Whether a tool id is callable by the ferrier role."""
+        tool = self._tools.get(tool_id)
+        if tool is None:
+            return False
+        if tool.read_write == "read":
+            return True
+        if tool.read_write == "write":
+            # Proposal tools create a pending proposal only; they never
+            # mutate target state and never require step-up.
+            if (
+                tool.requires_approval
+                and not tool.requires_step_up
+                and tool.operation != "execute"
+            ):
+                return True
+        return False
+
+    def ferrier_schemas(self) -> list[dict[str, Any]]:
+        """Read + proposal tool schemas only (execution hidden)."""
+        return [
+            t.to_ollama_schema()
+            for t in self._tools.values()
+            if t.handler is not None and self.ferrier_allows(t.id)
+        ]
+
+    def ferrier_metadata(self) -> list[dict[str, Any]]:
+        """Ferrier-visible tool metadata (execution hidden)."""
+        return [
+            t.to_metadata()
+            for t in self._tools.values()
+            if self.ferrier_allows(t.id)
+        ]
+
+    def invoke_ferrier(self, tool_id: str, args: dict[str, Any]) -> Result:
+        """Invoke a tool through the ferrier surface.
+
+        Non-ferrier tools (execution/step-up) are refused with a
+        ``forbidden`` status regardless of the caller's arguments. A
+        model-generated ``approved=true`` never reaches the execution
+        handler through this path.
+        """
+        if not self.ferrier_allows(tool_id):
+            return fail(
+                "forbidden",
+                warnings=[f"tool '{tool_id}' is not in the ferrier surface"],
+            )
+        return self.invoke(tool_id, args)
+
     def list_metadata(self) -> list[dict[str, Any]]:
         """Full metadata for /api/tools endpoint."""
         return [t.to_metadata() for t in self._tools.values()]
@@ -131,7 +187,7 @@ def build_default_tools(
         id="read_journal",
         capability="journal",
         operation="read",
-        description="Read recent journal entries. Returns entries newest-first.",
+        description="Read recent journal entries newest-first. The journal is the record of past events, observations, and outcomes.",
         read_write="read",
         parameters={
             "type": "object",
@@ -147,7 +203,7 @@ def build_default_tools(
         id="search_journal",
         capability="journal",
         operation="search",
-        description="Search journal entries by text query. Returns matching entries.",
+        description="Search the journal (past notes, decisions, and event outcomes such as whether a backup or task finished) by text query. Returns matching entries.",
         read_write="read",
         parameters={
             "type": "object",
@@ -256,7 +312,7 @@ def build_default_tools(
         id="inspect_reconciler_diff",
         capability="reconciler",
         operation="diff",
-        description="Inspect desired-vs-observed diff for a service. Shows what differs from what was asked for.",
+        description="Inspect the desired-vs-observed drift for ONE service - the change the reconciler currently wants for that service. Required argument: the service name (e.g. media-stack) reported by the reconciler status.",
         read_write="read",
         parameters={
             "type": "object",

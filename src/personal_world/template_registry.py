@@ -122,9 +122,20 @@ class TemplateRegistry:
         return result
     
     def compose(self, surface: str | None = None, task: str | None = None,
-                format: str | None = None, packs: list[str] | None = None) -> str:
-        """Compose runtime instructions from templates."""
+                format: str | None = None, packs: list[str] | None = None,
+                role: str | None = None) -> str:
+        """Compose runtime instructions from templates.
+
+        ``role`` selects a ``role.{id}`` template (e.g. ``role.ferrier``)
+        which is prepended so the role contract leads the composed prompt.
+        """
         parts = []
+
+        # Role template (optional; defines the operational contract)
+        if role:
+            t = self.get(f"role.{role}")
+            if t:
+                parts.append(t.content)
         
         # Core templates (always included)
         for tid in sorted(self._templates.keys()):
@@ -172,12 +183,14 @@ class TemplateRegistry:
         return parts
     
     def provenance(self, surface: str | None = None, task: str | None = None,
-                   packs: list[str] | None = None) -> dict[str, Any]:
+                   packs: list[str] | None = None,
+                   role: str | None = None) -> dict[str, Any]:
         """Report template provenance for Nerd Mode."""
         result = {
             "core": [],
             "surface": None,
             "task": None,
+            "role": None,
             "packs": [],
             "overrides": [],
         }
@@ -186,6 +199,10 @@ class TemplateRegistry:
                 t = self.get(tid)
                 if t:
                     result["core"].append({"id": t.id, "version": t.version, "source": t.source})
+        if role:
+            t = self.get(f"role.{role}")
+            if t:
+                result["role"] = {"id": t.id, "version": t.version, "source": t.source}
         if surface:
             t = self.get(f"surface.{surface}")
             if t:
