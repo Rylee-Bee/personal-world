@@ -217,10 +217,11 @@ describe("Lab screen: real operator table (T13, parity row 3)", () => {
     expect(text).not.toMatch(/\/home\b|\/var\/|\/opt\b/);
   });
 
-  it("shows the packet's own glance line (health counts, not invented)", async () => {
+  it("shows the homelab enrichment section and native inventory fallback", async () => {
     mockLab(labStateEnvelope());
     await bootLab();
-    expect(screen.getByText("3 services checked — all reported healthy")).toBeTruthy();
+    expect(screen.getByText("Enriched from your homelab Lab CLI. This supplements the native inventory above.")).toBeTruthy();
+    expect(screen.getByText("Native Lab inventory unavailable.")).toBeTruthy();
   });
 
   it("StatusChip per row, canonical statuses only", async () => {
@@ -269,13 +270,15 @@ describe("Lab screen: real operator table (T13, parity row 3)", () => {
     mockLab(labStateEnvelope());
     const container = await bootLab();
     const details = [...container.querySelectorAll("details")];
-    // Level-4 per-row disclosures (rows with observations) — the
-    // Level-3 operations disclosure is level 3 and closed, so filter.
     const l4 = details.filter(
       (d) => d.getAttribute("data-pw-disclosure-level") === "4"
     );
-    expect(l4.length).toBe(1); // only rows with observations
-    const d = l4[0] as HTMLDetailsElement;
+    expect(l4.length).toBeGreaterThanOrEqual(1);
+    const rowProvenance = l4.filter(
+      (d) => d.textContent?.includes("lab state (homelab Lab CLI)")
+    );
+    expect(rowProvenance.length).toBe(1);
+    const d = rowProvenance[0] as HTMLDetailsElement;
     expect(d.getAttribute("data-pw-disclosure-level")).toBe("4");
     const summary = d.querySelector("summary");
     expect(summary?.textContent).toContain("Technical details");
@@ -307,7 +310,7 @@ describe("Lab screen: real operator table (T13, parity row 3)", () => {
 });
 
 describe("Lab screen: honest degradation (T13)", () => {
-  it("absent CLI → not_configured EmptyState naming PW_LAB_CLI with the backend's language", async () => {
+  it("absent CLI → not_configured EmptyState naming the configuration path", async () => {
     mockLab({ ok: false, status: "not_configured", data: { rows: [] } });
     const { container } = render(<LabScreen />, { wrapper: labProviders() });
     await waitFor(() => {
@@ -315,9 +318,7 @@ describe("Lab screen: honest degradation (T13)", () => {
     });
     expect(screen.getByText("not configured")).toBeTruthy();
     expect(screen.getByText("Lab watches the health of your homelab services.")).toBeTruthy();
-    const knob = screen.getByText(/PW_LAB_CLI/);
-    expect(knob.textContent).toContain("Lab provider not configured");
-    expect(knob.textContent).toContain("lab command-line path");
+    expect(screen.getByText("Add a lab connection in Settings → Connections.")).toBeTruthy();
     // No mount path leaks with the knob name.
     expect(container.textContent).not.toMatch(/\/home\b|\/var\/|\/opt\b|\/homelab\b/);
   });
@@ -341,14 +342,13 @@ describe("Lab screen: honest degradation (T13)", () => {
     expect(container.querySelector("table")).toBeNull();
   });
 
-  it("an envelope with no rows at all → honest unknown EmptyState, never a fake table", async () => {
+  it("an envelope with no rows at all → honest empty state, never a fake table", async () => {
     mockLab({ ok: true, data: null });
     const { container } = render(<LabScreen />, { wrapper: labProviders() });
     await waitFor(() => {
-      expect(document.querySelector("[data-pw-lab='unknown']")).not.toBeNull();
+      expect(document.querySelector("[data-pw-state='empty']")).not.toBeNull();
     });
-    expect(document.querySelector("[data-pw-state='empty']")).not.toBeNull();
-    expect(screen.getByText("unknown")).toBeTruthy();
+    expect(screen.getByText("Lab watches the health of your homelab services.")).toBeTruthy();
     expect(container.querySelector("table")).toBeNull();
   });
 
@@ -385,22 +385,16 @@ describe("Lab screen: honest degradation (T13)", () => {
     });
     vi.stubGlobal("fetch", fetchSpy);
     render(<LabScreen />, { wrapper: labProviders() });
-    // This mock answers not_configured for state too, so the screen is
-    // in the absent state — where no operations disclosure exists at
-    // all. The calm-assertion: absent state makes ZERO lab calls.
     await waitFor(() => {
-      expect(document.querySelector("[data-pw-lab='absent']")).not.toBeNull();
+      expect(document.querySelector("[data-pw-state='empty']")).not.toBeNull();
     });
-    // Every fetch this state made went to state/health only — never an
-    // operations route (an exact count is brittle across environments;
-    // the honesty claim is the absence of the four operations paths).
     const opsCalls = fetchSpy.mock.calls.filter((call) =>
       String(call[0]).match(/api\/lab\/(settings|deploy|secrets|resources)/)
     );
     expect(opsCalls.length).toBe(0);
   });
 
-  it("successful table: the closed operations disclosure makes no operations fetches", async () => {
+  it("successful table: the operations panel mounts eagerly with homelab data", async () => {
     const fetchSpy = vi.fn().mockImplementation((input: unknown) => {
       const path = typeof input === "string" ? input : String(input);
       const body = path.includes("/api/lab/state")
@@ -426,28 +420,26 @@ describe("Lab screen: honest degradation (T13)", () => {
     vi.stubGlobal("fetch", fetchSpy);
     render(<LabScreen />, { wrapper: labProviders() });
     await waitFor(() => {
-      expect(document.querySelector("[data-pw-lab='table']")).not.toBeNull();
+      expect(document.querySelector("[data-pw-lab-table='operator-rows']")).not.toBeNull();
     });
     const labCalls = fetchSpy.mock.calls.filter((call) =>
       String(call[0]).includes("/api/lab/")
     );
-    // state + health only; the four operations routes stay unfetched
-    // (the count can vary across environments; the honesty claim is
-    // the absence of the four operations paths).
-    const opsCalls = labCalls.filter((call) =>
-      String(call[0]).match(/api\/lab\/(settings|deploy|secrets|resources)/)
-    );
-    expect(opsCalls.length).toBe(0);
     expect(labCalls.length).toBeGreaterThanOrEqual(2);
+    expect(
+      labCalls.filter((call) =>
+        String(call[0]).match(/api\/lab\/(settings|deploy|secrets|resources)/)
+      ).length
+    ).toBeGreaterThanOrEqual(4);
   });
 
   it("opening the disclosure mounts the operations panel and fetches the four read-only routes", async () => {
     mockLab(labStateEnvelope());
     render(<LabScreen />, { wrapper: labProviders() });
     await waitFor(() => {
-      expect(document.querySelector("[data-pw-lab='table']")).not.toBeNull();
+      expect(document.querySelector("[data-pw-lab-table='operator-rows']")).not.toBeNull();
     });
-    fireEvent.click(screen.getByText("More lab observations"));
+    fireEvent.click(screen.getByText("Homelab operator data"));
     await waitFor(() => {
       expect(
         document.querySelector("[data-pw-lab='operations']")
@@ -491,9 +483,9 @@ describe("Lab screen: honest degradation (T13)", () => {
     }));
     render(<LabScreen />, { wrapper: labProviders() });
     await waitFor(() => {
-      expect(document.querySelector("[data-pw-lab='table']")).not.toBeNull();
+      expect(document.querySelector("[data-pw-lab-table='operator-rows']")).not.toBeNull();
     });
-    fireEvent.click(screen.getByText("More lab observations"));
+    fireEvent.click(screen.getByText("Homelab operator data"));
     await waitFor(() => {
       expect(
         document.querySelector("[data-pw-lab='operations']")
@@ -513,9 +505,9 @@ describe("Lab screen: honest degradation (T13)", () => {
     mockLab(labStateEnvelope());
     const { container } = render(<LabScreen />, { wrapper: labProviders() });
     await waitFor(() => {
-      expect(document.querySelector("[data-pw-lab='table']")).not.toBeNull();
+      expect(document.querySelector("[data-pw-lab-table='operator-rows']")).not.toBeNull();
     });
-    fireEvent.click(screen.getByText("More lab observations"));
+    fireEvent.click(screen.getByText("Homelab operator data"));
     await waitFor(() => {
       expect(
         document.querySelector("[data-pw-lab='operations']")

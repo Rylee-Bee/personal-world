@@ -98,6 +98,10 @@ export default function LabScreen() {
         failed="could not reach your lab"
         detail={lab.error?.message || nativeInventory.error?.message}
         headingLevel={1}
+        onRetry={() => {
+          lab.refetch();
+          nativeInventory.refetch();
+        }}
       />
     );
   }
