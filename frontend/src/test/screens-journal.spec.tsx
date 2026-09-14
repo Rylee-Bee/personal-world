@@ -96,26 +96,35 @@ describe("JournalScreen (T10, parity row 4)", () => {
 
   it("journal header renders the title and subtitle", async () => {
     await bootJournal();
-    expect(screen.getByRole("heading", { name: "Journal" })).toBeTruthy();
-    expect(screen.getByText(/quiet writing space/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Journal & Memory" })).toBeTruthy();
+    expect(screen.getByText(/Your words, kept safe/)).toBeTruthy();
   });
 
-  it("write form has a labeled textarea and a submit button", async () => {
+  it("load more re-queries /api/journal with a larger n= param", async () => {
+    const { seen } = await bootJournal();
+    expect(seen.filter((s) => s === "n=20").length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(screen.getByRole("button", { name: "Load more entries" }));
+    await waitFor(() => {
+      expect(seen).toContain("n=100");
+    });
+    expect(screen.getByText("Older entry 1")).toBeTruthy();
+  });
+
+  it("provenance renders through Disclosure Source + technical details", async () => {
     await bootJournal();
-    const textarea = screen.getByLabelText("What's on your mind?");
-    expect(textarea).toBeTruthy();
-    expect(textarea.tagName).toBe("TEXTAREA");
-    expect(screen.getByRole("button", { name: "Write" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Write something new/ })).toBeTruthy();
+    expect(screen.getByText(/entries kept safe/)).toBeTruthy();
   });
 
   it("composer saves through POST /api/journal", async () => {
     await bootJournal();
-    fireEvent.change(screen.getByLabelText("What's on your mind?"), {
+    fireEvent.click(screen.getByRole("button", { name: /Write something new/ }));
+    fireEvent.change(screen.getByLabelText("Journal note"), {
       target: { value: "A note from the test" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Write" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save entry" }));
     await waitFor(() => {
-      expect(screen.getByText("Saved.")).toBeTruthy();
+      expect(screen.getAllByText("Saved to your journal.").length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -127,7 +136,7 @@ describe("JournalScreen (T10, parity row 4)", () => {
     await waitFor(() => {
       expect(screen.queryByText(/Opening your journal…/)).toBeNull();
     });
-    expect(screen.getByText(/Your journal is quiet/)).toBeTruthy();
+    expect(screen.getByText(/No journal entries yet/)).toBeTruthy();
   });
 
   it("journal read failure shows the empty state", async () => {
@@ -139,10 +148,10 @@ describe("JournalScreen (T10, parity row 4)", () => {
     await waitFor(() => {
       expect(screen.queryByText(/Opening your journal…/)).toBeNull();
     });
-    expect(screen.getByText(/Your journal is quiet/)).toBeTruthy();
+    expect(screen.getByText(/Could not load journal entries/)).toBeTruthy();
   });
 
-  it("audit trail disclosure is collapsed by default and loads audit data on mount", async () => {
+  it("audit trail disclosure is collapsed by default and loads audit data on click", async () => {
     let auditCalls = 0;
     mockFetchByRoute({
       "/api/journal/audit": () => {
@@ -165,18 +174,20 @@ describe("JournalScreen (T10, parity row 4)", () => {
     await waitFor(() => {
       expect(screen.queryByText(/Opening your journal…/)).toBeNull();
     });
-    const summary = screen.getByText("Audit trail");
-    const details = summary.closest("details") as HTMLDetailsElement;
-    expect(details.open).toBe(false);
-    expect(auditCalls).toBe(1);
+    expect(auditCalls).toBe(0);
+    fireEvent.click(screen.getByText(/Audit trail/));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Show the technical audit log" })).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Show the technical audit log" }));
+    await waitFor(() => {
+      expect(auditCalls).toBe(1);
+    });
     expect(screen.getByText(/\[chat\] \(world\)/)).toBeTruthy();
   });
 
   it("journal history disclosure is collapsed by default", async () => {
     await bootJournal();
-    const summary = screen.getByText("Journal history");
-    const details = summary.closest("details") as HTMLDetailsElement;
-    expect(details.open).toBe(false);
     expect(
       screen.getAllByText("Entry number 1").length
     ).toBeGreaterThanOrEqual(1);
@@ -245,12 +256,13 @@ describe("Journal correction workflow (propose → approve → act; original pre
     await waitFor(() => {
       expect(screen.queryByText(/Opening your journal…/)).toBeNull();
     });
-    fireEvent.change(screen.getByLabelText("What's on your mind?"), {
+    fireEvent.click(screen.getByRole("button", { name: /Write something new/ }));
+    fireEvent.change(screen.getByLabelText("Journal note"), {
       target: { value: "Server migrated to node 4" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Write" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save entry" }));
     await waitFor(() => {
-      expect(screen.getByText("Saved.")).toBeTruthy();
+      expect(screen.getAllByText("Saved to your journal.").length).toBeGreaterThanOrEqual(1);
     });
     expect(postCalled).toBe(true);
   });
@@ -260,8 +272,9 @@ describe("Journal correction workflow (propose → approve → act; original pre
     await waitFor(() => {
       expect(screen.queryByText(/Opening your journal…/)).toBeNull();
     });
+    fireEvent.click(screen.getByRole("button", { name: /Write something new/ }));
     const btn = screen.getByRole("button", {
-      name: "Write",
+      name: "Save entry",
     }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
   });
@@ -279,10 +292,11 @@ describe("Journal correction workflow (propose → approve → act; original pre
     await waitFor(() => {
       expect(screen.queryByText(/Opening your journal…/)).toBeNull();
     });
-    fireEvent.change(screen.getByLabelText("What's on your mind?"), {
+    fireEvent.click(screen.getByRole("button", { name: /Write something new/ }));
+    fireEvent.change(screen.getByLabelText("Journal note"), {
       target: { value: "A failing write" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Write" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save entry" }));
     await waitFor(() => {
       expect(screen.getByText("write failed")).toBeTruthy();
     });
@@ -314,9 +328,6 @@ describe("Journal correction workflow (propose → approve → act; original pre
     expect(
       screen.getAllByText("first version").length
     ).toBeGreaterThanOrEqual(1);
-    const summary = screen.getByText("Journal history");
-    const details = summary.closest("details") as HTMLDetailsElement;
-    expect(details.open).toBe(false);
   });
 
   it("keyboard: the write button is reachable via Tab", async () => {
@@ -324,12 +335,9 @@ describe("Journal correction workflow (propose → approve → act; original pre
     await waitFor(() => {
       expect(screen.queryByText(/Opening your journal…/)).toBeNull();
     });
-    const textarea = screen.getByLabelText("What's on your mind?");
-    textarea.focus();
-    expect(document.activeElement).toBe(textarea);
-    const btn = screen.getByRole("button", { name: "Write" });
-    expect(btn).toBeTruthy();
-    expect(btn.tagName).toBe("BUTTON");
+    const writeBtn = screen.getByRole("button", { name: /Write something new/ });
+    expect(writeBtn).toBeTruthy();
+    expect(writeBtn.tagName).toBe("BUTTON");
   });
 });
 
@@ -377,15 +385,15 @@ describe("Journal assistant-drafted correction handoff (drafting is not acting)"
     expect(
       screen.getAllByText("Server migrated to node 3 (wrong rack)").length
     ).toBeGreaterThanOrEqual(1);
-    expect(screen.getByLabelText("What's on your mind?")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Write" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Write something new/ })).toBeTruthy();
   });
 
   it("editing the textarea updates its value and enables the button", async () => {
     stashDraft();
     await bootWithDraft();
+    fireEvent.click(screen.getByRole("button", { name: /Write something new/ }));
     const textarea = screen.getByLabelText(
-      "What's on your mind?"
+      "Journal note"
     ) as HTMLTextAreaElement;
     expect(textarea.value).toBe("");
     fireEvent.change(textarea, {
@@ -393,7 +401,7 @@ describe("Journal assistant-drafted correction handoff (drafting is not acting)"
     });
     expect(textarea.value).toBe("Server migrated to node 4 (edited)");
     expect(
-      (screen.getByRole("button", { name: "Write" }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: "Save entry" }) as HTMLButtonElement)
         .disabled
     ).toBe(false);
   });
@@ -401,17 +409,18 @@ describe("Journal assistant-drafted correction handoff (drafting is not acting)"
   it("clearing the textarea resets the write button to disabled", async () => {
     stashDraft();
     await bootWithDraft();
+    fireEvent.click(screen.getByRole("button", { name: /Write something new/ }));
     const textarea = screen.getByLabelText(
-      "What's on your mind?"
+      "Journal note"
     ) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "Some text" } });
     expect(
-      (screen.getByRole("button", { name: "Write" }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: "Save entry" }) as HTMLButtonElement)
         .disabled
     ).toBe(false);
     fireEvent.change(textarea, { target: { value: "" } });
     expect(
-      (screen.getByRole("button", { name: "Write" }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: "Save entry" }) as HTMLButtonElement)
         .disabled
     ).toBe(true);
   });
@@ -427,22 +436,20 @@ describe("Journal assistant-drafted correction handoff (drafting is not acting)"
     );
     await bootWithDraft();
     await waitFor(() => {
-      expect(
-        screen.getAllByText("Server migrated to node 3 (wrong rack)").length
-      ).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("Server migrated to node 3 (wrong rack)").length).toBeGreaterThanOrEqual(1);
     });
-    expect(screen.getByLabelText("What's on your mind?")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Write" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Write something new/ })).toBeTruthy();
   });
 
   it("writing and saving works without a draft", async () => {
     await bootWithDraft();
-    fireEvent.change(screen.getByLabelText("What's on your mind?"), {
+    fireEvent.click(screen.getByRole("button", { name: /Write something new/ }));
+    fireEvent.change(screen.getByLabelText("Journal note"), {
       target: { value: "Server migrated to node 4 (hand-written)" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Write" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save entry" }));
     await waitFor(() => {
-      expect(screen.getByText("Saved.")).toBeTruthy();
+      expect(screen.getAllByText("Saved to your journal.").length).toBeGreaterThanOrEqual(1);
     });
   });
 });

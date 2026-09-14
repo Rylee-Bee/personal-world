@@ -1,23 +1,20 @@
-/* ── Vault screen (17:1014) — AMBIENT register ─────────────────── */
+/* ── Vault screen — Workshop v3 convergence ─────────────────── */
 
 .pw-vault {
   display: flex;
   flex-direction: column;
-  gap: 40px;
-  padding: 70px 84px 92px 64px;
+  gap: 32px;
+  padding: 56px 64px 80px;
   min-height: 100vh;
   position: relative;
 }
 
-/* Ambient teal glow behind content */
 .pw-vault-ambient {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    ellipse at 35% 30%,
-    color-mix(in srgb, var(--pw-color-accent-primary) 5%, transparent) 0%,
-    transparent 55%
-  );
+  background:
+    radial-gradient(ellipse at 80% 15%, var(--pw-color-warmth-teal-ghost) 0%, transparent 40%),
+    radial-gradient(ellipse at 35% 30%, var(--pw-color-warmth-teal-reassure) 0%, transparent 55%);
   pointer-events: none;
   z-index: 0;
 }
@@ -27,42 +24,125 @@
   z-index: 1;
 }
 
+/* ── Top decorative sparkles ── */
+.pw-vault-top-decor {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.pw-vault-sparkle {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.pw-vault-sparkle--teal {
+  background: var(--pw-color-accent-primary);
+  opacity: 0.7;
+}
+
+.pw-vault-sparkle--rose {
+  background: var(--pw-color-accent-secondary);
+  opacity: 0.5;
+}
+
+.pw-vault-sparkle--gold {
+  background: var(--pw-color-accent-gold);
+  opacity: 0.5;
+}
+
+/* ── Lock icon decoration (top-right) ── */
+.pw-vault-lock-decor {
+  position: absolute;
+  top: 32px;
+  right: 64px;
+  width: 80px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.18;
+}
+
+.pw-vault-lock-decor-icon {
+  display: block;
+  width: 56px;
+  height: 68px;
+  border: 3px solid var(--pw-color-text-secondary);
+  border-radius: 8px 8px 4px 4px;
+  position: relative;
+}
+
+.pw-vault-lock-decor-icon::before {
+  content: "";
+  position: absolute;
+  top: -20px;
+  left: 12px;
+  width: 28px;
+  height: 22px;
+  border: 3px solid var(--pw-color-text-secondary);
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+}
+
+.pw-vault-lock-decor-icon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--pw-color-text-secondary);
+  border-radius: 50%;
+}
+
 /* ── Header ── */
 .pw-vault-header {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 20px;
 }
 
 .pw-vault-lock-crest {
   width: 44px;
   height: 44px;
+  min-width: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--pw-color-warmth-teal-wash);
-  border: 1px solid color-mix(in srgb, var(--pw-color-accent-primary) 18%, transparent);
+  border: 1px solid var(--pw-color-warmth-teal-18);
 }
 
 .pw-vault-lock-icon {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border: 2px solid var(--pw-color-accent-primary);
-  border-radius: 4px;
+  border-radius: 3px;
   position: relative;
 }
 
 .pw-vault-lock-icon::after {
   content: "";
   position: absolute;
-  top: -8px;
+  top: -7px;
   left: 3px;
-  width: 12px;
-  height: 10px;
+  width: 10px;
+  height: 8px;
   border: 2px solid var(--pw-color-accent-primary);
   border-bottom: none;
-  border-radius: 6px 6px 0 0;
+  border-radius: 5px 5px 0 0;
+}
+
+.pw-vault-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .pw-vault-title {
@@ -78,50 +158,45 @@
   font-size: 0.9375rem;
   color: var(--pw-color-text-secondary);
   margin: 0;
-  max-width: 480px;
+  max-width: 540px;
   line-height: 1.5;
 }
 
-/* ── Body / lock state ── */
-.pw-vault-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 28px 32px;
-  background: color-mix(in srgb, var(--pw-color-surface-panel) 85%, transparent);
-  border: 1px solid var(--pw-color-border-strong);
-  border-radius: 20px;
-  box-shadow: var(--pw-color-warmth-panel-shadow);
-  max-width: 520px;
-}
-
+/* ── Lock state pill ── */
 .pw-vault-lock-state {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 16px 6px 12px;
+  gap: 8px;
+  padding: 5px 14px 5px 10px;
   border-radius: 999px;
   background: var(--pw-color-warmth-teal-wash);
-  border: 1px solid color-mix(in srgb, var(--pw-color-accent-primary) 14%, transparent);
+  border: 1px solid var(--pw-color-warmth-teal-14);
   box-shadow: var(--pw-color-warmth-vault-glow);
   width: fit-content;
+  margin-top: 4px;
 }
 
 .pw-vault-lock-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--pw-color-accent-secondary) 70%, transparent);
+  background: var(--pw-color-warmth-rose-70);
 }
 
 .pw-vault-lock-dot--unlocked {
-  background: color-mix(in srgb, var(--pw-color-accent-primary) 70%, transparent);
+  background: var(--pw-color-warmth-teal-70);
 }
 
 .pw-vault-lock-label {
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--pw-color-text-primary);
+}
+
+.pw-vault-lock-sparkle {
+  font-size: 0.625rem;
+  color: var(--pw-color-accent-gold);
+  opacity: 0.8;
 }
 
 .pw-vault-hint {
@@ -131,7 +206,20 @@
   line-height: 1.5;
 }
 
-/* ── Unlock form ── */
+/* ── Unlock panel (centered, locked state) ── */
+.pw-vault-unlock-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 32px;
+  background: var(--pw-color-vault-panel-translucent);
+  border: 1px solid var(--pw-color-border-strong);
+  border-radius: 20px;
+  box-shadow: var(--pw-color-warmth-panel-shadow);
+  max-width: 520px;
+  align-self: center;
+}
+
 .pw-vault-unlock-form {
   display: flex;
   flex-direction: column;
@@ -181,7 +269,21 @@
   cursor: not-allowed;
 }
 
-/* ── Secrets list ── */
+/* ── Two-column layout (unlocked) ── */
+.pw-vault-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .pw-vault-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Left: Secrets panel ── */
 .pw-vault-secrets {
   display: flex;
   flex-direction: column;
@@ -190,15 +292,25 @@
   background: var(--pw-color-vault-store-panel);
   border: 1px solid var(--pw-color-vault-store-border);
   border-radius: 20px;
-  max-width: 520px;
+}
+
+.pw-vault-secrets-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .pw-vault-secrets-heading {
   font-family: var(--pw-typography-font-expressive);
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 400;
-  color: var(--pw-color-accent-primary-bright);
+  color: var(--pw-color-text-primary);
   margin: 0;
+}
+
+.pw-vault-secrets-count {
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-muted);
 }
 
 .pw-vault-secrets-list {
@@ -207,7 +319,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .pw-vault-secret-item {
@@ -215,100 +327,319 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 16px;
-  border-radius: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
   background: var(--pw-color-surface-elevated);
   border: 1px solid var(--pw-color-border-subtle);
 }
 
-.pw-vault-secret-name {
-  font-size: 0.875rem;
-  color: var(--pw-color-text-primary);
-  font-family: var(--pw-typography-font-interface);
+.pw-vault-secret-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
 }
 
-.pw-vault-secret-delete {
-  min-width: var(--pw-target-minimum);
-  min-height: var(--pw-target-minimum);
+.pw-vault-secret-icon {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--pw-color-accent-secondary) 30%, transparent);
-  background: color-mix(in srgb, var(--pw-color-accent-secondary) 8%, transparent);
+  background: var(--pw-color-warmth-teal-wash);
+  border: 1px solid var(--pw-color-warmth-teal-touch);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pw-vault-secret-icon::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--pw-color-accent-primary);
+  border-radius: 3px;
+  position: relative;
+  opacity: 0.7;
+}
+
+.pw-vault-secret-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pw-vault-secret-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--pw-color-text-primary);
+  font-family: var(--pw-typography-font-interface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pw-vault-secret-meta {
+  font-size: 0.75rem;
+  color: var(--pw-color-text-muted);
+}
+
+.pw-vault-secret-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--pw-target-minimum);
+  min-width: var(--pw-target-minimum);
+  border-radius: 10px;
+  border: 1px solid var(--pw-color-warmth-rose-25);
+  background: var(--pw-color-warmth-rose-wash);
   color: var(--pw-color-accent-secondary);
   font-size: 0.8125rem;
   cursor: pointer;
-  padding: 0 12px;
+  padding: 0 14px;
+  white-space: nowrap;
 }
 
-.pw-vault-secret-delete:focus-visible {
+.pw-vault-secret-remove:focus-visible {
   outline: var(--pw-focus-ring);
   outline-offset: 2px;
+}
+
+.pw-vault-secret-remove-icon {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  position: relative;
+}
+
+.pw-vault-secret-remove-icon::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  right: 2px;
+  height: 1.5px;
+  background: currentColor;
+  transform: rotate(-45deg);
 }
 
 .pw-vault-secrets-empty {
   font-size: 0.875rem;
   color: var(--pw-color-text-muted);
   margin: 0;
+  line-height: 1.5;
 }
 
-/* ── Store form ── */
+.pw-vault-secrets-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.pw-vault-secrets-footer-text {
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-muted);
+  font-style: italic;
+  margin: 0;
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+.pw-vault-lock-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--pw-target-minimum);
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 1px solid var(--pw-color-border-strong);
+  background: var(--pw-color-surface-elevated);
+  color: var(--pw-color-text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pw-vault-lock-button:hover {
+  color: var(--pw-color-text-primary);
+  border-color: var(--pw-color-accent-secondary);
+}
+
+.pw-vault-lock-button:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+.pw-vault-lock-button-icon {
+  display: inline-block;
+  width: 12px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  position: relative;
+}
+
+.pw-vault-lock-button-icon::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 2px;
+  width: 6px;
+  height: 5px;
+  border: 1.5px solid currentColor;
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+}
+
+/* ── Right: Store panel ── */
 .pw-vault-store {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   padding: 28px 32px;
   background: var(--pw-color-vault-store-panel);
   border: 1px solid var(--pw-color-vault-store-border);
   border-radius: 20px;
-  max-width: 520px;
+}
+
+.pw-vault-store-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .pw-vault-store-heading {
   font-family: var(--pw-typography-font-expressive);
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 400;
-  color: var(--pw-color-accent-primary-bright);
+  color: var(--pw-color-text-primary);
   margin: 0;
+}
+
+.pw-vault-store-icon {
+  display: flex;
+  gap: 4px;
+}
+
+.pw-vault-store-icon::before,
+.pw-vault-store-icon::after {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 18px;
+  background: var(--pw-color-accent-gold);
+  border-radius: 3px;
+  opacity: 0.6;
+}
+
+.pw-vault-store-icon::before {
+  transform: rotate(-8deg);
+}
+
+.pw-vault-store-icon::after {
+  transform: rotate(8deg);
+}
+
+.pw-vault-store-subtitle {
+  font-size: 0.875rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+  line-height: 1.5;
 }
 
 .pw-vault-store-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .pw-vault-store-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .pw-vault-store-label {
   font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--pw-color-text-secondary);
 }
 
-.pw-vault-store-input {
+.pw-vault-store-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   min-height: var(--pw-target-minimum);
   border-radius: 12px;
   border: 1px solid var(--pw-color-vault-input-border);
   background: var(--pw-color-surface-elevated);
-  padding: 0 16px;
+  padding: 0 14px;
+}
+
+.pw-vault-store-input-wrap:focus-within {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+.pw-vault-store-input-icon {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border: 1.5px solid var(--pw-color-text-muted);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.pw-vault-store-input {
+  flex: 1;
+  min-height: var(--pw-target-minimum);
+  border: none;
+  background: transparent;
+  padding: 0;
   color: var(--pw-color-text-primary);
   font-size: 0.875rem;
   outline: none;
-}
-
-.pw-vault-store-input:focus-visible {
-  outline: var(--pw-focus-ring);
-  outline-offset: 2px;
 }
 
 .pw-vault-store-input::placeholder {
   color: var(--pw-color-text-muted);
 }
 
+.pw-vault-store-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--pw-color-warmth-teal-ghost);
+  border: 1px solid var(--pw-color-warmth-teal-08);
+}
+
+.pw-vault-store-note-icon {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  margin-top: 1px;
+  border: 1.5px solid var(--pw-color-text-muted);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
 .pw-vault-store-submit {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-end;
+  gap: 8px;
   min-height: var(--pw-target-minimum);
+  padding: 0 22px;
   border-radius: 12px;
   border: none;
   background: var(--pw-color-accent-primary);
@@ -316,7 +647,7 @@
   font-weight: 500;
   font-size: 0.875rem;
   cursor: pointer;
-  align-self: flex-start;
+  box-shadow: var(--pw-color-warmth-enter-glow);
 }
 
 .pw-vault-store-submit:focus-visible {
@@ -329,11 +660,85 @@
   cursor: not-allowed;
 }
 
+.pw-vault-store-submit-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  position: relative;
+}
+
+.pw-vault-store-submit-icon::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  height: 1.5px;
+  background: currentColor;
+}
+
+.pw-vault-store-submit-icon::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 2px;
+  right: 2px;
+  height: 1.5px;
+  background: currentColor;
+}
+
+/* ── Footer quote ── */
+.pw-vault-footer {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-muted);
+  font-style: italic;
+  opacity: 0.7;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pw-vault-footer-diamond {
+  font-size: 0.5rem;
+  color: var(--pw-color-accent-gold);
+  opacity: 0.5;
+}
+
+/* ── Companion presence ── */
+.pw-vault-companion {
+  position: fixed;
+  bottom: 24px;
+  left: calc(var(--pw-edge-sidebar-width, 248px) + 24px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.6;
+}
+
+.pw-vault-companion-label {
+  font-size: 0.6875rem;
+  color: var(--pw-color-text-muted);
+}
+
 /* ── Error state ── */
+.pw-vault-error-panel {
+  max-width: 520px;
+}
+
 .pw-vault-error {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 28px 32px;
+  background: var(--pw-color-vault-panel-translucent);
+  border: 1px solid var(--pw-color-border-strong);
+  border-radius: 20px;
 }
 
 .pw-vault-error-message {
@@ -346,4 +751,8 @@
   font-size: 0.8125rem;
   color: var(--pw-color-text-muted);
   margin: 0;
+}
+
+.pw-vault-loading {
+  max-width: 520px;
 }

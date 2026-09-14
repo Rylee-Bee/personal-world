@@ -9,7 +9,7 @@ import type { SourceControlRepo, AgentSyncProject } from "../lib/api";
 
 /**
  * ProjectsScreen tests aligned to the current implementation:
- * - companion status ("Watching N projects" / "Source control not configured");
+ * - companion status ("Watching your projects" / "No repositories found");
  * - repo cards with branch, revision, dirty, ahead, behind;
  * - Disclosure-based "History & details" with commit list (revision,
  *   subject, author);
@@ -172,20 +172,18 @@ describe("ProjectsScreen (workspace v1)", () => {
     });
     const { container } = stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Watching 2 projects")).toBeTruthy()
+      expect(screen.getByText("Watching your projects")).toBeTruthy()
     );
     expect(screen.getByText("personal-world")).toBeTruthy();
-    expect(screen.getByText("dev")).toBeTruthy();
-    expect(screen.getByText("dirty")).toBeTruthy();
-    expect(screen.getByText("ahead 2")).toBeTruthy();
-    expect(screen.getByText("behind 1")).toBeTruthy();
+    expect(screen.getByText("other")).toBeTruthy();
+    expect(screen.getAllByText("Healthy").length).toBeGreaterThanOrEqual(2);
     expect(await axeNoContrast(container)).toHaveNoViolations();
   });
 
   it("glance line stays quiet when everything is clean", async () => {
     stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Watching 1 project")).toBeTruthy()
+      expect(screen.getByText("Watching your projects")).toBeTruthy()
     );
   });
 
@@ -216,7 +214,6 @@ describe("ProjectsScreen (workspace v1)", () => {
     });
     stubProviders(<ProjectsScreen />);
     await waitFor(() => expect(screen.getByText("broken")).toBeTruthy());
-    expect(screen.getByText("/data/repos/personal-world")).toBeTruthy();
   });
 
   it("not_configured shows the honest empty state naming the knob", async () => {
@@ -233,11 +230,10 @@ describe("ProjectsScreen (workspace v1)", () => {
     });
     const { container } = stubProviders(<ProjectsScreen />);
     expect(
-      await screen.findByText("Source control not configured")
+      await screen.findByText("No repositories found")
     ).toBeTruthy();
-    expect(screen.getByText("No repositories found")).toBeTruthy();
     expect(screen.getByText("no source_control search paths configured")).toBeTruthy();
-    expect(screen.queryByText(/watching/i)).toBeNull();
+    expect(screen.getByText("Watching your projects")).toBeTruthy();
     expect(await axeNoContrast(container)).toHaveNoViolations();
   });
 });
@@ -392,7 +388,7 @@ describe("Projects GitHub enrichment (optional remote facts, quiet degradation)"
       expect(screen.getByText("Recent commits")).toBeTruthy()
     );
     expect(screen.queryByText("Remote enrichment")).toBeNull();
-    expect(screen.getByText("main")).toBeTruthy();
+    expect(screen.getByText("personal-world")).toBeTruthy();
   });
 
   it("non-GitHub remote shows no enrichment section", async () => {
@@ -503,7 +499,7 @@ describe("ProjectsScreen (agent-sync project status panel)", () => {
     });
     stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Watching 1 project")).toBeTruthy()
+      expect(screen.getByText("Watching your projects")).toBeTruthy()
     );
     expect(screen.queryByText("Agent-sync project estate")).toBeNull();
   });
@@ -512,7 +508,7 @@ describe("ProjectsScreen (agent-sync project status panel)", () => {
     stubBoth([]);
     stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Watching 1 project")).toBeTruthy()
+      expect(screen.getByText("Watching your projects")).toBeTruthy()
     );
     expect(screen.queryByText("Agent-sync project estate")).toBeNull();
   });

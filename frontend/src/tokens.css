@@ -47,6 +47,14 @@
   --pw-color-shell-nav-active-bg: rgba(114,177,177,0.1);
   --pw-color-shell-world-identity-label: #9185a8;
   --pw-color-shell-sidebar-organic-edge: linear-gradient(180deg, rgba(41,35,55,0.6) 0%, rgba(41,35,55,0.3) 40%, rgba(41,35,55,0.6) 100%);
+  --pw-color-warmth-teal-ghost: rgba(114,177,177,0.04);
+  --pw-color-warmth-teal-whisper: rgba(114,177,177,0.06);
+  --pw-color-warmth-teal-breath: rgba(114,177,177,0.1);
+  --pw-color-warmth-teal-touch: rgba(114,177,177,0.12);
+  --pw-color-warmth-rose-ghost: rgba(181,127,139,0.04);
+  --pw-color-warmth-rose-whisper: rgba(181,127,139,0.06);
+  --pw-color-warmth-rose-breath: rgba(181,127,139,0.1);
+  --pw-color-warmth-rose-touch: rgba(181,127,139,0.15);
 }
 
 [data-pw-theme="light"] {
