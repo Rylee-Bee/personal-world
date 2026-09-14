@@ -821,6 +821,80 @@ export async function fetchConnections(): Promise<unknown[]> {
   return apiFetch<unknown[]>("/api/connections");
 }
 
+// ── Connections & Providers ──
+
+export interface ConfigFieldDef {
+  key: string;
+  label: string;
+  type: "text" | "url" | "secret" | "select" | "boolean";
+  required?: boolean;
+  description?: string;
+  placeholder?: string;
+  options?: Array<{ label: string; value: string }>;
+  secret_ref?: boolean;
+}
+
+export interface ProviderSchemaDef {
+  id: string;
+  display_name: string;
+  capability: string;
+  description: string;
+  adapter_type: string;
+  config_fields: ConfigFieldDef[];
+  can_test: boolean;
+  multiple: boolean;
+}
+
+export interface CapabilityOverview {
+  capability: string;
+  display_name: string;
+  description: string;
+  icon: string;
+  status: string;
+  ok: boolean;
+  configured: boolean;
+  needs_setup: boolean;
+  help_text: string;
+  providers: ProviderSchemaDef[];
+}
+
+export interface ConnectionTestResult {
+  status: string;
+  detail: string;
+}
+
+export async function fetchConnectionsOverview(): Promise<CapabilityOverview[]> {
+  return apiFetch<CapabilityOverview[]>("/api/connections/overview");
+}
+
+export async function fetchConnectionSchemas(): Promise<ProviderSchemaDef[]> {
+  return apiFetch<ProviderSchemaDef[]>("/api/connections/schemas");
+}
+
+export async function fetchConnectionSchema(capability: string): Promise<ProviderSchemaDef> {
+  return apiFetch<ProviderSchemaDef>(`/api/connections/schema/${encodeURIComponent(capability)}`);
+}
+
+export async function saveNativeConfig(key: string, config: unknown): Promise<unknown> {
+  return apiFetch<unknown>(`/api/connections/config/${encodeURIComponent(key)}`, {
+    method: "POST",
+    headers: withStepUp(new Headers({ "Content-Type": "application/json" })),
+    body: JSON.stringify(config),
+  });
+}
+
+export async function testConnection(payload: {
+  capability: string;
+  adapter_type: string;
+  config: Record<string, string>;
+}): Promise<ConnectionTestResult> {
+  return apiFetch<ConnectionTestResult>("/api/connections/test", {
+    method: "POST",
+    headers: withStepUp(new Headers({ "Content-Type": "application/json" })),
+    body: JSON.stringify(payload),
+  });
+}
+
 // ── Native Lab ──
 
 export async function fetchNativeLabInventory(): Promise<unknown> {

@@ -20,8 +20,9 @@ import {
 } from "../lib/api";
 import { useCompanion, COMPANIONS } from "../lib/companion-context";
 import { usePrefs, COMPANION_OFF, companionChoices } from "../lib/prefs-context";
-import { usePrincipal, useSectionsWrite, useApps, useThemes, useBrainTemplates } from "../lib/hooks";
+import { usePrincipal, useSectionsWrite, useApps, useThemes, useBrainTemplates, useChatProviders } from "../lib/hooks";
 import { savePrincipalDisplayName } from "../lib/api";
+import { ConnectionsPanel } from "./ConnectionsPanel";
 import { useAnnounce } from "../primitives/LiveRegion";
 import { useStepUp } from "../primitives/StepUpPrompt";
 import { Dialog } from "../primitives/Dialog";
@@ -467,6 +468,11 @@ function SettingsScreen() {
 
       {/* ── Settings columns ── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+
+        {/* ═══════════ CONNECTIONS & PROVIDERS (full width) ═══════════ */}
+        <div className="lg:col-span-2">
+          <ConnectionsPanel />
+        </div>
 
         {/* ═══════════ LEFT COLUMN: Reading + Companion + Reminders ═══════════ */}
 
@@ -924,16 +930,21 @@ function SettingsScreen() {
 
         {waveDivider}
 
-        {/* ── Brain Templates ── */}
+        {/* ── Brain ── */}
         <section aria-labelledby="brain-heading" data-testid="brain-panel" className={panelClasses}>
           <div className="flex flex-col gap-1.5">
             <h2 id="brain-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
               Brain
             </h2>
             <p className={`text-xs leading-relaxed ${mutedClasses}`}>
-              Template system that composes runtime instructions for the assistant.
+              How your world thinks. Provider, model, and behavior templates.
             </p>
           </div>
+
+          {/* Reasoning provider info */}
+          <BrainProviderInfo />
+
+          {/* Template packs */}
           {brainTemplates.isLoading ? (
             <p className={`text-xs ${mutedClasses}`}>Loading templates…</p>
           ) : brainTemplates.isError ? (
@@ -1066,6 +1077,56 @@ function capabilityIcon(name: string): IconName {
     default:
       return "icon-world-content-world";
   }
+}
+
+function BrainProviderInfo() {
+  const chatProviders = useChatProviders();
+  if (chatProviders.isLoading) {
+    return <p className={`text-xs ${mutedClasses}`}>Loading reasoning provider…</p>;
+  }
+  if (chatProviders.isError || !chatProviders.data) {
+    return <p className={`text-xs ${mutedClasses}`}>Reasoning provider unavailable.</p>;
+  }
+  const { providers, active } = chatProviders.data;
+  if (!providers || providers.length === 0) {
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-[var(--pw-color-text-primary)]">Reasoning</span>
+        <p className={`text-xs ${mutedClasses}`}>
+          No reasoning provider configured. The assistant will work without AI.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs font-medium text-[var(--pw-color-text-primary)]">Reasoning</span>
+      <div className="flex flex-col gap-1">
+        {providers.map((p) => (
+          <div
+            key={p.name}
+            className="flex items-center justify-between rounded-lg bg-[var(--pw-color-surface-elevated)] px-3 py-2 min-h-[40px]"
+          >
+            <span className="flex items-center gap-2">
+              <span className={[
+                "size-2 rounded-full",
+                p.ok ? "bg-[var(--pw-color-accent-primary)]" : "bg-[var(--pw-color-text-secondary)]",
+              ].join(" ")} />
+              <span className="text-xs text-[var(--pw-color-text-primary)]">
+                {p.display_name || p.name}
+              </span>
+              {p.name === active && (
+                <span className="rounded bg-[var(--pw-color-accent-primary)] px-1.5 py-0.5 text-[9px] text-[var(--pw-color-surface-canvas)]">
+                  active
+                </span>
+              )}
+            </span>
+            <StatusChip status={p.ok ? "healthy" : "unavailable"} size="sm" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function ProfilePanel({
