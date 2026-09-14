@@ -1,24 +1,18 @@
-/* ── Your World (17:5485) — PRACTICAL register ─────────────────── */
+/* ── Your World — Workshop v3 convergence ─────────────────── */
 
 .pw-world {
   display: flex;
   flex-direction: column;
-  gap: 38px;
-  padding: 70px 84px 92px 64px;
+  gap: 32px;
+  padding: 48px 64px 80px;
   min-height: 100vh;
   position: relative;
 }
 
-/* Subtle teal warmth behind content */
-.pw-world::before {
-  content: "";
+.pw-world-ambient {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    ellipse at 35% 30%,
-    color-mix(in srgb, var(--pw-color-accent-primary) 5%, transparent) 0%,
-    transparent 55%
-  );
+  background: radial-gradient(ellipse at 35% 30%, rgba(114,177,177,0.05) 0%, transparent 55%);
   pointer-events: none;
   z-index: 0;
 }
@@ -32,13 +26,13 @@
 .pw-world-header {
   display: flex;
   align-items: flex-start;
-  gap: 30px;
+  gap: 24px;
 }
 
 .pw-world-orb {
   position: relative;
-  width: 130px;
-  height: 130px;
+  width: 100px;
+  height: 100px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -49,16 +43,12 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--pw-color-accent-primary) 18%, transparent) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle, rgba(114,177,177,0.18) 0%, transparent 70%);
 }
 
 .pw-world-orb-ring {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   border: 1.5px solid var(--pw-color-accent-primary);
   opacity: 0.5;
@@ -67,7 +57,7 @@
 .pw-world-header-copy {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .pw-world-eyebrow {
@@ -81,7 +71,7 @@
 
 .pw-world-title {
   font-family: var(--pw-typography-font-expressive);
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   font-weight: 400;
   line-height: 1.05;
   color: var(--pw-color-accent-primary);
@@ -90,9 +80,9 @@
 
 .pw-world-subtitle {
   font-size: 0.9375rem;
-  line-height: 1.5;
   color: var(--pw-color-text-secondary);
   margin: 0;
+  line-height: 1.5;
 }
 
 .pw-world-watch-note {
@@ -101,14 +91,14 @@
   margin: 0;
 }
 
-/* ── Capabilities strip ── */
+/* ── Status strip ── */
 .pw-world-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 72px;
+  height: 64px;
   padding: 0 28px;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid var(--pw-color-border-strong);
   background: var(--pw-color-surface-elevated);
 }
@@ -126,6 +116,12 @@
   background: var(--pw-color-accent-primary);
 }
 
+.pw-world-strip-icon {
+  font-size: 0.875rem;
+  color: var(--pw-color-accent-primary);
+  opacity: 0.7;
+}
+
 .pw-world-strip-label {
   font-size: 0.8125rem;
   color: var(--pw-color-text-primary);
@@ -138,110 +134,248 @@
   background: var(--pw-color-border-strong);
 }
 
-/* ── Companion presence ── */
-.pw-world-companion {
+/* ── Two-column layout ── */
+.pw-world-columns {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .pw-world-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pw-world-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* ── Capability cards ── */
+.pw-world-caps-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.pw-world-caps-title {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 1.25rem;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+}
+
+.pw-world-caps-subtitle {
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-muted);
+}
+
+.pw-world-cap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.pw-world-cap-card {
+  padding: 18px 20px;
+  background: var(--pw-color-surface-panel);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.15s;
+}
+
+.pw-world-cap-card:hover {
+  border-color: var(--pw-color-accent-primary);
+}
+
+.pw-world-cap-card--attention {
+  border-color: rgba(181,127,139,0.3);
+  background: var(--pw-color-warmth-rose-ghost);
+}
+
+.pw-world-cap-card-header {
   display: flex;
   align-items: center;
-  gap: 32px;
-  padding: 32px 40px 44px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--pw-color-accent-primary) 6%, transparent) 0%,
-    color-mix(in srgb, var(--pw-color-accent-secondary) 4%, transparent) 100%
-  );
+  gap: 10px;
+}
+
+.pw-world-cap-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  background: var(--pw-color-warmth-teal-wash);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: var(--pw-color-accent-primary);
+}
+
+.pw-world-cap-card--attention .pw-world-cap-icon {
+  background: var(--pw-color-warmth-rose-breath);
+  color: var(--pw-color-accent-secondary);
+}
+
+.pw-world-cap-card-name {
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--pw-color-text-primary);
+}
+
+.pw-world-cap-card-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: auto;
+}
+
+.pw-world-cap-card-dot--healthy {
+  background: var(--pw-color-accent-primary);
+  opacity: 0.7;
+}
+
+.pw-world-cap-card-desc {
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+}
+
+.pw-world-cap-card-status {
+  font-size: 0.75rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+}
+
+/* ── Actors sidebar ── */
+.pw-world-sidebar {
+  position: sticky;
+  top: 32px;
+}
+
+.pw-world-actors {
+  padding: 24px;
+  background: var(--pw-color-surface-panel);
+  border: 1px solid var(--pw-color-border-subtle);
   border-radius: 16px;
 }
 
-.pw-world-companion-art {
-  position: relative;
-  width: 120px;
-  height: 140px;
-  flex-shrink: 0;
+.pw-world-actors-title {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 1.25rem;
+  color: var(--pw-color-text-primary);
+  margin: 0 0 4px;
+}
+
+.pw-world-actors-subtitle {
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-muted);
+  margin: 0 0 16px;
+}
+
+.pw-world-actors-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pw-world-actor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--pw-color-border-subtle);
+}
+
+.pw-world-actor:last-child {
+  border-bottom: none;
+}
+
+.pw-world-actor-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: var(--pw-color-warmth-teal-wash);
+  border: 1px solid var(--pw-color-warmth-teal-touch);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.pw-world-companion-figure {
-  width: 90px;
-  height: 120px;
-  border: 1px solid var(--pw-color-accent-primary);
+.pw-world-actor-icon-inner {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--pw-color-accent-primary);
   border-radius: 50%;
-  opacity: 0.55;
+  opacity: 0.6;
 }
 
-.pw-world-companion-bubble {
-  position: absolute;
-  bottom: 16px;
-  right: 8px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  border: 1px solid var(--pw-color-accent-primary);
-}
-
-.pw-world-companion-bubble--small {
-  width: 4px;
-  height: 4px;
-  bottom: 10px;
-  right: 2px;
-  border: none;
-  background: var(--pw-color-accent-secondary);
-}
-
-.pw-world-companion-sparkle {
-  position: absolute;
-  top: 8px;
-  right: 0;
-  width: 9px;
-  height: 9px;
-  background: var(--pw-color-text-primary);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-}
-
-.pw-world-companion-copy {
+.pw-world-actor-text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pw-world-actor-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--pw-color-text-primary);
+}
+
+.pw-world-actor-desc {
+  font-size: 0.75rem;
+  color: var(--pw-color-text-muted);
+}
+
+.pw-world-actors-footer {
+  font-size: 0.75rem;
+  color: var(--pw-color-text-muted);
+  font-style: italic;
+  margin: 16px 0 0;
+  opacity: 0.7;
+}
+
+/* ── Companion footer ── */
+.pw-world-companion {
+  display: flex;
+  align-items: center;
   gap: 14px;
-  flex: 1;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, var(--pw-color-warmth-teal-whisper) 0%, var(--pw-color-warmth-rose-ghost) 100%);
+  border-radius: 14px;
+  border: 1px solid var(--pw-color-border-subtle);
+  margin-top: 16px;
+}
+
+.pw-world-companion-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .pw-world-companion-name {
-  font-family: var(--pw-typography-font-expressive);
-  font-size: 1.375rem;
-  font-weight: 400;
-  color: var(--pw-color-text-primary);
-  margin: 0;
-  line-height: 1.2;
-}
-
-.pw-world-companion-body {
   font-size: 0.875rem;
-  color: var(--pw-color-text-secondary);
-  margin: 0;
-  line-height: 1.55;
-  max-width: 620px;
+  font-weight: 500;
+  color: var(--pw-color-text-primary);
 }
 
-.pw-world-companion-presence {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.pw-world-companion-presence-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--pw-color-accent-primary);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--pw-color-accent-primary) 40%, transparent);
-}
-
-.pw-world-companion-presence-label {
-  font-size: 0.6875rem;
+.pw-world-companion-status {
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
-  margin: 0;
+  font-style: italic;
 }
 
 /* ── Manifest table ── */
@@ -267,12 +401,6 @@
   border-top: 1px solid var(--pw-color-border-subtle);
 }
 
-.pw-world-manifest-empty {
-  font-size: 0.8125rem;
-  color: var(--pw-color-text-muted);
-  margin: 0;
-}
-
 /* ── Export grid ── */
 .pw-world-export-grid {
   display: flex;
@@ -290,7 +418,6 @@
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s;
 }
 
 .pw-world-export-btn:hover:not(:disabled) {
@@ -302,7 +429,12 @@
   cursor: not-allowed;
 }
 
-/* ── World write forms ── */
+.pw-world-export-btn:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── World writes ── */
 .pw-world-write-note {
   font-size: 0.75rem;
   color: var(--pw-color-text-muted);
@@ -358,7 +490,7 @@
 }
 
 .pw-world-write-input:focus-visible {
-  outline: 2px solid var(--pw-focus-ring);
+  outline: var(--pw-focus-ring);
   outline-offset: 2px;
 }
 
@@ -369,5 +501,18 @@
 }
 
 .pw-world-write-status--error {
-  color: var(--pw-color-status-error, #e55);
+  color: var(--pw-color-accent-secondary);
+}
+
+.pw-world-empty {
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+}
+
+.pw-world-empty-small {
+  font-size: 0.75rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+  font-style: italic;
 }

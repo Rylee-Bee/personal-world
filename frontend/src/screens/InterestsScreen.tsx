@@ -6,6 +6,7 @@ import {
   useDiscoveryInterests,
   useDiscoveryDiscover,
 } from "../lib/hooks";
+import { CompanionSlot } from "../primitives/CompanionSlot";
 import "./interests-screen.css";
 
 interface Source {
@@ -82,6 +83,8 @@ export default function InterestsScreen() {
   const interestsCount = statusData.interests_count ?? interests.length;
   const itemsCount = statusData.items_count ?? discoveredItems.length;
 
+  const isEmpty = sources.length === 0 && interests.length === 0;
+
   const addSource = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -153,16 +156,107 @@ export default function InterestsScreen() {
     discoverWithSource.refetch();
   }, [discoverWithSource]);
 
+  if (isEmpty) {
+    return (
+      <div className="pw-interests">
+        <div className="pw-interests-ambient" aria-hidden="true" />
+
+        <div className="pw-interests-doorway" aria-hidden="true">
+          <div className="pw-interests-doorway-glow" />
+        </div>
+
+        <div className="pw-interests-motes" aria-hidden="true">
+          <span className="pw-interests-mote pw-interests-mote--1" />
+          <span className="pw-interests-mote pw-interests-mote--2" />
+          <span className="pw-interests-mote pw-interests-mote--3" />
+          <span className="pw-interests-mote pw-interests-mote--4" />
+          <span className="pw-interests-mote pw-interests-mote--5" />
+          <span className="pw-interests-mote pw-interests-mote--6" />
+        </div>
+
+        <div className="pw-interests-scene">
+          <div className="pw-interests-empty-room">
+            <div className="pw-interests-illustration">
+              <div className="pw-interests-aura" />
+              <CompanionSlot size="empty" />
+              <span className="pw-interests-sparkle" aria-hidden="true">&#10022;</span>
+            </div>
+
+            <div className="pw-interests-message">
+              <div className="pw-interests-title-row">
+                <span className="pw-interests-bookmark" aria-hidden="true">&#9670;</span>
+                <h1 className="pw-interests-title">Interests</h1>
+              </div>
+              <h2 className="pw-interests-subtitle">This room is still empty.</h2>
+              <p className="pw-interests-empty-accent">
+                It has been keeping the light on for you.
+              </p>
+              <p className="pw-interests-hint">
+                Interests helps your world learn what you care about &mdash; bookmarks,
+                saved articles, and things you want to explore later.
+              </p>
+              <a href="#start-exploring" className="pw-interests-cta">
+                Start exploring &rarr;
+              </a>
+            </div>
+
+            <div className="pw-interests-divider" />
+
+            <p className="pw-interests-footer-hint">
+              <span className="pw-interests-footer-icon" aria-hidden="true" />
+              An empty shelf. What will you put here?
+            </p>
+          </div>
+        </div>
+
+        {/* Collapsible setup for when user wants to start */}
+        <details className="pw-interests-setup" id="start-exploring">
+          <summary className="pw-interests-setup-summary">
+            Configure discovery sources
+          </summary>
+          <div className="pw-interests-setup-body">
+            <InterestsForms
+              sources={sources}
+              interests={interests}
+              sourceForm={sourceForm}
+              setSourceForm={setSourceForm}
+              interestForm={interestForm}
+              setInterestForm={setInterestForm}
+              addSourceError={addSourceError}
+              addInterestError={addInterestError}
+              addSource={addSource}
+              addInterest={addInterest}
+            />
+          </div>
+        </details>
+      </div>
+    );
+  }
+
   return (
-    <div className="pw-interests">
-      <div className="pw-interests-header">
-        <h1 className="pw-interests-title">Interests</h1>
-        <p className="pw-interests-subtitle">
-          {name ? `${name}'s` : "Your"} discovery room
-        </p>
+    <div className="pw-interests pw-interests--populated">
+      <div className="pw-interests-ambient" aria-hidden="true" />
+
+      <div className="pw-interests-doorway pw-interests-doorway--subtle" aria-hidden="true">
+        <div className="pw-interests-doorway-glow" />
       </div>
 
-      {/* Status bar */}
+      <div className="pw-interests-motes pw-interests-motes--populated" aria-hidden="true">
+        <span className="pw-interests-mote pw-interests-mote--1" />
+        <span className="pw-interests-mote pw-interests-mote--4" />
+        <span className="pw-interests-mote pw-interests-mote--6" />
+      </div>
+
+      <header className="pw-interests-populated-header">
+        <div className="pw-interests-title-row">
+          <span className="pw-interests-bookmark" aria-hidden="true">&#9670;</span>
+          <h1 className="pw-interests-title">Interests</h1>
+        </div>
+        <p className="pw-interests-populated-subtitle">
+          {name ? `${name}'s` : "Your"} discovery room
+        </p>
+      </header>
+
       <section className="pw-interests-status" aria-label="Discovery status">
         <div className="pw-interests-status-grid">
           <div className="pw-interests-status-card">
@@ -178,27 +272,20 @@ export default function InterestsScreen() {
             <span className="pw-interests-status-label">Items</span>
           </div>
         </div>
-        {status.isLoading && (
-          <p className="pw-interests-hint">Loading status…</p>
-        )}
       </section>
 
-      {/* Discovery sources */}
-      <section
-        className="pw-interests-sources"
-        aria-label="Discovery sources"
-      >
+      <section className="pw-interests-content" aria-label="Discovery sources">
         <h2 className="pw-interests-section-title">Sources</h2>
         {sourcesQuery.isLoading ? (
-          <p className="pw-interests-hint">Loading sources…</p>
+          <p className="pw-interests-hint">Loading sources&hellip;</p>
         ) : sources.length > 0 ? (
-          <ul className="pw-interests-source-list">
+          <ul className="pw-interests-list">
             {sources.map((source) => (
-              <li key={source.id} className="pw-interests-source">
-                <span className="pw-interests-source-name">{source.name}</span>
-                <span className="pw-interests-source-url">{source.url}</span>
+              <li key={source.id} className="pw-interests-list-item">
+                <span className="pw-interests-list-item-name">{source.name}</span>
+                <span className="pw-interests-list-item-meta">{source.url}</span>
                 {source.tags?.length > 0 && (
-                  <span className="pw-interests-source-tags">
+                  <span className="pw-interests-list-item-tag">
                     {source.tags.join(", ")}
                   </span>
                 )}
@@ -206,129 +293,34 @@ export default function InterestsScreen() {
             ))}
           </ul>
         ) : (
-          <p className="pw-interests-empty">
-            No discovery sources configured yet.
-          </p>
+          <p className="pw-interests-hint">No discovery sources configured yet.</p>
         )}
-
-        <form className="pw-interests-form" onSubmit={addSource}>
-          <h3 className="pw-interests-form-label">Add source</h3>
-          <div className="pw-interests-form-row">
-            <input
-              className="pw-interests-input"
-              type="text"
-              placeholder="Name"
-              value={sourceForm.name}
-              onChange={(e) =>
-                setSourceForm((f) => ({ ...f, name: e.target.value }))
-              }
-              required
-            />
-            <input
-              className="pw-interests-input"
-              type="url"
-              placeholder="https://…"
-              value={sourceForm.url}
-              onChange={(e) =>
-                setSourceForm((f) => ({ ...f, url: e.target.value }))
-              }
-              required
-            />
-            <input
-              className="pw-interests-input"
-              type="text"
-              placeholder="Tags (comma-separated)"
-              value={sourceForm.tags}
-              onChange={(e) =>
-                setSourceForm((f) => ({ ...f, tags: e.target.value }))
-              }
-            />
-            <button className="pw-interests-button" type="submit">
-              Add
-            </button>
-          </div>
-          {addSourceError && (
-            <p className="pw-interests-error">{addSourceError}</p>
-          )}
-        </form>
       </section>
 
-      {/* Interests */}
-      <section className="pw-interests-interests" aria-label="Your interests">
+      <section className="pw-interests-content" aria-label="Your interests">
         <h2 className="pw-interests-section-title">Interests</h2>
         {interestsQuery.isLoading ? (
-          <p className="pw-interests-hint">Loading interests…</p>
+          <p className="pw-interests-hint">Loading interests&hellip;</p>
         ) : interests.length > 0 ? (
-          <ul className="pw-interests-interest-list">
+          <ul className="pw-interests-list">
             {interests.map((interest) => (
-              <li key={interest.id} className="pw-interests-interest">
-                <span className="pw-interests-interest-name">
-                  {interest.name}
-                </span>
+              <li key={interest.id} className="pw-interests-list-item">
+                <span className="pw-interests-list-item-name">{interest.name}</span>
                 {interest.category && (
-                  <span className="pw-interests-interest-category">
-                    {interest.category}
-                  </span>
+                  <span className="pw-interests-list-item-tag">{interest.category}</span>
                 )}
-                <span className="pw-interests-interest-weight">
+                <span className="pw-interests-list-item-meta">
                   weight {interest.weight}
                 </span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="pw-interests-empty">No interests added yet.</p>
+          <p className="pw-interests-hint">No interests added yet.</p>
         )}
-
-        <form className="pw-interests-form" onSubmit={addInterest}>
-          <h3 className="pw-interests-form-label">Add interest</h3>
-          <div className="pw-interests-form-row">
-            <input
-              className="pw-interests-input"
-              type="text"
-              placeholder="Name"
-              value={interestForm.name}
-              onChange={(e) =>
-                setInterestForm((f) => ({ ...f, name: e.target.value }))
-              }
-              required
-            />
-            <input
-              className="pw-interests-input"
-              type="text"
-              placeholder="Category"
-              value={interestForm.category}
-              onChange={(e) =>
-                setInterestForm((f) => ({ ...f, category: e.target.value }))
-              }
-            />
-            <input
-              className="pw-interests-input pw-interests-input--small"
-              type="number"
-              placeholder="Weight"
-              min="0"
-              max="10"
-              step="0.1"
-              value={interestForm.weight}
-              onChange={(e) =>
-                setInterestForm((f) => ({ ...f, weight: e.target.value }))
-              }
-            />
-            <button className="pw-interests-button" type="submit">
-              Add
-            </button>
-          </div>
-          {addInterestError && (
-            <p className="pw-interests-error">{addInterestError}</p>
-          )}
-        </form>
       </section>
 
-      {/* Discovered content */}
-      <section
-        className="pw-interests-discovered"
-        aria-label="Discovered content"
-      >
+      <section className="pw-interests-content" aria-label="Discovered content">
         <h2 className="pw-interests-section-title">Discovered</h2>
         <div className="pw-interests-discover-controls">
           <select
@@ -338,9 +330,7 @@ export default function InterestsScreen() {
           >
             <option value="">All sources</option>
             {sources.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
+              <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
           <button
@@ -349,50 +339,79 @@ export default function InterestsScreen() {
             onClick={runDiscovery}
             disabled={discoverWithSource.isLoading}
           >
-            {discoverWithSource.isLoading ? "Discovering…" : "Run discovery"}
+            {discoverWithSource.isLoading ? "Discovering\u2026" : "Run discovery"}
           </button>
         </div>
-
-        {discoverWithSource.isLoading && discoveredItems.length === 0 ? (
-          <p className="pw-interests-hint">Running discovery…</p>
-        ) : discoveredItems.length > 0 ? (
-          <ul className="pw-interests-item-list">
+        {discoveredItems.length > 0 ? (
+          <ul className="pw-interests-list">
             {discoveredItems.map((item) => (
-              <li key={item.id} className="pw-interests-item">
-                <a
-                  href={item.url}
-                  className="pw-interests-item-link"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="pw-interests-item-title">{item.title}</span>
-                  <span className="pw-interests-item-source">
-                    {item.source}
-                  </span>
+              <li key={item.id} className="pw-interests-list-item">
+                <a href={item.url} className="pw-interests-list-item-link" target="_blank" rel="noopener noreferrer">
+                  <span className="pw-interests-list-item-name">{item.title}</span>
+                  <span className="pw-interests-list-item-meta">{item.source}</span>
                 </a>
-                {item.provenance && (
-                  <p className="pw-interests-item-provenance">
-                    {item.provenance}
-                  </p>
-                )}
-                {item.summary && (
-                  <p className="pw-interests-item-summary">{item.summary}</p>
-                )}
               </li>
             ))}
           </ul>
         ) : (
-          <div className="pw-interests-empty-state">
-            <p className="pw-interests-empty-title">
-              This room is still empty.
-            </p>
-            <p className="pw-interests-empty-body">
-              It has been keeping the light on for you. Add discovery sources
-              and interests to start exploring.
-            </p>
-          </div>
+          <p className="pw-interests-hint">
+            {discoverWithSource.isLoading ? "Running discovery\u2026" : "No items discovered yet."}
+          </p>
         )}
       </section>
+
+      <div className="pw-interests-companion" aria-hidden="true">
+        <CompanionSlot size="empty" />
+        <span className="pw-interests-companion-label">quietly nearby</span>
+      </div>
     </div>
+  );
+}
+
+function InterestsForms({
+  sourceForm,
+  setSourceForm,
+  interestForm,
+  setInterestForm,
+  addSourceError,
+  addInterestError,
+  addSource,
+  addInterest,
+}: {
+  sources: Source[];
+  interests: Interest[];
+  sourceForm: { name: string; url: string; tags: string };
+  setSourceForm: (f: { name: string; url: string; tags: string }) => void;
+  interestForm: { name: string; category: string; weight: string };
+  setInterestForm: (f: { name: string; category: string; weight: string }) => void;
+  addSourceError: string | null;
+  addInterestError: string | null;
+  addSource: (e: React.FormEvent) => void;
+  addInterest: (e: React.FormEvent) => void;
+}) {
+  return (
+    <>
+      <form className="pw-interests-form" onSubmit={addSource}>
+        <h3 className="pw-interests-form-label">Add source</h3>
+        <div className="pw-interests-form-row">
+          <input className="pw-interests-input" type="text" placeholder="Name" value={sourceForm.name} onChange={(e) => setSourceForm({ ...sourceForm, name: e.target.value })} required />
+          <input className="pw-interests-input" type="url" placeholder="https://\u2026" value={sourceForm.url} onChange={(e) => setSourceForm({ ...sourceForm, url: e.target.value })} required />
+          <input className="pw-interests-input" type="text" placeholder="Tags (comma-separated)" value={sourceForm.tags} onChange={(e) => setSourceForm({ ...sourceForm, tags: e.target.value })} />
+          <button className="pw-interests-button" type="submit">Add</button>
+        </div>
+        {addSourceError && <p className="pw-interests-error">{addSourceError}</p>}
+      </form>
+
+      <form className="pw-interests-form" onSubmit={addInterest}>
+        <h3 className="pw-interests-form-label">Add interest</h3>
+        <div className="pw-interests-form-row">
+          <input className="pw-interests-input" type="text" placeholder="Name" value={interestForm.name} onChange={(e) => setInterestForm({ ...interestForm, name: e.target.value })} required />
+          <input className="pw-interests-input" type="text" placeholder="Category" value={interestForm.category} onChange={(e) => setInterestForm({ ...interestForm, category: e.target.value })} />
+          <input className="pw-interests-input pw-interests-input--small" type="number" placeholder="Weight" min="0" max="10" step="0.1" value={interestForm.weight} onChange={(e) => setInterestForm({ ...interestForm, weight: e.target.value })} />
+          <button className="pw-interests-button" type="submit">Add</button>
+        </div>
+        {addInterestError && <p className="pw-interests-error">{addInterestError}</p>}
+      </form>
+    </>
   );
 }
