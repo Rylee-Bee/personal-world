@@ -661,10 +661,11 @@ code before changing.
 
 ### Test counts (verified)
 
-- Backend: 780 collected / 780 passed / 0 failed (with crypto)
+- Backend: 770 collected / 770 passed / 0 failed (with crypto)
+- Backend: 754 collected / 751 passed / 0 failed / 3 skipped (without crypto)
 - Baseline (main 72ee502): 717 collected / 717 passed / 0 failed
-- Delta: +63 tests (19 authorization + 14 vault + 14 secret ref
-  + 16 reminder execution)
+- Delta: +53 tests (19 authorization + 14 vault + 14 secret ref
+  + 6 reminder execution)
 - Frontend: 76 failed / 258 passed / 334 total (pre-existing on main)
 - Framework validate: 0 violations
 
