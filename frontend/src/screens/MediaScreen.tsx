@@ -134,6 +134,8 @@ export default function MediaScreen() {
         headingLevel={1}
         capability="Media gathers your movies, shows, and music from Plex, Sonarr, Radarr, and Lidarr."
         knob="Add a media connection in Settings → Connections to enable this section."
+        configLink="/settings"
+        configLinkLabel="Connect Media"
         status="not_configured"
       />
     );

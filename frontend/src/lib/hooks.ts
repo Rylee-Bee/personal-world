@@ -71,6 +71,8 @@ import {
   fetchBrainProvenance,
   type BrainTemplatesData,
   type BrainProvenanceData,
+  fetchConnectionsOverview,
+  type CapabilityOverview,
 } from "./api";
 
 /**
@@ -470,5 +472,16 @@ export function useBrainProvenance(surface?: string, task?: string) {
     () => fetchBrainProvenance(surface, task),
     [surface, task],
     ["brain-provenance"]
+  );
+}
+
+// ── Connections & Providers hooks ──
+
+/** GET /api/connections/overview: capability overview for the Connections panel. */
+export function useConnectionsOverview() {
+  return useApiQuery<CapabilityOverview[]>(
+    () => fetchConnectionsOverview(),
+    [],
+    ["connections-overview", "worldStatus"]
   );
 }

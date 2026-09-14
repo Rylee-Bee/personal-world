@@ -18,6 +18,8 @@ from fastapi.responses import HTMLResponse, FileResponse
 from starlette.concurrency import run_in_threadpool
 
 from . import export, prefs
+from .connection_manager import ConnectionManager
+from .provider_schemas import get_capability_schemas, get_capability_schema, CAPABILITY_SCHEMAS
 from . import sections as sections_mod
 from .template_registry import TemplateRegistry
 from .app import build_registry, load_world, save_world
@@ -795,6 +797,237 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         see docs/NATIVE-BASELINE-AND-ENRICHMENT.md)."""
         _, registry = _state()
         return {"ok": True, "data": registry.manifest()}
+
+    # ── Connections & Providers ──────────────────────────────────
+
+    conn_mgr = ConnectionManager(config_dir)
+
+    @app.get("/api/connections/schemas", dependencies=[Depends(require_auth)])
+    async def connection_schemas() -> dict:
+        """Return all provider schemas for the Connections & Providers UI."""
+        return {"ok": True, "data": get_capability_schemas()}
+
+    @app.get("/api/connections/schema/{capability}", dependencies=[Depends(require_auth)])
+    async def connection_schema(capability: str) -> dict:
+        """Return schema for a single capability."""
+        schema = get_capability_schema(capability)
+        if not schema:
+            raise HTTPException(status_code=404, detail=f"Unknown capability: {capability}")
+        return {"ok": True, "data": schema}
+
+    @app.get("/api/connections/config", dependencies=[Depends(require_auth)])
+    async def connections_config() -> dict:
+        """Return the full merged connection configuration."""
+        return {"ok": True, "data": conn_mgr.get_all_config()}
+
+    @app.get("/api/connections/overview", dependencies=[Depends(require_auth)])
+    async def connections_overview() -> dict:
+        """Return capability overview: status, config state, providers."""
+        _, registry = _state()
+        status_map = registry.status_map()
+        config = conn_mgr.get_all_config()
+        result = []
+        for cs in CAPABILITY_SCHEMAS.values():
+            cap = cs.capability
+            status_info = status_map.get(cap, {})
+            # Determine if configured
+            if cap == "media":
+                media_cfg = config.get("media", {})
+                adapters = media_cfg.get("providers", media_cfg.get("adapters", []))
+                configured = len(adapters) > 0
+            elif cap == "calendar":
+                cal_cfg = config.get("calendar", {})
+                configured = len(cal_cfg.get("sources", [])) > 0
+            elif cap == "notifications":
+                notif_cfg = config.get("notifications", {})
+                configured = len(notif_cfg.get("targets", [])) > 0
+            elif cap == "deployment":
+                deploy_cfg = config.get("deployment", {})
+                configured = len(deploy_cfg.get("targets", [])) > 0
+            elif cap == "update_discovery":
+                updates_cfg = config.get("updates", {})
+                configured = len(updates_cfg.get("sources", [])) > 0
+            elif cap == "auth":
+                oidc_path = config_dir / "oidc.json"
+                configured = oidc_path.exists()
+            elif cap == "reasoning":
+                conns = config.get("connections", [])
+                configured = any(c.get("capability") == "reasoning" for c in conns)
+            else:
+                configured = status_info.get("status") not in (None, "not_configured")
+            result.append({
+                "capability": cap,
+                "display_name": cs.display_name,
+                "description": cs.description,
+                "icon": cs.icon,
+                "status": status_info.get("status", "not_configured"),
+                "ok": status_info.get("ok", False),
+                "configured": configured,
+                "needs_setup": cs.needs_setup,
+                "help_text": cs.help_text,
+                "providers": [p.to_dict() for p in cs.providers],
+            })
+        return {"ok": True, "data": result}
+
+    @app.get("/api/connections", dependencies=[Depends(require_auth)])
+    async def connections_list() -> dict:
+        """Return all connections."""
+        return {"ok": True, "data": conn_mgr.get_connections()}
+
+    @app.put("/api/connections", dependencies=[Depends(require_auth)])
+    async def connections_save(request: Request) -> dict:
+        """Save a connection (step-up required)."""
+        require_step_up(request)
+        body = await request.json()
+        name = body.get("name")
+        if not name:
+            raise HTTPException(status_code=400, detail="name is required")
+        conn_mgr.save_connection(body)
+        return {"ok": True, "data": {"saved": True, "name": name}}
+
+    @app.delete("/api/connections/{name}", dependencies=[Depends(require_auth)])
+    async def connections_delete(name: str, request: Request) -> dict:
+        """Delete a connection by name (step-up required)."""
+        require_step_up(request)
+        deleted = conn_mgr.delete_connection(name)
+        return {"ok": True, "data": {"deleted": deleted}}
+
+    @app.post("/api/connections/config/{key}", dependencies=[Depends(require_auth)])
+    async def save_native_config(key: str, request: Request) -> dict:
+        """Save native provider config (calendar, notifications, etc.)."""
+        require_step_up(request)
+        body = await request.json()
+        conn_mgr.save_native_config(key, body)
+        return {"ok": True, "data": {"saved": True, "key": key}}
+
+    @app.post("/api/connections/test", dependencies=[Depends(require_auth)])
+    async def test_connection(request: Request) -> dict:
+        """Test a connection configuration without saving it."""
+        body = await request.json()
+        capability = body.get("capability", "")
+        adapter_type = body.get("adapter_type", "")
+        config = body.get("config", {})
+        result = _test_adapter(capability, adapter_type, config)
+        return {"ok": True, "data": result}
+
+    @app.post("/api/connections/validate", dependencies=[Depends(require_auth)])
+    async def validate_connection(request: Request) -> dict:
+        """Validate connection config (alias for test)."""
+        body = await request.json()
+        capability = body.get("capability", "")
+        adapter_type = body.get("adapter_type", "")
+        config = body.get("config", {})
+        result = _test_adapter(capability, adapter_type, config)
+        return {"ok": True, "data": result}
+
+    def _test_adapter(capability: str, adapter_type: str, config: dict) -> dict:
+        """Test an adapter connection. Returns structured state."""
+        import urllib.request
+        import urllib.error
+        try:
+            if adapter_type == "plex":
+                url = config.get("base_url", "").rstrip("/")
+                token = config.get("token", "")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "Server URL is required"}
+                req_url = f"{url}/?X-Plex-Token={token}" if token else f"{url}/"
+                try:
+                    req = urllib.request.Request(req_url, method="GET")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": f"Plex responded ({resp.status})"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach Plex: {e.reason}"}
+            elif adapter_type in ("sonarr", "radarr", "lidarr"):
+                url = config.get("base_url", "").rstrip("/")
+                api_key = config.get("api_key", "")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "Server URL is required"}
+                try:
+                    req = urllib.request.Request(f"{url}/api/v3/system/status",
+                                                headers={"X-Api-Key": api_key} if api_key else {})
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": f"{adapter_type.title()} responded ({resp.status})"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach {adapter_type.title()}: {e.reason}"}
+            elif adapter_type == "ics":
+                url = config.get("url", "")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "URL is required"}
+                try:
+                    req = urllib.request.Request(url, method="HEAD")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": f"ICS feed reachable ({resp.status})"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach ICS feed: {e.reason}"}
+            elif adapter_type == "ntfy":
+                server = config.get("server", "https://ntfy.sh").rstrip("/")
+                topic = config.get("topic", "")
+                if not topic:
+                    return {"status": "invalid_configuration", "detail": "Topic is required"}
+                try:
+                    req = urllib.request.Request(f"{server}/v1/health", method="GET")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": f"ntfy server reachable ({resp.status})"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach ntfy: {e.reason}"}
+            elif adapter_type == "webhook":
+                url = config.get("url", "")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "URL is required"}
+                return {"status": "healthy", "detail": "Webhook URL accepted (not tested with a real request)"}
+            elif adapter_type == "github_release":
+                repo = config.get("repository", "")
+                if not repo:
+                    return {"status": "invalid_configuration", "detail": "Repository is required"}
+                try:
+                    req = urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/latest",
+                                                headers={"Accept": "application/vnd.github.v3+json"})
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        data = json.loads(resp.read())
+                        tag = data.get("tag_name", "unknown")
+                        return {"status": "healthy", "detail": f"Latest release: {tag}"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach GitHub: {e.reason}"}
+            elif adapter_type == "ollama":
+                url = config.get("base_url", "").rstrip("/")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "Server URL is required"}
+                try:
+                    req = urllib.request.Request(f"{url}/api/tags", method="GET")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        data = json.loads(resp.read())
+                        models = [m.get("name", "") for m in data.get("models", [])]
+                        return {"status": "healthy", "detail": f"Ollama has {len(models)} model(s)"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach Ollama: {e.reason}"}
+            elif adapter_type == "oidc":
+                issuer = config.get("issuer_url", "")
+                if not issuer:
+                    return {"status": "invalid_configuration", "detail": "Issuer URL is required"}
+                well_known = f"{issuer.rstrip('/')}/.well-known/openid-configuration"
+                try:
+                    req = urllib.request.Request(well_known, method="GET")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": "OIDC discovery endpoint reachable"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach OIDC issuer: {e.reason}"}
+            elif adapter_type == "compose":
+                path = config.get("compose_path", "")
+                if not path:
+                    return {"status": "invalid_configuration", "detail": "Compose file path is required"}
+                p = Path(path)
+                if p.exists():
+                    return {"status": "healthy", "detail": f"Compose file found at {path}"}
+                return {"status": "unavailable", "detail": f"Compose file not found at {path}"}
+            elif adapter_type == "systemd":
+                service = config.get("service_name", "")
+                if not service:
+                    return {"status": "invalid_configuration", "detail": "Service name is required"}
+                return {"status": "healthy", "detail": f"Service '{service}' accepted"}
+            else:
+                return {"status": "unknown", "detail": f"Test not implemented for {adapter_type}"}
+        except Exception as e:
+            return {"status": "unavailable", "detail": str(e)}
 
     @app.get("/api/exports/settings", dependencies=[Depends(require_auth)])
     async def settings_export() -> dict:
