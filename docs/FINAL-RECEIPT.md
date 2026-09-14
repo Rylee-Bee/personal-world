@@ -1,13 +1,12 @@
 # PROJECT WORLDS — FINAL RECEIPT
-# Commit: 2d940c6
-# Date: 2026-09-13
+# Commit: 60f1a19
+# Date: 2026-09-14
 
 ---
 
 ## TESTS
 
-- **665 passed**, 570 warnings, 0 failures
-- Frontend: TypeScript compiles clean, Vite build succeeds
+**706 passed, 0 failed, 0 warnings**
 
 ---
 
@@ -21,70 +20,60 @@
 
 ---
 
-## SCREENS VERIFIED (15)
+## CAPABILITIES (18 — all have native baseline)
 
-| Screen | Route | Status |
-|--------|-------|--------|
-| TodayScreen | / | ✅ WIRED (7 hooks) |
-| ChatRoute | /chat | ✅ WIRED (ChatPanel) |
-| JournalScreen | /journal | ✅ WIRED (6 hooks + writes) |
-| VaultScreen | /vault | ✅ WIRED (CRUD) |
-| WorldScreen | /world | ✅ WIRED (manifest + exports + writes) |
-| SettingsScreen | /settings | ✅ WIRED (prefs + sections + reminders + apps + themes + profile + identity) |
-| ProjectsScreen | /projects | ✅ WIRED (source-control + agent-sync) |
-| LabScreen | /lab | ✅ WIRED (native lab + homelab + ingress) |
-| InterestsScreen | /interests | ✅ WIRED (discovery CRUD) |
-| MediaScreen | /media | ✅ WIRED (native media with 4 providers) |
-| SetupWizard | /setup | ✅ WIRED |
-| LoginScreen | /login | ✅ WIRED |
-| LabOperationsPanel | (sub-panel) | ✅ WIRED (lazy) |
-| CompanionPresence | sidebar | ✅ WIRED (reads companion context) |
-| CompanionPopover | sidebar | ✅ WIRED (statusText prop) |
+| Capability | Native Provider | Status |
+|------------|----------------|--------|
+| source_control | native_git | WORKING |
+| deployment | native_deployment | not_configured (needs targets) |
+| secrets | native_vault | WORKING |
+| calendar | native_calendar | not_configured (needs sources) |
+| discovery | native_discovery | WORKING |
+| settings_validation | native_reconciler | WORKING |
+| service_validation | native_lab | WORKING |
+| update_discovery | native_updates | not_configured (needs sources) |
+| memory | native_memory | WORKING |
+| journal | built-in | WORKING |
+| reasoning | ollama | WORKING |
+| media | native_media | not_configured (needs providers) |
+| notifications | native_notifications | not_configured (needs targets) |
+| scheduler | built-in | WORKING |
+| homelab_* | lab_cli | OPTIONAL |
 
 ---
 
-## BRAIN TOOLS VERIFIED (25)
+## SCREENS (15 wired)
+
+| Screen | Route | Status |
+|--------|-------|--------|
+| TodayScreen | / | ✅ WIRED |
+| ChatRoute | /chat | ✅ WIRED |
+| JournalScreen | /journal | ✅ WIRED |
+| VaultScreen | /vault | ✅ WIRED |
+| WorldScreen | /world | ✅ WIRED |
+| SettingsScreen | /settings | ✅ WIRED (Brain panel added) |
+| ProjectsScreen | /projects | ✅ WIRED |
+| LabScreen | /lab | ✅ WIRED |
+| InterestsScreen | /interests | ✅ WIRED |
+| MediaScreen | /media | ✅ WIRED |
+| SetupWizard | /setup | ✅ WIRED |
+| LoginScreen | /login | ✅ WIRED |
+| LabOperationsPanel | (sub-panel) | ✅ WIRED |
+| CompanionPresence | sidebar | ✅ WIRED |
+| CompanionPopover | sidebar | ✅ WIRED |
+
+---
+
+## BRAIN TOOLS (25)
 
 ### Read tools (19):
-| Tool | Status |
-|------|--------|
-| inspect_world_status | ✅ |
-| inspect_manifest | ✅ |
-| read_journal | ✅ |
-| search_journal | ✅ |
-| inspect_source_control | ✅ |
-| inspect_source_control_history | ✅ |
-| inspect_projects | ✅ |
-| inspect_lab_inventory | ✅ |
-| inspect_lab_health | ✅ |
-| inspect_lab_resources | ✅ |
-| inspect_lab_settings | ✅ |
-| inspect_reconciler_status | ✅ |
-| inspect_reconciler_diff | ✅ |
-| inspect_discovery_status | ✅ |
-| list_discovery_sources | ✅ |
-| list_interests | ✅ |
-| run_discovery | ✅ |
-| inspect_vault_status | ✅ |
-| inspect_reminders | ✅ |
+inspect_world_status, inspect_manifest, read_journal, search_journal, inspect_source_control, inspect_source_control_history, inspect_projects, inspect_lab_inventory, inspect_lab_health, inspect_lab_resources, inspect_lab_settings, inspect_reconciler_status, inspect_reconciler_diff, inspect_discovery_status, list_discovery_sources, list_interests, run_discovery, inspect_vault_status, inspect_reminders
 
 ### Media tools (4):
-| Tool | Status |
-|------|--------|
-| inspect_media_status | ✅ |
-| inspect_media_recent | ✅ |
-| inspect_media_activity | ✅ |
-| search_media | ✅ |
+inspect_media_status, inspect_media_recent, inspect_media_activity, search_media
 
 ### Write tools (6, proposal-based):
-| Tool | Status |
-|------|--------|
-| propose_journal_entry | ✅ |
-| propose_world_intent | ✅ |
-| propose_world_fact | ✅ |
-| propose_reminder | ✅ |
-| propose_reconciler_apply | ✅ |
-| execute_approved_write | ✅ |
+propose_journal_entry, propose_world_intent, propose_world_fact, propose_reminder, propose_reconciler_apply, execute_approved_write
 
 ---
 
@@ -100,14 +89,16 @@
 
 ---
 
-## MEDIA PROVIDERS
+## BRAIN TEMPLATE SYSTEM
 
-| Provider | Adapter | Status |
-|----------|---------|--------|
-| Plex | PlexAdapter | ✅ Built (not_configured without credentials) |
-| Sonarr | SonarrAdapter | ✅ Built (not_configured without credentials) |
-| Radarr | RadarrAdapter | ✅ Built (not_configured without credentials) |
-| Lidarr | LidarrAdapter | ✅ Built (not_configured without credentials) |
+| Component | Status |
+|-----------|--------|
+| Shipped templates | 19 (4 core, 9 surfaces, 4 tasks, 2 formats) |
+| Template registry | ✅ Working |
+| Private overrides | ✅ config.prompts.local/ |
+| Surface composition | ✅ Chat derives surface from route |
+| Provenance | ✅ GET /api/brain/provenance |
+| Settings → Brain | ✅ Template list with metadata |
 
 ---
 
@@ -115,83 +106,82 @@
 
 | Feature | Status |
 |---------|--------|
-| Local/bootstrap login | ✅ Working |
-| Session-cookie auth | ✅ Working (httponly, secure, samesite=lax) |
+| Native auth module | ✅ Implemented |
+| Session-cookie auth | ✅ Implemented |
 | OIDC config | ✅ Provider-neutral seam |
-| Authelia integration | ✅ config/oidc.example.json ready |
+| Authelia support | ✅ config/oidc.example.json ready |
+| Live Authelia login | NOT VERIFIED (no running instance) |
 | Step-up auth | ✅ 300s window |
 | Break-glass | ✅ PW_API_TOKEN fallback |
-| Agent bearer auth | ✅ Untouched |
 
 ---
 
-## API ENDPOINTS (84 data operations)
+## NATIVE PROVIDERS (in-process, no new containers)
 
-All 84 endpoints wired to real domain operations.
-
-New endpoints added:
-- POST /api/auth/login
-- POST /api/auth/logout
-- GET /api/auth/session
-- POST /api/auth/step-up
-- GET /api/auth/oidc/config
-- GET /api/auth/oidc/login
-- GET /api/auth/oidc/callback
-- GET /api/media/status
-- GET /api/media/library
-- GET /api/media/recent
-- GET /api/media/activity
-- GET /api/media/search
+| Provider | File | Purpose |
+|----------|------|---------|
+| native_vault | providers/native_vault.py | Secrets via encrypted vault |
+| native_memory | providers/native_memory.py | SQLite FTS5 search |
+| native_calendar | providers/native_calendar.py | ICS/iCal feeds |
+| native_notifications | providers/native_notifications.py | Webhook + ntfy |
+| native_updates | providers/native_updates.py | GitHub releases + version URLs |
+| native_deployment | providers/native_deployment.py | Docker Compose + systemd |
+| native_media | providers/native_media.py | Plex/Sonarr/Radarr/Lidarr |
+| native_lab | providers/native_lab.py | Service inventory + health |
+| native_discovery | providers/native_discovery.py | Content discovery |
+| native_reconciler | providers/native_reconciler.py | Settings reconciliation |
 
 ---
 
-## CAPABILITIES (18)
+## EXECUTION VIEWER
 
-| Capability | Native | Provider | Status |
-|------------|--------|----------|--------|
-| source_control | ✅ | native-git | WORKING |
-| deployment | ❌ | none | not_configured |
-| secrets | ❌ | none | not_configured |
-| calendar | ❌ | none | not_configured |
-| discovery | ❌ | native_discovery | WORKING |
-| settings_validation | ✅ | native_reconciler | WORKING |
-| service_validation | ❌ | native_lab | WORKING |
-| update_discovery | ❌ | none | not_configured |
-| memory | ❌ | none | not_configured |
-| journal | ✅ | built-in | WORKING |
-| reasoning | ❌ | ollama | WORKING |
-| media | ❌ | native_media | WORKING |
-| notifications | ❌ | none | not_configured |
-| scheduler | ❌ | built-in | WORKING |
-| homelab_* | ❌ | lab_cli | OPTIONAL |
+| Component | Status |
+|-----------|--------|
+| ExecutionViewer | ✅ Implemented |
+| ExecutionStore | ✅ Persistent (executions.json) |
+| Record structure | actor, target, host, command, timestamps, status, exit_code, stdout/stderr |
+| Query | by actor, target, status |
 
 ---
 
-## WRITE/APPROVAL TEST
+## WARNING CLEANUP
 
-1. Brain proposes: `propose_journal_entry("test")` → returns proposal_id
-2. Owner approves: `execute_approved_write(proposal_id, true)` → entry written
-3. Owner rejects: `execute_approved_write(proposal_id, false)` → no change
-4. Stale proposal: second execute → "not pending" error
-5. Step-up required: `execute_approved_write` has `requires_step_up: true`
+- Third-party warnings (starlette, anyio, fastapi) filtered via conftest.py
+- Our code warnings treated as errors (pyproject.toml filterwarnings)
+- 706 passed, 0 failed, 0 warnings
 
 ---
 
-## KNOWN NOT_CONFIGURED CAPABILITIES
+## KNOWN NOT_CONFIGURED
 
-- deployment (no provider)
-- secrets (no provider)
-- calendar (no provider)
-- memory (no provider)
-- notifications (no provider)
-- Media providers (Plex/Sonarr/Radarr/Lidarr need credentials in connections.json)
-- OIDC (needs config/oidc.json + OIDC_CLIENT_SECRET env)
+- deployment (no targets configured)
+- calendar (no ICS/CalDAV sources)
+- update_discovery (no sources configured)
+- media (no Plex/Sonarr/Radarr/Lidarr providers)
+- notifications (no targets configured)
+- OIDC (no config/oidc.json)
 
 ---
 
 ## REMAINING DEFECTS
 
-None that block clean boot or end-to-end use.
+None.
+
+---
+
+## GIT COMMITS
+
+| SHA | Description |
+|-----|-------------|
+| 60f1a19 | Brain Template System |
+| 3e203d8 | Native providers + execution viewer + zero warnings |
+| 2d940c6 | Media + Auth/SSO + companion + Settings + write tools |
+| ecc4149 | Final receipt |
+| d54700e | Brain tool-calling |
+| fdc6958 | inspect_lab_settings + inspect_reconciler_diff |
+| dae73bb | Full system inventory |
+| 565dcd1 | Wire all screens + chat UI + tool registry |
+| 4b7ec55 | Workshop v3 shell + native products + Ollama |
 
 ---
 
@@ -202,9 +192,11 @@ None that block clean boot or end-to-end use.
 | This receipt | docs/FINAL-RECEIPT.md |
 | Full inventory | docs/FULL-SYSTEM-INVENTORY.md |
 | API wiring | docs/API-WIRING-HANDOFF.md |
-| Media domain | src/personal_world/providers/native_media.py |
-| Auth module | src/personal_world/auth.py |
-| Auth routes | src/personal_world/auth_routes.py |
+| Compose | compose.yaml |
+| Connections | config/connections.json |
+| Templates | config/prompts/ |
+| Template registry | src/personal_world/template_registry.py |
 | Tool registry | src/personal_world/tool_registry.py |
-| Chat providers | src/personal_world/chat_registry.py |
-| OIDC example | config/oidc.example.json |
+| Auth module | src/personal_world/auth.py |
+| Execution viewer | src/personal_world/execution_viewer.py |
+| Native providers | src/personal_world/providers/native_*.py |
