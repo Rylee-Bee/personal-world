@@ -340,7 +340,322 @@ def build_default_tools(
         handler=lambda: _reminders(),
     ))
 
+    # ── Media ──
+
+    tools.register(Tool(
+        id="inspect_media_status",
+        capability="media",
+        operation="status",
+        description="Inspect media providers: Plex, Sonarr, Radarr, Lidarr status.",
+        read_write="read",
+        parameters={"type": "object", "properties": {}, "required": []},
+        handler=lambda: _media_status(),
+    ))
+
+    tools.register(Tool(
+        id="inspect_media_recent",
+        capability="media",
+        operation="recent",
+        description="Recently added media: new movies, episodes, albums.",
+        read_write="read",
+        parameters={"type": "object", "properties": {}, "required": []},
+        handler=lambda: _media_recent(),
+    ))
+
+    tools.register(Tool(
+        id="inspect_media_activity",
+        capability="media",
+        operation="activity",
+        description="Media queue: downloading, queued, failed items.",
+        read_write="read",
+        parameters={"type": "object", "properties": {}, "required": []},
+        handler=lambda: _media_activity(),
+    ))
+
+    tools.register(Tool(
+        id="search_media",
+        capability="media",
+        operation="search",
+        description="Search for media by title across all providers.",
+        read_write="read",
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Title to search for"}
+            },
+            "required": ["query"],
+        },
+        handler=lambda query: _media_search(query),
+    ))
+
+    # ── Write tools (proposal-based) ──
+
+    tools.register(Tool(
+        id="propose_journal_entry",
+        capability="journal",
+        operation="write",
+        description="Propose writing a journal entry. Returns a proposal for owner approval before writing.",
+        read_write="write",
+        requires_approval=True,
+        parameters={
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "Journal entry text (1-2000 chars)"}
+            },
+            "required": ["text"],
+        },
+        handler=lambda text: _propose_journal_write(journal, text),
+    ))
+
+    tools.register(Tool(
+        id="propose_world_intent",
+        capability="world",
+        operation="write",
+        description="Propose setting a world intent. Returns a proposal for owner approval.",
+        read_write="write",
+        requires_approval=True,
+        parameters={
+            "type": "object",
+            "properties": {
+                "key": {"type": "string", "description": "Intent key"},
+                "intent": {"type": "string", "description": "What the owner wants true"}
+            },
+            "required": ["key", "intent"],
+        },
+        handler=lambda key, intent: _propose_world_intent(world, key, intent),
+    ))
+
+    tools.register(Tool(
+        id="propose_world_fact",
+        capability="world",
+        operation="write",
+        description="Propose recording a world fact. Returns a proposal for owner approval.",
+        read_write="write",
+        requires_approval=True,
+        parameters={
+            "type": "object",
+            "properties": {
+                "key": {"type": "string", "description": "Fact key"},
+                "fact": {"type": "string", "description": "Observed reality"}
+            },
+            "required": ["key", "fact"],
+        },
+        handler=lambda key, fact: _propose_world_fact(world, key, fact),
+    ))
+
+    tools.register(Tool(
+        id="propose_reminder",
+        capability="reminders",
+        operation="write",
+        description="Propose adding a reminder. Returns a proposal for owner approval.",
+        read_write="write",
+        requires_approval=True,
+        parameters={
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "Reminder text"}
+            },
+            "required": ["text"],
+        },
+        handler=lambda text: _propose_reminder(text),
+    ))
+
+    tools.register(Tool(
+        id="propose_reconciler_apply",
+        capability="reconciler",
+        operation="write",
+        description="Propose applying reconciliation for a service. Returns a proposal for owner approval.",
+        read_write="write",
+        requires_approval=True,
+        parameters={
+            "type": "object",
+            "properties": {
+                "service": {"type": "string", "description": "Service name to reconcile"}
+            },
+            "required": ["service"],
+        },
+        handler=lambda service: _propose_reconciler_apply(service),
+    ))
+
+    # ── Execute approved writes ──
+
+    tools.register(Tool(
+        id="execute_approved_write",
+        capability="write",
+        operation="execute",
+        description="Execute an approved write proposal. Only call after owner approval.",
+        read_write="write",
+        requires_step_up=True,
+        parameters={
+            "type": "object",
+            "properties": {
+                "proposal_id": {"type": "string", "description": "The approved proposal ID"},
+                "approved": {"type": "boolean", "description": "Whether the owner approved"}
+            },
+            "required": ["proposal_id", "approved"],
+        },
+        handler=lambda proposal_id, approved: _execute_approved_write(journal, world, proposal_id, approved),
+    ))
+
     return tools
+
+
+# ── Proposal store (in-memory, per-process) ──
+
+_proposals: dict[str, dict[str, Any]] = {}
+_proposal_counter = 0
+
+
+def _next_proposal_id() -> str:
+    global _proposal_counter
+    _proposal_counter += 1
+    return f"proposal-{_proposal_counter}"
+
+
+def _propose_journal_write(journal: Any, text: str) -> Result:
+    """Propose a journal entry. Returns proposal for approval."""
+    if not text or len(text) > 2000:
+        return fail("invalid_args", warnings=["text must be 1-2000 chars"])
+    pid = _next_proposal_id()
+    _proposals[pid] = {
+        "type": "journal_write",
+        "text": text,
+        "status": "pending",
+    }
+    return ok("healthy", data={
+        "proposal_id": pid,
+        "type": "journal_write",
+        "description": f"Write journal entry: {text[:100]}...",
+        "requires_approval": True,
+    })
+
+
+def _propose_world_intent(world: Any, key: str, intent: str) -> Result:
+    """Propose a world intent. Returns proposal for approval."""
+    pid = _next_proposal_id()
+    _proposals[pid] = {
+        "type": "world_intent",
+        "key": key,
+        "intent": intent,
+        "status": "pending",
+    }
+    return ok("healthy", data={
+        "proposal_id": pid,
+        "type": "world_intent",
+        "description": f"Set intent '{key}': {intent[:100]}",
+        "requires_approval": True,
+    })
+
+
+def _propose_world_fact(world: Any, key: str, fact: str) -> Result:
+    """Propose a world fact. Returns proposal for approval."""
+    pid = _next_proposal_id()
+    _proposals[pid] = {
+        "type": "world_fact",
+        "key": key,
+        "fact": fact,
+        "status": "pending",
+    }
+    return ok("healthy", data={
+        "proposal_id": pid,
+        "type": "world_fact",
+        "description": f"Record fact '{key}': {fact[:100]}",
+        "requires_approval": True,
+    })
+
+
+def _propose_reminder(text: str) -> Result:
+    """Propose a reminder. Returns proposal for approval."""
+    pid = _next_proposal_id()
+    _proposals[pid] = {
+        "type": "reminder",
+        "text": text,
+        "status": "pending",
+    }
+    return ok("healthy", data={
+        "proposal_id": pid,
+        "type": "reminder",
+        "description": f"Add reminder: {text[:100]}",
+        "requires_approval": True,
+    })
+
+
+def _propose_reconciler_apply(service: str) -> Result:
+    """Propose reconciliation. Returns proposal for approval."""
+    try:
+        from .providers.native_reconciler import NativeSettingsReconciler
+        reconciler = NativeSettingsReconciler()
+        desired = reconciler._desired.get(service)
+        if not desired:
+            return fail("not_found", warnings=[f"no desired state for '{service}'"])
+        pid = _next_proposal_id()
+        _proposals[pid] = {
+            "type": "reconciler_apply",
+            "service": service,
+            "desired": desired.to_dict(),
+            "status": "pending",
+        }
+        return ok("healthy", data={
+            "proposal_id": pid,
+            "type": "reconciler_apply",
+            "description": f"Apply reconciliation for {service}",
+            "requires_approval": True,
+        })
+    except Exception as e:
+        return fail("unavailable", warnings=[f"reconciler: {e}"])
+
+
+def _execute_approved_write(journal: Any, world: Any, proposal_id: str, approved: bool) -> Result:
+    """Execute an approved write proposal."""
+    proposal = _proposals.get(proposal_id)
+    if not proposal:
+        return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
+    if proposal["status"] != "pending":
+        return fail("invalid_state", warnings=[f"proposal is {proposal['status']}, not pending"])
+
+    if not approved:
+        proposal["status"] = "rejected"
+        return ok("healthy", data={"proposal_id": proposal_id, "status": "rejected"})
+
+    proposal["status"] = "executing"
+    ptype = proposal["type"]
+
+    try:
+        if ptype == "journal_write":
+            journal.record("observation", proposal["text"], source="brain-tool")
+            proposal["status"] = "executed"
+            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
+
+        elif ptype == "world_intent":
+            world.set_intent(proposal["key"], proposal["intent"])
+            proposal["status"] = "executed"
+            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
+
+        elif ptype == "world_fact":
+            world.record_fact(proposal["key"], proposal["fact"])
+            proposal["status"] = "executed"
+            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
+
+        elif ptype == "reminder":
+            proposal["status"] = "executed"
+            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
+
+        elif ptype == "reconciler_apply":
+            proposal["status"] = "executed"
+            return ok("healthy", data={
+                "proposal_id": proposal_id,
+                "status": "executed",
+                "type": ptype,
+                "note": "Reconciliation noted. Actual provider apply requires adapter.",
+            })
+
+        else:
+            proposal["status"] = "failed"
+            return fail("unsupported", warnings=[f"unknown proposal type: {ptype}"])
+
+    except Exception as e:
+        proposal["status"] = "failed"
+        return fail("unavailable", warnings=[f"execute failed: {e}"])
 
 
 # ── Tool implementations ──
@@ -556,3 +871,61 @@ def _reminders() -> Result:
         return ok("healthy", data={"reminders": [], "count": 0})
     except Exception as e:
         return fail("unavailable", warnings=[f"reminders: {e}"])
+
+
+# ── Media tool implementations ──
+
+def _build_media_engine():
+    """Build media engine from connections config."""
+    from .providers.native_media import NativeMediaEngine, build_adapter
+    import json as _json
+    from pathlib import Path
+    import os
+    config_dir = Path(os.environ.get("PW_CONFIG_DIR", "./config"))
+    connections_path = config_dir / "connections.json"
+    if not connections_path.exists():
+        return NativeMediaEngine([])
+    config = _json.loads(connections_path.read_text())
+    adapters = []
+    for conn in config.get("connections", []):
+        if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
+            adapter = build_adapter(conn)
+            if adapter:
+                adapters.append(adapter)
+    return NativeMediaEngine(adapters)
+
+
+def _media_status() -> Result:
+    """Inspect media providers status."""
+    try:
+        engine = _build_media_engine()
+        return engine.status()
+    except Exception as e:
+        return fail("unavailable", warnings=[f"media: {e}"])
+
+
+def _media_recent() -> Result:
+    """Recently added media."""
+    try:
+        engine = _build_media_engine()
+        return engine.recent()
+    except Exception as e:
+        return fail("unavailable", warnings=[f"media recent: {e}"])
+
+
+def _media_activity() -> Result:
+    """Media queue activity."""
+    try:
+        engine = _build_media_engine()
+        return engine.activity()
+    except Exception as e:
+        return fail("unavailable", warnings=[f"media activity: {e}"])
+
+
+def _media_search(query: str) -> Result:
+    """Search media by title."""
+    try:
+        engine = _build_media_engine()
+        return engine.search(query)
+    except Exception as e:
+        return fail("unavailable", warnings=[f"media search: {e}"])

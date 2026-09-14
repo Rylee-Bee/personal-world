@@ -23,6 +23,8 @@ import {
   fetchActors,
   fetchBackup,
   fetchThemes,
+  fetchIngressRollups,
+  type IngressRollupsData,
   fetchJournalAudit,
   fetchExportSettings,
   fetchExportStory,
@@ -61,6 +63,10 @@ import {
   fetchDiscoveryInterests,
   fetchDiscoveryDiscover,
   fetchReconcilerStatus,
+  fetchMediaStatus,
+  fetchMediaLibrary,
+  fetchMediaRecent,
+  fetchMediaActivity,
 } from "./api";
 
 /**
@@ -292,6 +298,11 @@ export function useThemes() {
   return useApiQuery<unknown[]>(() => fetchThemes());
 }
 
+// ── Ingress hook ──
+export function useIngressRollups() {
+  return useApiQuery<IngressRollupsData>(() => fetchIngressRollups());
+}
+
 // ── Journal Audit hook ──
 export function useJournalAudit() {
   return useApiQuery<{ text: string }>(() => fetchJournalAudit());
@@ -425,4 +436,19 @@ export function useDiscoveryDiscover(source?: string) {
 /** GET /api/reconciler/status: reconciler status. */
 export function useReconcilerStatus() {
   return useApiQuery<any>(() => fetchReconcilerStatus(), []);
+}
+
+// ── Media hooks ──
+
+export function useMediaStatus() {
+  return useApiQuery<any>(() => fetchMediaStatus(), []);
+}
+export function useMediaLibrary() {
+  return useApiQuery<any>(() => fetchMediaLibrary(), []);
+}
+export function useMediaRecent() {
+  return useApiQuery<any>(() => fetchMediaRecent(), []);
+}
+export function useMediaActivity() {
+  return useApiQuery<any>(() => fetchMediaActivity(), []);
 }

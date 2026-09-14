@@ -212,9 +212,14 @@ class TestEndpointProposalValidation:
                  "proposed_text: the deployment finished at noon\n"
                  "reason: later entries show completion\n"
                  "evidence_summary: two later entries record success\n```")
+        _fp = FixtureProvider(reply)
         monkeypatch.setattr(
             "personal_world.api.chat_once",
-            lambda impl, messages: FixtureProvider(reply).chat(messages))
+            lambda impl, messages: _fp.chat(messages))
+        from personal_world.chat_registry import OpenAICompatChat
+        monkeypatch.setattr(
+            OpenAICompatChat, "chat_with_tools",
+            lambda self, messages, tools=None: _fp.chat(messages))
         body = c.post("/api/chat", json={"message": "check my journal"}).json()
         assert body["ok"] is True
         assert "PW-PROPOSAL" not in body["data"]["reply"]
@@ -229,9 +234,14 @@ class TestEndpointProposalValidation:
                  "entry_ts: 2001-01-01T00:00:00+00:00\n"
                  "proposed_text: anything\nreason: r\n"
                  "evidence_summary: e\n```")
+        _fp = FixtureProvider(reply)
         monkeypatch.setattr(
             "personal_world.api.chat_once",
-            lambda impl, messages: FixtureProvider(reply).chat(messages))
+            lambda impl, messages: _fp.chat(messages))
+        from personal_world.chat_registry import OpenAICompatChat
+        monkeypatch.setattr(
+            OpenAICompatChat, "chat_with_tools",
+            lambda self, messages, tools=None: _fp.chat(messages))
         body = c.post("/api/chat", json={"message": "hi"}).json()
         assert body["ok"] is True
         assert "proposal" not in body["data"] or body["data"].get("proposal") is None
@@ -245,9 +255,14 @@ class TestEndpointProposalValidation:
         before = len(c.get("/api/journal?n=500").json()["data"])
         reply = (f"```\n{PROPOSAL_HEADER}\nentry_ts: {ts}\n"
                  "proposed_text: x\nreason: r\nevidence_summary: e\n```")
+        _fp = FixtureProvider(reply)
         monkeypatch.setattr(
             "personal_world.api.chat_once",
-            lambda impl, messages: FixtureProvider(reply).chat(messages))
+            lambda impl, messages: _fp.chat(messages))
+        from personal_world.chat_registry import OpenAICompatChat
+        monkeypatch.setattr(
+            OpenAICompatChat, "chat_with_tools",
+            lambda self, messages, tools=None: _fp.chat(messages))
         c.post("/api/chat", json={"message": "hello"})
         after = len(c.get("/api/journal?n=500").json()["data"])
         assert after == before + 1  # exactly the chat-exchange record
@@ -286,10 +301,14 @@ class TestEndpointProposalValidation:
         journal mutation happens through chat, ever."""
         c, ts, FixtureProvider = client
         before = len(c.get("/api/journal?n=500").json()["data"])
+        _fp = FixtureProvider("Yes, I will correct it now. Done!")
         monkeypatch.setattr(
             "personal_world.api.chat_once",
-            lambda impl, messages: FixtureProvider(
-                "Yes, I will correct it now. Done!").chat(messages))
+            lambda impl, messages: _fp.chat(messages))
+        from personal_world.chat_registry import OpenAICompatChat
+        monkeypatch.setattr(
+            OpenAICompatChat, "chat_with_tools",
+            lambda self, messages, tools=None: _fp.chat(messages))
         c.post("/api/chat", json={"message": "yes, correct that entry"})
         after = len(c.get("/api/journal?n=500").json()["data"])
         # only the chat-exchange record; the entry was NOT corrected

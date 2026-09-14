@@ -654,6 +654,24 @@ export async function fetchThemes(): Promise<unknown[]> {
   return apiFetch<unknown[]>("/api/themes");
 }
 
+export interface IngressRollupsData {
+  ok: boolean;
+  provider?: string;
+  routes?: Array<{
+    name: string;
+    rule?: string;
+    service?: string;
+    tls?: boolean;
+    status?: string;
+  }>;
+  status?: string;
+  warnings?: string[];
+}
+
+export async function fetchIngressRollups(): Promise<IngressRollupsData> {
+  return apiFetch<IngressRollupsData>("/api/ingress/rollups");
+}
+
 export async function fetchJournalAudit(): Promise<{ text: string }> {
   return apiFetch<{ text: string }>("/api/journal/audit");
 }
@@ -809,6 +827,24 @@ export async function fetchDiscoveryDiscover(source?: string): Promise<unknown> 
 
 export async function fetchReconcilerStatus(): Promise<unknown> {
   return apiFetch<unknown>("/api/reconciler/status");
+}
+
+// ── Media ──
+
+export async function fetchMediaStatus(): Promise<any> {
+  return apiFetch("/api/media/status");
+}
+export async function fetchMediaLibrary(): Promise<any> {
+  return apiFetch("/api/media/library");
+}
+export async function fetchMediaRecent(): Promise<any> {
+  return apiFetch("/api/media/recent");
+}
+export async function fetchMediaActivity(): Promise<any> {
+  return apiFetch("/api/media/activity");
+}
+export async function fetchMediaSearch(q: string): Promise<any> {
+  return apiFetch(`/api/media/search?q=${encodeURIComponent(q)}`);
 }
 
 // ── Writes (all step-up gated through withStepUp) ──
