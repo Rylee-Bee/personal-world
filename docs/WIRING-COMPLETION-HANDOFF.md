@@ -2,6 +2,11 @@
 # Everything that remains. All questions. All data.
 # Review on a bigger screen, then paste back your answers.
 
+> **Status (2026-09-14):** This handoff predates the architecture branch
+> merge. All questions below were resolved. Media now has a native
+> provider (`native_media`), the companion is wired, and 15 screens are
+> live. See [FINAL-RECEIPT.md](FINAL-RECEIPT.md) for current state.
+
 ---
 
 ## STATUS: 90% WIRED
