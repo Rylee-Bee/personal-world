@@ -69,8 +69,10 @@ class TestCoreOnly:
         may report healthy since they provide baseline value without
         external configuration."""
         config_dir = _write_conns(tmp_path, {"connections": []})
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
         w = World()
-        reg = build_registry(w, Registry(), config_dir)
+        reg = build_registry(w, Registry(), config_dir, data_dir=data_dir)
         result = reg.status_map()
         assert set(result.keys()) == STANDARD_CAPS
         # Native providers that always ship may be healthy or not_configured
@@ -150,8 +152,10 @@ class TestProviderLifecycle:
              "base_url": "http://127.0.0.1:1"},
         ]}
         config_dir = _write_conns(tmp_path, conns)
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
         w = World()
-        reg = build_registry(w, Registry(), config_dir)
+        reg = build_registry(w, Registry(), config_dir, data_dir=data_dir)
         sm = reg.status_map()
         # Native providers that always ship may be healthy/not_configured
         assert sm["memory"]["status"] in ("healthy", "not_configured")
@@ -169,14 +173,16 @@ class TestProviderLifecycle:
              "base_url": "http://service.example.invalid:3000"},
         ]}
         config_dir = _write_conns(tmp_path, conns)
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
         w = World()
-        reg = build_registry(w, Registry(), config_dir)
+        reg = build_registry(w, Registry(), config_dir, data_dir=data_dir)
         m_before = reg.manifest()["source_control"]
         assert m_before["active_provider"] is not None
 
         # remove the provider from config
         _write_conns(tmp_path, {"connections": []})
-        reg2 = build_registry(World(), Registry(), config_dir)
+        reg2 = build_registry(World(), Registry(), config_dir, data_dir=data_dir)
         m_after = reg2.manifest()["source_control"]
         # With the native baseline (source_control is Rule 2 native
         # since this change), removal degrades to the native baseline
