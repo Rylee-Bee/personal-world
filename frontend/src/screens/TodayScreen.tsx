@@ -8,7 +8,7 @@ import {
   useSourceControlStatus,
   useAgentSyncProjects,
 } from "../lib/hooks";
-import { getAuthToken } from "../lib/api";
+import { runDailyLoop } from "../lib/api";
 import "./today-screen.css";
 
 /**
@@ -74,20 +74,8 @@ export default function TodayScreen() {
     setDailyRunning(true);
     setDailyResult(null);
     try {
-      const res = await fetch("/api/daily", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
-          "X-PW-StepUp": "1",
-        },
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        setDailyResult(body?.detail || `Failed (${res.status})`);
-      } else {
-        setDailyResult("Daily loop complete.");
-      }
+      await runDailyLoop();
+      setDailyResult("Daily loop complete.");
     } catch {
       setDailyResult("Could not reach the server.");
     } finally {

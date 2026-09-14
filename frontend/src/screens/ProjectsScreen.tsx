@@ -10,12 +10,11 @@ import { Disclosure } from "../primitives/Disclosure";
 import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 import "./projects-screen.css";
 
-function asCanonicalStatus(raw: string | undefined | null): CanonicalStatus {
-  const known: readonly string[] = [
-    "healthy", "warning", "unknown", "needs_attention",
-    "unavailable", "stale", "disabled", "not_configured",
-  ];
-  return raw && known.includes(raw) ? (raw as CanonicalStatus) : "unknown";
+function agentSyncStatus(p: any): CanonicalStatus {
+  if (p.error) return "needs_attention";
+  if (p.publish_state === "diverged") return "needs_attention";
+  if (p.publish_state === "ahead" || p.safe_to_leave === "no") return "warning";
+  return "healthy";
 }
 
 export default function ProjectsScreen() {
@@ -86,10 +85,10 @@ export default function ProjectsScreen() {
           <section aria-label="Agent-sync projects" data-pw-projects="agent-sync">
             <ul>
               {agentProjects.map((p: any) => (
-                <li key={p.repo || p.name}>
-                  <StatusChip status={asCanonicalStatus(p.status)} size="sm" />
+                <li key={p.project}>
+                  <StatusChip status={agentSyncStatus(p)} size="sm" />
                   {" "}
-                  {p.repo || p.name}
+                  {p.project}
                   {p.summary ? ` — ${p.summary}` : ""}
                 </li>
               ))}
@@ -118,7 +117,7 @@ function RepoCard({ repo }: { repo: any }) {
   const enrichmentData = enrichment.data?.data;
 
   return (
-    <article className="pw-project-card" role="listitem">
+    <div className="pw-project-card" role="listitem">
       <div className="pw-project-card-header">
         <h2 className="pw-project-card-name">{repo.name || repo.path}</h2>
         <span className={`pw-project-status pw-project-status--${status}`} role="status">
@@ -164,9 +163,9 @@ function RepoCard({ repo }: { repo: any }) {
             <ul>
               {commits.map((c: any, i: number) => (
                 <li key={i}>
-                  <code>{(c.sha || "").slice(0, 7)}</code>
+                  <code>{(c.revision || "").slice(0, 7)}</code>
                   {" "}
-                  {c.message ? c.message.split("\n")[0] : "(no message)"}
+                  {c.subject ? c.subject.split("\n")[0] : "(no message)"}
                   {c.author ? ` — ${c.author}` : ""}
                 </li>
               ))}
@@ -202,6 +201,6 @@ function RepoCard({ repo }: { repo: any }) {
       {repo.warnings && repo.warnings.length > 0 && (
         <p className="pw-project-warning">{repo.warnings[0]}</p>
       )}
-    </article>
+    </div>
   );
 }

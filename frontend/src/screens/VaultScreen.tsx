@@ -1,22 +1,17 @@
 import { useState } from "react";
-import { ApiError } from "../lib/api";
+import {
+  ApiError,
+  unlockVault,
+  lockVault,
+  setVaultSecret,
+  deleteVaultSecret,
+} from "../lib/api";
 import { useVaultStatus, useVaultNames, useVaultKey } from "../lib/hooks";
 import { useAnnounce } from "../primitives/LiveRegion";
 import { useStepUp } from "../primitives/StepUpPrompt";
 import { StatusChip } from "../primitives/StatusChip";
 import { Dialog } from "../primitives/Dialog";
 import "./vault-screen.css";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem("pw_token") || "";
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-    "X-PW-StepUp": "1",
-  };
-}
 
 export default function VaultScreen() {
   const vault = useVaultStatus();
@@ -43,20 +38,7 @@ export default function VaultScreen() {
     const pp = passphrase.trim();
     if (!pp) return;
     try {
-      const res = await fetch(`${API_BASE}/api/vault/unlock`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ passphrase: pp }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new ApiError(
-          res.status,
-          res.status === 403 ? "forbidden" : "http_error",
-          body?.detail ?? `Unlock failed (${res.status}).`,
-          { detail: body?.detail, body }
-        );
-      }
+      await unlockVault(pp);
       setPassphrase("");
       vaultKey();
       announce("Vault unlocked", { kind: "action_completed", key: "vault" });
@@ -74,19 +56,7 @@ export default function VaultScreen() {
 
   async function handleLock() {
     try {
-      const res = await fetch(`${API_BASE}/api/vault/lock`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new ApiError(
-          res.status,
-          "http_error",
-          body?.detail ?? `Lock failed (${res.status}).`,
-          { detail: body?.detail, body }
-        );
-      }
+      await lockVault();
       vaultKey();
       announce("Vault locked", { kind: "action_completed", key: "vault" });
     } catch (err) {
@@ -108,28 +78,7 @@ export default function VaultScreen() {
     if (!name || !value) return;
     try {
       await withStepUp(async () => {
-        const res = await fetch(`${API_BASE}/api/vault/set`, {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ name, value }),
-        });
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          const detail = body?.detail ?? `Store failed (${res.status}).`;
-          if (res.status === 403 && /step-up/.test(detail)) {
-            throw new ApiError(403, "step_up_required", detail, {
-              detail,
-              body,
-            });
-          }
-          throw new ApiError(
-            res.status,
-            res.status === 403 ? "forbidden" : "http_error",
-            detail,
-            { detail, body }
-          );
-        }
-        return res.json();
+        await setVaultSecret(name, value);
       });
       setSecretName("");
       setSecretValue("");
@@ -152,30 +101,7 @@ export default function VaultScreen() {
   async function handleDelete(name: string) {
     try {
       await withStepUp(async () => {
-        const res = await fetch(
-          `${API_BASE}/api/vault/${encodeURIComponent(name)}`,
-          {
-            method: "DELETE",
-            headers: authHeaders(),
-          }
-        );
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          const detail = body?.detail ?? `Delete failed (${res.status}).`;
-          if (res.status === 403 && /step-up/.test(detail)) {
-            throw new ApiError(403, "step_up_required", detail, {
-              detail,
-              body,
-            });
-          }
-          throw new ApiError(
-            res.status,
-            res.status === 403 ? "forbidden" : "http_error",
-            detail,
-            { detail, body }
-          );
-        }
-        return res.json();
+        await deleteVaultSecret(name);
       });
       setDeleteTarget(null);
       vaultKey();

@@ -184,7 +184,7 @@
 .pw-journal-write-submit {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--pw-color-text-inverse, #fff);
+  color: var(--pw-color-text-primary);
   background: var(--pw-color-accent-secondary);
   border: none;
   border-radius: 8px;
@@ -288,7 +288,7 @@ details[open] > .pw-journal-disclosure-summary::before {
 .pw-journal-search-submit {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--pw-color-text-inverse, #fff);
+  color: var(--pw-color-text-primary);
   background: var(--pw-color-accent-secondary);
   border: none;
   border-radius: 8px;

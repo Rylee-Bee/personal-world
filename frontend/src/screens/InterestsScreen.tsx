@@ -6,6 +6,10 @@ import {
   useDiscoveryInterests,
   useDiscoveryDiscover,
 } from "../lib/hooks";
+import {
+  addDiscoverySource,
+  addDiscoveryInterest,
+} from "../lib/api";
 import "./interests-screen.css";
 
 interface Source {
@@ -29,14 +33,6 @@ interface DiscoveredItem {
   source: string;
   provenance?: string;
   summary?: string;
-}
-
-function authHeaders(): HeadersInit {
-  const token = localStorage.getItem("pw_token") || "";
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
 }
 
 export default function InterestsScreen() {
@@ -92,26 +88,17 @@ export default function InterestsScreen() {
         .map((t) => t.trim())
         .filter(Boolean);
       try {
-        const res = await fetch("/api/discovery/sources", {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({
-            id,
-            name: sourceForm.name,
-            url: sourceForm.url,
-            tags,
-          }),
+        await addDiscoverySource({
+          id,
+          name: sourceForm.name,
+          url: sourceForm.url,
+          tags,
         });
-        const json = await res.json();
-        if (json.ok) {
-          setSourceForm({ name: "", url: "", tags: "" });
-          sourcesQuery.refetch();
-          status.refetch();
-        } else {
-          setAddSourceError(json.error || "Failed to add source");
-        }
-      } catch {
-        setAddSourceError("Network error");
+        setSourceForm({ name: "", url: "", tags: "" });
+        sourcesQuery.refetch();
+        status.refetch();
+      } catch (err) {
+        setAddSourceError(err instanceof Error ? err.message : "Failed to add source");
       }
     },
     [sourceForm, sourcesQuery, status]
@@ -124,26 +111,17 @@ export default function InterestsScreen() {
       const id = `int-${Date.now()}`;
       const weight = parseFloat(interestForm.weight) || 1;
       try {
-        const res = await fetch("/api/discovery/interests", {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({
-            id,
-            name: interestForm.name,
-            category: interestForm.category,
-            weight,
-          }),
+        await addDiscoveryInterest({
+          id,
+          name: interestForm.name,
+          category: interestForm.category,
+          weight,
         });
-        const json = await res.json();
-        if (json.ok) {
-          setInterestForm({ name: "", category: "", weight: "1" });
-          interestsQuery.refetch();
-          status.refetch();
-        } else {
-          setAddInterestError(json.error || "Failed to add interest");
-        }
-      } catch {
-        setAddInterestError("Network error");
+        setInterestForm({ name: "", category: "", weight: "1" });
+        interestsQuery.refetch();
+        status.refetch();
+      } catch (err) {
+        setAddInterestError(err instanceof Error ? err.message : "Failed to add interest");
       }
     },
     [interestForm, interestsQuery, status]
@@ -333,6 +311,7 @@ export default function InterestsScreen() {
         <div className="pw-interests-discover-controls">
           <select
             className="pw-interests-select"
+            aria-label="Filter by source"
             value={discoverSource}
             onChange={(e) => setDiscoverSource(e.target.value)}
           >
