@@ -119,17 +119,29 @@ def _reconcile_boot_token(data_dir: Path) -> None:
 
 
 def _step_up_authorized(request: Request) -> bool:
-    """Write path semantics. Loopback OR non-forwarded Header X-PW-StepUp: 1.
+    """Write path semantics. Three authorization paths:
 
-    Loopback in Docker bridge mode passes automatically (mirrors the
-    vault GET). External requests must send the step-up header
-    (step-up login keeps sessions) - documented contract; consumers
-    that need to write from remote browsers add `X-PW-StepUp: 1` when
-    they're past Authelia."""
+    1. Session with active step-up: the owner authenticated through
+       the trusted login + step-up flow (300-second window).
+    2. Loopback / private network: Docker bridge, local install.
+       Intentional: the owner is on the same machine.
+    3. X-PW-StepUp: 1 header: for consumers behind Authelia or
+       similar reverse proxies that handle real authentication.
+
+    A boolean passed by the model is NOT authorization.
+    """
+    # Path 1: Check session-based step-up
+    session_id = request.cookies.get("pw_session")
+    if session_id:
+        auth = getattr(request.app.state, "auth", None)
+        if auth is not None:
+            session = auth.validate_session(session_id)
+            if session and session.has_step_up():
+                return True
+
+    # Path 2: Loopback / private network
     client = request.client.host if request.client else "?"
     if client in ("127.0.0.1", "::1", "localhost", "testclient"):
-        return True
-    if request.headers.get("X-PW-StepUp") == "1":
         return True
     import ipaddress as _ipa
     try:
@@ -138,6 +150,11 @@ def _step_up_authorized(request: Request) -> bool:
         ip = None
     if ip is not None and (ip.is_loopback or ip.is_private):
         return True
+
+    # Path 3: Trusted proxy header
+    if request.headers.get("X-PW-StepUp") == "1":
+        return True
+
     return False
 
 
@@ -301,10 +318,17 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         (data_dir / "setup-complete").write_text("ok")
         # Initialize vault if passphrase provided
         vault_pass = body.get("vault_passphrase", "").strip()
+        vault_initialized = False
         if vault_pass:
-            _vault.unlock(vault_pass)
-            _vault._save()  # write the encrypted file immediately
-        return {"ok": True, "data": {"token_set": True, "vault_initialized": bool(vault_pass)}}
+            r = _vault.unlock(vault_pass)
+            if r.ok:
+                _vault._save()
+                vault_initialized = True
+            else:
+                # Vault unlock failed (e.g., no cryptography package).
+                # Token setup still succeeds — vault is optional.
+                _logger.warning("vault init failed: %s", r.warnings)
+        return {"ok": True, "data": {"token_set": True, "vault_initialized": vault_initialized}}
 
     def _state() -> tuple[World, Registry]:
         world = load_world(world_path)
@@ -533,10 +557,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         tool_schemas: list[dict[str, Any]],
         max_rounds: int = 3,
     ) -> Result:
-        """Tool-calling loop: model selects tools, we execute, model explains.
+        """Tool-calling loop: model selects read tools, we execute, model explains.
 
-        Max rounds prevents infinite loops. Read-only: no write tools
-        are exposed yet.
+        Max rounds prevents infinite loops. Only read tools are exposed
+        to the model. Write tools are structurally blocked in the
+        registry — the model can propose, but cannot approve or execute.
         """
         from .chat import chat_once
         current_messages = list(messages)
@@ -679,7 +704,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             context = context + "\n\n" + ui_block
         # Build tool registry from current state
         from .tool_registry import build_default_tools
-        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir)
+        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir, conn_mgr)
         tool_schemas = tool_reg.list_ollama_schemas()
         messages = build_chat_messages(message, context, history)
         # Try tool-calling flow if impl supports it
@@ -780,8 +805,88 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """
         world, registry = _state()
         from .tool_registry import build_default_tools
-        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir)
+        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir, conn_mgr)
         return {"ok": True, "data": {"tools": tool_reg.list_metadata(), "count": len(tool_reg.list_tools())}}
+
+    # ── Proposal management (owner approval path) ──
+
+    @app.get("/api/proposals", dependencies=[Depends(require_auth)])
+    async def proposals_list(status: str | None = None) -> dict:
+        """List proposals, optionally filtered by status."""
+        from .tool_registry import list_proposals
+        return {"ok": True, "data": list_proposals(status)}
+
+    @app.get("/api/proposals/{proposal_id}", dependencies=[Depends(require_auth)])
+    async def proposals_get(proposal_id: str) -> dict:
+        """Get a single proposal by ID."""
+        from .tool_registry import get_proposal
+        p = get_proposal(proposal_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="proposal not found")
+        return {"ok": True, "data": p}
+
+    @app.post("/api/proposals/{proposal_id}/approve",
+              dependencies=[Depends(require_step_up)])
+    async def proposals_approve(proposal_id: str, request: Request) -> dict:
+        """Approve a pending proposal. Step-up gated.
+
+        This is the trusted owner approval path. The model cannot
+        call this endpoint — it requires step-up authorization.
+        """
+        from .tool_registry import approve_proposal
+        principal = getattr(request.state, "principal", None)
+        actor = principal.id if principal else "unknown"
+        r = approve_proposal(proposal_id, actor)
+        if not r.ok:
+            return r.model_dump(mode="json")
+        return r.model_dump(mode="json")
+
+    @app.post("/api/proposals/{proposal_id}/reject",
+              dependencies=[Depends(require_step_up)])
+    async def proposals_reject(proposal_id: str, request: Request) -> dict:
+        """Reject a pending proposal. Step-up gated."""
+        from .tool_registry import reject_proposal
+        principal = getattr(request.state, "principal", None)
+        actor = principal.id if principal else "unknown"
+        r = reject_proposal(proposal_id, actor)
+        if not r.ok:
+            return r.model_dump(mode="json")
+        return r.model_dump(mode="json")
+
+    @app.post("/api/proposals/{proposal_id}/execute",
+              dependencies=[Depends(require_step_up)])
+    async def proposals_execute(proposal_id: str, request: Request) -> dict:
+        """Execute an approved proposal. Step-up gated.
+
+        Only proposals that have been approved through the trusted
+        owner path can be executed. The approval evidence is checked
+        server-side — the model cannot forge it.
+        """
+        from .tool_registry import _execute_approved_write, get_proposal
+        from .scheduler import Reminder
+        # Verify proposal exists and is approved before attempting execution
+        p = get_proposal(proposal_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="proposal not found")
+        if p.get("status") != "approved":
+            return {
+                "ok": False,
+                "status": "invalid_state",
+                "warnings": [f"proposal is {p.get('status')}, not approved"],
+            }
+        world, registry = _state()
+        r = _execute_approved_write(journal, world, proposal_id)
+        if r.ok:
+            ptype = p.get("type")
+            # Persist world mutations
+            if ptype in ("world_intent", "world_fact"):
+                save_world(world, world_path)
+            # Schedule reminders through the real scheduler
+            if ptype == "reminder":
+                rid = f"proposal-{proposal_id}"
+                reminder = Reminder(id=rid, text=p.get("text", ""))
+                _reminders.add(reminder)
+        return r.model_dump(mode="json")
 
     @app.get("/api/actors", dependencies=[Depends(require_auth)])
     async def actors() -> dict:
@@ -874,10 +979,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """Return all connections."""
         return {"ok": True, "data": conn_mgr.get_connections()}
 
-    @app.put("/api/connections", dependencies=[Depends(require_auth)])
+    @app.put("/api/connections", dependencies=[Depends(require_step_up)])
     async def connections_save(request: Request) -> dict:
         """Save a connection (step-up required)."""
-        require_step_up(request)
         body = await request.json()
         name = body.get("name")
         if not name:
@@ -885,17 +989,15 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         conn_mgr.save_connection(body)
         return {"ok": True, "data": {"saved": True, "name": name}}
 
-    @app.delete("/api/connections/{name}", dependencies=[Depends(require_auth)])
+    @app.delete("/api/connections/{name}", dependencies=[Depends(require_step_up)])
     async def connections_delete(name: str, request: Request) -> dict:
         """Delete a connection by name (step-up required)."""
-        require_step_up(request)
         deleted = conn_mgr.delete_connection(name)
         return {"ok": True, "data": {"deleted": deleted}}
 
-    @app.post("/api/connections/config/{key}", dependencies=[Depends(require_auth)])
+    @app.post("/api/connections/config/{key}", dependencies=[Depends(require_step_up)])
     async def save_native_config(key: str, request: Request) -> dict:
         """Save native provider config (calendar, notifications, etc.)."""
-        require_step_up(request)
         body = await request.json()
         conn_mgr.save_native_config(key, body)
         return {"ok": True, "data": {"saved": True, "key": key}}
@@ -1472,20 +1574,19 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .providers.native_media import NativeMediaEngine, build_adapter
 
     def _build_media_engine():
-        connections_path = config_dir / "connections.json"
-        if not connections_path.exists():
-            return NativeMediaEngine([])
-        try:
-            config = json.loads(connections_path.read_text())
-            adapters = []
-            for conn in config.get("connections", []):
-                if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
-                    adapter = build_adapter(conn)
-                    if adapter:
-                        adapters.append(adapter)
-            return NativeMediaEngine(adapters)
-        except Exception:
-            return NativeMediaEngine([])
+        """Build media engine from MERGED connection config.
+
+        Uses ConnectionManager so connections.local.json (private
+        config saved through the UI) is included.
+        """
+        config = conn_mgr.get_all_config()
+        adapters = []
+        for conn in config.get("connections", []):
+            if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
+                adapter = build_adapter(conn)
+                if adapter:
+                    adapters.append(adapter)
+        return NativeMediaEngine(adapters)
 
     @app.get("/api/media/status", dependencies=[Depends(require_auth)])
     async def media_status():
@@ -1547,10 +1648,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/vault/status", dependencies=[Depends(require_auth)])
     async def vault_status() -> dict:
-        """Vault status: locked/unlocked, secret count. Never values."""
+        """Vault status: locked/unlocked, secret count. Never values.
+
+        Reports actual encryption capability — not a hardcoded claim.
+        """
         return {"ok": True,
                 "data": {"locked": not _vault.is_unlocked,
-                         "encrypted": True}}
+                         "encrypted": getattr(_vault, '_fernet', None) is not None}}
 
     @app.post("/api/vault/unlock", dependencies=[Depends(require_auth)])
     async def vault_unlock(request: Request) -> dict:

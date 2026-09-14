@@ -897,11 +897,13 @@ _ADAPTERS: dict[str, type[MediaAdapter]] = {
 def build_adapter(config: dict[str, Any]) -> MediaAdapter | None:
     """Build a MediaAdapter from a connection config dict.
 
-    Expected format:
-        {"type": "plex", "base_url": "...", "token_env": "PLEX_TOKEN"}
-        {"type": "sonarr", "base_url": "...", "api_key_env": "SONARR_API_KEY"}
-        {"type": "radarr", "base_url": "...", "api_key_env": "RADARR_API_KEY"}
-        {"type": "lidarr", "base_url": "...", "api_key_env": "LIDARR_API_KEY"}
+    Credential resolution order:
+        1. Direct value: token/api_key in the config (from
+           connections.local.json or vault-resolved secret_ref)
+        2. Env var indirection: token_env/api_key_env names an env var
+        3. Default env var: PLEX_TOKEN, SONARR_API_KEY, etc.
+
+    Returns None if no credential is available.
     """
     provider_type = config.get("type")
     base_url = config.get("base_url")
@@ -914,14 +916,16 @@ def build_adapter(config: dict[str, Any]) -> MediaAdapter | None:
         return None
 
     if provider_type == "plex":
-        token_env = config.get("token_env", "PLEX_TOKEN")
-        token = os.environ.get(token_env, "")
+        token = config.get("token") or os.environ.get(
+            config.get("token_env", ""), ""
+        ) or os.environ.get("PLEX_TOKEN", "")
         if not token:
             return None
         return cls(base_url=base_url, token=token)
 
-    api_key_env = config.get("api_key_env", f"{provider_type.upper()}_API_KEY")
-    api_key = os.environ.get(api_key_env, "")
+    api_key = config.get("api_key") or os.environ.get(
+        config.get("api_key_env", ""), ""
+    ) or os.environ.get(f"{provider_type.upper()}_API_KEY", "")
     if not api_key:
         return None
     return cls(base_url=base_url, api_key=api_key)
