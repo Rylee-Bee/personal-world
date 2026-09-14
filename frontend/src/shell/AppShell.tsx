@@ -7,7 +7,7 @@ import { CompanionPopover } from "../primitives/CompanionPopover";
 import { ChatPanel } from "../components/ChatPanel";
 import { stashCorrectionDraft } from "../lib/correction-draft";
 import type { ChatJournalCorrectionProposal } from "../lib/api";
-import { useSections, usePrincipal } from "../lib/hooks";
+import { useSections } from "../lib/hooks";
 import type { CompanionMode } from "../primitives/CompanionSlot";
 
 /**
@@ -87,19 +87,13 @@ function useViewportBucket(): ShellViewport {
  *  of the world edge. Uses principal display_name from the API;
  *  honest fallback "Your world" when unavailable. Never hardcoded. */
 function WorldIdentity() {
-  const principal = usePrincipal();
-  const name =
-    principal.data && !principal.isError
-      ? String(principal.data.display_name || "").trim() || null
-      : null;
   return (
     <div className="pw-world-identity">
       <div className="pw-world-mark" aria-hidden="true">
         <img src="/companions/personal-world.svg" alt="" />
       </div>
       <div className="pw-world-name-group">
-        <p className="pw-world-label">Project world</p>
-        <p className="pw-world-name">{name ? `${name}'s world` : "Your world"}</p>
+        <p className="pw-world-label">&#10022; project worlds</p>
       </div>
     </div>
   );

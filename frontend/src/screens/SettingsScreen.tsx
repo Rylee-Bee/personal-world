@@ -92,7 +92,7 @@ const screenButtonClasses = [
 ].join(" ");
 
 const waveDivider = (
-  <div className="w-full py-1" aria-hidden="true">
+  <div className="settings-divider" aria-hidden="true">
     <svg width="100%" height="8" viewBox="0 0 534 8" preserveAspectRatio="none" className="block">
       <path
         d="M0 4C44.5 1.7 133.5 6.3 267 4C400.5 1.7 489.5 6.3 534 4"
@@ -536,7 +536,7 @@ function SettingsScreen() {
               );
             })}
           </div>
-          <p className="text-[11px] text-[var(--pw-color-accent-primary)]">
+          <p className="settings-companion-note">
             ✦ Your companion respects these preferences too.
           </p>
         </section>
@@ -853,7 +853,7 @@ function SettingsScreen() {
               </table>
             </Disclosure>
           )}
-          <p className="text-[11px] text-[var(--pw-color-accent-primary)]">
+          <p className="settings-companion-note">
             ✦ Your world watches these for you.
           </p>
         </section>
@@ -993,7 +993,7 @@ function SettingsScreen() {
           ) : (
             <p className={`text-xs ${mutedClasses}`}>No templates loaded.</p>
           )}
-          <p className="text-[11px] text-[var(--pw-color-accent-primary)]">
+          <p className="settings-companion-note">
             ✦ Templates are Git-native artifacts with version history.
           </p>
         </section>
