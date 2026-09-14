@@ -661,12 +661,9 @@ code before changing.
 
 ### Test counts (verified)
 
-- Backend: 770 collected / 770 passed / 0 failed (with crypto)
-- Backend: 754 collected / 751 passed / 0 failed / 3 skipped (without crypto)
-- Baseline (main 72ee502): 717 collected / 717 passed / 0 failed
-- Delta: +53 tests (19 authorization + 14 vault + 14 secret ref
-  + 6 reminder execution)
-- Frontend: 76 failed / 258 passed / 334 total (pre-existing on main)
+- Backend: 754 passed / 16 skipped (0 failed)
+- Frontend: 335/335 (0 failed)
+- Browser: 54/54 (0 failed)
 - Framework validate: 0 violations
 
 ### Remaining gaps (honest)
@@ -683,5 +680,35 @@ code before changing.
 - **Fresh re-authentication:** Step-up is trust elevation (time
   window + network + header), NOT fresh password/MFA verification.
   Genuine re-authentication is a remaining gap.
-- **Frontend test failures:** 76 pre-existing failures on main at
-  72ee502. Not caused by this pass.
+
+## Workshop v3 convergence (2026-09-14)
+
+Workshop v3 convergence is COMPLETE. Merged via PR #48 (`96f6c0f4`).
+
+### What converged
+
+- **Vault:** two-column safekeeping, store card, truthful lock state
+- **Journal:** three-panel layout (sidebar + reading pane + companion aside), correction workflow, supersession, history, provenance, audit, filtering, load more, assistant draft pickup (21/21 tests)
+- **Interests:** canonical arched doorway + warm populated state
+- **World:** two-column world view, capability cards, companion presence
+- **Projects:** stacked cards, attention treatment, companion
+- **Today:** responsive mobile 390×844 with bottom navigation
+- **Shell identity:** canonical `✦ project worlds` (single line, lowercase, sparkle glyph)
+- **Settings/Chat:** spacing tokens, focus rings, divider treatment
+- **Tokens:** 23 semantic warmth tokens, 61 rgba() literals replaced
+
+### CI final state
+
+- backend: 754/754 passed
+- framework: 0 violations
+- frontend: 335/335 passed
+- browser: 54/54 passed (axe, e2e, screenshots, shell geometry)
+- typecheck: PASS
+- build: PASS
+- security: PASS
+
+### Convergence SHA
+
+- PR #47 merge: `6c667abc`
+- PR #48 merge: `96f6c0f4`
+- origin/main: `96f6c0f4`
