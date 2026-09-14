@@ -71,13 +71,18 @@ class ToolRegistry:
     def list_ollama_schemas(self) -> list[dict[str, Any]]:
         """Tool schemas for Ollama function-calling format.
 
-        Only read tools are exposed to the model. Write tools require
-        owner approval and are never offered as callable functions.
+        Read tools and proposal tools are exposed to the model.
+        Proposal tools (requires_approval=True) create pending
+        proposals without mutating the target domain. Execution tools
+        are never exposed — the owner drives execution through the
+        trusted API path.
         """
         return [
             t.to_ollama_schema()
             for t in self._tools.values()
-            if t.handler is not None and t.read_write == "read"
+            if t.handler is not None and (
+                t.read_write == "read" or t.requires_approval
+            )
         ]
 
     def list_metadata(self) -> list[dict[str, Any]]:
@@ -85,25 +90,29 @@ class ToolRegistry:
         return [t.to_metadata() for t in self._tools.values()]
 
     def invoke(self, tool_id: str, args: dict[str, Any]) -> Result:
-        """Invoke a tool. Read tools execute immediately.
+        """Invoke a tool.
 
-        Write tools are structurally blocked here — the model cannot
-        invoke them directly. The owner approves proposals through a
-        trusted path; execution is then driven by the server, not the
-        model.
+        Read tools execute immediately. Proposal tools
+        (requires_approval=True) create pending proposals — they are
+        callable by the brain but MUST NOT mutate the target domain
+        or establish approval. Execution tools are structurally
+        blocked — the owner drives execution through the trusted API.
         """
         tool = self._tools.get(tool_id)
         if tool is None:
             return fail("not_found", warnings=[f"tool '{tool_id}' not registered"])
         if tool.handler is None:
             return fail("not_implemented", warnings=[f"tool '{tool_id}' has no handler"])
-        if tool.read_write == "write":
+        # Proposal tools (requires_approval=True) are safe for the
+        # brain to call — they create pending state, nothing more.
+        # Execution write tools (requires_approval=False) are blocked.
+        if tool.read_write == "write" and not tool.requires_approval:
             return fail(
                 "forbidden",
                 warnings=[
-                    f"tool '{tool_id}' is a write tool and cannot be "
-                    "invoked directly by the model. Propose, then the "
-                    "owner approves through the trusted UI/API path."
+                    f"tool '{tool_id}' is an execution tool and cannot be "
+                    "invoked directly by the model. The owner must approve "
+                    "through the trusted UI/API path first."
                 ],
             )
         try:

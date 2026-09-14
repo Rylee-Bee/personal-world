@@ -1,12 +1,14 @@
-"""Authorization boundary tests: prove the model cannot bypass approval.
+"""Authorization boundary tests: prove the propose → approve → execute boundary.
 
 These tests verify:
-- model cannot approve its own proposal
-- model cannot execute a pending/unapproved proposal
-- forged approved=true does not bypass the boundary
-- approved proposal can execute through the intended trusted path
-- approval cannot be reused incorrectly
-- failure leaves state honest
+- brain can prepare a proposal (propose_* tools)
+- preparing changes no target domain state
+- model cannot approve proposal
+- model cannot execute proposal
+- forged approval fields are ignored/rejected
+- owner approval changes server-side proposal state
+- only approved proposal executes
+- replay/reuse is rejected
 """
 
 import pytest
@@ -21,6 +23,7 @@ from personal_world.tool_registry import (
     reject_proposal,
     list_proposals,
     get_proposal,
+    _propose_journal_write,
 )
 
 
@@ -35,25 +38,53 @@ def clear_proposals():
     tr._proposal_counter = 0
 
 
-class TestWriteToolBoundary:
-    """Write tools are structurally blocked in the registry."""
+class FakeJournal:
+    """Stub journal for testing."""
+    def __init__(self):
+        self.recorded = False
+        self.entries = []
+    def record(self, kind, summary, source=""):
+        self.recorded = True
+        self.entries.append({"kind": kind, "summary": summary, "source": source})
 
-    def test_write_tool_blocked_by_invoke(self):
-        """Model calling a write tool directly gets forbidden."""
+
+class TestWriteToolBoundary:
+    """Proposal tools callable; execution tools blocked."""
+
+    def test_propose_tool_allowed(self):
+        """Brain can call proposal tools (requires_approval=True)."""
         tools = ToolRegistry()
         tools.register(Tool(
             id="propose_test",
             capability="test",
             operation="write",
-            description="Test write tool",
+            description="Test proposal tool",
             read_write="write",
+            requires_approval=True,
+            parameters={"type": "object", "properties": {}},
+            handler=lambda: Result(ok=True, status="healthy", data={"proposal_id": "p1"}),
+        ))
+        result = tools.invoke("propose_test", {})
+        assert result.ok
+        assert result.status == "healthy"
+
+    def test_execute_tool_blocked(self):
+        """Brain cannot call execution tools (no requires_approval)."""
+        tools = ToolRegistry()
+        tools.register(Tool(
+            id="execute_test",
+            capability="test",
+            operation="write",
+            description="Test execute tool",
+            read_write="write",
+            requires_step_up=True,
             parameters={"type": "object", "properties": {}},
             handler=lambda: Result(ok=True, status="healthy"),
         ))
-        result = tools.invoke("propose_test", {})
+        result = tools.invoke("execute_test", {})
         assert not result.ok
         assert result.status == "forbidden"
-        assert "write tool" in (result.warnings[0] if result.warnings else "")
+        assert "execution tool" in (result.warnings[0] if result.warnings else "")
 
     def test_read_tool_works(self):
         """Read tools still execute normally."""
@@ -71,8 +102,8 @@ class TestWriteToolBoundary:
         assert result.ok
         assert result.status == "healthy"
 
-    def test_write_tools_not_in_ollama_schemas(self):
-        """Write tools are not exposed to the model for function-calling."""
+    def test_propose_tools_in_ollama_schemas(self):
+        """Proposal tools ARE exposed to the model for function-calling."""
         tools = ToolRegistry()
         tools.register(Tool(
             id="read_tool",
@@ -84,26 +115,52 @@ class TestWriteToolBoundary:
             handler=lambda: Result(ok=True, status="healthy"),
         ))
         tools.register(Tool(
-            id="write_tool",
+            id="propose_tool",
             capability="test",
             operation="write",
-            description="Write",
+            description="Propose",
             read_write="write",
+            requires_approval=True,
+            parameters={"type": "object", "properties": {}},
+            handler=lambda: Result(ok=True, status="healthy"),
+        ))
+        tools.register(Tool(
+            id="execute_tool",
+            capability="test",
+            operation="execute",
+            description="Execute",
+            read_write="write",
+            requires_step_up=True,
             parameters={"type": "object", "properties": {}},
             handler=lambda: Result(ok=True, status="healthy"),
         ))
         schemas = tools.list_ollama_schemas()
         names = [s["function"]["name"] for s in schemas]
         assert "read_tool" in names
-        assert "write_tool" not in names
+        assert "propose_tool" in names
+        assert "execute_tool" not in names
 
 
 class TestProposalApprovalBoundary:
     """Proposals require server-side owner approval."""
 
-    def test_model_cannot_approve_own_proposal(self):
-        """The model creates proposals but cannot approve them."""
-        # Simulate: model proposes a journal entry
+    def test_brain_can_prepare_proposal(self):
+        """Brain can call propose_* to create a pending proposal."""
+        journal = FakeJournal()
+        result = _propose_journal_write(journal, "test entry")
+        assert result.ok
+        assert result.data["proposal_id"]
+        assert _proposals[result.data["proposal_id"]]["status"] == "pending"
+
+    def test_preparing_does_not_mutate_target(self):
+        """Creating a proposal does NOT write to the journal."""
+        journal = FakeJournal()
+        result = _propose_journal_write(journal, "test entry")
+        assert result.ok
+        assert not journal.recorded
+
+    def test_model_cannot_approve_proposal(self):
+        """No approve tool exists in the registry — approval is API-only."""
         tools = ToolRegistry()
         tools.register(Tool(
             id="propose_journal_entry",
@@ -113,24 +170,24 @@ class TestProposalApprovalBoundary:
             read_write="write",
             requires_approval=True,
             parameters={"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]},
-            handler=lambda text: _propose_journal_write_stub(text),
+            handler=lambda text: _propose_journal_write(FakeJournal(), text),
         ))
-
-        # Model can't invoke write tools directly
+        # Brain can propose
         result = tools.invoke("propose_journal_entry", {"text": "test"})
-        assert not result.ok
-        assert result.status == "forbidden"
+        assert result.ok
+        # But there is no "approve" tool in the registry
+        all_tool_ids = [t.id for t in tools.list_tools()]
+        assert not any("approve" in t for t in all_tool_ids)
 
     def test_execute_rejects_pending_proposal(self):
         """Cannot execute a proposal that hasn't been approved."""
         from personal_world.tool_registry import _execute_approved_write
-        # Create a pending proposal
         _proposals["test-1"] = {
             "type": "journal_write",
             "text": "test",
             "status": "pending",
         }
-        result = _execute_approved_write(None, None, "test-1")
+        result = _execute_approved_write(FakeJournal(), None, "test-1")
         assert not result.ok
         assert "not approved" in (result.warnings[0] if result.warnings else "")
 
@@ -142,14 +199,14 @@ class TestProposalApprovalBoundary:
             "text": "test",
             "status": "rejected",
         }
-        result = _execute_approved_write(None, None, "test-2")
+        result = _execute_approved_write(FakeJournal(), None, "test-2")
         assert not result.ok
         assert "not approved" in (result.warnings[0] if result.warnings else "")
 
     def test_execute_rejects_unknown_proposal(self):
         """Cannot execute a nonexistent proposal."""
         from personal_world.tool_registry import _execute_approved_write
-        result = _execute_approved_write(None, None, "nonexistent")
+        result = _execute_approved_write(FakeJournal(), None, "nonexistent")
         assert not result.ok
         assert result.status == "not_found"
 
@@ -192,11 +249,6 @@ class TestProposalApprovalBoundary:
     def test_approved_proposal_can_execute(self):
         """An approved proposal can be executed through the trusted path."""
         from personal_world.tool_registry import _execute_approved_write
-
-        class FakeJournal:
-            def record(self, kind, summary, source=""):
-                self.recorded = True
-
         journal = FakeJournal()
         _proposals["test-6"] = {
             "type": "journal_write",
@@ -245,11 +297,6 @@ class TestProposalApprovalBoundary:
     def test_double_execute_rejected(self):
         """Cannot execute a proposal twice."""
         from personal_world.tool_registry import _execute_approved_write
-
-        class FakeJournal:
-            def record(self, *args, **kwargs):
-                pass
-
         journal = FakeJournal()
         _proposals["test-9"] = {
             "type": "journal_write",
@@ -260,7 +307,6 @@ class TestProposalApprovalBoundary:
         }
         result1 = _execute_approved_write(journal, None, "test-9")
         assert result1.ok
-        # Second attempt should fail (status is now "executed")
         result2 = _execute_approved_write(journal, None, "test-9")
         assert not result2.ok
 
@@ -287,8 +333,3 @@ class TestToolRegistryIntegrity:
         result = tools.invoke("no_handler", {})
         assert not result.ok
         assert result.status == "not_implemented"
-
-
-def _propose_journal_write_stub(text: str) -> Result:
-    """Stub for testing."""
-    return Result(ok=True, status="healthy", data={"proposal_id": "test"})
