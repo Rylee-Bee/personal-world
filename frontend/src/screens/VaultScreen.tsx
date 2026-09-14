@@ -11,6 +11,7 @@ import { useAnnounce } from "../primitives/LiveRegion";
 import { useStepUp } from "../primitives/StepUpPrompt";
 import { StatusChip } from "../primitives/StatusChip";
 import { Dialog } from "../primitives/Dialog";
+import { CompanionSlot } from "../primitives/CompanionSlot";
 import "./vault-screen.css";
 
 export default function VaultScreen() {
@@ -31,8 +32,6 @@ export default function VaultScreen() {
 
   const secretNames: string[] = names.data?.names ?? [];
 
-  // ── Handlers ──
-
   async function handleUnlock(e: React.FormEvent) {
     e.preventDefault();
     const pp = passphrase.trim();
@@ -48,8 +47,7 @@ export default function VaultScreen() {
         window.location.assign("/login");
         return;
       }
-      const msg =
-        err instanceof Error ? err.message : "Unlock failed.";
+      const msg = err instanceof Error ? err.message : "Unlock failed.";
       announce(`Unlock failed: ${msg}`, { kind: "error", key: "vault" });
     }
   }
@@ -65,8 +63,7 @@ export default function VaultScreen() {
         window.location.assign("/login");
         return;
       }
-      const msg =
-        err instanceof Error ? err.message : "Lock failed.";
+      const msg = err instanceof Error ? err.message : "Lock failed.";
       announce(`Lock failed: ${msg}`, { kind: "error", key: "vault" });
     }
   }
@@ -92,8 +89,7 @@ export default function VaultScreen() {
       ) {
         return;
       }
-      const msg =
-        err instanceof Error ? err.message : "Store failed.";
+      const msg = err instanceof Error ? err.message : "Store failed.";
       announce(`Store failed: ${msg}`, { kind: "error", key: "vault" });
     }
   }
@@ -114,30 +110,58 @@ export default function VaultScreen() {
       ) {
         return;
       }
-      const msg =
-        err instanceof Error ? err.message : "Delete failed.";
+      const msg = err instanceof Error ? err.message : "Delete failed.";
       announce(`Delete failed: ${msg}`, { kind: "error", key: "vault" });
     }
   }
-
-  // ── Render ──
 
   return (
     <div className="pw-vault">
       <div className="pw-vault-ambient" aria-hidden="true" />
 
+      <div className="pw-vault-top-decor" aria-hidden="true">
+        <span className="pw-vault-sparkle pw-vault-sparkle--teal" />
+        <span className="pw-vault-sparkle pw-vault-sparkle--rose" />
+        <span className="pw-vault-sparkle pw-vault-sparkle--gold" />
+      </div>
+
+      <div className="pw-vault-lock-decor" aria-hidden="true">
+        <span className="pw-vault-lock-decor-icon" />
+      </div>
+
       <section className="pw-vault-header" aria-labelledby="vault-heading">
         <div className="pw-vault-lock-crest" aria-hidden="true">
           <span className="pw-vault-lock-icon" />
         </div>
-        <h1 id="vault-heading" className="pw-vault-title">
-          Vault
-        </h1>
-        <p className="pw-vault-subtitle">Treasures in safekeeping</p>
+        <div className="pw-vault-header-text">
+          <h1 id="vault-heading" className="pw-vault-title">
+            Vault
+          </h1>
+          <p className="pw-vault-subtitle">
+            Your secrets, sealed on this machine. Names are shown; values never
+            leave the vault.
+          </p>
+          <div className="pw-vault-lock-state" role="status">
+            {locked ? (
+              <StatusChip status="not_configured" />
+            ) : (
+              <>
+                <span
+                  className="pw-vault-lock-dot pw-vault-lock-dot--unlocked"
+                  aria-hidden="true"
+                />
+                <span className="pw-vault-lock-label">Vault unlocked</span>
+                <span className="pw-vault-lock-sparkle" aria-hidden="true">
+                  &#10022;
+                </span>
+              </>
+            )}
+          </div>
+        </div>
       </section>
 
       {vault.isError && vault.error ? (
-        <section className="pw-vault-body" aria-label="Vault error" data-pw-state="error">
+        <section className="pw-vault-error-panel" aria-label="Vault error">
           <div className="pw-vault-error">
             <p className="pw-vault-error-message" role="alert">
               could not reach the vault
@@ -151,16 +175,13 @@ export default function VaultScreen() {
           </div>
         </section>
       ) : vault.isLoading ? (
-        <section className="pw-vault-body" aria-label="Vault loading">
+        <section className="pw-vault-loading" aria-label="Vault loading">
           <p className="pw-vault-hint" role="status">
             Checking the vault&hellip;
           </p>
         </section>
       ) : locked ? (
-        <section className="pw-vault-body" aria-label="Vault unlock">
-          <div className="pw-vault-lock-state" role="status">
-            <StatusChip status="not_configured" />
-          </div>
+        <section className="pw-vault-unlock-panel" aria-label="Vault unlock">
           <p className="pw-vault-hint">
             Unlock the vault to view your sealed secrets.
           </p>
@@ -188,104 +209,157 @@ export default function VaultScreen() {
         </section>
       ) : (
         <>
-          <section className="pw-vault-body" aria-label="Vault status">
-            <div className="pw-vault-lock-state" role="status">
-              <span
-                className="pw-vault-lock-dot pw-vault-lock-dot--unlocked"
-                aria-hidden="true"
-              />
-              <span className="pw-vault-lock-label">Unlocked</span>
-            </div>
-            <p className="pw-vault-hint">
-              Your vault is open. Secrets are accessible.
-            </p>
-            <button
-              type="button"
-              className="pw-vault-unlock-submit"
-              onClick={handleLock}
+          <div className="pw-vault-columns">
+            <section
+              className="pw-vault-secrets"
+              aria-labelledby="vault-secrets-heading"
             >
-              Lock vault
-            </button>
-          </section>
-
-          <section
-            className="pw-vault-secrets"
-            aria-labelledby="vault-secrets-heading"
-          >
-            <h2 id="vault-secrets-heading" className="pw-vault-secrets-heading">
-              Stored secrets
-            </h2>
-            {names.isLoading ? (
-              <p className="pw-vault-secrets-empty" role="status">
-                Loading secrets&hellip;
-              </p>
-            ) : secretNames.length === 0 ? (
-              <p className="pw-vault-secrets-empty">
-                No secrets stored yet.
-              </p>
-            ) : (
-              <ul className="pw-vault-secrets-list" role="list">
-                {secretNames.map((name) => (
-                  <li key={name} className="pw-vault-secret-item">
-                    <span className="pw-vault-secret-name">{name}</span>
-                    <button
-                      type="button"
-                      className="pw-vault-secret-delete"
-                      onClick={() => setDeleteTarget(name)}
-                      aria-label={`Delete secret ${name}`}
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section
-            className="pw-vault-store"
-            aria-labelledby="vault-store-heading"
-          >
-            <h2 id="vault-store-heading" className="pw-vault-store-heading">
-              Store a secret
-            </h2>
-            <form className="pw-vault-store-form" onSubmit={handleSetSecret}>
-              <div className="pw-vault-store-field">
-                <label htmlFor="vault-secret-name" className="pw-vault-store-label">
-                  Secret name
-                </label>
-                <input
-                  id="vault-secret-name"
-                  type="text"
-                  className="pw-vault-store-input"
-                  placeholder="e.g. wifi-password"
-                  value={secretName}
-                  onChange={(e) => setSecretName(e.target.value)}
-                />
+              <div className="pw-vault-secrets-header">
+                <h2
+                  id="vault-secrets-heading"
+                  className="pw-vault-secrets-heading"
+                >
+                  Treasures in safekeeping
+                </h2>
+                <span className="pw-vault-secrets-count">
+                  {secretNames.length} sealed{" "}
+                  {secretNames.length === 1 ? "secret" : "secrets"}
+                </span>
               </div>
-              <div className="pw-vault-store-field">
-                <label htmlFor="vault-secret-value" className="pw-vault-store-label">
-                  Secret value
-                </label>
-                <input
-                  id="vault-secret-value"
-                  type="password"
-                  className="pw-vault-store-input"
-                  placeholder="Secret value"
-                  value={secretValue}
-                  onChange={(e) => setSecretValue(e.target.value)}
-                  autoComplete="off"
-                />
+
+              {names.isLoading ? (
+                <p className="pw-vault-secrets-empty" role="status">
+                  Loading secrets&hellip;
+                </p>
+              ) : secretNames.length === 0 ? (
+                <p className="pw-vault-secrets-empty">
+                  No secrets stored yet. Place something precious inside.
+                </p>
+              ) : (
+                <ul className="pw-vault-secrets-list" role="list">
+                  {secretNames.map((name) => (
+                    <li key={name} className="pw-vault-secret-item">
+                      <div className="pw-vault-secret-info">
+                        <span className="pw-vault-secret-icon" aria-hidden="true" />
+                        <div className="pw-vault-secret-text">
+                          <span className="pw-vault-secret-name">{name}</span>
+                          <span className="pw-vault-secret-meta">
+                            value safely hidden
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="pw-vault-secret-remove"
+                        onClick={() => setDeleteTarget(name)}
+                        aria-label={`Delete secret ${name}`}
+                      >
+                        <span className="pw-vault-secret-remove-icon" aria-hidden="true" />
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="pw-vault-secrets-footer">
+                <p className="pw-vault-secrets-footer-text">
+                  Finished for now? She&rsquo;ll keep watch from the other side.
+                </p>
+                <button
+                  type="button"
+                  className="pw-vault-lock-button"
+                  onClick={handleLock}
+                >
+                  <span className="pw-vault-lock-button-icon" aria-hidden="true" />
+                  Lock vault
+                </button>
               </div>
-              <button
-                type="submit"
-                className="pw-vault-store-submit"
-                disabled={!secretName.trim() || !secretValue}
-              >
-                Store secret
-              </button>
-            </form>
-          </section>
+            </section>
+
+            <section
+              className="pw-vault-store"
+              aria-labelledby="vault-store-heading"
+            >
+              <div className="pw-vault-store-header">
+                <h2
+                  id="vault-store-heading"
+                  className="pw-vault-store-heading"
+                >
+                  Place a secret inside
+                </h2>
+                <span className="pw-vault-store-icon" aria-hidden="true" />
+              </div>
+              <p className="pw-vault-store-subtitle">
+                A small safe place for something precious.
+              </p>
+
+              <form className="pw-vault-store-form" onSubmit={handleSetSecret}>
+                <div className="pw-vault-store-field">
+                  <label
+                    htmlFor="vault-secret-name"
+                    className="pw-vault-store-label"
+                  >
+                    Secret name
+                  </label>
+                  <div className="pw-vault-store-input-wrap">
+                    <span className="pw-vault-store-input-icon" aria-hidden="true" />
+                    <input
+                      id="vault-secret-name"
+                      type="text"
+                      className="pw-vault-store-input"
+                      placeholder="Give it a name you will recognize"
+                      value={secretName}
+                      onChange={(e) => setSecretName(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="pw-vault-store-field">
+                  <label
+                    htmlFor="vault-secret-value"
+                    className="pw-vault-store-label"
+                  >
+                    Secret value
+                  </label>
+                  <div className="pw-vault-store-input-wrap">
+                    <span className="pw-vault-store-input-icon" aria-hidden="true" />
+                    <input
+                      id="vault-secret-value"
+                      type="password"
+                      className="pw-vault-store-input"
+                      placeholder="Paste it here — we won't peek"
+                      value={secretValue}
+                      onChange={(e) => setSecretValue(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+                <p className="pw-vault-store-note">
+                  <span className="pw-vault-store-note-icon" aria-hidden="true" />
+                  Encrypted locally. It stays on this machine, tucked safely out of sight.
+                </p>
+                <button
+                  type="submit"
+                  className="pw-vault-store-submit"
+                  disabled={!secretName.trim() || !secretValue}
+                >
+                  <span className="pw-vault-store-submit-icon" aria-hidden="true" />
+                  Store secret
+                </button>
+              </form>
+            </section>
+          </div>
+
+          <footer className="pw-vault-footer" aria-hidden="true">
+            <span className="pw-vault-footer-diamond">&#10022;</span>
+            the sea keeps what it is told
+            <span className="pw-vault-footer-diamond">&#10022;</span>
+          </footer>
+
+          <div className="pw-vault-companion" aria-hidden="true">
+            <CompanionSlot size="empty" />
+            <span className="pw-vault-companion-label">keeping watch</span>
+          </div>
 
           <Dialog
             open={deleteTarget !== null}

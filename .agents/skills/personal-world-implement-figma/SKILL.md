@@ -60,11 +60,19 @@ no longer uses.
 
 ## Required design and browser evidence before coding
 
-1. Discover available Figma MCP tools and inspect their current schemas. Use
-   the exact file/node from the supplied URL; do not invent node IDs or tool
-   arguments. Remote selection requires a frame/layer link; a desktop selection
-   is usable only when the connected tool supports it.
-2. Call `get_design_context` for the target and `get_screenshot` for the same
+1. **Load the upstream figma-design-to-code skill** — mandatory prerequisite
+   before calling `get_design_context`. Source:
+   `figma/mcp-server-guide` SHA `d638a5e` (2026-09-11).
+   Skill path: `skills/figma-design-to-code/SKILL.md`
+   Key upstream rules: treat output as reference, not final code; reuse project
+   components/tokens; hint priority is Code Connect → docs → annotations →
+   tokens → raw hex; icons from exported assets only.
+2. **Consult FIGMA-COMPONENT-MAP.yaml** — check `.project/design/FIGMA-COMPONENT-MAP.yaml`
+   for existing mapping before choosing production component. Only
+   WORKSHOP_CANONICAL or WORKSHOP_COMPATIBLE components may be used for
+   implementation. HISTORICAL_V1 components must be replaced. UNKNOWN
+   components must be investigated first.
+3. Call `get_design_context` for the target and `get_screenshot` for the same
    frame. Inspect both before writing implementation code. Retain file/node,
    revision or retrieval date, viewport, state, and reference location.
    A verified export of the same frame/revision can supply the visual reference
@@ -74,12 +82,16 @@ no longer uses.
    `get_screenshot` (which accept `nodeId` without selection), design context
    returns `"Nothing is selected"` if no frame is active. If this error occurs,
    ask the operator to select the frame in Figma, then retry.
-3. For large or truncated responses, use `get_metadata` to identify child
+4. For large or truncated responses, use `get_metadata` to identify child
    regions, then fetch each relevant child's context and screenshot while
    retaining the parent composition reference. Metadata alone is insufficient.
-   Use `get_variable_defs` where available to resolve variable names/modes;
-   inspect existing Code Connect mappings when supplied and verify their paths.
-4. Open the current running implementation at the same route, viewport, theme,
+   Use `get_variable_defs` where available to resolve variable names/modes.
+5. **Apply the disconfirmation protocol** — before reusing any V1 component,
+   demonstrate semantic and architectural equivalence through disconfirmation.
+   See `.project/design/FIGMA-IMPLEMENTATION-RULES.md` for the full protocol.
+   Mark OBSERVED / INFERRED / ASSUMED / UNKNOWN. Compare against multiple
+   Workshop frames. Never promote "similar-looking" into "same concept."
+6. Open the current running implementation at the same route, viewport, theme,
    and meaningful state. Compare it beside the reference BEFORE coding.
    Record differences in hierarchy, density, grouping, surfaces, typography,
    proportions, artwork placement, navigation, and attention behavior.
@@ -115,6 +127,12 @@ If no semantic token exists, document the gap and resolve it in canonical
 tokens only when the task requires that change. Regenerate derived CSS; never
 hand-edit it. Read the complete relevant CSS cascade, including theme,
 preference, media-query, and later overrides.
+
+**Update FIGMA-COMPONENT-MAP.yaml** when adding or changing a mapping. Every
+mapping must include: status (WORKSHOP_CANONICAL / WORKSHOP_COMPATIBLE /
+HISTORICAL_V1 / UNKNOWN), confidence (OBSERVED / INFERRED / ASSUMED / UNKNOWN),
+evidence (which frames checked), and disconfirmation (what was checked before
+accepting equivalence). See `.project/design/FIGMA-IMPLEMENTATION-RULES.md`.
 
 Translate MCP output into this stack; do not paste its React/Tailwind scaffold
 as a replacement app. Preserve routing, typed API calls, authentication,
@@ -232,3 +250,24 @@ Tool names and retrieval roles were checked against Figma's
 The workflow is project-specific; see also Figma's
 [custom skill guidance](https://developers.figma.com/docs/figma-mcp-server/create-skills/).
 Inspect live tool schemas rather than treating these links as a frozen API.
+
+### Upstream Figma skills (retrieved 2026-09-13)
+- **figma-design-to-code**: `figma/mcp-server-guide` SHA `d638a5e`
+  - Path: `skills/figma-design-to-code/SKILL.md`
+  - Role: mandatory prerequisite before `get_design_context`
+- **figma-code-connect**: same repo, `skills/figma-code-connect/SKILL.md`
+  - Role: NOT AVAILABLE (Figma Professional plan — Code Connect requires Org/Enterprise)
+  - Archived for reference only
+
+### Repository-owned mapping layer
+- **FIGMA-COMPONENT-MAP.yaml**: `.project/design/FIGMA-COMPONENT-MAP.yaml`
+  - Role: maps Figma concepts to production components (Pro-compatible substitute for Code Connect)
+- **FIGMA-IMPLEMENTATION-RULES.md**: `.project/design/FIGMA-IMPLEMENTATION-RULES.md`
+  - Role: disconfirmation protocol, mapping rules, validation checklist
+
+### Plumb MCP (evaluated, deferred)
+- **Repository**: `tathagat22/plumb-mcp` SHA `4f7568f` (2026-08-19)
+- **License**: MIT
+- **Role**: Optional disconfirmation tool only — not authority
+- **Status**: Evaluated, deferred for one-frame experiment
+- **Semantic roles**: nav, hero, footer, sidebar, card, button

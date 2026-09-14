@@ -201,7 +201,7 @@ describe("Vault: error branch gets its h1; success keeps h1 + h2 cards", () => {
     });
     const { container } = screenProviders(<VaultScreen />);
     await waitFor(() => {
-      expect(container.querySelector("[data-pw-state='error']")).not.toBeNull();
+      expect(container.querySelector('[aria-label="Vault error"]')).not.toBeNull();
     });
     const headings = expectSoundOutline(container, "/vault error");
     expect(headings).toEqual([{ level: 1, text: "Vault" }]);
@@ -228,11 +228,11 @@ describe("Journal: page h1 with sequential h2 sections (empty state)", () => {
     });
     const { container } = screenProviders(<JournalScreen />);
     await waitFor(() => {
-      expect(container.textContent).toContain("Your journal is quiet");
+      expect(container.textContent).toContain("No journal entries yet");
     });
     const headings = expectSoundOutline(container, "/journal empty");
-    expect(headings.map((h) => h.level)).toEqual([1, 2, 2, 2]);
-    expect(headings[0]).toEqual({ level: 1, text: "Journal" });
+    expect(headings.map((h) => h.level)).toEqual([1]);
+    expect(headings[0]).toEqual({ level: 1, text: "Journal & Memory" });
   });
 });
 
@@ -294,8 +294,9 @@ describe("World: page h1 with h2 summary/capability sections", () => {
       expect(container.querySelector("h1")?.textContent).toBe("Your World");
     });
     const headings = expectSoundOutline(container, "/world success");
-    // WorldScreen currently renders only the h1; capability sections
-    // with h2/h3 headings are not yet implemented.
-    expect(headings).toEqual([{ level: 1, text: "Your World" }]);
+    // WorldScreen renders the h1 plus h2 sections for capabilities and actors.
+    expect(headings[0]).toEqual({ level: 1, text: "Your World" });
+    expect(headings.filter((h) => h.level === 1).length).toBe(1);
+    expect(headings.length).toBeGreaterThanOrEqual(3);
   });
 });

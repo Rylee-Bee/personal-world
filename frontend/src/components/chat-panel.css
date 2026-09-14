@@ -211,7 +211,7 @@
   align-self: stretch;
   max-width: none;
   background: var(--pw-color-surface-panel);
-  border: 1px solid var(--pw-color-text-secondary);
+  border: 1px solid var(--pw-color-border-strong);
   color: var(--pw-color-text-primary);
 }
 .pw-chat-msg-error p {
@@ -240,6 +240,10 @@
 }
 .pw-chat-chip:hover:not(:disabled) {
   border-color: var(--pw-color-accent-primary);
+}
+.pw-chat-chip:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
 }
 .pw-chat-chip:disabled {
   opacity: 0.5;
@@ -284,6 +288,10 @@
 }
 .pw-chat-send:hover:not(:disabled) {
   filter: brightness(1.1);
+}
+.pw-chat-send:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
 }
 .pw-chat-send:disabled {
   opacity: 0.5;

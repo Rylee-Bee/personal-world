@@ -14,8 +14,8 @@ import {
   saveWorldIntent,
   saveWorldFact,
   saveWorldPolicy,
-  type WorldStatus,
 } from "../lib/api";
+import { CompanionSlot } from "../primitives/CompanionSlot";
 import { Disclosure } from "../primitives/Disclosure";
 import "./world-screen.css";
 
@@ -24,6 +24,13 @@ interface ManifestEntry {
   native: boolean;
   provider: string | null;
   status?: string;
+}
+
+interface Actor {
+  name: string;
+  role?: string;
+  status?: string;
+  description?: string;
 }
 
 function downloadJson(filename: string, data: unknown) {
@@ -42,6 +49,29 @@ function isManifestArray(data: unknown): data is ManifestEntry[] {
   return Array.isArray(data);
 }
 
+function isActorArray(data: unknown): data is Actor[] {
+  return Array.isArray(data);
+}
+
+function CapIcon({ name }: { name: string }) {
+  const n = name.toLowerCase();
+  if (n.includes("source") || n.includes("control") || n.includes("git"))
+    return <span className="pw-world-cap-icon" aria-hidden="true">&#9881;</span>;
+  if (n.includes("calendar") || n.includes("schedule"))
+    return <span className="pw-world-cap-icon" aria-hidden="true">&#9783;</span>;
+  if (n.includes("note") || n.includes("journal"))
+    return <span className="pw-world-cap-icon" aria-hidden="true">&#9783;</span>;
+  if (n.includes("weather"))
+    return <span className="pw-world-cap-icon" aria-hidden="true">&#9729;</span>;
+  if (n.includes("mail") || n.includes("email"))
+    return <span className="pw-world-cap-icon" aria-hidden="true">&#9993;</span>;
+  if (n.includes("contact"))
+    return <span className="pw-world-cap-icon" aria-hidden="true">&#9787;</span>;
+  if (n.includes("notif"))
+    return <span className="pw-world-cap-icon" aria-hidden="true">&#9854;</span>;
+  return <span className="pw-world-cap-icon" aria-hidden="true">&#10022;</span>;
+}
+
 export default function WorldScreen() {
   const principal = usePrincipal();
   const worldStatus = useWorldStatus();
@@ -57,13 +87,11 @@ export default function WorldScreen() {
 
   const worldData = worldStatus.data;
   const capabilities = worldData?.capabilities || {};
-  const capCount = Object.keys(capabilities).length;
   const healthyCaps = Object.values(capabilities).filter(
     (c: any) => c.ok
   ).length;
 
-  const actorList = (actors.data || []) as WorldStatus["actors"];
-  const healthyActors = actorList.filter((a) => a.status === "healthy").length;
+  const actorList: Actor[] = isActorArray(actors.data) ? actors.data : [];
 
   const manifestEntries: ManifestEntry[] = isManifestArray(manifest.data)
     ? manifest.data
@@ -102,142 +130,186 @@ export default function WorldScreen() {
     }
   }
 
+  const capEntries = manifestEntries.length > 0
+    ? manifestEntries
+    : Object.entries(capabilities).map(([name, c]: [string, any]) => ({
+        name,
+        native: true,
+        provider: null,
+        status: c.ok ? "healthy" : "needs_attention",
+      }));
+
   return (
     <div className="pw-world">
+      <div className="pw-world-ambient" aria-hidden="true" />
+
       <section className="pw-world-header" aria-labelledby="world-heading">
         <div className="pw-world-orb" aria-hidden="true">
           <div className="pw-world-orb-glow" />
           <div className="pw-world-orb-ring" />
         </div>
         <div className="pw-world-header-copy">
-          <p className="pw-world-eyebrow">Personal World</p>
+          <p className="pw-world-eyebrow">{worldName}&apos;s Personal World</p>
           <h1 id="world-heading" className="pw-world-title">
-            {worldName}
+            Your World
           </h1>
           <p className="pw-world-subtitle">
-            Everything here belongs to you.
+            Everything here belongs to you. This is what your world can see.
           </p>
           <p className="pw-world-watch-note">
-            <span aria-hidden="true">✦</span> keeping watch over all of this
+            <span aria-hidden="true">&#10022;</span> keeping watch over all of this
           </p>
         </div>
       </section>
 
       <div className="pw-world-strip" role="status" aria-label="World status">
         <div className="pw-world-strip-item">
-          <span className="pw-world-strip-dot" aria-hidden="true" />
+          <span className="pw-world-strip-icon" aria-hidden="true">&#9675;</span>
           <p className="pw-world-strip-label">World active</p>
         </div>
         <div className="pw-world-strip-divider" aria-hidden="true" />
         <div className="pw-world-strip-item">
-          <span className="pw-world-strip-dot" aria-hidden="true" />
+          <span className="pw-world-strip-icon" aria-hidden="true">&#10022;</span>
           <p className="pw-world-strip-label">
-            {healthyCaps}/{capCount} capabilities healthy
+            {healthyCaps} capabilities connected
           </p>
         </div>
         <div className="pw-world-strip-divider" aria-hidden="true" />
         <div className="pw-world-strip-item">
           <span className="pw-world-strip-dot" aria-hidden="true" />
           <p className="pw-world-strip-label">
-            {healthyActors} provider{healthyActors === 1 ? "" : "s"} connected
+            Last healthy check: just now
           </p>
         </div>
       </div>
 
-      <section className="pw-world-companion" aria-label="Companion presence">
-        <div className="pw-world-companion-art" aria-hidden="true">
-          <div className="pw-world-companion-figure" />
-          <span className="pw-world-companion-bubble" />
-          <span className="pw-world-companion-bubble pw-world-companion-bubble--small" />
-          <span className="pw-world-companion-sparkle" />
+      <div className="pw-world-columns">
+        <div className="pw-world-main">
+          <section className="pw-world-caps" aria-label="Capabilities">
+            <div className="pw-world-caps-header">
+              <h2 className="pw-world-caps-title">What your world can see</h2>
+              <span className="pw-world-caps-subtitle">what it can perceive</span>
+            </div>
+            {capEntries.length > 0 ? (
+              <div className="pw-world-cap-grid">
+                {capEntries.map((cap) => (
+                  <div
+                    key={cap.name}
+                    className={`pw-world-cap-card ${cap.status === "needs_attention" ? "pw-world-cap-card--attention" : ""}`}
+                  >
+                    <div className="pw-world-cap-card-header">
+                      <CapIcon name={cap.name} />
+                      <span className="pw-world-cap-card-name">{cap.name}</span>
+                      {cap.status === "healthy" && (
+                        <span className="pw-world-cap-card-dot pw-world-cap-card-dot--healthy" aria-label="healthy" />
+                      )}
+                    </div>
+                    <p className="pw-world-cap-card-desc">
+                      {cap.provider ? `via ${cap.provider}` : "Your " + cap.name.toLowerCase()}
+                    </p>
+                    <p className="pw-world-cap-card-status">
+                      {cap.status === "healthy" ? "healthy" : cap.status === "needs_attention" ? "needs attention" : cap.status || "not configured"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="pw-world-empty">No capabilities registered.</p>
+            )}
+          </section>
+
+          <Disclosure summary="Capability manifest" level={2}>
+            {manifest.isLoading ? (
+              <p className="pw-world-empty">Loading manifest&hellip;</p>
+            ) : manifestEntries.length === 0 ? (
+              <p className="pw-world-empty">No capabilities registered.</p>
+            ) : (
+              <table className="pw-world-manifest-table">
+                <caption className="sr-only">Capability manifest</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Capability</th>
+                    <th scope="col">Native</th>
+                    <th scope="col">Provider</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {manifestEntries.map((entry) => (
+                    <tr key={entry.name}>
+                      <td>{entry.name}</td>
+                      <td>{entry.native ? "Yes" : "No"}</td>
+                      <td>{entry.provider ?? "\u2014"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Disclosure>
+
+          <Disclosure summary="Export &amp; backup" level={2}>
+            <div className="pw-world-export-grid">
+              <button type="button" className="pw-world-export-btn" disabled={downloading !== null} onClick={() => handleDownload("world")}>
+                {downloading === "world" ? "Downloading\u2026" : "World (full)"}
+              </button>
+              <button type="button" className="pw-world-export-btn" disabled={downloading !== null} onClick={() => handleDownload("settings")}>
+                {downloading === "settings" ? "Downloading\u2026" : "Settings"}
+              </button>
+              <button type="button" className="pw-world-export-btn" disabled={downloading !== null} onClick={() => handleDownload("story")}>
+                {downloading === "story" ? "Downloading\u2026" : "Story"}
+              </button>
+              <button type="button" className="pw-world-export-btn" disabled={downloading !== null} onClick={() => handleDownload("backup")}>
+                {downloading === "backup" ? "Downloading\u2026" : "Backup"}
+              </button>
+            </div>
+          </Disclosure>
+
+          <Disclosure summary="World writes" level={2}>
+            <p className="pw-world-write-note">
+              These write directly to your world state. Changes are journaled.
+            </p>
+            <WorldWriteForm kind="intent" label="Intent" placeholder="e.g. travel_more" />
+            <WorldWriteForm kind="fact" label="Fact" placeholder="e.g. prefers_morning_light" />
+            <WorldWriteForm kind="policy" label="Policy" placeholder="e.g. no_notifications_after_9pm" />
+          </Disclosure>
         </div>
-        <div className="pw-world-companion-copy">
-          <p className="pw-world-companion-name">{companionMeta?.name || "Your companion"}</p>
-          <p className="pw-world-companion-body">
-            Present and aware, always — keeping watch over your world, sensing what changes, what needs attention, and what can stay quiet.
-          </p>
-          <div className="pw-world-companion-presence">
-            <span className="pw-world-companion-presence-dot" aria-hidden="true" />
-            <p className="pw-world-companion-presence-label">Present — watching</p>
+
+        <aside className="pw-world-sidebar" aria-label="Who is here">
+          <div className="pw-world-actors">
+            <h2 className="pw-world-actors-title">Who&apos;s here</h2>
+            <p className="pw-world-actors-subtitle">A field guide to inhabitants &amp; visitors</p>
+            {actorList.length > 0 ? (
+              <ul className="pw-world-actors-list" role="list">
+                {actorList.map((actor, i) => (
+                  <li key={`${actor.name}-${i}`} className="pw-world-actor">
+                    <div className="pw-world-actor-icon" aria-hidden="true">
+                      <span className="pw-world-actor-icon-inner" />
+                    </div>
+                    <div className="pw-world-actor-text">
+                      <span className="pw-world-actor-name">{actor.name}</span>
+                      <span className="pw-world-actor-desc">
+                        {actor.description || actor.role || "visitor"}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="pw-world-empty-small">No actors detected.</p>
+            )}
+            <p className="pw-world-actors-footer">Visitors leave a little history behind.</p>
           </div>
+        </aside>
+      </div>
+
+      <footer className="pw-world-companion" aria-label="Companion presence">
+        <CompanionSlot size="nav" />
+        <div className="pw-world-companion-text">
+          <span className="pw-world-companion-name">{companionMeta?.name || "Your companion"}</span>
+          <span className="pw-world-companion-status">
+            Your world is calm. I&apos;m here if anything stirs.
+          </span>
         </div>
-      </section>
-
-      <Disclosure summary="Capability manifest" level={2}>
-        {manifest.isLoading ? (
-          <p className="pw-world-manifest-empty">Loading manifest…</p>
-        ) : manifest.isError ? (
-          <p className="pw-world-manifest-empty">Manifest unavailable.</p>
-        ) : manifestEntries.length === 0 ? (
-          <p className="pw-world-manifest-empty">No capabilities registered.</p>
-        ) : (
-          <table className="pw-world-manifest-table">
-            <caption className="sr-only">Capability manifest</caption>
-            <thead>
-              <tr>
-                <th scope="col">Capability</th>
-                <th scope="col">Native</th>
-                <th scope="col">Provider</th>
-              </tr>
-            </thead>
-            <tbody>
-              {manifestEntries.map((entry) => (
-                <tr key={entry.name}>
-                  <td>{entry.name}</td>
-                  <td>{entry.native ? "Yes" : "No"}</td>
-                  <td>{entry.provider ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Disclosure>
-
-      <Disclosure summary="Export &amp; backup" level={2}>
-        <div className="pw-world-export-grid">
-          <button
-            type="button"
-            className="pw-world-export-btn"
-            disabled={downloading !== null}
-            onClick={() => handleDownload("world")}
-          >
-            {downloading === "world" ? "Downloading…" : "World (full)"}
-          </button>
-          <button
-            type="button"
-            className="pw-world-export-btn"
-            disabled={downloading !== null}
-            onClick={() => handleDownload("settings")}
-          >
-            {downloading === "settings" ? "Downloading…" : "Settings"}
-          </button>
-          <button
-            type="button"
-            className="pw-world-export-btn"
-            disabled={downloading !== null}
-            onClick={() => handleDownload("story")}
-          >
-            {downloading === "story" ? "Downloading…" : "Story"}
-          </button>
-          <button
-            type="button"
-            className="pw-world-export-btn"
-            disabled={downloading !== null}
-            onClick={() => handleDownload("backup")}
-          >
-            {downloading === "backup" ? "Downloading…" : "Backup"}
-          </button>
-        </div>
-      </Disclosure>
-
-      <Disclosure summary="World writes" level={2}>
-        <p className="pw-world-write-note">
-          These write directly to your world state. Changes are journaled.
-        </p>
-        <WorldWriteForm kind="intent" label="Intent" placeholder="e.g. travel_more" />
-        <WorldWriteForm kind="fact" label="Fact" placeholder="e.g. prefers_morning_light" />
-        <WorldWriteForm kind="policy" label="Policy" placeholder="e.g. no_notifications_after_9pm" />
-      </Disclosure>
+      </footer>
     </div>
   );
 }
@@ -309,13 +381,11 @@ function WorldWriteForm({
             className="pw-world-export-btn"
             disabled={status === "sending" || !key.trim()}
           >
-            {status === "sending" ? "Writing…" : `Set ${label}`}
+            {status === "sending" ? "Writing\u2026" : `Set ${label}`}
           </button>
         </div>
         {status === "done" && (
-          <p className="pw-world-write-status" role="status">
-            Saved.
-          </p>
+          <p className="pw-world-write-status" role="status">Saved.</p>
         )}
         {status === "error" && (
           <p className="pw-world-write-status pw-world-write-status--error" role="alert">
