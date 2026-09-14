@@ -48,8 +48,8 @@ test.describe("honest states", () => {
     await expect(
       page.locator(".pw-project-card-name", { hasText: "personal-world" })
     ).toBeVisible();
-    const glance = await page.locator(".pw-projects-companion").innerText();
-    expect(glance).toMatch(/Watching/);
+    const footer = await page.locator(".pw-projects-footer-text").innerText();
+    expect(footer).toMatch(/Watching/);
     // The disclosure component renders and is interactive.
     await page.locator("summary", { hasText: "History & details" }).first().click();
     await expect(
