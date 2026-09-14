@@ -1,129 +1,122 @@
-# CONNECTIONS & PROVIDERS — FINAL RECEIPT
-# Commit: 3156443
-# Date: 2026-09-14
+# CONNECTIONS & PROVIDERS — RECEIPT (audited)
+# implementation commit: 3156443
+# receipt commit: 38c4895
+# audit fix commit: 7fffaaf
+# final HEAD: 7fffaaf
 
 ---
 
 ## TESTS
 
-**723 passed, 0 failed, 0 warnings**
+**725 passed, 0 failed, 0 warnings**
 
 ---
 
-## WHAT SHIPPED
+## PROVIDER COUNTS (derived from code)
 
-### Backend
+| Capability | Providers | Count |
+|------------|-----------|-------|
+| media | plex, sonarr, radarr, lidarr | 4 |
+| calendar | ics, caldav | 2 |
+| notifications | webhook, ntfy | 2 |
+| deployment | compose, systemd, lab_cli | 3 |
+| update_discovery | github_release, version_url | 2 |
+| auth | oidc | 1 |
+| reasoning | ollama, openai_compat, openai, anthropic | 4 |
+| **Total** | | **18** |
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| Provider schemas | `provider_schemas.py` | 7 capabilities, 16 provider schemas with config fields |
-| Connection manager | `connection_manager.py` | CRUD for `connections.local.json` (private config) |
-| API endpoints | `api.py` | 6 new endpoints for connections |
+7 capabilities, 18 providers.
 
-### API Endpoints
+---
+
+## TEST/VALIDATION BEHAVIOR (per provider)
+
+| Provider | can_test | Test type | Detail |
+|----------|----------|-----------|--------|
+| plex | True | live | HTTP GET to server |
+| sonarr | True | live | HTTP GET to /api/v3/system/status |
+| radarr | True | live | HTTP GET to /api/v3/system/status |
+| lidarr | True | live | HTTP GET to /api/v3/system/status |
+| ics | True | live | HTTP HEAD to feed URL |
+| caldav | **False** | — | No live CalDAV probe implemented |
+| webhook | True | **local** | URL accepted, not fired |
+| ntfy | True | live | HTTP GET to /v1/health |
+| compose | True | **local** | File existence check |
+| systemd | True | **local** | Service name accepted, no live check |
+| lab_cli | False | — | No test implemented |
+| github_release | True | live | GitHub API /releases/latest |
+| version_url | **False** | — | No live URL probe implemented |
+| oidc | True | live | HTTP GET to .well-known/openid-configuration |
+| ollama | True | live | HTTP GET to /api/tags |
+| openai_compat | **False** | — | No live test (varies by provider) |
+| openai | **False** | — | No live API key validation |
+| anthropic | **False** | — | No live API key validation |
+
+**Live testable**: 9 (network call to external service)
+**Local validation only**: 3 (compose, systemd, webhook — not a connection test)
+**No test**: 6 (can_test=False, UI shows no test button)
+
+---
+
+## UI MESSAGING
+
+| Backend status | UI label | When |
+|----------------|----------|------|
+| `healthy` | Connected | Live network test succeeded |
+| `validated` | Configuration validated | Local check passed (compose file found, systemd name accepted, webhook URL accepted) |
+| `unavailable` | Unavailable | Network test failed |
+| `invalid_configuration` | Invalid configuration | Missing required field |
+| `unknown` | Unknown | Catch-all (should not occur — all can_test=True providers have handlers) |
+
+Non-testable providers (can_test=False): UI shows no test button.
+
+---
+
+## CALDAV, VERSION URL, LAB CLI
+
+| Provider | Schema can_test | Backend handler | UI behavior |
+|----------|----------------|-----------------|-------------|
+| caldav | False | None | No test button shown |
+| version_url | False | None | No test button shown |
+| lab_cli | False | None (falls through to "unknown") | No test button shown |
+
+---
+
+## REASONING PROVIDERS
+
+| Provider | can_test | Handler | Notes |
+|----------|----------|---------|-------|
+| ollama | True | Yes (/api/tags) | Live test: lists models |
+| openai_compat | False | None | Varies by provider — cannot test generically |
+| openai | False | None | Would need live API key validation |
+| anthropic | False | None | Would need live API key validation |
+
+Only Ollama has a live test. The other three have can_test=False so the UI does not show a test button.
+
+---
+
+## API ENDPOINTS
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/api/connections/overview` | Capability overview with status, config state |
-| GET | `/api/connections/schemas` | All provider schemas for UI forms |
+| GET | `/api/connections/overview` | Capability overview with status |
+| GET | `/api/connections/schemas` | All provider schemas |
 | GET | `/api/connections/schema/{cap}` | Single capability schema |
 | GET | `/api/connections/config` | Full merged config |
-| POST | `/api/connections/config/{key}` | Save native provider config |
-| GET | `/api/connections` | List all connections |
-| PUT | `/api/connections` | Save/update a connection |
-| DELETE | `/api/connections/{name}` | Delete a connection |
-| POST | `/api/connections/test` | Test a connection without saving |
-| POST | `/api/connections/validate` | Validate connection config |
-
-### Connection Testing
-
-| Adapter | Test method |
-|---------|-------------|
-| Plex | HTTP GET to server with token |
-| Sonarr/Radarr/Lidarr | HTTP GET to /api/v3/system/status |
-| ICS | HTTP HEAD to feed URL |
-| ntfy | HTTP GET to /v1/health |
-| Webhook | URL validation only |
-| GitHub Release | GitHub API /releases/latest |
-| Ollama | HTTP GET to /api/tags |
-| OIDC | HTTP GET to .well-known/openid-configuration |
-| Compose | File existence check |
-| systemd | Service name validation |
-
-### Frontend
-
-| Component | File | Purpose |
-|-----------|------|---------|
-| ConnectionsPanel | `ConnectionsPanel.tsx` | Full-width panel at top of Settings |
-| SettingsScreen | `SettingsScreen.tsx` | Brain panel with reasoning provider info |
-| EmptyState | `EmptyState.tsx` | configLink prop for deep links |
-| MediaScreen | `MediaScreen.tsx` | Connect Media button in empty state |
-
-### Connections Panel
-
-- Compact summary: "X ready, Y need setup"
-- Needs-setup items: Media, Calendar, Notifications, Deployment, Updates, OIDC
-- Connected items: Source control, Memory, Secrets, Discovery, Reasoning
-- Schema-driven config forms (no bespoke React per provider)
-- Test connection button with structured results
-- Secrets stored via Vault references
-- Provider selector for capabilities with multiple adapters
-
-### Brain Panel
-
-- Reasoning provider list with active indicator
-- Status chips for each provider
-- Template details in disclosure
-
-### Empty-State Deep Links
-
-- MediaScreen: "Connect Media" button → /settings
-- EmptyState component supports configLink prop
+| POST | `/api/connections/config/{key}` | Save native config |
+| GET | `/api/connections` | List connections |
+| PUT | `/api/connections` | Save connection |
+| DELETE | `/api/connections/{name}` | Delete connection |
+| POST | `/api/connections/test` | Test connection |
+| POST | `/api/connections/validate` | Validate (alias for test) |
 
 ---
 
-## CAPABILITIES REPRESENTED
-
-| Capability | Providers | Schema |
-|------------|-----------|--------|
-| Media | Plex, Sonarr, Radarr, Lidarr | ✅ |
-| Calendar | ICS, CalDAV | ✅ |
-| Notifications | Webhook, ntfy | ✅ |
-| Deployment | Docker Compose, systemd, Lab CLI | ✅ |
-| Updates | GitHub Release, Version URL | ✅ |
-| Auth | OIDC | ✅ |
-| Reasoning | Ollama, OpenAI-compat, OpenAI, Anthropic | ✅ |
-
----
-
-## PRIVATE CONFIG PERSISTENCE
+## PRIVATE CONFIG
 
 - Writes to `connections.local.json` (never tracked `connections.json`)
 - Merges with tracked config (local appended, local overrides)
-- Native config keys: calendar, notifications, updates, deployment
-- Connection entries: type, name, capability, config fields
-
----
-
-## HOT RELOAD
-
-After saving a connection:
-1. Config persisted to `connections.local.json`
-2. Frontend refetches `/api/connections/overview`
-3. Provider registry rebuilds on next request (stateless)
-4. No restart required for routine setup
-
----
-
-## REMAINING NOT_CONFIGURED (intentional)
-
-These need external configuration via the new panel:
-- media (no Plex/Sonarr/Radarr/Lidarr)
-- calendar (no ICS/CalDAV sources)
-- notifications (no targets)
-- deployment (no targets)
-- update_discovery (no sources)
-- auth/OIDC (no config)
+- Hot reload: no restart for routine setup
 
 ---
 
@@ -131,10 +124,9 @@ These need external configuration via the new panel:
 
 | SHA | Description |
 |-----|-------------|
+| 7fffaaf | audit: fix can_test flags and test-result messaging |
+| 38c4895 | Connections & Providers receipt |
 | 3156443 | Connections & Providers control panel |
-| 59573a1 | Final receipt |
-| 60f1a19 | Brain Template System |
-| 3e203d8 | Native providers + execution viewer + zero warnings |
 
 ---
 
@@ -147,6 +139,4 @@ These need external configuration via the new panel:
 | Connection manager | src/personal_world/connection_manager.py |
 | API endpoints | src/personal_world/api.py |
 | Connections panel | frontend/src/screens/ConnectionsPanel.tsx |
-| Settings screen | frontend/src/screens/SettingsScreen.tsx |
-| EmptyState | frontend/src/shell/EmptyState.tsx |
 | Tests | tests/test_connections.py |
