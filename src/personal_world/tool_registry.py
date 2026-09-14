@@ -641,7 +641,12 @@ def _propose_reconciler_apply(service: str) -> Result:
         return fail("unavailable", warnings=[f"reconciler: {e}"])
 
 
-def _execute_approved_write(journal: Any, world: Any, proposal_id: str) -> Result:
+def _execute_approved_write(
+    journal: Any,
+    world: Any,
+    proposal_id: str,
+    scheduler: Any = None,
+) -> Result:
     """Execute an approved write proposal.
 
     This function is called by the server after the owner approved
@@ -691,15 +696,26 @@ def _execute_approved_write(journal: Any, world: Any, proposal_id: str) -> Resul
             })
 
         elif ptype == "reminder":
-            # Honest: the tool registry has no scheduler access.
-            # Mark as prepared — the API layer must schedule it.
-            proposal["status"] = "prepared"
-            return ok("healthy", data={
-                "proposal_id": proposal_id,
-                "status": "prepared",
-                "type": ptype,
-                "note": "Reminder prepared. API layer must add to scheduler.",
-            })
+            if scheduler is None:
+                proposal["status"] = "failed"
+                return fail(
+                    "unavailable",
+                    warnings=["scheduler not available for reminder execution"],
+                )
+            from .scheduler import Reminder
+            rid = f"proposal-{proposal_id}"
+            reminder = Reminder(id=rid, text=proposal.get("text", ""))
+            r = scheduler.add(reminder)
+            if r.ok:
+                proposal["status"] = "executed"
+                return ok("healthy", data={
+                    "proposal_id": proposal_id,
+                    "status": "executed",
+                    "type": ptype,
+                })
+            else:
+                proposal["status"] = "failed"
+                return fail("unavailable", warnings=r.warnings)
 
         elif ptype == "reconciler_apply":
             # Honest: no adapter integration exists yet.
@@ -997,11 +1013,12 @@ def _reminders() -> Result:
 def _build_media_engine(connection_manager: Any = None, config_dir: Any = None):
     """Build media engine from MERGED connection config.
 
-    Uses ConnectionManager when available so connections.local.json
-    (private config saved through the UI) is included. Falls back to
-    reading connections.json directly only if no manager is provided.
+    Resolves both:
+    - connections[] entries (tracked config, provider shape)
+    - flat UI config (connections.local.json, schema-driven shape)
     """
     from .providers.native_media import NativeMediaEngine, build_adapter
+    from .connection_manager import resolve_media_connections
 
     if connection_manager is not None:
         config = connection_manager.get_all_config()
@@ -1016,11 +1033,23 @@ def _build_media_engine(connection_manager: Any = None, config_dir: Any = None):
         config = _json.loads(connections_path.read_text())
 
     adapters = []
+
+    # 1. connections[] entries (provider shape — has "type" key)
     for conn in config.get("connections", []):
         if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
             adapter = build_adapter(conn)
             if adapter:
                 adapters.append(adapter)
+
+    # 2. Flat UI config saved under "media" key
+    media_raw = config.get("media", {})
+    if media_raw and media_raw.get("_adapter"):
+        for conn in resolve_media_connections(media_raw):
+            if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
+                adapter = build_adapter(conn)
+                if adapter:
+                    adapters.append(adapter)
+
     return NativeMediaEngine(adapters)
 
 

@@ -883,6 +883,11 @@ export async function saveNativeConfig(key: string, config: unknown): Promise<un
   });
 }
 
+export async function fetchNativeConfig(key: string): Promise<Record<string, unknown>> {
+  const all = await apiFetch<Record<string, unknown>>("/api/connections/config");
+  return (all?.[key] as Record<string, unknown>) ?? {};
+}
+
 export async function testConnection(payload: {
   capability: string;
   adapter_type: string;
