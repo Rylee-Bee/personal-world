@@ -16,10 +16,11 @@ import {
   type Reminder,
   type SectionData,
   type WorldStatus,
+  type BrainTemplate,
 } from "../lib/api";
 import { useCompanion, COMPANIONS } from "../lib/companion-context";
 import { usePrefs, COMPANION_OFF, companionChoices } from "../lib/prefs-context";
-import { usePrincipal, useSectionsWrite, useApps, useThemes } from "../lib/hooks";
+import { usePrincipal, useSectionsWrite, useApps, useThemes, useBrainTemplates } from "../lib/hooks";
 import { savePrincipalDisplayName } from "../lib/api";
 import { useAnnounce } from "../primitives/LiveRegion";
 import { useStepUp } from "../primitives/StepUpPrompt";
@@ -158,6 +159,7 @@ function SettingsScreen() {
   const principal = usePrincipal();
   const apps = useApps();
   const themes = useThemes();
+  const brainTemplates = useBrainTemplates();
   // Emits the shared "sections" refresh signal: SectionNav (mounted in
   // AppShell, outside this screen) subscribes to the same signal via
   // useSections(), so a sections write here updates the live nav in
@@ -918,6 +920,71 @@ function SettingsScreen() {
           ) : (
             <p className={`text-xs ${mutedClasses}`}>No themes available yet. Coming soon.</p>
           )}
+        </section>
+
+        {waveDivider}
+
+        {/* ── Brain Templates ── */}
+        <section aria-labelledby="brain-heading" data-testid="brain-panel" className={panelClasses}>
+          <div className="flex flex-col gap-1.5">
+            <h2 id="brain-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+              Brain
+            </h2>
+            <p className={`text-xs leading-relaxed ${mutedClasses}`}>
+              Template system that composes runtime instructions for the assistant.
+            </p>
+          </div>
+          {brainTemplates.isLoading ? (
+            <p className={`text-xs ${mutedClasses}`}>Loading templates…</p>
+          ) : brainTemplates.isError ? (
+            <p role="alert" className="text-sm text-[var(--pw-color-text-primary)]">
+              Could not load brain templates.
+            </p>
+          ) : brainTemplates.data?.templates ? (
+            <Disclosure summary="Template details" level={2} defaultOpen={false}>
+              <table className="w-full text-left">
+                <caption className="sr-only">Brain template status</caption>
+                <thead className="sr-only">
+                  <tr>
+                    <th scope="col">Template</th>
+                    <th scope="col">Kind</th>
+                    <th scope="col">Version</th>
+                    <th scope="col">Source</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--pw-color-border-subtle)]">
+                  {brainTemplates.data.templates.map((t: BrainTemplate) => (
+                    <tr key={t.id} className="h-[36px]">
+                      <th scope="row" className="pr-4 font-normal">
+                        <span className="text-xs text-[var(--pw-color-text-primary)]">{t.id}</span>
+                      </th>
+                      <td className="pr-4">
+                        <span className="text-xs text-[var(--pw-color-text-secondary)]">{t.kind}</span>
+                      </td>
+                      <td className="pr-4">
+                        <span className="text-xs text-[var(--pw-color-text-secondary)]">v{t.version}</span>
+                      </td>
+                      <td>
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-xs text-[var(--pw-color-text-secondary)]">{t.source}</span>
+                          {t.has_override && (
+                            <span className="rounded bg-[var(--pw-color-accent-primary)] px-1.5 py-0.5 text-[9px] text-[var(--pw-color-surface-canvas)]">
+                              override
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Disclosure>
+          ) : (
+            <p className={`text-xs ${mutedClasses}`}>No templates loaded.</p>
+          )}
+          <p className="text-[11px] text-[var(--pw-color-accent-primary)]">
+            ✦ Templates are Git-native artifacts with version history.
+          </p>
         </section>
 
         {waveDivider}

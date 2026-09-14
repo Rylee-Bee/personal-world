@@ -654,6 +654,41 @@ export async function fetchThemes(): Promise<unknown[]> {
   return apiFetch<unknown[]>("/api/themes");
 }
 
+export interface BrainTemplate {
+  id: string;
+  version: number;
+  kind: string;
+  surface: string | null;
+  max_tokens: number;
+  source: string;
+  content_length: number;
+  has_override: boolean;
+}
+
+export interface BrainTemplatesData {
+  templates: BrainTemplate[];
+}
+
+export interface BrainProvenanceData {
+  core: Array<{ id: string; version: number; source: string }>;
+  surface: { id: string; version: number; source: string } | null;
+  task: { id: string; version: number; source: string } | null;
+  packs: Array<{ id: string; status: string }>;
+  overrides: Array<{ id: string; source: string }>;
+}
+
+export async function fetchBrainTemplates(): Promise<BrainTemplatesData> {
+  return apiFetch<BrainTemplatesData>("/api/brain/templates");
+}
+
+export async function fetchBrainProvenance(surface?: string, task?: string): Promise<BrainProvenanceData> {
+  const params = new URLSearchParams();
+  if (surface) params.set("surface", surface);
+  if (task) params.set("task", task);
+  const qs = params.toString();
+  return apiFetch<BrainProvenanceData>(`/api/brain/provenance${qs ? `?${qs}` : ""}`);
+}
+
 export interface IngressRollupsData {
   ok: boolean;
   provider?: string;

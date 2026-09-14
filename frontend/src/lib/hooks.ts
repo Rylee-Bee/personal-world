@@ -67,6 +67,10 @@ import {
   fetchMediaLibrary,
   fetchMediaRecent,
   fetchMediaActivity,
+  fetchBrainTemplates,
+  fetchBrainProvenance,
+  type BrainTemplatesData,
+  type BrainProvenanceData,
 } from "./api";
 
 /**
@@ -451,4 +455,20 @@ export function useMediaRecent() {
 }
 export function useMediaActivity() {
   return useApiQuery<any>(() => fetchMediaActivity(), []);
+}
+
+// ── Brain Template hooks ──
+
+/** GET /api/brain/templates: list all brain templates. */
+export function useBrainTemplates() {
+  return useApiQuery<BrainTemplatesData>(() => fetchBrainTemplates(), [], ["brain-templates"]);
+}
+
+/** GET /api/brain/provenance: template provenance for Nerd Mode. */
+export function useBrainProvenance(surface?: string, task?: string) {
+  return useApiQuery<BrainProvenanceData>(
+    () => fetchBrainProvenance(surface, task),
+    [surface, task],
+    ["brain-provenance"]
+  );
 }

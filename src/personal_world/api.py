@@ -19,6 +19,7 @@ from starlette.concurrency import run_in_threadpool
 
 from . import export, prefs
 from . import sections as sections_mod
+from .template_registry import TemplateRegistry
 from .app import build_registry, load_world, save_world
 from .chat import chat_once, build_chat_messages, extract_proposal
 from .chat_context import build_world_context, build_ui_context
@@ -637,12 +638,23 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         context = await run_in_threadpool(
             build_world_context, world, registry, journal, True, config_dir
         )
+        # Brain templates: compose runtime instructions from small pieces.
+        # Surface is derived from the UI route (e.g. /lab -> lab).
+        templates = TemplateRegistry(config_dir, data_dir)
+        ui = body.get("context") if isinstance(body, dict) else None
+        surface = None
+        if isinstance(ui, dict):
+            route = str(ui.get("route") or "")
+            if route.startswith("/"):
+                surface = route[1:]  # /lab -> lab
+        template_instructions = templates.compose(surface=surface)
+        if template_instructions:
+            context = template_instructions + "\n\n" + context
         # Contextual chat (Finish Line "Contextual chat and model
         # routing"): the caller may describe WHERE in the UI the person
         # is. Provenance, not truth: an unknown section_id degrades to
         # an honest "unknown" block rather than being trusted or
         # rejected — a stale tab must not break conversation.
-        ui = body.get("context") if isinstance(body, dict) else None
         ui_block = None
         if isinstance(ui, dict):
             route = str(ui.get("route") or "") or None
@@ -1407,6 +1419,20 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         registry = ThemePackRegistry(data_dir / "theme-packs")
         pack = registry.get(name)
         return {"ok": True, "data": pack.model_dump(mode="json")}
+
+    # --- Brain Template System ---
+
+    @app.get("/api/brain/templates", dependencies=[Depends(require_auth)])
+    async def brain_templates() -> dict:
+        """List all brain templates with metadata."""
+        templates = TemplateRegistry(config_dir, data_dir)
+        return {"ok": True, "data": {"templates": templates.list_templates()}}
+
+    @app.get("/api/brain/provenance", dependencies=[Depends(require_auth)])
+    async def brain_provenance(surface: str | None = None, task: str | None = None) -> dict:
+        """Report template provenance for Nerd Mode."""
+        templates = TemplateRegistry(config_dir, data_dir)
+        return {"ok": True, "data": templates.provenance(surface=surface, task=task)}
 
     # --- Scheduler / Reminders ---
 
