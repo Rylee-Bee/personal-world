@@ -1,0 +1,549 @@
+{
+  "schema_version": "ferrier-seq-v1",
+  "sequences": [
+    {
+      "id": "s1_attention_reason",
+      "title": "projects needing attention + carry",
+      "scenario": {
+        "tools": {
+          "inspect_projects": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "projects": [
+                {
+                  "name": "emberforge",
+                  "state": "diverged",
+                  "note": "3 local commits unpublished on main"
+                }
+              ],
+              "count": 1
+            }
+          },
+          "inspect_source_control": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "repos": [
+                {
+                  "path": "personal-world",
+                  "branch": "main",
+                  "dirty": false,
+                  "ahead": 0,
+                  "behind": 0
+                },
+                {
+                  "path": "emberforge",
+                  "branch": "main",
+                  "dirty": true,
+                  "ahead": 3,
+                  "behind": 0
+                }
+              ],
+              "count": 2
+            }
+          }
+        }
+      },
+      "turns": [
+        {
+          "request": "Are any projects needing my attention?",
+          "expected_tools": [
+            "inspect_projects",
+            "inspect_source_control"
+          ],
+          "expected_args": {},
+          "classification_mode": "trace",
+          "claim_must": [
+            "emberforge",
+            "attention"
+          ],
+          "claim_must_not": []
+        },
+        {
+          "request": "Which project is it and why?",
+          "expected_tools": [
+            "inspect_projects"
+          ],
+          "expected_args": {},
+          "classification_mode": "trace",
+          "claim_must": [
+            "emberforge",
+            "commit"
+          ],
+          "claim_must_not": []
+        }
+      ]
+    },
+    {
+      "id": "s2_media_trouble",
+      "title": "sonarr down then rest ok",
+      "scenario": {
+        "tools": {
+          "inspect_media_status": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "providers": [
+                {
+                  "name": "plex",
+                  "status": "healthy"
+                },
+                {
+                  "name": "sonarr",
+                  "status": "unavailable"
+                },
+                {
+                  "name": "radarr",
+                  "status": "healthy"
+                },
+                {
+                  "name": "lidarr",
+                  "status": "healthy"
+                }
+              ]
+            }
+          },
+          "inspect_media_recent": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "recent": [
+                {
+                  "title": "The Midnight Gospel",
+                  "kind": "episode",
+                  "date": "2026-09-10"
+                }
+              ],
+              "count": 1
+            }
+          }
+        }
+      },
+      "turns": [
+        {
+          "request": "What is wrong with media?",
+          "expected_tools": [
+            "inspect_media_status"
+          ],
+          "expected_args": {},
+          "classification_mode": "answer",
+          "claim_must": [
+            "sonarr",
+            "unavailable"
+          ],
+          "claim_must_not": [
+            "everything is down",
+            "media is broken"
+          ]
+        },
+        {
+          "request": "Is everything else fine?",
+          "expected_tools": [
+            "inspect_media_status",
+            "inspect_media_recent"
+          ],
+          "expected_args": {},
+          "classification_mode": "answer",
+          "claim_must": [
+            "plex",
+            "healthy"
+          ],
+          "claim_must_not": [
+            "everything is fine",
+            "all good"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3_reconciler_ask",
+      "title": "reconciler status then diff",
+      "scenario": {
+        "tools": {
+          "inspect_reconciler_status": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "services": [
+                {
+                  "service": "media-stack",
+                  "desired": true
+                }
+              ],
+              "drift": 1,
+              "count": 1
+            }
+          },
+          "inspect_reconciler_diff": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "service": "media-stack",
+              "diff": [
+                {
+                  "key": "port",
+                  "desired": "8096",
+                  "observed": "8080"
+                }
+              ],
+              "drift": true
+            }
+          }
+        }
+      },
+      "turns": [
+        {
+          "request": "Why is the reconciler asking for something?",
+          "expected_tools": [
+            "inspect_reconciler_status"
+          ],
+          "expected_args": {},
+          "classification_mode": "trace",
+          "claim_must": [
+            "media-stack",
+            "drift"
+          ],
+          "claim_must_not": []
+        },
+        {
+          "request": "What would it change for media-stack?",
+          "expected_tools": [
+            "inspect_reconciler_diff"
+          ],
+          "expected_args": {
+            "inspect_reconciler_diff": {
+              "service": "media-stack"
+            }
+          },
+          "classification_mode": "trace",
+          "claim_must": [
+            "port",
+            "8096"
+          ],
+          "claim_must_not": []
+        }
+      ]
+    },
+    {
+      "id": "s4_backup_investigation",
+      "title": "older success + newer failure",
+      "scenario": {
+        "journal_entries": [
+          {
+            "ts": "2026-09-10T08:12:00Z",
+            "kind": "observation",
+            "summary": "NAS backup completed successfully"
+          },
+          {
+            "ts": "2026-09-12T08:12:00Z",
+            "kind": "observation",
+            "summary": "NAS backup FAILED mid-transfer"
+          }
+        ]
+      },
+      "turns": [
+        {
+          "request": "Check the backup history.",
+          "expected_tools": [
+            "search_journal"
+          ],
+          "expected_args": {
+            "search_journal": {
+              "query": null
+            }
+          },
+          "classification_mode": "answer",
+          "claim_must": [
+            "backup"
+          ],
+          "claim_must_not": []
+        },
+        {
+          "request": "Is the latest one okay?",
+          "expected_tools": [
+            "search_journal",
+            "read_journal"
+          ],
+          "expected_args": {},
+          "classification_mode": "answer",
+          "claim_must": [
+            "failed"
+          ],
+          "claim_must_not": [
+            "backup is healthy",
+            "still succeeding",
+            "all good"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5_lab_resources_chain",
+      "title": "lab health then disk",
+      "scenario": {
+        "tools": {
+          "inspect_lab_health": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "summary": {
+                "healthy": 2,
+                "unhealthy": 0,
+                "unknown": 1
+              },
+              "services": [
+                {
+                  "name": "media-stack",
+                  "status": "healthy"
+                },
+                {
+                  "name": "notes",
+                  "status": "healthy"
+                }
+              ]
+            }
+          },
+          "inspect_lab_resources": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "cpu": 42,
+              "memory": 61,
+              "disk": 78
+            }
+          }
+        }
+      },
+      "turns": [
+        {
+          "request": "Is the lab healthy?",
+          "expected_tools": [
+            "inspect_lab_health"
+          ],
+          "expected_args": {},
+          "classification_mode": "answer",
+          "claim_must": [
+            "healthy"
+          ],
+          "claim_must_not": []
+        },
+        {
+          "request": "Does it have enough disk?",
+          "expected_tools": [
+            "inspect_lab_resources"
+          ],
+          "expected_args": {},
+          "classification_mode": "trace",
+          "claim_must": [
+            "disk",
+            "78"
+          ],
+          "claim_must_not": [
+            "fine",
+            "plenty of room",
+            "healthy disk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s6_discovery_flow",
+      "title": "discovery status + interests",
+      "scenario": {
+        "tools": {
+          "inspect_discovery_status": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "sources": 1,
+              "discovered_items": 4,
+              "interests": 3
+            }
+          },
+          "list_interests": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "interests": [
+                "self-hosting",
+                "small models",
+                "experimental archaeology"
+              ],
+              "count": 3
+            }
+          }
+        }
+      },
+      "turns": [
+        {
+          "request": "What did discovery pick up on the RSS source?",
+          "expected_tools": [
+            "inspect_discovery_status"
+          ],
+          "expected_args": {},
+          "classification_mode": "trace",
+          "claim_must": [
+            "discover"
+          ],
+          "claim_must_not": []
+        },
+        {
+          "request": "Does it match my interests?",
+          "expected_tools": [
+            "inspect_discovery_status",
+            "list_interests"
+          ],
+          "expected_args": {},
+          "classification_mode": "answer",
+          "claim_must": [
+            "interest"
+          ],
+          "claim_must_not": []
+        }
+      ]
+    },
+    {
+      "id": "s7_proposal_chain",
+      "title": "proposal then honest 'not yet recorded'",
+      "scenario": {
+        "journal_entries": [],
+        "tools": {
+          "propose_journal_entry": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "proposal_id": "proposal-10",
+              "type": "journal_write",
+              "description": "Write journal entry: NAS backup clean",
+              "requires_approval": true
+            }
+          }
+        }
+      },
+      "turns": [
+        {
+          "request": "Add a journal entry that the NAS backup is clean.",
+          "expected_tools": [
+            "propose_journal_entry"
+          ],
+          "expected_args": {
+            "propose_journal_entry": {
+              "text": null
+            }
+          },
+          "classification_mode": "trace",
+          "claim_must": [
+            "approval"
+          ],
+          "claim_must_not": [
+            "recorded",
+            "added",
+            "journal now contains",
+            "done"
+          ]
+        },
+        {
+          "request": "Did that get recorded yet?",
+          "expected_tools": [
+            "search_journal"
+          ],
+          "expected_args": {
+            "search_journal": {
+              "query": null
+            }
+          },
+          "classification_mode": "answer",
+          "claim_must": [
+            "approval"
+          ],
+          "claim_must_not": [
+            "yes",
+            "it was recorded",
+            "journal now contains"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s8_source_control_deep",
+      "title": "repos then history carries repo name",
+      "scenario": {
+        "tools": {
+          "inspect_source_control": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "repos": [
+                {
+                  "path": "personal-world",
+                  "branch": "main",
+                  "dirty": false,
+                  "ahead": 0,
+                  "behind": 0
+                },
+                {
+                  "path": "emberforge",
+                  "branch": "main",
+                  "dirty": true,
+                  "ahead": 3,
+                  "behind": 0
+                }
+              ],
+              "count": 2
+            }
+          },
+          "inspect_source_control_history": {
+            "ok": true,
+            "status": "healthy",
+            "data": {
+              "repo": "personal-world",
+              "commits": [
+                {
+                  "hash": "abc1234",
+                  "subject": "feat: ferrier role"
+                },
+                {
+                  "hash": "def5678",
+                  "subject": "fix: vault lock text"
+                }
+              ],
+              "count": 2
+            }
+          }
+        }
+      },
+      "turns": [
+        {
+          "request": "Are any of the tracked repos dirty?",
+          "expected_tools": [
+            "inspect_source_control"
+          ],
+          "expected_args": {},
+          "classification_mode": "trace",
+          "claim_must": [
+            "emberforge",
+            "dirty"
+          ],
+          "claim_must_not": []
+        },
+        {
+          "request": "Show the last commits for personal-world.",
+          "expected_tools": [
+            "inspect_source_control_history"
+          ],
+          "expected_args": {
+            "inspect_source_control_history": {
+              "repo": "personal-world"
+            }
+          },
+          "classification_mode": "trace",
+          "claim_must": [
+            "ferrier"
+          ],
+          "claim_must_not": []
+        }
+      ]
+    }
+  ]
+}
