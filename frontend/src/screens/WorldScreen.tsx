@@ -5,6 +5,7 @@ import {
   useActors,
   useManifest,
 } from "../lib/hooks";
+import { useCompanion, COMPANIONS } from "../lib/companion-context";
 import {
   fetchExportSettings,
   fetchExportStory,
@@ -46,6 +47,8 @@ export default function WorldScreen() {
   const worldStatus = useWorldStatus();
   const actors = useActors();
   const manifest = useManifest();
+  const { companion } = useCompanion();
+  const companionMeta = COMPANIONS[companion];
 
   const worldName =
     principal.data && !principal.isError
@@ -149,11 +152,9 @@ export default function WorldScreen() {
           <span className="pw-world-companion-sparkle" />
         </div>
         <div className="pw-world-companion-copy">
-          <p className="pw-world-companion-name">The Mermaid</p>
+          <p className="pw-world-companion-name">{companionMeta?.name || "Your companion"}</p>
           <p className="pw-world-companion-body">
-            She keeps watch over your world — sensing what changes, what
-            needs attention, and what can stay quiet. Present and aware,
-            always.
+            Present and aware, always — keeping watch over your world, sensing what changes, what needs attention, and what can stay quiet.
           </p>
           <div className="pw-world-companion-presence">
             <span className="pw-world-companion-presence-dot" aria-hidden="true" />

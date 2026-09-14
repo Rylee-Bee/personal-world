@@ -102,6 +102,11 @@ services:
       # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 
+      # ── Optional: OIDC / SSO ─────────────────────────────────
+      # Only needed if using an OIDC provider (e.g. Authelia).
+      # Copy config/oidc.example.json to config/oidc.json and fill in.
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+
       # ── Optional: Lab CLI path ────────────────────────────────
       # Only needed if connecting to a homelab Lab CLI instance.
       # PW_LAB_CLI: /opt/scripts/lab

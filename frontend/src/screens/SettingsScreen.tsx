@@ -19,7 +19,8 @@ import {
 } from "../lib/api";
 import { useCompanion, COMPANIONS } from "../lib/companion-context";
 import { usePrefs, COMPANION_OFF, companionChoices } from "../lib/prefs-context";
-import { usePrincipal, useSectionsWrite } from "../lib/hooks";
+import { usePrincipal, useSectionsWrite, useApps, useThemes } from "../lib/hooks";
+import { savePrincipalDisplayName } from "../lib/api";
 import { useAnnounce } from "../primitives/LiveRegion";
 import { useStepUp } from "../primitives/StepUpPrompt";
 import { Dialog } from "../primitives/Dialog";
@@ -155,6 +156,8 @@ function SettingsScreen() {
   const { companion, setCompanion } = useCompanion();
   const { setPref } = usePrefs();
   const principal = usePrincipal();
+  const apps = useApps();
+  const themes = useThemes();
   // Emits the shared "sections" refresh signal: SectionNav (mounted in
   // AppShell, outside this screen) subscribes to the same signal via
   // useSections(), so a sections write here updates the live nav in
@@ -846,6 +849,81 @@ function SettingsScreen() {
             ✦ Your world watches these for you.
           </p>
         </section>
+
+        {/* ── Applications ── */}
+        <section aria-labelledby="apps-heading" data-testid="apps-panel" className={panelClasses}>
+          <div className="flex flex-col gap-1.5">
+            <h2 id="apps-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+              Applications
+            </h2>
+            <p className={`text-xs leading-relaxed ${mutedClasses}`}>
+              Services connected to your world.
+            </p>
+          </div>
+          {apps.isLoading ? (
+            <p className={`text-xs ${mutedClasses}`}>Loading applications…</p>
+          ) : apps.isError ? (
+            <p role="alert" className="text-sm text-[var(--pw-color-text-primary)]">
+              Could not load applications.
+            </p>
+          ) : Array.isArray(apps.data) && apps.data.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {apps.data.map((app) => (
+                <li key={app.id} className="flex items-center justify-between rounded-lg bg-[var(--pw-color-surface-elevated)] min-h-[44px] px-3.5 py-2">
+                  <span className="text-xs text-[var(--pw-color-text-primary)]">{app.name}</span>
+                  {app.url && (
+                    <a
+                      href={app.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={actionButtonClasses}
+                    >
+                      Open
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={`text-xs ${mutedClasses}`}>No applications configured.</p>
+          )}
+        </section>
+
+        {waveDivider}
+
+        {/* ── Themes ── */}
+        <section aria-labelledby="themes-heading" data-testid="themes-panel" className={panelClasses}>
+          <div className="flex flex-col gap-1.5">
+            <h2 id="themes-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+              Themes
+            </h2>
+            <p className={`text-xs leading-relaxed ${mutedClasses}`}>
+              Appearance packs for your companion.
+            </p>
+          </div>
+          {themes.isLoading ? (
+            <p className={`text-xs ${mutedClasses}`}>Loading themes…</p>
+          ) : themes.isError ? (
+            <p role="alert" className="text-sm text-[var(--pw-color-text-primary)]">
+              Could not load themes.
+            </p>
+          ) : Array.isArray(themes.data) && themes.data.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {themes.data.map((theme: any, i: number) => (
+                <li key={theme.name || i} className="flex items-center rounded-lg bg-[var(--pw-color-surface-elevated)] min-h-[44px] px-3.5 py-2">
+                  <span className="text-xs text-[var(--pw-color-text-primary)]">{theme.display_name || theme.name}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={`text-xs ${mutedClasses}`}>No themes available yet. Coming soon.</p>
+          )}
+        </section>
+
+        {waveDivider}
+
+        {/* ── Profile / Identity ── */}
+        <ProfilePanel principal={principal} announce={announce} withStepUp={withStepUp} />
       </div>
 
       {/* ── Theme packs (GET /api/themes) are artwork packages for the
@@ -921,6 +999,92 @@ function capabilityIcon(name: string): IconName {
     default:
       return "icon-world-content-world";
   }
+}
+
+function ProfilePanel({
+  principal,
+  announce,
+  withStepUp,
+}: {
+  principal: ReturnType<typeof usePrincipal>;
+  announce: (message: string, options: { kind: "action_completed" | "error"; key: string }) => void;
+  withStepUp: <T>(fn: () => Promise<T>) => Promise<T>;
+}) {
+  const [displayName, setDisplayName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (principal.data?.display_name) {
+      setDisplayName(principal.data.display_name);
+    }
+  }, [principal.data?.display_name]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = displayName.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      await withStepUp(() => savePrincipalDisplayName(trimmed));
+      setSuccess(true);
+      announce("Display name updated.", { kind: "action_completed", key: "profile-name" });
+      window.dispatchEvent(new Event("principal-updated"));
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : "Could not update display name.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section aria-labelledby="profile-heading" data-testid="profile-panel" className={panelClasses}>
+      <div className="flex flex-col gap-1.5">
+        <h2 id="profile-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+          Profile
+        </h2>
+        <p className={`text-xs leading-relaxed ${mutedClasses}`}>
+          How your world knows you.
+        </p>
+      </div>
+      {principal.isLoading ? (
+        <p className={`text-xs ${mutedClasses}`}>Loading profile…</p>
+      ) : principal.isError ? (
+        <p role="alert" className="text-sm text-[var(--pw-color-text-primary)]">
+          Could not load profile.
+        </p>
+      ) : (
+        <form className="flex flex-col gap-3" onSubmit={handleSave}>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-[var(--pw-color-text-primary)]">Display name</span>
+            <input
+              className={textInputClasses}
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your name"
+            />
+          </label>
+          {error && (
+            <p role="alert" className="text-xs text-[var(--pw-color-text-primary)]">{error}</p>
+          )}
+          {success && (
+            <p role="status" className="text-xs text-[var(--pw-color-accent-primary)]">Saved.</p>
+          )}
+          <button
+            type="submit"
+            className={screenButtonClasses}
+            disabled={saving || !displayName.trim()}
+          >
+            {saving ? "Saving…" : "Save name"}
+          </button>
+        </form>
+      )}
+    </section>
+  );
 }
 
 export default SettingsScreen;

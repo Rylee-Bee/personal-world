@@ -7,6 +7,7 @@ import {
   useNativeLabHealth,
   useNativeLabResources,
   useReconcilerStatus,
+  useIngressRollups,
 } from "../lib/hooks";
 import type { LabEnvelope } from "../lib/api";
 import { Loader2 } from "../lib/icons";
@@ -72,6 +73,7 @@ export default function LabScreen() {
   const nativeHealth = useNativeLabHealth();
   const nativeResources = useNativeLabResources();
   const reconciler = useReconcilerStatus();
+  const ingress = useIngressRollups();
 
   const isLoading = lab.isLoading || nativeInventory.isLoading;
 
@@ -248,8 +250,48 @@ export default function LabScreen() {
         </Disclosure>
       )}
 
+      {/* Ingress — Traefik route rollups */}
+      {ingress.data?.ok && ingress.data.routes && ingress.data.routes.length > 0 && (
+        <Disclosure summary="Ingress routes" level={2}>
+          <section aria-label="Ingress routes" data-pw-lab="ingress">
+            <p>{ingress.data.routes.length} route{ingress.data.routes.length === 1 ? "" : "s"} configured.</p>
+            <table data-pw-lab-table="ingress-routes">
+              <caption className="sr-only">Ingress routes</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Rule</th>
+                  <th scope="col">Service</th>
+                  <th scope="col">TLS</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ingress.data.routes.map((r) => (
+                  <tr key={r.name}>
+                    <th scope="row">{r.name}</th>
+                    <td>{r.rule || "—"}</td>
+                    <td>{r.service || "—"}</td>
+                    <td>{r.tls ? "Yes" : "No"}</td>
+                    <td>
+                      <StatusChip status={asCanonicalStatus(r.status)} size="sm" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        </Disclosure>
+      )}
+      {ingress.data && !ingress.data.ok && (
+        <section aria-label="Ingress status" data-pw-lab="ingress-unavailable">
+          <h2>Ingress</h2>
+          <p>Ingress provider not configured.</p>
+        </section>
+      )}
+
       {/* Neither available */}
-      {!hasNativeData && !hasHomelabData && (
+      {!hasNativeData && !hasHomelabData && !ingress.data?.ok && (
         <EmptyState
           title="Lab"
           headingLevel={2}

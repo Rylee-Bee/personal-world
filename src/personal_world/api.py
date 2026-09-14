@@ -251,6 +251,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                           "instance_token": _app_instance_token}
     app.state.frontend_dist = frontend_dist
 
+    # --- Native auth (session-cookie + OIDC) ---
+    from .auth import AuthManager
+    from .auth_routes import register_auth_routes
+    _auth = AuthManager(data_dir, config_dir)
+    register_auth_routes(app, _auth)
+    app.state.auth = _auth
+
     # --- Setup & Login ---
 
     @app.get("/healthz")
@@ -559,6 +566,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                     except (json.JSONDecodeError, TypeError):
                         tool_args = {}
 
+                tool_call_id = tc.get("id", "")
+
                 tool_result = tool_reg.invoke(tool_name, tool_args)
                 tool_calls_made.append({
                     "tool": tool_name,
@@ -567,11 +576,14 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                     "status": tool_result.status,
                 })
 
-                # Add tool result message
-                current_messages.append({
+                # Add tool result message (tool_call_id for Anthropic)
+                tool_msg: dict[str, Any] = {
                     "role": "tool",
                     "content": json.dumps(tool_result.model_dump(mode="json")),
-                })
+                }
+                if tool_call_id:
+                    tool_msg["tool_call_id"] = tool_call_id
+                current_messages.append(tool_msg)
 
             # Continue the loop - model will see tool results
 
@@ -1206,6 +1218,55 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
 
     # --- Native Reconciler endpoints ---
+
+    # --- Media endpoints ---
+    from .providers.native_media import NativeMediaEngine, build_adapter
+
+    def _build_media_engine():
+        connections_path = config_dir / "connections.json"
+        if not connections_path.exists():
+            return NativeMediaEngine([])
+        try:
+            config = json.loads(connections_path.read_text())
+            adapters = []
+            for conn in config.get("connections", []):
+                if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
+                    adapter = build_adapter(conn)
+                    if adapter:
+                        adapters.append(adapter)
+            return NativeMediaEngine(adapters)
+        except Exception:
+            return NativeMediaEngine([])
+
+    @app.get("/api/media/status", dependencies=[Depends(require_auth)])
+    async def media_status():
+        engine = _build_media_engine()
+        r = engine.status()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/media/library", dependencies=[Depends(require_auth)])
+    async def media_library():
+        engine = _build_media_engine()
+        r = engine.library()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/media/recent", dependencies=[Depends(require_auth)])
+    async def media_recent():
+        engine = _build_media_engine()
+        r = engine.recent()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/media/activity", dependencies=[Depends(require_auth)])
+    async def media_activity():
+        engine = _build_media_engine()
+        r = engine.activity()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/media/search", dependencies=[Depends(require_auth)])
+    async def media_search(q: str = ""):
+        engine = _build_media_engine()
+        r = engine.search(q)
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
 
     @app.get("/api/reconciler/status", dependencies=[Depends(require_auth)])
     async def reconciler_status() -> dict:
