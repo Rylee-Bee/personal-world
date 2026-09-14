@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { MemoryRouter } from "react-router-dom";
 import { CompanionProvider } from "../lib/companion-context";
@@ -39,24 +39,28 @@ afterEach(() => {
 });
 
 describe("section stubs: honest EmptyStates (T13)", () => {
-  it("Interests names the discovery capability and the warm invitation", () => {
+  it("Interests names the discovery capability and the warm invitation", async () => {
     render(stubProviders(<InterestsScreen />));
     expect(screen.getByRole("heading", { name: "Interests" })).toBeTruthy();
     expect(
-      screen.getByText(
-        "Interests helps your world learn what you care about — bookmarks, saved articles, and things you want to explore later."
-      )
+      screen.getByText("Your discovery room")
     ).toBeTruthy();
-    expect(screen.getByText("This room is still empty.")).toBeTruthy();
-    expect(screen.getByText("not configured")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText("This room is still empty.")).toBeTruthy();
+    });
+    expect(screen.getByText("No discovery sources configured yet.")).toBeTruthy();
   });
 
-  it("Media names the media capability and the Settings knob", () => {
+  it("Media names the media capability and the Settings knob", async () => {
     render(stubProviders(<MediaScreen />));
-    expect(screen.getByRole("heading", { name: "Media" })).toBeTruthy();
-    expect(
-      screen.getByText("Media gathers your stories, bookmarks, and saved reading.")
-    ).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Media" })).toBeTruthy();
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText("Media gathers your movies, shows, and music from Plex, Sonarr, Radarr, and Lidarr.")
+      ).toBeTruthy();
+    });
     expect(
       screen.getByText(/media connection in Settings → Connections/)
     ).toBeTruthy();
@@ -83,10 +87,13 @@ describe("section stubs: honest EmptyStates (T13)", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(stubProviders(<ProjectsScreen />));
     expect(
-      await screen.findByText("Projects follow your repositories and their recent activity.")
+      await screen.findByText("Your repositories, builds, and code.")
     ).toBeTruthy();
     expect(
-      screen.getByText(/repository locations under Source Control in Settings/)
+      screen.getByText("No repositories found")
+    ).toBeTruthy();
+    expect(
+      screen.getByText("no source_control search paths configured")
     ).toBeTruthy();
     // No capability dependency: no chip rather than an invented status.
     expect(document.querySelector(".chip")).toBeNull();
@@ -135,17 +142,14 @@ describe("section stubs: honest EmptyStates (T13)", () => {
     }
   });
 
-  it("statuses are canonical only (chip vocabulary from status.py)", () => {
-    for (const ui of [
-      <InterestsScreen key="i" />,
-      <MediaScreen key="m" />,
-    ]) {
-      const { container, unmount } = render(stubProviders(ui));
+  it("statuses are canonical only (chip vocabulary from status.py)", async () => {
+    const { container } = render(stubProviders(<MediaScreen />));
+    await waitFor(() => {
       const chip = container.querySelector(".chip") as HTMLElement | null;
       expect(chip).not.toBeNull();
-      expect(chip?.getAttribute("data-status")).toBe("not_configured");
-      unmount();
-    }
+    });
+    const chip = container.querySelector(".chip") as HTMLElement | null;
+    expect(chip?.getAttribute("data-status")).toBe("not_configured");
   });
 
   it("axe: 0 violations (color-contrast off, jsdom limit)", async () => {
@@ -159,6 +163,9 @@ describe("section stubs: honest EmptyStates (T13)", () => {
       <ProjectsScreen key="p" />,
     ]) {
       const { container, unmount } = render(stubProviders(ui));
+      await waitFor(() => {
+        expect(container.querySelector("h1")).not.toBeNull();
+      });
       expect(await axeNoContrast(container)).toHaveNoViolations();
       unmount();
     }

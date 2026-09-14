@@ -384,9 +384,16 @@ img[src*="/icons/"][class*="h-5"] {
 
 .pw-companion-label {
   font-size: 0.7rem;
-  color: var(--pw-color-text-secondary);
+  color: var(--pw-color-text-muted);
   margin: 0;
-  opacity: 0.62;
+}
+
+/* Edge assistant trigger: pushed to the bottom of the sidebar edge.
+   On desktop (≥900px) the header is hidden, so the trigger lives
+   in the edge for desktop access. */
+.pw-edge-assistant-trigger {
+  margin-top: auto;
+  padding: var(--pw-spacing-normal) 0;
 }
 
 /* Bottom bar: mobile only. */

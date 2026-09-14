@@ -151,7 +151,9 @@ export function WorldShell({ mode: modeProp, edge, children }: WorldShellProps) 
       </header>
 
       {/* World edge: the screen's canonical edge content.
-          Mode determines structural dimensions, not composition. */}
+          Mode determines structural dimensions, not composition.
+          The assistant trigger lives here for desktop (≥900px) since
+          .pw-header is hidden at that breakpoint. */}
       {bucket === "rail" ? (
         <nav
           aria-label="Main"
@@ -159,6 +161,13 @@ export function WorldShell({ mode: modeProp, edge, children }: WorldShellProps) 
           data-pw-mode={mode}
         >
           {edge}
+          <div className="pw-edge-assistant-trigger">
+            <CompanionSlot
+              size="nav"
+              asAssistantTrigger
+              onOpenAssistant={openAssistant}
+            />
+          </div>
         </nav>
       ) : null}
 

@@ -605,3 +605,83 @@ product decision — not silently guessable from repo truth:
   product shape is owner input.
 - **Runtime UI brand strings** still say "Personal World" in places —
   deliberately deferred pending the companion-name decision above.
+
+## Integration truth pass (2026-09-13/14)
+
+A connective-tissue pass verified and repaired agreement between
+components. Hypotheses from the handoff were tested against current
+code before changing.
+
+### Confirmed and fixed
+
+- **Authorization boundary (P1):** `ToolRegistry.invoke()` now
+  structurally blocks execution tools — the model can propose but
+  cannot approve or execute. Proposal tools (requires_approval=True)
+  are callable by the brain; they create pending proposals without
+  mutating the target domain. Approval requires server-side owner
+  action through the step-up-gated API path. Tests in
+  `tests/test_authorization_boundary.py` (19 tests) prove the full
+  propose→approve→execute boundary.
+- **Step-up authorization (P2):** Three Connections routes called
+  `require_step_up(request)` without `await`, creating an unawaited
+  coroutine that never enforced the check. Fixed to use
+  `Depends(require_step_up)`. Session-based step-up is now checked
+  in `_step_up_authorized` alongside loopback/private/header paths.
+  **Honest description:** this is trust elevation, not fresh
+  re-authentication or MFA. Three paths grant write access: (1)
+  session elevation flag (300s window), (2) trusted local/private
+  network, (3) X-PW-StepUp header from a trusted proxy. Genuine
+  fresh re-authentication is NOT implemented — a known gap.
+- **Configuration truth (P3):** `ConnectionManager` is now the
+  canonical config resolver. A `resolve_native_config()` function
+  transforms flat UI config (schema-driven, `_adapter` discriminator)
+  into the nested shapes native providers expect (`sources[]`,
+  `targets[]`, `type` discriminator). One save path (UI →
+  connections.local.json) feeds all consumers (provider constructors,
+  API endpoints, brain tools). `build_adapter()` treats unresolved
+  secret references as unresolved — they are never passed upstream
+  as credentials.
+- **Connections UI round-trip (P4):** Form inputs lacked `name`
+  attributes, so `FormData` sent blank values for Test connection.
+  Existing connection data was fetched but never populated
+  `initialValues`. Both fixed. Native config (calendar, notifications,
+  etc.) now fetches initial values from `/api/connections/config`.
+- **Execution semantics (P5):** Reminder proposals now execute
+  through the real scheduler: approved→executing→executed on success,
+  approved→executing→failed on failure. World intent/fact mutations
+  persist via `save_world()` in the API execution path. Reconciler
+  remains "prepared" (no mutation actually occurs).
+- **Vault fail-closed (P6):** Vault now requires real `cryptography`
+  package — no base64 fallback. Status reports actual encryption
+  capability, not a hardcoded `true`. Without crypto, vault is
+  unavailable (fail-closed). Tests in
+  `tests/test_vault_fail_closed.py` (14 tests) prove: crypto present →
+  encrypted, crypto absent → refused, status truthful, no secret
+  values in audit.
+
+### Test counts (verified)
+
+- Backend: 770 collected / 770 passed / 0 failed (with crypto)
+- Backend: 754 collected / 751 passed / 0 failed / 3 skipped (without crypto)
+- Baseline (main 72ee502): 717 collected / 717 passed / 0 failed
+- Delta: +53 tests (19 authorization + 14 vault + 14 secret ref
+  + 6 reminder execution)
+- Frontend: 76 failed / 258 passed / 334 total (pre-existing on main)
+- Framework validate: 0 violations
+
+### Remaining gaps (honest)
+
+- **Proposal persistence:** Proposals are in-memory (process state).
+  A restart loses pending proposals. Acceptable for current
+  single-process architecture; needs persistence if multi-process.
+- **Vault secret_ref resolution:** Provider schemas define
+  `secret_ref` fields but no vault-to-provider resolution exists.
+  Unresolved references cause adapters to return None (not_configured).
+  Env var indirection works as the credential path.
+- **Reconciler apply:** Returns "prepared" — actual provider apply
+  requires adapter integration not yet built.
+- **Fresh re-authentication:** Step-up is trust elevation (time
+  window + network + header), NOT fresh password/MFA verification.
+  Genuine re-authentication is a remaining gap.
+- **Frontend test failures:** 76 pre-existing failures on main at
+  72ee502. Not caused by this pass.

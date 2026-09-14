@@ -5,6 +5,7 @@ import {
   useMediaRecent,
   useMediaActivity,
 } from "../lib/hooks";
+import { fetchMediaSearch } from "../lib/api";
 import { EmptyState } from "../shell/EmptyState";
 import "./media-screen.css";
 
@@ -86,13 +87,9 @@ export default function MediaScreen() {
       if (!searchQuery.trim()) return;
       setSearchLoading(true);
       try {
-        const token = localStorage.getItem("pw_token") || "";
-        const res = await fetch(
-          `/api/media/search?q=${encodeURIComponent(searchQuery)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const json = await res.json();
-        setSearchResults(json?.data?.items ?? []);
+        const result = await fetchMediaSearch(searchQuery);
+        const data = result as any;
+        setSearchResults(data?.data?.items ?? data?.items ?? []);
       } catch {
         setSearchResults([]);
       } finally {

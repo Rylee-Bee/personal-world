@@ -119,17 +119,41 @@ def _reconcile_boot_token(data_dir: Path) -> None:
 
 
 def _step_up_authorized(request: Request) -> bool:
-    """Write path semantics. Loopback OR non-forwarded Header X-PW-StepUp: 1.
+    """Write path trust/elevation check.
 
-    Loopback in Docker bridge mode passes automatically (mirrors the
-    vault GET). External requests must send the step-up header
-    (step-up login keeps sessions) - documented contract; consumers
-    that need to write from remote browsers add `X-PW-StepUp: 1` when
-    they're past Authelia."""
+    Three paths grant write access. None of these constitute fresh
+    re-authentication or MFA — they are trust elevation mechanisms
+    appropriate for a single-owner personal system:
+
+    1. Session elevation: the owner authenticated through the login
+       flow and then explicitly requested step-up within the last
+       300 seconds. The session cookie carries the elevation window.
+
+    2. Trusted local/network: the request originates from loopback,
+       private, or Docker bridge networks. Intentional: the owner
+       is on the same machine or LAN.
+
+    3. Trusted proxy header: X-PW-StepUp: 1 from a consumer behind
+       a reverse proxy (e.g., Authelia) that handles its own
+       authentication. The header is trust delegation, not proof
+       of fresh authentication.
+
+    Genuine fresh re-authentication (password re-entry, MFA challenge)
+    is NOT implemented. The session elevation is a time-window flag,
+    not a re-verification. This is a known remaining gap.
+    """
+    # Path 1: Check session-based step-up
+    session_id = request.cookies.get("pw_session")
+    if session_id:
+        auth = getattr(request.app.state, "auth", None)
+        if auth is not None:
+            session = auth.validate_session(session_id)
+            if session and session.has_step_up():
+                return True
+
+    # Path 2: Loopback / private network
     client = request.client.host if request.client else "?"
     if client in ("127.0.0.1", "::1", "localhost", "testclient"):
-        return True
-    if request.headers.get("X-PW-StepUp") == "1":
         return True
     import ipaddress as _ipa
     try:
@@ -138,6 +162,11 @@ def _step_up_authorized(request: Request) -> bool:
         ip = None
     if ip is not None and (ip.is_loopback or ip.is_private):
         return True
+
+    # Path 3: Trusted proxy header
+    if request.headers.get("X-PW-StepUp") == "1":
+        return True
+
     return False
 
 
@@ -301,10 +330,17 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         (data_dir / "setup-complete").write_text("ok")
         # Initialize vault if passphrase provided
         vault_pass = body.get("vault_passphrase", "").strip()
+        vault_initialized = False
         if vault_pass:
-            _vault.unlock(vault_pass)
-            _vault._save()  # write the encrypted file immediately
-        return {"ok": True, "data": {"token_set": True, "vault_initialized": bool(vault_pass)}}
+            r = _vault.unlock(vault_pass)
+            if r.ok:
+                _vault._save()
+                vault_initialized = True
+            else:
+                # Vault unlock failed (e.g., no cryptography package).
+                # Token setup still succeeds — vault is optional.
+                _logger.warning("vault init failed: %s", r.warnings)
+        return {"ok": True, "data": {"token_set": True, "vault_initialized": vault_initialized}}
 
     def _state() -> tuple[World, Registry]:
         world = load_world(world_path)
@@ -523,7 +559,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         if not hasattr(impl, "search"):
             return {"ok": False, "status": "unavailable",
                     "warnings": [f"provider '{provider.name}' cannot search"]}
-        result = impl.search(q, top_k=top_k)
+        result = impl.search(q, limit=top_k)
         return result.model_dump(mode="json")
 
     def _chat_with_tools_loop(
@@ -533,10 +569,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         tool_schemas: list[dict[str, Any]],
         max_rounds: int = 3,
     ) -> Result:
-        """Tool-calling loop: model selects tools, we execute, model explains.
+        """Tool-calling loop: model selects read + proposal tools, we execute, model explains.
 
-        Max rounds prevents infinite loops. Read-only: no write tools
-        are exposed yet.
+        Max rounds prevents infinite loops. Read tools and proposal
+        tools (requires_approval=True) are exposed. Proposal tools
+        create pending proposals without mutating the target domain.
+        Execution tools are never exposed to the model.
         """
         from .chat import chat_once
         current_messages = list(messages)
@@ -679,7 +717,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             context = context + "\n\n" + ui_block
         # Build tool registry from current state
         from .tool_registry import build_default_tools
-        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir)
+        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir, conn_mgr)
         tool_schemas = tool_reg.list_ollama_schemas()
         messages = build_chat_messages(message, context, history)
         # Try tool-calling flow if impl supports it
@@ -780,8 +818,82 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """
         world, registry = _state()
         from .tool_registry import build_default_tools
-        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir)
+        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir, conn_mgr)
         return {"ok": True, "data": {"tools": tool_reg.list_metadata(), "count": len(tool_reg.list_tools())}}
+
+    # ── Proposal management (owner approval path) ──
+
+    @app.get("/api/proposals", dependencies=[Depends(require_auth)])
+    async def proposals_list(status: str | None = None) -> dict:
+        """List proposals, optionally filtered by status."""
+        from .tool_registry import list_proposals
+        return {"ok": True, "data": list_proposals(status)}
+
+    @app.get("/api/proposals/{proposal_id}", dependencies=[Depends(require_auth)])
+    async def proposals_get(proposal_id: str) -> dict:
+        """Get a single proposal by ID."""
+        from .tool_registry import get_proposal
+        p = get_proposal(proposal_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="proposal not found")
+        return {"ok": True, "data": p}
+
+    @app.post("/api/proposals/{proposal_id}/approve",
+              dependencies=[Depends(require_step_up)])
+    async def proposals_approve(proposal_id: str, request: Request) -> dict:
+        """Approve a pending proposal. Step-up gated.
+
+        This is the trusted owner approval path. The model cannot
+        call this endpoint — it requires step-up authorization.
+        """
+        from .tool_registry import approve_proposal
+        principal = getattr(request.state, "principal", None)
+        actor = principal.id if principal else "unknown"
+        r = approve_proposal(proposal_id, actor)
+        if not r.ok:
+            return r.model_dump(mode="json")
+        return r.model_dump(mode="json")
+
+    @app.post("/api/proposals/{proposal_id}/reject",
+              dependencies=[Depends(require_step_up)])
+    async def proposals_reject(proposal_id: str, request: Request) -> dict:
+        """Reject a pending proposal. Step-up gated."""
+        from .tool_registry import reject_proposal
+        principal = getattr(request.state, "principal", None)
+        actor = principal.id if principal else "unknown"
+        r = reject_proposal(proposal_id, actor)
+        if not r.ok:
+            return r.model_dump(mode="json")
+        return r.model_dump(mode="json")
+
+    @app.post("/api/proposals/{proposal_id}/execute",
+              dependencies=[Depends(require_step_up)])
+    async def proposals_execute(proposal_id: str, request: Request) -> dict:
+        """Execute an approved proposal. Step-up gated.
+
+        Only proposals that have been approved through the trusted
+        owner path can be executed. The approval evidence is checked
+        server-side — the model cannot forge it.
+        """
+        from .tool_registry import _execute_approved_write, get_proposal
+        # Verify proposal exists and is approved before attempting execution
+        p = get_proposal(proposal_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="proposal not found")
+        if p.get("status") != "approved":
+            return {
+                "ok": False,
+                "status": "invalid_state",
+                "warnings": [f"proposal is {p.get('status')}, not approved"],
+            }
+        world, registry = _state()
+        r = _execute_approved_write(journal, world, proposal_id, _reminders)
+        if r.ok:
+            ptype = p.get("type")
+            # Persist world mutations
+            if ptype in ("world_intent", "world_fact"):
+                save_world(world, world_path)
+        return r.model_dump(mode="json")
 
     @app.get("/api/actors", dependencies=[Depends(require_auth)])
     async def actors() -> dict:
@@ -830,23 +942,31 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         for cs in CAPABILITY_SCHEMAS.values():
             cap = cs.capability
             status_info = status_map.get(cap, {})
-            # Determine if configured
+            # Determine if configured — resolve flat UI config to
+            # provider shape before checking
+            from .connection_manager import resolve_native_config
             if cap == "media":
                 media_cfg = config.get("media", {})
-                adapters = media_cfg.get("providers", media_cfg.get("adapters", []))
-                configured = len(adapters) > 0
-            elif cap == "calendar":
-                cal_cfg = config.get("calendar", {})
-                configured = len(cal_cfg.get("sources", [])) > 0
-            elif cap == "notifications":
-                notif_cfg = config.get("notifications", {})
-                configured = len(notif_cfg.get("targets", [])) > 0
-            elif cap == "deployment":
-                deploy_cfg = config.get("deployment", {})
-                configured = len(deploy_cfg.get("targets", [])) > 0
-            elif cap == "update_discovery":
-                updates_cfg = config.get("updates", {})
-                configured = len(updates_cfg.get("sources", [])) > 0
+                # Check both connections[] entries and flat UI config
+                has_conn_entries = any(
+                    c.get("type") in ("plex", "sonarr", "radarr", "lidarr")
+                    for c in config.get("connections", [])
+                )
+                has_ui_config = bool(media_cfg.get("_adapter"))
+                configured = has_conn_entries or has_ui_config
+            elif cap in ("calendar", "notifications", "deployment", "updates"):
+                raw_cfg = config.get(cap, {})
+                resolved = resolve_native_config(raw_cfg, cap)
+                # Check the resolved wrapper key
+                spec_map = {
+                    "calendar": "sources",
+                    "notifications": "targets",
+                    "deployment": "targets",
+                    "updates": "sources",
+                }
+                wrapper = spec_map.get(cap, "")
+                items = resolved.get(wrapper, [])
+                configured = len(items) > 0
             elif cap == "auth":
                 oidc_path = config_dir / "oidc.json"
                 configured = oidc_path.exists()
@@ -874,10 +994,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """Return all connections."""
         return {"ok": True, "data": conn_mgr.get_connections()}
 
-    @app.put("/api/connections", dependencies=[Depends(require_auth)])
+    @app.put("/api/connections", dependencies=[Depends(require_step_up)])
     async def connections_save(request: Request) -> dict:
         """Save a connection (step-up required)."""
-        require_step_up(request)
         body = await request.json()
         name = body.get("name")
         if not name:
@@ -885,17 +1004,15 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         conn_mgr.save_connection(body)
         return {"ok": True, "data": {"saved": True, "name": name}}
 
-    @app.delete("/api/connections/{name}", dependencies=[Depends(require_auth)])
+    @app.delete("/api/connections/{name}", dependencies=[Depends(require_step_up)])
     async def connections_delete(name: str, request: Request) -> dict:
         """Delete a connection by name (step-up required)."""
-        require_step_up(request)
         deleted = conn_mgr.delete_connection(name)
         return {"ok": True, "data": {"deleted": deleted}}
 
-    @app.post("/api/connections/config/{key}", dependencies=[Depends(require_auth)])
+    @app.post("/api/connections/config/{key}", dependencies=[Depends(require_step_up)])
     async def save_native_config(key: str, request: Request) -> dict:
         """Save native provider config (calendar, notifications, etc.)."""
-        require_step_up(request)
         body = await request.json()
         conn_mgr.save_native_config(key, body)
         return {"ok": True, "data": {"saved": True, "key": key}}
@@ -1470,22 +1587,35 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     # --- Media endpoints ---
     from .providers.native_media import NativeMediaEngine, build_adapter
+    from .connection_manager import resolve_media_connections
 
     def _build_media_engine():
-        connections_path = config_dir / "connections.json"
-        if not connections_path.exists():
-            return NativeMediaEngine([])
-        try:
-            config = json.loads(connections_path.read_text())
-            adapters = []
-            for conn in config.get("connections", []):
+        """Build media engine from MERGED connection config.
+
+        Resolves both:
+        - connections[] entries (tracked config, provider shape)
+        - flat UI config (connections.local.json, schema-driven shape)
+        """
+        config = conn_mgr.get_all_config()
+        adapters = []
+
+        # 1. connections[] entries (provider shape — has "type" key)
+        for conn in config.get("connections", []):
+            if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
+                adapter = build_adapter(conn)
+                if adapter:
+                    adapters.append(adapter)
+
+        # 2. Flat UI config saved under "media" key
+        media_raw = config.get("media", {})
+        if media_raw and media_raw.get("_adapter"):
+            for conn in resolve_media_connections(media_raw):
                 if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
                     adapter = build_adapter(conn)
                     if adapter:
                         adapters.append(adapter)
-            return NativeMediaEngine(adapters)
-        except Exception:
-            return NativeMediaEngine([])
+
+        return NativeMediaEngine(adapters)
 
     @app.get("/api/media/status", dependencies=[Depends(require_auth)])
     async def media_status():
@@ -1547,10 +1677,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/vault/status", dependencies=[Depends(require_auth)])
     async def vault_status() -> dict:
-        """Vault status: locked/unlocked, secret count. Never values."""
+        """Vault status: locked/unlocked, secret count. Never values.
+
+        Reports actual encryption capability — not a hardcoded claim.
+        """
         return {"ok": True,
                 "data": {"locked": not _vault.is_unlocked,
-                         "encrypted": True}}
+                         "encrypted": getattr(_vault, '_fernet', None) is not None}}
 
     @app.post("/api/vault/unlock", dependencies=[Depends(require_auth)])
     async def vault_unlock(request: Request) -> dict:
@@ -1979,7 +2112,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         except ImportError:
             return {"ok": False, "status": "not_configured",
                     "warnings": ["traefik provider missing"]}
-        r = TraefikIngress().observe()
+        try:
+            r = TraefikIngress().observe()
+        except (ValueError, OSError) as e:
+            return {"ok": False, "status": "not_configured",
+                    "warnings": [str(e)]}
         return {"ok": r.ok, "status": r.status, "data": r.data,
                 "warnings": r.warnings}
 

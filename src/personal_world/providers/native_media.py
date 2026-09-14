@@ -897,11 +897,19 @@ _ADAPTERS: dict[str, type[MediaAdapter]] = {
 def build_adapter(config: dict[str, Any]) -> MediaAdapter | None:
     """Build a MediaAdapter from a connection config dict.
 
-    Expected format:
-        {"type": "plex", "base_url": "...", "token_env": "PLEX_TOKEN"}
-        {"type": "sonarr", "base_url": "...", "api_key_env": "SONARR_API_KEY"}
-        {"type": "radarr", "base_url": "...", "api_key_env": "RADARR_API_KEY"}
-        {"type": "lidarr", "base_url": "...", "api_key_env": "LIDARR_API_KEY"}
+    Credential resolution order:
+        1. Env var indirection: token_env/api_key_env names an env var
+        2. Default env var: PLEX_TOKEN, SONARR_API_KEY, etc.
+
+    Secret references (token/api_key fields from the UI schema) are
+    NOT direct credentials — they are vault references that require
+    a resolver. Until the vault resolver exists, an unresolved secret
+    reference causes the adapter to return None (not_configured).
+    Direct inline credentials (from connections.json, not the UI) are
+    still accepted for backward compatibility with env-var-based
+    configurations.
+
+    Returns None if no credential is available.
     """
     provider_type = config.get("type")
     base_url = config.get("base_url")
@@ -913,18 +921,58 @@ def build_adapter(config: dict[str, Any]) -> MediaAdapter | None:
     if cls is None:
         return None
 
+    # Detect unresolved secret references. The UI schema marks
+    # token/api_key as secret_ref=True. If the config was saved
+    # through the UI, these fields contain vault reference names,
+    # not actual credentials. Without a vault resolver, we cannot
+    # use them. Return None rather than passing a reference as
+    # though it were a secret.
+    if _is_secret_ref(config, "token") or _is_secret_ref(config, "api_key"):
+        return None
+
     if provider_type == "plex":
-        token_env = config.get("token_env", "PLEX_TOKEN")
-        token = os.environ.get(token_env, "")
+        # Accept env var indirection or default env var
+        token = os.environ.get(
+            config.get("token_env", ""), ""
+        ) or os.environ.get("PLEX_TOKEN", "")
         if not token:
             return None
         return cls(base_url=base_url, token=token)
 
-    api_key_env = config.get("api_key_env", f"{provider_type.upper()}_API_KEY")
-    api_key = os.environ.get(api_key_env, "")
+    api_key = os.environ.get(
+        config.get("api_key_env", ""), ""
+    ) or os.environ.get(f"{provider_type.upper()}_API_KEY", "")
     if not api_key:
         return None
     return cls(base_url=base_url, api_key=api_key)
+
+
+def _is_secret_ref(config: dict[str, Any], field: str) -> bool:
+    """Detect whether a config field contains an unresolved secret reference.
+
+    A field is a secret reference if:
+    - It has a value AND
+    - There is no corresponding _env field AND
+    - The value does NOT look like a real credential
+
+    Real credentials tend to be long strings with mixed characters.
+    Secret references tend to be short names (like "my-plex-token").
+    But since we can't reliably distinguish, we err on the safe side:
+    if a token/api_key field is present without a corresponding _env
+    field, we treat it as an unresolved reference.
+    """
+    value = config.get(field)
+    if not value:
+        return False
+    # If there's a corresponding _env field, the direct value field
+    # is not the primary credential path — the env var is.
+    env_field = f"{field}_env"
+    if config.get(env_field):
+        return False
+    # The value exists but there's no env var indirection.
+    # Since the schema marks this as secret_ref=True, treat it as
+    # an unresolved reference.
+    return True
 
 
 # ---------------------------------------------------------------------------

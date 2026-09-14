@@ -69,21 +69,52 @@ class ToolRegistry:
         return list(self._tools.values())
 
     def list_ollama_schemas(self) -> list[dict[str, Any]]:
-        """Tool schemas for Ollama function-calling format."""
-        return [t.to_ollama_schema() for t in self._tools.values() if t.handler is not None]
+        """Tool schemas for Ollama function-calling format.
+
+        Read tools and proposal tools are exposed to the model.
+        Proposal tools (requires_approval=True) create pending
+        proposals without mutating the target domain. Execution tools
+        are never exposed — the owner drives execution through the
+        trusted API path.
+        """
+        return [
+            t.to_ollama_schema()
+            for t in self._tools.values()
+            if t.handler is not None and (
+                t.read_write == "read" or t.requires_approval
+            )
+        ]
 
     def list_metadata(self) -> list[dict[str, Any]]:
         """Full metadata for /api/tools endpoint."""
         return [t.to_metadata() for t in self._tools.values()]
 
     def invoke(self, tool_id: str, args: dict[str, Any]) -> Result:
-        """Invoke a tool. Read tools execute immediately.
-        Write tools require approval (checked by caller)."""
+        """Invoke a tool.
+
+        Read tools execute immediately. Proposal tools
+        (requires_approval=True) create pending proposals — they are
+        callable by the brain but MUST NOT mutate the target domain
+        or establish approval. Execution tools are structurally
+        blocked — the owner drives execution through the trusted API.
+        """
         tool = self._tools.get(tool_id)
         if tool is None:
             return fail("not_found", warnings=[f"tool '{tool_id}' not registered"])
         if tool.handler is None:
             return fail("not_implemented", warnings=[f"tool '{tool_id}' has no handler"])
+        # Proposal tools (requires_approval=True) are safe for the
+        # brain to call — they create pending state, nothing more.
+        # Execution write tools (requires_approval=False) are blocked.
+        if tool.read_write == "write" and not tool.requires_approval:
+            return fail(
+                "forbidden",
+                warnings=[
+                    f"tool '{tool_id}' is an execution tool and cannot be "
+                    "invoked directly by the model. The owner must approve "
+                    "through the trusted UI/API path first."
+                ],
+            )
         try:
             return tool.handler(**args)
         except TypeError as e:
@@ -99,6 +130,7 @@ def build_default_tools(
     source_control: Any,
     vault: Any,
     config_dir: Any = None,
+    connection_manager: Any = None,
 ) -> ToolRegistry:
     """Build the default tool set from existing domain objects."""
     tools = ToolRegistry()
@@ -349,7 +381,7 @@ def build_default_tools(
         description="Inspect media providers: Plex, Sonarr, Radarr, Lidarr status.",
         read_write="read",
         parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _media_status(),
+        handler=lambda: _media_status(connection_manager),
     ))
 
     tools.register(Tool(
@@ -359,7 +391,7 @@ def build_default_tools(
         description="Recently added media: new movies, episodes, albums.",
         read_write="read",
         parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _media_recent(),
+        handler=lambda: _media_recent(connection_manager),
     ))
 
     tools.register(Tool(
@@ -369,7 +401,7 @@ def build_default_tools(
         description="Media queue: downloading, queued, failed items.",
         read_write="read",
         parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _media_activity(),
+        handler=lambda: _media_activity(connection_manager),
     ))
 
     tools.register(Tool(
@@ -385,7 +417,7 @@ def build_default_tools(
             },
             "required": ["query"],
         },
-        handler=lambda query: _media_search(query),
+        handler=lambda query: _media_search(query, connection_manager),
     ))
 
     # ── Write tools (proposal-based) ──
@@ -490,17 +522,21 @@ def build_default_tools(
             "type": "object",
             "properties": {
                 "proposal_id": {"type": "string", "description": "The approved proposal ID"},
-                "approved": {"type": "boolean", "description": "Whether the owner approved"}
             },
-            "required": ["proposal_id", "approved"],
+            "required": ["proposal_id"],
         },
-        handler=lambda proposal_id, approved: _execute_approved_write(journal, world, proposal_id, approved),
+        handler=lambda proposal_id: _execute_approved_write(journal, world, proposal_id),
     ))
 
     return tools
 
 
-# ── Proposal store (in-memory, per-process) ──
+# ── Proposal store ──
+#
+# Proposals are server-held state. The model may create proposals
+# through propose_* tools. Only the owner can approve them through
+# a trusted API path (step-up gated). Execution checks that the
+# proposal was actually approved with actor/time/evidence.
 
 _proposals: dict[str, dict[str, Any]] = {}
 _proposal_counter = 0
@@ -605,17 +641,30 @@ def _propose_reconciler_apply(service: str) -> Result:
         return fail("unavailable", warnings=[f"reconciler: {e}"])
 
 
-def _execute_approved_write(journal: Any, world: Any, proposal_id: str, approved: bool) -> Result:
-    """Execute an approved write proposal."""
+def _execute_approved_write(
+    journal: Any,
+    world: Any,
+    proposal_id: str,
+    scheduler: Any = None,
+) -> Result:
+    """Execute an approved write proposal.
+
+    This function is called by the server after the owner approved
+    the proposal through a trusted path. It checks that the proposal
+    exists and is in 'approved' state with server-held evidence.
+    """
     proposal = _proposals.get(proposal_id)
     if not proposal:
         return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
-    if proposal["status"] != "pending":
-        return fail("invalid_state", warnings=[f"proposal is {proposal['status']}, not pending"])
-
-    if not approved:
-        proposal["status"] = "rejected"
-        return ok("healthy", data={"proposal_id": proposal_id, "status": "rejected"})
+    if proposal["status"] != "approved":
+        return fail(
+            "invalid_state",
+            warnings=[
+                f"proposal is {proposal['status']}, not approved. "
+                "Only proposals approved through the trusted owner "
+                "path can be executed."
+            ],
+        )
 
     proposal["status"] = "executing"
     ptype = proposal["type"]
@@ -629,24 +678,53 @@ def _execute_approved_write(journal: Any, world: Any, proposal_id: str, approved
         elif ptype == "world_intent":
             world.set_intent(proposal["key"], proposal["intent"])
             proposal["status"] = "executed"
-            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
+            return ok("healthy", data={
+                "proposal_id": proposal_id,
+                "status": "executed",
+                "type": ptype,
+                "note": "Intent set in memory. Caller must persist.",
+            })
 
         elif ptype == "world_fact":
             world.record_fact(proposal["key"], proposal["fact"])
-            proposal["status"] = "executed"
-            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
-
-        elif ptype == "reminder":
-            proposal["status"] = "executed"
-            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
-
-        elif ptype == "reconciler_apply":
             proposal["status"] = "executed"
             return ok("healthy", data={
                 "proposal_id": proposal_id,
                 "status": "executed",
                 "type": ptype,
-                "note": "Reconciliation noted. Actual provider apply requires adapter.",
+                "note": "Fact recorded in memory. Caller must persist.",
+            })
+
+        elif ptype == "reminder":
+            if scheduler is None:
+                proposal["status"] = "failed"
+                return fail(
+                    "unavailable",
+                    warnings=["scheduler not available for reminder execution"],
+                )
+            from .scheduler import Reminder
+            rid = f"proposal-{proposal_id}"
+            reminder = Reminder(id=rid, text=proposal.get("text", ""))
+            r = scheduler.add(reminder)
+            if r.ok:
+                proposal["status"] = "executed"
+                return ok("healthy", data={
+                    "proposal_id": proposal_id,
+                    "status": "executed",
+                    "type": ptype,
+                })
+            else:
+                proposal["status"] = "failed"
+                return fail("unavailable", warnings=r.warnings)
+
+        elif ptype == "reconciler_apply":
+            # Honest: no adapter integration exists yet.
+            proposal["status"] = "prepared"
+            return ok("healthy", data={
+                "proposal_id": proposal_id,
+                "status": "prepared",
+                "type": ptype,
+                "note": "Reconciliation prepared. Actual provider apply requires adapter integration.",
             })
 
         else:
@@ -656,6 +734,63 @@ def _execute_approved_write(journal: Any, world: Any, proposal_id: str, approved
     except Exception as e:
         proposal["status"] = "failed"
         return fail("unavailable", warnings=[f"execute failed: {e}"])
+
+
+def approve_proposal(proposal_id: str, actor: str) -> Result:
+    """Approve a pending proposal. Called through the trusted owner path.
+
+    Records actor, time, and evidence of approval. This is the ONLY
+    way a proposal becomes approved — the model cannot do this.
+    """
+    proposal = _proposals.get(proposal_id)
+    if not proposal:
+        return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
+    if proposal["status"] != "pending":
+        return fail(
+            "invalid_state",
+            warnings=[f"proposal is {proposal['status']}, not pending"],
+        )
+    import time as _time
+    proposal["status"] = "approved"
+    proposal["approved_by"] = actor
+    proposal["approved_at"] = _time.time()
+    return ok("healthy", data={
+        "proposal_id": proposal_id,
+        "status": "approved",
+        "approved_by": actor,
+    })
+
+
+def reject_proposal(proposal_id: str, actor: str) -> Result:
+    """Reject a pending proposal."""
+    proposal = _proposals.get(proposal_id)
+    if not proposal:
+        return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
+    if proposal["status"] != "pending":
+        return fail(
+            "invalid_state",
+            warnings=[f"proposal is {proposal['status']}, not pending"],
+        )
+    proposal["status"] = "rejected"
+    proposal["rejected_by"] = actor
+    return ok("healthy", data={"proposal_id": proposal_id, "status": "rejected"})
+
+
+def list_proposals(status: str | None = None) -> list[dict[str, Any]]:
+    """List proposals, optionally filtered by status."""
+    results = []
+    for pid, p in _proposals.items():
+        if status is None or p.get("status") == status:
+            results.append({"proposal_id": pid, **p})
+    return results
+
+
+def get_proposal(proposal_id: str) -> dict[str, Any] | None:
+    """Get a single proposal by ID."""
+    p = _proposals.get(proposal_id)
+    if p is None:
+        return None
+    return {"proposal_id": proposal_id, **p}
 
 
 # ── Tool implementations ──
@@ -847,11 +982,11 @@ def _discovery_discover(source: str | None = None) -> Result:
 
 
 def _vault_status(vault: Any) -> Result:
-    """Get vault status (never secrets)."""
+    """Get vault status (never secrets). Reports actual encryption."""
     try:
         return ok("healthy", data={
             "locked": not vault.is_unlocked if hasattr(vault, 'is_unlocked') else True,
-            "encrypted": True,
+            "encrypted": getattr(vault, '_fernet', None) is not None,
         })
     except Exception as e:
         return fail("unavailable", warnings=[f"vault: {e}"])
@@ -875,57 +1010,80 @@ def _reminders() -> Result:
 
 # ── Media tool implementations ──
 
-def _build_media_engine():
-    """Build media engine from connections config."""
+def _build_media_engine(connection_manager: Any = None, config_dir: Any = None):
+    """Build media engine from MERGED connection config.
+
+    Resolves both:
+    - connections[] entries (tracked config, provider shape)
+    - flat UI config (connections.local.json, schema-driven shape)
+    """
     from .providers.native_media import NativeMediaEngine, build_adapter
-    import json as _json
-    from pathlib import Path
-    import os
-    config_dir = Path(os.environ.get("PW_CONFIG_DIR", "./config"))
-    connections_path = config_dir / "connections.json"
-    if not connections_path.exists():
-        return NativeMediaEngine([])
-    config = _json.loads(connections_path.read_text())
+    from .connection_manager import resolve_media_connections
+
+    if connection_manager is not None:
+        config = connection_manager.get_all_config()
+    else:
+        import json as _json
+        from pathlib import Path
+        import os
+        cfg_dir = Path(config_dir or os.environ.get("PW_CONFIG_DIR", "./config"))
+        connections_path = cfg_dir / "connections.json"
+        if not connections_path.exists():
+            return NativeMediaEngine([])
+        config = _json.loads(connections_path.read_text())
+
     adapters = []
+
+    # 1. connections[] entries (provider shape — has "type" key)
     for conn in config.get("connections", []):
         if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
             adapter = build_adapter(conn)
             if adapter:
                 adapters.append(adapter)
+
+    # 2. Flat UI config saved under "media" key
+    media_raw = config.get("media", {})
+    if media_raw and media_raw.get("_adapter"):
+        for conn in resolve_media_connections(media_raw):
+            if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
+                adapter = build_adapter(conn)
+                if adapter:
+                    adapters.append(adapter)
+
     return NativeMediaEngine(adapters)
 
 
-def _media_status() -> Result:
+def _media_status(connection_manager: Any = None) -> Result:
     """Inspect media providers status."""
     try:
-        engine = _build_media_engine()
+        engine = _build_media_engine(connection_manager)
         return engine.status()
     except Exception as e:
         return fail("unavailable", warnings=[f"media: {e}"])
 
 
-def _media_recent() -> Result:
+def _media_recent(connection_manager: Any = None) -> Result:
     """Recently added media."""
     try:
-        engine = _build_media_engine()
+        engine = _build_media_engine(connection_manager)
         return engine.recent()
     except Exception as e:
         return fail("unavailable", warnings=[f"media recent: {e}"])
 
 
-def _media_activity() -> Result:
+def _media_activity(connection_manager: Any = None) -> Result:
     """Media queue activity."""
     try:
-        engine = _build_media_engine()
+        engine = _build_media_engine(connection_manager)
         return engine.activity()
     except Exception as e:
         return fail("unavailable", warnings=[f"media activity: {e}"])
 
 
-def _media_search(query: str) -> Result:
+def _media_search(query: str, connection_manager: Any = None) -> Result:
     """Search media by title."""
     try:
-        engine = _build_media_engine()
+        engine = _build_media_engine(connection_manager)
         return engine.search(query)
     except Exception as e:
         return fail("unavailable", warnings=[f"media search: {e}"])

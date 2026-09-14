@@ -1,7 +1,8 @@
 """Connection manager: CRUD for private runtime configuration.
 
 Writes to connections.local.json (never the tracked connections.json).
-Hot-reloads the provider registry after saves.
+Provides canonical resolution between UI-saved flat config and the
+nested shapes native providers expect.
 """
 
 from __future__ import annotations
@@ -9,6 +10,114 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+
+
+# ── Canonical config resolver ──
+#
+# The Connections UI saves flat key-value pairs with `_adapter` as the
+# discriminator. Native providers expect nested structures (sources[],
+# targets[], etc.) with `type` as the discriminator.
+#
+# This resolver transforms between the two representations so that
+# ONE save path (UI → connections.local.json) feeds ALL consumers
+# (provider constructors, API endpoints, brain tools).
+
+_NATIVE_CONFIG_MAP: dict[str, dict[str, Any]] = {
+    "calendar": {
+        "wrapper_key": "sources",
+        "adapter_to_type": {"ics": "ics", "caldav": "caldav"},
+        "field_map": {"name": "name", "url": "url"},
+    },
+    "notifications": {
+        "wrapper_key": "targets",
+        "adapter_to_type": {"webhook": "webhook", "ntfy": "ntfy"},
+        "field_map": {"name": "name", "url": "url", "topic": "topic",
+                      "server": "server", "token": "token"},
+    },
+    "deployment": {
+        "wrapper_key": "targets",
+        "adapter_to_type": {"compose": "compose", "systemd": "systemd",
+                            "lab_cli": "lab_cli"},
+        "field_map": {"name": "name", "compose_path": "compose_path",
+                      "project_name": "project_name",
+                      "service_name": "service"},
+    },
+    "updates": {
+        "wrapper_key": "sources",
+        "adapter_to_type": {"github_release": "github",
+                            "version_url": "url"},
+        "field_map": {"name": "name", "repository": "repo",
+                      "current_version": "current_version", "url": "url"},
+    },
+}
+
+# Fields the UI adds that are not provider config
+_UI_META_FIELDS = {"_adapter", "name"}
+
+
+def resolve_native_config(raw: dict[str, Any], capability: str) -> dict[str, Any]:
+    """Transform flat UI config into the shape native providers expect.
+
+    The UI saves: {"_adapter": "ics", "url": "...", "name": "..."}
+    Calendar expects: {"sources": [{"type": "ics", "url": "...", "name": "..."}]}
+
+    If the config is already in the provider shape (has the expected
+    wrapper key), it is returned unchanged — this handles configs
+    written directly to connections.json (not through the UI).
+
+    Secret references (token, api_key) are passed through as-is.
+    They remain unresolved references until a vault resolver exists.
+    """
+    spec = _NATIVE_CONFIG_MAP.get(capability)
+    if spec is None:
+        return raw
+
+    wrapper = spec["wrapper_key"]
+
+    # Already in provider shape — pass through
+    if wrapper in raw and isinstance(raw[wrapper], list):
+        return raw
+
+    adapter = raw.get("_adapter")
+    if not adapter:
+        return raw
+
+    provider_type = spec["adapter_to_type"].get(adapter, adapter)
+
+    item: dict[str, Any] = {"type": provider_type}
+    for ui_field, provider_field in spec["field_map"].items():
+        val = raw.get(ui_field)
+        if val is not None and val != "":
+            item[provider_field] = val
+
+    return {wrapper: [item]}
+
+
+def resolve_media_connections(
+    raw: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Transform flat UI media config into connections[] entries.
+
+    The UI saves: {"_adapter": "plex", "base_url": "...", "token": "ref"}
+    Media engine expects: connections[] entries with "type" key.
+
+    Returns a list of connection entries suitable for build_adapter().
+    If the config already has a "connections" key, those entries are
+    returned (provider shape passthrough).
+    """
+    if "connections" in raw and isinstance(raw["connections"], list):
+        return raw["connections"]
+
+    adapter = raw.get("_adapter")
+    if not adapter:
+        return []
+
+    entry: dict[str, Any] = {"type": adapter}
+    for k, v in raw.items():
+        if k not in _UI_META_FIELDS and v is not None and v != "":
+            entry[k] = v
+
+    return [entry]
 
 
 class ConnectionManager:

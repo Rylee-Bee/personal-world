@@ -4,6 +4,7 @@ import {
   saveConnection,
   testConnection,
   fetchConnections,
+  fetchNativeConfig,
   type ProviderSchemaDef,
   type ConfigFieldDef,
   type ConnectionTestResult,
@@ -120,8 +121,17 @@ function ConfigForm({
   const [values, setValues] = useState<Record<string, string>>(initialValues || {});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  // Populate form when initialValues arrive (only if user hasn't edited)
+  useEffect(() => {
+    if (initialValues && !touched) {
+      setValues(initialValues);
+    }
+  }, [initialValues, touched]);
 
   const setField = (key: string, value: string) => {
+    setTouched(true);
     setValues((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
   };
@@ -199,6 +209,7 @@ function FieldInput({
       )}
       {field.type === "select" && field.options ? (
         <select
+          name={field.key}
           className={textInputClasses}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -211,6 +222,7 @@ function FieldInput({
       ) : isSecret && field.secret_ref ? (
         <span className="flex items-center gap-2">
           <input
+            name={field.key}
             className={textInputClasses}
             type="text"
             value={value}
@@ -223,6 +235,7 @@ function FieldInput({
         </span>
       ) : (
         <input
+          name={field.key}
           className={textInputClasses}
           type={isSecret ? "password" : field.type === "url" ? "url" : "text"}
           value={value}
@@ -279,11 +292,64 @@ function ConfigurePanel({
   );
   const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
   const [testing, setTesting] = useState(false);
+  const [existingConfig, setExistingConfig] = useState<Record<string, string> | undefined>(undefined);
 
   // Load existing config for this capability
   useEffect(() => {
-    fetchConnections().catch(() => {});
-  }, []);
+    let cancelled = false;
+
+    const loadConfig = async () => {
+      try {
+        if (cap.capability === "reasoning") {
+          // Reasoning: fetch from connections array
+          const conns = await fetchConnections();
+          if (cancelled) return;
+          const existing = conns.find(
+            (c) => (c as Record<string, unknown>).capability === cap.capability
+          ) as Record<string, unknown> | undefined;
+          if (existing) {
+            const init: Record<string, string> = {};
+            for (const [k, v] of Object.entries(existing)) {
+              if (k === "name" || k === "type" || k === "capability") continue;
+              if (typeof v === "string") init[k] = v;
+            }
+            setExistingConfig(init);
+            if (!selectedProvider && existing.type) {
+              const match = cap.providers.find(
+                (p) => p.adapter_type === existing.type
+              );
+              if (match) setSelectedProvider(match);
+            }
+          }
+        } else {
+          // Native capabilities: fetch from /api/connections/config/{key}
+          const nativeCfg = await fetchNativeConfig(cap.capability);
+          if (cancelled) return;
+          if (nativeCfg && Object.keys(nativeCfg).length > 0) {
+            const init: Record<string, string> = {};
+            for (const [k, v] of Object.entries(nativeCfg)) {
+              if (k.startsWith("_")) continue;
+              if (typeof v === "string") init[k] = v;
+            }
+            setExistingConfig(init);
+            // Auto-select matching provider
+            const adapter = nativeCfg._adapter;
+            if (!selectedProvider && typeof adapter === "string") {
+              const match = cap.providers.find(
+                (p) => p.adapter_type === adapter
+              );
+              if (match) setSelectedProvider(match);
+            }
+          }
+        }
+      } catch {
+        // Config not available — fresh form
+      }
+    };
+
+    loadConfig();
+    return () => { cancelled = true; };
+  }, [cap.capability]);
 
   const handleTest = async (values: Record<string, string>) => {
     if (!selectedProvider) return;
@@ -366,6 +432,7 @@ function ConfigurePanel({
         <>
           <ConfigForm
             provider={selectedProvider}
+            initialValues={existingConfig}
             onSave={handleSave}
             onCancel={onClose}
           />
@@ -410,7 +477,7 @@ export function ConnectionsPanel() {
     overview.refetch();
   };
 
-  const caps = overview.data ?? [];
+  const caps = Array.isArray(overview.data) ? overview.data : [];
   const needsSetup = caps.filter((c) => !c.configured && c.needs_setup);
   const connected = caps.filter((c) => c.configured);
   const readyCount = connected.filter((c) => c.ok || c.status === "healthy").length;
