@@ -167,7 +167,7 @@ function RepoCard({ repo }: { repo: any }) {
             </ul>
           </section>
         )}
-        {enrichmentData && (
+        {enrichment.data?.ok !== false && enrichmentData && (
           <section aria-label="GitHub enrichment">
             <h4>Remote enrichment</h4>
             <ul>

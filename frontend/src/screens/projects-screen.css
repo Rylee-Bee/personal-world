@@ -95,12 +95,12 @@
 }
 
 .pw-project-card:hover {
-  border-color: rgba(114,177,177,0.3);
+  border-color: var(--pw-color-warmth-teal-30);
 }
 
 .pw-project-card--attention {
-  border-color: rgba(181,127,139,0.3);
-  background: linear-gradient(135deg, var(--pw-color-warmth-rose-whisper) 0%, rgba(181,127,139,0.02) 100%);
+  border-color: var(--pw-color-warmth-rose-30);
+  background: linear-gradient(135deg, var(--pw-color-warmth-rose-whisper) 0%, var(--pw-color-warmth-rose-02) 100%);
 }
 
 .pw-project-card-main {
@@ -176,13 +176,13 @@
 .pw-project-status--healthy {
   color: var(--pw-color-accent-primary);
   background: var(--pw-color-warmth-teal-breath);
-  border-color: rgba(114,177,177,0.2);
+  border-color: var(--pw-color-warmth-teal-20);
 }
 
 .pw-project-status--needs_attention {
   color: var(--pw-color-accent-secondary);
   background: var(--pw-color-warmth-rose-breath);
-  border-color: rgba(181,127,139,0.2);
+  border-color: var(--pw-color-warmth-rose-20);
 }
 
 .pw-project-status-dot {
