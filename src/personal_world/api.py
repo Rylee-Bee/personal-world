@@ -200,6 +200,10 @@ def _capability_description(cap: str) -> str:
 def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> FastAPI:
     data_dir = Path(data_dir or os.environ.get("PW_DATA_DIR", "./data"))
     config_dir = Path(config_dir or os.environ.get("PW_CONFIG_DIR", "./config"))
+    
+    # Vault: one instance per app, survives across requests
+    from .vault import Vault
+    _vault = Vault(data_dir / "vault.enc")
     # Serving boundary (T15 cutover): the React SPA is the ONE product
     # frontend. The legacy server-rendered pages were deleted with the
     # cutover; there is no fallback UI — a missing dist answers the
@@ -301,7 +305,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     def _state() -> tuple[World, Registry]:
         world = load_world(world_path)
-        registry = build_registry(world, Registry(), config_dir)
+        registry = build_registry(world, Registry(), config_dir, vault=_vault, journal=journal, data_dir=data_dir)
         return world, registry
 
     def _principal(request: Request):
@@ -333,7 +337,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         bootstrap-shared paths (byte-identical legacy behavior)."""
         uw, uj = _user_paths(request)
         world = load_world(uw)
-        registry = build_registry(world, Registry(), config_dir)
+        registry = build_registry(world, Registry(), config_dir, vault=_vault, journal=journal, data_dir=data_dir)
         return world, registry, uj
 
     @app.get("/api/status", dependencies=[Depends(require_auth)])
@@ -1296,11 +1300,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     # --- Vault endpoints ---
 
-    # --- Vault: one instance per app, survives across requests ---
-    # (fresh Vault per request would forget unlock state and secrets)
-    from .vault import Vault
-    _vault = Vault(data_dir / "vault.enc")
-
     @app.get("/api/vault/status", dependencies=[Depends(require_auth)])
     async def vault_status() -> dict:
         """Vault status: locked/unlocked, secret count. Never values."""
@@ -1417,13 +1416,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .scheduler import Scheduler, Reminder
     _reminders = Scheduler(data_dir / "reminders.json", journal=journal)
 
-    @app.on_event("startup")
-    async def start_scheduler() -> None:
-        _reminders.start()
+    # Use lifespan context manager instead of deprecated on_event
+    from contextlib import asynccontextmanager
 
-    @app.on_event("shutdown")
-    async def stop_scheduler() -> None:
+    @asynccontextmanager
+    async def lifespan(app):
+        _reminders.start()
+        yield
         _reminders.stop()
+
+    # Re-create app with lifespan (FastAPI supports this pattern)
+    # We attach lifespan to the app state so it's used
+    app.router.lifespan_context = lifespan
 
     # -- identity admin (issue #8 phase 2/3) -----------------------------
     def _is_admin(principal) -> bool:

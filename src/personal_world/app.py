@@ -131,7 +131,21 @@ def load_world(path: Path) -> World:
     return world
 
 
-def build_registry(world: World, registry: Registry, config_dir: Path) -> Registry:
+def _read_extra_config(config_dir: Path, key: str) -> dict:
+    """Read extra configuration from connections.json or connections.local.json."""
+    for name in ("connections.local.json", "connections.json"):
+        path = config_dir / name
+        if path.exists():
+            try:
+                data = json.loads(path.read_text())
+                if key in data:
+                    return data[key]
+            except Exception:
+                pass
+    return {}
+
+
+def build_registry(world: World, registry: Registry, config_dir: Path, vault=None, journal=None, data_dir: Path = None) -> Registry:
     """Wire providers from config/connections.json. Unknown provider
     types are skipped with a warning; the core still boots. The
     source_control native baseline is registered when no provider for
@@ -367,6 +381,73 @@ def build_registry(world: World, registry: Registry, config_dir: Path) -> Regist
             )
         # unknown types: skipped, not fatal -- standalone deployments
         # boot with zero providers
+
+    # Auto-register native providers that always ship with Project Worlds
+    # These don't require connections.json entries — they are native baselines
+
+    # native_vault: secrets capability backed by encrypted vault
+    if vault is not None:
+        from .providers.native_vault import NativeVaultProvider
+        vault_provider = NativeVaultProvider(vault)
+        registry.register(
+            "secrets", "native-vault", vault_provider,
+            health_check=vault_provider.health,
+            writes="none", mode=ProviderMode.NATIVE, required=False,
+        )
+
+    # native_memory: memory capability via SQLite FTS5
+    from .providers.native_memory import NativeMemoryProvider
+    memory_provider = NativeMemoryProvider(data_dir or Path("./data"), journal=journal)
+    registry.register(
+        "memory", "native-memory", memory_provider,
+        health_check=memory_provider.health,
+        writes="none", mode=ProviderMode.NATIVE, required=False,
+    )
+
+    # native_calendar: calendar capability via ICS/CalDAV
+    from .providers.native_calendar import NativeCalendarProvider
+    calendar_config = _read_extra_config(config_dir, "calendar")
+    calendar_provider = NativeCalendarProvider(calendar_config)
+    registry.register(
+        "calendar", "native-calendar", calendar_provider,
+        health_check=calendar_provider.health,
+        writes="none", mode=ProviderMode.NATIVE, required=False,
+    )
+
+    # native_notifications: notification dispatcher (webhook/ntfy)
+    from .providers.native_notifications import NativeNotificationsProvider
+    notif_config = _read_extra_config(config_dir, "notifications")
+    notifications_provider = NativeNotificationsProvider(notif_config)
+    registry.register(
+        "notifications", "native-notifications", notifications_provider,
+        health_check=notifications_provider.health,
+        writes="none", mode=ProviderMode.NATIVE, required=False,
+    )
+
+    # native_updates: version/update discovery
+    from .providers.native_updates import NativeUpdatesProvider
+    updates_config = _read_extra_config(config_dir, "updates")
+    updates_provider = NativeUpdatesProvider(updates_config)
+    registry.register(
+        "update_discovery", "native-updates", updates_provider,
+        health_check=updates_provider.health,
+        writes="none", mode=ProviderMode.NATIVE, required=False,
+    )
+
+    # native_deployment: deployment domain (compose/systemd)
+    from .providers.native_deployment import NativeDeploymentProvider
+    deploy_config = _read_extra_config(config_dir, "deployment")
+    deployment_provider = NativeDeploymentProvider(deploy_config)
+    registry.register(
+        "deployment", "native-deployment", deployment_provider,
+        health_check=deployment_provider.health,
+        writes="none", mode=ProviderMode.NATIVE, required=False,
+    )
+
+    # Execution Viewer: captures bounded executions from providers/agents
+    from .execution_viewer import ExecutionViewer
+    execution_viewer = ExecutionViewer(data_dir or Path("./data"))
+
     # Chat/reasoning native baseline: absent a configured provider the
     # capability is honestly not_configured (zero-AI boot is supported).
     if not any(
