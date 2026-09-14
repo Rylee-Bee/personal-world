@@ -79,9 +79,9 @@
 
 ## OPEN ISSUE COUNT
 
-**15 open issues** (was 16 before closing #39)
+**14 open issues** (closed #39 this pass)
 
-After merge to main, close #30, #31, #32, #36 → **11 open**
+After merge to main, close #30, #31, #32, #36 → **10 open**
 
 ---
 
