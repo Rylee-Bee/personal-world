@@ -1,219 +1,398 @@
-import { StatusChip } from "../primitives/StatusChip";
-import { Icon } from "../lib/icons";
+import { useState, useCallback } from "react";
+import {
+  usePrincipal,
+  useDiscoveryStatus,
+  useDiscoverySources,
+  useDiscoveryInterests,
+  useDiscoveryDiscover,
+} from "../lib/hooks";
+import "./interests-screen.css";
 
-/**
- * InterestsScreen (Workshop v3, frame 17:1515 "Interests unexplored room",
- * emotional volume GENEROUS): the warm empty state for the Interests
- * section. The `discovery` capability is not wired in a zero-provider
- * deployment, so the screen renders the honest "not_configured" status
- * with the frame's inviting copy and decorative atmosphere.
- *
- * Composition: a radial-gradient background with scattered floating
- * motes (decorative, aria-hidden), a central discovery scene with the
- * bookmark icon (representing the frame's mermaid illustration) and
- * warm invitation text. The sidebar is the app shell's sidebar — not
- * duplicated here. The top bar carries the breadcrumb and a "Not
- * configured" status pill with the frame's glow treatment.
- *
- * Responsive: side-by-side layout ≥900px, stacked below.
- */
+interface Source {
+  id: string;
+  name: string;
+  url: string;
+  tags: string[];
+}
 
-/** Decorative floating mote positions from the Figma frame (17:1552–17:1563).
- *  Each mote is a tiny glowing dot placed absolutely within the scene. */
-const MOTES = [
-  { left: "7%", top: "12.4%", size: 4 },
-  { left: "16%", top: "22.9%", size: 7 },
-  { left: "29%", top: "10.2%", size: 3 },
-  { left: "48.4%", top: "17.6%", size: 5 },
-  { left: "69.5%", top: "10.7%", size: 6 },
-  { left: "87.5%", top: "20.2%", size: 3 },
-  { left: "80.6%", top: "39.1%", size: 8 },
-  { left: "92%", top: "56.9%", size: 4 },
-  { left: "62.5%", top: "77.8%", size: 5 },
-  { left: "42%", top: "88%", size: 3 },
-  { left: "20.6%", top: "79.8%", size: 6 },
-  { left: "7.8%", top: "62.7%", size: 3 },
-] as const;
+interface Interest {
+  id: string;
+  name: string;
+  category: string;
+  weight: number;
+}
+
+interface DiscoveredItem {
+  id: string;
+  title: string;
+  url: string;
+  source: string;
+  provenance?: string;
+  summary?: string;
+}
+
+function authHeaders(): HeadersInit {
+  const token = localStorage.getItem("pw_token") || "";
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
 
 export default function InterestsScreen() {
+  const principal = usePrincipal();
+  const name =
+    principal.data && !principal.isError
+      ? String(principal.data.display_name || "").trim() || null
+      : null;
+
+  const status = useDiscoveryStatus();
+  const sourcesQuery = useDiscoverySources();
+  const interestsQuery = useDiscoveryInterests();
+  const discoverQuery = useDiscoveryDiscover();
+
+  const [sourceForm, setSourceForm] = useState({ name: "", url: "", tags: "" });
+  const [interestForm, setInterestForm] = useState({
+    name: "",
+    category: "",
+    weight: "1",
+  });
+  const [addSourceError, setAddSourceError] = useState<string | null>(null);
+  const [addInterestError, setAddInterestError] = useState<string | null>(null);
+  const [discoverSource, setDiscoverSource] = useState<string>("");
+  const discoverWithSource = useDiscoveryDiscover(discoverSource || undefined);
+
+  const sources: Source[] =
+    (sourcesQuery.data as any)?.data?.sources ??
+    (sourcesQuery.data as any)?.sources ??
+    [];
+  const interests: Interest[] =
+    (interestsQuery.data as any)?.data?.interests ??
+    (interestsQuery.data as any)?.interests ??
+    [];
+  const discoveredItems: DiscoveredItem[] =
+    (discoverWithSource.data as any)?.data?.items ??
+    (discoverWithSource.data as any)?.items ??
+    (discoverQuery.data as any)?.data?.items ??
+    (discoverQuery.data as any)?.items ??
+    [];
+
+  const statusData = (status.data as any)?.data ?? (status.data as any) ?? {};
+  const sourcesCount = statusData.sources_count ?? sources.length;
+  const interestsCount = statusData.interests_count ?? interests.length;
+  const itemsCount = statusData.items_count ?? discoveredItems.length;
+
+  const addSource = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setAddSourceError(null);
+      const id = `src-${Date.now()}`;
+      const tags = sourceForm.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      try {
+        const res = await fetch("/api/discovery/sources", {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({
+            id,
+            name: sourceForm.name,
+            url: sourceForm.url,
+            tags,
+          }),
+        });
+        const json = await res.json();
+        if (json.ok) {
+          setSourceForm({ name: "", url: "", tags: "" });
+          sourcesQuery.refetch();
+          status.refetch();
+        } else {
+          setAddSourceError(json.error || "Failed to add source");
+        }
+      } catch {
+        setAddSourceError("Network error");
+      }
+    },
+    [sourceForm, sourcesQuery, status]
+  );
+
+  const addInterest = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setAddInterestError(null);
+      const id = `int-${Date.now()}`;
+      const weight = parseFloat(interestForm.weight) || 1;
+      try {
+        const res = await fetch("/api/discovery/interests", {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({
+            id,
+            name: interestForm.name,
+            category: interestForm.category,
+            weight,
+          }),
+        });
+        const json = await res.json();
+        if (json.ok) {
+          setInterestForm({ name: "", category: "", weight: "1" });
+          interestsQuery.refetch();
+          status.refetch();
+        } else {
+          setAddInterestError(json.error || "Failed to add interest");
+        }
+      } catch {
+        setAddInterestError("Network error");
+      }
+    },
+    [interestForm, interestsQuery, status]
+  );
+
+  const runDiscovery = useCallback(() => {
+    discoverWithSource.refetch();
+  }, [discoverWithSource]);
+
   return (
-    <section
-      className="relative flex flex-col overflow-hidden"
-      aria-labelledby="interests-page-heading"
-      style={{
-        minHeight: "calc(100vh - 76px)",
-        background: "var(--pw-color-surface-canvas)",
-      }}
-    >
-      {/* Top bar: breadcrumb + status pill */}
-      <div className="flex items-center justify-between px-[42px] py-6">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[var(--pw-color-text-muted)]">
-          <span>Rylee's world</span>
-          <span aria-hidden="true">/</span>
-          <span className="text-[var(--pw-color-text-secondary)]">Interests</span>
-        </nav>
-        <span
-          className="inline-flex items-center gap-2 rounded-full border px-3 py-[7px] text-[11px]"
-          style={{
-            backgroundColor: "var(--pw-color-vault-panel-translucent)",
-            borderColor: "var(--pw-color-border-subtle)",
-            color: "var(--pw-color-text-secondary)",
-          }}
-        >
-          <span
-            aria-hidden={true}
-            className="size-[6px] rounded-full"
-            style={{ backgroundColor: "var(--pw-color-text-muted)" }}
-          />
-          <StatusChip status="not_configured" size="sm" />
-        </span>
+    <div className="pw-interests">
+      <div className="pw-interests-header">
+        <h1 className="pw-interests-title">Interests</h1>
+        <p className="pw-interests-subtitle">
+          {name ? `${name}'s` : "Your"} discovery room
+        </p>
       </div>
 
-      {/* Discovery scene: illustration + invitation */}
-      <div className="flex flex-1 flex-col items-center justify-center gap-[72px] overflow-hidden px-6 pb-[82px] min-[900px]:flex-row min-[900px]:pl-[144px] min-[900px]:pr-[120px]">
-        {/* Decorative bookmark illustration area.
-            The frame's mermaid explorer is design-agent art — replaced here
-            with the canonical bookmark icon and atmospheric glow. */}
-        <div
-          aria-hidden={true}
-          className="relative flex size-[280px] shrink-0 items-center justify-center"
-        >
-          {/* Arrival aura glow */}
-          <span
-            className="absolute size-[270px] rounded-full"
-            style={{
-              background: "var(--pw-color-warmth-aura-rose)",
-            }}
-          />
-          {/* Bookmark icon (the frame's interests symbol) */}
-          <Icon
-            name="icon-world-content-bookmark"
-            size={72}
-            className="relative text-[var(--pw-color-accent-primary)]"
-          />
-          {/* Sparkle hint */}
-          <span
-            className="absolute right-[18px] top-[46px] select-none text-[22px] leading-none"
-            style={{ color: "var(--pw-color-accent-gold)", opacity: 0.5 }}
+      {/* Status bar */}
+      <section className="pw-interests-status" aria-label="Discovery status">
+        <div className="pw-interests-status-grid">
+          <div className="pw-interests-status-card">
+            <span className="pw-interests-status-count">{sourcesCount}</span>
+            <span className="pw-interests-status-label">Sources</span>
+          </div>
+          <div className="pw-interests-status-card">
+            <span className="pw-interests-status-count">{interestsCount}</span>
+            <span className="pw-interests-status-label">Interests</span>
+          </div>
+          <div className="pw-interests-status-card">
+            <span className="pw-interests-status-count">{itemsCount}</span>
+            <span className="pw-interests-status-label">Items</span>
+          </div>
+        </div>
+        {status.isLoading && (
+          <p className="pw-interests-hint">Loading status…</p>
+        )}
+      </section>
+
+      {/* Discovery sources */}
+      <section
+        className="pw-interests-sources"
+        aria-label="Discovery sources"
+      >
+        <h2 className="pw-interests-section-title">Sources</h2>
+        {sourcesQuery.isLoading ? (
+          <p className="pw-interests-hint">Loading sources…</p>
+        ) : sources.length > 0 ? (
+          <ul className="pw-interests-source-list">
+            {sources.map((source) => (
+              <li key={source.id} className="pw-interests-source">
+                <span className="pw-interests-source-name">{source.name}</span>
+                <span className="pw-interests-source-url">{source.url}</span>
+                {source.tags?.length > 0 && (
+                  <span className="pw-interests-source-tags">
+                    {source.tags.join(", ")}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="pw-interests-empty">
+            No discovery sources configured yet.
+          </p>
+        )}
+
+        <form className="pw-interests-form" onSubmit={addSource}>
+          <h3 className="pw-interests-form-label">Add source</h3>
+          <div className="pw-interests-form-row">
+            <input
+              className="pw-interests-input"
+              type="text"
+              placeholder="Name"
+              value={sourceForm.name}
+              onChange={(e) =>
+                setSourceForm((f) => ({ ...f, name: e.target.value }))
+              }
+              required
+            />
+            <input
+              className="pw-interests-input"
+              type="url"
+              placeholder="https://…"
+              value={sourceForm.url}
+              onChange={(e) =>
+                setSourceForm((f) => ({ ...f, url: e.target.value }))
+              }
+              required
+            />
+            <input
+              className="pw-interests-input"
+              type="text"
+              placeholder="Tags (comma-separated)"
+              value={sourceForm.tags}
+              onChange={(e) =>
+                setSourceForm((f) => ({ ...f, tags: e.target.value }))
+              }
+            />
+            <button className="pw-interests-button" type="submit">
+              Add
+            </button>
+          </div>
+          {addSourceError && (
+            <p className="pw-interests-error">{addSourceError}</p>
+          )}
+        </form>
+      </section>
+
+      {/* Interests */}
+      <section className="pw-interests-interests" aria-label="Your interests">
+        <h2 className="pw-interests-section-title">Interests</h2>
+        {interestsQuery.isLoading ? (
+          <p className="pw-interests-hint">Loading interests…</p>
+        ) : interests.length > 0 ? (
+          <ul className="pw-interests-interest-list">
+            {interests.map((interest) => (
+              <li key={interest.id} className="pw-interests-interest">
+                <span className="pw-interests-interest-name">
+                  {interest.name}
+                </span>
+                {interest.category && (
+                  <span className="pw-interests-interest-category">
+                    {interest.category}
+                  </span>
+                )}
+                <span className="pw-interests-interest-weight">
+                  weight {interest.weight}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="pw-interests-empty">No interests added yet.</p>
+        )}
+
+        <form className="pw-interests-form" onSubmit={addInterest}>
+          <h3 className="pw-interests-form-label">Add interest</h3>
+          <div className="pw-interests-form-row">
+            <input
+              className="pw-interests-input"
+              type="text"
+              placeholder="Name"
+              value={interestForm.name}
+              onChange={(e) =>
+                setInterestForm((f) => ({ ...f, name: e.target.value }))
+              }
+              required
+            />
+            <input
+              className="pw-interests-input"
+              type="text"
+              placeholder="Category"
+              value={interestForm.category}
+              onChange={(e) =>
+                setInterestForm((f) => ({ ...f, category: e.target.value }))
+              }
+            />
+            <input
+              className="pw-interests-input pw-interests-input--small"
+              type="number"
+              placeholder="Weight"
+              min="0"
+              max="10"
+              step="0.1"
+              value={interestForm.weight}
+              onChange={(e) =>
+                setInterestForm((f) => ({ ...f, weight: e.target.value }))
+              }
+            />
+            <button className="pw-interests-button" type="submit">
+              Add
+            </button>
+          </div>
+          {addInterestError && (
+            <p className="pw-interests-error">{addInterestError}</p>
+          )}
+        </form>
+      </section>
+
+      {/* Discovered content */}
+      <section
+        className="pw-interests-discovered"
+        aria-label="Discovered content"
+      >
+        <h2 className="pw-interests-section-title">Discovered</h2>
+        <div className="pw-interests-discover-controls">
+          <select
+            className="pw-interests-select"
+            value={discoverSource}
+            onChange={(e) => setDiscoverSource(e.target.value)}
           >
-            ✦
-          </span>
+            <option value="">All sources</option>
+            {sources.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <button
+            className="pw-interests-button"
+            type="button"
+            onClick={runDiscovery}
+            disabled={discoverWithSource.isLoading}
+          >
+            {discoverWithSource.isLoading ? "Discovering…" : "Run discovery"}
+          </button>
         </div>
 
-        {/* Invitation text */}
-        <div className="flex w-full max-w-[520px] flex-col gap-[26px]">
-          {/* Room title with icon */}
-          <div className="flex items-center gap-[18px]">
-            <span
-              className="flex size-[54px] shrink-0 items-center justify-center rounded-[14px] border"
-              style={{
-                backgroundColor: "var(--pw-color-warmth-teal-wash)",
-                borderColor: "var(--pw-color-warmth-teal-tint)",
-                boxShadow: "var(--pw-color-warmth-vault-glow)",
-              }}
-            >
-              <Icon
-                name="icon-world-content-bookmark"
-                size={32}
-                className="text-[var(--pw-color-accent-primary)]"
-              />
-            </span>
-            <h1
-              id="interests-page-heading"
-              className="text-[40px] leading-none min-[600px]:text-[52px] min-[900px]:text-[64px]"
-              style={{
-                fontFamily: "var(--pw-typography-font-expressive)",
-                color: "var(--pw-color-accent-primary-bright)",
-              }}
-            >
-              Interests
-            </h1>
-          </div>
-
-          {/* Warm invitation message */}
-          <div className="flex flex-col gap-[14px]">
-            <p
-              className="text-[20px] leading-[1.25] min-[600px]:text-[27px]"
-              style={{
-                fontFamily: "var(--pw-typography-font-expressive)",
-                color: "var(--pw-color-text-primary)",
-              }}
-            >
+        {discoverWithSource.isLoading && discoveredItems.length === 0 ? (
+          <p className="pw-interests-hint">Running discovery…</p>
+        ) : discoveredItems.length > 0 ? (
+          <ul className="pw-interests-item-list">
+            {discoveredItems.map((item) => (
+              <li key={item.id} className="pw-interests-item">
+                <a
+                  href={item.url}
+                  className="pw-interests-item-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="pw-interests-item-title">{item.title}</span>
+                  <span className="pw-interests-item-source">
+                    {item.source}
+                  </span>
+                </a>
+                {item.provenance && (
+                  <p className="pw-interests-item-provenance">
+                    {item.provenance}
+                  </p>
+                )}
+                {item.summary && (
+                  <p className="pw-interests-item-summary">{item.summary}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="pw-interests-empty-state">
+            <p className="pw-interests-empty-title">
               This room is still empty.
             </p>
-            <p
-              className="text-[16px] min-[600px]:text-[18px]"
-              style={{
-                fontFamily: "var(--pw-typography-font-expressive)",
-                color: "var(--pw-color-accent-secondary)",
-              }}
-            >
-              It has been keeping the light on for you.
-            </p>
-            <p className="text-[15px] leading-[1.65] text-[var(--pw-color-text-secondary)]">
-              Interests helps your world learn what you care about — bookmarks,
-              saved articles, and things you want to explore later.
+            <p className="pw-interests-empty-body">
+              It has been keeping the light on for you. Add discovery sources
+              and interests to start exploring.
             </p>
           </div>
-
-          {/* Explore action (not wired — honest decorative hint) */}
-          <span
-            className="inline-flex items-center gap-[10px] self-start py-2 text-[16px]"
-            style={{ color: "var(--pw-color-accent-primary)" }}
-          >
-            Start exploring
-            <span aria-hidden="true" className="text-[20px]">
-              →
-            </span>
-          </span>
-
-          {/* Divider + shelf hint */}
-          <div
-            className="flex items-center gap-3 overflow-hidden border-t pt-6"
-            style={{ borderColor: "var(--pw-color-border-subtle)" }}
-          >
-            <Icon
-              name="icon-actions-delete"
-              size={16}
-              className="shrink-0 text-[var(--pw-color-text-muted)]"
-              aria-hidden={true}
-            />
-            <p className="whitespace-nowrap text-xs text-[var(--pw-color-text-muted)]">
-              An empty shelf. What will you put here?
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Floating motes: decorative atmosphere dots scattered across the scene */}
-      {MOTES.map((mote, i) => (
-        <span
-          key={i}
-          aria-hidden={true}
-          className="pointer-events-none absolute rounded-full"
-          style={{
-            left: mote.left,
-            top: mote.top,
-            width: mote.size,
-            height: mote.size,
-            backgroundColor: "var(--pw-color-accent-primary)",
-            opacity: 0.25,
-          }}
-        />
-      ))}
-
-      {/* Distant doorway glow: a large translucent shape behind the scene */}
-      <span
-        aria-hidden={true}
-        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{
-          width: 610,
-          height: 680,
-          borderRadius: "305px 305px 30px 30px",
-          border: "1px solid var(--pw-color-warmth-teal-tint)",
-          background: "var(--pw-color-warmth-teal-reassure)",
-        }}
-      />
-    </section>
+        )}
+      </section>
+    </div>
   );
 }

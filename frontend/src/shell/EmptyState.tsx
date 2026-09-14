@@ -35,6 +35,10 @@ export interface EmptyStateProps {
   capability: string;
   /** The knob that turns this on, in plain terms. */
   knob: string;
+  /** Optional link to the configuration page. */
+  configLink?: string;
+  /** Label for the config link button. */
+  configLinkLabel?: string;
   /** Canonical status from status.py, or null when not yet known. */
   status?: CanonicalStatus | null;
   /** Heading level for the state title: 2 (default) beside an existing
@@ -48,6 +52,8 @@ export function EmptyState({
   title,
   capability,
   knob,
+  configLink,
+  configLinkLabel,
   status = null,
   headingLevel = 2,
   className,
@@ -72,6 +78,14 @@ export function EmptyState({
       <p className="pw-state-detail">
         {knob}
       </p>
+      {configLink && (
+        <a
+          href={configLink}
+          className="inline-flex min-h-[var(--pw-target-minimum)] items-center justify-center rounded-lg bg-[var(--pw-color-accent-primary)] px-3.5 text-[12px] font-medium text-[var(--pw-color-surface-canvas)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          {configLinkLabel || "Configure"}
+        </a>
+      )}
       <CompanionSlot size="empty" />
     </section>
   );

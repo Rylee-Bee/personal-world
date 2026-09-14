@@ -1,369 +1,328 @@
-import { useState } from "react";
-import { saveWorldIntent, saveWorldPolicy, ApiError } from "../lib/api";
-import { useWorld, useWorldStatus, useReminders, useWorldKey } from "../lib/hooks";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
+import { useState, type FormEvent } from "react";
 import {
-  Loader2, AlertCircle, Globe, GitBranch, Calendar,
-  FileText, Cloud, Mail, Users, Bell, ChevronRight, Plus, X,
-} from "../lib/icons";
+  usePrincipal,
+  useWorldStatus,
+  useActors,
+  useManifest,
+} from "../lib/hooks";
+import { useCompanion, COMPANIONS } from "../lib/companion-context";
+import {
+  fetchExportSettings,
+  fetchExportStory,
+  fetchBackup,
+  fetchWorld,
+  saveWorldIntent,
+  saveWorldFact,
+  saveWorldPolicy,
+  type WorldStatus,
+} from "../lib/api";
+import { Disclosure } from "../primitives/Disclosure";
+import "./world-screen.css";
 
-const CAPABILITY_ICONS: Record<string, typeof GitBranch> = {
-  source_control: GitBranch, calendar: Calendar, notes: FileText,
-  weather: Cloud, mail: Mail, contacts: Users, notifications: Bell,
-};
+interface ManifestEntry {
+  name: string;
+  native: boolean;
+  provider: string | null;
+  status?: string;
+}
 
-const CAPABILITY_DESCRIPTIONS: Record<string, string> = {
-  source_control: "Your code and changes",
-  calendar: "Your schedule and time",
-  notes: "Your writing and ideas",
-  weather: "The world outside",
-  mail: "Your conversations",
-  contacts: "Your people",
-  notifications: "Things trying to reach you",
-};
+function downloadJson(filename: string, data: unknown) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
-function WorldScreen() {
-  const world = useWorld();
+function isManifestArray(data: unknown): data is ManifestEntry[] {
+  return Array.isArray(data);
+}
+
+export default function WorldScreen() {
+  const principal = usePrincipal();
   const worldStatus = useWorldStatus();
-  const reminders = useReminders();
-  const bumpWorld = useWorldKey();
-  const [showIntentModal, setShowIntentModal] = useState(false);
-  const [showPolicyModal, setShowPolicyModal] = useState(false);
-  const [expandedCap, setExpandedCap] = useState<string | null>(null);
+  const actors = useActors();
+  const manifest = useManifest();
+  const { companion } = useCompanion();
+  const companionMeta = COMPANIONS[companion];
 
-  if (world.isLoading || worldStatus.isLoading) {
-    return <div className="flex flex-col items-center justify-center gap-4 p-8"><Loader2 className="h-8 w-8 loader-static text-[var(--pw-color-accent-primary)]" aria-hidden={true} /><p className="text-[var(--pw-color-text-muted)]">Loading your world…</p></div>;
+  const worldName =
+    principal.data && !principal.isError
+      ? String(principal.data.display_name || "").trim() || "Your World"
+      : "Your World";
+
+  const worldData = worldStatus.data;
+  const capabilities = worldData?.capabilities || {};
+  const capCount = Object.keys(capabilities).length;
+  const healthyCaps = Object.values(capabilities).filter(
+    (c: any) => c.ok
+  ).length;
+
+  const actorList = (actors.data || []) as WorldStatus["actors"];
+  const healthyActors = actorList.filter((a) => a.status === "healthy").length;
+
+  const manifestEntries: ManifestEntry[] = isManifestArray(manifest.data)
+    ? manifest.data
+    : [];
+
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  async function handleDownload(kind: "settings" | "story" | "backup" | "world") {
+    setDownloading(kind);
+    try {
+      let data: unknown;
+      let filename: string;
+      switch (kind) {
+        case "settings":
+          data = await fetchExportSettings();
+          filename = "world-settings.json";
+          break;
+        case "story":
+          data = await fetchExportStory();
+          filename = "world-story.json";
+          break;
+        case "backup":
+          data = await fetchBackup();
+          filename = "world-backup.json";
+          break;
+        case "world":
+          data = await fetchWorld();
+          filename = "world.json";
+          break;
+      }
+      downloadJson(filename, data);
+    } catch {
+      // errors surface via isLoading/error states elsewhere
+    } finally {
+      setDownloading(null);
+    }
   }
-
-  if (world.isError || worldStatus.isError) {
-    return <div className="flex flex-col items-center justify-center gap-4 p-8"><AlertCircle className="h-8 w-8 text-[var(--pw-color-text-primary)]" aria-hidden={true} /><p className="text-[var(--pw-color-text-muted)]">Could not load your world.</p></div>;
-  }
-
-  const capabilities = worldStatus.data?.capabilities || {};
-  const capabilitiesList = Object.entries(capabilities);
-  const healthyCount = capabilitiesList.filter(([, c]) => c.ok).length;
-  const intents = world.data?.intents || {};
-  const policies = world.data?.policies || {};
-  const activeReminders = (reminders.data || []).filter((r) => r.enabled);
-  const actors = worldStatus.data?.actors || [];
-
-  const refreshAll = () => {
-    bumpWorld();
-  };
 
   return (
-    <div className="space-y-7">
-      {/* World Overview */}
-      <section aria-labelledby="world-heading">
-        <div className="flex gap-7 items-center">
-          <div className="relative shrink-0 size-[150px] flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full opacity-20"
-              style={{ background: "radial-gradient(circle, var(--pw-color-accent-primary) 0%, transparent 70%)" }}
-              aria-hidden={true}
-            />
-            <Globe className="h-20 w-20 text-[var(--pw-color-accent-primary)]" aria-hidden={true} />
-          </div>
-          <div className="flex-1 min-w-0 space-y-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--pw-color-accent-secondary)]">
-              Personal World
-            </p>
-            <h1 id="world-heading" className="text-[40px] leading-[1.05] text-[var(--pw-color-accent-primary)]"
-              style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
-              Your World
-            </h1>
-            <p className="text-[15px] leading-relaxed text-[var(--pw-color-text-secondary)]">
-              Everything here belongs to you. This is what your world can see.
-            </p>
-            <p className="text-xs text-[var(--pw-color-accent-secondary)]">
-              ✦ keeping watch over all of this
-            </p>
-          </div>
+    <div className="pw-world">
+      <section className="pw-world-header" aria-labelledby="world-heading">
+        <div className="pw-world-orb" aria-hidden="true">
+          <div className="pw-world-orb-glow" />
+          <div className="pw-world-orb-ring" />
         </div>
+        <div className="pw-world-header-copy">
+          <p className="pw-world-eyebrow">Personal World</p>
+          <h1 id="world-heading" className="pw-world-title">
+            {worldName}
+          </h1>
+          <p className="pw-world-subtitle">
+            Everything here belongs to you.
+          </p>
+          <p className="pw-world-watch-note">
+            <span aria-hidden="true">✦</span> keeping watch over all of this
+          </p>
+        </div>
+      </section>
 
-        {/* World facts bar */}
-        <div className="mt-5 flex items-center justify-between h-20 px-6 rounded-2xl border border-[var(--pw-color-border-strong)] bg-[var(--pw-color-surface-elevated)]">
-          <div className="flex items-center gap-2.5">
-            <Globe className="h-[18px] w-[18px] text-[var(--pw-color-accent-primary)]" aria-hidden={true} />
-            <span className="text-[13px] text-[var(--pw-color-text-primary)]">Timezone: Portland, Oregon</span>
-          </div>
-          <div className="h-7 w-px bg-[var(--pw-color-border-strong)]" aria-hidden={true} />
-          <div className="flex items-center gap-2.5">
-            <span className="text-base text-[var(--pw-color-accent-secondary)]" aria-hidden={true}>✦</span>
-            <span className="text-[13px] text-[var(--pw-color-text-primary)]">{capabilitiesList.length} capabilities connected</span>
-          </div>
-          <div className="h-7 w-px bg-[var(--pw-color-border-strong)]" aria-hidden={true} />
-          <div className="flex items-center gap-2.5">
-            <span className="h-2 w-2 rounded-full bg-[var(--pw-color-accent-secondary)]" aria-hidden={true} />
-            <span className="text-[13px] text-[var(--pw-color-text-primary)]">{healthyCount} healthy</span>
+      <div className="pw-world-strip" role="status" aria-label="World status">
+        <div className="pw-world-strip-item">
+          <span className="pw-world-strip-dot" aria-hidden="true" />
+          <p className="pw-world-strip-label">World active</p>
+        </div>
+        <div className="pw-world-strip-divider" aria-hidden="true" />
+        <div className="pw-world-strip-item">
+          <span className="pw-world-strip-dot" aria-hidden="true" />
+          <p className="pw-world-strip-label">
+            {healthyCaps}/{capCount} capabilities healthy
+          </p>
+        </div>
+        <div className="pw-world-strip-divider" aria-hidden="true" />
+        <div className="pw-world-strip-item">
+          <span className="pw-world-strip-dot" aria-hidden="true" />
+          <p className="pw-world-strip-label">
+            {healthyActors} provider{healthyActors === 1 ? "" : "s"} connected
+          </p>
+        </div>
+      </div>
+
+      <section className="pw-world-companion" aria-label="Companion presence">
+        <div className="pw-world-companion-art" aria-hidden="true">
+          <div className="pw-world-companion-figure" />
+          <span className="pw-world-companion-bubble" />
+          <span className="pw-world-companion-bubble pw-world-companion-bubble--small" />
+          <span className="pw-world-companion-sparkle" />
+        </div>
+        <div className="pw-world-companion-copy">
+          <p className="pw-world-companion-name">{companionMeta?.name || "Your companion"}</p>
+          <p className="pw-world-companion-body">
+            Present and aware, always — keeping watch over your world, sensing what changes, what needs attention, and what can stay quiet.
+          </p>
+          <div className="pw-world-companion-presence">
+            <span className="pw-world-companion-presence-dot" aria-hidden="true" />
+            <p className="pw-world-companion-presence-label">Present — watching</p>
           </div>
         </div>
       </section>
 
-      {/* World Senses — Capabilities as senses */}
-      <section aria-labelledby="senses-heading">
-        <div className="flex items-center justify-between mb-4">
-          <h2 id="senses-heading" className="text-[22px] text-[var(--pw-color-text-primary)]"
-            style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
-            What your world can see
-          </h2>
-          <span className="text-xs text-[var(--pw-color-text-secondary)]">what it can perceive</span>
-        </div>
-        <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {capabilitiesList.map(([name, cap]) => {
-            const Icon = CAPABILITY_ICONS[name] || Globe;
-            const isHealthy = cap.ok;
-            const isConfigured = cap.status !== "not_configured";
-            const isExpanded = expandedCap === name;
-            const displayName = name.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-            const description = CAPABILITY_DESCRIPTIONS[name] || "";
-
-            return (
-              <div key={name}>
-                <button
-                  onClick={() => setExpandedCap(isExpanded ? null : name)}
-                  className={`w-full text-left flex gap-3 items-center p-3.5 rounded-2xl border transition-all min-h-[44px] ${
-                    isConfigured
-                      ? "bg-[var(--pw-color-surface-elevated)] border-[var(--pw-color-border-strong)]"
-                      : "bg-[var(--pw-color-surface-panel)] border-[var(--pw-color-border-subtle)] opacity-60"
-                  } ${isExpanded ? "ring-1 ring-[var(--pw-color-accent-primary)]" : ""}`}
-                >
-                  <div className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-[10px] ${
-                    isConfigured
-                      ? "bg-[var(--pw-color-warmth-teal-wash)]"
-                      : "bg-[var(--pw-color-warmth-teal-reassure)]"
-                  }`}>
-                    <Icon className={`h-[21px] w-[21px] ${isConfigured ? "text-[var(--pw-color-accent-primary)]" : "text-[var(--pw-color-text-muted)]"}`} aria-hidden={true} />
-                  </div>
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className={`text-[13px] font-semibold truncate ${isConfigured ? "text-[var(--pw-color-text-primary)]" : "text-[var(--pw-color-text-secondary)]"}`}>
-                        {displayName}
-                      </h3>
-                      {isHealthy && <span className="text-[11px] text-[var(--pw-color-accent-primary)]" aria-hidden={true}>✦</span>}
-                    </div>
-                    <p className="text-[11px] text-[var(--pw-color-text-secondary)] truncate">{description}</p>
-                    <p className={`text-[10px] ${isHealthy ? "text-[var(--pw-color-accent-primary)]" : "text-[var(--pw-color-text-muted)]"}`}>
-                      {cap.status.replace(/_/g, " ")}
-                    </p>
-                  </div>
-                  <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-[var(--pw-color-text-muted)] transition-transform ${isExpanded ? "rotate-90" : ""}`} aria-hidden={true} />
-                </button>
-                {isExpanded && (
-                  <div className="mt-1 p-4 rounded-2xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)]">
-                    <dl className="space-y-1.5 text-xs">
-                      <div className="flex justify-between"><dt className="text-[var(--pw-color-text-muted)]">Status</dt><dd className="text-[var(--pw-color-text-primary)]">{cap.status.replace(/_/g, " ")}</dd></div>
-                      <div className="flex justify-between"><dt className="text-[var(--pw-color-text-muted)]">Healthy</dt><dd className="text-[var(--pw-color-text-primary)]">{cap.ok ? "Yes" : "No"}</dd></div>
-                      {cap.last_observed && <div className="flex justify-between"><dt className="text-[var(--pw-color-text-muted)]">Last seen</dt><dd className="text-[var(--pw-color-text-primary)]">{new Date(cap.last_observed).toLocaleString()}</dd></div>}
-                      {(cap.warnings || []).length > 0 && <div><dt className="text-[var(--pw-color-text-muted)]">Warnings</dt><dd className="mt-0.5 text-[var(--pw-color-text-primary)]">{cap.warnings.join(", ")}</dd></div>}
-                    </dl>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Intent and Policies */}
-      <section aria-labelledby="intent-policy-heading">
-        <h2 id="intent-policy-heading" className="sr-only">Intent and Policies</h2>
-        <div className="grid gap-3.5 grid-cols-1 md:grid-cols-2">
-          {/* Intent card */}
-          <div className="bg-[var(--pw-color-surface-panel)] border border-[var(--pw-color-border-strong)] rounded-2xl p-4 space-y-2.5">
-            <p className="text-[11px] text-[var(--pw-color-text-secondary)]">What you&apos;re focused on</p>
-            {Object.keys(intents).length === 0 ? (
-              <p className="text-xs text-[var(--pw-color-text-muted)]">No active intents.</p>
-            ) : (
-              <ul className="space-y-2" role="list">
-                {Object.entries(intents).map(([key, intent]) => (
-                  <li key={key} className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--pw-color-accent-primary)]" aria-hidden={true} />
-                    <span className="text-[13px] font-semibold text-[var(--pw-color-text-primary)]">{intent.value}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="healthy" className="text-[11px] px-2.5 py-1.5 rounded-full">focus</Badge>
-              <button onClick={() => setShowIntentModal(true)} className="flex items-center gap-1 text-[11px] text-[var(--pw-color-accent-primary)] hover:underline min-h-[44px]">
-                <Plus className="h-3 w-3" aria-hidden={true} />Add
-              </button>
-            </div>
-          </div>
-
-          {/* Policy card */}
-          <div className="bg-[var(--pw-color-surface-panel)] border border-[var(--pw-color-border-strong)] rounded-2xl p-4 space-y-2.5">
-            <p className="text-[11px] text-[var(--pw-color-text-secondary)]">Rules you&apos;ve set</p>
-            {Object.keys(policies).length === 0 ? (
-              <p className="text-xs text-[var(--pw-color-text-muted)]">No policies.</p>
-            ) : (
-              <ul className="space-y-2" role="list">
-                {Object.entries(policies).map(([key, policy]) => (
-                  <li key={key} className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--pw-color-accent-secondary)]" aria-hidden={true} />
-                    <span className="text-[13px] font-semibold text-[var(--pw-color-text-primary)]">{String(policy)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="warning" className="text-[11px] px-2.5 py-1.5 rounded-full">privacy</Badge>
-              <button onClick={() => setShowPolicyModal(true)} className="flex items-center gap-1 text-[11px] text-[var(--pw-color-accent-primary)] hover:underline min-h-[44px]">
-                <Plus className="h-3 w-3" aria-hidden={true} />Add
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Reminders */}
-      <section aria-labelledby="reminders-heading">
-        <h2 id="reminders-heading" className="sr-only">Reminders</h2>
-        <div className="bg-[var(--pw-color-surface-elevated)] border border-[var(--pw-color-border-strong)] rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-[var(--pw-color-accent-primary)]" aria-hidden={true} />
-              <span className="text-[13px] font-semibold text-[var(--pw-color-text-primary)]">Reminders</span>
-            </div>
-            <Badge variant="default" className="text-[11px]">{activeReminders.length} active</Badge>
-          </div>
-          {activeReminders.length === 0 ? (
-            <p className="text-xs text-[var(--pw-color-text-muted)]">No active reminders.</p>
-          ) : (
-            <ul className="space-y-2" role="list">
-              {activeReminders.slice(0, 4).map((r) => (
-                <li key={r.id} className="flex items-center justify-between text-xs">
-                  <span className="text-[var(--pw-color-text-secondary)] truncate">{r.text}</span>
-                  <Badge variant="healthy" className="shrink-0 ml-2">Active</Badge>
-                </li>
+      <Disclosure summary="Capability manifest" level={2}>
+        {manifest.isLoading ? (
+          <p className="pw-world-manifest-empty">Loading manifest…</p>
+        ) : manifest.isError ? (
+          <p className="pw-world-manifest-empty">Manifest unavailable.</p>
+        ) : manifestEntries.length === 0 ? (
+          <p className="pw-world-manifest-empty">No capabilities registered.</p>
+        ) : (
+          <table className="pw-world-manifest-table">
+            <caption className="sr-only">Capability manifest</caption>
+            <thead>
+              <tr>
+                <th scope="col">Capability</th>
+                <th scope="col">Native</th>
+                <th scope="col">Provider</th>
+              </tr>
+            </thead>
+            <tbody>
+              {manifestEntries.map((entry) => (
+                <tr key={entry.name}>
+                  <td>{entry.name}</td>
+                  <td>{entry.native ? "Yes" : "No"}</td>
+                  <td>{entry.provider ?? "—"}</td>
+                </tr>
               ))}
-            </ul>
-          )}
+            </tbody>
+          </table>
+        )}
+      </Disclosure>
+
+      <Disclosure summary="Export &amp; backup" level={2}>
+        <div className="pw-world-export-grid">
+          <button
+            type="button"
+            className="pw-world-export-btn"
+            disabled={downloading !== null}
+            onClick={() => handleDownload("world")}
+          >
+            {downloading === "world" ? "Downloading…" : "World (full)"}
+          </button>
+          <button
+            type="button"
+            className="pw-world-export-btn"
+            disabled={downloading !== null}
+            onClick={() => handleDownload("settings")}
+          >
+            {downloading === "settings" ? "Downloading…" : "Settings"}
+          </button>
+          <button
+            type="button"
+            className="pw-world-export-btn"
+            disabled={downloading !== null}
+            onClick={() => handleDownload("story")}
+          >
+            {downloading === "story" ? "Downloading…" : "Story"}
+          </button>
+          <button
+            type="button"
+            className="pw-world-export-btn"
+            disabled={downloading !== null}
+            onClick={() => handleDownload("backup")}
+          >
+            {downloading === "backup" ? "Downloading…" : "Backup"}
+          </button>
         </div>
-      </section>
+      </Disclosure>
 
-      {/* Who's here */}
-      {actors.length > 0 && (
-        <section aria-labelledby="inhabitants-heading">
-          <div className="bg-[var(--pw-color-surface-panel)] border border-[var(--pw-color-vault-store-border)] rounded-3xl p-5 space-y-4">
-            <div className="space-y-1.5">
-              <h2 id="inhabitants-heading" className="text-[22px] text-[var(--pw-color-text-primary)]"
-                style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
-                Who&apos;s here
-              </h2>
-              <p className="text-[11px] text-[var(--pw-color-accent-secondary)]">
-                A field guide to inhabitants &amp; visitors
-              </p>
-            </div>
-            <ul className="space-y-2" role="list">
-              {actors.map((actor) => (
-                <li key={actor.name} className="flex items-center gap-3 py-2.5 border-b border-[var(--pw-color-border-strong)] last:border-b-0">
-                  <div className="shrink-0 flex items-center justify-center w-[38px] h-[38px] rounded-full bg-[var(--pw-color-warmth-rose-wash-soft)]">
-                    <Users className="h-4 w-4 text-[var(--pw-color-accent-secondary)]" aria-hidden={true} />
-                  </div>
-                  <div className="flex-1 min-w-0 space-y-0.5">
-                    <p className="text-xs font-semibold text-[var(--pw-color-text-primary)] truncate">{actor.name}</p>
-                    <p className="text-[10px] text-[var(--pw-color-text-secondary)] truncate">{actor.role}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <p className="italic text-[10px] text-[var(--pw-color-text-muted)]">
-              Visitors leave a little history behind.
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* Add Intent Modal */}
-      {showIntentModal && <AddIntentModal onClose={() => setShowIntentModal(false)} onSaved={refreshAll} />}
-      {/* Add Policy Modal */}
-      {showPolicyModal && <AddPolicyModal onClose={() => setShowPolicyModal(false)} onSaved={refreshAll} />}
+      <Disclosure summary="World writes" level={2}>
+        <p className="pw-world-write-note">
+          These write directly to your world state. Changes are journaled.
+        </p>
+        <WorldWriteForm kind="intent" label="Intent" placeholder="e.g. travel_more" />
+        <WorldWriteForm kind="fact" label="Fact" placeholder="e.g. prefers_morning_light" />
+        <WorldWriteForm kind="policy" label="Policy" placeholder="e.g. no_notifications_after_9pm" />
+      </Disclosure>
     </div>
   );
 }
 
-function AddIntentModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function WorldWriteForm({
+  kind,
+  label,
+  placeholder,
+}: {
+  kind: "intent" | "fact" | "policy";
+  label: string;
+  placeholder: string;
+}) {
   const [key, setKey] = useState("");
   const [value, setValue] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!key.trim() || !value.trim() || isSaving) return;
-    setIsSaving(true);
-    setError(null);
+    if (!key.trim()) return;
+    setStatus("sending");
+    setErrorMsg("");
     try {
-      await saveWorldIntent(key.trim(), value.trim());
-      setSuccess(true);
-      setTimeout(() => { onSaved(); }, 1500);
-    } catch (e) {
-      setError(e instanceof ApiError && e.detail ? e.detail : "Failed to save.");
-    } finally { setIsSaving(false); }
-  };
+      if (kind === "intent") {
+        await saveWorldIntent(key.trim(), value.trim());
+      } else if (kind === "fact") {
+        await saveWorldFact(key.trim(), value.trim());
+      } else {
+        await saveWorldPolicy(key.trim(), value.trim());
+      }
+      setStatus("done");
+      setKey("");
+      setValue("");
+    } catch (err: any) {
+      setStatus("error");
+      setErrorMsg(err?.message || "Write failed.");
+    }
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--pw-color-surface-canvas)]/60 p-4">
-      <div className="w-full max-w-xl rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <h2 className="text-lg font-semibold text-[var(--pw-color-text-primary)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>Add Intent</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-[var(--pw-color-text-muted)] hover:text-[var(--pw-color-text-primary)] min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Close"><X className="h-5 w-5" /></button>
+    <form className="pw-world-write-form" onSubmit={handleSubmit}>
+      <fieldset className="pw-world-write-fieldset">
+        <legend className="pw-world-write-legend">{label}</legend>
+        <div className="pw-world-write-fields">
+          <label className="pw-world-write-label">
+            <span className="sr-only">Key</span>
+            <input
+              className="pw-world-write-input"
+              type="text"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              placeholder={placeholder}
+              required
+            />
+          </label>
+          <label className="pw-world-write-label">
+            <span className="sr-only">Value</span>
+            <input
+              className="pw-world-write-input"
+              type="text"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="value (optional for policy)"
+            />
+          </label>
+          <button
+            type="submit"
+            className="pw-world-export-btn"
+            disabled={status === "sending" || !key.trim()}
+          >
+            {status === "sending" ? "Writing…" : `Set ${label}`}
+          </button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div className="p-4 pt-0 space-y-3">
-            <div><label className="mb-1 block text-xs text-[var(--pw-color-text-muted)]">Key</label><input value={key} onChange={(e) => setKey(e.target.value)} placeholder="e.g. focus" className="w-full rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-3 py-2 text-sm text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] outline-none focus:border-[var(--pw-color-accent-primary)]" /></div>
-            <div><label className="mb-1 block text-xs text-[var(--pw-color-text-muted)]">Value</label><input value={value} onChange={(e) => setValue(e.target.value)} placeholder="e.g. Build frontend v2" className="w-full rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-3 py-2 text-sm text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] outline-none focus:border-[var(--pw-color-accent-primary)]" /></div>
-            {error && <p className="text-xs text-[var(--pw-color-text-primary)]">{error}</p>}
-          </div>
-          <div className="flex justify-end gap-2 p-4 pt-0"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button type="submit" disabled={!key.trim() || !value.trim() || isSaving || success}>{isSaving ? <Loader2 className="h-4 w-4 loader-static" /> : success ? "✓ Saved" : "Save"}</Button></div>
-        </form>
-      </div>
-    </div>
+        {status === "done" && (
+          <p className="pw-world-write-status" role="status">
+            Saved.
+          </p>
+        )}
+        {status === "error" && (
+          <p className="pw-world-write-status pw-world-write-status--error" role="alert">
+            {errorMsg}
+          </p>
+        )}
+      </fieldset>
+    </form>
   );
 }
-
-function AddPolicyModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [key, setKey] = useState("");
-  const [effect, setEffect] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!key.trim() || !effect.trim() || isSaving) return;
-    setIsSaving(true);
-    setError(null);
-    try {
-      await saveWorldPolicy(key.trim(), effect.trim());
-      setSuccess(true);
-      setTimeout(() => { onSaved(); }, 1500);
-    } catch (e) {
-      setError(e instanceof ApiError && e.detail ? e.detail : "Failed to save.");
-    } finally { setIsSaving(false); }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--pw-color-surface-canvas)]/60 p-4">
-      <div className="w-full max-w-xl rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <h2 className="text-lg font-semibold text-[var(--pw-color-text-primary)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>Add Policy</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-[var(--pw-color-text-muted)] hover:text-[var(--pw-color-text-primary)] min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Close"><X className="h-5 w-5" /></button>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="p-4 pt-0 space-y-3">
-            <div><label className="mb-1 block text-xs text-[var(--pw-color-text-muted)]">Key</label><input value={key} onChange={(e) => setKey(e.target.value)} placeholder="e.g. privacy" className="w-full rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-3 py-2 text-sm text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] outline-none focus:border-[var(--pw-color-accent-primary)]" /></div>
-            <div><label className="mb-1 block text-xs text-[var(--pw-color-text-muted)]">Effect</label><input value={effect} onChange={(e) => setEffect(e.target.value)} placeholder="e.g. minimum-necessary" className="w-full rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] px-3 py-2 text-sm text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] outline-none focus:border-[var(--pw-color-accent-primary)]" /></div>
-            {error && <p className="text-xs text-[var(--pw-color-text-primary)]">{error}</p>}
-          </div>
-          <div className="flex justify-end gap-2 p-4 pt-0"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button type="submit" disabled={!key.trim() || !effect.trim() || isSaving || success}>{isSaving ? <Loader2 className="h-4 w-4 loader-static" /> : success ? "✓ Saved" : "Save"}</Button></div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-export default WorldScreen;

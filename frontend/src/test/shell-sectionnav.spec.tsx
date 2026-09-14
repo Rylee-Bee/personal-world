@@ -26,16 +26,32 @@ const axeNoContrast = (el: Element) =>
 
 const here = dirname(fileURLToPath(import.meta.url));
 
+function mockFetch(handler: (url: string) => Response): void {
+  vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => Promise.resolve(handler(url))));
+}
+
 function mockSections(payload: unknown): void {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ ok: true, data: payload }), {
+  mockFetch((url: string) => {
+    if (url.includes("/api/sections")) {
+      return new Response(JSON.stringify({ ok: true, data: payload }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      })
-    )
-  );
+      });
+    }
+    if (url.includes("/api/identity/principal")) {
+      return new Response(JSON.stringify({ ok: true, data: { display_name: "Test User" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.includes("/api/chat/providers")) {
+      return new Response(JSON.stringify({ ok: true, data: { providers: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("{}", { status: 200 });
+  });
 }
 /** Wrap the section list in the §2.3 envelope: `{ok, data:{schema, sections}}`. */
 function sectionsEnvelope(sections: SectionData[]) {

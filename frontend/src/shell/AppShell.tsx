@@ -7,7 +7,7 @@ import { CompanionPopover } from "../primitives/CompanionPopover";
 import { ChatPanel } from "../components/ChatPanel";
 import { stashCorrectionDraft } from "../lib/correction-draft";
 import type { ChatJournalCorrectionProposal } from "../lib/api";
-import { useSections } from "../lib/hooks";
+import { useSections, usePrincipal } from "../lib/hooks";
 import type { CompanionMode } from "../primitives/CompanionSlot";
 
 /**
@@ -81,6 +81,28 @@ function useViewportBucket(): ShellViewport {
     return () => mqls.forEach((mql) => mql.removeEventListener("change", onChange));
   }, []);
   return bucket;
+}
+
+/** World identity (Workshop v3): the world's mark and name at the top
+ *  of the world edge. Uses principal display_name from the API;
+ *  honest fallback "Your world" when unavailable. Never hardcoded. */
+function WorldIdentity() {
+  const principal = usePrincipal();
+  const name =
+    principal.data && !principal.isError
+      ? String(principal.data.display_name || "").trim() || null
+      : null;
+  return (
+    <div className="pw-world-identity">
+      <div className="pw-world-mark" aria-hidden="true">
+        <img src="/companions/personal-world.svg" alt="" />
+      </div>
+      <div className="pw-world-name-group">
+        <p className="pw-world-label">Project world</p>
+        <p className="pw-world-name">{name ? `${name}'s world` : "Your world"}</p>
+      </div>
+    </div>
+  );
 }
 
 export interface AppShellProps {
@@ -196,13 +218,14 @@ export function AppShell({ children }: AppShellProps) {
         </span>
       </header>
 
-      {/* The single Main nav: rail slot ≥900px, bottom bar <600px. Both
-          stay before main in DOM order; CSS owns visibility per bucket. */}
+      {/* The single Main nav: world edge ≥900px, bottom bar <600px.
+          Workshop v3: the sidebar IS the world's edge, not an admin rail. */}
       {bucket === "rail" ? (
         <nav aria-label="Main" className="pw-rail">
+          <WorldIdentity />
           <SectionNav compact />
-          {/* Companion progressive disclosure (17:4565): rest state at
-              the rail bottom, with focus popover anchored nearby. */}
+          {/* Companion progressive disclosure (17:4565): inhabitant at
+              the world edge bottom, with focus popover anchored nearby. */}
           <div className="pw-rail-companion">
             <CompanionSlot
               size="inline"
@@ -217,6 +240,8 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </nav>
       ) : null}
+      {/* Organic edge: environmental separator, not a rigid admin border */}
+      {bucket === "rail" ? <div className="pw-sidebar-edge" aria-hidden="true" /> : null}
       {bucket === "bottom" ? (
         <nav aria-label="Main" className="pw-bottom-bar">
           <SectionNav compact />

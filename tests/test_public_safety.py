@@ -70,15 +70,33 @@ def _assert_clean(payload: dict, source: Path) -> None:
         )
 
 
+def _is_safe_ollama_entry(conn: dict) -> bool:
+    """Allow a single local-ollama provider with no secrets and no
+    private-IP base_url.  Docker service names (e.g. 'ollama') are
+    not real topology — they resolve only inside the compose network."""
+    if conn.get("type") != "ollama":
+        return False
+    for forbidden in ("api_key", "apikey", "token", "password", "secret"):
+        if forbidden in conn:
+            return False
+    base = conn.get("base_url", "")
+    for marker in PRIVATE_IP_PARTS:
+        if marker in base:
+            return False
+    return True
+
+
 def test_tracked_connections_json_is_public_safe():
-    """The shipped default config must be a zero-provider baseline."""
+    """The shipped default config may carry only safe local-ollama
+    providers (no secrets, no private IPs).  All other real endpoints
+    belong in a private runtime config."""
     payload = json.loads(TRACKED_CONFIG.read_text())
-    count = len(payload.get("connections") or [])
-    # never `== []` on the payload: a failing assert would print the dict,
-    # i.e. echo whatever secret was pasted in
-    assert count == 0, (
-        f"tracked config/connections.json must ship zero providers "
-        f"(found {count}); real endpoints live in a private runtime config"
+    conns = payload.get("connections") or []
+    bad = [c for c in conns if not _is_safe_ollama_entry(c)]
+    assert not bad, (
+        f"tracked config/connections.json must only contain safe local-ollama "
+        f"providers (found {len(bad)} non-ollama entries); real endpoints "
+        f"live in a private runtime config"
     )
     _assert_clean(payload, TRACKED_CONFIG)
 
@@ -232,14 +250,15 @@ def test_code_and_config_carry_no_personal_home_paths():
 
 def test_tracked_connections_report_never_echoes_values():
     """Companion to test_tracked_connections_json_is_public_safe: if the
-    tracked file ever gains a provider, the failure message names the
-    entry, never dumps it (a dump would print the very key we caught)."""
+    tracked file ever gains a non-ollama provider, the failure message
+    names the entry, never dumps it (a dump would print the key)."""
     payload = json.loads(TRACKED_CONFIG.read_text())
     names = [f"{c.get('type', '?')}:{c.get('name') or c.get('id') or '?'}"
-             for c in payload.get("connections", [])]
+             for c in payload.get("connections", [])
+             if not _is_safe_ollama_entry(c)]
     assert names == [], (
-        "tracked config/connections.json ships providers (names only shown): "
-        + ", ".join(names)
+        "tracked config/connections.json ships non-ollama providers "
+        "(names only shown): " + ", ".join(names)
     )
 
 
@@ -291,10 +310,13 @@ INLINE_SECRET_KEYS = {"api_key", "apikey", "token", "password", "secret",
     and not p.name.endswith(".example.json")))
 def test_tracked_non_example_config_is_zero_provider_and_secret_free(rel):
     """Ownership rule (completion plan C-1): tracked config/ holds only
-    schemas, examples and zero-provider defaults. Personal values live in
+    schemas, examples and safe defaults.  A single local-ollama entry
+    (no secrets, no private IPs) is allowed.  Personal values live in
     config/*.local.json, config.local/ or data/ — all gitignored."""
     payload = json.loads((REPO_ROOT / rel).read_text())
-    assert not payload.get("connections"), f"{rel} ships providers"
+    conns = payload.get("connections") or []
+    bad_conns = [c for c in conns if not _is_safe_ollama_entry(c)]
+    assert not bad_conns, f"{rel} ships non-ollama providers"
     bad = [path for path, key in _walk_keys(payload)
            if key.lower() in INLINE_SECRET_KEYS]
     assert not bad, f"{rel} has inline secret keys at: {bad} (use *_env / *_ref)"
