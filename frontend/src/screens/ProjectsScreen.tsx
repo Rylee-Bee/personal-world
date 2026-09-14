@@ -1,11 +1,11 @@
 import { useState } from "react";
 import {
-  usePrincipal,
   useSourceControlStatus,
   useSourceControlHistory,
   useSourceControlEnrichment,
   useAgentSyncProjects,
 } from "../lib/hooks";
+import { CompanionSlot } from "../primitives/CompanionSlot";
 import { Disclosure } from "../primitives/Disclosure";
 import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 import "./projects-screen.css";
@@ -18,68 +18,70 @@ function agentSyncStatus(p: any): CanonicalStatus {
 }
 
 export default function ProjectsScreen() {
-  const principal = usePrincipal();
   const sourceControl = useSourceControlStatus();
   const agentSync = useAgentSyncProjects();
 
-  const name =
-    principal.data && !principal.isError
-      ? String(principal.data.display_name || "").trim() || null
-      : null;
-
   const scData = sourceControl.data;
   const repos = scData?.data?.repos || [];
-  const scOk = scData?.ok ?? false;
   const scWarnings = scData?.warnings || [];
 
   const agentData = agentSync.data?.data;
   const agentProjects = agentData?.projects || [];
 
+  const healthyCount = repos.filter((r: any) => !r.ok === false).length;
+  const attentionCount = repos.length - healthyCount;
+
   return (
     <div className="pw-projects">
-      <nav className="pw-projects-breadcrumb" aria-label="Breadcrumb">
-        <span>{name ? `${name}'s world` : "Your world"}</span>
-        <span className="pw-projects-breadcrumb-sep" aria-hidden="true">/</span>
-        <span className="pw-projects-breadcrumb-current">Projects</span>
-      </nav>
+      <div className="pw-projects-ambient" aria-hidden="true" />
 
       <header className="pw-projects-header">
-        <h1 className="pw-projects-title">Projects</h1>
-        <p className="pw-projects-subtitle">
-          Your repositories, builds, and code.
-        </p>
+        <div className="pw-projects-title-row">
+          <span className="pw-projects-title-icon" aria-hidden="true">&#9881;</span>
+          <h1 className="pw-projects-title">Projects</h1>
+        </div>
+        <div className="pw-projects-header-meta">
+          <p className="pw-projects-subtitle">
+            Your repositories, builds, and code.
+          </p>
+          <span className="pw-projects-stats">
+            {repos.length} project{repos.length === 1 ? "" : "s"} connected
+            {repos.length > 0 && (
+              <>
+                {" "}&middot; {healthyCount} healthy
+                {attentionCount > 0 && ` ${attentionCount} needs attention`}
+              </>
+            )}
+          </span>
+          <span className="pw-projects-header-sparkles" aria-hidden="true">
+            &#10022;&#10022;&#10022;
+          </span>
+        </div>
       </header>
 
-      <div className="pw-projects-companion" role="status">
-        <span className="pw-projects-companion-sparkle" aria-hidden="true">✦</span>
-        <span>
-          {scOk
-            ? `Watching ${repos.length} project${repos.length === 1 ? "" : "s"}`
-            : sourceControl.isLoading
-              ? "Connecting to source control..."
-              : "Source control not configured"}
-        </span>
-      </div>
-
-      {/* Repository cards */}
       {repos.length > 0 ? (
-        <div className="pw-projects-cards" role="list" aria-label="Repositories">
+        <div className="pw-projects-list" role="list" aria-label="Repositories">
           {repos.map((repo: any) => (
             <RepoCard key={repo.name || repo.path} repo={repo} />
           ))}
         </div>
       ) : (
         <div className="pw-projects-empty" role="status">
-          <p className="pw-projects-empty-title">No repositories found</p>
-          <p className="pw-projects-empty-body">
-            {scWarnings.length > 0
-              ? scWarnings[0]
-              : "Configure source control search paths to see your repositories here."}
-          </p>
+          {sourceControl.isLoading ? (
+            <p className="pw-projects-empty-text">Connecting to source control&hellip;</p>
+          ) : (
+            <>
+              <p className="pw-projects-empty-title">No repositories found</p>
+              <p className="pw-projects-empty-text">
+                {scWarnings.length > 0
+                  ? scWarnings[0]
+                  : "Configure source control search paths to see your repositories here."}
+              </p>
+            </>
+          )}
         </div>
       )}
 
-      {/* Agent-sync project estate */}
       {agentProjects.length > 0 && (
         <Disclosure summary="Agent-sync project estate" level={2}>
           <section aria-label="Agent-sync projects" data-pw-projects="agent-sync">
@@ -96,6 +98,16 @@ export default function ProjectsScreen() {
           </section>
         </Disclosure>
       )}
+
+      <footer className="pw-projects-footer">
+        <span className="pw-projects-footer-sparkle" aria-hidden="true">&#10022;</span>
+        <span className="pw-projects-footer-text">Watching your projects</span>
+      </footer>
+
+      <div className="pw-projects-companion" aria-hidden="true">
+        <CompanionSlot size="empty" />
+        <span className="pw-projects-companion-label">quietly here</span>
+      </div>
     </div>
   );
 }
@@ -115,6 +127,7 @@ function RepoCard({ repo }: { repo: any }) {
   const status: CanonicalStatus = repo.ok === false ? "needs_attention" : "healthy";
   const commits = history.data?.commits || [];
   const enrichmentData = enrichment.data?.data;
+  const isAttention = status === "needs_attention";
 
   return (
     <div className="pw-project-card" role="listitem">
@@ -126,29 +139,12 @@ function RepoCard({ repo }: { repo: any }) {
         </span>
       </div>
 
-      <p className="pw-project-card-description">
-        {repo.description || repo.path || "No description"}
-      </p>
+      {isAttention && repo.last_activity && (
+        <p className="pw-project-card-attention-note">
+          Last successful deploy: {repo.last_activity}
+        </p>
+      )}
 
-      <div className="pw-project-card-footer">
-        {repo.branch && (
-          <span className="pw-project-card-footer-item">{repo.branch}</span>
-        )}
-        {repo.revision && (
-          <span className="pw-project-card-footer-item">{repo.revision.slice(0, 7)}</span>
-        )}
-        {repo.dirty && (
-          <span className="pw-project-card-footer-item pw-project-card-footer-item--warning">dirty</span>
-        )}
-        {repo.ahead !== undefined && repo.ahead > 0 && (
-          <span className="pw-project-card-footer-item">ahead {repo.ahead}</span>
-        )}
-        {repo.behind !== undefined && repo.behind > 0 && (
-          <span className="pw-project-card-footer-item">behind {repo.behind}</span>
-        )}
-      </div>
-
-      {/* Expandable: history + enrichment */}
       <Disclosure
         summary="History & details"
         level={3}
@@ -156,7 +152,6 @@ function RepoCard({ repo }: { repo: any }) {
           if (open) setShowHistory(true);
         }}
       >
-        {/* Commit history */}
         {commits.length > 0 && (
           <section aria-label="Recent commits">
             <h4>Recent commits</h4>
@@ -172,29 +167,26 @@ function RepoCard({ repo }: { repo: any }) {
             </ul>
           </section>
         )}
-
-        {/* GitHub enrichment */}
-        {enrichmentData && 'open_prs' in enrichmentData && (
+        {enrichmentData && (
           <section aria-label="GitHub enrichment">
             <h4>Remote enrichment</h4>
             <ul>
-              {enrichmentData.open_prs !== null && enrichmentData.open_prs !== undefined && (
+              {'open_prs' in enrichmentData && enrichmentData.open_prs !== null && enrichmentData.open_prs !== undefined && (
                 <li>Open PRs: {enrichmentData.open_prs}</li>
               )}
-              {enrichmentData.open_issues !== null && enrichmentData.open_issues !== undefined && (
+              {'open_issues' in enrichmentData && enrichmentData.open_issues !== null && enrichmentData.open_issues !== undefined && (
                 <li>Open issues: {enrichmentData.open_issues}</li>
               )}
-              {enrichmentData.default_branch && (
+              {'default_branch' in enrichmentData && enrichmentData.default_branch && (
                 <li>Default branch: {enrichmentData.default_branch}</li>
               )}
-              {enrichmentData.url && (
+              {'url' in enrichmentData && enrichmentData.url && (
                 <li>Remote: {enrichmentData.url}</li>
               )}
             </ul>
           </section>
         )}
-
-        {history.isLoading && <p>Loading history…</p>}
+        {history.isLoading && <p>Loading history&hellip;</p>}
         {history.isError && <p>Could not load history.</p>}
       </Disclosure>
 
