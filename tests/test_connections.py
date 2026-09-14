@@ -140,3 +140,27 @@ class TestProviderSchemas:
         assert "ollama" in types
         assert "openai" in types
         assert "anthropic" in types
+
+    def test_can_test_flags_match_handlers(self) -> None:
+        """Every provider with can_test=True must have a handler in
+        api.py _test_adapter. Providers without handlers must have
+        can_test=False."""
+        # Providers with live test handlers in _test_adapter:
+        live_testable = {
+            "plex", "sonarr", "radarr", "lidarr",
+            "ics", "ntfy", "github_release", "ollama", "oidc",
+        }
+        # Providers with local-only validation (not live):
+        local_validators = {"compose", "systemd", "webhook"}
+        # Everything else must be can_test=False
+        for cap_schema in CAPABILITY_SCHEMAS.values():
+            for p in cap_schema.providers:
+                if p.adapter_type in live_testable:
+                    assert p.can_test is True, f"{p.adapter_type} should be can_test=True"
+                elif p.adapter_type in local_validators:
+                    assert p.can_test is True, f"{p.adapter_type} should be can_test=True (local validation)"
+                else:
+                    assert p.can_test is False, (
+                        f"{p.adapter_type} has can_test=True but no handler — "
+                        "set can_test=False or add a handler"
+                    )
