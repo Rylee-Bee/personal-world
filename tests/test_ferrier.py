@@ -237,20 +237,20 @@ def test_classify_unknown_status():
 
 
 def test_redact_dict_with_secret_key():
-    data = {"password": "super-secret-router-pass-987"}
+    data = {"password": "super-secret-router-pass-987"}  # pw-safety: synthetic
     clean = redact_secrets(data)
     assert clean["password"] == "[redacted]"
 
 
 def test_redact_nested_secret_key():
-    data = {"config": {"api_key": "mykey123", "name": "safe"}}
+    data = {"config": {"api_key": "mykey123", "name": "safe"}}  # pw-safety: synthetic
     clean = redact_secrets(data)
     assert clean["config"]["api_key"] == "[redacted]"
     assert clean["config"]["name"] == "safe"
 
 
 def test_redact_list_of_dicts():
-    data = [{"token": "abc"}, {"label": "safe"}]
+    data = [{"token": "abc"}, {"label": "safe"}]  # pw-safety: synthetic
     clean = redact_secrets(data)
     assert clean[0]["token"] == "[redacted]"
     assert clean[1]["label"] == "safe"
