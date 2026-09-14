@@ -133,7 +133,7 @@ export default function LabScreen() {
     return (
       <ErrorState
         title="Lab"
-        failed={`lab is ${status}`}
+        failed="Lab could not be reached"
         detail={state.warnings?.[0]}
         headingLevel={1}
       />
