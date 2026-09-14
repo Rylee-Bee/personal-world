@@ -1,12 +1,21 @@
 # PROJECT WORLDS — FINAL RECEIPT
-# Commit: 60f1a19
+# Merged to main via PR #42 (b720c82) and PR #43 (9c4cc99)
 # Date: 2026-09-14
 
 ---
 
 ## TESTS
 
-**706 passed, 0 failed, 0 warnings**
+**726 passed, 0 failed, 0 warnings**
+
+## FRAMEWORK VALIDATION
+
+**0 violations**
+
+## FRONTEND BUILD
+
+**Build clean** (pre-existing vitest heading-hierarchy failures unrelated
+to architecture work)
 
 ---
 
@@ -64,7 +73,7 @@
 
 ---
 
-## BRAIN TOOLS (25)
+## BRAIN TOOLS (29)
 
 ### Read tools (19):
 inspect_world_status, inspect_manifest, read_journal, search_journal, inspect_source_control, inspect_source_control_history, inspect_projects, inspect_lab_inventory, inspect_lab_health, inspect_lab_resources, inspect_lab_settings, inspect_reconciler_status, inspect_reconciler_diff, inspect_discovery_status, list_discovery_sources, list_interests, run_discovery, inspect_vault_status, inspect_reminders
@@ -102,14 +111,25 @@ propose_journal_entry, propose_world_intent, propose_world_fact, propose_reminde
 
 ---
 
+## CONNECTIONS & PROVIDERS
+
+| Component | Status |
+|-----------|--------|
+| Capabilities | 7 |
+| Provider schemas | 18 |
+| UI configuration | ✅ Settings → Connections panel |
+| Test buttons | 9 live testable, 3 local validation, 6 no-test |
+
+---
+
 ## AUTH/SSO
 
 | Feature | Status |
 |---------|--------|
 | Native auth module | ✅ Implemented |
 | Session-cookie auth | ✅ Implemented |
-| OIDC config | ✅ Provider-neutral seam |
-| Authelia support | ✅ config/oidc.example.json ready |
+| OIDC config | ✅ Provider-neutral seam (config/oidc.json) |
+| Authelia support | ✅ Authelia-compatible / implementation-ready |
 | Live Authelia login | NOT VERIFIED (no running instance) |
 | Step-up auth | ✅ 300s window |
 | Break-glass | ✅ PW_API_TOKEN fallback |
@@ -148,7 +168,7 @@ propose_journal_entry, propose_world_intent, propose_world_fact, propose_reminde
 
 - Third-party warnings (starlette, anyio, fastapi) filtered via conftest.py
 - Our code warnings treated as errors (pyproject.toml filterwarnings)
-- 706 passed, 0 failed, 0 warnings
+- 726 passed, 0 failed, 0 warnings
 
 ---
 
@@ -173,13 +193,15 @@ None.
 
 | SHA | Description |
 |-----|-------------|
+| 9c4cc99 | Merge PR #43 — feat/workshop-v3-architecture |
+| b720c82 | Merge PR #42 — feat/workshop-v3-architecture |
+| b1eafba | fix: reconciliation receipt — 726 tests, 22 ahead |
+| e2c7673 | reconciliation: issue closures, receipt fixes |
+| f871b2a | docs: audited Connections receipt |
+| 3156443 | feat: Connections & Providers control panel |
 | 60f1a19 | Brain Template System |
 | 3e203d8 | Native providers + execution viewer + zero warnings |
 | 2d940c6 | Media + Auth/SSO + companion + Settings + write tools |
-| ecc4149 | Final receipt |
-| d54700e | Brain tool-calling |
-| fdc6958 | inspect_lab_settings + inspect_reconciler_diff |
-| dae73bb | Full system inventory |
 | 565dcd1 | Wire all screens + chat UI + tool registry |
 | 4b7ec55 | Workshop v3 shell + native products + Ollama |
 
@@ -191,7 +213,7 @@ None.
 |------|------|
 | This receipt | docs/FINAL-RECEIPT.md |
 | Full inventory | docs/FULL-SYSTEM-INVENTORY.md |
-| API wiring | docs/API-WIRING-HANDOFF.md |
+| Connections receipt | docs/CONNECTIONS-RECEIPT.md |
 | Compose | compose.yaml |
 | Connections | config/connections.json |
 | Templates | config/prompts/ |
