@@ -23,6 +23,8 @@ import {
   fetchActors,
   fetchBackup,
   fetchThemes,
+  fetchIngressRollups,
+  type IngressRollupsData,
   fetchJournalAudit,
   fetchExportSettings,
   fetchExportStory,
@@ -52,6 +54,25 @@ import {
   type ServiceApp,
   type SectionData,
   type ChatProvidersData,
+  fetchNativeLabInventory,
+  fetchNativeLabHealth,
+  fetchNativeLabSettings,
+  fetchNativeLabResources,
+  fetchDiscoveryStatus,
+  fetchDiscoverySources,
+  fetchDiscoveryInterests,
+  fetchDiscoveryDiscover,
+  fetchReconcilerStatus,
+  fetchMediaStatus,
+  fetchMediaLibrary,
+  fetchMediaRecent,
+  fetchMediaActivity,
+  fetchBrainTemplates,
+  fetchBrainProvenance,
+  type BrainTemplatesData,
+  type BrainProvenanceData,
+  fetchConnectionsOverview,
+  type CapabilityOverview,
 } from "./api";
 
 /**
@@ -235,22 +256,24 @@ export function useSourceControlStatus() {
 }
 /** GET /api/source-control/history?repo=<name>: the selected repo's
  * recent commits (Projects drill-in; presentation-only). */
-export function useSourceControlHistory(repo: string, limit = 5) {
+export function useSourceControlHistory(repo: string, limit = 5, options?: { enabled?: boolean }) {
   return useApiQuery<SourceControlHistoryData>(
     () => fetchSourceControlHistory(repo, limit),
     [repo, limit],
-    ["source-control-history", repo]
+    ["source-control-history", repo],
+    options
   );
 }
 
 /** GET /api/source-control/enrichment?repo=<name>: GitHub remote
  * facts for the selected repo (Projects drill-in; optional — quiet
  * degradation is the contract, the native table never depends on it). */
-export function useSourceControlEnrichment(repo: string) {
+export function useSourceControlEnrichment(repo: string, options?: { enabled?: boolean }) {
   return useApiQuery<SourceControlEnrichmentEnvelope>(
     () => fetchSourceControlEnrichment(repo),
     [repo],
-    ["source-control-enrichment", repo]
+    ["source-control-enrichment", repo],
+    options
   );
 }
 
@@ -279,6 +302,11 @@ export function useBackup() {
 // ── Themes hook ──
 export function useThemes() {
   return useApiQuery<unknown[]>(() => fetchThemes());
+}
+
+// ── Ingress hook ──
+export function useIngressRollups() {
+  return useApiQuery<IngressRollupsData>(() => fetchIngressRollups());
 }
 
 // ── Journal Audit hook ──
@@ -363,4 +391,97 @@ export function useSectionsWrite(): () => Promise<void> {
     emitRefresh("sections");
     return Promise.resolve();
   };
+}
+
+// ── Native Lab hooks ──
+
+/** GET /api/native-lab/inventory: service inventory. */
+export function useNativeLabInventory() {
+  return useApiQuery<any>(() => fetchNativeLabInventory(), []);
+}
+
+/** GET /api/native-lab/health: health monitoring. */
+export function useNativeLabHealth() {
+  return useApiQuery<any>(() => fetchNativeLabHealth(), []);
+}
+
+/** GET /api/native-lab/settings: settings inspection. */
+export function useNativeLabSettings() {
+  return useApiQuery<any>(() => fetchNativeLabSettings(), []);
+}
+
+/** GET /api/native-lab/resources: resource monitoring. */
+export function useNativeLabResources() {
+  return useApiQuery<any>(() => fetchNativeLabResources(), []);
+}
+
+// ── Discovery hooks ──
+
+/** GET /api/discovery/status: discovery status. */
+export function useDiscoveryStatus() {
+  return useApiQuery<any>(() => fetchDiscoveryStatus(), []);
+}
+
+/** GET /api/discovery/sources: list discovery sources. */
+export function useDiscoverySources() {
+  return useApiQuery<any>(() => fetchDiscoverySources(), []);
+}
+
+/** GET /api/discovery/interests: list interests. */
+export function useDiscoveryInterests() {
+  return useApiQuery<any>(() => fetchDiscoveryInterests(), []);
+}
+
+/** GET /api/discovery/discover: discover content. */
+export function useDiscoveryDiscover(source?: string) {
+  return useApiQuery<any>(() => fetchDiscoveryDiscover(source), [source]);
+}
+
+// ── Reconciler hooks ──
+
+/** GET /api/reconciler/status: reconciler status. */
+export function useReconcilerStatus() {
+  return useApiQuery<any>(() => fetchReconcilerStatus(), []);
+}
+
+// ── Media hooks ──
+
+export function useMediaStatus() {
+  return useApiQuery<any>(() => fetchMediaStatus(), []);
+}
+export function useMediaLibrary() {
+  return useApiQuery<any>(() => fetchMediaLibrary(), []);
+}
+export function useMediaRecent() {
+  return useApiQuery<any>(() => fetchMediaRecent(), []);
+}
+export function useMediaActivity() {
+  return useApiQuery<any>(() => fetchMediaActivity(), []);
+}
+
+// ── Brain Template hooks ──
+
+/** GET /api/brain/templates: list all brain templates. */
+export function useBrainTemplates() {
+  return useApiQuery<BrainTemplatesData>(() => fetchBrainTemplates(), [], ["brain-templates"]);
+}
+
+/** GET /api/brain/provenance: template provenance for Nerd Mode. */
+export function useBrainProvenance(surface?: string, task?: string) {
+  return useApiQuery<BrainProvenanceData>(
+    () => fetchBrainProvenance(surface, task),
+    [surface, task],
+    ["brain-provenance"]
+  );
+}
+
+// ── Connections & Providers hooks ──
+
+/** GET /api/connections/overview: capability overview for the Connections panel. */
+export function useConnectionsOverview() {
+  return useApiQuery<CapabilityOverview[]>(
+    () => fetchConnectionsOverview(),
+    [],
+    ["connections-overview", "worldStatus"]
+  );
 }

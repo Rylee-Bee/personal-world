@@ -11,13 +11,17 @@ import secrets
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, FileResponse
 from starlette.concurrency import run_in_threadpool
 
 from . import export, prefs
+from .connection_manager import ConnectionManager
+from .provider_schemas import get_capability_schemas, get_capability_schema, CAPABILITY_SCHEMAS
 from . import sections as sections_mod
+from .template_registry import TemplateRegistry
 from .app import build_registry, load_world, save_world
 from .chat import chat_once, build_chat_messages, extract_proposal
 from .chat_context import build_world_context, build_ui_context
@@ -171,9 +175,38 @@ async def require_auth(request: Request) -> None:
     request.state.principal = principal
 
 
+def _capability_description(cap: str) -> str:
+    """Human-readable description for a capability."""
+    descriptions = {
+        "source_control": "Read repositories, branches, commits, and sync state",
+        "deployment": "Deploy or schedule services",
+        "secrets": "Broker secret material to consumers",
+        "calendar": "Observe calendar events",
+        "discovery": "Discover content matching interests",
+        "settings_validation": "Validate settings against intent",
+        "service_validation": "Validate service health",
+        "update_discovery": "Discover available updates",
+        "memory": "Search long-term memory",
+        "journal": "Read and write structured history",
+        "reasoning": "AI interpretation and conversation",
+        "notifications": "Send notifications",
+        "scheduler": "Run tasks on a schedule",
+        "homelab_settings": "Homelab settings reconciliation",
+        "homelab_health": "Homelab service health monitoring",
+        "homelab_deploy": "Homelab deployment status",
+        "homelab_secrets": "Homelab secret management",
+        "homelab_resources": "Homelab VM resource monitoring",
+    }
+    return descriptions.get(cap, cap.replace("_", " "))
+
+
 def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> FastAPI:
     data_dir = Path(data_dir or os.environ.get("PW_DATA_DIR", "./data"))
     config_dir = Path(config_dir or os.environ.get("PW_CONFIG_DIR", "./config"))
+    
+    # Vault: one instance per app, survives across requests
+    from .vault import Vault
+    _vault = Vault(data_dir / "vault.enc")
     # Serving boundary (T15 cutover): the React SPA is the ONE product
     # frontend. The legacy server-rendered pages were deleted with the
     # cutover; there is no fallback UI — a missing dist answers the
@@ -225,6 +258,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                           "instance_token": _app_instance_token}
     app.state.frontend_dist = frontend_dist
 
+    # --- Native auth (session-cookie + OIDC) ---
+    from .auth import AuthManager
+    from .auth_routes import register_auth_routes
+    _auth = AuthManager(data_dir, config_dir)
+    register_auth_routes(app, _auth)
+    app.state.auth = _auth
+
     # --- Setup & Login ---
 
     @app.get("/healthz")
@@ -268,7 +308,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     def _state() -> tuple[World, Registry]:
         world = load_world(world_path)
-        registry = build_registry(world, Registry(), config_dir)
+        registry = build_registry(world, Registry(), config_dir, vault=_vault, journal=journal, data_dir=data_dir)
         return world, registry
 
     def _principal(request: Request):
@@ -300,7 +340,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         bootstrap-shared paths (byte-identical legacy behavior)."""
         uw, uj = _user_paths(request)
         world = load_world(uw)
-        registry = build_registry(world, Registry(), config_dir)
+        registry = build_registry(world, Registry(), config_dir, vault=_vault, journal=journal, data_dir=data_dir)
         return world, registry, uj
 
     @app.get("/api/status", dependencies=[Depends(require_auth)])
@@ -486,6 +526,81 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         result = impl.search(q, top_k=top_k)
         return result.model_dump(mode="json")
 
+    def _chat_with_tools_loop(
+        impl: Any,
+        messages: list[dict[str, Any]],
+        tool_reg: Any,
+        tool_schemas: list[dict[str, Any]],
+        max_rounds: int = 3,
+    ) -> Result:
+        """Tool-calling loop: model selects tools, we execute, model explains.
+
+        Max rounds prevents infinite loops. Read-only: no write tools
+        are exposed yet.
+        """
+        from .chat import chat_once
+        current_messages = list(messages)
+        tool_calls_made: list[dict[str, Any]] = []
+
+        for round_num in range(max_rounds):
+            result = impl.chat_with_tools(current_messages, tool_schemas)
+            if not result.ok:
+                return result
+
+            data = result.data or {}
+            tool_calls = data.get("tool_calls")
+
+            if not tool_calls:
+                # Model gave a final text response
+                return result
+
+            # Model wants to call tools
+            # Add the assistant message with tool calls
+            current_messages.append({
+                "role": "assistant",
+                "content": None,
+                "tool_calls": tool_calls,
+            })
+
+            # Execute each tool and add results
+            for tc in tool_calls:
+                func = tc.get("function", {})
+                tool_name = func.get("name", "")
+                tool_args = func.get("arguments", {})
+                if isinstance(tool_args, str):
+                    try:
+                        tool_args = json.loads(tool_args)
+                    except (json.JSONDecodeError, TypeError):
+                        tool_args = {}
+
+                tool_call_id = tc.get("id", "")
+
+                tool_result = tool_reg.invoke(tool_name, tool_args)
+                tool_calls_made.append({
+                    "tool": tool_name,
+                    "args": tool_args,
+                    "ok": tool_result.ok,
+                    "status": tool_result.status,
+                })
+
+                # Add tool result message (tool_call_id for Anthropic)
+                tool_msg: dict[str, Any] = {
+                    "role": "tool",
+                    "content": json.dumps(tool_result.model_dump(mode="json")),
+                }
+                if tool_call_id:
+                    tool_msg["tool_call_id"] = tool_call_id
+                current_messages.append(tool_msg)
+
+            # Continue the loop - model will see tool results
+
+        # Max rounds reached - return what we have
+        return ok("healthy", data={
+            "reply": "I gathered some information but reached the tool call limit. Let me share what I found.",
+            "tool_calls_made": tool_calls_made,
+            "model": data.get("model", "unknown"),
+        })
+
     @app.post("/api/chat", dependencies=[Depends(require_auth)])
     async def chat(request: Request) -> dict:
         """Conversational interface to Project Worlds.
@@ -525,12 +640,23 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         context = await run_in_threadpool(
             build_world_context, world, registry, journal, True, config_dir
         )
+        # Brain templates: compose runtime instructions from small pieces.
+        # Surface is derived from the UI route (e.g. /lab -> lab).
+        templates = TemplateRegistry(config_dir, data_dir)
+        ui = body.get("context") if isinstance(body, dict) else None
+        surface = None
+        if isinstance(ui, dict):
+            route = str(ui.get("route") or "")
+            if route.startswith("/"):
+                surface = route[1:]  # /lab -> lab
+        template_instructions = templates.compose(surface=surface)
+        if template_instructions:
+            context = template_instructions + "\n\n" + context
         # Contextual chat (Finish Line "Contextual chat and model
         # routing"): the caller may describe WHERE in the UI the person
         # is. Provenance, not truth: an unknown section_id degrades to
         # an honest "unknown" block rather than being trusted or
         # rejected — a stale tab must not break conversation.
-        ui = body.get("context") if isinstance(body, dict) else None
         ui_block = None
         if isinstance(ui, dict):
             route = str(ui.get("route") or "") or None
@@ -551,8 +677,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             )
         if ui_block:
             context = context + "\n\n" + ui_block
+        # Build tool registry from current state
+        from .tool_registry import build_default_tools
+        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir)
+        tool_schemas = tool_reg.list_ollama_schemas()
         messages = build_chat_messages(message, context, history)
-        result = await run_in_threadpool(chat_once, impl, messages)
+        # Try tool-calling flow if impl supports it
+        if hasattr(impl, 'chat_with_tools') and tool_schemas:
+            result = await run_in_threadpool(
+                _chat_with_tools_loop, impl, messages, tool_reg, tool_schemas
+            )
+        else:
+            result = await run_in_threadpool(chat_once, impl, messages)
         if not result.ok:
             return result.model_dump(mode="json")
         # Assistant-drafted correction proposals (Play-Nice:
@@ -634,6 +770,19 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": result.ok, "status": result.status,
                 "data": result.data, "warnings": result.warnings}
 
+    @app.get("/api/tools", dependencies=[Depends(require_auth)])
+    async def tools() -> dict:
+        """List tools the brain can invoke at runtime.
+
+        Returns the actual callable tool registry, not just capability descriptions.
+        Each tool has: id, capability, operation, description, read/write,
+        parameters schema, availability, approval requirement.
+        """
+        world, registry = _state()
+        from .tool_registry import build_default_tools
+        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir)
+        return {"ok": True, "data": {"tools": tool_reg.list_metadata(), "count": len(tool_reg.list_tools())}}
+
     @app.get("/api/actors", dependencies=[Depends(require_auth)])
     async def actors() -> dict:
         _, registry = _state()
@@ -648,6 +797,237 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         see docs/NATIVE-BASELINE-AND-ENRICHMENT.md)."""
         _, registry = _state()
         return {"ok": True, "data": registry.manifest()}
+
+    # ── Connections & Providers ──────────────────────────────────
+
+    conn_mgr = ConnectionManager(config_dir)
+
+    @app.get("/api/connections/schemas", dependencies=[Depends(require_auth)])
+    async def connection_schemas() -> dict:
+        """Return all provider schemas for the Connections & Providers UI."""
+        return {"ok": True, "data": get_capability_schemas()}
+
+    @app.get("/api/connections/schema/{capability}", dependencies=[Depends(require_auth)])
+    async def connection_schema(capability: str) -> dict:
+        """Return schema for a single capability."""
+        schema = get_capability_schema(capability)
+        if not schema:
+            raise HTTPException(status_code=404, detail=f"Unknown capability: {capability}")
+        return {"ok": True, "data": schema}
+
+    @app.get("/api/connections/config", dependencies=[Depends(require_auth)])
+    async def connections_config() -> dict:
+        """Return the full merged connection configuration."""
+        return {"ok": True, "data": conn_mgr.get_all_config()}
+
+    @app.get("/api/connections/overview", dependencies=[Depends(require_auth)])
+    async def connections_overview() -> dict:
+        """Return capability overview: status, config state, providers."""
+        _, registry = _state()
+        status_map = registry.status_map()
+        config = conn_mgr.get_all_config()
+        result = []
+        for cs in CAPABILITY_SCHEMAS.values():
+            cap = cs.capability
+            status_info = status_map.get(cap, {})
+            # Determine if configured
+            if cap == "media":
+                media_cfg = config.get("media", {})
+                adapters = media_cfg.get("providers", media_cfg.get("adapters", []))
+                configured = len(adapters) > 0
+            elif cap == "calendar":
+                cal_cfg = config.get("calendar", {})
+                configured = len(cal_cfg.get("sources", [])) > 0
+            elif cap == "notifications":
+                notif_cfg = config.get("notifications", {})
+                configured = len(notif_cfg.get("targets", [])) > 0
+            elif cap == "deployment":
+                deploy_cfg = config.get("deployment", {})
+                configured = len(deploy_cfg.get("targets", [])) > 0
+            elif cap == "update_discovery":
+                updates_cfg = config.get("updates", {})
+                configured = len(updates_cfg.get("sources", [])) > 0
+            elif cap == "auth":
+                oidc_path = config_dir / "oidc.json"
+                configured = oidc_path.exists()
+            elif cap == "reasoning":
+                conns = config.get("connections", [])
+                configured = any(c.get("capability") == "reasoning" for c in conns)
+            else:
+                configured = status_info.get("status") not in (None, "not_configured")
+            result.append({
+                "capability": cap,
+                "display_name": cs.display_name,
+                "description": cs.description,
+                "icon": cs.icon,
+                "status": status_info.get("status", "not_configured"),
+                "ok": status_info.get("ok", False),
+                "configured": configured,
+                "needs_setup": cs.needs_setup,
+                "help_text": cs.help_text,
+                "providers": [p.to_dict() for p in cs.providers],
+            })
+        return {"ok": True, "data": result}
+
+    @app.get("/api/connections", dependencies=[Depends(require_auth)])
+    async def connections_list() -> dict:
+        """Return all connections."""
+        return {"ok": True, "data": conn_mgr.get_connections()}
+
+    @app.put("/api/connections", dependencies=[Depends(require_auth)])
+    async def connections_save(request: Request) -> dict:
+        """Save a connection (step-up required)."""
+        require_step_up(request)
+        body = await request.json()
+        name = body.get("name")
+        if not name:
+            raise HTTPException(status_code=400, detail="name is required")
+        conn_mgr.save_connection(body)
+        return {"ok": True, "data": {"saved": True, "name": name}}
+
+    @app.delete("/api/connections/{name}", dependencies=[Depends(require_auth)])
+    async def connections_delete(name: str, request: Request) -> dict:
+        """Delete a connection by name (step-up required)."""
+        require_step_up(request)
+        deleted = conn_mgr.delete_connection(name)
+        return {"ok": True, "data": {"deleted": deleted}}
+
+    @app.post("/api/connections/config/{key}", dependencies=[Depends(require_auth)])
+    async def save_native_config(key: str, request: Request) -> dict:
+        """Save native provider config (calendar, notifications, etc.)."""
+        require_step_up(request)
+        body = await request.json()
+        conn_mgr.save_native_config(key, body)
+        return {"ok": True, "data": {"saved": True, "key": key}}
+
+    @app.post("/api/connections/test", dependencies=[Depends(require_auth)])
+    async def test_connection(request: Request) -> dict:
+        """Test a connection configuration without saving it."""
+        body = await request.json()
+        capability = body.get("capability", "")
+        adapter_type = body.get("adapter_type", "")
+        config = body.get("config", {})
+        result = _test_adapter(capability, adapter_type, config)
+        return {"ok": True, "data": result}
+
+    @app.post("/api/connections/validate", dependencies=[Depends(require_auth)])
+    async def validate_connection(request: Request) -> dict:
+        """Validate connection config (alias for test)."""
+        body = await request.json()
+        capability = body.get("capability", "")
+        adapter_type = body.get("adapter_type", "")
+        config = body.get("config", {})
+        result = _test_adapter(capability, adapter_type, config)
+        return {"ok": True, "data": result}
+
+    def _test_adapter(capability: str, adapter_type: str, config: dict) -> dict:
+        """Test an adapter connection. Returns structured state."""
+        import urllib.request
+        import urllib.error
+        try:
+            if adapter_type == "plex":
+                url = config.get("base_url", "").rstrip("/")
+                token = config.get("token", "")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "Server URL is required"}
+                req_url = f"{url}/?X-Plex-Token={token}" if token else f"{url}/"
+                try:
+                    req = urllib.request.Request(req_url, method="GET")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": f"Plex responded ({resp.status})"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach Plex: {e.reason}"}
+            elif adapter_type in ("sonarr", "radarr", "lidarr"):
+                url = config.get("base_url", "").rstrip("/")
+                api_key = config.get("api_key", "")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "Server URL is required"}
+                try:
+                    req = urllib.request.Request(f"{url}/api/v3/system/status",
+                                                headers={"X-Api-Key": api_key} if api_key else {})
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": f"{adapter_type.title()} responded ({resp.status})"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach {adapter_type.title()}: {e.reason}"}
+            elif adapter_type == "ics":
+                url = config.get("url", "")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "URL is required"}
+                try:
+                    req = urllib.request.Request(url, method="HEAD")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": f"ICS feed reachable ({resp.status})"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach ICS feed: {e.reason}"}
+            elif adapter_type == "ntfy":
+                server = config.get("server", "https://ntfy.sh").rstrip("/")
+                topic = config.get("topic", "")
+                if not topic:
+                    return {"status": "invalid_configuration", "detail": "Topic is required"}
+                try:
+                    req = urllib.request.Request(f"{server}/v1/health", method="GET")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": f"ntfy server reachable ({resp.status})"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach ntfy: {e.reason}"}
+            elif adapter_type == "webhook":
+                url = config.get("url", "")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "URL is required"}
+                return {"status": "validated", "detail": "Webhook URL accepted (not tested with a real request)"}
+            elif adapter_type == "github_release":
+                repo = config.get("repository", "")
+                if not repo:
+                    return {"status": "invalid_configuration", "detail": "Repository is required"}
+                try:
+                    req = urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/latest",
+                                                headers={"Accept": "application/vnd.github.v3+json"})
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        data = json.loads(resp.read())
+                        tag = data.get("tag_name", "unknown")
+                        return {"status": "healthy", "detail": f"Latest release: {tag}"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach GitHub: {e.reason}"}
+            elif adapter_type == "ollama":
+                url = config.get("base_url", "").rstrip("/")
+                if not url:
+                    return {"status": "invalid_configuration", "detail": "Server URL is required"}
+                try:
+                    req = urllib.request.Request(f"{url}/api/tags", method="GET")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        data = json.loads(resp.read())
+                        models = [m.get("name", "") for m in data.get("models", [])]
+                        return {"status": "healthy", "detail": f"Ollama has {len(models)} model(s)"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach Ollama: {e.reason}"}
+            elif adapter_type == "oidc":
+                issuer = config.get("issuer_url", "")
+                if not issuer:
+                    return {"status": "invalid_configuration", "detail": "Issuer URL is required"}
+                well_known = f"{issuer.rstrip('/')}/.well-known/openid-configuration"
+                try:
+                    req = urllib.request.Request(well_known, method="GET")
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return {"status": "healthy", "detail": "OIDC discovery endpoint reachable"}
+                except urllib.error.URLError as e:
+                    return {"status": "unavailable", "detail": f"Cannot reach OIDC issuer: {e.reason}"}
+            elif adapter_type == "compose":
+                path = config.get("compose_path", "")
+                if not path:
+                    return {"status": "invalid_configuration", "detail": "Compose file path is required"}
+                p = Path(path)
+                if p.exists():
+                    return {"status": "validated", "detail": f"Compose file found at {path}"}
+                return {"status": "unavailable", "detail": f"Compose file not found at {path}"}
+            elif adapter_type == "systemd":
+                service = config.get("service_name", "")
+                if not service:
+                    return {"status": "invalid_configuration", "detail": "Service name is required"}
+                return {"status": "validated", "detail": f"Service '{service}' accepted — no live check performed"}
+            else:
+                return {"status": "unknown", "detail": f"Test not implemented for {adapter_type}"}
+        except Exception as e:
+            return {"status": "unavailable", "detail": str(e)}
 
     @app.get("/api/exports/settings", dependencies=[Depends(require_auth)])
     async def settings_export() -> dict:
@@ -981,12 +1361,189 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         r = resources.observe()
         return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
 
-    # --- Vault endpoints ---
+    # --- Native Lab endpoints (generic, no homelab dependency) ---
 
-    # --- Vault: one instance per app, survives across requests ---
-    # (fresh Vault per request would forget unlock state and secrets)
-    from .vault import Vault
-    _vault = Vault(data_dir / "vault.enc")
+    @app.get("/api/native-lab/inventory", dependencies=[Depends(require_auth)])
+    async def native_lab_inventory() -> dict:
+        """Native Lab service inventory."""
+        from .providers.native_lab import NativeLabInventory
+        inventory = NativeLabInventory()
+        r = inventory.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/native-lab/health", dependencies=[Depends(require_auth)])
+    async def native_lab_health() -> dict:
+        """Native Lab health monitoring."""
+        from .providers.native_lab import NativeLabInventory, NativeLabHealth
+        inventory = NativeLabInventory()
+        health = NativeLabHealth(inventory)
+        r = health.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/native-lab/settings", dependencies=[Depends(require_auth)])
+    async def native_lab_settings() -> dict:
+        """Native Lab settings inspection."""
+        from .providers.native_lab import NativeLabSettings
+        settings = NativeLabSettings()
+        r = settings.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/native-lab/resources", dependencies=[Depends(require_auth)])
+    async def native_lab_resources() -> dict:
+        """Native Lab resource monitoring."""
+        from .providers.native_lab import NativeLabResources
+        resources = NativeLabResources()
+        r = resources.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    # --- Native Discovery endpoints ---
+
+    @app.get("/api/discovery/status", dependencies=[Depends(require_auth)])
+    async def discovery_status() -> dict:
+        """Native Discovery status."""
+        from .providers.native_discovery import NativeDiscovery
+        discovery = NativeDiscovery()
+        r = discovery.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/discovery/sources", dependencies=[Depends(require_auth)])
+    async def discovery_sources() -> dict:
+        """List discovery sources."""
+        from .providers.native_discovery import NativeDiscovery
+        discovery = NativeDiscovery()
+        r = discovery.observe()
+        if r.ok:
+            sources = r.data.get("sources", [])
+            return {"ok": True, "data": {"sources": sources}}
+        return {"ok": False, "status": r.status, "warnings": r.warnings}
+
+    @app.post("/api/discovery/sources", dependencies=[Depends(require_auth)])
+    async def discovery_add_source(request: Request) -> dict:
+        """Add a discovery source."""
+        from .providers.native_discovery import NativeDiscovery, RSSDiscoverySource
+        discovery = NativeDiscovery()
+        data = await request.json()
+        source = RSSDiscoverySource(
+            id=data.get("id", ""),
+            name=data.get("name", ""),
+            url=data.get("url", ""),
+            tags=data.get("tags", []),
+        )
+        discovery.add_source(source)
+        return {"ok": True, "data": source.to_dict()}
+
+    @app.get("/api/discovery/interests", dependencies=[Depends(require_auth)])
+    async def discovery_interests() -> dict:
+        """List interests."""
+        from .providers.native_discovery import NativeDiscovery
+        discovery = NativeDiscovery()
+        r = discovery.observe()
+        if r.ok:
+            interests = r.data.get("interests", [])
+            return {"ok": True, "data": {"interests": interests}}
+        return {"ok": False, "status": r.status, "warnings": r.warnings}
+
+    @app.post("/api/discovery/interests", dependencies=[Depends(require_auth)])
+    async def discovery_add_interest(request: Request) -> dict:
+        """Add an interest."""
+        from .providers.native_discovery import NativeDiscovery, Interest
+        discovery = NativeDiscovery()
+        data = await request.json()
+        interest = Interest(
+            id=data.get("id", ""),
+            name=data.get("name", ""),
+            category=data.get("category"),
+            weight=data.get("weight", 1.0),
+        )
+        discovery.add_interest(interest)
+        return {"ok": True, "data": interest.to_dict()}
+
+    @app.get("/api/discovery/discover", dependencies=[Depends(require_auth)])
+    async def discovery_discover(source: str | None = None) -> dict:
+        """Discover content from sources."""
+        from .providers.native_discovery import NativeDiscovery
+        discovery = NativeDiscovery()
+        r = discovery.discover(source)
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    # --- Native Reconciler endpoints ---
+
+    # --- Media endpoints ---
+    from .providers.native_media import NativeMediaEngine, build_adapter
+
+    def _build_media_engine():
+        connections_path = config_dir / "connections.json"
+        if not connections_path.exists():
+            return NativeMediaEngine([])
+        try:
+            config = json.loads(connections_path.read_text())
+            adapters = []
+            for conn in config.get("connections", []):
+                if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
+                    adapter = build_adapter(conn)
+                    if adapter:
+                        adapters.append(adapter)
+            return NativeMediaEngine(adapters)
+        except Exception:
+            return NativeMediaEngine([])
+
+    @app.get("/api/media/status", dependencies=[Depends(require_auth)])
+    async def media_status():
+        engine = _build_media_engine()
+        r = engine.status()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/media/library", dependencies=[Depends(require_auth)])
+    async def media_library():
+        engine = _build_media_engine()
+        r = engine.library()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/media/recent", dependencies=[Depends(require_auth)])
+    async def media_recent():
+        engine = _build_media_engine()
+        r = engine.recent()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/media/activity", dependencies=[Depends(require_auth)])
+    async def media_activity():
+        engine = _build_media_engine()
+        r = engine.activity()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/media/search", dependencies=[Depends(require_auth)])
+    async def media_search(q: str = ""):
+        engine = _build_media_engine()
+        r = engine.search(q)
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/reconciler/status", dependencies=[Depends(require_auth)])
+    async def reconciler_status() -> dict:
+        """Native Reconciler status."""
+        from .providers.native_reconciler import NativeSettingsReconciler
+        reconciler = NativeSettingsReconciler()
+        r = reconciler.observe()
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/reconciler/diff/{service}", dependencies=[Depends(require_auth)])
+    async def reconciler_diff(service: str, request: Request) -> dict:
+        """Compute drift between desired and observed state."""
+        from .providers.native_reconciler import NativeSettingsReconciler
+        reconciler = NativeSettingsReconciler()
+        observed = await request.json()
+        r = reconciler.diff(service, observed)
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    @app.get("/api/reconciler/propose/{service}", dependencies=[Depends(require_auth)])
+    async def reconciler_propose(service: str, request: Request) -> dict:
+        """Propose reconciliation actions."""
+        from .providers.native_reconciler import NativeSettingsReconciler
+        reconciler = NativeSettingsReconciler()
+        observed = await request.json()
+        r = reconciler.propose(service, observed)
+        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    # --- Vault endpoints ---
 
     @app.get("/api/vault/status", dependencies=[Depends(require_auth)])
     async def vault_status() -> dict:
@@ -1096,6 +1653,20 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         pack = registry.get(name)
         return {"ok": True, "data": pack.model_dump(mode="json")}
 
+    # --- Brain Template System ---
+
+    @app.get("/api/brain/templates", dependencies=[Depends(require_auth)])
+    async def brain_templates() -> dict:
+        """List all brain templates with metadata."""
+        templates = TemplateRegistry(config_dir, data_dir)
+        return {"ok": True, "data": {"templates": templates.list_templates()}}
+
+    @app.get("/api/brain/provenance", dependencies=[Depends(require_auth)])
+    async def brain_provenance(surface: str | None = None, task: str | None = None) -> dict:
+        """Report template provenance for Nerd Mode."""
+        templates = TemplateRegistry(config_dir, data_dir)
+        return {"ok": True, "data": templates.provenance(surface=surface, task=task)}
+
     # --- Scheduler / Reminders ---
 
     # One scheduler lives per app (background thread + shared state);
@@ -1104,13 +1675,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .scheduler import Scheduler, Reminder
     _reminders = Scheduler(data_dir / "reminders.json", journal=journal)
 
-    @app.on_event("startup")
-    async def start_scheduler() -> None:
-        _reminders.start()
+    # Use lifespan context manager instead of deprecated on_event
+    from contextlib import asynccontextmanager
 
-    @app.on_event("shutdown")
-    async def stop_scheduler() -> None:
+    @asynccontextmanager
+    async def lifespan(app):
+        _reminders.start()
+        yield
         _reminders.stop()
+
+    # Re-create app with lifespan (FastAPI supports this pattern)
+    # We attach lifespan to the app state so it's used
+    app.router.lifespan_context = lifespan
 
     # -- identity admin (issue #8 phase 2/3) -----------------------------
     def _is_admin(principal) -> bool:

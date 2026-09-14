@@ -654,6 +654,59 @@ export async function fetchThemes(): Promise<unknown[]> {
   return apiFetch<unknown[]>("/api/themes");
 }
 
+export interface BrainTemplate {
+  id: string;
+  version: number;
+  kind: string;
+  surface: string | null;
+  max_tokens: number;
+  source: string;
+  content_length: number;
+  has_override: boolean;
+}
+
+export interface BrainTemplatesData {
+  templates: BrainTemplate[];
+}
+
+export interface BrainProvenanceData {
+  core: Array<{ id: string; version: number; source: string }>;
+  surface: { id: string; version: number; source: string } | null;
+  task: { id: string; version: number; source: string } | null;
+  packs: Array<{ id: string; status: string }>;
+  overrides: Array<{ id: string; source: string }>;
+}
+
+export async function fetchBrainTemplates(): Promise<BrainTemplatesData> {
+  return apiFetch<BrainTemplatesData>("/api/brain/templates");
+}
+
+export async function fetchBrainProvenance(surface?: string, task?: string): Promise<BrainProvenanceData> {
+  const params = new URLSearchParams();
+  if (surface) params.set("surface", surface);
+  if (task) params.set("task", task);
+  const qs = params.toString();
+  return apiFetch<BrainProvenanceData>(`/api/brain/provenance${qs ? `?${qs}` : ""}`);
+}
+
+export interface IngressRollupsData {
+  ok: boolean;
+  provider?: string;
+  routes?: Array<{
+    name: string;
+    rule?: string;
+    service?: string;
+    tls?: boolean;
+    status?: string;
+  }>;
+  status?: string;
+  warnings?: string[];
+}
+
+export async function fetchIngressRollups(): Promise<IngressRollupsData> {
+  return apiFetch<IngressRollupsData>("/api/ingress/rollups");
+}
+
 export async function fetchJournalAudit(): Promise<{ text: string }> {
   return apiFetch<{ text: string }>("/api/journal/audit");
 }
@@ -766,6 +819,141 @@ export async function fetchMemorySearch(query: string): Promise<unknown> {
 
 export async function fetchConnections(): Promise<unknown[]> {
   return apiFetch<unknown[]>("/api/connections");
+}
+
+// ── Connections & Providers ──
+
+export interface ConfigFieldDef {
+  key: string;
+  label: string;
+  type: "text" | "url" | "secret" | "select" | "boolean";
+  required?: boolean;
+  description?: string;
+  placeholder?: string;
+  options?: Array<{ label: string; value: string }>;
+  secret_ref?: boolean;
+}
+
+export interface ProviderSchemaDef {
+  id: string;
+  display_name: string;
+  capability: string;
+  description: string;
+  adapter_type: string;
+  config_fields: ConfigFieldDef[];
+  can_test: boolean;
+  multiple: boolean;
+}
+
+export interface CapabilityOverview {
+  capability: string;
+  display_name: string;
+  description: string;
+  icon: string;
+  status: string;
+  ok: boolean;
+  configured: boolean;
+  needs_setup: boolean;
+  help_text: string;
+  providers: ProviderSchemaDef[];
+}
+
+export interface ConnectionTestResult {
+  status: string;
+  detail: string;
+}
+
+export async function fetchConnectionsOverview(): Promise<CapabilityOverview[]> {
+  return apiFetch<CapabilityOverview[]>("/api/connections/overview");
+}
+
+export async function fetchConnectionSchemas(): Promise<ProviderSchemaDef[]> {
+  return apiFetch<ProviderSchemaDef[]>("/api/connections/schemas");
+}
+
+export async function fetchConnectionSchema(capability: string): Promise<ProviderSchemaDef> {
+  return apiFetch<ProviderSchemaDef>(`/api/connections/schema/${encodeURIComponent(capability)}`);
+}
+
+export async function saveNativeConfig(key: string, config: unknown): Promise<unknown> {
+  return apiFetch<unknown>(`/api/connections/config/${encodeURIComponent(key)}`, {
+    method: "POST",
+    headers: withStepUp(new Headers({ "Content-Type": "application/json" })),
+    body: JSON.stringify(config),
+  });
+}
+
+export async function testConnection(payload: {
+  capability: string;
+  adapter_type: string;
+  config: Record<string, string>;
+}): Promise<ConnectionTestResult> {
+  return apiFetch<ConnectionTestResult>("/api/connections/test", {
+    method: "POST",
+    headers: withStepUp(new Headers({ "Content-Type": "application/json" })),
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Native Lab ──
+
+export async function fetchNativeLabInventory(): Promise<unknown> {
+  return apiFetch<unknown>("/api/native-lab/inventory");
+}
+
+export async function fetchNativeLabHealth(): Promise<unknown> {
+  return apiFetch<unknown>("/api/native-lab/health");
+}
+
+export async function fetchNativeLabSettings(): Promise<unknown> {
+  return apiFetch<unknown>("/api/native-lab/settings");
+}
+
+export async function fetchNativeLabResources(): Promise<unknown> {
+  return apiFetch<unknown>("/api/native-lab/resources");
+}
+
+// ── Discovery ──
+
+export async function fetchDiscoveryStatus(): Promise<unknown> {
+  return apiFetch<unknown>("/api/discovery/status");
+}
+
+export async function fetchDiscoverySources(): Promise<unknown> {
+  return apiFetch<unknown>("/api/discovery/sources");
+}
+
+export async function fetchDiscoveryInterests(): Promise<unknown> {
+  return apiFetch<unknown>("/api/discovery/interests");
+}
+
+export async function fetchDiscoveryDiscover(source?: string): Promise<unknown> {
+  const url = source ? `/api/discovery/discover?source=${source}` : "/api/discovery/discover";
+  return apiFetch<unknown>(url);
+}
+
+// ── Reconciler ──
+
+export async function fetchReconcilerStatus(): Promise<unknown> {
+  return apiFetch<unknown>("/api/reconciler/status");
+}
+
+// ── Media ──
+
+export async function fetchMediaStatus(): Promise<any> {
+  return apiFetch("/api/media/status");
+}
+export async function fetchMediaLibrary(): Promise<any> {
+  return apiFetch("/api/media/library");
+}
+export async function fetchMediaRecent(): Promise<any> {
+  return apiFetch("/api/media/recent");
+}
+export async function fetchMediaActivity(): Promise<any> {
+  return apiFetch("/api/media/activity");
+}
+export async function fetchMediaSearch(q: string): Promise<any> {
+  return apiFetch(`/api/media/search?q=${encodeURIComponent(q)}`);
 }
 
 // ── Writes (all step-up gated through withStepUp) ──

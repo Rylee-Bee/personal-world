@@ -204,8 +204,8 @@ class TestChatEndpoint:
 
         real_build_registry = api_mod.build_registry
 
-        def patched_build_registry(world, registry, config_dir):
-            reg = real_build_registry(world, registry, config_dir)
+        def patched_build_registry(world, registry, config_dir, **kwargs):
+            reg = real_build_registry(world, registry, config_dir, **kwargs)
             reg.register("reasoning", "fake-chat", fake,
                          health_check=lambda: True, writes="none")
             return reg
@@ -247,8 +247,8 @@ class TestChatUiContext:
 
         real_build_registry = api_mod.build_registry
 
-        def patched_build_registry(world, registry, config_dir):
-            reg = real_build_registry(world, registry, config_dir)
+        def patched_build_registry(world, registry, config_dir, **kwargs):
+            reg = real_build_registry(world, registry, config_dir, **kwargs)
             reg.register("reasoning", "fake-chat", fake,
                          health_check=lambda: True, writes="none")
             return reg
@@ -342,8 +342,8 @@ class TestChatUiEntity:
 
         real_build_registry = api_mod.build_registry
 
-        def patched_build_registry(world, registry, config_dir):
-            reg = real_build_registry(world, registry, config_dir)
+        def patched_build_registry(world, registry, config_dir, **kwargs):
+            reg = real_build_registry(world, registry, config_dir, **kwargs)
             reg.register("reasoning", "fake-chat", fake,
                          health_check=lambda: True, writes="none")
             return reg

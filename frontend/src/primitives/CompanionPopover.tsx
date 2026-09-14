@@ -27,6 +27,8 @@ export interface CompanionPopoverProps {
   companion?: string | null;
   /** Section label for context line (e.g. "Today"). */
   contextLabel?: string;
+  /** Status text shown in the popover greeting. */
+  statusText?: string;
 }
 
 let popoverSequence = 0;
@@ -37,6 +39,7 @@ export function CompanionPopover({
   onOpenAssistant,
   companion: companionOverride,
   contextLabel: _contextLabel,
+  statusText = "Your world is running.",
 }: CompanionPopoverProps) {
   const context = useCompanion();
   const companion = companionOverride !== undefined ? companionOverride : context.companion;
@@ -129,7 +132,7 @@ export function CompanionPopover({
           ) : null}
           <div className="pw-companion-popover-status">
             <p className="pw-companion-popover-greeting">
-              Your world is quiet today.{" "}
+              {statusText}{" "}
               <span className="pw-companion-popover-spark" aria-hidden="true">✦</span>
             </p>
             <p className="pw-companion-popover-voice">

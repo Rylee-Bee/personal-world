@@ -82,6 +82,7 @@
   gap: var(--pw-spacing-loose);
   flex: 1 1 0;
   min-width: 0;
+  width: 100%;
   min-height: 50.25rem;
   padding: 2.25rem 2.75rem 1.875rem;
   border: 1px solid var(--pw-color-warmth-glass-pill);
@@ -89,6 +90,7 @@
   background: var(--pw-color-vault-panel-translucent);
   box-shadow: var(--pw-color-warmth-panel-shadow);
   overflow: hidden;
+  overflow-wrap: break-word;
 }
 
 /* ── Welcome header ── */

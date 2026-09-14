@@ -1,57 +1,16 @@
-import { useMemo, useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import {
-  saveJournalEntry,
-  supersedeJournalEntry,
-  fetchJournalHistory,
-  ApiError,
-  type JournalEntry,
-} from "../lib/api";
-import { takeCorrectionDraft, type CorrectionDraft } from "../lib/correction-draft";
-import { useJournalPage, useJournalKey, useJournalAudit } from "../lib/hooks";
-import { useAnnounce } from "../primitives/LiveRegion";
-import { Disclosure } from "../primitives/Disclosure";
-import { Button } from "../components/ui/button";
-import { Loader2, BookOpen } from "../lib/icons";
+  usePrincipal,
+  useJournal,
+  useJournalPage,
+  useJournalAudit,
+  useMemorySearch,
+  useJournalKey,
+} from "../lib/hooks";
+import type { JournalEntry } from "../lib/api";
+import "./journal-screen.css";
 
-/**
- * JournalScreen (P1 T10, parity row 4, FOUNDATION-SPEC §7):
- *
- * Real /api/journal data only. Kind filters are aria-pressed toggles
- * (client-side on the loaded page, exactly like the legacy `.jfilter`
- * behavior); "Load more" re-fetches with a larger `n=` query param.
- * Provenance renders through Disclosure (Level 3, "Source") and
- * TechnicalDetails (Level 4) — provider/observed_at/authority, never
- * fabricated. The shell owns <main#main-content>.
- *
- * Composition (T14 warmth, DESIGN-HANDOFF N.7/N.8, same fix as Today
- * a8a445e): no Card chrome — the composer is a real h2 section with a
- * quiet --pw-color-border-subtle divider, and entries group under
- * plain date headings ("Today", "Yesterday", the actual date — the
- * journal-screen.svg pattern) with a quiet border-b per row, not a
- * bordered/shadowed box per entry (A11y §4.1 real headings; entries
- * themselves stay heading-free rows).
- */
-
-const KIND_FILTERS: Array<{ value: string; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "observation", label: "Observations" },
-  { value: "drift", label: "Drift" },
-  { value: "failure", label: "Failures" },
-  { value: "settings_change", label: "Settings" },
-];
-
-const PAGE_STEPS = [20, 100, 500];
-
-function eventSummary(entry: JournalEntry): string {
-  const summary = String(entry.summary || "Journal entry");
-  if (summary.toLowerCase().startsWith("chat exchange with ")) {
-    return "A conversation with Personal World";
-  }
-  return summary;
-}
-
-function eventTime(ts: string): string {
+function formatTime(ts: string): string {
   const date = new Date(ts);
   if (!ts || Number.isNaN(date.getTime())) return "Unknown time";
   return date.toLocaleString([], {
@@ -62,817 +21,238 @@ function eventTime(ts: string): string {
   });
 }
 
-function fullTime(ts: string): string {
-  const date = new Date(ts);
-  if (!ts || Number.isNaN(date.getTime())) return "Unknown time";
-  return date.toLocaleString([], {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+function entryText(entry: JournalEntry): string {
+  return (entry as unknown as Record<string, string>).text ?? entry.summary ?? "";
 }
 
-/** Host-local calendar-day key: entries group by the day the person
- * experienced, not by UTC bucket (same host-local convention as
- * eventTime/fullTime; no hard-coded timezone). */
-function localDayKey(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-interface DayGroup {
-  key: string;
-  heading: string;
-  entries: JournalEntry[];
-}
-
-/** Date-group headings ("Today", "Yesterday", or the actual date for
- * older groups) computed from each entry's ts relative to now — the
- * journal-screen.svg reference rhythm. Consecutive entries on the
- * same calendar day share one group; an unparseable ts groups under
- * the same honest "Unknown time" wording eventTime uses. */
-function groupEntriesByDay(entries: JournalEntry[], now: Date): DayGroup[] {
-  const todayKey = localDayKey(now);
-  const yesterdayKey = localDayKey(
-    new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+function EntryItem({ entry }: { entry: JournalEntry }) {
+  return (
+    <li className="pw-journal-entry">
+      <time dateTime={entry.ts} className="pw-journal-entry-time">
+        {formatTime(entry.ts)}
+      </time>
+      <p className="pw-journal-entry-text">{entryText(entry)}</p>
+    </li>
   );
-  const groups: DayGroup[] = [];
-  for (const entry of entries) {
-    const date = new Date(entry.ts);
-    const valid = Boolean(entry.ts) && !Number.isNaN(date.getTime());
-    const key = valid ? localDayKey(date) : "unknown";
-    const heading = !valid
-      ? "Unknown time"
-      : key === todayKey
-        ? "Today"
-        : key === yesterdayKey
-          ? "Yesterday"
-          : date.toLocaleDateString([], {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            });
-    const last = groups[groups.length - 1];
-    if (last && last.key === key) last.entries.push(entry);
-    else groups.push({ key, heading, entries: [entry] });
-  }
-  return groups;
 }
 
-/** Entry identity is a timestamp: accept the same instant in either
- *  ISO spelling (...Z or ...+00:00) — the proposal block may carry
- *  either. Parse both sides; string equality is never the contract. */
-function sameEntryTs(a: string, b: string): boolean {
-  if (a === b) return true;
-  const ta = new Date(a).getTime();
-  const tb = new Date(b).getTime();
-  return Number.isFinite(ta) && Number.isFinite(tb) && ta === tb;
-}
-
-function JournalScreen() {
-  const [pageSize, setPageSize] = useState(0); // index into PAGE_STEPS
-  const journal = useJournalPage(PAGE_STEPS[pageSize]);
-  const bumpJournal = useJournalKey();
-  const { announce } = useAnnounce();
-  const [kind, setKind] = useState("all");
-  const [note, setNote] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [noteStatus, setNoteStatus] = useState("");
-
-  // Assistant-drafted correction handoff (?correct=<entry_ts> from the
-  // chat suggestion): the stashed draft seeds the existing panel for
-  // exactly this entry. Consumed once — a reload shows the calm view.
-  // The URL param mirrors the Projects ?repo= pattern: shareable
-  // navigation state, never authority.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const correctTarget = searchParams.get("correct");
-  const [draft, setDraft] = useState<CorrectionDraft | null>(() => {
-    if (!correctTarget) return null;
-    const stashed = takeCorrectionDraft();
-    // Pairing guard: the draft must be FOR the entry the URL names —
-    // a mismatched/stale stash degrades to the calm view (never
-    // applied to the wrong entry). Timestamps compare as instants.
-    return stashed && sameEntryTs(stashed.entry_ts, correctTarget)
-      ? stashed
+export default function JournalScreen() {
+  const principal = usePrincipal();
+  const name =
+    principal.data && !principal.isError
+      ? String(principal.data.display_name || "").trim() || null
       : null;
-  });
-  const onDraftConsumed = () => {
-    setDraft(null);
-    if (searchParams.get("correct")) setSearchParams({}, { replace: true });
-  };
 
-  const entries = journal.data ?? [];
-  const filtered = useMemo(
-    () => (kind === "all" ? entries : entries.filter((e) => e.kind === kind)),
-    [entries, kind]
-  );
-  // Newest-first (the API page is oldest-first), then consecutive
-  // same-calendar-day runs share one date-group heading.
-  const groups = useMemo(
-    () => groupEntriesByDay([...filtered].reverse(), new Date()),
-    [filtered]
-  );
+  const journal = useJournal();
+  const history = useJournalPage(50);
+  const audit = useJournalAudit();
+  const journalKey = useJournalKey();
 
-  const canLoadMore = pageSize < PAGE_STEPS.length - 1;
+  const [writeText, setWriteText] = useState("");
+  const [writeStatus, setWriteStatus] = useState<string | null>(null);
+  const [writePending, setWritePending] = useState(false);
 
-  // After an approved correction: re-query the calm view. The query
-  // keeps `data` while refetching (first-load-only loader), so the
-  // screen never unmounts mid-workflow (the Projects lesson).
-  const onEntryCorrected = () => {
-    void journal.refetch();
-  };
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const memorySearch = useMemorySearch(searchQuery);
 
-  const loadMore = () => {
-    const next = Math.min(pageSize + 1, PAGE_STEPS.length - 1);
-    setPageSize(next);
-  };
-
-  const saveNote = async () => {
-    const text = note.trim();
-    if (!text || saving) return;
-    setSaving(true);
-    setNoteStatus("");
+  async function handleWrite(e: React.FormEvent) {
+    e.preventDefault();
+    const text = writeText.trim();
+    if (!text) return;
+    setWritePending(true);
+    setWriteStatus(null);
     try {
-      await saveJournalEntry(text);
-      setNote("");
-      bumpJournal();
-      setNoteStatus("Saved to your journal.");
-      announce("Note saved to your journal.", {
-        kind: "action_completed",
-        key: "journal-note-saved",
+      const token = localStorage.getItem("pw_token") || "";
+      const res = await fetch("/api/journal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-PW-StepUp": "1",
+        },
+        body: JSON.stringify({ text }),
       });
-    } catch (e) {
-      setNoteStatus(
-        e instanceof ApiError && e.detail
-          ? e.detail
-          : "That note did not save. It is still in the box so you can try again."
-      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.detail ?? `Write failed (${res.status})`);
+      }
+      setWriteText("");
+      setWriteStatus("Saved.");
+      journalKey();
+    } catch (err) {
+      setWriteStatus(err instanceof Error ? err.message : "Write failed.");
     } finally {
-      setSaving(false);
+      setWritePending(false);
     }
-  };
+  }
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchInput.trim();
+    if (q) setSearchQuery(q);
+  }
+
+  const entries: JournalEntry[] = Array.isArray(journal.data) ? journal.data : [];
 
   return (
-    <div className="space-y-6">
-      <section aria-labelledby="journal-page-heading" className="space-y-[9px]">
-        <div className="flex items-center gap-3">
-          <BookOpen size={24} aria-hidden={true} className="text-[var(--pw-color-text-muted)]" />
-          <h1
-            id="journal-page-heading"
-            className="text-[36px] leading-[1.1]"
-            style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-          >
-            Journal &amp; Memory
-          </h1>
-        </div>
-        <p className="text-sm text-[var(--pw-color-text-secondary)]">
-          Your words, kept safe.
+    <div className="pw-journal">
+      <section className="pw-journal-header" aria-labelledby="journal-heading">
+        <h1 id="journal-heading" className="pw-journal-title">
+          Journal
+        </h1>
+        <p className="pw-journal-subtitle">
+          {name ? `${name}'s` : "Your"} quiet writing space.
         </p>
       </section>
 
-      {/* Composer — notebook-page writing experience (frame 17:2268):
-          rose rule divider, quiet textarea, page footer with save status
-          and companion whisper. Near-silence: companion is barely present
-          during private writing. */}
-      <section
-        aria-labelledby="journal-composer-heading"
-        className="space-y-4 border-t border-[var(--pw-color-accent-secondary)] border-opacity-40 pt-[var(--pw-spacing-section)]"
-      >
-        <h2
-          id="journal-composer-heading"
-          className="text-lg font-semibold"
-          style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-        >
-          Leave a note
+      <section className="pw-journal-page" aria-labelledby="journal-write-heading">
+        <h2 id="journal-write-heading" className="sr-only">
+          Write a journal entry
         </h2>
-        <label htmlFor="journal-note" className="sr-only">
-          Journal note
-        </label>
-        <textarea
-          id="journal-note"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="What happened? What did you notice?"
-          rows={4}
-          maxLength={2000}
-          className="w-full resize-none rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] p-4 text-[16px] leading-[1.7] text-[var(--pw-color-text-primary)] placeholder-[var(--pw-color-text-muted)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2"
-        />
-        <div className="flex items-center justify-between gap-3">
-          <Button type="button" onClick={() => void saveNote()} disabled={!note.trim() || saving}>
-            Save entry
-          </Button>
-          <span className="text-sm text-[var(--pw-color-text-muted)]" role="status">
-            {saving ? "Saving…" : noteStatus}
-          </span>
-        </div>
-        {/* Page footer (17:2268): lock + save status + companion whisper */}
-        <div className="flex items-center justify-between text-[11px] text-[var(--pw-color-text-muted)] opacity-56">
-          <span className="flex items-center gap-[7px]">
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
-              <path d="M8.25 5H2.75C2.34 5 2 5.34 2 5.75V9.25C2 9.66 2.34 10 2.75 10H8.25C8.66 10 9 9.66 9 9.25V5.75C9 5.34 8.66 5 8.25 5Z" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M3.5 5V3.5C3.5 2.57 4.07 1.74 5 1.45C5.93 1.74 6.5 2.57 6.5 3.5V5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Saved · just now
-          </span>
-          <span className="opacity-50">✦ quietly here</span>
-        </div>
-      </section>
-
-      {/* Kind filters: aria-pressed toggles (parity row 4) */}
-      <section aria-labelledby="journal-filters-heading">
-        <h2 id="journal-filters-heading" className="sr-only">
-          Filter journal entries by kind
-        </h2>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Journal kind filters">
-          {KIND_FILTERS.map((filter) => (
+        <form className="pw-journal-write" onSubmit={handleWrite}>
+          <label htmlFor="journal-write-input" className="sr-only">
+            What's on your mind?
+          </label>
+          <textarea
+            id="journal-write-input"
+            className="pw-journal-write-input"
+            placeholder="What's on your mind?"
+            value={writeText}
+            onChange={(e) => setWriteText(e.target.value)}
+            rows={3}
+            disabled={writePending}
+          />
+          <div className="pw-journal-write-actions">
             <button
-              key={filter.value}
-              type="button"
-              aria-pressed={kind === filter.value}
-              onClick={() => setKind(filter.value)}
-              className="rounded-full border border-[var(--pw-color-border-subtle)] px-4 text-sm font-medium text-[var(--pw-color-text-secondary)] hover:text-[var(--pw-color-text-primary)] focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2 data-[pressed=true]:border-[var(--pw-color-accent-primary)] data-[pressed=true]:text-[var(--pw-color-text-primary)]"
-              data-pressed={kind === filter.value}
+              type="submit"
+              className="pw-journal-write-submit"
+              disabled={writePending || !writeText.trim()}
             >
-              {filter.label}
+              {writePending ? "Writing\u2026" : "Write"}
             </button>
-          ))}
-        </div>
+            {writeStatus && (
+              <span className="pw-journal-write-status" role="status">
+                {writeStatus}
+              </span>
+            )}
+          </div>
+        </form>
       </section>
 
-      {/* Entries — warm, nostalgic reading experience (frame 17:5763):
-          rose dates, serif entry titles, sparkle decorations between
-          entries, progressive opacity for older entries. */}
-      {journal.isLoading ? (
-        <p className="flex items-center gap-2 text-[var(--pw-color-text-muted)]" role="status">
-          <Loader2 size={16} aria-hidden={true} className="loader-static" />
-          Opening your journal…
-        </p>
-      ) : journal.isError ? (
-        <section aria-labelledby="journal-error-heading" data-pw-state="error" className="pw-state">
-          <h2 id="journal-error-heading">Journal</h2>
-          <p className="pw-state-summary">
-            Could not load journal entries —
-            {" "}
-            <span className="pw-state-detail-inline">
-              {journal.error instanceof ApiError && journal.error.detail
-                ? journal.error.detail
-                : "the request did not complete"}
+      <div className="pw-journal-page" aria-labelledby="journal-entries-heading">
+        <h2 id="journal-entries-heading" className="sr-only">
+          Recent journal entries
+        </h2>
+        {journal.isLoading ? (
+          <p className="pw-journal-status" role="status">
+            Opening your journal\u2026
+          </p>
+        ) : entries.length === 0 ? (
+          <div className="pw-journal-empty" role="status">
+            <span className="pw-journal-empty-sparkle" aria-hidden="true">
+              \u2726
             </span>
-            .
+            <p className="pw-journal-empty-text">
+              Your journal is quiet. Write when you're ready.
+            </p>
+          </div>
+        ) : (
+          <ul className="pw-journal-list" role="list">
+            {entries.map((entry, i) => (
+              <EntryItem key={`${entry.ts}-${i}`} entry={entry} />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <details className="pw-journal-page pw-journal-disclosure">
+        <summary className="pw-journal-disclosure-summary">
+          Journal history
+        </summary>
+        {history.isLoading ? (
+          <p className="pw-journal-status" role="status">
+            Loading history\u2026
           </p>
-          <button type="button" className="pw-state-retry" onClick={() => void journal.refetch()}>
-            Try again
-          </button>
-          <p className="pw-state-detail">
-            The rest of your world still works: every section in Main stays available while this one is failing.
+        ) : !Array.isArray(history.data) || history.data.length === 0 ? (
+          <p className="pw-journal-status">No history yet.</p>
+        ) : (
+          <ul className="pw-journal-list" role="list">
+            {history.data.map((entry, i) => (
+              <EntryItem key={`${entry.ts}-hist-${i}`} entry={entry} />
+            ))}
+          </ul>
+        )}
+      </details>
+
+      <details className="pw-journal-page pw-journal-disclosure">
+        <summary className="pw-journal-disclosure-summary">
+          Audit trail
+        </summary>
+        {audit.isLoading ? (
+          <p className="pw-journal-status" role="status">
+            Loading audit trail\u2026
           </p>
-        </section>
-      ) : filtered.length === 0 ? (
-        <section
-          aria-labelledby="journal-empty-heading"
-          className="flex flex-col items-center gap-3 py-10"
-        >
-          <BookOpen size={36} aria-hidden={true} />
-          <h2
-            id="journal-empty-heading"
-            className="text-lg font-semibold"
-            style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
+        ) : audit.data?.text ? (
+          <pre className="pw-journal-audit-text">{audit.data.text}</pre>
+        ) : (
+          <p className="pw-journal-status">No audit data.</p>
+        )}
+      </details>
+
+      <section className="pw-journal-page" aria-labelledby="journal-search-heading">
+        <h2 id="journal-search-heading" className="sr-only">
+          Memory search
+        </h2>
+        <form className="pw-journal-search" onSubmit={handleSearch}>
+          <label htmlFor="journal-search-input" className="sr-only">
+            Search memories
+          </label>
+          <input
+            id="journal-search-input"
+            type="text"
+            className="pw-journal-search-input"
+            placeholder="Search memories\u2026"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="pw-journal-search-submit"
+            disabled={!searchInput.trim()}
           >
-            {entries.length === 0 ? "No journal entries yet" : "No entries of this kind yet"}
-          </h2>
-          <p className="text-center text-[var(--pw-color-text-muted)]">
-            {entries.length === 0
-              ? "Entries appear as your world observes things — and whenever you leave a note."
-              : "Try another filter to see what else has been recorded."}
+            Search
+          </button>
+        </form>
+        {searchQuery && memorySearch.isLoading && (
+          <p className="pw-journal-status" role="status">
+            Searching\u2026
           </p>
-        </section>
-      ) : (
-        <div className="space-y-0">
-          {groups.map((group, gi) => (
-            <section key={`${group.key}-${gi}`} aria-labelledby={`journal-day-${gi}`}>
-              <h2
-                id={`journal-day-${gi}`}
-                className="mb-3 text-sm font-semibold"
-                style={{
-                  fontFamily: "var(--pw-typography-font-expressive)",
-                  color: "var(--pw-color-accent-secondary)",
-                }}
-              >
-                {group.heading}
-              </h2>
-              <ul className="space-y-0" role="list">
-                {group.entries.map((entry, i) => {
-                  const entryOpacity = gi > 2 ? "opacity-72" : gi > 1 ? "opacity-80" : gi > 0 ? "opacity-94" : "";
-                  return (
-                    <li
-                      key={`${entry.ts}-${i}`}
-                      className={`${entryOpacity}`}
-                    >
-                      <div className="flex gap-[18px] py-3">
-                        {/* Page edge: rose vertical line + sparkle mark */}
-                        <div className="relative flex w-[22px] shrink-0 flex-col items-center pt-[8px]">
-                          <div
-                            className="absolute left-[2px] top-0 h-full w-px opacity-72"
-                            style={{ backgroundColor: "var(--pw-color-accent-secondary)" }}
-                          />
-                          <div className="relative z-10 flex size-[18px] items-center justify-center rounded-full bg-[var(--pw-color-surface-canvas)]">
-                            <span className="text-[12px] text-[var(--pw-color-accent-secondary)]" aria-hidden="true">✦</span>
-                          </div>
-                        </div>
-                        {/* Entry content */}
-                        <div className="min-w-0 flex-1 space-y-[7px]">
-                          <time
-                            dateTime={entry.ts}
-                            className="block text-[12px] text-[var(--pw-color-accent-secondary)]"
-                          >
-                            {eventTime(entry.ts)}
-                          </time>
-                          <p
-                            className="text-[22px] leading-[1.2] text-[var(--pw-color-text-primary)]"
-                            style={{ fontFamily: "var(--pw-typography-font-expressive)" }}
-                          >
-                            {eventSummary(entry)}
-                          </p>
-                          <p className="text-sm leading-[1.45] text-[var(--pw-color-text-secondary)] opacity-85">
-                            Kind: {entry.kind}
-                          </p>
-                          {entry.supersedes ? (
-                            <p className="text-sm text-[var(--pw-color-text-secondary)]" data-pw-corrected="true">
-                              Corrected — an earlier version of this entry is in its history.
-                            </p>
-                          ) : null}
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Disclosure summary="Source" level={3}>
-                              <div className="space-y-1 pt-1 text-sm">
-                                <p>
-                                  Recorded by {entry.provenance?.source ?? "an unknown source"}.
-                                </p>
-                                <p>Recorded at {fullTime(entry.provenance?.observed_at ?? entry.ts)}.</p>
-                              </div>
-                            </Disclosure>
-                            <TechnicalProvenance entry={entry} />
-                            <EntryHistory entry={entry} />
-                            <CorrectEntryButton
-                              entry={entry}
-                              onCorrected={onEntryCorrected}
-                              pendingDraft={
-                                correctTarget && sameEntryTs(entry.ts, correctTarget)
-                                  ? draft
-                                  : null
-                              }
-                              onDraftConsumed={onDraftConsumed}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      {/* Sparkle divider between entries (17:5763 waves-ladder) */}
-                      {i < group.entries.length - 1 && (
-                        <div className="flex items-center gap-2 py-1 pl-[31px] text-[11px] text-[var(--pw-color-accent-secondary)] opacity-40">
-                          <span aria-hidden="true">✦</span>
-                          <div className="h-px flex-1 bg-[var(--pw-color-border-subtle)] opacity-60" />
-                        </div>
+        )}
+        {searchQuery && !memorySearch.isLoading && memorySearch.data != null && (
+          <div className="pw-journal-search-results">
+            {Array.isArray(memorySearch.data) && memorySearch.data.length === 0 ? (
+              <p className="pw-journal-status">No results.</p>
+            ) : Array.isArray(memorySearch.data) ? (
+              <ul className="pw-journal-list" role="list">
+                {memorySearch.data.map((item: Record<string, unknown>, i: number) => (
+                  <li key={i} className="pw-journal-entry">
+                    <p className="pw-journal-entry-text">
+                      {String(
+                        item.text ?? item.summary ?? JSON.stringify(item)
                       )}
-                    </li>
-                  );
-                })}
+                    </p>
+                  </li>
+                ))}
               </ul>
-            </section>
-          ))}
-        </div>
-      )}
-
-      {/* Load more: re-queries /api/journal?n= with a larger n (row 4) */}
-      {canLoadMore && entries.length > 0 ? (
-        <div className="flex justify-center">
-          <Button type="button" variant="outline" onClick={loadMore}>
-            Load more entries
-          </Button>
-        </div>
-      ) : null}
-
-      {/* Entry count footer (17:5763): warm, nostalgic bottom bar */}
-      {entries.length > 0 && !journal.isLoading && !journal.isError ? (
-        <div className="border-t border-[var(--pw-color-border-subtle)] flex items-center justify-between py-4 text-[12px]">
-          <span className="flex items-center gap-2 text-[var(--pw-color-accent-secondary)]">
-            <span aria-hidden="true">✦</span>
-            <span className="text-[var(--pw-color-text-muted)]">
-              {entries.length} {entries.length === 1 ? "entry" : "entries"} kept safe
-            </span>
-          </span>
-          <span className="font-semibold text-[var(--pw-color-accent-primary)]">
-            Write something new →
-          </span>
-        </div>
-      ) : null}
-
-      {/* Audit trail (Finish Line "understand exactly what happened"):
-          the backend's full technical log (AuditRenderer — provenance on
-          every line). Progressive disclosure: collapsed by default,
-          fetched only when opened (the hook behind TechnicalDetails
-          stays lazy so a calm default view costs nothing). */}
-      <JournalAudit />
+            ) : (
+              <pre className="pw-journal-audit-text">
+                {JSON.stringify(memorySearch.data, null, 2)}
+              </pre>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
-
-/** Full audit log behind a Level-4 disclosure: nerd mode on demand
- * (Finish Line "Transparency and nerd mode"; A11y §4.6). The text
- * arrives pre-rendered from the server (AuditRenderer) and is shown
- * verbatim — never reinterpreted. */
-function JournalAudit() {
-  const [requested, setRequested] = useState(false);
-  // Lazy by structural position: the query hook mounts ONLY after the
-  // person asks for the audit — a calm default view costs zero
-  // requests (the /api/journal?n= test stays exact).
-  if (!requested) {
-    return (
-      <Disclosure
-        summary="Audit trail — every entry with full provenance"
-        level={4}
-      >
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setRequested(true)}
-        >
-          Show the technical audit log
-        </Button>
-      </Disclosure>
-    );
-  }
-  return <JournalAuditBody />;
-}
-
-/** Requested state: fetch + render the audit text verbatim. */
-function JournalAuditBody() {
-  const audit = useJournalAudit();
-  return (
-    <Disclosure
-      summary="Audit trail — every entry with full provenance"
-      level={4}
-      defaultOpen
-    >
-      {audit.isLoading ? (
-        <p className="text-sm text-[var(--pw-color-text-muted)]">
-          Loading the audit log…
-        </p>
-      ) : audit.isError ? (
-        <p className="text-sm text-[var(--pw-color-text-secondary)]">
-          The audit log could not be loaded. Your journal entries above
-          still work.
-        </p>
-      ) : (audit.data?.text ?? "").trim() === "" ? (
-        <p className="text-sm text-[var(--pw-color-text-secondary)]">
-          The audit log is empty — nothing has been recorded yet.
-        </p>
-      ) : (
-        <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-[var(--pw-color-surface-panel)] p-3 text-xs leading-relaxed text-[var(--pw-color-text-primary)]">
-          {audit.data?.text}
-        </pre>
-      )}
-    </Disclosure>
-  );
-}
-
-/**
- * Correct this entry (second propose→approve→act workflow; same trust
- * model as the Projects repository refresh). The button only REVEALS
- * the correction panel — it performs nothing. Exactly one panel is
- * open at a time (entry timestamp in JournalScreen-level state is
- * unnecessary: each row owns its own toggle, and opening another
- * row's button simply leaves this one closed).
- *
- * Assistant-drafted drafts (assistant participation: drafting is not
- * acting): when the route hands this entry a stashed draft (?correct=
- * from the chat suggestion), the panel opens prefilled and labeled as
- * Personal World's draft — the person edits freely, and the normal
- * "Nothing has changed yet" boundary + explicit approval apply
- * unchanged. The draft is consumed once (take-one handoff).
- */
-function CorrectEntryButton({
-  entry,
-  onCorrected,
-  pendingDraft,
-  onDraftConsumed,
-}: {
-  entry: JournalEntry;
-  onCorrected: () => void;
-  pendingDraft: CorrectionDraft | null;
-  onDraftConsumed: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const openDraftRef = useRef(pendingDraft);
-  openDraftRef.current = pendingDraft;
-
-  // A stashed draft for THIS entry opens the panel automatically —
-  // once; the draft is consumed so a reload never re-opens it.
-  const requested = useRef(false);
-  useEffect(() => {
-    if (openDraftRef.current && !requested.current) {
-      requested.current = true;
-      setOpen(true);
-    }
-  }, [pendingDraft]);
-
-  return (
-    <>
-      <button
-        type="button"
-        data-pw-correct-entry={entry.ts}
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="inline-flex min-h-[var(--pw-target-minimum)] items-center rounded-lg border border-[var(--pw-color-border-subtle)] px-4 text-sm font-medium text-[var(--pw-color-text-secondary)] hover:text-[var(--pw-color-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-offset-2"
-      >
-        {open ? "Close correction" : "Correct this entry"}
-      </button>
-      {open ? (
-        <EntryCorrectionPanelInner
-          entry={entry}
-          onCorrected={onCorrected}
-          draft={pendingDraft}
-          onDraftConsumed={onDraftConsumed}
-        />
-      ) : null}
-    </>
-  );
-}
-
-/**
- * The approval panel (inline — no modal trap). PROPOSE: what/why/
- * original/proposed/effect/risk/recovery, all plain language, then
- * "Nothing has changed yet." APPROVE: the only trigger of the act.
- * After approval the panel collapses back into the row and the calm
- * list shows the corrected entry as current.
- */
-function EntryCorrectionPanelInner({
-  entry,
-  onCorrected,
-  draft,
-  onDraftConsumed,
-}: {
-  entry: JournalEntry;
-  onCorrected: () => void;
-  draft: CorrectionDraft | null;
-  onDraftConsumed: () => void;
-}) {
-  const { announce } = useAnnounce();
-  // Prefill: an assistant-drafted proposal seeds text + reason and is
-  // labeled as Personal World's; the person edits freely before any
-  // approval. Captured ONCE at mount: the draft is consumed
-  // immediately (so a reload never re-opens), but the label and the
-  // honest drafted_by provenance survive until the approval attempt —
-  // what gets approved is whatever the person left in the boxes.
-  const [fromAssistant] = useState(draft !== null);
-  const [text, setText] = useState(draft?.proposed_text ?? entry.summary);
-  const [reason, setReason] = useState(draft?.reason ?? "");
-  const textRef = useRef<HTMLTextAreaElement>(null);
-  const [state, setState] = useState<
-    { phase: "proposed" } | { phase: "running" } | { phase: "done" } | { phase: "failed"; detail: string }
-  >({ phase: "proposed" });
-
-  // Sensible focus: land in the editable text when the panel opens
-  // from an assistant draft (keyboard users arrive ready to review).
-  useEffect(() => {
-    if (fromAssistant) textRef.current?.focus();
-    // the draft is consumed as soon as the panel owns its content
-    onDraftConsumed();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const approve = async () => {
-    if (state.phase === "running") return;
-    const corrected = text.trim();
-    if (!corrected || corrected === entry.summary) return;
-    setState({ phase: "running" });
-    try {
-      const env = await supersedeJournalEntry(
-        entry.ts,
-        corrected,
-        reason.trim() || undefined,
-        // Honest provenance: the server records who DRAFTED vs who
-        // approved; this changes nothing about the authority (the
-        // step-up approval is still the only act).
-        fromAssistant ? "Personal World (assistant draft)" : "the Journal screen"
-      );
-      if (env.ok && env.data) {
-        setState({ phase: "done" });
-        announce(
-          env.data.already_applied
-            ? "This correction was already in place."
-            : "Entry corrected. The original stays in history.",
-          { kind: "action_completed", key: "journal-supersede" }
-        );
-        // The calm list re-queries; the row re-renders with the
-        // corrected text + "Corrected" note (the visible result). The
-        // panel stays on Done so the person never has to infer what
-        // happened — closing it is their choice ("Close correction").
-        onCorrected();
-      } else {
-        setState({
-          phase: "failed",
-          detail: env.warnings?.[0] ?? "The correction could not be applied.",
-        });
-        announce("Correction failed. The original entry is unchanged.", {
-          kind: "error",
-          key: "journal-supersede",
-        });
-      }
-    } catch {
-      setState({
-        phase: "failed",
-        detail: "The correction could not be applied. Nothing else changed.",
-      });
-      announce("Correction failed. The original entry is unchanged.", {
-        kind: "error",
-        key: "journal-supersede",
-      });
-    }
-  };
-
-  return (
-    <section
-      aria-labelledby={`correct-heading-${entry.ts}`}
-      data-pw-correction={state.phase}
-      className="mt-2 rounded-xl border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-panel)] p-4"
-    >
-      <h3 id={`correct-heading-${entry.ts}`} className="text-base font-semibold">
-        Correct this entry
-      </h3>
-      {fromAssistant ? (
-        <p
-          className="mt-1 text-sm text-[var(--pw-color-text-secondary)]"
-          data-pw-draft-label
-        >
-          Personal World drafted this proposal from your journal. Review it,
-          edit it freely, or close it — nothing changes until you approve.
-        </p>
-      ) : null}
-      {state.phase === "proposed" ? (
-        <>
-          <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="font-semibold text-[var(--pw-color-text-primary)]">Original (stays in history)</dt>
-              <dd className="text-[var(--pw-color-text-secondary)]">{entry.summary}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--pw-color-text-primary)]">Proposed (becomes the current version)</dt>
-              <dd>
-                <label htmlFor={`correct-text-${entry.ts}`} className="sr-only">
-                  Corrected entry text
-                </label>
-                <textarea
-                  ref={textRef}
-                  id={`correct-text-${entry.ts}`}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  rows={2}
-                  maxLength={2000}
-                  className="w-full resize-none rounded-lg border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-canvas)] p-2 text-[var(--pw-color-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-offset-2"
-                />
-              </dd>
-            </div>
-          </dl>
-          <label htmlFor={`correct-reason-${entry.ts}`} className="mt-2 block text-sm text-[var(--pw-color-text-secondary)]">
-            Reason (optional — kept with the history)
-            <input
-              id={`correct-reason-${entry.ts}`}
-              type="text"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              maxLength={200}
-              className="mt-1 w-full rounded-lg border border-[var(--pw-color-border-subtle)] bg-[var(--pw-color-surface-canvas)] p-2 text-[var(--pw-color-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-offset-2"
-            />
-          </label>
-          <ul className="mt-2 space-y-0.5 text-sm text-[var(--pw-color-text-secondary)]">
-            <li>Effect: this replaces the entry as the current version.</li>
-            <li>The original will stay in history, inspectable forever.</li>
-            <li>Risk: low — your own note, and nothing is erased.</li>
-            <li>Recovery: you can correct the corrected entry again anytime.</li>
-          </ul>
-          <p className="mt-2 text-sm" data-pw-correction-notice>
-            Nothing has changed yet. Only your approval applies it.
-          </p>
-          <button
-            type="button"
-            data-pw-correction-approve
-            disabled={!text.trim() || text.trim() === entry.summary}
-            onClick={() => void approve()}
-            className="mt-2 inline-flex min-h-[var(--pw-target-minimum)] items-center rounded-lg border border-[var(--pw-color-border-subtle)] px-4 text-sm font-medium text-[var(--pw-color-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-offset-2 disabled:opacity-50"
-          >
-            Approve and correct
-          </button>
-        </>
-      ) : state.phase === "running" ? (
-        <p className="mt-1 text-sm" role="status">
-          Applying the correction…
-        </p>
-      ) : state.phase === "done" ? (
-        <p className="mt-1 text-sm" role="status">
-          Done — the corrected entry is now the current version. The
-          original stays in history.
-        </p>
-      ) : (
-        <>
-          <p className="mt-1 text-sm" role="status">
-            The correction was not applied: {state.detail}
-          </p>
-          <button
-            type="button"
-            onClick={() => setState({ phase: "proposed" })}
-            className="mt-2 inline-flex min-h-[var(--pw-target-minimum)] items-center rounded-lg border border-[var(--pw-color-border-subtle)] px-4 text-sm text-[var(--pw-color-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-offset-2"
-          >
-            Back to the proposal
-          </button>
-        </>
-      )}
-    </section>
-  );
-}
-
-/**
- * "View history" disclosure: renders for entries with a correction
- * chain (supersedes set — i.e., this entry replaced an earlier one).
- * Loads the chain on open (progressive disclosure; zero cost when
- * collapsed). Non-color distinction: each version labeled
- * Original / Corrected with timestamps.
- */
-function EntryHistory({ entry }: { entry: JournalEntry }) {
-  const [chain, setChain] = useState<JournalEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  if (!entry.supersedes) return null;
-
-  // Lazy: the chain loads the first time the disclosure opens (the
-  // summary click is the trigger — Disclosure toggles open state
-  // itself; this fetch is fire-and-remember).
-  const load = () => {
-    if (chain !== null || error !== null) return;
-    fetchJournalHistory(entry.ts)
-      .then(setChain)
-      .catch(() =>
-        setError("The history could not be loaded. The entry itself still works.")
-      );
-  };
-
-  return (
-    <span data-pw-history onClick={load}>
-    <Disclosure
-      summary="View history"
-      level={3}
-    >
-      <div className="pt-1 text-sm">
-        {error ? (
-          <p>{error}</p>
-        ) : chain === null ? (
-          <p role="status">Loading the earlier versions…</p>
-        ) : (
-          <ol className="space-y-2" data-pw-history-chain={entry.ts}>
-            {chain.map((v, i) => (
-              <li key={v.ts}>
-                <p className="font-semibold text-[var(--pw-color-text-primary)]">
-                  {i === 0
-                    ? "Original"
-                    : `Corrected version ${i}`}
-                  {" — "}
-                  <time dateTime={v.ts} className="font-normal text-[var(--pw-color-text-muted)]">
-                    {fullTime(v.ts)}
-                  </time>
-                </p>
-                <p className="text-[var(--pw-color-text-secondary)]">{v.summary}</p>
-                {v.supersede_reason ? (
-                  <p className="text-xs text-[var(--pw-color-text-muted)]">
-                    Reason: {v.supersede_reason}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
-    </Disclosure>
-    </span>
-  );
-}
-
-function TechnicalProvenance({ entry }: { entry: JournalEntry }) {
-  if (!entry.provenance) return null;
-  return (
-    <Disclosure summary="Technical details" level={4}>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-        <dt className="text-[var(--pw-color-text-muted)]">Source</dt>
-        <dd>{entry.provenance.source}</dd>
-        <dt className="text-[var(--pw-color-text-muted)]">Provider</dt>
-        <dd>{entry.provenance.provider ?? "none"}</dd>
-        <dt className="text-[var(--pw-color-text-muted)]">Authority</dt>
-        <dd>{entry.provenance.authority}</dd>
-        <dt className="text-[var(--pw-color-text-muted)]">Observed</dt>
-        <dd>{entry.provenance.observed_at}</dd>
-      </dl>
-    </Disclosure>
-  );
-}
-
-export default JournalScreen;

@@ -1,45 +1,118 @@
-# Project Worlds — portable standalone deployment.
+# ─────────────────────────────────────────────────────────────────
+# Project Worlds — Portable Appliance
+# ─────────────────────────────────────────────────────────────────
 #
-# Product formerly "Personal World"; service identifiers unchanged.
+# `docker compose up -d` brings up everything a new user needs:
 #
-# This compose file is the portable appliance. It pulls the published
-# GHCR image; it carries no host-specific mounts, no homelab checkout,
-# no Kilo auth file, and no WSL paths. It boots with only:
+#   core        — the Worlds API + frontend (port 8000)
+#   ollama      — local reasoning brain (qwen3:1.7b, no API key)
+#   ollama-pull — one-shot init that downloads the model on first boot
 #
-#   - a published OCI image
-#   - a persistent world-data volume
-#   - the required PW_API_TOKEN
-#   - one published port (8000)
+# Persistent volumes:
+#   world-data  — your world, journal, prefs, vault, secrets
+#   ollama-data — downloaded LLM models (survives restarts)
 #
-# Machine-specific integrations (homelab Lab CLI, Kilo auth file) live
-# in compose.homelab.yaml and are opt-in enrichment only. Local
-# development with a source-tree build lives in compose.dev.yaml.
+# Required:
+#   PW_API_TOKEN — your API key (generate with the command below)
 #
-# Rollback by pinning PW_IMAGE to a known-good :sha-... tag (see
-# docs/OPERATIONS.md).
+# Optional:
+#   PW_IMAGE     — override the container image (default: ghcr.io)
+#   XIAOMI_MIMO_API_KEY — if using Xiaomi MiMo as reasoning provider
+#
+# Generate a token:
+#   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+#
+# Then create .env in this directory:
+#   PW_API_TOKEN=your-generated-token-here
+#
+# ─────────────────────────────────────────────────────────────────
 
 services:
+
+  # ── Ollama — Local Reasoning Brain ─────────────────────────────
+  #
+  # Runs a local LLM (qwen3:1.7b) so chat works without any
+  # external API account. Models persist in the ollama-data volume.
+  #
+  # To swap models later:
+  #   1. docker compose exec ollama ollama pull <model>
+  #   2. Update config/connections.json with the new model name
+  #
+  # To use a different reasoning provider (OpenAI, Anthropic, etc.),
+  # remove the ollama entry from connections.json and add your own.
+  #
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ── Model Bootstrap (runs once, then exits) ────────────────────
+  #
+  # Downloads qwen3:1.7b on first boot. Subsequent boots skip
+  # because the model already exists in the ollama-data volume.
+  # core waits for this to finish before starting.
+  #
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+    volumes:
+      - ollama-data:/root/.ollama
+    entrypoint: ["/bin/sh", "-c", "ollama pull qwen3:1.7b"]
+
+  # ── Project Worlds Core ────────────────────────────────────────
+  #
+  # The main application: API server + frontend.
+  #
+  # Healthcheck verifies:
+  #   - server is responding
+  #   - PW_API_TOKEN is configured (auth_configured: true)
+  #
+  # Volumes:
+  #   world-data — persistent storage for your world state
+  #
   core:
     image: ${PW_IMAGE:-ghcr.io/rylee-bee/personal-world:latest}
     pull_policy: always
     restart: unless-stopped
+    depends_on:
+      ollama-pull:
+        condition: service_completed_successfully
     ports:
-      - "8000:8000"
+      - "${PW_PORT:-8000}:8000"
     environment:
-      # Auth boundary: fail-closed. Compose parses with no .env present
-      # (config-time interpolation defaults to empty); runtime still
-      # refuses to boot without a token -- see the Dockerfile CMD guard
-      # and the healthcheck's auth_configured assertion. Generate with:
-      #   python -c "import secrets; print(secrets.token_urlsafe(32))"
+      # ── Required ──────────────────────────────────────────────
+      # Your API key. Generate with:
+      #   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
       PW_API_TOKEN: ${PW_API_TOKEN:-}
-      # Optional chat provider keys use env indirection; forwarded only
-      # if set. The portable base does not bake any keys.
+
+      # ── Optional: External reasoning providers ────────────────
+      # Only needed if you swap from Ollama to a cloud provider.
+      # The portable base ships with Ollama and needs no keys.
       XIAOMI_MIMO_API_KEY: ${XIAOMI_MIMO_API_KEY:-}
+      # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+      # ── Optional: OIDC / SSO ─────────────────────────────────
+      # Only needed if using an OIDC provider (e.g. Authelia).
+      # Copy config/oidc.example.json to config/oidc.json and fill in.
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+
+      # ── Optional: Lab CLI path ────────────────────────────────
+      # Only needed if connecting to a homelab Lab CLI instance.
+      # PW_LAB_CLI: /opt/scripts/lab
     volumes:
       - world-data:/data
     healthcheck:
-      # Unhealthy (restarts) when auth is not configured: an empty
-      # PW_API_TOKEN must never settle into a green container.
       test: ["CMD", "python", "-c",
              "import urllib.request,sys,json; \
               r=urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=4); \
@@ -50,5 +123,15 @@ services:
       retries: 3
       start_period: 10s
 
+# ── Volumes ──────────────────────────────────────────────────────
+#
+# world-data:  Your world — facts, intents, policies, journal,
+#              preferences, vault, sections, reminders.
+#              This is your data. Back it up.
+#
+# ollama-data: Downloaded LLM models. Safe to delete if you want
+#              to reclaim disk space (models re-download on next boot).
+#
 volumes:
   world-data:
+  ollama-data:

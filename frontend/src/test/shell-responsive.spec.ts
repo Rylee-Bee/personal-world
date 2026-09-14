@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -39,7 +39,7 @@ describe("responsive cascade seams (T9)", () => {
   });
 
   it("shell classes exist for every slot", () => {
-    expect(css).toContain(".pw-rail");
+    expect(css).toContain(".pw-edge");
     expect(css).toContain(".pw-bottom-bar");
     expect(css).toContain(".pw-banner-nav");
     expect(css).toContain(".pw-header");
@@ -54,23 +54,21 @@ describe("responsive cascade seams (T9)", () => {
     expect(css).toMatch(/min-width: 600px[^}]*\{[\s\S]*?\.pw-header\s*\{[^}]*height:\s*auto/);
   });
 
-  it("main owns the ONE content measure (T14 human gate 2)", () => {
-    expect(css).toMatch(/\.pw-main\s*\{[^}]*max-width:\s*var\(--pw-content-measure\)/);
-    expect(css).toMatch(/\.pw-main\s*\{[^}]*margin-inline:\s*auto/);
-    expect(css).toContain("--pw-content-measure: 64rem");
-    // screens no longer pick their own wrappers (mechanical removal)
-    const screensDir = join(here, "..", "screens");
-    for (const file of readdirSync(screensDir)) {
-      if (!file.endsWith(".tsx")) continue;
-      const text = readFileSync(join(screensDir, file), "utf8");
-      expect(text, `${file} must not set its own content measure`).not.toMatch(/max-w-[23]xl/);
-      expect(text, `${file} must not center itself (shell owns measure)`).not.toMatch(/mx-auto/);
-    }
+  it("main owns the content space (Workshop v3: contextual width, no global dashboard column)", () => {
+    // Workshop v3: the old global 64rem dashboard column is removed.
+    // Individual screens own their readable measures.
+    // Main fills the space beside the sidebar naturally.
+    expect(css).toMatch(/\.pw-main\s*\{[^}]*width:\s*100%/);
+    // No global max-width or margin-inline auto — contextual width model
+    expect(css).not.toMatch(/\.pw-main\s*\{[^}]*max-width/);
   });
 
-  it("rail legibility: 6.75rem width, 24px icons, 0.8rem labels, 44px targets (T14 human gate 3)", () => {
-    expect(css).toMatch(/--pw-rail-width:\s*6\.75rem/);
-    expect(css).toMatch(/\.pw-nav-link--rail\s*\{[^}]*font-size:\s*0\.8rem/);
+  it("edge supports rail (112px) and sidebar (token) modes (Workshop v3 mode-based architecture)", () => {
+    // Workshop v3: mode-based shell — rail and sidebar are canonical modes
+    expect(css).toContain("--pw-edge-rail-width: 112px");
+    expect(css).toContain("--pw-edge-sidebar-width");
+    // Nav items: horizontal layout, 13px labels, 18px icons
+    expect(css).toMatch(/\.pw-nav-link\s*\{[^}]*font-size:\s*13px/);
     const sectionNav = readFileSync(join(here, "..", "shell", "SectionNav.tsx"), "utf8");
     expect(sectionNav).toMatch(/compact \? 24 : 18/);
     // 44px floor stays CSS truth

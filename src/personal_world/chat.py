@@ -119,6 +119,64 @@ class OllamaChat(ChatContract):
             "prompt_eval_count": payload.get("prompt_eval_count"),
         })
 
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> Result:
+        """Chat with optional tool-calling support.
+
+        Returns either:
+        - data.reply (final text response)
+        - data.tool_calls (list of tool calls the model wants to make)
+        """
+        body: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+        }
+        if tools:
+            body["tools"] = tools
+        data = json.dumps(body).encode()
+        req = urllib.request.Request(
+            f"{self.base_url}/api/chat",
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                payload = json.loads(resp.read().decode())
+        except Exception as e:
+            return Result(
+                ok=False,
+                status="unavailable",
+                warnings=[f"ollama chat: {e}"],
+            )
+        message = payload.get("message") or {}
+
+        # Check for tool calls
+        tool_calls = message.get("tool_calls")
+        if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
+            return ok("healthy", data={
+                "tool_calls": tool_calls,
+                "model": payload.get("model", self.model),
+            })
+
+        # Plain text response
+        content = (message.get("content") or "").strip()
+        if not content:
+            return Result(
+                ok=False,
+                status="unavailable",
+                warnings=["ollama returned an empty reply"],
+            )
+        return ok("healthy", data={
+            "reply": content,
+            "thinking": message.get("thinking"),
+            "model": payload.get("model", self.model),
+        })
+
 
 class OpenAICompatChat(ChatContract):
     """Chat over any OpenAI-compatible /v1/chat/completions endpoint
@@ -251,6 +309,7 @@ def build_chat_messages(
     user_message: str,
     world_context: str,
     history: list[dict[str, str]] | None = None,
+    tool_descriptions: str | None = None,
 ) -> list[dict[str, str]]:
     """System prompt + optional short history + the new user message.
 
@@ -267,10 +326,19 @@ def build_chat_messages(
     authorization. Everything about the block is validated after the
     round-trip; anything malformed degrades to ordinary text.
     """
+    tool_block = ""
+    if tool_descriptions:
+        tool_block = (
+            "\n\n## Available tools\n"
+            "You can answer questions about the world using these capabilities. "
+            "When someone asks about something covered by a tool, answer from "
+            "the context block. If the context doesn't have the answer, say so.\n\n"
+            f"{tool_descriptions}\n"
+        )
     system = (
-        "You are the Personal World assistant: a calm, factual companion "
-        "embedded in Rylee's personal control plane. You answer questions "
-        "about the state of her world using ONLY the context block below. "
+        "You are the Project Worlds assistant: a calm, factual companion "
+        "embedded in a personal control plane. You answer questions "
+        "about the state of the world using ONLY the context block below. "
         "If the context does not contain the answer, say so plainly "
         "instead of inventing status, names, or numbers. Status vocabulary "
         "is fixed: healthy, warning, unknown, needs_attention, unavailable, "
@@ -289,13 +357,14 @@ def build_chat_messages(
         "evidence_summary: <one sentence citing which later entries "
         "support this>\n"
         "```\n"
-        "The proposal is a DRAFT for Rylee to review — never a change. "
+        "The proposal is a DRAFT for review — never a change. "
         "If evidence is weak or ambiguous, phrase the suggestion "
         "accordingly or do not propose. Never invent timestamps or "
         "evidence.\n\n"
         "--- Personal World context (observed, read-only) ---\n"
         f"{trim_context(world_context)}\n"
         "--- end context ---"
+        f"{tool_block}"
     )
     messages: list[dict[str, str]] = [{"role": "system", "content": system}]
     if history:

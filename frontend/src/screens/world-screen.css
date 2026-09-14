@@ -1,0 +1,373 @@
+/* ── Your World (17:5485) — PRACTICAL register ─────────────────── */
+
+.pw-world {
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+  padding: 70px 84px 92px 64px;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Subtle teal warmth behind content */
+.pw-world::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 35% 30%,
+    color-mix(in srgb, var(--pw-color-accent-primary) 5%, transparent) 0%,
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pw-world > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header ── */
+.pw-world-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 30px;
+}
+
+.pw-world-orb {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pw-world-orb-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--pw-color-accent-primary) 18%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+.pw-world-orb-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 1.5px solid var(--pw-color-accent-primary);
+  opacity: 0.5;
+}
+
+.pw-world-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pw-world-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pw-color-accent-secondary);
+  margin: 0;
+}
+
+.pw-world-title {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 2.5rem;
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--pw-color-accent-primary);
+  margin: 0;
+}
+
+.pw-world-subtitle {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+}
+
+.pw-world-watch-note {
+  font-size: 0.75rem;
+  color: var(--pw-color-accent-secondary);
+  margin: 0;
+}
+
+/* ── Capabilities strip ── */
+.pw-world-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  padding: 0 28px;
+  border-radius: 16px;
+  border: 1px solid var(--pw-color-border-strong);
+  background: var(--pw-color-surface-elevated);
+}
+
+.pw-world-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pw-world-strip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pw-color-accent-primary);
+}
+
+.pw-world-strip-label {
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+}
+
+.pw-world-strip-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--pw-color-border-strong);
+}
+
+/* ── Companion presence ── */
+.pw-world-companion {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 32px 40px 44px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--pw-color-accent-primary) 6%, transparent) 0%,
+    color-mix(in srgb, var(--pw-color-accent-secondary) 4%, transparent) 100%
+  );
+  border-radius: 16px;
+}
+
+.pw-world-companion-art {
+  position: relative;
+  width: 120px;
+  height: 140px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pw-world-companion-figure {
+  width: 90px;
+  height: 120px;
+  border: 1px solid var(--pw-color-accent-primary);
+  border-radius: 50%;
+  opacity: 0.55;
+}
+
+.pw-world-companion-bubble {
+  position: absolute;
+  bottom: 16px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--pw-color-accent-primary);
+}
+
+.pw-world-companion-bubble--small {
+  width: 4px;
+  height: 4px;
+  bottom: 10px;
+  right: 2px;
+  border: none;
+  background: var(--pw-color-accent-secondary);
+}
+
+.pw-world-companion-sparkle {
+  position: absolute;
+  top: 8px;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  background: var(--pw-color-text-primary);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.pw-world-companion-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.pw-world-companion-name {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 1.375rem;
+  font-weight: 400;
+  color: var(--pw-color-text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.pw-world-companion-body {
+  font-size: 0.875rem;
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+  line-height: 1.55;
+  max-width: 620px;
+}
+
+.pw-world-companion-presence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pw-world-companion-presence-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pw-color-accent-primary);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--pw-color-accent-primary) 40%, transparent);
+}
+
+.pw-world-companion-presence-label {
+  font-size: 0.6875rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+}
+
+/* ── Manifest table ── */
+.pw-world-manifest-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.pw-world-manifest-table th {
+  text-align: left;
+  font-weight: 600;
+  padding: 8px 12px 8px 0;
+  color: var(--pw-color-text-muted);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pw-world-manifest-table td {
+  padding: 8px 12px 8px 0;
+  color: var(--pw-color-text-primary);
+  border-top: 1px solid var(--pw-color-border-subtle);
+}
+
+.pw-world-manifest-empty {
+  font-size: 0.8125rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+}
+
+/* ── Export grid ── */
+.pw-world-export-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pw-world-export-btn {
+  min-height: var(--pw-target-minimum);
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--pw-color-border-strong);
+  background: var(--pw-color-surface-elevated);
+  color: var(--pw-color-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.pw-world-export-btn:hover:not(:disabled) {
+  border-color: var(--pw-color-accent-primary);
+}
+
+.pw-world-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── World write forms ── */
+.pw-world-write-note {
+  font-size: 0.75rem;
+  color: var(--pw-color-text-muted);
+  margin: 0 0 16px;
+}
+
+.pw-world-write-form {
+  margin-bottom: 16px;
+}
+
+.pw-world-write-form:last-of-type {
+  margin-bottom: 0;
+}
+
+.pw-world-write-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pw-world-write-legend {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--pw-color-text-primary);
+  margin-bottom: 8px;
+}
+
+.pw-world-write-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.pw-world-write-label {
+  flex: 1;
+  min-width: 140px;
+}
+
+.pw-world-write-input {
+  width: 100%;
+  min-height: var(--pw-target-minimum);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--pw-color-border-strong);
+  background: var(--pw-color-surface-elevated);
+  color: var(--pw-color-text-primary);
+  font-size: 0.8125rem;
+}
+
+.pw-world-write-input::placeholder {
+  color: var(--pw-color-text-muted);
+}
+
+.pw-world-write-input:focus-visible {
+  outline: 2px solid var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+.pw-world-write-status {
+  font-size: 0.75rem;
+  margin: 8px 0 0;
+  color: var(--pw-color-accent-primary);
+}
+
+.pw-world-write-status--error {
+  color: var(--pw-color-status-error, #e55);
+}
