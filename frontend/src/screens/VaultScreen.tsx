@@ -211,7 +211,7 @@ export default function VaultScreen() {
       </section>
 
       {vault.isError && vault.error ? (
-        <section className="pw-vault-body" aria-label="Vault error">
+        <section className="pw-vault-body" aria-label="Vault error" data-pw-state="error">
           <div className="pw-vault-error">
             <p className="pw-vault-error-message" role="alert">
               could not reach the vault
