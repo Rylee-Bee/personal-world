@@ -25,7 +25,7 @@ from .template_registry import TemplateRegistry
 from .app import build_registry, load_world, save_world
 from .chat import chat_once, build_chat_messages, extract_proposal
 from .chat_context import build_world_context, build_ui_context
-from .envelope import Result
+from .envelope import Result, ok
 from .journal import AuditRenderer, Journal
 from .loop import daily
 from .providers.lab_state import DEFAULT_LAB, LabState
@@ -198,6 +198,83 @@ def _capability_description(cap: str) -> str:
         "homelab_resources": "Homelab VM resource monitoring",
     }
     return descriptions.get(cap, cap.replace("_", " "))
+
+
+def _chat_with_tools_loop(
+    impl: Any,
+    messages: list[dict[str, Any]],
+    tool_reg: Any,
+    tool_schemas: list[dict[str, Any]],
+    max_rounds: int = 3,
+) -> Result:
+    """Tool-calling loop: model selects tools, we execute, model explains.
+
+    Max rounds prevents infinite loops. The model sees the ferrier
+    surface only: READ + PROPOSAL tools. Execution/step-up tools are
+    hidden from the schema and refused by invoke_ferrier even if the
+    model produces their id.
+    """
+    current_messages = list(messages)
+    tool_calls_made: list[dict[str, Any]] = []
+
+    for round_num in range(max_rounds):
+        result = impl.chat_with_tools(current_messages, tool_schemas)
+        if not result.ok:
+            return result
+
+        data = result.data or {}
+        tool_calls = data.get("tool_calls")
+
+        if not tool_calls:
+            # Model gave a final text response
+            return result
+
+        # Model wants to call tools
+        # Add the assistant message with tool calls
+        current_messages.append({
+            "role": "assistant",
+            "content": None,
+            "tool_calls": tool_calls,
+        })
+
+        # Execute each tool and add results
+        for tc in tool_calls:
+            func = tc.get("function", {})
+            tool_name = func.get("name", "")
+            tool_args = func.get("arguments", {})
+            if isinstance(tool_args, str):
+                try:
+                    tool_args = json.loads(tool_args)
+                except (json.JSONDecodeError, TypeError):
+                    tool_args = {}
+
+            tool_call_id = tc.get("id", "")
+
+            tool_result = tool_reg.invoke_ferrier(tool_name, tool_args)
+            tool_calls_made.append({
+                "tool": tool_name,
+                "args": tool_args,
+                "ok": tool_result.ok,
+                "status": tool_result.status,
+            })
+
+            # Add tool result message (tool_call_id for Anthropic)
+            tool_msg: dict[str, Any] = {
+                "role": "tool",
+                "content": json.dumps(tool_result.model_dump(mode="json")),
+            }
+            if tool_call_id:
+                tool_msg["tool_call_id"] = tool_call_id
+            current_messages.append(tool_msg)
+
+        # Continue the loop - model will see tool results
+
+    # Max rounds reached - return what we have
+    return ok("healthy", data={
+        "reply": "I gathered some information but reached the tool call limit. Let me share what I found.",
+        "tool_calls_made": tool_calls_made,
+        "model": data.get("model", "unknown"),
+    })
 
 
 def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> FastAPI:
@@ -526,89 +603,15 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         result = impl.search(q, top_k=top_k)
         return result.model_dump(mode="json")
 
-    def _chat_with_tools_loop(
-        impl: Any,
-        messages: list[dict[str, Any]],
-        tool_reg: Any,
-        tool_schemas: list[dict[str, Any]],
-        max_rounds: int = 3,
-    ) -> Result:
-        """Tool-calling loop: model selects tools, we execute, model explains.
-
-        Max rounds prevents infinite loops. Read-only: no write tools
-        are exposed yet.
-        """
-        from .chat import chat_once
-        current_messages = list(messages)
-        tool_calls_made: list[dict[str, Any]] = []
-
-        for round_num in range(max_rounds):
-            result = impl.chat_with_tools(current_messages, tool_schemas)
-            if not result.ok:
-                return result
-
-            data = result.data or {}
-            tool_calls = data.get("tool_calls")
-
-            if not tool_calls:
-                # Model gave a final text response
-                return result
-
-            # Model wants to call tools
-            # Add the assistant message with tool calls
-            current_messages.append({
-                "role": "assistant",
-                "content": None,
-                "tool_calls": tool_calls,
-            })
-
-            # Execute each tool and add results
-            for tc in tool_calls:
-                func = tc.get("function", {})
-                tool_name = func.get("name", "")
-                tool_args = func.get("arguments", {})
-                if isinstance(tool_args, str):
-                    try:
-                        tool_args = json.loads(tool_args)
-                    except (json.JSONDecodeError, TypeError):
-                        tool_args = {}
-
-                tool_call_id = tc.get("id", "")
-
-                tool_result = tool_reg.invoke(tool_name, tool_args)
-                tool_calls_made.append({
-                    "tool": tool_name,
-                    "args": tool_args,
-                    "ok": tool_result.ok,
-                    "status": tool_result.status,
-                })
-
-                # Add tool result message (tool_call_id for Anthropic)
-                tool_msg: dict[str, Any] = {
-                    "role": "tool",
-                    "content": json.dumps(tool_result.model_dump(mode="json")),
-                }
-                if tool_call_id:
-                    tool_msg["tool_call_id"] = tool_call_id
-                current_messages.append(tool_msg)
-
-            # Continue the loop - model will see tool results
-
-        # Max rounds reached - return what we have
-        return ok("healthy", data={
-            "reply": "I gathered some information but reached the tool call limit. Let me share what I found.",
-            "tool_calls_made": tool_calls_made,
-            "model": data.get("model", "unknown"),
-        })
-
     @app.post("/api/chat", dependencies=[Depends(require_auth)])
     async def chat(request: Request) -> dict:
         """Conversational interface to Project Worlds.
 
-        Read-only: the model observes a rendered world snapshot and
-        returns text. No tool execution, no mutations. With no chat
-        provider configured the endpoint answers 'not_configured' so
-        the dashboard can degrade honestly."""
+        The model observes a rendered world snapshot and returns text.
+        Tool calls (when the provider supports them) go through the
+        ferrier surface: READ + PROPOSAL tools only, execution/step-up
+        refused. With no chat provider configured the endpoint answers
+        'not_configured' so the dashboard can degrade honestly."""
         body: dict
         try:
             body = await request.json()
@@ -680,7 +683,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         # Build tool registry from current state
         from .tool_registry import build_default_tools
         tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir)
-        tool_schemas = tool_reg.list_ollama_schemas()
+        tool_schemas = tool_reg.ferrier_schemas()
         messages = build_chat_messages(message, context, history)
         # Try tool-calling flow if impl supports it
         if hasattr(impl, 'chat_with_tools') and tool_schemas:
