@@ -2,7 +2,7 @@
 # implementation commit: 3156443
 # receipt commit: 38c4895
 # audit fix commit: 7fffaaf
-# final HEAD: 7fffaaf
+# audited receipt commit: f871b2a
 
 ---
 
