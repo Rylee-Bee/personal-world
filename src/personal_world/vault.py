@@ -71,9 +71,8 @@ class Vault:
 
         if not _HAS_CRYPTO:
             self._warning = (
-                "cryptography package not installed; vault stores "
-                "secrets in base64 (NOT encrypted). Install with: "
-                "pip install cryptography"
+                "cryptography package not installed; vault is "
+                "unavailable. Install with: pip install cryptography"
             )
 
         if master_passphrase:
@@ -92,7 +91,20 @@ class Vault:
 
         If the vault file exists, decrypt it. If not, initialize a
         new vault with a fresh salt.
+
+        Requires the cryptography package for real encryption.
+        Without it, unlock fails closed — base64 is not encryption.
         """
+        if not _HAS_CRYPTO:
+            return fail(
+                "unavailable",
+                warnings=[
+                    "cryptography package not installed; vault cannot "
+                    "unlock without real encryption. Install with: "
+                    "pip install cryptography"
+                ],
+            )
+
         if self.path.exists():
             try:
                 payload = json.loads(self.path.read_text())
@@ -101,31 +113,20 @@ class Vault:
                 return fail("corrupt", warnings=[f"vault file corrupt: {e}"])
 
             key = _derive_key(passphrase, self._salt)
-
-            if _HAS_CRYPTO:
-                self._fernet = Fernet(key)
-                try:
-                    encrypted = payload["data"].encode()
-                    decrypted = self._fernet.decrypt(encrypted)
-                    self._secrets = json.loads(decrypted)
-                except (InvalidToken, json.JSONDecodeError) as e:
-                    return fail(
-                        "unauthorized",
-                        warnings=["wrong passphrase or corrupt vault"],
-                    )
-            else:
-                import base64
-
-                try:
-                    decoded = base64.b64decode(payload["data"].encode())
-                    self._secrets = json.loads(decoded)
-                except Exception as e:
-                    return fail("corrupt", warnings=[f"vault decode failed: {e}"])
+            self._fernet = Fernet(key)
+            try:
+                encrypted = payload["data"].encode()
+                decrypted = self._fernet.decrypt(encrypted)
+                self._secrets = json.loads(decrypted)
+            except (InvalidToken, json.JSONDecodeError) as e:
+                return fail(
+                    "unauthorized",
+                    warnings=["wrong passphrase or corrupt vault"],
+                )
         else:
             self._salt = os.urandom(16)
             key = _derive_key(passphrase, self._salt)
-            if _HAS_CRYPTO:
-                self._fernet = Fernet(key)
+            self._fernet = Fernet(key)
             self._secrets = {}
 
         self._unlocked = True
@@ -168,30 +169,31 @@ class Vault:
         return sorted(self._secrets.keys())
 
     def audit(self) -> Result:
-        """Audit: names, count, last modified. Never values."""
+        """Audit: names, count, last modified. Never values.
+
+        Reports actual encryption capability — not a hardcoded claim.
+        """
         self._require_unlocked()
         return ok(
             "healthy",
             data={
                 "count": len(self._secrets),
                 "names": self.list_names(),
-                "encrypted": _HAS_CRYPTO,
+                "encrypted": _HAS_CRYPTO and self._fernet is not None,
             },
         )
 
     def _save(self) -> None:
-        """Encrypt and save the vault to disk."""
+        """Encrypt and save the vault to disk. Requires cryptography."""
         self._require_unlocked()
+        if not _HAS_CRYPTO or not self._fernet:
+            raise RuntimeError(
+                "vault cannot save without cryptography package"
+            )
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
         data = json.dumps(self._secrets).encode()
-
-        if _HAS_CRYPTO and self._fernet:
-            encrypted = self._fernet.encrypt(data).decode()
-        else:
-            import base64
-
-            encrypted = base64.b64encode(data).decode()
+        encrypted = self._fernet.encrypt(data).decode()
 
         payload = {
             "salt": self._salt.hex(),

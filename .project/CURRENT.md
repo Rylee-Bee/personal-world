@@ -605,3 +605,64 @@ product decision — not silently guessable from repo truth:
   product shape is owner input.
 - **Runtime UI brand strings** still say "Personal World" in places —
   deliberately deferred pending the companion-name decision above.
+
+## Integration truth pass (2026-09-13)
+
+A connective-tissue pass verified and repaired agreement between
+components. Hypotheses from the handoff were tested against current
+code before changing.
+
+### Confirmed and fixed
+
+- **Authorization boundary (P1):** `ToolRegistry.invoke()` now
+  structurally blocks write tools — the model can propose but cannot
+  approve or execute. Proposals require server-side owner approval
+  through the trusted API path (step-up gated). A boolean passed by
+  the model is NOT authorization. Tests in
+  `tests/test_authorization_boundary.py` prove: model cannot approve
+  its own proposal, cannot execute pending/unapproved proposals,
+  forged approval does not bypass the boundary.
+- **Step-up authorization (P2):** Three Connections routes called
+  `require_step_up(request)` without `await`, creating an unawaited
+  coroutine that never enforced the check. Fixed to use
+  `Depends(require_step_up)`. Session-based step-up is now checked
+  in `_step_up_authorized` alongside loopback/private/header paths.
+- **Configuration truth (P3):** `_build_media_engine()` in both
+  api.py and tool_registry.py read ONLY `connections.json`, ignoring
+  `connections.local.json` saved through the UI. Fixed to use
+  `ConnectionManager.get_all_config()` (merged config).
+  `build_adapter()` now resolves credentials from direct values,
+  then env var indirection, then defaults.
+- **Connections UI round-trip (P4):** Form inputs lacked `name`
+  attributes, so `FormData` sent blank values for Test connection.
+  Existing connection data was fetched but never populated
+  `initialValues`. Both fixed.
+- **Execution semantics (P5):** Reminder and reconciler proposals
+  now return honest "prepared" status instead of false "executed".
+  World intent/fact mutations persist via `save_world()` in the API
+  execution path. Reminders are scheduled through the real scheduler.
+- **Vault fail-closed (P6):** Vault now requires real `cryptography`
+  package — no base64 fallback. Status reports actual encryption
+  capability, not a hardcoded `true`. Without crypto, vault is
+  unavailable (fail-closed). Tests in
+  `tests/test_vault_fail_closed.py` prove: crypto present →
+  encrypted, crypto absent → refused, status truthful, no secret
+  values in audit.
+
+### Remaining gaps (honest)
+
+- **Proposal persistence:** Proposals are in-memory (process state).
+  A restart loses pending proposals. Acceptable for current
+  single-process architecture; needs persistence if multi-process.
+- **Vault secret_ref resolution:** Provider schemas define
+  `secret_ref` fields but no vault-to-provider resolution exists.
+  Credentials are currently resolved through env vars or direct
+  config values. Full vault integration is a future task.
+- **Reconciler apply:** Returns "prepared" — actual provider apply
+  requires adapter integration not yet built.
+- **Frontend test failures:** 24 pre-existing failures in
+  `screens-stubs`, `api-errors`, `tokens-hex`, `screens-settings`,
+  `shell-routes`, `heading-hierarchy`. These exist on `main` at
+  72ee502 and are not caused by this pass.
+- **Multi-user step-up:** Session-based step-up works for single
+  user. Multi-mode session step-up is untested.

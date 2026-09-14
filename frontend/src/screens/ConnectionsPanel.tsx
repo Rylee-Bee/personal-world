@@ -120,8 +120,17 @@ function ConfigForm({
   const [values, setValues] = useState<Record<string, string>>(initialValues || {});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  // Populate form when initialValues arrive (only if user hasn't edited)
+  useEffect(() => {
+    if (initialValues && !touched) {
+      setValues(initialValues);
+    }
+  }, [initialValues, touched]);
 
   const setField = (key: string, value: string) => {
+    setTouched(true);
     setValues((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
   };
@@ -199,6 +208,7 @@ function FieldInput({
       )}
       {field.type === "select" && field.options ? (
         <select
+          name={field.key}
           className={textInputClasses}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -211,6 +221,7 @@ function FieldInput({
       ) : isSecret && field.secret_ref ? (
         <span className="flex items-center gap-2">
           <input
+            name={field.key}
             className={textInputClasses}
             type="text"
             value={value}
@@ -223,6 +234,7 @@ function FieldInput({
         </span>
       ) : (
         <input
+          name={field.key}
           className={textInputClasses}
           type={isSecret ? "password" : field.type === "url" ? "url" : "text"}
           value={value}
@@ -279,11 +291,42 @@ function ConfigurePanel({
   );
   const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
   const [testing, setTesting] = useState(false);
+  const [existingConfig, setExistingConfig] = useState<Record<string, string> | undefined>(undefined);
 
   // Load existing config for this capability
   useEffect(() => {
-    fetchConnections().catch(() => {});
-  }, []);
+    let cancelled = false;
+    fetchConnections()
+      .then((conns) => {
+        if (cancelled) return;
+        // Find the first connection matching this capability
+        const existing = conns.find(
+          (c) => (c as Record<string, unknown>).capability === cap.capability
+        ) as Record<string, unknown> | undefined;
+        if (existing) {
+          // Extract non-secret field values for the form.
+          // Secret values are never returned — only show the field
+          // exists (empty input is fine for secret fields).
+          const init: Record<string, string> = {};
+          for (const [k, v] of Object.entries(existing)) {
+            if (k === "name" || k === "type" || k === "capability") continue;
+            if (typeof v === "string") {
+              init[k] = v;
+            }
+          }
+          setExistingConfig(init);
+          // Auto-select matching provider if available
+          if (!selectedProvider && existing.type) {
+            const match = cap.providers.find(
+              (p) => p.adapter_type === existing.type
+            );
+            if (match) setSelectedProvider(match);
+          }
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [cap.capability]);
 
   const handleTest = async (values: Record<string, string>) => {
     if (!selectedProvider) return;
@@ -366,6 +409,7 @@ function ConfigurePanel({
         <>
           <ConfigForm
             provider={selectedProvider}
+            initialValues={existingConfig}
             onSave={handleSave}
             onCancel={onClose}
           />
