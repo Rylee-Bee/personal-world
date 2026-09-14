@@ -1,4 +1,5 @@
 import { EmptyState } from "../shell/EmptyState";
+import { ErrorState } from "../shell/ErrorState";
 import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 import { TechnicalDetails, Disclosure } from "../primitives/Disclosure";
 import {
@@ -89,6 +90,44 @@ export default function LabScreen() {
     );
   }
 
+  // Network error: fetch itself failed
+  if (lab.isError && nativeInventory.isError) {
+    return (
+      <ErrorState
+        title="Lab"
+        failed="could not reach your lab"
+        detail={lab.error?.message || nativeInventory.error?.message}
+        headingLevel={1}
+      />
+    );
+  }
+
+  const state: LabEnvelope | null = lab.data ?? null;
+
+  // Capability not configured or unavailable
+  if (state && !state.ok) {
+    const status = (state.status || "not_configured") as CanonicalStatus;
+    if (status === "not_configured" || status === "disabled") {
+      return (
+        <EmptyState
+          title="Lab"
+          capability="Lab watches the health of your homelab services."
+          knob="Add a lab connection in Settings → Connections."
+          status={status}
+          headingLevel={1}
+        />
+      );
+    }
+    return (
+      <ErrorState
+        title="Lab"
+        failed={`lab is ${status}`}
+        detail={state.warnings?.[0]}
+        headingLevel={1}
+      />
+    );
+  }
+
   const nativeInventoryData = nativeInventory.data?.data;
   const nativeHealthData = nativeHealth.data?.data;
   const nativeResourcesData = nativeResources.data?.data;
@@ -97,7 +136,6 @@ export default function LabScreen() {
   const nativeServices: NativeService[] = nativeInventoryData?.services || [];
   const healthSummary: NativeHealthSummary | null = nativeHealthData?.summary || null;
 
-  const state: LabEnvelope | null = lab.data ?? null;
   const stateData = (state?.data ?? null) as LabStateData | null;
   const rows = stateData?.rows ?? [];
 
