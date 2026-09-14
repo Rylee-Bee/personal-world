@@ -12,7 +12,13 @@ import pytest
 from unittest.mock import patch
 from pathlib import Path
 
-from personal_world.vault import Vault
+from personal_world.vault import Vault, _HAS_CRYPTO
+
+
+pytestmark = pytest.mark.skipif(
+    not _HAS_CRYPTO,
+    reason="cryptography package not installed (CI uses --extra test, not --extra crypto)",
+)
 
 
 class TestVaultCryptoPresent:
