@@ -557,11 +557,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         tool_schemas: list[dict[str, Any]],
         max_rounds: int = 3,
     ) -> Result:
-        """Tool-calling loop: model selects read tools, we execute, model explains.
+        """Tool-calling loop: model selects read + proposal tools, we execute, model explains.
 
-        Max rounds prevents infinite loops. Only read tools are exposed
-        to the model. Write tools are structurally blocked in the
-        registry — the model can propose, but cannot approve or execute.
+        Max rounds prevents infinite loops. Read tools and proposal
+        tools (requires_approval=True) are exposed. Proposal tools
+        create pending proposals without mutating the target domain.
+        Execution tools are never exposed to the model.
         """
         from .chat import chat_once
         current_messages = list(messages)
