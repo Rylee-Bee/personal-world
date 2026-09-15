@@ -10,12 +10,11 @@ import { Disclosure } from "../primitives/Disclosure";
 import { StatusChip, type CanonicalStatus } from "../primitives/StatusChip";
 import "./projects-screen.css";
 
-function asCanonicalStatus(raw: string | undefined | null): CanonicalStatus {
-  const known: readonly string[] = [
-    "healthy", "warning", "unknown", "needs_attention",
-    "unavailable", "stale", "disabled", "not_configured",
-  ];
-  return raw && known.includes(raw) ? (raw as CanonicalStatus) : "unknown";
+function agentSyncStatus(p: any): CanonicalStatus {
+  if (p.error) return "needs_attention";
+  if (p.publish_state === "diverged") return "needs_attention";
+  if (p.publish_state === "ahead" || p.safe_to_leave === "no") return "warning";
+  return "healthy";
 }
 
 export default function ProjectsScreen() {
@@ -88,10 +87,10 @@ export default function ProjectsScreen() {
           <section aria-label="Agent-sync projects" data-pw-projects="agent-sync">
             <ul>
               {agentProjects.map((p: any) => (
-                <li key={p.repo || p.name}>
-                  <StatusChip status={asCanonicalStatus(p.status)} size="sm" />
+                <li key={p.project}>
+                  <StatusChip status={agentSyncStatus(p)} size="sm" />
                   {" "}
-                  {p.repo || p.name}
+                  {p.project}
                   {p.summary ? ` — ${p.summary}` : ""}
                 </li>
               ))}
@@ -131,57 +130,13 @@ function RepoCard({ repo }: { repo: any }) {
   const isAttention = status === "needs_attention";
 
   return (
-    <article
-      className={`pw-project-card ${isAttention ? "pw-project-card--attention" : ""}`}
-      role="listitem"
-    >
-      <div className="pw-project-card-main">
-        <div className="pw-project-card-icon" aria-hidden="true">
-          <span className="pw-project-card-icon-inner" />
-        </div>
-
-        <div className="pw-project-card-content">
-          <div className="pw-project-card-header">
-            <h2 className="pw-project-card-name">{repo.name || repo.path}</h2>
-            <span className={`pw-project-status pw-project-status--${status}`} role="status">
-              <span className="pw-project-status-dot" aria-hidden="true" />
-              {isAttention ? "needs attention" : "healthy"}
-              <span className="pw-project-status-sparkle" aria-hidden="true">&#10022;</span>
-            </span>
-          </div>
-
-          <p className="pw-project-card-description">
-            {repo.description || repo.path || "No description"}
-          </p>
-
-          <div className="pw-project-card-footer">
-            {repo.branch && (
-              <span className="pw-project-card-footer-item">
-                <span aria-hidden="true">&uarr;</span> {repo.branch}
-                {repo.dirty && <span className="pw-project-card-dirty">&rarr; deployed</span>}
-              </span>
-            )}
-            {commits.length > 0 && (
-              <span className="pw-project-card-footer-item">
-                {commits.length} commits this week
-              </span>
-            )}
-            {enrichmentData && (
-              <>
-                {'open_issues' in enrichmentData && enrichmentData.open_issues !== null && enrichmentData.open_issues !== undefined && (
-                  <span className="pw-project-card-footer-item">
-                    {enrichmentData.open_issues} open issues
-                  </span>
-                )}
-                {'open_prs' in enrichmentData && enrichmentData.open_prs !== null && enrichmentData.open_prs !== undefined && (
-                  <span className="pw-project-card-footer-item">
-                    {enrichmentData.open_prs} PR waiting
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+    <div className="pw-project-card" role="listitem">
+      <div className="pw-project-card-header">
+        <h2 className="pw-project-card-name">{repo.name || repo.path}</h2>
+        <span className={`pw-project-status pw-project-status--${status}`} role="status">
+          <span className="pw-project-status-dot" aria-hidden="true" />
+          {status === "healthy" ? "Healthy" : "Needs attention"}
+        </span>
       </div>
 
       {isAttention && repo.last_activity && (
@@ -203,16 +158,16 @@ function RepoCard({ repo }: { repo: any }) {
             <ul>
               {commits.map((c: any, i: number) => (
                 <li key={i}>
-                  <code>{(c.sha || "").slice(0, 7)}</code>
+                  <code>{(c.revision || "").slice(0, 7)}</code>
                   {" "}
-                  {c.message ? c.message.split("\n")[0] : "(no message)"}
+                  {c.subject ? c.subject.split("\n")[0] : "(no message)"}
                   {c.author ? ` — ${c.author}` : ""}
                 </li>
               ))}
             </ul>
           </section>
         )}
-        {enrichmentData && (
+        {enrichment.data?.ok !== false && enrichmentData && (
           <section aria-label="GitHub enrichment">
             <h4>Remote enrichment</h4>
             <ul>
@@ -238,6 +193,6 @@ function RepoCard({ repo }: { repo: any }) {
       {repo.warnings && repo.warnings.length > 0 && (
         <p className="pw-project-warning">{repo.warnings[0]}</p>
       )}
-    </article>
+    </div>
   );
 }
