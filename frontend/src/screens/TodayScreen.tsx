@@ -9,45 +9,8 @@ import {
   useAgentSyncProjects,
 } from "../lib/hooks";
 import { runDailyLoop } from "../lib/api";
+import { summarizeCapabilities } from "../lib/capability-health";
 import "./today-screen.css";
-
-/**
- * NotificationCard — Workshop v3, frame 17:6369
- * "How the World Tells You Things"
- *
- * Stub for now — will be built from Figma evidence.
- */
-export interface NotificationCardProps {
-  tone: "good-news" | "small-update" | "action-required";
-  headline: string;
-  detail?: string;
-  actionLabel?: string;
-  onDismiss?: () => void;
-  onAction?: () => void;
-}
-
-export function NotificationCard({ tone, headline, detail, actionLabel, onDismiss, onAction }: NotificationCardProps) {
-  return (
-    <div className={`pw-notification pw-notification--${tone}`} role="status">
-      <div className="pw-notification-content">
-        <p className="pw-notification-headline">{headline}</p>
-        {detail && <p className="pw-notification-detail">{detail}</p>}
-      </div>
-      <div className="pw-notification-actions">
-        {actionLabel && (
-          <button type="button" className="pw-notification-action" onClick={onAction}>
-            {actionLabel}
-          </button>
-        )}
-        {onDismiss && (
-          <button type="button" className="pw-notification-dismiss" onClick={onDismiss} aria-label="Dismiss">
-            ×
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /**
  * TodayScreen — Workshop v3, frame 17:481 "Today — Quiet Day"
@@ -96,9 +59,7 @@ export default function TodayScreen() {
   });
 
   const worldData = worldStatus.data;
-  const capabilities = worldData?.capabilities || {};
-  const healthyCaps = Object.values(capabilities).filter((c: any) => c.ok).length;
-  const attentionCaps = Object.values(capabilities).filter((c: any) => !c.ok).length;
+  const health = summarizeCapabilities(worldData?.capabilities);
 
   const dailyData = daily.data;
   const warnings = dailyData?.warnings || [];
@@ -118,7 +79,7 @@ export default function TodayScreen() {
     (p) => p.work_state !== "idle" && p.work_state !== "unknown"
   );
 
-  const totalAttention = attentionCaps + reposNeedingAttention.length + activeAgentProjects.length;
+  const totalAttention = health.attention.length + reposNeedingAttention.length + activeAgentProjects.length;
 
   return (
     <div className="pw-today">
@@ -137,16 +98,18 @@ export default function TodayScreen() {
           <div className="pw-today-health" role="status" aria-label="World health">
             <div className="pw-today-health-stars" aria-hidden="true">
               {[0, 1, 2, 3].map((i) => (
-                <span key={i} className={`pw-today-health-star ${i < healthyCaps ? 'pw-today-health-star--active' : ''}`} />
+                <span key={i} className={`pw-today-health-star ${i < health.meter ? 'pw-today-health-star--active' : ''}`} />
               ))}
             </div>
             <p className="pw-today-health-status">
               {totalAttention === 0
-                ? "Your world is running well."
+                ? health.unavailable.length > 0
+                  ? `${health.healthy} healthy, ${health.unavailable.length} unavailable. Your world continues normally.`
+                  : "Your world is running well."
                 : `${totalAttention} thing${totalAttention === 1 ? '' : 's'} need${totalAttention === 1 ? 's' : ''} attention.`}
             </p>
             <p className="pw-today-health-detail">
-              {healthyCaps} capabilities healthy · {reposNeedingAttention.length} repos attention · {activeAgentProjects.length} agent active
+              {health.healthy} healthy · {health.unavailable.length} unavailable · {health.optional} not set up
             </p>
           </div>
         </div>

@@ -103,6 +103,47 @@ class TestDailyIsReadOnlyOnGet:
         assert c.post("/api/daily").status_code == 401
 
 
+class TestStatusContract:
+    """`capabilities` has exactly one meaning per surface.
+
+    `world.summary()` reports the world's OWN declared capabilities as a
+    count; `GET /api/status` serves the provider capability-STATUS map
+    under `capabilities`. They used to share the key `capabilities` with
+    different types, and the API silently overwrote the summary value.
+    """
+
+    def test_api_status_capabilities_is_the_status_map(self, env):
+        c, _ = env
+        data = c.get("/api/status", headers=AUTH).json()["data"]
+        assert isinstance(data["capabilities"], dict)
+        # zero-provider install still declares each known capability
+        for entry in data["capabilities"].values():
+            assert {"ok", "status", "warnings", "last_observed"} <= set(entry)
+
+    def test_api_status_keeps_declared_capability_count(self, env):
+        c, _ = env
+        data = c.get("/api/status", headers=AUTH).json()["data"]
+        assert isinstance(data["declared_capabilities"], int)
+
+    def test_world_summary_no_longer_uses_the_ambiguous_key(self, env):
+        from personal_world.app import load_world
+        _, tmp = env
+        summary = load_world(tmp / "world.json").summary()
+        assert "capabilities" not in summary
+        assert "declared_capabilities" in summary
+
+    def test_cli_and_api_agree_on_the_key_meaning(self, env):
+        """The CLI emits world.summary(); the API adds the status map.
+        Neither reuses the other's key for a different type."""
+        c, tmp = env
+        from personal_world.app import load_world
+        cli_payload = load_world(tmp / "world.json").summary()
+        api_payload = c.get("/api/status", headers=AUTH).json()["data"]
+        assert cli_payload["declared_capabilities"] == api_payload["declared_capabilities"]
+        assert isinstance(api_payload["capabilities"], dict)
+        assert isinstance(cli_payload["declared_capabilities"], int)
+
+
 class TestReminderWritesAreWritePath:
     def test_reads_need_auth_only(self, env):
         c, _ = env

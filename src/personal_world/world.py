@@ -197,7 +197,11 @@ class World:
                 s.value: sum(1 for l in self.lore.values() if l.state == s)
                 for s in LoreState
             },
-            "capabilities": len(self.capabilities),
+            # The world's own declared capabilities (a count). Distinct from
+            # the provider capability-status map the API serves under
+            # `capabilities` — see api.status(); the two used to share one
+            # key with different types.
+            "declared_capabilities": len(self.capabilities),
             "providers": sum(len(v) for v in self.providers.values()),
             "packs": len(self.packs),
         }

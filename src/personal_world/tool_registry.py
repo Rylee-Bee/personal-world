@@ -1137,11 +1137,12 @@ def _discovery_discover(source: str | None = None) -> Result:
 
 def _vault_status(vault: Any) -> Result:
     """Get vault status (never secrets). Reports encryption honestly:
-    true only when real Fernet encryption is active; the base64
-    fallback says so with the vault's own warning text."""
+    true only when real Fernet encryption is active. Without the
+    `cryptography` extra the vault fails closed, so this reports
+    `encrypted: false` and carries the vault's own warning text."""
     try:
         warning = getattr(vault, "warning", None)
-        encrypted = not (warning and "NOT encrypted" in warning)
+        encrypted = getattr(vault, "_fernet", None) is not None
         return ok("healthy", data={
             "locked": not vault.is_unlocked if hasattr(vault, 'is_unlocked') else True,
             "encrypted": encrypted,

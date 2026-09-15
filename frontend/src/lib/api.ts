@@ -273,6 +273,9 @@ export interface WorldStatus {
     warnings: string[];
     last_observed: string;
   }>;
+  /** The world's OWN declared capabilities (a count). Distinct from the
+   * `capabilities` status map above — the two used to share one key. */
+  declared_capabilities: number;
   providers: number;
   packs: number;
   actors: Array<{

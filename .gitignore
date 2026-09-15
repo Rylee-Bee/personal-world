@@ -73,6 +73,26 @@ id_ed25519
 # Play-Nice contract session commitment artifacts (contractctl commit):
 # ephemeral, session/role/task-keyed, secret-free but not durable project
 # truth — never committed, per the library's own convention.
+# NOTE: gitignore patterns containing a slash are rooted at this file, so
+# the nested .project copy needs its own rule below.
 .contracts/sessions/
 .contract-commitment.json
+.project/contracts/.contracts/
+
+# Local agent scratch / workspaces — never source
+.bcode/
+node_modules/
+
+# Test-run artifacts (regenerated every run)
+test-results/
+
+# Local runtime data backups (data/ is ignored; backups sit beside it)
+data.bak.*/
+
+# Owner-local Figma export drop: unsorted PNG/SVG exports, a large PDF,
+# and Figma share links. Approved exports are curated into design/screens/
+# and classified in .project/design/CURRENT.md — those are the tracked
+# references. This directory is the owner's working drop, not project truth.
+design/owner/
+
 # Design PNG/SVG/ZIP/dotLottie deliverables are intentional source assets.

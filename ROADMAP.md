@@ -23,30 +23,46 @@ it; items below are direction and history, not the execution plan.
 Work that completes or hardens what 0.1 already promises or is required
 by the current finish line:
 
-- **Workshop v3 implementation.** STARTED (2026-09-13): the design
-  convergence is complete (16/16 canonical frames identified in
+- **Workshop v3 implementation.** Design convergence is COMPLETE
+  (2026-09-13): 16 implementation frames identified in
   [`.project/design/WORKSHOP-V3-MANIFEST.yaml`](.project/design/WORKSHOP-V3-MANIFEST.yaml),
   philosophy "The world knows how loudly to exist" (17:8873), audit
-  18:2 — all revised frames READY FOR IMPLEMENTATION), and **16/16
-  frames are implemented**: Today — Quiet Day (17:481), Question
-  (17:6245), Mobile Today (17:1929), Vault (17:1014), Login (17:1681),
-  Chat (17:2536), Projects (17:2752), Setup (17:3039), Notifications
-  (17:6369), Interests (17:1515), Bad Day (17:2117), Journal Writing
-  (17:2268), Settings (17:3762), Companion Popover (17:4565), World
-  (17:5485), Journal Reading (17:5763). D0–D3 pass on all sixteen;
-  D4 human review pending as a bundled owner review. Tracked in
-  [issue #37](https://github.com/Rylee-Bee/personal-world/issues/37).
-  Owner reservations remain open and accumulate evidence: companion
-  presence scale, waves-ladder/waterline placement, mobile-nav item
-  count, chat send button sizing, login key icon.
+  18:2. **Implementation status is partial and was consolidated
+  downgrade-on-purpose (verified 2026-09-15 against the code, not the
+  issue):** the first Figma-faithful build (`5837c99`) rendered the
+  frames with a 1535-line Today screen, but it was not wired to real
+  API data; the integration pass
+  (`4b7ec55`/`565dcd1` — "wire all screens to real API") replaced it with
+  genuinely data-driven screens, trading composition fidelity for truth.
+  Today is therefore Quiet Day (17:481) only.
+  **Referenced by current implementation code:** 17:481, 17:1014,
+  17:1515, 17:1681, 17:1929, 17:2268, 17:2536, 17:2752, 17:3039,
+  17:3762, 17:4565, 17:5485.
+  **Not present as implemented states in the current tree:** Today
+  Bad Day (17:2117) and Question (17:6245) — the canonical frames are
+  recorded and `ShellModes.ts` documents their modes, but the screens do
+  not render them; Notifications (17:6369) — the only artifact was an
+  unused, self-described stub, removed 2026-09-15; Journal Reading
+  (17:5763) — no frame reference in the frontend (UNKNOWN whether the
+  existing Journal screen covers it).
+  An unfinished attempt at Bad Day/Question plus screen-level shell-mode
+  switching is preserved on branch `wip/today-workshop-v3-frames`
+  (not merged; it counts dirty/ahead/behind local git work as attention).
+  [issue #37](https://github.com/Rylee-Bee/personal-world/issues/37) was
+  CLOSED at the 16/16 engineering-gate reading and does not track the
+  current gap. Owner reservations remain open: companion presence scale,
+  waves-ladder/waterline placement, mobile-nav item count, chat send
+  button sizing, login key icon.
 
 - **Secret vault.** DONE (2026-09-09): Fernet-encrypted file vault
   (`/data/vault.enc`, PBKDF2-600k) behind real unlock/lock/set/
-  delete/names endpoints; the image now installs `cryptography` so
-  container path includes encryption. Minimal installs without the crypto extra
-  still fall back to base64; native HTTP backend selection and stronger
-  re-authentication remain incomplete. See `docs/ARCHITECTURE.md` for the current
-  boundary. The UI lists names rather than redisplaying stored values.
+  delete/names endpoints; the image installs `cryptography` so the
+  container path encrypts. Without the crypto extra the vault now
+  **fails closed** — `unlock` reports `unavailable`, no secret is stored,
+  and status honestly reports `encrypted: false` (there is no base64
+  fallback). Native HTTP backend selection and stronger re-authentication
+  remain incomplete. See `docs/ARCHITECTURE.md` for the boundary. The UI
+  lists names rather than redisplaying stored values.
 
 - **Accessibility-preference → dashboard wiring.** DONE (2026-09-07):
   preferences render server-side and apply live in the dashboard
