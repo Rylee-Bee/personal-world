@@ -228,6 +228,14 @@ export default function VaultScreen() {
               </>
             )}
           </div>
+          {/* Honest status reporting (BATCH 8): if the server says the
+              file is not actually encrypted, say so — never a silent
+              false sense of safety. */}
+          {vaultData?.warning ? (
+            <p role="note" className="pw-vault-hint">
+              {vaultData.warning}
+            </p>
+          ) : null}
         </div>
       </section>
 

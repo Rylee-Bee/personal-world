@@ -52,7 +52,7 @@
   gap: 0.35rem;
   margin: 0;
   padding: 0.2rem 0.65rem;
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   background: var(--pw-color-surface-elevated);
   border: 1px solid var(--pw-color-border-subtle);
   font-size: 0.8rem;
@@ -62,7 +62,7 @@
 .pw-chat-screen-context-dot {
   width: 0.45rem;
   height: 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   background: var(--pw-color-accent-primary);
   flex-shrink: 0;
 }
@@ -103,7 +103,7 @@
 .pw-chat-screen-provider-dot {
   width: 0.45rem;
   height: 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   background: var(--pw-color-accent-primary);
   flex-shrink: 0;
 }
@@ -178,7 +178,7 @@
 .pw-chat-screen-empty-glow {
   position: absolute;
   inset: 0;
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   background: var(--pw-color-warmth-chat-presence-glow);
 }
 
@@ -360,7 +360,7 @@
   min-height: var(--pw-target-minimum);
   padding: var(--pw-spacing-compact) var(--pw-spacing-loose);
   border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   background: var(--pw-color-surface-elevated);
   color: var(--pw-color-text-primary);
   font-size: 0.9rem;
@@ -452,6 +452,6 @@
   align-items: center;
   gap: 0.3rem;
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   color: var(--pw-color-text-muted);
 }

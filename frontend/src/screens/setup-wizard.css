@@ -58,7 +58,7 @@
 .pw-setup-greeting-label {
   margin: 0;
   font-family: var(--pw-typography-font-interface);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -104,7 +104,7 @@
 .pw-setup-eyebrow {
   margin: 0;
   font-family: var(--pw-typography-font-interface);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -170,14 +170,14 @@
 .pw-setup-guidance {
   margin: 0;
   font-family: var(--pw-typography-font-interface);
-  font-size: 0.8125rem;
+  font-size: var(--pw-typography-text-detail);
   color: var(--pw-color-text-secondary);
 }
 
 .pw-setup-hint {
   margin: 0;
   font-family: var(--pw-typography-font-interface);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   line-height: 1.5;
   color: var(--pw-color-text-secondary);
 }
@@ -204,7 +204,7 @@
   color: var(--pw-color-text-secondary);
   cursor: pointer;
   font-family: var(--pw-typography-font-interface);
-  font-size: 0.875rem;
+  font-size: var(--pw-typography-text-body);
   font-weight: 600;
 }
 
@@ -239,7 +239,7 @@
   color: var(--pw-color-text-secondary);
   cursor: pointer;
   font-family: var(--pw-typography-font-interface);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   font-weight: 500;
 }
 
@@ -249,7 +249,7 @@
   justify-content: center;
   width: 4.25rem;
   height: 4.25rem;
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   border: 1px solid var(--pw-color-warmth-glass-pill);
   background: var(--pw-color-warmth-glass-pill);
   overflow: hidden;
@@ -367,7 +367,7 @@
 .pw-setup-build-btn {
   width: 100%;
   height: 3.375rem;
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   font-size: 1rem;
   font-weight: 700;
   box-shadow: var(--pw-color-warmth-vault-glow);
@@ -377,7 +377,7 @@
   border: none;
   background: transparent;
   font-family: var(--pw-typography-font-interface);
-  font-size: 0.8125rem;
+  font-size: var(--pw-typography-text-detail);
   color: var(--pw-color-text-secondary);
   cursor: pointer;
   padding: var(--pw-spacing-compact) var(--pw-spacing-normal);

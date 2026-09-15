@@ -21,21 +21,21 @@ const mutedClasses = "text-[var(--pw-color-text-muted)]";
 const actionButtonClasses = [
   "inline-flex min-h-[var(--pw-target-minimum)] items-center justify-center gap-2",
   "rounded-lg border border-[var(--pw-color-border-subtle)] bg-transparent",
-  "px-2.5 text-[11px] text-[var(--pw-color-text-primary)]",
+  "px-2.5 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-primary)]",
   "hover:border-[var(--pw-color-accent-primary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const screenButtonClasses = [
   "inline-flex min-h-[var(--pw-target-minimum)] items-center justify-center",
-  "rounded-lg bg-[var(--pw-color-accent-primary)] px-3.5 text-[12px] font-medium",
-  "text-[var(--pw-color-surface-canvas)]",
+  "rounded-lg bg-[var(--pw-color-accent-primary)] px-3.5 font-medium",
+  "text-[var(--pw-color-accent-on-primary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const textInputClasses = [
   "min-h-[var(--pw-target-minimum)] flex-1 rounded-lg border border-[var(--pw-color-border-subtle)]",
-  "bg-[var(--pw-color-surface-elevated)] px-3 text-[11px] text-[var(--pw-color-text-secondary)]",
+  "bg-[var(--pw-color-surface-elevated)] px-3 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
@@ -70,7 +70,7 @@ function CapabilityCard({
           <span className="text-xs font-semibold text-[var(--pw-color-text-primary)]">
             {cap.display_name}
           </span>
-          <span className="text-[10px] text-[var(--pw-color-text-secondary)] truncate">
+          <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)] truncate">
             {needsSetup ? cap.help_text : cap.description}
           </span>
         </span>
@@ -195,7 +195,7 @@ function FieldInput({
         {field.required && <span className="text-[var(--pw-color-text-primary)]"> *</span>}
       </span>
       {field.description && (
-        <span className="text-[10px] text-[var(--pw-color-text-secondary)]">{field.description}</span>
+        <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)]">{field.description}</span>
       )}
       {field.type === "select" && field.options ? (
         <select
@@ -217,7 +217,7 @@ function FieldInput({
             placeholder={field.placeholder || "Vault secret name"}
             onChange={(e) => onChange(e.target.value)}
           />
-          <span className="text-[10px] text-[var(--pw-color-accent-primary)] shrink-0">
+          <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-accent-primary)] shrink-0">
             Stored in Vault
           </span>
         </span>
@@ -231,7 +231,7 @@ function FieldInput({
         />
       )}
       {error && (
-        <span role="alert" className="text-[10px] text-[var(--pw-color-text-primary)]">{error}</span>
+        <span role="alert" className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-primary)]">{error}</span>
       )}
     </label>
   );
@@ -255,7 +255,7 @@ function TestResult({ result }: { result: ConnectionTestResult | null }) {
       <span className="size-2 rounded-full" style={{ backgroundColor: info.color }} />
       <span className="text-xs text-[var(--pw-color-text-primary)]">{info.label}</span>
       {result.detail && (
-        <span className="text-[10px] text-[var(--pw-color-text-secondary)] truncate">{result.detail}</span>
+        <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)] truncate">{result.detail}</span>
       )}
     </div>
   );
@@ -410,7 +410,9 @@ export function ConnectionsPanel() {
     overview.refetch();
   };
 
-  const caps = overview.data ?? [];
+  // Overview is an array from the server; a non-array payload (or a
+  // mocked shape) must degrade to an empty list, never crash the panel.
+  const caps = Array.isArray(overview.data) ? overview.data : [];
   const needsSetup = caps.filter((c) => !c.configured && c.needs_setup);
   const connected = caps.filter((c) => c.configured);
   const readyCount = connected.filter((c) => c.ok || c.status === "healthy").length;
@@ -421,7 +423,7 @@ export function ConnectionsPanel() {
   return (
     <section aria-labelledby="connections-heading" data-testid="connections-panel" className={panelClasses}>
       <div className="flex flex-col gap-1.5">
-        <h2 id="connections-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+        <h2 id="connections-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
           Connections & Providers
         </h2>
         <p className={`text-xs leading-relaxed ${mutedClasses}`}>

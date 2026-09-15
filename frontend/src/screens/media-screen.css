@@ -29,12 +29,12 @@
 
 /* ── Header ── */
 .pw-media-header {
-  padding: 28px 42px 0;
+  padding: var(--pw-spacing-page-top) var(--pw-spacing-page-side) 0;
 }
 
 .pw-media-title {
   font-family: var(--pw-typography-font-expressive);
-  font-size: 1.75rem;
+  font-size: var(--pw-typography-heading-page);
   font-weight: 400;
   line-height: 1.2;
   color: var(--pw-color-text-primary);
@@ -52,7 +52,7 @@
 
 /* ── Status bar ── */
 .pw-media-status {
-  padding: 28px 42px;
+  padding: var(--pw-spacing-normal) var(--pw-spacing-page-side);
 }
 
 .pw-media-status-grid {
@@ -69,7 +69,7 @@
   padding: 16px 24px;
   background: var(--pw-color-surface-panel);
   border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 12px;
+  border-radius: var(--pw-radius-card);
   min-width: 100px;
 }
 
@@ -90,7 +90,7 @@
 }
 
 .pw-media-status-label {
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   color: var(--pw-color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -135,9 +135,9 @@
   padding: 0 12px;
   background: var(--pw-color-surface-canvas);
   border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--pw-radius-control);
   color: var(--pw-color-text-primary);
-  font-size: 0.875rem;
+  font-size: var(--pw-typography-text-body);
   font-family: var(--pw-typography-font-interface);
   outline: none;
   transition: border-color 0.15s ease;
@@ -162,9 +162,9 @@
   padding: 0 20px;
   background: color-mix(in srgb, var(--pw-color-accent-primary) 15%, transparent);
   border: 1px solid var(--pw-color-accent-primary);
-  border-radius: 8px;
+  border-radius: var(--pw-radius-control);
   color: var(--pw-color-accent-primary);
-  font-size: 0.875rem;
+  font-size: var(--pw-typography-text-body);
   font-family: var(--pw-typography-font-interface);
   cursor: pointer;
   white-space: nowrap;
@@ -218,12 +218,12 @@
   padding: 10px 16px;
   background: var(--pw-color-surface-elevated);
   border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border-radius: var(--pw-radius-control);
+  font-size: var(--pw-typography-text-body);
 }
 
 .pw-media-item-kind {
-  font-size: 0.7rem;
+  font-size: var(--pw-typography-text-caption);
   color: var(--pw-color-accent-primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -241,18 +241,18 @@
 
 .pw-media-item-year {
   color: var(--pw-color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
 }
 
 .pw-media-item-provider {
   color: var(--pw-color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .pw-media-item-availability {
-  font-size: 0.7rem;
+  font-size: var(--pw-typography-text-caption);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -269,12 +269,12 @@
 
 .pw-media-item-eta {
   color: var(--pw-color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
 }
 
 /* ── Activity status badges ── */
 .pw-media-activity-status {
-  font-size: 0.7rem;
+  font-size: var(--pw-typography-text-caption);
   padding: 2px 8px;
   border-radius: 4px;
   text-transform: uppercase;
@@ -334,8 +334,8 @@
   padding: 10px 16px;
   background: var(--pw-color-surface-elevated);
   border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border-radius: var(--pw-radius-control);
+  font-size: var(--pw-typography-text-body);
 }
 
 .pw-media-library-name {
@@ -346,32 +346,32 @@
 
 .pw-media-library-kind {
   color: var(--pw-color-accent-primary);
-  font-size: 0.7rem;
+  font-size: var(--pw-typography-text-caption);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .pw-media-library-count {
   color: var(--pw-color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
 }
 
 .pw-media-library-provider {
   color: var(--pw-color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 /* ── Hints & empty ── */
 .pw-media-hint {
-  font-size: 0.875rem;
+  font-size: var(--pw-typography-text-body);
   color: var(--pw-color-text-muted);
   margin: 0;
 }
 
 .pw-media-empty {
-  font-size: 0.875rem;
+  font-size: var(--pw-typography-text-body);
   color: var(--pw-color-text-muted);
   margin: 0;
   padding: 16px 0;

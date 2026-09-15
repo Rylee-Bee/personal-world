@@ -84,12 +84,12 @@ export default function TodayScreen() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        setDailyResult(body?.detail || `Failed (${res.status})`);
+        setDailyResult(body?.detail || "Something went wrong. Your world is still running.");
       } else {
         setDailyResult("Daily loop complete.");
       }
     } catch {
-      setDailyResult("Could not reach the server.");
+      setDailyResult("Could not reach your world. It will try again.");
     } finally {
       setDailyRunning(false);
     }
@@ -131,6 +131,32 @@ export default function TodayScreen() {
   );
 
   const totalAttention = attentionCaps + reposNeedingAttention.length + activeAgentProjects.length;
+
+  // Loading skeleton — show while the world wakes up
+  if (principal.isLoading && daily.isLoading) {
+    return (
+      <div className="pw-today">
+        <section className="pw-today-welcome" aria-label="Loading your world">
+          <div className="pw-today-greeting-row">
+            <div className="pw-today-greeting">
+              <h1 className="pw-today-greeting-text">
+                <span className="pw-today-skeleton" style={{ width: "280px", height: "2.25rem" }} aria-hidden="true" />
+                {/* Screen-reader truth: the skeleton shape is decoration;
+                    the h1 must never be an empty heading (axe empty-heading). */}
+                <span className="sr-only">Good morning.</span>
+              </h1>
+              <p className="pw-today-date">
+                <span className="pw-today-skeleton" style={{ width: "140px", height: "0.875rem" }} aria-hidden="true" />
+              </p>
+            </div>
+          </div>
+          <p className="pw-today-loading" role="status">
+            Waking up your world…
+          </p>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="pw-today">

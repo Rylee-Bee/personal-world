@@ -14,7 +14,7 @@
 }
 
 .settings-heading h1 {
-  font-size: 2.25rem;
+  font-size: var(--pw-typography-heading-page);
   line-height: 1.2;
   font-family: var(--pw-typography-font-expressive);
   color: var(--pw-color-text-primary);
@@ -22,7 +22,7 @@
 }
 
 .settings-heading p {
-  font-size: 0.875rem;
+  font-size: var(--pw-typography-text-body);
   color: var(--pw-color-text-muted);
   margin: 0;
 }
@@ -64,7 +64,7 @@
 }
 
 .settings-panel-header p {
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   line-height: 1.5;
   color: var(--pw-color-text-muted);
   margin: 0;
@@ -79,7 +79,7 @@
 
 .settings-pref-row {
   display: flex;
-  height: 42px;
+  height: var(--pw-target-minimum);
   align-items: center;
   justify-content: space-between;
   padding: 0 0.875rem;
@@ -94,7 +94,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   color: var(--pw-color-text-primary);
 }
 
@@ -112,7 +112,7 @@
   padding: 0 0.625rem;
   font-size: 0.6875rem;
   color: var(--pw-color-text-secondary);
-  box-shadow: 0 0 12px 1px color-mix(in srgb, var(--pw-color-accent-primary) 18%, transparent);
+  box-shadow: var(--pw-shadow-warmth-glow-soft);
   outline: none;
   transition: border-color var(--pw-motion-duration) ease;
 }
@@ -163,7 +163,7 @@
 .settings-companion-card--active {
   background: color-mix(in srgb, var(--pw-color-accent-primary) 12%, var(--pw-color-surface-panel));
   border-color: var(--pw-color-accent-primary);
-  box-shadow: 0 0 12px 1px color-mix(in srgb, var(--pw-color-accent-primary) 18%, transparent);
+  box-shadow: var(--pw-shadow-warmth-glow-soft);
 }
 
 .settings-companion-card--off {
@@ -181,7 +181,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: var(--pw-radius-pill);
   width: var(--pw-target-minimum);
   height: var(--pw-target-minimum);
   flex-shrink: 0;
@@ -250,7 +250,7 @@
   border-radius: 0.5rem;
   background: var(--pw-color-accent-primary);
   padding: 0 0.875rem;
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   font-weight: 500;
   color: var(--pw-color-surface-canvas);
   cursor: pointer;
@@ -371,13 +371,13 @@
 }
 
 .settings-section-label strong {
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   font-weight: 600;
   color: var(--pw-color-text-primary);
 }
 
 .settings-section-label small {
-  font-size: 0.5625rem;
+  font-size: 0.6875rem;
   color: var(--pw-color-text-secondary);
 }
 
@@ -417,7 +417,7 @@
   display: flex;
   align-items: center;
   gap: var(--pw-spacing-normal);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   color: var(--pw-color-text-primary);
 }
 
@@ -427,7 +427,7 @@
 }
 
 .settings-capabilities-warnings {
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   color: var(--pw-color-text-secondary);
 }
 
@@ -444,13 +444,13 @@
 /* Loading state */
 .settings-loading {
   padding: 0.5rem 0;
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   color: var(--pw-color-text-muted);
 }
 
 /* Error alert */
 .settings-error {
-  font-size: 0.875rem;
+  font-size: var(--pw-typography-text-body);
   color: var(--pw-color-text-primary);
 }
 

@@ -51,7 +51,7 @@ import "./settings-screen.css";
  *     with no invented status and no tint).
  *
 /**
- * The shell (T9 AppShell) owns <main> and the nav — and, since the T14
+ * The shell (T9 WorkshopShell) owns <main> and the nav — and, since the T14
  * human-gate correction, the ONE content measure (index.css .pw-main
  * --pw-content-measure); this screen renders bare inside it. All
  * targets are ≥44px via --pw-target-minimum; no hex (token vars only);
@@ -66,28 +66,28 @@ const mutedClasses = "text-[var(--pw-color-text-muted)]";
 const actionButtonClasses = [
   "inline-flex min-h-[var(--pw-target-minimum)] items-center justify-center gap-2",
   "rounded-lg border border-[var(--pw-color-border-subtle)] bg-transparent",
-  "px-2.5 text-[11px] text-[var(--pw-color-text-primary)]",
+  "px-2.5 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-primary)]",
   "hover:border-[var(--pw-color-accent-primary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const selectClasses = [
-  "min-h-[var(--pw-target-minimum)] w-[138px] rounded-lg border border-[var(--pw-color-accent-primary)]",
-  "bg-[var(--pw-color-surface-panel)] px-2.5 text-[11px] text-[var(--pw-color-text-secondary)]",
-  "shadow-[0_0_12px_1px_rgba(114,177,177,0.18)]",
+  "min-h-[var(--pw-target-minimum)] min-w-[138px] rounded-lg border border-[var(--pw-color-accent-primary)]",
+  "bg-[var(--pw-color-surface-panel)] px-2.5 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)]",
+  "shadow-[var(--pw-shadow-warmth-glow-soft)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const textInputClasses = [
   "min-h-[var(--pw-target-minimum)] flex-1 rounded-lg border border-[var(--pw-color-border-subtle)]",
-  "bg-[var(--pw-color-surface-elevated)] px-3 text-[11px] text-[var(--pw-color-text-secondary)]",
+  "bg-[var(--pw-color-surface-elevated)] px-3 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const screenButtonClasses = [
   "inline-flex min-h-[var(--pw-target-minimum)] items-center justify-center",
-  "rounded-lg bg-[var(--pw-color-accent-primary)] px-3.5 text-[12px] font-medium",
-  "text-[var(--pw-color-surface-canvas)]",
+  "rounded-lg bg-[var(--pw-color-accent-primary)] px-3.5 font-medium",
+  "text-[var(--pw-color-accent-on-primary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
@@ -162,7 +162,7 @@ function SettingsScreen() {
   const themes = useThemes();
   const brainTemplates = useBrainTemplates();
   // Emits the shared "sections" refresh signal: SectionNav (mounted in
-  // AppShell, outside this screen) subscribes to the same signal via
+  // WorkshopShell, outside this screen) subscribes to the same signal via
   // useSections(), so a sections write here updates the live nav in
   // this interaction — no reload needed.
   const emitSectionsWrite = useSectionsWrite();
@@ -457,7 +457,7 @@ function SettingsScreen() {
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
           <Icon name="icon-system-device-theme" size={24} className="text-[var(--pw-color-text-primary)]" />
-          <h1 className="text-[36px] leading-tight" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+          <h1 className="text-[var(--pw-typography-heading-page)] leading-tight" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
             Settings{principal.data ? ` for ${principal.data.display_name}` : ""}
           </h1>
         </div>
@@ -479,7 +479,7 @@ function SettingsScreen() {
         {/* ── Preferences (from GET /api/prefs/schema) ── */}
         <section aria-labelledby="prefs-heading" data-testid="prefs-panel" className={panelClasses}>
           <div className="flex flex-col gap-1.5">
-            <h2 id="prefs-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+            <h2 id="prefs-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
               How you read
             </h2>
             <p className={`text-xs leading-relaxed ${mutedClasses}`}>
@@ -491,7 +491,7 @@ function SettingsScreen() {
               Preference options are unavailable: {schemaError} Your current settings still apply.
             </p>
           )}
-          <div className="rounded-xl bg-[var(--pw-color-surface-elevated)] overflow-hidden divide-y divide-[var(--pw-color-border-subtle)]">
+          <div className="rounded-xl bg-[var(--pw-color-surface-elevated)] divide-y divide-[var(--pw-color-border-subtle)]">
             {schema === null && schemaError === null && (
               <p className="px-3.5 py-3 text-xs text-[var(--pw-color-text-muted)]">Loading preference options…</p>
             )}
@@ -503,7 +503,7 @@ function SettingsScreen() {
               const error = prefErrors[key];
               const prefIcon = PREF_ICONS[key];
               return (
-                <div key={key} className="flex h-[42px] items-center justify-between px-3.5">
+                <div key={key} className="flex min-h-[var(--pw-target-minimum)] items-center justify-between px-3.5">
                   <label htmlFor={`pref-${key}`} className="flex items-center gap-2 text-xs text-[var(--pw-color-text-primary)]">
                     {prefIcon && <Icon name={prefIcon} size={16} className="shrink-0 text-[var(--pw-color-text-secondary)]" />}
                     {PREF_LABELS[key] ?? key}
@@ -527,7 +527,7 @@ function SettingsScreen() {
                       ))}
                     </select>
                     {error && (
-                      <span role="alert" data-testid={`pref-error-${key}`} className="max-w-md text-right text-[10px] text-[var(--pw-color-text-primary)]">
+                      <span role="alert" data-testid={`pref-error-${key}`} className="max-w-md text-right text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-primary)]">
                         {`Not saved: ${error}`}
                       </span>
                     )}
@@ -546,7 +546,7 @@ function SettingsScreen() {
         {/* ── Companion (schema vocabulary + frontend-only off) ── */}
         <section aria-labelledby="companion-heading" data-testid="companion-panel" className={panelClasses}>
           <div className="flex flex-col gap-1.5">
-            <h2 id="companion-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+            <h2 id="companion-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
               Who keeps watch
             </h2>
             <p className={`text-xs leading-relaxed ${mutedClasses}`}>
@@ -562,16 +562,16 @@ function SettingsScreen() {
                 <div
                   key={choice}
                   className={[
-                    "flex flex-col gap-2 h-[88px] overflow-hidden rounded-xl border p-2.5",
+                    "flex flex-col gap-2 min-h-[88px] rounded-xl border p-2.5",
                     isActive
-                      ? "bg-[var(--pw-color-warmth-teal-tint)] border-[var(--pw-color-accent-primary)] shadow-[0_0_12px_1px_rgba(114,177,177,0.18)]"
+                      ? "bg-[var(--pw-color-warmth-teal-tint)] border-[var(--pw-color-accent-primary)] shadow-[var(--pw-shadow-warmth-glow-soft)]"
                       : "bg-[var(--pw-color-surface-elevated)] border-[var(--pw-color-border-subtle)]",
                     choice === COMPANION_OFF ? "w-full flex-row items-center justify-between" : "w-[240px]",
                   ].join(" ")}
                 >
                   {choice === COMPANION_OFF ? (
                     <>
-                      <span className="text-[11px] text-[var(--pw-color-text-secondary)]">{name}</span>
+                      <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)]">{name}</span>
                       <button
                         type="button"
                         className={actionButtonClasses}
@@ -595,10 +595,10 @@ function SettingsScreen() {
                             <Icon name="icon-world-content-world" size={22} className="text-[var(--pw-color-text-secondary)]" />
                           )}
                         </div>
-                        <span className="flex-1 min-w-0 text-[11px] text-[var(--pw-color-text-primary)] truncate">{name}</span>
+                        <span className="flex-1 min-w-0 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-primary)] truncate">{name}</span>
                       </div>
                       {isActive ? (
-                        <span className="text-[10px] text-[var(--pw-color-accent-primary)]">✦ keeping watch</span>
+                        <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-accent-primary)]">✦ keeping watch</span>
                       ) : (
                         <button
                           type="button"
@@ -622,7 +622,7 @@ function SettingsScreen() {
         {/* ── Reminders ── */}
         <section aria-labelledby="reminders-heading" data-testid="reminders-panel" className={panelClasses}>
           <div className="flex flex-col gap-1.5">
-            <h2 id="reminders-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+            <h2 id="reminders-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
               Reminders
             </h2>
             <p className={`text-xs leading-relaxed ${mutedClasses}`}>
@@ -662,7 +662,7 @@ function SettingsScreen() {
                 <li key={r.id} className="flex items-center justify-between py-2">
                   <span className="flex items-center gap-2">
                     <Icon name="icon-status-feedback-notification" size={15} className="shrink-0 text-[var(--pw-color-accent-primary)]" />
-                    <span className="text-[11px] text-[var(--pw-color-text-primary)]">{r.text}</span>
+                    <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-primary)]">{r.text}</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <button
@@ -694,7 +694,7 @@ function SettingsScreen() {
         {/* ── Sections panel (GET/PUT /api/sections) ── */}
         <section aria-labelledby="sections-heading" data-testid="sections-panel" className={panelClasses}>
           <div className="flex flex-col gap-1.5">
-            <h2 id="sections-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+            <h2 id="sections-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
               What you see
             </h2>
             <p className={`text-xs leading-relaxed ${mutedClasses}`}>
@@ -726,7 +726,7 @@ function SettingsScreen() {
                       <span className="flex flex-col gap-0.5">
                         <span className="text-xs font-semibold text-[var(--pw-color-text-primary)]">{s.label}</span>
                         {s.pinned && (
-                          <span className="text-[9px] text-[var(--pw-color-text-secondary)]">
+                          <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)]">
                             always reachable — cannot be hidden.
                           </span>
                         )}
@@ -803,7 +803,7 @@ function SettingsScreen() {
         {/* ── Capability table (GET /api/status) ── */}
         <section aria-labelledby="capabilities-heading" data-testid="capabilities-panel" className={panelClasses}>
           <div className="flex flex-col gap-1.5">
-            <h2 id="capabilities-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+            <h2 id="capabilities-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
               What your world can see
             </h2>
             <p className={`text-xs leading-relaxed ${mutedClasses}`}>
@@ -827,7 +827,7 @@ function SettingsScreen() {
                 </thead>
                 <tbody className="divide-y divide-[var(--pw-color-border-subtle)]">
                   {capabilities.map(([name, cap]) => (
-                    <tr key={name} className="h-[45px]">
+                    <tr key={name} className="min-h-[var(--pw-target-minimum)]">
                       <th scope="row" className="pr-4 font-normal">
                         <span className="flex items-center gap-2.5">
                           <Icon name={capabilityIcon(name)} size={16} className="shrink-0 text-[var(--pw-color-text-secondary)]" />
@@ -861,7 +861,7 @@ function SettingsScreen() {
         {/* ── Applications ── */}
         <section aria-labelledby="apps-heading" data-testid="apps-panel" className={panelClasses}>
           <div className="flex flex-col gap-1.5">
-            <h2 id="apps-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+            <h2 id="apps-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
               Applications
             </h2>
             <p className={`text-xs leading-relaxed ${mutedClasses}`}>
@@ -902,7 +902,7 @@ function SettingsScreen() {
         {/* ── Themes ── */}
         <section aria-labelledby="themes-heading" data-testid="themes-panel" className={panelClasses}>
           <div className="flex flex-col gap-1.5">
-            <h2 id="themes-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+            <h2 id="themes-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
               Themes
             </h2>
             <p className={`text-xs leading-relaxed ${mutedClasses}`}>
@@ -933,7 +933,7 @@ function SettingsScreen() {
         {/* ── Brain ── */}
         <section aria-labelledby="brain-heading" data-testid="brain-panel" className={panelClasses}>
           <div className="flex flex-col gap-1.5">
-            <h2 id="brain-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+            <h2 id="brain-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
               Brain
             </h2>
             <p className={`text-xs leading-relaxed ${mutedClasses}`}>
@@ -965,7 +965,7 @@ function SettingsScreen() {
                 </thead>
                 <tbody className="divide-y divide-[var(--pw-color-border-subtle)]">
                   {brainTemplates.data.templates.map((t: BrainTemplate) => (
-                    <tr key={t.id} className="h-[36px]">
+                    <tr key={t.id} className="min-h-[var(--pw-target-minimum)]">
                       <th scope="row" className="pr-4 font-normal">
                         <span className="text-xs text-[var(--pw-color-text-primary)]">{t.id}</span>
                       </th>
@@ -979,7 +979,7 @@ function SettingsScreen() {
                         <span className="flex items-center gap-1.5">
                           <span className="text-xs text-[var(--pw-color-text-secondary)]">{t.source}</span>
                           {t.has_override && (
-                            <span className="rounded bg-[var(--pw-color-accent-primary)] px-1.5 py-0.5 text-[9px] text-[var(--pw-color-surface-canvas)]">
+                            <span className="rounded bg-[var(--pw-color-accent-primary)] px-1.5 py-0.5 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-accent-on-primary)]">
                               override
                             </span>
                           )}
@@ -1105,7 +1105,7 @@ function BrainProviderInfo() {
         {providers.map((p) => (
           <div
             key={p.name}
-            className="flex items-center justify-between rounded-lg bg-[var(--pw-color-surface-elevated)] px-3 py-2 min-h-[40px]"
+            className="flex items-center justify-between rounded-lg bg-[var(--pw-color-surface-elevated)] px-3 py-2 min-h-[var(--pw-target-minimum)]"
           >
             <span className="flex items-center gap-2">
               <span className={[
@@ -1116,7 +1116,7 @@ function BrainProviderInfo() {
                 {p.display_name || p.name}
               </span>
               {p.name === active && (
-                <span className="rounded bg-[var(--pw-color-accent-primary)] px-1.5 py-0.5 text-[9px] text-[var(--pw-color-surface-canvas)]">
+                <span className="rounded bg-[var(--pw-color-accent-primary)] px-1.5 py-0.5 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-accent-on-primary)]">
                   active
                 </span>
               )}
@@ -1171,7 +1171,7 @@ function ProfilePanel({
   return (
     <section aria-labelledby="profile-heading" data-testid="profile-panel" className={panelClasses}>
       <div className="flex flex-col gap-1.5">
-        <h2 id="profile-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+        <h2 id="profile-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
           Profile
         </h2>
         <p className={`text-xs leading-relaxed ${mutedClasses}`}>
@@ -1209,6 +1209,16 @@ function ProfilePanel({
           >
             {saving ? "Saving…" : "Save name"}
           </button>
+          {/* Dev-bypass honesty (temporary local auth): when the
+              server resolved this principal via PW_DEV_AUTH_BYPASS,
+              say so — the person must never wonder why no token was
+              asked for. Production principals never carry this
+              source. */}
+          {principal.data?.source === "dev-bypass" && (
+            <p role="status" className="text-xs text-[var(--pw-color-text-primary)]">
+              Development sign-in active (loopback only). No access code required on this machine.
+            </p>
+          )}
         </form>
       )}
     </section>
