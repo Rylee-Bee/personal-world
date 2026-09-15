@@ -11,7 +11,7 @@ export function WorldIdentity() {
         <img src="/companions/personal-world.svg" alt="" />
       </div>
       <div className="pw-world-name-group">
-        <p className="pw-world-label">&#10022; project worlds</p>
+        <p className="pw-world-label">✦ project worlds</p>
       </div>
     </div>
   );
