@@ -293,7 +293,7 @@ export default function InterestsScreen() {
             ))}
           </ul>
         ) : (
-          <p className="pw-interests-hint">No discovery sources configured yet.</p>
+          <p className="pw-interests-hint">Your world is ready to learn what you care about. Add a source to begin.</p>
         )}
       </section>
 
@@ -316,7 +316,7 @@ export default function InterestsScreen() {
             ))}
           </ul>
         ) : (
-          <p className="pw-interests-hint">No interests added yet.</p>
+          <p className="pw-interests-hint">Tell your world what interests you — it will keep watch.</p>
         )}
       </section>
 
