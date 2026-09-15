@@ -6,7 +6,7 @@
  *
  * Run: cd frontend && npx playwright test e2e/docs-screenshots.spec.ts
  */
-import { test, expect } from "playwright/test";
+import { test } from "playwright/test";
 import { login, bootWait } from "./helpers";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
@@ -17,6 +17,34 @@ const MOBILE = { width: 390, height: 844 };
 
 test.beforeAll(() => {
   mkdirSync(SCREENSHOT_DIR, { recursive: true });
+});
+
+// Freeze the clock so date-derived copy (greeting, weekday, relative
+// "observed N minutes ago" ages, journal day labels) renders identically
+// on every run. These PNGs are tracked files; without a fixed clock they
+// churned on every run/day and left the working tree dirty.
+//
+// The shared e2e server points source-control at the repo itself so the
+// projects e2e exercises real git. That makes the estate state (dirty
+// branches, observation ages) leak into these screenshots and change
+// with every commit — violating this file's "deterministic, sanitized,
+// repeatable" contract, and printing local branch names into a public
+// README. Answer the two estate endpoints with the honest not_configured
+// / empty envelopes instead: a real product state, with no local detail.
+const NOT_CONFIGURED = {
+  ok: false,
+  status: "not_configured",
+  warnings: ["no source_control search paths configured"],
+};
+
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-01-15T15:00:00Z"));
+  await page.route("**/api/source-control/status*", (route) =>
+    route.fulfill({ json: NOT_CONFIGURED })
+  );
+  await page.route("**/api/projects/status*", (route) =>
+    route.fulfill({ json: { ok: true, data: { projects: [] } } })
+  );
 });
 
 async function waitForContent(page: import("playwright/test").Page) {
