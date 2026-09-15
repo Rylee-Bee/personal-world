@@ -3,6 +3,13 @@
 Not blocking. Not a conflict. A gap, honestly recorded (truth-and-evidence;
 explicit-state) rather than silently closed.
 
+> **Addendum 2026-09-15:** the project pin moved again, v0.6.0 → **v0.7.0**
+> @ `79cadac` (adds the always-applicable `assume-unknown` contract and
+> rotates the founding `play-nice-together` receipt, 1.5.0 → 1.6.0).
+> Figma's attestation is therefore now **four** revisions behind and there
+> is one additional always-applicable contract she has not read. Still
+> non-blocking; the re-pass below is unchanged.
+
 ## What happened
 
 2026-09-12, later the same day as Figma's accepted pass: this project's

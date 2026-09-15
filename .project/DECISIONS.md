@@ -121,6 +121,23 @@ dated entry superseding the old one (append-only, like the journal).
   user never mistakes an old observation for current truth. Reason:
   truth has a timestamp; the UI must carry it, not invent it.
 
+- **2026-09-15 — One Play Nice adoption manifest, at the project-context
+  path, re-pinned to the library HEAD at adoption time.** The project had
+  two adoption manifests with different pins
+  (`.project/contracts/adoption.yaml` v0.6.0 @ `21b6841a` vs a root
+  `.contracts/adoption.yaml` @ `88effb1`), and nothing machine-read
+  either. Resolved to `.project/contracts/adoption.yaml` — the layout the
+  Play-Nice project-context framework itself uses, the path declared by
+  `.project/project.yaml`, and the path the session workflow resolves
+  against; the duplicate was deleted and every document points at the one
+  manifest. The same pass re-pinned v0.6.0 → **v0.7.0** @ `79cadac`
+  (library HEAD at adoption; adds the always-applicable `assume-unknown`
+  contract) and re-attested with the real `contractctl` tool:
+  `adopt` = ADOPTION VALID, `commit` = CONTRACT COMMITMENT ACTIVE. Reason:
+  one authority per subject — a second manifest with a different pin is
+  drift no reader can reconcile, and a pin that lags the library silently
+  understates the floors the project claims to implement.
+
 
 ## Container distribution
 
