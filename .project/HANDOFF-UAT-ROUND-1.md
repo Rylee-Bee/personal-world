@@ -1,5 +1,12 @@
 # Handoff — Orchestration (UAT Round 1 complete)
 
+> **HISTORICAL (2026-09-12). Not the current entry point.** Verified stale
+> 2026-09-15: the test counts (578/356/43) and the NEXT list predate the
+> Workshop v3 convergence and integration-truth eras. Start at
+> [`CURRENT.md`](./CURRENT.md) ("2026-09-15 finish-pass truth") instead.
+> Kept for provenance: it records the UAT round, the two standing owner
+> rules, and the deployment topology of that time.
+
 **Task chain:** `project-worlds-test-environment` → T15 cutover →
 settings fixes → cache-revalidation → UAT round 1 closure.
 **Written:** 2026-09-12, agent GLM-5.3 Flash session.
