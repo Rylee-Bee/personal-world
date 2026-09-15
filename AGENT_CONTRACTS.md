@@ -91,7 +91,7 @@ Rationale: [`docs/adr/0001-capabilities-core-owned-providers-optional.md`](docs/
 - **Contract:** [`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml)
   — the project's one adoption manifest (declared by
   `.project/project.yaml: contracts.manifest`), pinned to Play-Nice
-  revision `21b6841a50a1b0d459a760861385e99679852430` (v0.6.0).
+  revision `79cadaceb8654279f7b2be135fcd67ba138728fb` (v0.7.0).
 - **Source:** [`Rylee-Bee/play-nice-contracts`](https://github.com/Rylee-Bee/play-nice-contracts)
   — public shared library, MIT license.
 

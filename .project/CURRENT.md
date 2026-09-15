@@ -191,18 +191,18 @@ V0.1 `3:722`).
 
 ## Play-Nice adoption
 
-Pinned to **v0.6.0** @ `21b6841a50a1b0d459a760861385e99679852430`
-(`.project/contracts/adoption.yaml`) — bumped from v0.5.0 during this
-same pass (which itself had been bumped from v0.3.0). Delta at this
-bump: new `collaborative-good-faith` contract (always-applicable); four
-contracts already adopted changed version
-(`ask-for-help`→1.3.0, `mutual-contribution`→1.1.0,
-`participation-and-contribution`→1.2.0, `orchestration`→1.4.0). Gate
-**PASS**, commitment **ACTIVE** for task
-`project-worlds-trunk-unification` (session artifact under the
-gitignored `.contracts/`). Verified with the real `contractctl` tool
-(cloned at the pinned revision): `adopt`, `project validate`, and
-`participant validate` all pass.
+Pinned to **v0.7.0** @ `79cadaceb8654279f7b2be135fcd67ba138728fb`
+(`.project/contracts/adoption.yaml`; the manifest records the full bump
+history v0.3.0 → v0.5.0 → v0.6.0 → v0.7.0). Delta at this bump: new
+always-applicable `assume-unknown` contract; the founding
+`play-nice-together` 1.5.0 → 1.6.0 with its receipt rotated. No other
+adopted contract changed meaning. Gate **PASS**, commitment **ACTIVE**
+for task `project-worlds-play-nice-0.7.0-repin` (bundle
+`dovetail-harbor-prairie`; session artifact under the gitignored
+`.project/contracts/.contracts/`). Verified with the real `contractctl`
+tool against the pinned revision: `adopt` = ADOPTION VALID
+(personal-world: always=11 triggers=9); `commit` = CONTRACT COMMITMENT
+ACTIVE.
 
 ## Figma participant pack
 
