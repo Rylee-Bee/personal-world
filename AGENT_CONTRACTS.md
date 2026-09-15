@@ -88,11 +88,20 @@ Rationale: [`docs/adr/0001-capabilities-core-owned-providers-optional.md`](docs/
   APIs, interfaces, and tools interact. 65 canonical contracts across
   8 layers: core safety, human experience, product behavior,
   interoperability, security, engineering, agents, and interfaces.
-- **Contract:** [`.contracts/adoption.yaml`](.contracts/adoption.yaml)
-  — adoption manifest, pinned to Play-Nice revision
-  `88effb1007d6e99827f1081cc2427baaf2b361ad`.
+- **Contract:** [`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml)
+  — the project's one adoption manifest (declared by
+  `.project/project.yaml: contracts.manifest`), pinned to Play-Nice
+  revision `21b6841a50a1b0d459a760861385e99679852430` (v0.6.0).
 - **Source:** [`Rylee-Bee/play-nice-contracts`](https://github.com/Rylee-Bee/play-nice-contracts)
   — public shared library, MIT license.
+
+One adoption manifest, one pin. `.project/contracts/adoption.yaml` is
+the authority; it is the layout the Play-Nice project-context framework
+uses (`examples/project-context/.project/contracts/adoption.yaml`) and
+the path the session workflow resolves against
+(`.project/README.md`). There is no second manifest, and no contract
+text is copied into this repository — the canonical text stays in the
+library.
 
 This project adopts the full Play-Nice library. Applicable contracts
 are resolved per task using the adoption manifest's `always` and
