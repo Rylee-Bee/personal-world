@@ -77,6 +77,21 @@ def init_world(data_dir: Path, config_dir: Path) -> Result:
         }, indent=2))
         changed.append("created connections.json (zero providers: valid)")
 
+    # 4. First-run contract: the SPA's setup gate reads the
+    # setup-complete marker (api.py healthz/setup-status). A CLI
+    # initialization IS first-run setup for the zero-provider world,
+    # so satisfying the marker here means `personal-world init` +
+    # launch opens the app without manual sentinel surgery. The
+    # wizard's richer bootstrap (token + vault) stays available at
+    # /setup-wizard-time; init only fulfills the marker contract and
+    # never overwrites an existing world.
+    marker_path = data_dir / "setup-complete"
+    if marker_path.exists():
+        skipped.append("setup-complete marker exists")
+    else:
+        marker_path.write_text("ok")
+        changed.append("created setup-complete marker (first-run satisfied)")
+
     return ok(
         "initialized" if changed else "already-initialized",
         changed=bool(changed),
