@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
  * AuthLayout (P1 T14, FOUNDATION-SPEC §10 row 15 owner decision):
  * the standalone shell for /login and /setup. These routes are the
  * gate to the app — they MUST NOT render inside the authenticated
- * AppShell: no section nav, no rail/banner/bottom bar, no app
+ * WorkshopShell: no section nav, no rail/banner/bottom bar, no app
  * controls, no companion artwork. The person is not signed in yet;
  * nothing here may imply otherwise.
  *

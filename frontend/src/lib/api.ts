@@ -377,7 +377,13 @@ export async function fetchSections(): Promise<SectionData[]> {
 }
 
 /** Shapes not yet pinned by a screen task (T10–T13 tighten them). */
-export type VaultStatusData = { locked: boolean; encrypted: boolean };
+export type VaultStatusData = {
+  locked: boolean;
+  encrypted: boolean;
+  /** Server-reported caveat (e.g. cryptography extra missing → base64
+   * storage). Present only when the backend has something to say. */
+  warning?: string;
+};
 export type VaultNamesData = { names: string[] };
 
 /**

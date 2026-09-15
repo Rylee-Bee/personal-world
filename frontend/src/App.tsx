@@ -91,7 +91,7 @@ function AppRoutes() {
 
 /**
  * Standalone auth routes (T14 owner decision): /login and /setup
- * render in the AuthLayout wrapper, OUTSIDE the AppShell — no section
+ * render in the AuthLayout wrapper, OUTSIDE the WorkshopShell — no section
  * nav, no rail/banner/bottom bar, no app controls. A person who is
  * not signed in never sees (half of) the app. Same bootstrap pattern
  * as AppRoutes: prefs land on <html data-pw-*> before any route
@@ -121,7 +121,7 @@ function AuthRoutes() {
 }
 
 /**
- * ShellGate (T14 owner decision): the authenticated AppShell mounts
+ * ShellGate (T14 owner decision): the authenticated WorkshopShell mounts
  * ONLY on non-auth routes. On /login and /setup it renders nothing
  * at all — the standalone AuthLayout owns the page. This is a
  * structural absence, not a CSS hide: a display:none shell would
@@ -160,7 +160,7 @@ function App() {
         <LiveRegionProvider>
           <BrowserRouter basename="/">
             {/*
-              AppShell (T9): skip link, nav "Main", main#main-content,
+              WorkshopShell (T9): skip link, nav "Main", main#main-content,
               Drawer mount. LiveRegionProvider stays app-level (one
               region). The router wraps the shell so NavLinks resolve.
               LoginNavigationWiring (T12): SPA 401→/login for the whole
@@ -168,8 +168,8 @@ function App() {
             */}
             <LoginNavigationWiring />
             {/* Standalone auth routes (T14): /login + /setup never
-                mount inside the authenticated AppShell — and the
-                AppShell never mounts on them (no nav, no 401-fetch
+                mount inside the authenticated WorkshopShell — and the
+                WorkshopShell never mounts on them (no nav, no 401-fetch
                 storm from a hidden shell: the shell is ABSENT, not
                 display:none'd — see ShellGate). */}
             <ShellGate>

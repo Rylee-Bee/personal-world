@@ -85,7 +85,7 @@
 .pw-login-portal label {
   font-weight: 600;
   color: var(--pw-color-text-primary);
-  font-size: 0.8125rem;
+  font-size: var(--pw-typography-text-detail);
 }
 
 .pw-login-field {
@@ -132,7 +132,7 @@
   gap: 0.625rem;
   min-height: 3.25rem;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   background: var(--pw-color-accent-primary);
   color: var(--pw-color-surface-canvas);
   font-weight: 700;
@@ -180,7 +180,7 @@
   margin: 0;
   text-align: center;
   color: var(--pw-color-text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--pw-typography-text-detail);
 }
 
 .pw-login-build {
@@ -192,7 +192,7 @@
   margin: 0;
   text-align: center;
   color: var(--pw-color-text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   opacity: 0.62;
 }
 
@@ -214,7 +214,7 @@
   justify-content: center;
   width: 13.125rem;
   height: 13.125rem;
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   background-image: var(--pw-color-warmth-halo-water);
 }
 
@@ -224,7 +224,7 @@
   justify-content: center;
   width: 10.125rem;
   height: 10.125rem;
-  border-radius: 999px;
+  border-radius: var(--pw-radius-pill);
   background-image: var(--pw-color-warmth-halo-water);
 }
 
@@ -232,7 +232,7 @@
   margin: 0;
   text-align: center;
   color: var(--pw-color-text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--pw-typography-text-caption);
   line-height: 1.5;
   max-width: 18rem;
 }

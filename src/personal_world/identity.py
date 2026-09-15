@@ -216,6 +216,27 @@ class IdentityStore:
                                 initial_plain_token=instance_token)
 
 
+DEV_BYPASS_ENV = "PW_DEV_AUTH_BYPASS"
+
+
+def dev_bypass_enabled() -> bool:
+    """Temporary local-development ergonomics (loopback-only).
+
+    Explicit opt-in via PW_DEV_AUTH_BYPASS=1. Default OFF; when off,
+    nothing about auth changes. See api.py for the loopback-only gate
+    that consumes this flag.
+    """
+    return os.environ.get(DEV_BYPASS_ENV, "").strip() in ("1", "true", "yes")
+
+
+def dev_bypass_principal() -> Principal:
+    """The principal the dev bypass resolves to: the bootstrap primary
+    person, visibly marked with its own auth source."""
+    return Principal(id="primary", kind="person",
+                     display_name="Primary person",
+                     auth_level=1, source="dev-bypass")
+
+
 def resolve_principal(token: str | None,
                       store: IdentityStore | None,
                       mode: str,

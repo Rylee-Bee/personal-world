@@ -1,0 +1,101 @@
+/* Lab screen — Workshop v3 warmth styling */
+
+[data-pw-lab] {
+  position: relative;
+  padding: var(--pw-spacing-page-top) var(--pw-spacing-page-side) var(--pw-spacing-page-bottom);
+  min-height: 100vh;
+}
+
+/* Ambient warmth background — subtle teal glow */
+[data-pw-lab]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 40% 30%,
+    var(--pw-color-warmth-teal-ghost) 0%,
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-pw-lab] > * {
+  position: relative;
+  z-index: 1;
+}
+
+[data-pw-lab="screen"] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pw-spacing-section);
+}
+
+[data-pw-lab] h1 {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: var(--pw-typography-heading-page);
+  color: var(--pw-color-text-primary);
+  margin: 0;
+}
+
+[data-pw-lab] h2 {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: var(--pw-typography-heading-section);
+  color: var(--pw-color-text-primary);
+  margin: 0;
+}
+
+[data-pw-lab] p {
+  font-size: var(--pw-typography-text-body);
+  color: var(--pw-color-text-secondary);
+  margin: 0;
+  line-height: var(--pw-typography-line-height-body);
+}
+
+/* Service inventory section */
+[data-pw-lab="native-inventory"],
+[data-pw-lab="ingress-unavailable"] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pw-spacing-normal);
+  padding: var(--pw-spacing-loose);
+  background: var(--pw-color-surface-panel);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: var(--pw-radius-panel);
+}
+
+/* Table styling */
+[data-pw-lab] table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--pw-typography-text-body);
+}
+
+[data-pw-lab] th,
+[data-pw-lab] td {
+  text-align: left;
+  padding: var(--pw-spacing-compact) var(--pw-spacing-normal);
+  border-bottom: 1px solid var(--pw-color-border-subtle);
+  color: var(--pw-color-text-primary);
+}
+
+[data-pw-lab] th {
+  font-weight: 600;
+  color: var(--pw-color-text-secondary);
+  font-size: var(--pw-typography-text-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Loading state */
+[data-pw-lab="loading"] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pw-spacing-normal);
+}
+
+[data-pw-lab="loading"] p {
+  display: flex;
+  align-items: center;
+  gap: var(--pw-spacing-compact);
+}

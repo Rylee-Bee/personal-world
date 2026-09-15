@@ -18,6 +18,7 @@ Safety contract:
 """
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -236,25 +237,71 @@ def status_all(search_paths: list[str]) -> list[dict]:
     ]
 
 
+DEV_CHECKOUT_ENV = "PW_SOURCE_CONTROL_ROOT"
+
+
+def current_checkout_root() -> str | None:
+    """The personal-world checkout itself, portably (BATCH 7).
+
+    Order of resolution:
+    1. PW_SOURCE_CONTROL_ROOT env (explicit override; wins).
+    2. This package's repository root — the directory containing the
+       installed source tree (src/personal_world/...) when it is a
+       working checkout (has a .git). Wheel/site-packages installs
+       carry no .git and resolve to None.
+
+    Never a hard-coded machine path. Used as an ADDITIONAL search
+    path in development so the Projects surface can observe the
+    checkout it is running from. Full path precedence in
+    configured_search_paths: explicit config > env override > dev
+    fallback; configured search paths always come first and are
+    unaffected.
+    """
+
+    env_root = os.environ.get(DEV_CHECKOUT_ENV, "").strip()
+    if env_root:
+        return str(Path(env_root).expanduser())
+    root = Path(__file__).resolve().parents[2]
+    if (root / ".git").exists() and (root / "pyproject.toml").exists():
+        return str(root)
+    return None
+
+
 def configured_search_paths(config_dir: Path) -> list[str]:
     """Read the native baseline's repo paths from
     config/connections.json under a `source_control.search_paths` key,
     alongside (not inside) the provider connections list. Malformed or
-    missing config yields [] -- the native baseline still boots."""
+    missing config yields [] -- the native baseline still boots.
+
+    Development ergonomics (BATCH 7): with PW_DEV_AUTH_BYPASS=1, an
+    UNCONFIGURED setup is additionally offered the current Project
+    Worlds checkout itself (see current_checkout_root) so a normal dev
+    environment sees at least its own repository in Projects.
+    Production behavior is byte-identical: unconfigured stays
+    unconfigured, and an explicit config always wins."""
+    paths: list[str] = []
     conn_path = Path(config_dir) / "connections.json"
-    if not conn_path.exists():
-        return []
-    try:
-        payload = json.loads(conn_path.read_text())
-    except (json.JSONDecodeError, OSError):
-        return []
-    section = payload.get("source_control")
-    if not isinstance(section, dict):
-        return []
-    paths = section.get("search_paths")
-    if not isinstance(paths, list):
-        return []
-    return [str(p) for p in paths if isinstance(p, str) and p]
+    if conn_path.exists():
+        try:
+            payload = json.loads(conn_path.read_text())
+            section = payload.get("source_control")
+            if isinstance(section, dict):
+                raw = section.get("search_paths")
+                if isinstance(raw, list):
+                    paths = [str(p) for p in raw if isinstance(p, str) and p]
+        except (json.JSONDecodeError, OSError):
+            pass
+    if not paths:
+        from .identity import dev_bypass_enabled
+        if dev_bypass_enabled():
+            # env override (dev ergonomics) first, then the checkout
+            env_root = os.environ.get(DEV_CHECKOUT_ENV, "").strip()
+            if env_root:
+                return [str(Path(env_root).expanduser())]
+            checkout = current_checkout_root()
+            if checkout:
+                return [checkout]
+    return paths
 
 
 def config_recursive_flag(config_dir: Path) -> bool:
