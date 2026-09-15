@@ -60,6 +60,21 @@ function mockApi(): void {
           )
         );
       }
+      if (path.startsWith("/api/media/status")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              ok: true,
+              data: {
+                status: "not_configured",
+                providers: [],
+                summary: { total: 0, healthy: 0, unavailable: 0 },
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          )
+        );
+      }
       // Everything the prototype screens fetch: an honest null payload
       // (screens render their own empty/error states; T10+ redesigns).
       return Promise.resolve(
@@ -117,8 +132,8 @@ describe("routes render with App shell (T9)", () => {
     const cases = [
       ["/interests", /keeping the light on/],
       ["/media", /media connection in Settings/],
-      ["/projects", /repository locations under Source Control/],
-      ["/lab", /lab command-line path/],
+      ["/projects", /No repositories found/],
+      ["/lab", /Lab watches the health/],
     ] as const;
     for (const [path, copy] of cases) {
       window.history.pushState({}, "", path);

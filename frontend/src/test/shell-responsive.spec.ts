@@ -16,7 +16,7 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 
 const css = readFileSync(join(here, "..", "index.css"), "utf8");
-const shellTsx = readFileSync(join(here, "..", "shell", "AppShell.tsx"), "utf8");
+const shellTsx = readFileSync(join(here, "..", "shell", "WorldShell.tsx"), "utf8");
 
 describe("responsive cascade seams (T9)", () => {
   it("has the rail bucket at ≥900px", () => {
@@ -76,7 +76,7 @@ describe("responsive cascade seams (T9)", () => {
   });
 
   it("shell hosts the assistant trigger, exactly one shell companion (T14 human gates 4+5; finding D)", () => {
-    const appShell = readFileSync(join(here, "..", "shell", "AppShell.tsx"), "utf8");
+    const appShell = readFileSync(join(here, "..", "shell", "WorldShell.tsx"), "utf8");
     // finding D: the brand lockup is the wordmark ONLY — the shell has
     // exactly ONE companion, the assistant trigger's artwork.
     expect(appShell).not.toContain('<CompanionSlot size="nav" />');

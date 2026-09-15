@@ -32,7 +32,7 @@ test.describe("shell geometry stability (finding A/B)", () => {
         const header = (document.querySelector(".pw-header") as HTMLElement | null)
           ?.getBoundingClientRect();
         return {
-          rail: top(".pw-rail"),
+          rail: top(".pw-edge"),
           main: top("#main-content"),
           headerBottom: header ? header.bottom : -1,
         };
@@ -72,13 +72,15 @@ test.describe("shell geometry stability (finding A/B)", () => {
     await page.goto("/vault");
     await bootWait(page);
     const { rail, main, headerBottom } = await page.evaluate(() => ({
-      rail: (document.querySelector(".pw-rail") as HTMLElement).getBoundingClientRect().top,
+      rail: (document.querySelector(".pw-edge") as HTMLElement | null)?.getBoundingClientRect().top ?? -1,
       main: (document.querySelector("#main-content") as HTMLElement).getBoundingClientRect().top,
       headerBottom: (document.querySelector(".pw-header") as HTMLElement).getBoundingClientRect()
         .bottom,
     }));
-    // The line sits directly under the header (border ~1px tolerance),
-    // not 89px below it.
+    // On desktop (≥900px) the header is hidden (display:none) and the
+    // edge + main pin directly under the shell top.  On mobile the edge
+    // is hidden and rail/main sit under the visible header.  Either way
+    // the gap between rail/main and header-bottom is ≤ 2px.
     expect(Math.abs(rail - headerBottom)).toBeLessThanOrEqual(2);
     expect(Math.abs(main - headerBottom)).toBeLessThanOrEqual(2);
   });
