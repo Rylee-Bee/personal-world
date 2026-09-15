@@ -2,7 +2,7 @@ schema: play-nice/participant-v1
 
 id: glm-5.3-flash
 name: GLM-5.3-Flash
-type: agent-brain
+type: agent    # schema enum; this is the reasoning-brain (agent) layer — it only exists loaded into a harness, recorded below
 harness: opencode   # this brain only exists when loaded into a harness; this pack records the one it runs in
 
 relationship:
@@ -119,8 +119,7 @@ profile:
     - orchestration: decomposition, delegation, integration, handoffs
     - bounded code changes with owned paths + full test discipline
     - test authoring (mirrored existing patterns; fixed own breaks)
-    - debugging with deterministic evidence (etag timing bug found via
-      probe, fixed by stat-first, verified by round-trip)
+    - debugging with deterministic evidence (etag timing bug found via probe, fixed by stat-first, verified by round-trip)
     - cross-repo contract verification (consumer argv vs provider parser)
     - documentation, handoffs, decision records
 
@@ -130,10 +129,8 @@ profile:
     - UI wiring inside an accepted baseline (lazy patterns mirrored)
 
   poor_fit_or_route_elsewhere_first:
-    - "bulk mechanical extraction already served by a script
-      (deterministic-first: write the script, don't prompt a model)"
-    - "tasks needing tool access where no tool exists (local Qwen has
-      none; route code-execution work to harness-capable participants)"
+    - "bulk mechanical extraction already served by a script (deterministic-first: write the script, don't prompt a model)"
+    - "tasks needing tool access where no tool exists (local Qwen has none; route code-execution work to harness-capable participants)"
 
   known_failure_modes:
     observed:
@@ -155,8 +152,7 @@ profile:
           Fix: check which routes actually carry require_auth before
           writing auth assertions; live verification is the backstop.
     self_reported:
-      - "long-context drift on very large multi-file reads (mitigated by
-        bounded reads; not independently measured)"
+      - "long-context drift on very large multi-file reads (mitigated by bounded reads; not independently measured)"
     unknown:
       - behavior on tasks longer than one session (no evidence yet)
 
