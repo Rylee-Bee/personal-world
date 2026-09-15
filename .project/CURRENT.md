@@ -68,14 +68,20 @@ narrative describe a superseded state; that narrative now lives in
 not below. `DECISIONS.md` remains the durable decisions record.
 `origin/main` is the trunk; local `main` tracks it.
 
+**Project estate (resolved 2026-09-15):** the shared helpers
+`frontend/src/lib/project-status.ts` and
+`frontend/src/lib/observation-age.ts` are now consumed by
+`ProjectsScreen` — the local `agentSyncStatus()` duplicate is gone. The
+estate panel renders a category-labelled status chip, one plain human
+sentence per project (diverged / unpublished / local work / unknown),
+the dated "Observed …" line, and technical guts behind one nested
+disclosure. Today still surfaces project attention from source-control
+state and agent work state (different dimensions), not the publication
+estate ([issue #51](https://github.com/Rylee-Bee/personal-world/issues/51),
+Completed in [`ROADMAP.md`](../ROADMAP.md)).
+
 **Known drift the next agent should resolve explicitly, not silently:**
 
-- `frontend/src/lib/project-status.ts` and `frontend/src/lib/observation-age.ts`
-  are unit-tested but imported by no production screen; `ProjectsScreen`
-  re-implements a smaller local `agentSyncStatus()`. The "Observed N
-  minutes ago" age line and the five estate-category sentences described
-  in older sections are **not** in the current UI (tracked in
-  [issue #51](https://github.com/Rylee-Bee/personal-world/issues/51)).
 - A personal-world container already runs on this host at `:8000`
   (the owner's instance); the repo's Playwright server uses `:8731`.
 
