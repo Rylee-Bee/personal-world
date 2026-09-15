@@ -3,18 +3,21 @@
 (Formerly "Personal World" — product renamed 2026-09-12; the filename and
 cross-links keep the historical identifier. Technical identifiers unchanged.)
 
-**Status:** Canonical plan (authoritative ordering and acceptance toward the
-finish line). **Version 1, 2026-09-10.**
+**Status:** Dated execution plan — **v1, 2026-09-10** (with a 2026-09-14
+progress note). It records dependency-ordered phases and acceptance
+criteria toward the finish line; it is **not** a current-state document.
+Current state is [`.project/CURRENT.md`](../.project/CURRENT.md); product
+direction is [`../ROADMAP.md`](../ROADMAP.md); the verified wiring map is
+[repo/WIRING-READINESS.md](repo/WIRING-READINESS.md). Phase statuses and
+counts below predate the T15 React cutover, the Workshop v3 design
+authority, and the 2026-09-15 finish pass — verify against the code
+before treating any phase status here as current.
 
-> **Update (2026-09-14):** The architecture branch merged to main via
-> PR #42 and PR #43. Several findings from A0 below have been resolved:
-> the reminder scheduler (H6) is implemented and running, native providers
-> cover all capabilities, and 726 tests pass with 0 warnings.
-> **Current state now lives in [`.project/CURRENT.md`](../.project/CURRENT.md)**
-> (the canonical current-state pointer); the dated merge receipt moved to
-> [history/FINAL-RECEIPT.md](history/FINAL-RECEIPT.md). See
-> [repo/WIRING-READINESS.md](repo/WIRING-READINESS.md) for the verified
-> wiring map.
+> **Progress note (2026-09-14):** the architecture branch merged to main
+> via PR #42 and PR #43. Several A0 findings are resolved: the reminder
+> scheduler (H6) is implemented and running, and native providers cover
+> all capabilities. The dated merge receipt moved to
+> [history/FINAL-RECEIPT.md](history/FINAL-RECEIPT.md).
 
 This plan compares the real implementation against
 [`PERSONAL-WORLD-FINISH-LINE.md`](PERSONAL-WORLD-FINISH-LINE.md) and defines
