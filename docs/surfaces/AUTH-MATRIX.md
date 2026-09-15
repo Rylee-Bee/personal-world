@@ -8,11 +8,11 @@ Legend: YES / NO / INDIRECT / N/A.
 | API-002 setup status/POST setup | YES (first-run only; 409 after marker) | NO | NO | NO | NO | N/A | NO |
 | UI-010 SetupWizard | YES | NO | NO | NO | NO | N/A | NO |
 | UI-011 LoginScreen | YES | NO (performs login) | NO (creates) | INDIRECT | NO | N/A | NO |
-| AUTH-001 require_auth | NO | YES | NO (sessions never consulted) | NO (not wired to principal) | NO | NO | NO |
-| AUTH-002 session cookie | NO | NO | YES | NO | NO | NO | NO |
-| AUTH-003 OIDC | NO | INDIRECT (proves identity at callback) | YES (creates session) | YES | NO | NO | NO |
-| AUTH-004 require_step_up | NO | YES | NO | NO | YES (header/loopback/private) | YES (loopback + private peers) | NO |
-| AUTH-005 loopback/private elevation | NO | YES (combined) | NO | NO | INDIRECT | YES | NO |
+| AUTH-001 require_auth | NO | YES | YES (resolved via seam) | YES (via session) | NO | YES (loopback-only dev bypass) | NO |
+| AUTH-002 session cookie | NO | NO | YES (feeds require_auth) | NO | NO | NO | NO |
+| AUTH-003 OIDC | NO | INDIRECT (proves identity at callback) | YES (creates session) | YES (maps to Principal) | NO | NO | NO |
+| AUTH-004 require_step_up | NO | YES | NO | NO | YES (session grant / header / true loopback) | YES (true loopback only) | NO |
+| AUTH-005 loopback elevation | NO | YES (combined) | NO | NO | INDIRECT | YES (true loopback only) | NO |
 | AUTH-006 boot-token reconciliation | NO | INDIRECT (env feeding) | NO | NO | NO | N/A | NO |
 | AUTH-007 admin gate | NO | YES | NO | NO | INDIRECT (often combined) | NO | YES |
 | API-003 /api/status | NO | YES | NO | NO | NO | NO | NO |
@@ -45,19 +45,33 @@ Legend: YES / NO / INDIRECT / N/A.
 | API-073/074 principal | NO | YES (+person for PUT) | NO | NO | YES (PUT) | NO | NO |
 | API-075..077 world writes | NO | YES | NO | NO | YES | INDIRECT | NO |
 | API-078..079 ingress/projects | NO | YES | NO | NO | NO | NO | NO |
-| AUTH-009 login/logout/session/step-up routes (`auth_routes.py`) | YES (login/logout/session) | NO | INDIRECT | INDIRECT (oidc subset) | YES (POST /api/auth/step-up) | NO | NO |
+| AUTH-009 login/logout/session/step-up routes (`auth_routes.py`) | YES (login/logout/session) | NO | YES (session/step-up) | INDIRECT (oidc subset) | YES (POST /api/auth/step-up, credential-verified) | NO | NO |
 
-Key observations (describing reality, not recommending):
+Key observations (D1/D2 convergence, 2026-09-15):
 
-- `require_auth` is the actual API gate. It is bearer-only; the
-  session-cookie store (AUTH-002) and OIDC (AUTH-003) run as a parallel
-  native-auth path that currently terminates at session creation and
-  never feeds `request.state.principal`.
-- Step-up (AUTH-004) is an IP/header check layered on bearer, not a
-  re-authentication; the session-based step-up grant (AUTH-008) exists
-  but is not consulted by `require_step_up`.
-- Vault value GET (API-064) accepts loopback OR Python-classified
-  private addresses despite "loopback-only" error text (matches
-  ARCHITECTURE.md's recorded boundary).
+- `require_auth` is the single credential seam. Bearer, browser session
+  (`pw_session`, local or OIDC), and the explicit loopback development
+  bypass all resolve to exactly one `Principal` on
+  `request.state.principal`. Precedence is documented: dev bypass →
+  explicit bearer → session cookie → fail closed (503 with no store,
+  401 otherwise). A session re-resolves against the current enabled
+  identity records, so disabling a user revokes their session like
+  their token.
+- OIDC maps through `resolve_oidc_principal`: single mode → the
+  bootstrap primary person; multi mode requires an existing enabled
+  local record (an unmapped IdP identity never mints an account).
+- Step-up (AUTH-004) is one seam with three ordered mechanisms: a
+  time-bounded, principal-bound session grant minted by
+  `POST /api/auth/step-up` after re-presenting a credential
+  (canonical); true loopback (documented local-owner exception, RFC1918
+  LAN addresses do NOT qualify); and `X-PW-StepUp: 1` (delegated
+  proxy/transitional client). Step-up is person-only: an agent
+  principal is refused with `step-up is person-only`.
+- The session grant (AUTH-008) is now consumed by `require_step_up` and
+  bound to the authenticated principal; it cannot be spent across
+  identities.
+- Vault value GET (API-064) still accepts loopback OR Python-classified
+  private addresses despite "loopback-only" error text (unchanged by
+  this pass; recorded boundary).
 - Admin gate (AUTH-007) applies only to identity user/agent
   administration routes.
