@@ -41,6 +41,13 @@ does not authorize Figma writes, deployment, or unrelated product changes.
 3. Inspect Git status, the actual route and source, and relevant tests before
    editing. Preserve unrelated work. Read `docs/ARCHITECTURE.md` and
    `design/COMPANION_INTEGRATION.md` for the affected behavior.
+4. **Continuing in-flight work — diff first, correct forward.** If the target
+   frame already has uncommitted changes or a branch WIP attempt, do not
+   restart from the frame and do not discard it. Diff it against the current
+   baseline first, identify which regions and behaviors it targets, keep what
+   is correct, and correct forward. Never merge unverified WIP wholesale, and
+   never rewrite a region that already has real (even partial) work; record
+   what you kept, changed, and left.
 
 The approved Figma frame is the visual source of truth for composition,
 hierarchy, spacing relationships, and personality. Current repository behavior,
@@ -148,6 +155,15 @@ Inspect the actual serving route before synchronizing runtime copies. Missing
 art needs an identified canonical export or owner resolution, not a placeholder
 passed off as finished. Keep fonts and assets self-hosted.
 
+**Scale conflicts (companion and artwork).** When a frame's artwork scale
+disagrees with the component contract — for example a frame-sized companion vs
+`CompanionSlot` / `design/COMPANION_INTEGRATION.md`'s scale system — the
+**component contract wins**. Render the largest size the contract permits, keep
+proportions and the settle gesture, and record the difference as an
+implementation-state reservation (node, Figma intent, implementation choice,
+contract reason, verification) for owner review. Never bypass the slot, resize
+or regenerate a rig, or present a frame-sized placeholder as finished.
+
 ## Implement and compare one major region at a time
 
 Choose one coherent region (navigation, greeting/summary, attention list,
@@ -206,6 +222,41 @@ The Playwright config starts `node e2e/server.mjs`, which requires a built
 temporary fixture data. Inspect `frontend/e2e/helpers.ts` for the test login
 flow. Rebuild after edits when comparing this served bundle. Do not accidentally
 reuse an unrelated server on the configured test port.
+
+### Rendering a named frame state (fixture recipe)
+
+The render-compare loop needs a representative, repeatable state — not the
+operator's live world (a personal-world container may already run on `:8000`).
+Build once, boot the real app on the test port, then put it into the named
+state deliberately:
+
+1. `cd frontend && npm run build` — `e2e/server.mjs` requires a built
+   `frontend/dist/`.
+2. Start the real backend fixture: `node e2e/server.mjs` (FastAPI on `:8731`,
+   `ci-token` bearer, synthetic world). `/api/status`, `/api/daily`,
+   `/api/journal`, `/api/reminders`, `/api/source-control/status`, and
+   `/api/projects/status` answer from that world.
+3. Drive to the state with Playwright `page.route(...)` before navigation — the
+   same mechanism `e2e/docs-screenshots.spec.ts` uses for determinism:
+
+   | Named state | Set these responses |
+   | --- | --- |
+   | Quiet day (`17:481`) | `/api/daily` with empty `warnings`/`actions`; `/api/status` all-healthy |
+   | Attention day | `/api/daily` with real `warnings`/`actions`; or `/api/status` with `needs_attention`/`unavailable` capabilities |
+   | Estate regions | `/api/projects/status` with quiet / unpublished / diverged projects |
+   | Source-control regions | `/api/source-control/status` (the docs spec uses the honest `not_configured` envelope) |
+
+4. Freeze the clock so relative copy renders identically on every run:
+   `await page.clock.setFixedTime(new Date("2026-01-15T15:00:00Z"))`, then
+   `bootWait(page)` and let the API-driven content settle.
+5. Capture the region at the reference viewport and state (1440x1000 desktop,
+   390x844 mobile) and compare against the frame.
+
+Fixtures approximate a state for composition work; they create no product
+truth. A frame whose state the screen does not implement yet (e.g. Bad Day
+`17:2117`, Question `17:6245` — issue #52) cannot be made renderable by
+fixtures alone: implement the state from the frame first. A fixture that fakes
+an unbuilt state produces a false comparison, not evidence.
 
 For interactive development, `npm run dev` starts Vite on port 5173; its
 `frontend/vite.config.ts` proxies API/fonts/icons/companions to a backend on
