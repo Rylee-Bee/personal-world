@@ -25,6 +25,14 @@ data/
 *.db
 *.sqlite
 *.sqlite3
+# Local data-directory backups (manual snapshots outside version control)
+data.bak.*/
+
+# Node / frontend build and test output
+node_modules/
+test-results/
+playwright-report/
+frontend/test-layout.js
 
 # Editors / OS
 .idea/
@@ -32,6 +40,10 @@ data/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Local agent/tool scratch directories (machine-specific, never project truth)
+.bcode/
+.mimocode/
 
 # Local provider configuration, credentials and diagnostic output
 config.local/

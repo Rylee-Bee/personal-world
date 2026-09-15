@@ -100,20 +100,39 @@ exports/logs; secure retrieval is an explicit exceptional workflow.
 
 ## Auth
 
-**Current implementation:** `require_auth` is the bearer/principal seam:
-no instance token configured → protected routes 503; wrong token → 401.
-`identity.py` resolves a `Principal` with identity, owner, scopes, authentication
-level, and source. Default `PW_IDENTITY_MODE=single` resolves the bootstrap
-primary person; optional `multi` uses local hashed user/agent token records.
-Provisioning routes and selected per-user world/journal/preference paths exist.
-Apps, Vault, reminders, and current Chat still use instance-level state; the
+**Current implementation:** `require_auth` is the single credential seam:
+every accepted credential — bearer token, browser session (local or
+OIDC), or the explicit loopback development bypass — resolves to exactly
+one `Principal` on `request.state.principal` before handler code runs.
+Precedence is documented: development bypass (opt-in, true loopback only)
+→ explicit `Authorization: Bearer` → `pw_session` cookie → fail closed
+(503 when no credential store is configured, 401 otherwise).
+`identity.py` resolves a `Principal` with identity, owner, scopes,
+authentication level, and source. A session re-resolves against the
+current enabled identity records, so disabling a user revokes their
+browser session exactly like their token. Default
+`PW_IDENTITY_MODE=single` resolves the bootstrap primary person;
+optional `multi` uses local hashed user/agent token records. OIDC maps a
+verified subject through the same seam: single mode → the bootstrap
+primary person; multi mode requires an existing enabled local record, and
+an unmapped IdP identity never mints an account. Provisioning routes and
+selected per-user world/journal/preference paths exist. Apps, Vault,
+reminders, and current Chat still use instance-level state; the
 foundation is not a complete household isolation or SSO product.
 
-`require_step_up` first requires bearer auth, then accepts loopback/test clients,
-private peer addresses, or `X-PW-StepUp: 1`. It gates preference, Apps registry,
-identity provisioning, and world-write routes. This is an implemented extra
-write check, **not verified fresh authentication/MFA**. External forward-auth
-may be a deployment layer, but it does not replace application authorization.
+`require_step_up` is one seam with three ordered mechanisms:
+a canonical, time-bounded, principal-bound session grant minted by
+`POST /api/auth/step-up` after the caller re-presents a credential
+(the instance token as a bearer header or in the body);
+true loopback (127.0.0.1/::1 — a documented local-owner exception;
+RFC1918 LAN addresses do not qualify); and `X-PW-StepUp: 1` (explicit
+delegated proxy/transitional-client trust). Step-up is a human
+elevation: an agent principal is refused (`step-up is person-only`).
+It gates preference, Apps registry, identity provisioning, and
+world-write routes. This is an implemented extra write check, **not
+verified fresh authentication/MFA**; the OIDC-session step-up path
+still requires the instance credential. External forward-auth may be a
+deployment layer, but it does not replace application authorization.
 
 **Finish-line target:** authentication becomes provider-neutral at the
 application seam. A real SSO/identity provider may supply normal sign-in,
@@ -158,6 +177,8 @@ The following inventory reflects implemented routes, not deployment acceptance:
 | GET /api/vault/status, /api/vault/names, /api/vault/{name}; POST /api/vault/unlock, /api/vault/lock, /api/vault/set; DELETE /api/vault/{name} | Native Vault operations with the distinct restrictions above |
 | GET /api/themes, /api/themes/{name} | Theme manifest registry reads; not full frontend pack integration |
 | GET/POST /api/identity/users, /api/identity/agents; DELETE /api/identity/users/{user_id}, /api/identity/agents/{agent_id}; GET /api/identity/principal | Local identity/owned-agent foundations; user administration is admin-gated, agent operations use ownership, and writes use step-up |
+| POST /api/auth/login, /api/auth/logout, /api/auth/step-up; GET /api/auth/session, /api/auth/oidc/config, /api/auth/oidc/login, /api/auth/oidc/callback | Provider-neutral browser sign-in; local/OIDC sessions resolve to a canonical Principal, and step-up mints a time-bounded, credential-verified grant |
+| GET /api/proposals, /api/proposals/{id}; POST /api/proposals/{id}/approve, /reject, /execute | Durable brain-write proposal lifecycle; server-held approval evidence persists to data/proposals.json and execution is step-up gated |
 | GET/POST /api/reminders; PATCH/DELETE /api/reminders/{rid} | Persistent reminders and scheduler controls |
 | POST /api/world/intent, /api/world/fact, /api/world/policy | Explicit step-up-gated world writes, not model tools |
 | GET /api/exports/settings | safe blueprint |
@@ -186,6 +207,13 @@ Review first-run exposure separately from normal protected API access.
   uniform across all read surfaces. Configure privately and verify each surface.
 - The tracked Compose has host-specific bind mounts despite its standalone
   description. Parsing/framework success does not establish portable deployment.
+- The brain-write proposal store is durable (`data/proposals.json`) but
+  instance-global: proposals created through a model loop in one profile are
+  not yet namespaced per user in multi mode. The approval evidence is
+  server-held and persisted, but per-user proposal ownership is deferred.
+- Session step-up re-presents an application credential. An OIDC-only browser
+  session cannot mint a grant without the instance token; a fresh OIDC
+  round-trip as step-up is not implemented.
 
 These gaps are recorded rather than changing implementation or weakening an
 adopted contract during documentation reconciliation. Manual screen-reader,
