@@ -58,8 +58,8 @@ carries no `PW_API_TOKEN` line, boot leaves the environment untouched
 (it fails toward the deployment token, never toward lockout).
 Native Vault needs `uv sync --frozen --extra test --extra crypto` for encrypted
 storage in a local install. The Dockerfile already installs the crypto extra.
-Without it, current Vault code falls back to base64 while its status endpoint
-still reports encrypted; do not use that response alone as encryption evidence.
+Without it the vault fails closed — `unlock` reports `unavailable`, no secret is
+stored, and status reports encryption unavailable. There is no base64 fallback.
 
 ### Frontend serving (single UI since the T15 cutover)
 

@@ -25,9 +25,10 @@ from typing import Any
 
 from .envelope import Result, fail, ok
 
-# Try to use cryptography for real encryption.
-# If unavailable, fall back to base64 encoding with a warning.
-# This keeps the dependency optional for minimal installs.
+# Real encryption uses `cryptography` (Fernet). The dependency stays
+# optional for minimal installs, but without it the vault FAILS CLOSED:
+# unlock returns `unavailable` and no secret is ever stored. There is no
+# base64 fallback — base64 is not encryption (see unlock()).
 try:
     from cryptography.fernet import Fernet, InvalidToken
 
