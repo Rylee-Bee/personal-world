@@ -20,7 +20,7 @@ import type { SectionData } from "../lib/api";
  *   sprite does not ship renders no icon rather than a broken glyph,
  *   and the label alone still names the destination (A11y §1.4: no
  *   information is icon-only).
- * - Renders one <ul> of links; AppShell places it in the rail / banner
+ * - Renders one <ul> of links; WorkshopShell places it in the rail / banner
  *   / bottom-bar slots, so this component stays layout-agnostic.
  */
 

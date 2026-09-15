@@ -976,8 +976,38 @@ def _is_secret_ref(config: dict[str, Any], field: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# NativeMediaEngine — orchestrator
+# Canonical engine construction (single helper for API + tools)
 # ---------------------------------------------------------------------------
+
+MEDIA_CONNECTION_TYPES = ("plex", "sonarr", "radarr", "lidarr")
+
+
+def build_media_engine_from_config(config_dir):
+    """Build a NativeMediaEngine from a config dir's connections.json.
+
+    THE one construction path (BATCH 9): the API route module and the
+    tool registry both call this, so media engine behavior cannot
+    drift between surfaces. Absent/unreadable config yields an empty
+    engine (honest degradation, no crash). Adapters whose credential
+    env is unset are skipped by build_adapter.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    config_path = _Path(config_dir) / "connections.json"
+    if not config_path.exists():
+        return NativeMediaEngine([])
+    try:
+        config = _json.loads(config_path.read_text())
+    except (OSError, _json.JSONDecodeError):
+        return NativeMediaEngine([])
+    connections = [
+        conn
+        for conn in config.get("connections", [])
+        if isinstance(conn, dict) and conn.get("type") in MEDIA_CONNECTION_TYPES
+    ]
+    return NativeMediaEngine(connections)
+
 
 class NativeMediaEngine(Contract):
     """Orchestrator that aggregates media providers into a unified view.

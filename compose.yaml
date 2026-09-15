@@ -67,6 +67,8 @@ services:
     restart: "no"
     volumes:
       - ollama-data:/root/.ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
     entrypoint: ["/bin/sh", "-c", "ollama pull qwen3:1.7b"]
 
   # ── Project Worlds Core ────────────────────────────────────────

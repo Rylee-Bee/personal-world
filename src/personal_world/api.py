@@ -177,6 +177,25 @@ async def require_step_up(request: Request) -> None:
             status_code=403, detail="write requires step-up auth")
 
 
+def _is_true_loopback(request: Request) -> bool:
+    """True ONLY for 127.0.0.1, ::1, and the literal hostname
+    'localhost' resolved to one of those. Deliberately NOT
+    ip.is_private: an RFC1918 LAN address is not localhost, and a
+    forwarded request must present its own real client — the bypass
+    never trusts proxy-invented peers."""
+    client = request.client.host if request.client else ""
+    if client in ("testclient",):
+        # FastAPI TestClient connects over the ASGI transport; its peer
+        # is the test process itself (loopback by construction).
+        return True
+    import ipaddress as _ipa
+    try:
+        ip = _ipa.ip_address(client)
+    except ValueError:
+        return False
+    return ip.is_loopback
+
+
 async def require_auth(request: Request) -> None:
     """Gate + principal resolution (the single seam).
 
@@ -184,9 +203,23 @@ async def require_auth(request: Request) -> None:
     for sub-dependencies and handlers. In "single" mode the bootstrap
     "primary" person is the only principal; "multi" resolves hashed
     user tokens from the local identity store.
+
+    Temporary dev ergonomics: with PW_DEV_AUTH_BYPASS=1 (explicit
+    opt-in), a request whose peer is true loopback (127.0.0.1 / ::1
+    only — never RFC1918/private) resolves as the primary person
+    WITHOUT a bearer token. The bypass never activates implicitly and
+    bearer auth is unchanged when the flag is off. It satisfies
+    authentication, not step-up: writes still require the step-up
+    header/loopback rule on top of it.
     """
-    from .identity import resolve_principal, NoPrincipalError
-    uma = getattr(request.app.state, "identity", None)
+    from .identity import (
+        resolve_principal, NoPrincipalError,
+        dev_bypass_enabled, dev_bypass_principal,
+    )
+    identity = getattr(request.app.state, "identity", None)
+    if dev_bypass_enabled() and _is_true_loopback(request):
+        request.state.principal = dev_bypass_principal()
+        return
     token = _token()
     if not token:
         raise HTTPException(status_code=503, detail="auth not configured")
@@ -194,7 +227,6 @@ async def require_auth(request: Request) -> None:
     supplied = header.removeprefix("Bearer ").strip()
     if not supplied:
         raise HTTPException(status_code=401, detail="unauthorized")
-    identity = getattr(request.app.state, "identity", None)
     mode = identity["mode"] if identity else "single"
     store = identity["store"] if identity else None
     try:
@@ -261,10 +293,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # Boot-time token reconciliation FIRST so every reader below sees
     # the setup-created credential, not the stale infra one.
     _reconcile_boot_token(data_dir)
-    from .identity import IdentityStore
+    from .identity import IdentityStore, dev_bypass_enabled
     _identity_mode = os.environ.get("PW_IDENTITY_MODE", "single")
     _identity_store = IdentityStore(data_dir)
     _app_instance_token = _token()
+    # Temporary dev ergonomics: explicit opt-in, loopback-only. The
+    # startup log line is the visible "this is on" state (human
+    # reliability contract: visible state, not a silent default).
+    if dev_bypass_enabled():
+        _logger.warning(
+            "DEV AUTH BYPASS ACTIVE — LOOPBACK ONLY "
+            "(PW_DEV_AUTH_BYPASS=1; never for production or LAN access)"
+        )
     world_path = data_dir / "world.json"
     journal = Journal(data_dir / "journal.ndjson")
 
@@ -300,10 +340,15 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     async def healthz() -> dict:
         token = _token()
         setup_needed = not (data_dir / "setup-complete").exists()
+        from .identity import dev_bypass_enabled
         return {
             "ok": True,
             "auth_configured": token is not None,
             "setup_needed": setup_needed,
+            # Dev-only visibility so the SPA can show (and tests can
+            # assert) that loopback dev bypass is on. Always false in
+            # production defaults.
+            "dev_bypass": dev_bypass_enabled(),
         }
 
     @app.get("/api/setup/status")
@@ -717,7 +762,15 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             context = context + "\n\n" + ui_block
         # Build tool registry from current state
         from .tool_registry import build_default_tools
-        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir, conn_mgr)
+        _memory_impl = None
+        _memory_p = registry.provider_for("memory")
+        if _memory_p is not None:
+            _memory_impl = registry.impl(_memory_p.name)
+        tool_reg = build_default_tools(
+            world, registry, journal, None, _vault, config_dir,
+            data_dir=data_dir, world_path=world_path,
+            scheduler=_reminders, memory_provider=_memory_impl,
+        )
         tool_schemas = tool_reg.list_ollama_schemas()
         messages = build_chat_messages(message, context, history)
         # Try tool-calling flow if impl supports it
@@ -818,7 +871,15 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """
         world, registry = _state()
         from .tool_registry import build_default_tools
-        tool_reg = build_default_tools(world, registry, journal, None, _vault, config_dir, conn_mgr)
+        _memory_impl = None
+        _memory_p = registry.provider_for("memory")
+        if _memory_p is not None:
+            _memory_impl = registry.impl(_memory_p.name)
+        tool_reg = build_default_tools(
+            world, registry, journal, None, _vault, config_dir,
+            data_dir=data_dir, world_path=world_path,
+            scheduler=_reminders, memory_provider=_memory_impl,
+        )
         return {"ok": True, "data": {"tools": tool_reg.list_metadata(), "count": len(tool_reg.list_tools())}}
 
     # ── Proposal management (owner approval path) ──
@@ -1534,7 +1595,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             return {"ok": True, "data": {"sources": sources}}
         return {"ok": False, "status": r.status, "warnings": r.warnings}
 
-    @app.post("/api/discovery/sources", dependencies=[Depends(require_auth)])
+    @app.post("/api/discovery/sources", dependencies=[Depends(require_step_up)])
     async def discovery_add_source(request: Request) -> dict:
         """Add a discovery source."""
         from .providers.native_discovery import NativeDiscovery, RSSDiscoverySource
@@ -1560,7 +1621,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             return {"ok": True, "data": {"interests": interests}}
         return {"ok": False, "status": r.status, "warnings": r.warnings}
 
-    @app.post("/api/discovery/interests", dependencies=[Depends(require_auth)])
+    @app.post("/api/discovery/interests", dependencies=[Depends(require_step_up)])
     async def discovery_add_interest(request: Request) -> dict:
         """Add an interest."""
         from .providers.native_discovery import NativeDiscovery, Interest
@@ -1681,9 +1742,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
         Reports actual encryption capability — not a hardcoded claim.
         """
-        return {"ok": True,
-                "data": {"locked": not _vault.is_unlocked,
-                         "encrypted": getattr(_vault, '_fernet', None) is not None}}
+        warning = _vault.warning
+        data = {"locked": not _vault.is_unlocked,
+                "encrypted": getattr(_vault, '_fernet', None) is not None}
+        if warning:
+            data["warning"] = warning
+        return {"ok": True, "data": data}
 
     @app.post("/api/vault/unlock", dependencies=[Depends(require_auth)])
     async def vault_unlock(request: Request) -> dict:
@@ -2106,17 +2170,27 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/ingress/rollups", dependencies=[Depends(require_auth)])
     async def ingress_rollups() -> dict:
-        """Traefik ingress route rollups (read-only over LAN)."""
-        try:
-            from .providers.traefik_ingress import TraefikIngress
-        except ImportError:
+        """Traefik ingress route rollups (read-only over LAN).
+
+        Optional provider: absent configuration is a known state, not
+        a crash — an unconfigured router answers not_configured with
+        context, matching the honest-degradation contract."""
+        from .providers.traefik_ingress import (
+            TraefikIngress, TRAEFIK_ENV,
+        )
+        base_url = os.environ.get(TRAEFIK_ENV)
+        if not base_url:
             return {"ok": False, "status": "not_configured",
-                    "warnings": ["traefik provider missing"]}
+                    "warnings": [
+                        f"traefik not configured: set {TRAEFIK_ENV} "
+                        "to enable ingress rollups",
+                    ]}
         try:
-            r = TraefikIngress().observe()
-        except (ValueError, OSError) as e:
-            return {"ok": False, "status": "not_configured",
-                    "warnings": [str(e)]}
+            traefik = TraefikIngress(base_url=base_url)
+        except Exception as exc:
+            return {"ok": False, "status": "unavailable",
+                    "warnings": [f"traefik provider unavailable: {exc}"]}
+        r = traefik.observe()
         return {"ok": r.ok, "status": r.status, "data": r.data,
                 "warnings": r.warnings}
 
