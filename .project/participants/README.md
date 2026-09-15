@@ -11,9 +11,9 @@ Current packs:
 |---|---|---|---|---|
 | `figma` | design-service | **ACCEPTED** | PASS | ACTIVE |
 | `big-pickle` | agent | **OPTIONAL / NON-AUTHORITATIVE** | N/A | NONE (no act of adoption) |
-| `kilo` | agent-harness (application layer) | **OBSERVED** (not a contract adopter) | N/A | N/A |
-| `minimax` | agent-brain (model layer) | **OPTIONAL / NON-AUTHORITATIVE** | N/A | NONE (no act of adoption) |
-| `glm-5.3-flash` | agent-brain (model layer) | **PROVISIONAL** | N/A | NONE (no act of adoption) |
+| `kilo` | other (application harness / tool-layer) | **OBSERVED** (not a contract adopter) | N/A | N/A |
+| `minimax` | agent (brain/model layer) | **OPTIONAL / NON-AUTHORITATIVE** | N/A | NONE (no act of adoption) |
+| `glm-5.3-flash` | agent (brain/model layer) | **PROVISIONAL** | N/A | NONE (no act of adoption) |
 | `auto-free` | agent (Kilo routing mode) | **PROVISIONAL** | N/A | NONE (no act of adoption) |
 
 - 2026-09-12 (re-pass): Figma re-relayed her six corrected files in a
@@ -28,6 +28,20 @@ Current packs:
   reported-complete → verified-not-on-disk → re-pass → verified → promoted
   lifecycle. This table previously lagged the promotion (stale pointer,
   corrected 2026-09-12 during a UI-convergence session cross-check).
+- 2026-09-15 (backlog pass): all six packs normalized to the
+  `play-nice/participant-v1` closed vocabulary so
+  `contractctl project validate` reports **PROJECT VALID** (6 packs):
+  `type: agent-brain` / `agent-harness` were outside the enum
+  (`glm-5.3-flash`, `minimax` → `agent`; `kilo` → `other`, its
+  harness/tool-layer intent preserved in `relationship.role` and an
+  inline comment); `kilo` `relationship.optional` is now `true` (the
+  schema requires pack-level optional — required presence is a
+  project-level exception, not a pack default); `kilo/capabilities.yaml`
+  gained the required non-empty `limitations` (mirroring its
+  participant.yaml list); and plain multi-line scalars in the
+  `auto-free` / `glm-5.3-flash` / `minimax` packs were joined to single
+  lines (`contractctl`'s minimal parser supports single-line scalars and
+  `>-` blocks only). No participant authority or ownership changed.
 - Acceptance is self-attested by Figma and hand-applied to disk by the
   foreman (her sandbox filesystem does not persist writes) — a recorded
   participant limitation, not wrongdoing. Treat her authority per

@@ -173,12 +173,9 @@ profile:
           kilo/kilo-auto/free."
         observed_at: 2026-09-12T19:12:00Z
         mitigation:
-          - record the routing mode name as the pack identity, not the
-            config value or the system-prompt value
-          - preserve the contradiction explicitly as UNKNOWN rather than
-            silently picking one
-          - cross-reference the existing minimax pack to record the
-            relationship without conflating identities
+          - record the routing mode name as the pack identity, not the config value or the system-prompt value
+          - preserve the contradiction explicitly as UNKNOWN rather than silently picking one
+          - cross-reference the existing minimax pack to record the relationship without conflating identities
 
   evidence_corrections:
     - prior_claim: none

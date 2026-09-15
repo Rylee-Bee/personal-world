@@ -2,7 +2,7 @@ schema: play-nice/participant-v1
 
 id: minimax
 name: MiniMax-M3
-type: agent-brain
+type: agent    # schema enum; this is the reasoning-brain (agent) layer — it only exists loaded into a harness, recorded below
 harness: kilo        # the brain only exists when loaded into a harness; this pack records the one it ran in
 
 relationship:
@@ -167,10 +167,8 @@ profile:
     - library acceptance consenting to any specific mutation
     - capabilities held by other model variants (m2.7, m2, etc.)
     - capabilities of the kilo harness (those are the kilo pack)
-    - general protected-WIP detection (only sibling-participant
-      preservation was observed in this session)
-    - persistent correctness of structured files without schema/parser
-      validation (see known_failure_modes.observed)
+    - general protected-WIP detection (only sibling-participant preservation was observed in this session)
+    - persistent correctness of structured files without schema/parser validation (see known_failure_modes.observed)
 
   known_failure_modes:
     observed:
@@ -382,8 +380,7 @@ library_proposals:
         (e.g. ``play-nice resolve --manifest <path> --task <tag>``)
         that returns the resolved contract subset with their SHAs, so
         sessions can cite contracts by ID without re-reading their text.
-      observed_cost: this session never re-read contracts; cited adoption.yaml
-        names only, never their content.
+      observed_cost: this session never re-read contracts; cited adoption.yaml names only, never their content.
     - id: richer-structured-participant-evidence
       targets_contract: truth-and-evidence + provenance-and-audit
       problem: >-
