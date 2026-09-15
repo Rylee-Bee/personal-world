@@ -158,6 +158,22 @@ class IdentityStore:
                 return u
         return None
 
+    def get_principal_record(self, principal_id: str) -> dict | None:
+        """Look up an enabled user or agent record by principal id.
+
+        Used by the session/OIDC resolver: a browser session stores the
+        resolved principal id, never a raw credential, so re-resolving
+        it must go through the same enabled-records store the bearer
+        path uses. Disabled records resolve to nothing (fail closed).
+        """
+        if not principal_id:
+            return None
+        payload = self._load()
+        for u in payload.get("users", []) + payload.get("agents", []):
+            if u.get("user_id") == principal_id and u.get("enabled", False):
+                return u
+        return None
+
     # -- agent principals (phase 3) --------------------------------------
     def create_agent(self, agent_id: str, owner_id: str,
                      scopes: tuple[str, ...],
@@ -237,6 +253,22 @@ def dev_bypass_principal() -> Principal:
                      auth_level=1, source="dev-bypass")
 
 
+def principal_from_record(record: dict, source: str = "token") -> Principal:
+    """Canonical record → Principal. Agents keep owner_id and scopes;
+    persons carry their stored display name. Session and OIDC
+    resolution reuse this so every credential path lands on the same
+    Principal shape."""
+    if record.get("kind") == "agent":
+        return Principal(id=record["user_id"], kind="agent",
+                         owner_id=record.get("owner_id"),
+                         display_name=record.get("display_name"),
+                         scopes=tuple(record.get("scopes") or ()),
+                         auth_level=1, source=source)
+    return Principal(id=record["user_id"], kind="person",
+                     display_name=record.get("display_name"),
+                     auth_level=1, source=source)
+
+
 def resolve_principal(token: str | None,
                       store: IdentityStore | None,
                       mode: str,
@@ -246,15 +278,7 @@ def resolve_principal(token: str | None,
         found = store.match_token(token or "")
         if not found:
             raise NoPrincipalError("no principal for token")
-        if found.get("kind") == "agent":
-            return Principal(id=found["user_id"], kind="agent",
-                             owner_id=found.get("owner_id"),
-                             display_name=found.get("display_name"),
-                             scopes=tuple(found.get("scopes") or ()),
-                             auth_level=1, source="token")
-        return Principal(id=found["user_id"], kind="person",
-                         display_name=found.get("display_name"),
-                         auth_level=1, source="token")
+        return principal_from_record(found, source="token")
     # single mode: bootstrap "primary" directly from the instance token
     if not instance_token or not token or not hmac.compare_digest(
         token, instance_token):
@@ -262,3 +286,55 @@ def resolve_principal(token: str | None,
     return Principal(id="primary", kind="person",
                      display_name="Primary person", auth_level=1,
                      source="token")
+
+
+def resolve_session_principal(session_principal_id: str | None,
+                              store: IdentityStore | None,
+                              mode: str,
+                              auth_method: str = "local") -> Principal:
+    """Resolve a browser session through the same canonical seam.
+
+    A session stores only the id of the principal it was created for;
+    it carries no credential. Resolution therefore re-reads the current
+    enabled record (multi mode) so disabling a user revokes their
+    browser session on the next request, exactly like their bearer
+    token. Single mode resolves every in-app login to the bootstrap
+    "primary" person — the one person that install has.
+    """
+    source = "oidc" if auth_method == "oidc" else "session"
+    if mode == "multi" and store is not None:
+        record = store.get_principal_record(session_principal_id or "")
+        if record is None:
+            raise NoPrincipalError("no principal for session")
+        return principal_from_record(record, source=source)
+    if not session_principal_id:
+        raise NoPrincipalError("empty session principal")
+    return Principal(id="primary", kind="person",
+                     display_name="Primary person", auth_level=1,
+                     source=source)
+
+
+def resolve_oidc_principal(sub: str | None,
+                           store: IdentityStore | None,
+                           mode: str,
+                           display_name: str | None = None) -> Principal:
+    """Map a verified OIDC identity onto a local principal.
+
+    Single mode has exactly one person, so a verified external identity
+    resolves to the bootstrap primary person (OIDC is an alternate
+    sign-in for the owner). Multi mode requires an existing enabled
+    local record whose id matches the provider subject (or the display
+    fallback); an unmapped identity resolves to nothing so external
+    sign-in can never silently mint an account. Fail closed.
+    """
+    if mode == "multi" and store is not None:
+        for candidate in (sub, display_name):
+            record = store.get_principal_record(candidate or "")
+            if record is not None:
+                return principal_from_record(record, source="oidc")
+        raise NoPrincipalError("oidc identity has no local account")
+    if not sub:
+        raise NoPrincipalError("empty oidc subject")
+    return Principal(id="primary", kind="person",
+                     display_name="Primary person", auth_level=1,
+                     source="oidc")
