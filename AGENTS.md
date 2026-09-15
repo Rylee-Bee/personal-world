@@ -74,6 +74,14 @@ agent's WIP into its commit. The rules:
 - **Validation command:** `uv run pytest --timeout=30` and
   `uv run personal-world framework validate --json` from the repo
   root. CI runs the same.
+- **UI behaviour gate:** `cd frontend && npm test && npx playwright test`
+  (Playwright boots the real app with a seeded world: 54 browser tests
+  including axe with color-contrast ENABLED, responsive, drawer, and
+  200% reflow). The documentation screenshots regenerate
+  deterministically — a run must leave `git status` clean.
+- **Trunk:** `origin/main`. A local `main` ref can lag it by many
+  commits; check `git rev-list --left-right --count main...origin/main`
+  before comparing against "main".
 - **Where future plans live:** `ROADMAP.md` (direction, not
   promises). Do not treat roadmap items as commitments or
   authorization. The Finish Line defines the desired completion target;
