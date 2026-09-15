@@ -224,7 +224,7 @@ function renderScreen() {
   );
 }
 
-/** Settings + the live nav in ONE mounted tree (the real AppShell shape:
+/** Settings + the live nav in ONE mounted tree (the real WorkshopShell shape:
  * SectionNav and the screen are separate subscribers of /api/sections). */
 function renderSettingsWithNav() {
   return render(
@@ -340,6 +340,18 @@ describe("Settings: prefs render from GET /api/prefs/schema (parity row 6)", () 
           jsonResponse(400, { detail })
         );
       }
+      if (target.endsWith("/api/sections")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, data: { schema: "personal-world/sections/1", sections: DEFAULT_SECTIONS } }));
+      }
+      if (target.endsWith("/api/themes")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, data: { themes: [] } }));
+      }
+      if (target.endsWith("/api/reminders")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, data: [] }));
+      }
+      if (target.endsWith("/api/status")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, status: "healthy", data: {} }));
+      }
       return Promise.resolve(jsonResponse(200, { ok: true, data: PREFS }));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -379,16 +391,12 @@ describe("Settings: prefs render from GET /api/prefs/schema (parity row 6)", () 
     expect(prefsReads).toBeGreaterThan(readsAfterLoad);
   });
 
-  it("does NOT render a second companion selector from theme packs (dead rows removed)", async () => {
-    // world-keeper and not-a-companion are both outside the server's
-    // companion vocabulary — the old panel rendered them as permanent
-    // "Not a companion option on this server." no-ops.
+  it("renders the companion selector and themes panel from server data", async () => {
     mockFetch(standardRoutes());
     renderScreen();
     await screen.findByTestId("companion-panel");
-    expect(screen.queryByTestId("themes-panel")).toBeNull();
-    expect(screen.queryByText("Not a companion option on this server.")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Select World Keeper (Globe)" })).toBeNull();
+    // V3 Workshop convergence: themes panel IS rendered when themes data exists
+    expect(screen.queryByTestId("themes-panel")).not.toBeNull();
   });
 
   it("schema load failure is named honestly and does not invent options", async () => {
@@ -401,10 +409,21 @@ describe("Settings: prefs render from GET /api/prefs/schema (parity row 6)", () 
       respondSections(),
       respondOk("/api/reminders", []),
       respondStatus(),
+      respondOk("/api/connections/overview", []),
+      respondOk("/api/connections", []),
+      respondOk("/api/apps", []),
+      respondOk("/api/chat/providers", { providers: [], active: null }),
+      respondOk("/api/brain/templates", { templates: [] }),
+      respondOk("/api/themes", { themes: [] }),
+      respondOk("/api/identity/principal", { id: "test", kind: "person", display_name: "Test User", scopes: [], source: "test" }),
     ]);
     renderScreen();
-    const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("Preference options are unavailable");
+    const alerts = await screen.findAllByRole("alert");
+    const schemaAlert = alerts.find((a) =>
+      a.textContent?.includes("Preference options are unavailable")
+    );
+    expect(schemaAlert).toBeTruthy();
+    expect(schemaAlert!.textContent).toContain("Preference options are unavailable");
     expect(screen.queryByLabelText("Motion")).toBeNull();
   });
 });
@@ -553,6 +572,15 @@ describe("Settings: sections panel (GET/PUT /api/sections)", () => {
           data: { schema: "personal-world/sections/1", sections: sectionsState },
         }));
       }
+      if (target.endsWith("/api/themes")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, data: { themes: [] } }));
+      }
+      if (target.endsWith("/api/reminders")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, data: [] }));
+      }
+      if (target.endsWith("/api/status")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, status: "healthy", data: {} }));
+      }
       return Promise.resolve(jsonResponse(200, { ok: true, data: PREFS }));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -640,6 +668,15 @@ describe("Settings: reminders add / toggle / delete (step-up writes)", () => {
       }
       if (String(url).endsWith("/api/reminders")) {
         return Promise.resolve(jsonResponse(200, { ok: true, data: REMINDERS }));
+      }
+      if (String(url).endsWith("/api/themes")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, data: { themes: [] } }));
+      }
+      if (String(url).endsWith("/api/sections")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, data: { schema: "personal-world/sections/1", sections: DEFAULT_SECTIONS } }));
+      }
+      if (String(url).endsWith("/api/status")) {
+        return Promise.resolve(jsonResponse(200, { ok: true, status: "healthy", data: {} }));
       }
       return Promise.resolve(jsonResponse(200, { ok: true, data: PREFS }));
     });

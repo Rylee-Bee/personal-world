@@ -4,7 +4,7 @@ import { axe } from "vitest-axe";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { AppShell } from "../shell/AppShell";
+import { WorkshopShell } from "../shell/WorkshopShell";
 import { SectionNav } from "../shell/SectionNav";
 import { SECTIONS_ENVELOPE_KEYS, DEFAULT_SECTIONS, section, shellProviders } from "./shell-helpers";
 import { fetchSections, type SectionData } from "../lib/api";
@@ -70,7 +70,7 @@ afterEach(() => {
 describe("SectionNav renders from /api/sections (T9)", () => {
   it("renders visible sections from the API in payload order", async () => {
     mockSections(sectionsEnvelope(DEFAULT_SECTIONS));
-    shellProviders(<AppShell><div /></AppShell>);
+    shellProviders(<WorkshopShell><div /></WorkshopShell>);
     await waitFor(() => {
       expect(screen.getByRole("link", { name: /Journal & Memory/ })).toBeTruthy();
     });
@@ -85,7 +85,7 @@ describe("SectionNav renders from /api/sections (T9)", () => {
       s.id === "journal" ? { ...s, visible: false } : s
     );
     mockSections(sectionsEnvelope(hidden));
-    shellProviders(<AppShell><div /></AppShell>);
+    shellProviders(<WorkshopShell><div /></WorkshopShell>);
     await waitFor(() => {
       expect(screen.getByRole("link", { name: /Today/ })).toBeTruthy();
     });
@@ -169,9 +169,9 @@ describe("SectionNav renders from /api/sections (T9)", () => {
   it("axe: 0 violations on the shell with default sections", async () => {
     mockSections(sectionsEnvelope(DEFAULT_SECTIONS));
     const { container } = shellProviders(
-      <AppShell>
+      <WorkshopShell>
         <h1>Today</h1>
-      </AppShell>
+      </WorkshopShell>
     );
     await waitFor(() => {
       expect(screen.getAllByRole("link", { name: /Settings/ }).length).toBeGreaterThan(0);

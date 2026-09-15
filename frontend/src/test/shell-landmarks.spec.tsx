@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { axe } from "vitest-axe";
-import { AppShell } from "../shell/AppShell";
+import { WorkshopShell } from "../shell/WorkshopShell";
 import { ErrorState } from "../shell/ErrorState";
 import { EmptyState } from "../shell/EmptyState";
 import { ASSISTANT_TRIGGER_LABEL } from "../primitives/CompanionSlot";
@@ -9,7 +9,7 @@ import { shellProviders } from "./shell-helpers";
 
 /**
  * T9 landmarks/skip-link/h1 spec (A11y §2.6, §4.2, §5.1; FOUNDATION-SPEC
- * §5 shell components). AppShell renders through shellProviders (the
+ * §5 shell components). WorkshopShell renders through shellProviders (the
  * real app tree: Companion/Prefs/LiveRegion) because the shell now
  * hosts the World Assistant ChatPanel, which requires the app-level
  * live region (A11y §8: one region for the whole tree).
@@ -23,11 +23,11 @@ afterEach(() => {
 });
 
 function withRoute(children: React.ReactNode) {
-  // AppShell owns <main id="main-content">; route content renders bare.
-  return <AppShell>{children}</AppShell>;
+  // WorkshopShell owns <main id="main-content">; route content renders bare.
+  return <WorkshopShell>{children}</WorkshopShell>;
 }
 
-describe("AppShell landmarks and structure (T9)", () => {
+describe("WorkshopShell landmarks and structure (T9)", () => {
   it("renders skip link as the first focusable element", () => {
     const { container } = shellProviders(withRoute(<h1>Today</h1>));
     const focusables = container.querySelectorAll(
@@ -59,10 +59,11 @@ describe("AppShell landmarks and structure (T9)", () => {
     // matchMedia) is the rail bucket.
     const { container } = shellProviders(withRoute(<h1>Today</h1>));
     const shell = container.querySelector(".pw-shell") as HTMLElement;
-    expect(shell.getAttribute("data-pw-nav")).toBe("rail");
+    expect(shell.getAttribute("data-pw-viewport")).toBe("rail");
+    expect(shell.getAttribute("data-pw-mode")).toBe("rail");
     const navs = screen.getAllByRole("navigation");
     expect(navs.length).toBe(1);
-    expect(navs[0].className).toContain("pw-rail");
+    expect(navs[0].className).toContain("pw-edge");
     expect(navs[0].getAttribute("aria-label")).toBe("Main");
     // banner nav not rendered in rail bucket; bottom bar not rendered
     expect(shell.querySelector(".pw-banner-nav")).toBeNull();
@@ -157,8 +158,8 @@ describe("AppShell landmarks and structure (T9)", () => {
     expect(artwork?.closest("[aria-hidden='true']")).not.toBeNull();
     expect(triggerSlot?.querySelector(":scope > button")).not.toBeNull();
     expect(triggerSlot?.querySelector("button")?.closest("[aria-hidden='true']")).toBeNull();
-    // companion slots exist in the header and the rail (progressive
-    // disclosure pattern 17:4565)
+    // companion slots exist in the header and the rail edge (progressive
+    // disclosure pattern 17:4565: header trigger + edge trigger)
     expect(container.querySelectorAll("[data-pw-companion-slot]").length).toBe(2);
 
     // A real click focuses the button; jsdom's fireEvent does not, so
