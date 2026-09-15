@@ -92,8 +92,14 @@ asking instead of guessing, provenance on consequential decisions,
 recoverable mistakes, accessibility floors, bounded work, and
 collaborative good faith are the cooperation floor — not the product.
 
-Play Nice integration: template-source registry exists, behavior pack
-selection planned.
+Project Worlds **accepts and implements** the **full** Play-Nice
+library (65 contracts across 8 layers) through one manifest:
+[`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml),
+pinned to library v0.6.0. Applicable contracts are resolved per task
+from that manifest's `always` and `triggers` lists; no contract text is
+copied into this repository. The explicit acknowledgement — target
+revision, implemented contracts, and evidence — is in
+[`ACKNOWLEDGEMENT.md`](ACKNOWLEDGEMENT.md).
 
 The canonical adoption lives at
 [`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml);

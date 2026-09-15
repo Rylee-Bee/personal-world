@@ -2,8 +2,8 @@
 
 Assessment for the next pass: **find what is not wired, wire it,
 establish default local providers, make API/runtime coherent
-end-to-end.** Verified against code at SHA `db6ca02`. No wiring was
-performed in this pass.
+end-to-end.** Verified against code at SHA `db6ca02` (landed on `main`
+via PR #50, merge `8f061e7`). No wiring was performed in this pass.
 
 Legend: **GREEN** fully wired · **YELLOW** partial / bypass / duplicate ·
 **RED** broken / stubbed / orphaned · **GRAY** intentionally deferred.
@@ -41,7 +41,7 @@ Detail for every non-GREEN subsystem is below the table.
 | Reconciler | YELLOW | Observe-only; no apply; `diff`/`propose` read a body on GET. | Add apply path or mark observe-only; fix HTTP semantics. |
 | Updates | YELLOW | Two systems (`updates.py` used; `native_updates` registered, unused); apply/rollback CLI-only; rewrites tracked compose. | One authority; explicit intent before mutating tracked infra. |
 | Deployment | GRAY | Intentionally optional/deferred: `NativeDeploymentProvider` is observe-only; adapters have no live deploy caller. | Defer; revisit with the updates authority. |
-| Vault | YELLOW | Native Vault works; crypto optional (base64 fallback); no step-up on secret ops; `GET` accepts private peers. | Require crypto; step-up secret ops; true-loopback only. |
+| Vault | YELLOW | Native Vault works and **fails closed** without the `cryptography` extra (no base64 fallback; corrected 2026-09-15); no step-up on secret ops; `GET` accepts private peers. | Step-up secret ops; true-loopback only. |
 | Settings (prefs/sections/apps) | GREEN | Validated prefs, sections, apps registry, step-up writes. | None. |
 | Chat | YELLOW | Live; Ollama tool-calling broken; duplicate builder; no streaming; history not persisted. | Remove orphan; port tool-calling; decide persistence. |
 | Assistant / companion | YELLOW | Companion prefs + edge trigger exist; theme-pack state machine not runtime-resolved. | Wire theme packs or defer. |
@@ -145,12 +145,13 @@ deferred, not broken.
 observe-only with an honest `not_configured`.
 
 ### Vault — YELLOW
-**Exists:** native `Vault` (`vault.enc`), unlock/lock/names/set/delete.
-**Missing:** enforced encryption (base64 fallback without the crypto
-extra); step-up on secret ops; true-loopback-only value get; per-user
-isolation.
+**Exists:** native `Vault` (`vault.enc`), unlock/lock/names/set/delete;
+it fails closed without the `cryptography` extra (no base64 fallback) —
+corrected 2026-09-15 against the finish pass.
+**Missing:** step-up on secret ops; true-loopback-only value get;
+per-user isolation.
 **Risk:** high (secret boundary).
-**Action:** require `--extra crypto`; step-up secret ops; fix peer check.
+**Action:** step-up secret ops; fix peer check.
 
 ### Chat — YELLOW
 **Exists:** live chat route, providers list, tool loop.
@@ -227,7 +228,7 @@ with no remote service.
 | Source control | `NativeGit` (local `git`) | `NativeGit` (already) | Local git is the native baseline | Needs configured search paths |
 | Updates | `updates.py` compose (CLI) | unify onto `native-updates` with a local compose adapter | One authority; local docker compose | Two systems; mutates tracked compose |
 | Deployment | `native-deployment` (observe) | `native-deployment` compose/systemd adapter | Local, no remote | No apply path |
-| Vault / secrets | native `Vault` (`vault.enc`) | native `Vault` **with the crypto extra required** | Local, encrypted, provider-neutral | base64 fallback without `cryptography` |
+| Vault / secrets | native `Vault` (`vault.enc`) | native `Vault` **with the crypto extra required** | Local, encrypted, provider-neutral | Fails closed without `cryptography` (no fallback) |
 | Discovery | none | `native_discovery` with a **local file/OPML source** | Fully local first-run | No default source; feedback not persisted |
 | Reconciler | `native-reconciler` (observe) | `native-reconciler` (already) | Local desired state | No apply; may stay observe-only |
 | Chat | none | follows the Brain decision (not chosen yet) | Local conversation | Tool-calling; history persistence |
@@ -286,12 +287,13 @@ filesystem-media provider merely to give every capability a default.
 
 ## Remaining human decisions
 
-1. **Adoption manifest authority.** `.project/contracts/adoption.yaml`
-   (pin `21b6841a`, declared by `.project/project.yaml:29` and README:98)
-   vs `.contracts/adoption.yaml` (pin `88effb1`, cited by
-   `AGENT_CONTRACTS.md:91`). Different documents back different files and
-   no code/CI/test reads either. Pick one; update the other to a pointer.
-   **Still requires Rylee.**
+1. **Adoption manifest authority — RESOLVED 2026-09-15.**
+   `.project/contracts/adoption.yaml` (pin `21b6841a`, v0.6.0) is the
+   single manifest: it is declared by `.project/project.yaml`, used by
+   the documented session workflow, and matches the Play-Nice
+   project-context layout. The duplicate `.contracts/adoption.yaml`
+   (pin `88effb1`) was removed and `AGENT_CONTRACTS.md` repointed. See
+   `REPOSITORY-INVENTORY.md` §4 for the reasoning.
 2. **Default brain.** Now explicitly deferred (see above): repair
    tool-calling, benchmark, then choose. Not a blocker for this pass.
 3. **Vault secret portability.** Whether (and how) `vault.enc` belongs in

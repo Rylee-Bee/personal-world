@@ -393,7 +393,7 @@ Note: the mission brief said 26 tools; the code registers 29 (read count above).
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | SECRET-001 | auth | Native Vault | INDIRECT | Vault(path) in create_app | `vault.py::Vault` | STORE-003 | STORE-003 | — | vault API | bearer + passphrase | vault.enc | ACTIVE |
 | SECRET-002 | store | vault.enc | NO | Vault._save | `vault.py` | — | — | — | SECRET-001 | internal | authoritative | ACTIVE |
-| SECRET-003 | integration | Fernet/PBKDF2 crypto path | NO | `_derive_key` (cryptography extra) | `vault.py::_derive_key` | passphrase | — | — | Vault unlock | internal | optional dependency | PARTIAL (base64 fallback without extra — documented gap) |
+| SECRET-003 | integration | Fernet/PBKDF2 crypto path | NO | `_derive_key` (cryptography extra) | `vault.py::_derive_key` | passphrase | — | — | Vault unlock | internal | optional dependency | ACTIVE (fails closed without the extra — no base64 fallback) |
 | SECRET-004 | provider | SOPS scaffold (SopsBroker) | NO | adapters.py | `providers/adapters.py::SopsBroker` | sops bundle | none | sops subprocess | none | internal | external SOPS | ORPHAN |
 | SECRET-005 | provider | SOPSVaultAdapter (read-through) | INDIRECT | vault.py | `vault.py::SOPSVaultAdapter` | sops file | none (write unsupported) | sops | none | internal | external SOPS | ORPHAN |
 | SECRET-006 | config | Environment secret loading (api_key_env/token_env) | NO | connection entries | `chat_registry.py`, `adapters.py::Gitea/LangGraphMemory` | env vars | none | — | provider construction | internal | process env | ACTIVE |
@@ -463,7 +463,7 @@ Note: the mission brief said 26 tools; the code registers 29 (read count above).
 | DOC-007 | documentation | Figma implementation skill | INDIRECT | .agents/skills/personal-world-implement-figma/SKILL.md | same | contracts | none | — | UI agents | N/A | skill file | ACTIVE |
 | DOC-008 | documentation | design/handoff (archived Workshop v3 spec) | INDIRECT | design/handoff/ | `design/handoff/FRAME_INDEX.md` etc. | — | none (never edit) | — | design reference | N/A | archived (historical) | HIDDEN |
 | DOC-008a | documentation | design/tokens.json + docs/DESIGN-HANDOFF.md | INDIRECT | design | `design/tokens.json` | — | — | — | frontend gen-tokens | N/A | canonical design tokens | ACTIVE |
-| DOC-008b | documentation | .project/contracts/adoption.yaml (Play-Nice) | INDIRECT | .contracts/adoption.yaml | `.contracts/adoption.yaml` | — | — | — | contract loading | N/A | pinned revision | ACTIVE |
+| DOC-008b | documentation | .project/contracts/adoption.yaml (Play-Nice) | INDIRECT | .project/contracts/adoption.yaml | `.project/contracts/adoption.yaml` | — | — | — | contract loading | N/A | pinned revision (v0.6.0 @ 21b6841a) | ACTIVE |
 
 ## Assets
 

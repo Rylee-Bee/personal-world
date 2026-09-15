@@ -1,5 +1,9 @@
 # Canonical Freshness evidence — 2026-09-12 GLM next-phase orchestration session
 
+> **HISTORICAL (2026-09-12) — retained for provenance; not current
+> guidance.** Dated per-session concurrency/freshness evidence. For
+> current state see [`CURRENT.md`](./CURRENT.md).
+
 Recorded per the standing directive: evidence for the emerging Play-Nice
 Canonical Freshness rule. Nothing here changes any canonical contract.
 

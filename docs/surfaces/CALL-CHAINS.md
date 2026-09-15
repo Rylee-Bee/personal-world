@@ -113,7 +113,7 @@ restore path: no full-instance restore exists; CLI-010 init + manual re-entry is
 ## Vault value read (exceptional workflow)
 
 ```text
-UI-007 unlock → API-062 (bearer) → SECRET-001 Vault.unlock (SECRET-003 Fernet/PBKDF2, else base64 fallback)
+UI-007 unlock → API-062 (bearer) → SECRET-001 Vault.unlock (SECRET-003 Fernet/PBKDF2; without the crypto extra it fails closed — `unavailable`, no fallback)
 → API-064 GET /api/vault/{name} (bearer + AUTH-005 loopback/private check)
 → STORE-003 → value returned → JOURNAL-001 name-only audit entry
 ```

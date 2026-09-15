@@ -6,8 +6,8 @@ Before doing substantive work, read [`AGENT_POLICY.md`](./AGENT_POLICY.md) and f
 
 # AGENTS.md
 
-Shared-working-tree rules for every agent and human working in this
-repo. Nothing else here yet; keep it that way unless a rule earns its
+Shared-working-tree and truth-routing rules for every agent and human
+working in this repo. Keep it short: add a rule only when it earns its
 place.
 
 ## Shared checkouts and worktrees
@@ -28,6 +28,13 @@ agent's WIP into its commit. The rules:
 
 ## Where truth lives (read before trusting)
 
+- **Current state:** `.project/CURRENT.md` is the one current-state
+  pointer. It routes to the canonical files below; when it and a
+  canonical file disagree, the canonical file wins. `STATUS.md` and
+  `.agent/STATE.md` are retired pointers to it.
+- **Play-Nice adoption:** `.project/contracts/adoption.yaml` is the one
+  adoption manifest (declared by `.project/project.yaml`). Contracts
+  live in the shared library; none are copied here.
 - **Figma-to-code workflow:** use
   [personal-world-implement-figma](.agents/skills/personal-world-implement-figma/SKILL.md)
   for approved-frame implementation, repo token/component/art reuse, and

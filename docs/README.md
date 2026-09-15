@@ -29,7 +29,7 @@ source wins.
 | Surfaces (UI/API/CLI/tool/storage/auth) | [`docs/surfaces/MASTER-SURFACE-REGISTRY.md`](surfaces/MASTER-SURFACE-REGISTRY.md) | Extraction index; all IDs resolve here. Verified map: [`docs/repo/WIRING-READINESS.md`](repo/WIRING-READINESS.md). |
 | Operations / deployment | [`docs/OPERATIONS.md`](OPERATIONS.md) | Local run, containers, health. |
 | Product target | [`docs/PERSONAL-WORLD-FINISH-LINE.md`](PERSONAL-WORLD-FINISH-LINE.md) | What "finished enough to live in" means. |
-| Completion plan | [`docs/PERSONAL-WORLD-COMPLETION-PLAN.md`](PERSONAL-WORLD-COMPLETION-PLAN.md) | Dependency-ordered phases toward the finish line. |
+| Completion plan | [`docs/PERSONAL-WORLD-COMPLETION-PLAN.md`](PERSONAL-WORLD-COMPLETION-PLAN.md) | Dated (v1, 2026-09-10) execution plan: phases and acceptance toward the finish line. Not a current-state document. |
 | Decisions | [`.project/DECISIONS.md`](../.project/DECISIONS.md) + [`docs/adr/`](adr/) | Durable decisions and ADRs. |
 | Repo inventory | [`docs/repo/REPOSITORY-INVENTORY.md`](repo/REPOSITORY-INVENTORY.md) | What every major artifact is, and its status. |
 | Wiring readiness | [`docs/repo/WIRING-READINESS.md`](repo/WIRING-READINESS.md) | GREEN/YELLOW/RED/GRAY per subsystem for the next wiring pass. |
@@ -46,7 +46,7 @@ status vocabulary (Canonical / Normative / Spec / Archived).
 |---|---|---|
 | Product docs | `docs/` | Architecture, contracts, accessibility, product, surfaces, operations, history. |
 | Durable project context | `.project/` | Current-state pointer, decisions, design authority, Play-Nice participants. |
-| Contracts (shared library) | `.contracts/` + `.project/contracts/` | Play-Nice adoption manifests (see the duplicate note in the inventory). |
+| Contracts (shared library) | `.project/contracts/` | The one Play-Nice adoption manifest (`.project/contracts/adoption.yaml`); `.contracts/` holds only ignored session artifacts, never a second manifest. |
 | Runtime | `src/personal_world/` | FastAPI app, CLI, providers, domain modules. |
 | Frontend | `frontend/` | React + Vite + TypeScript SPA. |
 | Design art | `design/` | Tokens, frames, companions, icons. `design/handoff/` is archived (do not edit). |

@@ -1,7 +1,8 @@
 # Historical receipts and handoffs
 
-Archived evidence from the 2026-09-13 merge/convergence epoch. These
-files are **historical**, not current authority. They are preserved
+Archived evidence from the 2026-09-12→14 construction, merge, and
+convergence epochs. These files are **historical**, not current
+authority. They are preserved
 because they record what an agent believed and verified at a point in
 time; they are not maintained and their counts will drift from code.
 
@@ -30,6 +31,7 @@ numbers look like current authority.
 | [`MERGE-DOCS-RECEIPT.md`](MERGE-DOCS-RECEIPT.md) | 2026-09-13 | Merge + issue closure + screenshots + docs refresh receipt (719 tests). |
 | [`WIRING-COMPLETION-HANDOFF.md`](WIRING-COMPLETION-HANDOFF.md) | 2026-09-13 | Pre-merge wiring handoff with 10 open questions; header notes all were resolved. |
 | [`API-WIRING-HANDOFF.md`](API-WIRING-HANDOFF.md) | 2026-09-13 | Endpoint-disposition handoff (68 endpoints, 19 tools). |
+| [`CONSTRUCTION-AND-EPOCH-NARRATIVE.md`](CONSTRUCTION-AND-EPOCH-NARRATIVE.md) | 2026-09-12→14 | Dated narrative extracted from `.project/CURRENT.md` (2026-09-15): the feature slices (Projects workspace, journal supersede, agent-sync estate, observation age, Gitea retirement, GHCR), the identity pass, and the integration truth pass. |
 
 ## Do not
 
