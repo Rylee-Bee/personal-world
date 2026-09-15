@@ -20,6 +20,7 @@ import {
   PREFERENCES_DEFAULTS,
 } from "./lib/prefs-context";
 import { LiveRegionProvider } from "./primitives/LiveRegion";
+import { ShellModeOverrideProvider } from "./lib/shell-mode-context";
 import { fetchPrefs, setLoginNavigation } from "./lib/api";
 import { WorkshopShell } from "./shell/WorkshopShell";
 import { AuthLayout } from "./shell/AuthLayout";
@@ -173,9 +174,11 @@ function App() {
                 storm from a hidden shell: the shell is ABSENT, not
                 display:none'd — see ShellGate). */}
             <ShellGate>
-              <WorkshopShell>
-                <AppRoutes />
-              </WorkshopShell>
+              <ShellModeOverrideProvider>
+                <WorkshopShell>
+                  <AppRoutes />
+                </WorkshopShell>
+              </ShellModeOverrideProvider>
             </ShellGate>
             <AuthRoutes />
           </BrowserRouter>

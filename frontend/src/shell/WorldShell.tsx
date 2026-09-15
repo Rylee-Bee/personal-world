@@ -69,6 +69,12 @@ export interface WorldShellProps {
    */
   mode?: ShellMode;
   /**
+   * Per-screen sidebar width in pixels, from Figma canonical frames.
+   * Applied as --pw-edge-sidebar-width on the shell element.
+   * Falls back to the token default (248px) if omitted.
+   */
+  sidebarWidth?: number;
+  /**
    * World edge content. The shell renders this inside the edge region.
    * The shell does NOT mandate what appears here — identity, divider,
    * nav, and companion are per-screen canonical properties.
@@ -82,7 +88,7 @@ export interface WorldShellProps {
   children: ReactNode;
 }
 
-export function WorldShell({ mode: modeProp, edge, children }: WorldShellProps) {
+export function WorldShell({ mode: modeProp, sidebarWidth, edge, children }: WorldShellProps) {
   const location = useLocation();
   const mode = modeProp ?? getShellMode(location.pathname);
   const bucket = useViewportBucket();
@@ -121,6 +127,7 @@ export function WorldShell({ mode: modeProp, edge, children }: WorldShellProps) 
       className={`pw-shell pw-shell--${mode}`}
       data-pw-mode={mode}
       data-pw-viewport={bucket}
+      style={sidebarWidth && mode === "sidebar" ? { "--pw-edge-sidebar-width": `${sidebarWidth}px` } as React.CSSProperties : undefined}
     >
       <a href="#main-content" className="skip-link">
         Skip to main content
