@@ -10,12 +10,13 @@ open an issue.
 
 | Doc | What it is |
 |---|---|
+| [docs/README.md](README.md) | Where truth lives: canonical source per subject, and the repo's layers. Read this first. |
 | [README](../README.md) | The front door: what this is, quick start, navigation. |
 | [CHANGELOG](../CHANGELOG.md) | Curated project milestones, newest first. |
 | [ROADMAP](../ROADMAP.md) | Now / Next / Exploring — direction, not promises. |
 | [PERSONAL-WORLD-FINISH-LINE.md](PERSONAL-WORLD-FINISH-LINE.md) | Canonical target daily-use experience; requirements, not implementation claims. |
 | [PERSONAL-WORLD-COMPLETION-PLAN.md](PERSONAL-WORLD-COMPLETION-PLAN.md) | Canonical plan: current-vs-target audit, approved decisions, dependency-ordered phases P0–P14, acceptance criteria, model routing. |
-| [p1/FOUNDATION-SPEC.md](p1/FOUNDATION-SPEC.md) | Approved P1 implementation contract: sections API, primitive contracts, parity checklist, bounded tasks. |
+| [p1/FOUNDATION-SPEC.md](p1/FOUNDATION-SPEC.md) | Historical (P1 complete) | Approved P1 implementation contract: sections API, primitive contracts, parity checklist, bounded tasks. Preserved for provenance. |
 | [AGENT_POLICY.md](../AGENT_POLICY.md) | Mandatory agent preflight and decision policy. |
 | [AGENT_CONTRACTS.md](../AGENT_CONTRACTS.md) | Canonical contract registry: applicability, authority, and exact entry points. |
 | [STATUS.md](../STATUS.md) | Pointer to shared operational state; not deployment proof by itself. |
@@ -29,6 +30,7 @@ open an issue.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Canonical current | World model, current APIs/layout, identity and Vault limits, daily loop, target auth distinction. |
 | [NATIVE-BASELINE-AND-ENRICHMENT.md](NATIVE-BASELINE-AND-ENRICHMENT.md) | Normative | The core invariant: capabilities core-owned, providers optional. Enforced by `framework validate`. |
 | [adr/0001](adr/0001-capabilities-core-owned-providers-optional.md) | Accepted | Why the capability-ownership rule became test-enforced. |
+| [adr/0002](adr/0002-default-brain-selection.md) | Accepted | Default brain selection (Qwen3 1.7B with an LFM2.5 fallback). |
 | [PROVIDERS.md](PROVIDERS.md) | Canonical | How to add a provider, step by step. |
 | [OPERATIONS.md](OPERATIONS.md) | Canonical | Running it locally: CLI, web API, containers, health. |
 | [OPERATIONS-FIRST-RUN.md](OPERATIONS-FIRST-RUN.md) | Operational reference | First-run procedure and dated bring-up evidence; reverify in the actual deployment. |
@@ -68,6 +70,26 @@ open an issue.
 | [AGENTS.md](../AGENTS.md) | Working-tree rules for agents and humans (worktrees, staging discipline). |
 | [safe-commit.sh](../scripts/safe-commit.sh) | Stages named paths only; refuses unrelated-file sweeps. |
 | [Validation commands](../README.md#validation-and-license) | `pytest`, `framework validate` — the canonical checks. |
+
+## Surfaces, inventories & history
+
+| Doc | Status | What it is |
+|---|---|---|
+| [repo/REPOSITORY-INVENTORY.md](repo/REPOSITORY-INVENTORY.md) | Canonical inventory | Every major artifact, its purpose, status, and canonical location. |
+| [repo/WIRING-READINESS.md](repo/WIRING-READINESS.md) | Canonical assessment | GREEN/YELLOW/RED/GRAY per subsystem for the wiring pass. |
+| [surfaces/MASTER-SURFACE-REGISTRY.md](surfaces/MASTER-SURFACE-REGISTRY.md) | Current reference | Extraction index of every UI/API/CLI/tool/provider/storage surface. |
+| [surfaces/AUTH-MATRIX.md](surfaces/AUTH-MATRIX.md) | Current reference | Auth per surface (D1/D2/D3 convergence). |
+| [surfaces/PROVIDER-MATRIX.md](surfaces/PROVIDER-MATRIX.md) | Current reference | Capability ↔ provider registration map. |
+| [surfaces/STORAGE-MATRIX.md](surfaces/STORAGE-MATRIX.md) | Current reference | Storage paths, readers/writers, backup coverage. |
+| [surfaces/UI-API-MATRIX.md](surfaces/UI-API-MATRIX.md) | Current reference | UI ↔ API wiring. |
+| [surfaces/CLI-DOMAIN-MATRIX.md](surfaces/CLI-DOMAIN-MATRIX.md) | Current reference | CLI ↔ domain/API parity. |
+| [surfaces/TOOL-DOMAIN-MATRIX.md](surfaces/TOOL-DOMAIN-MATRIX.md) | Current reference | Chat tool ↔ domain targets. |
+| [surfaces/DUPLICATES.md](surfaces/DUPLICATES.md) | Current reference | Competing/duplicate systems (auth entries resolved by D1–D3). |
+| [surfaces/ORPHANS.md](surfaces/ORPHANS.md) | Current reference | Orphaned/partial/superseded surfaces. |
+| [surfaces/CALL-CHAINS.md](surfaces/CALL-CHAINS.md) | Current reference | Compact call chains per major flow. |
+| [surfaces/COHERENCE-DECISION-PREP.md](surfaces/COHERENCE-DECISION-PREP.md) | Historical | Pre-wiring decision preparation; inputs absorbed into `repo/WIRING-READINESS.md`. |
+| [history/](history/README.md) | Archived | 2026-09-13 merge receipts and handoffs. Superseded; kept for provenance. |
+| [screenshots/INDEX.md](screenshots/INDEX.md) | Generated reference | App screenshots with synthetic data. |
 
 ## Status vocabulary used above
 

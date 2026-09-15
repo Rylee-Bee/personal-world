@@ -6,6 +6,7 @@ import urllib.parse
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
 from .auth import AuthManager
+from .identity import NoPrincipalError
 
 
 def register_auth_routes(app: FastAPI, auth: AuthManager):
@@ -117,7 +118,15 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
         if not sub:
             raise HTTPException(502, "no sub in userinfo")
         display = userinfo.get("preferred_username") or userinfo.get("name") or sub
-        session = auth.login_oidc(display)
+        try:
+            session = auth.login_oidc(sub, display_name=display)
+        except NoPrincipalError:
+            # Verified by the IdP but not mapped onto a local principal:
+            # never silently mint an account. Fail closed with an honest
+            # reason the operator can act on.
+            raise HTTPException(
+                status_code=403,
+                detail="this identity is not mapped to a local account")
         response = RedirectResponse("/")
         response.set_cookie(
             "pw_session", session.id,
@@ -137,7 +146,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
         return response
 
     @app.get("/api/auth/session")
-    async def auth_session(request: Request):
+    async def auth_session(request: Request) -> dict:
         """Check current session."""
         session_id = request.cookies.get("pw_session")
         if not session_id:
@@ -148,16 +157,39 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
         return {"ok": True, "data": {
             "principal_id": session.principal_id,
             "auth_method": session.auth_method,
-            "has_step_up": session.has_step_up(),
+            "has_step_up": session.has_step_up(session.principal_id),
         }}
 
     @app.post("/api/auth/step-up")
-    async def auth_step_up(request: Request):
-        """Request step-up authentication."""
+    async def auth_step_up(request: Request) -> dict:
+        """Elevate the current session for a bounded window.
+
+        Step-up is a credential event, not a bare flag: the caller must
+        re-present a credential (the instance token as a bearer header
+        or ``{"token": ...}`` in the body) that resolves to the same
+        principal the session belongs to. The resulting elevation is
+        time-bounded and bound to that principal; it is the grant
+        ``require_step_up`` consumes.
+        """
         session_id = request.cookies.get("pw_session")
         if not session_id:
             raise HTTPException(401, "no session")
-        session = auth.request_step_up(session_id)
+        token = ""
+        header = request.headers.get("Authorization", "")
+        if header.startswith("Bearer "):
+            token = header.removeprefix("Bearer ").strip()
+        if not token:
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            token = str((body or {}).get("token", "")).strip()
+        session = auth.request_step_up(session_id, credential=token or None)
         if not session:
-            raise HTTPException(401, "invalid session")
-        return {"ok": True, "data": {"has_step_up": True, "expires_in": 300}}
+            # Either the session is unknown or the credential did not
+            # match its principal. Fail closed without leaking which.
+            raise HTTPException(403, "step-up credential invalid")
+        return {"ok": True, "data": {
+            "has_step_up": True, "expires_in": 300,
+            "principal_id": session.principal_id,
+        }}

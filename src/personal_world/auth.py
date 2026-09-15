@@ -22,13 +22,24 @@ class Session:
     created_at: float
     last_active: float
     step_up_until: float | None = None
+    step_up_principal: str | None = None
     auth_method: str = "local"  # "local" or "oidc"
 
     def is_valid(self, max_age: int = 86400) -> bool:
         return (time.time() - self.last_active) < max_age
 
-    def has_step_up(self) -> bool:
-        return self.step_up_until is not None and time.time() < self.step_up_until
+    def has_step_up(self, principal_id: str | None = None) -> bool:
+        """A live, time-bounded elevation for this session.
+
+        When ``principal_id`` is supplied the elevation must have been
+        granted to that same principal: an elevation can never be spent
+        by a different identity that somehow shares the cookie.
+        """
+        if self.step_up_until is None or time.time() >= self.step_up_until:
+            return False
+        if principal_id is not None and self.step_up_principal != principal_id:
+            return False
+        return True
 
     def touch(self):
         self.last_active = time.time()
@@ -90,11 +101,22 @@ class SessionStore:
         self._sessions.pop(session_id, None)
         self._save()
 
-    def grant_step_up(self, session_id: str, duration: int = 300) -> Session | None:
+    def grant_step_up(self, session_id: str, principal_id: str | None = None,
+                      duration: int = 300) -> Session | None:
+        """Mint a time-bounded elevation for a session.
+
+        The elevation is bound to the session's own principal. If a
+        ``principal_id`` is supplied it must match — an elevation is
+        never issued across identities.
+        """
         session = self.get(session_id)
-        if session:
-            session.step_up_until = time.time() + duration
-            self._save()
+        if session is None:
+            return None
+        if principal_id is not None and session.principal_id != principal_id:
+            return None
+        session.step_up_until = time.time() + duration
+        session.step_up_principal = session.principal_id
+        self._save()
         return session
 
     def _load(self):
@@ -113,19 +135,33 @@ class SessionStore:
         data = {sid: {
             "id": s.id, "principal_id": s.principal_id,
             "created_at": s.created_at, "last_active": s.last_active,
-            "step_up_until": s.step_up_until, "auth_method": s.auth_method,
+            "step_up_until": s.step_up_until,
+            "step_up_principal": s.step_up_principal,
+            "auth_method": s.auth_method,
         } for sid, s in self._sessions.items()}
         path.write_text(json.dumps(data, indent=2))
 
 
 class AuthManager:
-    """Manages authentication flows."""
+    """Manages authentication flows.
 
-    def __init__(self, data_dir: Path, config_dir: Path):
+    Every successful login resolves a canonical ``Principal`` through
+    ``identity.py`` first; the session stores only that principal's id.
+    That makes a browser session a first-class credential on the same
+    seam as a bearer token rather than a parallel credential system.
+    """
+
+    def __init__(self, data_dir: Path, config_dir: Path,
+                 identity: dict | None = None):
         self.sessions = SessionStore(data_dir)
         self._config_dir = config_dir
         self._oidc_config: OIDCConfig | None = None
         self._bootstrap_token: str | None = None
+        # The app's identity seam state ({mode, store, instance_token}),
+        # used to resolve local/browser/OIDC logins onto the same
+        # Principal the bearer path produces. Optional so direct
+        # construction (tests, tooling) still works.
+        self._identity = identity
         self._load_config()
 
     def _load_config(self):
@@ -138,18 +174,54 @@ class AuthManager:
                 pass
         self._bootstrap_token = os.environ.get("PW_API_TOKEN")
 
+    def _seam(self) -> tuple[Any, str, str | None]:
+        ident = self._identity or {}
+        # The app captured the instance token at boot; if that was None
+        # (first-run setup creates the token in-process) fall back to the
+        # live env so login never lags behind boot-token reconciliation.
+        instance_token = ident.get("instance_token") or os.environ.get(
+            "PW_API_TOKEN")
+        return (ident.get("store"), ident.get("mode", "single"),
+                instance_token)
+
     def login_local(self, token: str) -> Session | None:
-        """Login with bootstrap/local token."""
-        if self._bootstrap_token and secrets.compare_digest(token, self._bootstrap_token):
-            return self.sessions.create("owner", "local")
+        """Login with the instance/bootstrap credential.
+
+        Resolved through the identity seam so a browser session lands on
+        the same Principal as a bearer request (in multi mode this is
+        the user that owns the token, not a fixed string).
+        """
+        from .identity import resolve_principal, NoPrincipalError
+        if self._identity is not None:
+            store, mode, instance_token = self._seam()
+            try:
+                principal = resolve_principal(token, store, mode, instance_token)
+            except NoPrincipalError:
+                return None
+            return self.sessions.create(principal.id, "local")
+        # No seam wired (direct construction): legacy bootstrap compare.
+        if self._bootstrap_token and secrets.compare_digest(
+                token, self._bootstrap_token):
+            return self.sessions.create("primary", "local")
         return None
 
     def get_oidc_config(self) -> OIDCConfig | None:
         return self._oidc_config
 
-    def login_oidc(self, principal_id: str) -> Session:
-        """Login after OIDC callback verification."""
-        return self.sessions.create(principal_id, "oidc")
+    def login_oidc(self, sub: str, display_name: str | None = None) -> Session:
+        """Login after OIDC callback verification.
+
+        The verified subject is mapped onto a local principal through
+        the same seam. Single mode maps to the bootstrap primary person;
+        multi mode requires an existing enabled local record and raises
+        ``NoPrincipalError`` otherwise (an unknown IdP identity never
+        silently creates an account).
+        """
+        from .identity import resolve_oidc_principal
+        store, mode, _ = self._seam()
+        principal = resolve_oidc_principal(sub, store, mode,
+                                           display_name=display_name)
+        return self.sessions.create(principal.id, "oidc")
 
     def validate_session(self, session_id: str) -> Session | None:
         return self.sessions.get(session_id)
@@ -157,5 +229,43 @@ class AuthManager:
     def logout(self, session_id: str) -> None:
         self.sessions.invalidate(session_id)
 
-    def request_step_up(self, session_id: str) -> Session | None:
-        return self.sessions.grant_step_up(session_id, duration=300)
+    def verify_step_up_credential(self, session: Session,
+                                  token: str | None) -> bool:
+        """Verify a credential presented for step-up.
+
+        The presented credential is resolved through the canonical seam
+        and must belong to the same principal the session was created
+        for. This is the credential event that makes step-up a fresh
+        elevation rather than a bare flag.
+        """
+        if not token:
+            return False
+        from .identity import resolve_principal, NoPrincipalError
+        if self._identity is not None:
+            store, mode, instance_token = self._seam()
+            try:
+                principal = resolve_principal(token, store, mode,
+                                              instance_token)
+            except NoPrincipalError:
+                return False
+            return principal.id == session.principal_id
+        if self._bootstrap_token and secrets.compare_digest(
+                token, self._bootstrap_token):
+            return session.principal_id == "primary"
+        return False
+
+    def request_step_up(self, session_id: str,
+                        credential: str | None = None) -> Session | None:
+        """Elevate a session for a bounded window after re-authentication.
+
+        Returns None when the session is unknown or when the credential
+        does not belong to the session's principal. The elevation is
+        time-bounded (default 300s) and principal-bound.
+        """
+        session = self.sessions.get(session_id)
+        if session is None:
+            return None
+        if not self.verify_step_up_credential(session, credential):
+            return None
+        return self.sessions.grant_step_up(
+            session_id, principal_id=session.principal_id, duration=300)
