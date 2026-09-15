@@ -77,8 +77,15 @@ two new always-applicable contracts (`participation-and-contribution`,
 `human-reliability`). v0.6.0 delta from v0.5.0: one new always-applicable
 contract (`collaborative-good-faith`) and four version bumps
 (`ask-for-help`, `mutual-contribution`, `participation-and-contribution`,
-`orchestration`). Every new/changed contract read in full at each bump;
-no conflict found with how this project operates. The Figma pack's own
+`orchestration`). Bumped again 2026-09-15 (docs/repository-truth pass) to
+**v0.7.0 @ `79cadaceb8654279f7b2be135fcd67ba138728fb`**: delta from
+v0.6.0 is one new always-applicable contract (`assume-unknown`) and a
+receipt rotation on the founding `play-nice-together` (1.5.0 → 1.6.0);
+no other adopted contract changed meaning. Verified with the real
+`contractctl` tool against the pinned revision — `adopt` = ADOPTION VALID
+(`personal-world: always=11 triggers=9`), `commit` = CONTRACT COMMITMENT
+ACTIVE (bundle `dovetail-harbor-prairie`). Every new/changed contract read
+in full at each bump; no conflict found with how this project operates. The Figma pack's own
 attestation (`participants/figma/attestation.yaml`) is scoped to the
 original revision (receipt `nectar-heather-heather`, bundle `0c0ab7c5`)
 and is left unedited — participant-supplied provenance is never
