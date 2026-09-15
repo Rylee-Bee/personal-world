@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChatProviders } from "../lib/hooks";
-import { getAuthToken } from "../lib/api";
 import {
   ApiError,
+  authHeaders,
+  getAuthToken,
   type ChatResult,
   type ChatJournalCorrectionProposal,
 } from "../lib/api";
@@ -215,10 +216,7 @@ export default function ChatScreen({ context }: { context?: string }) {
           { role: "user", content: text },
         ];
 
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
-        };
+        const headers = authHeaders();
 
         const res = await fetch("/api/chat", {
           method: "POST",

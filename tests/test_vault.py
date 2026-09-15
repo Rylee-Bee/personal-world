@@ -17,6 +17,7 @@ import pytest  # noqa: E402
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from fastapi.testclient import TestClient  # noqa: E402
+from personal_world.vault import _HAS_CRYPTO  # noqa: E402
 
 
 def _mk(tmp_path, monkeypatch):
@@ -39,6 +40,7 @@ def test_get_409_when_locked(tmp_path, monkeypatch):
     assert "locked" in r.json()["detail"]
 
 
+@pytest.mark.skipif(not _HAS_CRYPTO, reason="cryptography not installed")
 def test_get_after_unlock(tmp_path, monkeypatch):
     c, _ = _mk(tmp_path, monkeypatch)
     c.post("/api/setup",
@@ -64,6 +66,7 @@ def test_private_ip_accepted_by_rule(tmp_path, monkeypatch):
     assert not ipaddress.ip_address("8.8.8.8").is_private
 
 
+@pytest.mark.skipif(not _HAS_CRYPTO, reason="cryptography not installed")
 def test_missing_name_404_after_unlock(tmp_path, monkeypatch):
     c, _ = _mk(tmp_path, monkeypatch)
     c.post("/api/setup",
@@ -71,3 +74,18 @@ def test_missing_name_404_after_unlock(tmp_path, monkeypatch):
            headers=_headers())
     r = c.get("/api/vault/void", headers=_headers())
     assert r.status_code == 404
+
+
+def test_setup_graceful_without_crypto(tmp_path, monkeypatch):
+    """Setup succeeds even if vault init fails (no crypto)."""
+    from personal_world.vault import _HAS_CRYPTO
+    c, _ = _mk(tmp_path, monkeypatch)
+    r = c.post("/api/setup",
+               json={"token": "tttttttt", "vault_passphrase": "pp"},
+               headers=_headers())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"]
+    assert body["data"]["token_set"] is True
+    # vault_initialized reflects actual crypto availability
+    assert body["data"]["vault_initialized"] == _HAS_CRYPTO

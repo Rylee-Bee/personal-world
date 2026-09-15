@@ -5,6 +5,7 @@ import {
   useJournalKey,
 } from "../lib/hooks";
 import {
+  saveJournalEntry,
   supersedeJournalEntry,
   fetchJournalHistory,
   fetchJournalPage,
@@ -120,20 +121,7 @@ export default function JournalScreen() {
     setWritePending(true);
     setWriteStatus(null);
     try {
-      const token = localStorage.getItem("pw_token") || "";
-      const res = await fetch("/api/journal", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-PW-StepUp": "1",
-        },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.detail ?? `Write failed (${res.status})`);
-      }
+      await saveJournalEntry(text);
       setWriteText("");
       setWriteStatus("Saved to your journal.");
       journalKey();

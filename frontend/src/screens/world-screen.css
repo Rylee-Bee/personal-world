@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   gap: 32px;
-  padding: var(--pw-spacing-page-top) var(--pw-spacing-page-side) var(--pw-spacing-page-bottom);
+  padding: 48px 64px 80px;
   min-height: 100vh;
   position: relative;
 }
@@ -43,7 +43,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--pw-color-warmth-teal-glow) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--pw-color-warmth-teal-18) 0%, transparent 70%);
 }
 
 .pw-world-orb-ring {
@@ -71,7 +71,7 @@
 
 .pw-world-title {
   font-family: var(--pw-typography-font-expressive);
-  font-size: var(--pw-typography-heading-page);
+  font-size: 2.25rem;
   font-weight: 400;
   line-height: 1.05;
   color: var(--pw-color-accent-primary);
@@ -86,7 +86,7 @@
 }
 
 .pw-world-watch-note {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-accent-secondary);
   margin: 0;
 }
@@ -98,7 +98,7 @@
   justify-content: space-between;
   height: 64px;
   padding: 0 28px;
-  border-radius: var(--pw-radius-panel);
+  border-radius: 14px;
   border: 1px solid var(--pw-color-border-strong);
   background: var(--pw-color-surface-elevated);
 }
@@ -117,13 +117,13 @@
 }
 
 .pw-world-strip-icon {
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   color: var(--pw-color-accent-primary);
   opacity: 0.7;
 }
 
 .pw-world-strip-label {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-primary);
   margin: 0;
 }
@@ -165,13 +165,13 @@
 
 .pw-world-caps-title {
   font-family: var(--pw-typography-font-expressive);
-  font-size: var(--pw-typography-heading-section);
+  font-size: 1.25rem;
   color: var(--pw-color-text-primary);
   margin: 0;
 }
 
 .pw-world-caps-subtitle {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-muted);
 }
 
@@ -185,7 +185,7 @@
   padding: 18px 20px;
   background: var(--pw-color-surface-panel);
   border: 1px solid var(--pw-color-border-subtle);
-  border-radius: var(--pw-radius-panel);
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -197,7 +197,7 @@
 }
 
 .pw-world-cap-card--attention {
-  border-color: var(--pw-color-warmth-rose-deep);
+  border-color: var(--pw-color-warmth-rose-30);
   background: var(--pw-color-warmth-rose-ghost);
 }
 
@@ -244,13 +244,13 @@
 }
 
 .pw-world-cap-card-desc {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-secondary);
   margin: 0;
 }
 
 .pw-world-cap-card-status {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
   margin: 0;
 }
@@ -270,13 +270,13 @@
 
 .pw-world-actors-title {
   font-family: var(--pw-typography-font-expressive);
-  font-size: var(--pw-typography-heading-section);
+  font-size: 1.25rem;
   color: var(--pw-color-text-primary);
   margin: 0 0 4px;
 }
 
 .pw-world-actors-subtitle {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-muted);
   margin: 0 0 16px;
 }
@@ -330,18 +330,18 @@
 }
 
 .pw-world-actor-name {
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--pw-color-text-primary);
 }
 
 .pw-world-actor-desc {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
 }
 
 .pw-world-actors-footer {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
   font-style: italic;
   margin: 16px 0 0;
@@ -355,7 +355,7 @@
   gap: 14px;
   padding: 16px 24px;
   background: linear-gradient(135deg, var(--pw-color-warmth-teal-whisper) 0%, var(--pw-color-warmth-rose-ghost) 100%);
-  border-radius: var(--pw-radius-panel);
+  border-radius: 14px;
   border: 1px solid var(--pw-color-border-subtle);
   margin-top: 16px;
 }
@@ -367,13 +367,13 @@
 }
 
 .pw-world-companion-name {
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--pw-color-text-primary);
 }
 
 .pw-world-companion-status {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
   font-style: italic;
 }
@@ -382,7 +382,7 @@
 .pw-world-manifest-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
 }
 
 .pw-world-manifest-table th {
@@ -411,11 +411,11 @@
 .pw-world-export-btn {
   min-height: var(--pw-target-minimum);
   padding: 10px 20px;
-  border-radius: var(--pw-radius-control);
+  border-radius: 8px;
   border: 1px solid var(--pw-color-border-strong);
   background: var(--pw-color-surface-elevated);
   color: var(--pw-color-text-primary);
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
 }
@@ -436,7 +436,7 @@
 
 /* ── World writes ── */
 .pw-world-write-note {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
   margin: 0 0 16px;
 }
@@ -456,7 +456,7 @@
 }
 
 .pw-world-write-legend {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--pw-color-text-primary);
   margin-bottom: 8px;
@@ -478,11 +478,11 @@
   width: 100%;
   min-height: var(--pw-target-minimum);
   padding: 8px 12px;
-  border-radius: var(--pw-radius-control);
+  border-radius: 8px;
   border: 1px solid var(--pw-color-border-strong);
   background: var(--pw-color-surface-elevated);
   color: var(--pw-color-text-primary);
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
 }
 
 .pw-world-write-input::placeholder {
@@ -495,7 +495,7 @@
 }
 
 .pw-world-write-status {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   margin: 8px 0 0;
   color: var(--pw-color-accent-primary);
 }
@@ -505,13 +505,13 @@
 }
 
 .pw-world-empty {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-muted);
   margin: 0;
 }
 
 .pw-world-empty-small {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
   margin: 0;
   font-style: italic;

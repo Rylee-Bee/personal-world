@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   gap: 38px;
-  padding: var(--pw-spacing-page-top) var(--pw-spacing-page-side) var(--pw-spacing-page-bottom) var(--pw-spacing-page-side);
+  padding: 70px 84px 92px 64px;
   min-height: 100vh;
   position: relative;
 }
@@ -44,7 +44,7 @@
 
 .pw-today-greeting-text {
   font-family: var(--pw-typography-font-expressive);
-  font-size: var(--pw-typography-heading-page);
+  font-size: 2.25rem;
   font-weight: 400;
   line-height: 1.1;
   color: var(--pw-color-accent-primary);
@@ -52,7 +52,7 @@
 }
 
 .pw-today-date {
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   color: var(--pw-color-accent-secondary);
   margin: 0;
 }
@@ -65,7 +65,7 @@
   padding: 18px 22px;
   background: var(--pw-color-surface-panel);
   border: 1px solid var(--pw-color-border-subtle);
-  border-radius: var(--pw-radius-card);
+  border-radius: 12px;
   min-width: 360px;
 }
 
@@ -105,7 +105,7 @@
     color-mix(in srgb, var(--pw-color-accent-primary) 6%, transparent) 0%,
     color-mix(in srgb, var(--pw-color-accent-secondary) 4%, transparent) 100%
   );
-  border-radius: var(--pw-radius-panel);
+  border-radius: 16px;
 }
 
 .pw-today-companion-art {
@@ -209,7 +209,7 @@
   padding: 28px;
   background: var(--pw-color-surface-panel);
   border: 1px solid var(--pw-color-border-subtle);
-  border-radius: var(--pw-radius-card);
+  border-radius: 12px;
 }
 
 .pw-today-recent-header {
@@ -275,7 +275,7 @@
 }
 
 .pw-today-peaceful-note {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-text-secondary);
   margin: 0;
   font-style: italic;
@@ -294,7 +294,7 @@
   gap: 14px;
   padding: 17px 18px;
   background: color-mix(in srgb, var(--pw-color-text-primary) 15%, transparent);
-  border-radius: var(--pw-radius-control);
+  border-radius: 8px;
 }
 
 .pw-today-entry-sparkle {
@@ -319,7 +319,7 @@
 }
 
 .pw-today-entry-time {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-accent-secondary);
   margin: 0;
 }
@@ -395,31 +395,6 @@
     min-height: var(--pw-target-minimum);
     min-width: var(--pw-target-minimum);
   }
-}
-
-/* ── Loading skeleton ── */
-.pw-today-skeleton {
-  display: inline-block;
-  background: linear-gradient(
-    90deg,
-    var(--pw-color-surface-panel) 25%,
-    var(--pw-color-surface-elevated) 50%,
-    var(--pw-color-surface-panel) 75%
-  );
-  background-size: 200% 100%;
-  border-radius: var(--pw-radius-control);
-  /* Motion contract (T5 lint): no continuous/looping animation of any
-     kind. The static gradient bar is the whole loading affordance;
-     "Waking up your world…" carries the live announcement instead. */
-  animation: none;
-}
-
-.pw-today-loading {
-  font-family: var(--pw-typography-font-expressive);
-  font-size: var(--pw-typography-heading-section);
-  color: var(--pw-color-text-secondary);
-  margin: 0;
-  opacity: 0.7;
 }
 
 /* ── Bottom-bar safe area <600px (fixed bottom nav overlay) ──────── */
