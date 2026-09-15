@@ -8,6 +8,7 @@ Write tools go through propose → approval → execution → evidence.
 """
 
 import json
+import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -99,8 +100,18 @@ def build_default_tools(
     source_control: Any,
     vault: Any,
     config_dir: Any = None,
+    data_dir: Any = None,
+    world_path: Any = None,
+    scheduler: Any = None,
+    memory_provider: Any = None,
 ) -> ToolRegistry:
-    """Build the default tool set from existing domain objects."""
+    """Build the default tool set from existing domain objects.
+
+    ``world_path`` / ``scheduler`` / ``memory_provider`` wire the write
+    executors and reminder reads to the SAME authoritative paths the
+    API uses (single source of truth); older callers omit them and
+    write tools answer honestly that persistence is not wired.
+    """
     tools = ToolRegistry()
 
     # ── World ──
@@ -156,7 +167,7 @@ def build_default_tools(
             },
             "required": ["query"],
         },
-        handler=lambda query: _search_journal(journal, query),
+        handler=lambda query: _search_journal(journal, query, memory_provider),
     ))
 
     # ── Source Control ──
@@ -337,7 +348,7 @@ def build_default_tools(
         description="List active reminders.",
         read_write="read",
         parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _reminders(),
+        handler=lambda: _reminders(scheduler),
     ))
 
     # ── Media ──
@@ -349,7 +360,7 @@ def build_default_tools(
         description="Inspect media providers: Plex, Sonarr, Radarr, Lidarr status.",
         read_write="read",
         parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _media_status(),
+        handler=lambda: _media_status(config_dir),
     ))
 
     tools.register(Tool(
@@ -359,7 +370,7 @@ def build_default_tools(
         description="Recently added media: new movies, episodes, albums.",
         read_write="read",
         parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _media_recent(),
+        handler=lambda: _media_recent(config_dir),
     ))
 
     tools.register(Tool(
@@ -369,7 +380,7 @@ def build_default_tools(
         description="Media queue: downloading, queued, failed items.",
         read_write="read",
         parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _media_activity(),
+        handler=lambda: _media_activity(config_dir),
     ))
 
     tools.register(Tool(
@@ -385,7 +396,7 @@ def build_default_tools(
             },
             "required": ["query"],
         },
-        handler=lambda query: _media_search(query),
+        handler=lambda query: _media_search(query, config_dir),
     ))
 
     # ── Write tools (proposal-based) ──
@@ -422,7 +433,7 @@ def build_default_tools(
             },
             "required": ["key", "intent"],
         },
-        handler=lambda key, intent: _propose_world_intent(world, key, intent),
+        handler=lambda key, intent: _propose_world_intent(journal, world, key, intent),
     ))
 
     tools.register(Tool(
@@ -440,7 +451,7 @@ def build_default_tools(
             },
             "required": ["key", "fact"],
         },
-        handler=lambda key, fact: _propose_world_fact(world, key, fact),
+        handler=lambda key, fact: _propose_world_fact(journal, world, key, fact),
     ))
 
     tools.register(Tool(
@@ -457,7 +468,7 @@ def build_default_tools(
             },
             "required": ["text"],
         },
-        handler=lambda text: _propose_reminder(text),
+        handler=lambda text: _propose_reminder(journal, text),
     ))
 
     tools.register(Tool(
@@ -474,36 +485,72 @@ def build_default_tools(
             },
             "required": ["service"],
         },
-        handler=lambda service: _propose_reconciler_apply(service),
+        handler=lambda service: _propose_reconciler_apply(journal, service),
     ))
 
     # ── Execute approved writes ──
-
+    # Temporary approval rule (until durable human approval exists):
+    # the MODEL may create proposals but may NOT approve its own.
+    # execute_approved_write refuses to act on a proposal unless the
+    # executor receives an authorization token minted OUTSIDE the
+    # model loop. The chat tool loop deliberately has no such token,
+    # so model-called executions fail closed and proposals stay
+    # pending. A future human-controlled surface passes the token.
     tools.register(Tool(
         id="execute_approved_write",
         capability="write",
         operation="execute",
-        description="Execute an approved write proposal. Only call after owner approval.",
+        description=(
+            "Execute a write proposal. Model-provided approval is not "
+            "accepted: a proposal stays pending until a human-authorized "
+            "caller executes it."
+        ),
         read_write="write",
         requires_step_up=True,
         parameters={
             "type": "object",
             "properties": {
-                "proposal_id": {"type": "string", "description": "The approved proposal ID"},
+                "proposal_id": {"type": "string", "description": "The proposal ID"},
                 "approved": {"type": "boolean", "description": "Whether the owner approved"}
             },
             "required": ["proposal_id", "approved"],
         },
-        handler=lambda proposal_id, approved: _execute_approved_write(journal, world, proposal_id, approved),
+        handler=lambda proposal_id, approved: _execute_approved_write(
+            journal, world, proposal_id, approved,
+            world_path=world_path,
+            scheduler=scheduler,
+        ),
     ))
 
     return tools
 
 
 # ── Proposal store (in-memory, per-process) ──
+# Deliberately NOT durable in this pass: proposals are pending intents,
+# never approval evidence. A restart loses them — that is safe (a lost
+# pending proposal executes nothing) rather than dangerous.
+# BATCH 2 rule: model calls may create proposals but may NOT execute
+# them; only a human-authorized executor (one carrying
+# HUMAN_APPROVAL_TOKEN, minted outside the model loop) may execute.
+# The chat tool loop never has this token.
 
 _proposals: dict[str, dict[str, Any]] = {}
 _proposal_counter = 0
+
+# Authorization token for human-authorized executions. Rotated per
+# process; never present in any tool schema the model sees.
+HUMAN_EXECUTION_AUTH: str | None = None
+
+
+def human_execution_token() -> str:
+    """Mint (once) the process-wide human-authorization token for
+    proposal execution. Intended for the future human-controlled
+    approval surface; the model loop never receives it."""
+    global HUMAN_EXECUTION_AUTH
+    if HUMAN_EXECUTION_AUTH is None:
+        import secrets as _secrets
+        HUMAN_EXECUTION_AUTH = _secrets.token_urlsafe(24)
+    return HUMAN_EXECUTION_AUTH
 
 
 def _next_proposal_id() -> str:
@@ -512,109 +559,142 @@ def _next_proposal_id() -> str:
     return f"proposal-{_proposal_counter}"
 
 
+def _propose(proposal: dict[str, Any], journal: Any, description: str) -> Result:
+    """Record a pending proposal and journal its creation (audit
+    minimum: created / id / type / pending — never a fake approval)."""
+    global _proposal_counter
+    _proposal_counter += 1
+    pid = f"proposal-{_proposal_counter}"
+    proposal["id"] = pid
+    proposal["status"] = "pending"
+    _proposals[pid] = proposal
+    try:
+        journal.record(
+            "recommendation",
+            f"brain write proposal created: {pid} ({proposal['type']}, "
+            f"status: pending) — {description}",
+            source="brain-proposal",
+        )
+    except Exception:
+        pass  # proposal creation must not depend on journal health
+    return ok("healthy", data={
+        "proposal_id": pid,
+        "type": proposal["type"],
+        "status": "pending",
+        "description": description,
+        "requires_approval": True,
+    })
+
+
 def _propose_journal_write(journal: Any, text: str) -> Result:
     """Propose a journal entry. Returns proposal for approval."""
     if not text or len(text) > 2000:
         return fail("invalid_args", warnings=["text must be 1-2000 chars"])
-    pid = _next_proposal_id()
-    _proposals[pid] = {
-        "type": "journal_write",
-        "text": text,
-        "status": "pending",
-    }
-    return ok("healthy", data={
-        "proposal_id": pid,
-        "type": "journal_write",
-        "description": f"Write journal entry: {text[:100]}...",
-        "requires_approval": True,
-    })
+    return _propose(
+        {"type": "journal_write", "text": text},
+        journal,
+        f"Write journal entry: {text[:100]}...",
+    )
 
 
-def _propose_world_intent(world: Any, key: str, intent: str) -> Result:
+def _propose_world_intent(journal: Any, world: Any, key: str, intent: str) -> Result:
     """Propose a world intent. Returns proposal for approval."""
-    pid = _next_proposal_id()
-    _proposals[pid] = {
-        "type": "world_intent",
-        "key": key,
-        "intent": intent,
-        "status": "pending",
-    }
-    return ok("healthy", data={
-        "proposal_id": pid,
-        "type": "world_intent",
-        "description": f"Set intent '{key}': {intent[:100]}",
-        "requires_approval": True,
-    })
+    if not key:
+        return fail("invalid_args", warnings=["key required"])
+    return _propose(
+        {"type": "world_intent", "key": key, "intent": intent},
+        journal,
+        f"Set intent '{key}': {intent[:100]}",
+    )
 
 
-def _propose_world_fact(world: Any, key: str, fact: str) -> Result:
+def _propose_world_fact(journal: Any, world: Any, key: str, fact: str) -> Result:
     """Propose a world fact. Returns proposal for approval."""
-    pid = _next_proposal_id()
-    _proposals[pid] = {
-        "type": "world_fact",
-        "key": key,
-        "fact": fact,
-        "status": "pending",
-    }
-    return ok("healthy", data={
-        "proposal_id": pid,
-        "type": "world_fact",
-        "description": f"Record fact '{key}': {fact[:100]}",
-        "requires_approval": True,
-    })
+    if not key:
+        return fail("invalid_args", warnings=["key required"])
+    return _propose(
+        {"type": "world_fact", "key": key, "fact": fact},
+        journal,
+        f"Record fact '{key}': {fact[:100]}",
+    )
 
 
-def _propose_reminder(text: str) -> Result:
+def _propose_reminder(journal: Any, text: str) -> Result:
     """Propose a reminder. Returns proposal for approval."""
-    pid = _next_proposal_id()
-    _proposals[pid] = {
-        "type": "reminder",
-        "text": text,
-        "status": "pending",
-    }
-    return ok("healthy", data={
-        "proposal_id": pid,
-        "type": "reminder",
-        "description": f"Add reminder: {text[:100]}",
-        "requires_approval": True,
-    })
+    if not text or not text.strip():
+        return fail("invalid_args", warnings=["text required"])
+    return _propose(
+        {"type": "reminder", "text": text},
+        journal,
+        f"Add reminder: {text[:100]}",
+    )
 
 
-def _propose_reconciler_apply(service: str) -> Result:
+def _propose_reconciler_apply(journal: Any, service: str) -> Result:
     """Propose reconciliation. Returns proposal for approval."""
     try:
         from .providers.native_reconciler import NativeSettingsReconciler
         reconciler = NativeSettingsReconciler()
-        desired = reconciler._desired.get(service)
-        if not desired:
+        if not hasattr(reconciler, "desired_state"):
+            return fail("unsupported", warnings=[
+                "reconciler exposes no public desired-state reader"])
+        desired = reconciler.desired_state(service)
+        if desired is None:
             return fail("not_found", warnings=[f"no desired state for '{service}'"])
-        pid = _next_proposal_id()
-        _proposals[pid] = {
-            "type": "reconciler_apply",
-            "service": service,
-            "desired": desired.to_dict(),
-            "status": "pending",
-        }
-        return ok("healthy", data={
-            "proposal_id": pid,
-            "type": "reconciler_apply",
-            "description": f"Apply reconciliation for {service}",
-            "requires_approval": True,
-        })
+        return _propose(
+            {"type": "reconciler_apply", "service": service, "desired": desired},
+            journal,
+            f"Apply reconciliation for {service}",
+        )
     except Exception as e:
         return fail("unavailable", warnings=[f"reconciler: {e}"])
 
 
-def _execute_approved_write(journal: Any, world: Any, proposal_id: str, approved: bool) -> Result:
-    """Execute an approved write proposal."""
+def _execute_approved_write(
+    journal: Any,
+    world: Any,
+    proposal_id: str,
+    approved: bool,
+    human_auth: str | None = None,
+    world_path: Any = None,
+    scheduler: Any = None,
+) -> Result:
+    """Execute a write proposal — human-authorized callers only.
+
+    BATCH 2 rule: the `approved` boolean alone proves nothing (the
+    model could have generated it). A call must ALSO carry
+    `human_auth` equal to the process's human-authorization token,
+    which is never exposed to the model. Without it the proposal
+    stays pending and nothing is executed, journaled, or deleted.
+    """
     proposal = _proposals.get(proposal_id)
     if not proposal:
         return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
     if proposal["status"] != "pending":
         return fail("invalid_state", warnings=[f"proposal is {proposal['status']}, not pending"])
 
+    if human_auth != HUMAN_EXECUTION_AUTH:
+        # Model (or any caller without the human token) may not
+        # approve its own proposal. The proposal REMAINS pending.
+        return fail(
+            "forbidden",
+            warnings=[
+                "execution requires human authorization; proposal "
+                f"{proposal_id} remains pending",
+            ],
+        )
+
     if not approved:
         proposal["status"] = "rejected"
+        try:
+            journal.record(
+                "recommendation",
+                f"brain write proposal {proposal_id} rejected by owner "
+                f"(type {proposal['type']})",
+                source="brain-proposal",
+            )
+        except Exception:
+            pass
         return ok("healthy", data={"proposal_id": proposal_id, "status": "rejected"})
 
     proposal["status"] = "executing"
@@ -624,30 +704,85 @@ def _execute_approved_write(journal: Any, world: Any, proposal_id: str, approved
         if ptype == "journal_write":
             journal.record("observation", proposal["text"], source="brain-tool")
             proposal["status"] = "executed"
-            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
+            return ok("healthy", data={
+                "proposal_id": proposal_id, "status": "executed",
+                "type": ptype, "persisted": "journal",
+            })
 
         elif ptype == "world_intent":
-            world.set_intent(proposal["key"], proposal["intent"])
-            proposal["status"] = "executed"
-            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
-
-        elif ptype == "world_fact":
-            world.record_fact(proposal["key"], proposal["fact"])
-            proposal["status"] = "executed"
-            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
-
-        elif ptype == "reminder":
-            proposal["status"] = "executed"
-            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
-
-        elif ptype == "reconciler_apply":
+            from .model import Intent, Provenance
+            world.set_intent(Intent(
+                key=proposal["key"], value=proposal["intent"],
+                provenance=Provenance(source="brain-tool"),
+            ))
+            if world_path is not None:
+                from .app import save_world
+                save_world(world, world_path)
+                persisted = "world.json"
+            else:
+                proposal["status"] = "failed"
+                return fail(
+                    "unavailable",
+                    warnings=["no world_path wired; intent not persisted"],
+                )
             proposal["status"] = "executed"
             return ok("healthy", data={
-                "proposal_id": proposal_id,
-                "status": "executed",
-                "type": ptype,
-                "note": "Reconciliation noted. Actual provider apply requires adapter.",
+                "proposal_id": proposal_id, "status": "executed",
+                "type": ptype, "persisted": "world.json",
             })
+
+        elif ptype == "world_fact":
+            from .model import Fact, Provenance
+            world.record_fact(Fact(
+                key=proposal["key"], value=proposal["fact"],
+                provenance=Provenance(source="brain-tool"),
+            ))
+            if world_path is not None:
+                from .app import save_world
+                save_world(world, world_path)
+            else:
+                proposal["status"] = "failed"
+                return fail(
+                    "unavailable", warnings=["no world_path wired; fact not persisted"],
+                )
+            proposal["status"] = "executed"
+            return ok("healthy", data={
+                "proposal_id": proposal_id, "status": "executed",
+                "type": ptype, "persisted": "world.json",
+            })
+
+        elif ptype == "reminder":
+            if scheduler is None:
+                proposal["status"] = "pending"
+                return fail(
+                    "unavailable",
+                    warnings=["scheduler not wired; reminder proposal remains pending"],
+                )
+            rid = f"r-{int(time.time())}"
+            from .scheduler import Reminder
+            r = scheduler.add(Reminder(id=rid, text=proposal["text"]))
+            if not r.ok:
+                proposal["status"] = "pending"
+                return fail(r.status, warnings=r.warnings or ["scheduler refused the reminder"])
+            proposal["status"] = "executed"
+            return ok("healthy", data={
+                "proposal_id": proposal_id, "status": "executed",
+                "type": ptype, "persisted": "reminders.json",
+                "reminder_id": rid,
+            })
+
+        elif ptype == "reconciler_apply":
+            # No reconciliation adapter exists yet. Honesty over a
+            # fake success: the proposal is NOT consumed and nothing
+            # is applied.
+            proposal["status"] = "pending"
+            return fail(
+                "unsupported",
+                warnings=[
+                    "no reconciliation adapter exists; nothing was "
+                    "applied and the proposal remains pending",
+                ],
+            )
 
         else:
             proposal["status"] = "failed"
@@ -661,26 +796,44 @@ def _execute_approved_write(journal: Any, world: Any, proposal_id: str, approved
 # ── Tool implementations ──
 # These call the same domain operations the HTTP API uses.
 
-def _search_journal(journal: Any, query: str) -> Result:
-    """Search journal entries."""
+def _search_journal(journal: Any, query: str, memory_provider: Any = None) -> Result:
+    """Search journal entries through the canonical memory/search
+    implementation (FTS index over the journal — the same source
+    /api/memory/search reads). Falls back to an honest unavailable
+    result; it never pretends to have searched."""
+    if memory_provider is None or not hasattr(memory_provider, "search"):
+        return fail("unavailable", warnings=[
+            "no memory search provider wired; journal search unavailable"])
     try:
-        entries = journal.search(query) if hasattr(journal, 'search') else []
-        results = []
-        for e in entries:
-            results.append({
-                "ts": e.ts.isoformat() if hasattr(e, 'ts') else str(e.ts),
-                "kind": e.kind.value if hasattr(e, 'kind') else str(e.kind),
-                "summary": e.summary if hasattr(e, 'summary') else str(e),
-            })
-        return ok("healthy", data={"entries": results, "query": query, "count": len(results)})
+        result = memory_provider.search(query)
+        if not result.ok:
+            return result
+        data = result.data or {}
+        results = [
+            {
+                "ts": r.get("timestamp"),
+                "kind": r.get("kind"),
+                "summary": r.get("text"),
+            }
+            for r in data.get("results", [])
+        ]
+        return ok("healthy", data={
+            "entries": results, "query": query,
+            "count": len(results), "source": "memory-fts",
+        })
     except Exception as e:
         return fail("unavailable", warnings=[f"journal search: {e}"])
 
 
 def _read_journal(journal: Any, count: int) -> Result:
-    """Read recent journal entries."""
+    """Read recent journal entries (current view: superseded entries
+    are corrections history, not current truth, so the calm
+    `current_events` view the API serves is used when available)."""
     try:
-        entries = journal.recent(count) if hasattr(journal, 'recent') else []
+        if hasattr(journal, "current_events"):
+            entries = journal.current_events(count)
+        else:
+            entries = journal.recent(count) if hasattr(journal, 'recent') else []
         results = []
         for e in entries:
             results.append({
@@ -781,20 +934,25 @@ def _reconciler_status() -> Result:
 
 
 def _reconciler_diff(service: str) -> Result:
-    """Get desired-vs-observed diff for a service."""
+    """Get desired-vs-observed diff for a service.
+
+    Honest partial: only desired state is inspectable today (no
+    observed-state source is wired), so the result says so instead of
+    claiming a real drift computation. Public reader only — no private
+    attribute reach-ins."""
     try:
         from .providers.native_reconciler import NativeSettingsReconciler
         reconciler = NativeSettingsReconciler()
-        # For now, return the desired state for the service.
-        # The actual diff requires observed state, which would come from
-        # a provider. Return what we have.
-        desired = reconciler._desired.get(service)
-        if not desired:
+        if not hasattr(reconciler, "desired_state"):
+            return fail("unsupported", warnings=[
+                "reconciler exposes no public desired-state reader"])
+        desired = reconciler.desired_state(service)
+        if desired is None:
             return fail("not_found", warnings=[f"no desired state for service '{service}'"])
         return ok("healthy", data={
             "service": service,
-            "desired": desired.to_dict(),
-            "note": "Observed state not available for diff. Desired state shown.",
+            "desired": desired,
+            "note": "Desired state only — no observed-state diff exists yet.",
         })
     except Exception as e:
         return fail("unavailable", warnings=[f"reconciler diff: {e}"])
@@ -847,85 +1005,80 @@ def _discovery_discover(source: str | None = None) -> Result:
 
 
 def _vault_status(vault: Any) -> Result:
-    """Get vault status (never secrets)."""
+    """Get vault status (never secrets). Reports encryption honestly:
+    true only when real Fernet encryption is active; the base64
+    fallback says so with the vault's own warning text."""
     try:
+        warning = getattr(vault, "warning", None)
+        encrypted = not (warning and "NOT encrypted" in warning)
         return ok("healthy", data={
             "locked": not vault.is_unlocked if hasattr(vault, 'is_unlocked') else True,
-            "encrypted": True,
+            "encrypted": encrypted,
+            **({"warning": warning} if warning else {}),
         })
     except Exception as e:
         return fail("unavailable", warnings=[f"vault: {e}"])
 
 
-def _reminders() -> Result:
-    """List reminders."""
+def _reminders(scheduler: Any = None) -> Result:
+    """List reminders through the Scheduler (the single reminder
+    domain). No parallel JSON reader: when no scheduler is wired the
+    honest answer is unavailable, not a raw file scrape."""
     try:
-        import json as _json
-        from pathlib import Path
-        import os
-        data_dir = Path(os.environ.get("PW_DATA_DIR", "./data"))
-        reminders_path = data_dir / "reminders.json"
-        if reminders_path.exists():
-            reminders = _json.loads(reminders_path.read_text())
-            return ok("healthy", data={"reminders": reminders, "count": len(reminders)})
-        return ok("healthy", data={"reminders": [], "count": 0})
+        if scheduler is None or not hasattr(scheduler, "list_reminders"):
+            return fail("unavailable", warnings=[
+                "scheduler not wired; reminder listing unavailable"])
+        reminders = [
+            r.model_dump(mode="json") if hasattr(r, "model_dump") else r
+            for r in scheduler.list_reminders()
+        ]
+        return ok("healthy", data={"reminders": reminders, "count": len(reminders)})
     except Exception as e:
         return fail("unavailable", warnings=[f"reminders: {e}"])
 
 
 # ── Media tool implementations ──
 
-def _build_media_engine():
-    """Build media engine from connections config."""
-    from .providers.native_media import NativeMediaEngine, build_adapter
-    import json as _json
+def _build_media_engine(config_dir: Any = None):
+    """Build media engine via the canonical shared helper (one
+    construction path for API and tools — no env re-derivation)."""
+    from .providers.native_media import build_media_engine_from_config
     from pathlib import Path
-    import os
-    config_dir = Path(os.environ.get("PW_CONFIG_DIR", "./config"))
-    connections_path = config_dir / "connections.json"
-    if not connections_path.exists():
-        return NativeMediaEngine([])
-    config = _json.loads(connections_path.read_text())
-    adapters = []
-    for conn in config.get("connections", []):
-        if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
-            adapter = build_adapter(conn)
-            if adapter:
-                adapters.append(adapter)
-    return NativeMediaEngine(adapters)
+    return build_media_engine_from_config(
+        config_dir if config_dir is not None else Path("./config"))
 
 
-def _media_status() -> Result:
+def _media_status(config_dir: Any = None) -> Result:
     """Inspect media providers status."""
     try:
-        engine = _build_media_engine()
+        engine = _build_media_engine(config_dir)
         return engine.status()
     except Exception as e:
         return fail("unavailable", warnings=[f"media: {e}"])
 
 
-def _media_recent() -> Result:
+def _media_recent(config_dir: Any = None) -> Result:
     """Recently added media."""
     try:
-        engine = _build_media_engine()
+        engine = _build_media_engine(config_dir)
         return engine.recent()
     except Exception as e:
         return fail("unavailable", warnings=[f"media recent: {e}"])
 
 
-def _media_activity() -> Result:
+def _media_activity(config_dir: Any = None) -> Result:
     """Media queue activity."""
     try:
-        engine = _build_media_engine()
+        engine = _build_media_engine(config_dir)
         return engine.activity()
     except Exception as e:
         return fail("unavailable", warnings=[f"media activity: {e}"])
 
 
-def _media_search(query: str) -> Result:
+def _media_search(query: str, config_dir: Any = None) -> Result:
     """Search media by title."""
     try:
-        engine = _build_media_engine()
+        engine = _build_media_engine(config_dir)
         return engine.search(query)
     except Exception as e:
         return fail("unavailable", warnings=[f"media search: {e}"])

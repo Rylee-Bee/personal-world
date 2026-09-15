@@ -118,6 +118,13 @@ class NativeSettingsReconciler(StatusContract):
                 except Exception:
                     pass
 
+    def desired_state(self, service: str) -> dict | None:
+        """Public read of one service's desired state (config dict) or
+        None. The public reader for tools/proposals so callers never
+        reach into the private _desired mapping."""
+        desired = self._desired.get(service)
+        return desired.to_dict() if desired is not None else None
+
     def observe(self) -> Result:
         """Return current reconciliation status."""
         services = []
