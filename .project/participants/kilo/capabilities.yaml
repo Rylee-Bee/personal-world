@@ -157,6 +157,16 @@ capabilities:
       - plan file ready for implementation
     observed_in_session: 2026-09-12T17:33:48Z
 
+# Honest limitations (play-nice/participant-capabilities-v1 requires a
+# non-empty list). Mirrors participant.yaml `limitations`; the harness
+# exposes tools, and exposure is never authorization.
+limitations:
+  - capability-is-not-authorization
+  - confirmation-prompt-cannot-be-pinned-as-always-allow
+  - context-does-not-persist-across-sessions-unless-explicitly-written
+  - long-jobs-look-frozen-without-explicit-progress
+  - external-system-access-requires-separate-authentication
+
 # Deliberately NOT listed (capability implied by tool availability, but
 # authority is held elsewhere — see participant.yaml `not_authoritative_for`):
 #   - push to remote without explicit owner grant

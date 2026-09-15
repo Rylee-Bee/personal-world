@@ -4,6 +4,21 @@ The scheduler is a simple in-process timer that checks a JSON file
 of reminders every minute. Reminders fire into the journal as
 JournalKind.OBSERVATION entries. No external cron, no external deps.
 
+Delivery is optional and provider-neutral: on each fire the scheduler
+calls an INJECTED notifier callable and never imports a transport
+itself, so notification delivery stays replaceable (webhook/ntfy/
+future). With no notifier configured, reminders still fire and journal;
+delivery outcome is recorded in the same entry so a failure is visible
+rather than silent.
+
+Missed fires are SKIPPED, never replayed: a reminder fires only in its
+matching minute, and an occurrence the process was not running for is
+missed rather than delivered late. Reminders are prompts, not durable
+obligations, and replaying a stale batch on boot would surprise. (If
+reminders ever gain obligation semantics, the alternative — fire on the
+first tick after a missed window — is an explicit owner decision; see
+issue #44.)
+
 Schema (from ROADMAP.md): the schema exists; this is the runner.
 """
 
@@ -12,13 +27,18 @@ import time
 import threading
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import BaseModel, Field
 
 from .envelope import Result, fail, ok
 from .journal import Journal
 from .model import JournalKind, Provenance
+
+# A notifier is any callable taking (title, body) and returning a
+# Result (or None when no transport is available). The scheduler never
+# learns what transport that is.
+Notifier = Callable[[str, str], Result | None]
 
 
 class Reminder(BaseModel):
@@ -37,9 +57,15 @@ class Reminder(BaseModel):
 class Scheduler:
     """Simple reminder engine backed by a JSON file."""
 
-    def __init__(self, path: Path, journal: Journal | None = None) -> None:
+    def __init__(
+        self,
+        path: Path,
+        journal: Journal | None = None,
+        notifier: Notifier | None = None,
+    ) -> None:
         self.path = path
         self.journal = journal
+        self.notifier = notifier
         self._reminders: dict[str, Reminder] = {}
         self._loaded = False
         self._thread: threading.Thread | None = None
@@ -93,8 +119,34 @@ class Scheduler:
         self._save()
         return ok("healthy", data={"id": reminder_id, "enabled": enabled})
 
+    def _deliver(self, text: str) -> str | None:
+        """Attempt delivery through the injected notifier.
+
+        Returns a short, honest outcome string for the journal record, or
+        None when no notifier is configured (the reminder is still
+        journaled). Never raises: a delivery problem must not kill a tick
+        or lose the reminder record.
+        """
+        if self.notifier is None:
+            return None
+        try:
+            result = self.notifier("Project Worlds reminder", text)
+        except Exception as exc:  # delivery is best-effort, never fatal
+            return f"notification failed ({type(exc).__name__})"
+        if result is None:
+            return "notification not delivered (not_configured)"
+        status = getattr(result, "status", "unknown")
+        if getattr(result, "ok", False):
+            return f"notification sent ({status})"
+        return f"notification not delivered ({status})"
+
     def check_and_fire(self) -> list[str]:
-        """Check all reminders and fire any that match the current time."""
+        """Check all reminders and fire any that match the current time.
+
+        Missed-fire policy (explicit): only the matching minute fires.
+        An occurrence the process was not running for is skipped, not
+        replayed on a later tick (see the module docstring).
+        """
         self._ensure_loaded()
         now = datetime.now(UTC)
         fired = []
@@ -114,10 +166,14 @@ class Scheduler:
                 continue
             r.last_fired = time.time()
             fired.append(r.text)
+            outcome = self._deliver(r.text)
             if self.journal:
+                summary = f"Reminder: {r.text}"
+                if outcome is not None:
+                    summary = f"{summary} — {outcome}"
                 self.journal.record(
                     JournalKind.OBSERVATION,
-                    f"Reminder: {r.text}",
+                    summary,
                     source="scheduler",
                 )
         if fired:
@@ -126,6 +182,7 @@ class Scheduler:
 
     def start(self) -> None:
         """Start the background scheduler thread."""
+
         def run():
             while not self._stop.is_set():
                 try:

@@ -14,7 +14,10 @@ import type { SourceControlRepo, AgentSyncProject } from "../lib/api";
  * - Disclosure-based "History & details" with commit list (revision,
  *   subject, author);
  * - GitHub enrichment inside the disclosure (Open PRs / issues / branch);
- * - agent-sync project estate as a Disclosure with StatusChip per project;
+ * - agent-sync project estate as a Disclosure, using the shared
+ *   vocabulary (lib/project-status.ts + lib/observation-age.ts):
+ *   category-labelled StatusChip, per-project sentence, dated age line,
+ *   technical guts behind a nested disclosure;
  * - not_configured and unavailable degrade honestly;
  * - axe 0 (contrast off in jsdom).
  */
@@ -450,35 +453,127 @@ describe("ProjectsScreen (agent-sync project status panel)", () => {
     });
   }
 
-  it("shows project names from agent-sync data", async () => {
+  /** The visible estate list row for a project name (the name also
+   *  appears in the technical guts, so scope to the sentence list). */
+  function estateRow(name: string): HTMLElement {
+    const strong = screen
+      .getAllByText(name)
+      .find((el) => el.closest("li[data-pw-projects-status-item]"));
+    return strong!.closest("li") as HTMLElement;
+  }
+
+  it("renders every project with the shared estate vocabulary", async () => {
     stubBoth([estateProject(), estateProject({ project: "second" })]);
     stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("demo")).toBeTruthy()
+      expect(screen.getAllByText("demo").length).toBeGreaterThanOrEqual(1)
     );
-    expect(screen.getByText("second")).toBeTruthy();
+    expect(screen.getAllByText("second").length).toBeGreaterThanOrEqual(1);
+    // Both quiet (clean, publish match): one calm settled line, no alarm.
+    expect(screen.getByText("All 2 projects are settled.")).toBeTruthy();
   });
 
-  it("each project renders a status chip", async () => {
+  it("each project renders a category-labelled status chip", async () => {
     stubBoth([estateProject()]);
     stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("demo")).toBeTruthy()
+      expect(screen.getAllByText("demo").length).toBeGreaterThanOrEqual(1)
     );
-    const chips = document.querySelectorAll("[data-status]");
-    expect(chips.length).toBeGreaterThanOrEqual(1);
+    const row = estateRow("demo");
+    expect(row.querySelector("[data-status]")?.getAttribute("data-status")).toBe(
+      "healthy"
+    );
+    expect(row.textContent).toContain("quiet");
   });
 
-  it("a diverged project shows needs_attention status", async () => {
+  it("a diverged project is needs_attention with its human sentence", async () => {
     stubBoth([
       estateProject({ project: "split", publish_state: "diverged", safe_to_leave: "no" }),
     ]);
     stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("split")).toBeTruthy()
+      expect(screen.getAllByText("split").length).toBeGreaterThanOrEqual(1)
     );
-    const chip = screen.getByText("split").closest("li")!.querySelector("[data-status]");
-    expect(chip?.getAttribute("data-status")).toBe("needs_attention");
+    const row = estateRow("split");
+    expect(row.getAttribute("data-pw-projects-status-item")).toBe("diverged");
+    expect(row.querySelector("[data-status]")?.getAttribute("data-status")).toBe(
+      "needs_attention"
+    );
+    expect(row.textContent).toMatch(/histories have diverged/);
+    expect(screen.getByText("1 needs attention")).toBeTruthy();
+  });
+
+  it("an unpublished project is needs_attention, not collapsed to warning", async () => {
+    stubBoth([estateProject({ project: "aheadproj", publish_state: "ahead" })]);
+    stubProviders(<ProjectsScreen />);
+    await waitFor(() =>
+      expect(screen.getAllByText("aheadproj").length).toBeGreaterThanOrEqual(1)
+    );
+    const row = estateRow("aheadproj");
+    expect(row.getAttribute("data-pw-projects-status-item")).toBe("unpublished");
+    expect(row.querySelector("[data-status]")?.getAttribute("data-status")).toBe(
+      "needs_attention"
+    );
+    expect(row.textContent).toMatch(/not published yet/);
+  });
+
+  it("local work stays calm — ordinary development is not alarm", async () => {
+    stubBoth([
+      estateProject({
+        project: "wip",
+        publish_state: "match",
+        working_tree: { staged: 1, modified: 2, untracked: 0, conflicted: 0 },
+      }),
+    ]);
+    stubProviders(<ProjectsScreen />);
+    await waitFor(() =>
+      expect(screen.getAllByText("wip").length).toBeGreaterThanOrEqual(1)
+    );
+    const row = estateRow("wip");
+    expect(row.getAttribute("data-pw-projects-status-item")).toBe("local_work");
+    expect(row.querySelector("[data-status]")?.getAttribute("data-status")).toBe(
+      "healthy"
+    );
+    expect(row.textContent).toMatch(/local work is still in progress/);
+    expect(screen.getByText(/1 has local work in progress/)).toBeTruthy();
+  });
+
+  it("an unknown remote is honest, never fabricated", async () => {
+    stubBoth([estateProject({ project: "unreachable", publish_state: null })]);
+    stubProviders(<ProjectsScreen />);
+    await waitFor(() =>
+      expect(screen.getAllByText("unreachable").length).toBeGreaterThanOrEqual(1)
+    );
+    const row = estateRow("unreachable");
+    expect(row.getAttribute("data-pw-projects-status-item")).toBe("unknown");
+    expect(row.querySelector("[data-status]")?.getAttribute("data-status")).toBe(
+      "unknown"
+    );
+    expect(row.textContent).toMatch(/remote could not be reached/);
+  });
+
+  it("carries the dated observation line (freshness is provenance)", async () => {
+    stubBoth([estateProject()], "2026-09-12T12:48:38Z");
+    stubProviders(<ProjectsScreen />);
+    await waitFor(() =>
+      expect(screen.getAllByText("demo").length).toBeGreaterThanOrEqual(1)
+    );
+    const age = document.querySelector('[data-pw-projects-status="age"]')!;
+    expect(age.textContent).toMatch(
+      /by agent-sync — a dated observation, not live truth\./
+    );
+  });
+
+  it("technical guts live behind a disclosure", async () => {
+    stubBoth([estateProject({ project: "demo" })]);
+    stubProviders(<ProjectsScreen />);
+    await waitFor(() =>
+      expect(screen.getAllByText("demo").length).toBeGreaterThanOrEqual(1)
+    );
+    expect(screen.getByText("Project details (technical)")).toBeTruthy();
+    expect(
+      document.querySelector('[data-pw-projects-guts="demo"]')
+    ).toBeTruthy();
   });
 
   it("degrades quietly when agent-sync is unavailable (absent)", async () => {
@@ -529,17 +624,17 @@ describe("ProjectsScreen (agent-sync project status panel)", () => {
     ]);
     stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("alpha")).toBeTruthy()
+      expect(screen.getAllByText("alpha").length).toBeGreaterThanOrEqual(1)
     );
-    expect(screen.getByText("beta")).toBeTruthy();
-    expect(screen.getByText("gamma")).toBeTruthy();
+    expect(screen.getAllByText("beta").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("gamma").length).toBeGreaterThanOrEqual(1);
   });
 
   it("agent-sync panel carries no error vocabulary", async () => {
     stubBoth([estateProject({ project: "healthy-proj" })]);
     const { container } = stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("healthy-proj")).toBeTruthy()
+      expect(screen.getAllByText("healthy-proj").length).toBeGreaterThanOrEqual(1)
     );
     const agentSection = screen.getByText("Agent-sync project estate").closest("details")!;
     expect(agentSection.textContent).not.toMatch(/ERROR|OUTDATED|DANGER/);
@@ -550,7 +645,7 @@ describe("ProjectsScreen (agent-sync project status panel)", () => {
     stubBoth([estateProject({ project: "split", publish_state: "diverged", safe_to_leave: "no" })]);
     const { container } = stubProviders(<ProjectsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("split")).toBeTruthy()
+      expect(screen.getAllByText("split").length).toBeGreaterThanOrEqual(1)
     );
     expect(screen.getByText("Agent-sync project estate")).toBeTruthy();
     expect(await axeNoContrast(container)).toHaveNoViolations();

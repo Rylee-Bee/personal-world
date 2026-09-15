@@ -1922,7 +1922,24 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # per-request Scheduler instances would silently double-fire or
     # miss entirely. Started with the app; stops at FastAPI shutdown.
     from .scheduler import Scheduler, Reminder
-    _reminders = Scheduler(data_dir / "reminders.json", journal=journal)
+
+    def _deliver_reminder(title: str, body: str) -> Result | None:
+        """Resolve the notifications provider per delivery so a runtime
+        config change is honored and the scheduler stays decoupled from
+        any transport. None = no notifications provider configured; the
+        reminder still fires and journals (delivery is optional)."""
+        _world, reg = _state()
+        provider = reg.provider_for("notifications")
+        impl = reg.impl(provider.name) if provider else None
+        if impl is None:
+            return None
+        return impl.send(title, body)
+
+    _reminders = Scheduler(
+        data_dir / "reminders.json",
+        journal=journal,
+        notifier=_deliver_reminder,
+    )
 
     # Use lifespan context manager instead of deprecated on_event
     from contextlib import asynccontextmanager

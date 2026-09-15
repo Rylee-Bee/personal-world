@@ -2,12 +2,12 @@ schema: play-nice/participant-v1
 
 id: kilo
 name: Kilo
-type: agent-harness
+type: other    # schema enum; the harness is an application tool-layer, not an agent — its authority is the tool surface (see relationship.role)
 brain: replaceable    # the reasoning layer is loaded per-session; this pack describes the harness, not any specific model
 
 relationship:
   role: application-harness / tool-layer
-  optional: false    # every Kilo session loads this layer by definition; non-optional presence, non-authoritative substance
+  optional: true    # schema: pack-level optional is required (required presence is a project-level exception); in practice every Kilo session loads this layer, non-authoritatively
   authoritative_for:
     - its-own-tool-surface      # what tools it exposes, in what mode, with what gates
     - its-own-confirmation-policy
