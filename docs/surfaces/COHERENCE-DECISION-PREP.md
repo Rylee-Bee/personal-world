@@ -1,5 +1,12 @@
 # PROJECT WORLDS — COHERENCE DECISION PREP
 
+> **HISTORICAL (pre-wiring) — retained for provenance; not current
+> guidance.** Decision preparation absorbed into
+> [`../repo/WIRING-READINESS.md`](../repo/WIRING-READINESS.md). Its
+> vault findings (below: `encrypted: true` hardcoded, base64 fallback)
+> were fixed by the 2026-09-15 finish pass — the vault now reports real
+> Fernet state and fails closed with no fallback.
+
 Read-only decision-prep pass over three clusters, built entirely on the
 surface registry (`docs/surfaces/`). Baseline: branch
 `docs/current-product-refresh`, SHA `166159cb…61aa7`. Product is
