@@ -36,6 +36,34 @@ const ROUTE_MODES: Record<string, ShellMode> = {
   "/lab": "sidebar",
 };
 
+/**
+ * Route → sidebar width (px) from Figma canonical frames.
+ *
+ * Each sidebar-mode screen declares its Figma-specified width.
+ * Rail-mode screens and routes without a canonical frame use the
+ * default token value (248px).
+ */
+const ROUTE_SIDEBAR_WIDTHS: Record<string, number> = {
+  // Today Bad Day (17:2117): Sidebar, 248px
+  // (only applies when Today switches to sidebar mode for attention)
+  "/interests": 256,  // 17:1515
+  "/journal": 264,    // 17:2268
+  "/projects": 268,   // 17:2752
+  "/vault": 236,      // 17:1014
+  "/settings": 260,   // 17:3762
+  "/world": 240,      // 17:5485
+  "/chat": 238,       // 17:2536
+};
+
 export function getShellMode(pathname: string): ShellMode {
   return ROUTE_MODES[pathname] ?? "sidebar";
+}
+
+/**
+ * Returns the Figma-specified sidebar width for a route, in pixels.
+ * Falls back to 248px (the token default) for routes without a
+ * canonical frame or for rail-mode screens.
+ */
+export function getSidebarWidth(pathname: string): number {
+  return ROUTE_SIDEBAR_WIDTHS[pathname] ?? 248;
 }

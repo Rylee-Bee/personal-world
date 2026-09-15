@@ -416,14 +416,16 @@ img[src*="/icons/"][class*="h-5"] {
   width: 100%;
   padding: var(--pw-spacing-section) var(--pw-spacing-loose);
   overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* ── Desktop ≥900px: edge + content ── */
 @media (min-width: 900px) {
   .pw-shell {
     flex-direction: row;
-    flex-wrap: wrap;
-    align-content: flex-start;
+    flex-wrap: nowrap;
+    height: 100vh;
+    overflow: hidden;
   }
 
   .pw-shell > .pw-header {
@@ -442,6 +444,8 @@ img[src*="/icons/"][class*="h-5"] {
     background: var(--pw-color-shell-sidebar-bg);
     padding: var(--pw-spacing-loose) var(--pw-spacing-compact);
     gap: var(--pw-spacing-normal);
+    overflow-y: auto;
+    border-right: 1px solid var(--pw-color-shell-sidebar-border);
   }
 
   /* Sidebar mode: 236–272px, horizontal nav + optional identity/companion */
@@ -450,6 +454,8 @@ img[src*="/icons/"][class*="h-5"] {
     background: var(--pw-color-shell-sidebar-bg);
     padding: var(--pw-spacing-loose) var(--pw-spacing-normal);
     gap: var(--pw-spacing-normal);
+    overflow-y: auto;
+    border-right: 1px solid var(--pw-color-shell-sidebar-border);
   }
 
   .pw-shell > main {

@@ -5,7 +5,8 @@ import { DefaultEdge } from "./DefaultEdge";
 import { WorldIdentity } from "./WorldIdentity";
 import { CompanionPresence } from "./CompanionPresence";
 import { SectionNav } from "./SectionNav";
-import { getShellMode } from "./ShellModes";
+import { getShellMode, getSidebarWidth } from "./ShellModes";
+import { useShellModeOverride } from "../lib/shell-mode-context";
 
 /**
  * WorkshopShell — the production shell wrapper.
@@ -23,7 +24,10 @@ export interface WorkshopShellProps {
 
 export function WorkshopShell({ children }: WorkshopShellProps) {
   const location = useLocation();
-  const mode = getShellMode(location.pathname);
+  const routeMode = getShellMode(location.pathname);
+  const { screenMode } = useShellModeOverride();
+  const mode = screenMode ?? routeMode;
+  const sidebarWidth = getSidebarWidth(location.pathname);
 
   const edge = (
     <DefaultEdge
@@ -35,7 +39,7 @@ export function WorkshopShell({ children }: WorkshopShellProps) {
   );
 
   return (
-    <WorldShell mode={mode} edge={edge}>
+    <WorldShell mode={mode} edge={edge} sidebarWidth={sidebarWidth}>
       {children}
     </WorldShell>
   );
