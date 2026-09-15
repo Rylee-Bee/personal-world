@@ -15,11 +15,11 @@ open an issue.
 | [CHANGELOG](../CHANGELOG.md) | Curated project milestones, newest first. |
 | [ROADMAP](../ROADMAP.md) | Now / Next / Exploring — direction, not promises. |
 | [PERSONAL-WORLD-FINISH-LINE.md](PERSONAL-WORLD-FINISH-LINE.md) | Canonical target daily-use experience; requirements, not implementation claims. |
-| [PERSONAL-WORLD-COMPLETION-PLAN.md](PERSONAL-WORLD-COMPLETION-PLAN.md) | Canonical plan: current-vs-target audit, approved decisions, dependency-ordered phases P0–P14, acceptance criteria, model routing. |
+| [PERSONAL-WORLD-COMPLETION-PLAN.md](PERSONAL-WORLD-COMPLETION-PLAN.md) | Dated execution plan (v1, 2026-09-10): approved decisions, dependency-ordered phases P0–P14, acceptance criteria, model routing. Phase status predates the T15 cutover / Workshop v3 — verify against code. |
 | [p1/FOUNDATION-SPEC.md](p1/FOUNDATION-SPEC.md) | Historical (P1 complete) | Approved P1 implementation contract: sections API, primitive contracts, parity checklist, bounded tasks. Preserved for provenance. |
 | [AGENT_POLICY.md](../AGENT_POLICY.md) | Mandatory agent preflight and decision policy. |
 | [AGENT_CONTRACTS.md](../AGENT_CONTRACTS.md) | Canonical contract registry: applicability, authority, and exact entry points. |
-| [STATUS.md](../STATUS.md) | Pointer to shared operational state; not deployment proof by itself. |
+| [STATUS.md](../STATUS.md) | Retired current-state entry point; now a pointer to [`.project/CURRENT.md`](../.project/CURRENT.md). |
 | [Contributing](../CONTRIBUTING.md) | How to propose changes (humans and agents). |
 | [Security](../SECURITY.md) | Reporting boundaries and the public-repo safety contract. |
 
@@ -69,7 +69,7 @@ open an issue.
 |---|---|
 | [AGENTS.md](../AGENTS.md) | Working-tree rules for agents and humans (worktrees, staging discipline). |
 | [safe-commit.sh](../scripts/safe-commit.sh) | Stages named paths only; refuses unrelated-file sweeps. |
-| [Validation commands](../README.md#validation-and-license) | `pytest`, `framework validate` — the canonical checks. |
+| [Validation commands](../README.md#validation) | `pytest`, `framework validate` — the canonical checks. |
 
 ## Surfaces, inventories & history
 

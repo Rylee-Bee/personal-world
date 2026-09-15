@@ -27,7 +27,7 @@ not maintain a second hand-updated copy to keep it honest.
 |---|---|
 | What does this product do today? | `README.md` ("What works today") |
 | What does "finished enough to live in every day" mean? | `docs/PERSONAL-WORLD-FINISH-LINE.md` (filename kept; content still applies — see `.project/CURRENT.md` for the identity-pass note) |
-| How do we get there, in what order? | `docs/PERSONAL-WORLD-COMPLETION-PLAN.md` (historical plan document — phase-tracker role now superseded by `.project/CURRENT.md`, see `.agent/STATE.md`) |
+| How do we get there, in what order? | `docs/PERSONAL-WORLD-COMPLETION-PLAN.md` — dated execution plan (v1, 2026-09-10); current state is `.project/CURRENT.md` |
 | What is designed but not implemented? | `ROADMAP.md` (direction, not promises) |
 | What changed, when? | `CHANGELOG.md` (Keep-a-Changelog) |
 | What governs UI work? | `docs/accessibility/ACCESSIBILITY_CONTRACT.md` (non-negotiable) |

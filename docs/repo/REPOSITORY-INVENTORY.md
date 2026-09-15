@@ -1,9 +1,11 @@
 # Repository Inventory — Project Worlds
 
-Verified against code at SHA `db6ca02` (branch
-`docs/repo-inventory-reorg`, based on the D1–D3 auth/authority
-checkpoint). Read-only extraction; no runtime behavior was changed by
-this pass. Where a claim here and the code disagree, the code wins.
+Verified against code at SHA `db6ca02` (the D1–D3 auth/authority
+checkpoint on branch `docs/repo-inventory-reorg`; that branch landed on
+`main` via PR #50, merge commit `8f061e7`). Read-only extraction; no
+runtime behavior was changed by this pass. Counts and per-file line
+references here are a dated snapshot at that SHA; where a claim here and
+the code disagree, the code wins.
 
 ## Truth-state convention
 
@@ -39,7 +41,7 @@ Companion docs:
 | Config | `config/` | Current | `connections.json` tracked (secret-free); prompts; examples. |
 | Deployment | `compose.yaml`, `compose.dev.yaml`, `compose.homelab.yaml`, `Dockerfile`, `.github/workflows/` | Current | `compose.homelab.yaml` has host-specific paths (non-portable). |
 | Project context | `.project/` | Current+historical | Current-state pointer, decisions, design authority, participants. |
-| Contracts | `.contracts/` + `.project/contracts/` | **Duplicate** | Two adoption manifests with different pins (see §4). |
+| Contracts | `.project/contracts/adoption.yaml` | Current | One adoption manifest (v0.6.0 @ `21b6841a`); `.contracts/` holds only ignored session artifacts. |
 | Operator docs | `docs/` | Current + history | See [`../README.md`](../README.md). |
 | Scripts | `scripts/safe-commit.sh` | Current | Staging guard; tested. |
 | Generated | `frontend/src/tokens.css`, `docs/screenshots/*.png` | Generated | `tokens.css` from `design/tokens.json`; screenshots by e2e spec. |
@@ -99,7 +101,7 @@ No filename copy variants (`*-copy`, `*-final-final`, `(1)`) were found.
 
 | Subject | Canonical | Duplicate / legacy | Action |
 |---|---|---|---|
-| Play-Nice adoption manifest | **Split authority** — `.project/contracts/adoption.yaml` (declared by `.project/project.yaml:29`; README:98) vs `.contracts/adoption.yaml` (cited by `AGENT_CONTRACTS.md:91`; ACKNOWLEDGEMENT.md defers to it) | the other | **Needs human decision.** No code/test/CI/script reads either manifest. Pins differ: `21b6841a` vs `88effb1` (only content difference). Evidence does not clearly establish one. |
+| Play-Nice adoption manifest | `.project/contracts/adoption.yaml` (v0.6.0 @ `21b6841a`; declared by `.project/project.yaml`) | ~~`.contracts/adoption.yaml` (@ `88effb1`)~~ | **RESOLVED 2026-09-15.** The root duplicate was removed; `AGENT_CONTRACTS.md` now points at the declared manifest. See note below. |
 | Design tokens | `design/tokens.json` | `design/handoff/DESIGN_TOKENS.json` (0.1 archive); `frontend/src/tokens.css` (generated) | No action (archive is historical; CSS is generated). |
 | Capability vocabularies | `app.py::STANDARD_CAPABILITIES` (18) | `provider_schemas.py::CAPABILITY_SCHEMAS` (7); `api.py::_capability_description`; dead `framework.py::STANDARD_CAPABILITIES` (13) | Consolidate in wiring pass. |
 | Chat providers | `chat_registry.py` | `chat.py` (orphan copy) | Remove orphan. |
@@ -112,6 +114,21 @@ No filename copy variants (`*-copy`, `*-final-final`, `(1)`) were found.
 | Receipt chain | — | 5 receipts with contradictory counts (663/719/725/726 tests; 19 vs 29 tools) | Archived to `docs/history/`. |
 | Figma contract-return twins | `resolved-contracts.md` | `resolved-contracts.json`, `attestation.{md,json}` | Leave (machine twin is intentional). |
 
+**Play-Nice manifest resolution (2026-09-15).** This item previously
+read "split authority — needs human decision." It was resolved in favour
+of `.project/contracts/adoption.yaml` because that is the layout the
+Play-Nice project-context framework itself uses (the library's worked
+example is `examples/project-context/.project/contracts/adoption.yaml`),
+it is the path declared by `.project/project.yaml` (`contracts.manifest`)
+and used by the documented session workflow in `.project/README.md`, and
+it carries the verified *released* pin (`21b6841a` = library VERSION
+0.6.0). The root `.contracts/adoption.yaml` had been created later from
+the minimal standalone quickstart and pinned `88effb1`, ten post-release
+docs/profile commits on the same 0.6.0 line; it was not referenced by
+any code, test, CI, or script. The duplicate was deleted and every
+document now points at the single manifest. No contract text is copied
+into this repository.
+
 ## 5. Provider inventory
 
 Legend: Reg = registered in `Registry`; Canon = used through
@@ -122,7 +139,7 @@ Legend: Reg = registered in `Registry`; Canon = used through
 | source_control | `NativeGit` (source_control.py:324) + `Gitea`/`FakeSourceControl` (adapters) | yes | observe only; reads bypass to module funcs | native (local `git`) | Partial: reads bypass registry |
 | memory | `NativeMemoryProvider`; `LangGraphMemory` (alt) | yes | **yes** (`api.py:648/815/924`) | native (SQLite FTS5) | Active, healthy locally |
 | reasoning | Ollama/OpenAICompat/OpenAI/Anthropic/OpenCode (`chat_registry`) | via connection | **yes** (`api.py:761/884/899`) | none | Active when configured; Ollama tool-calls broken (ORPH-03) |
-| secrets | `NativeVaultProvider`; `Vault` object direct; SOPS orphans | yes (API only) | observe only | native `vault.enc` | Active; crypto optional (base64 fallback) |
+| secrets | `NativeVaultProvider`; `Vault` object direct; SOPS orphans | yes (API only) | observe only | native `vault.enc` | Active; fails closed without `cryptography` (no base64 fallback; corrected 2026-09-15) |
 | deployment | `NativeDeploymentProvider` | yes | observe only | native | Partial: no deploy caller |
 | calendar | `NativeCalendarProvider` | yes | observe only | native | Active observe; `upcoming()` unused |
 | notifications | `NativeNotificationsProvider` | yes | observe only | native | Partial: `send()` uncalled; health misreports |

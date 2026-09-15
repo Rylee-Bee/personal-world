@@ -14,9 +14,11 @@ is authoritative. This roadmap organizes direction; it does not redefine
 what "finished enough to live in every day" means.
 
 For the ordered work toward that target — phases, dependencies,
-acceptance criteria, approved decisions, and what is next — see
-`docs/PERSONAL-WORLD-COMPLETION-PLAN.md`. This roadmap does not duplicate
-it; items below are direction and history, not the execution plan.
+acceptance criteria, and approved decisions — see the **dated**
+`docs/PERSONAL-WORLD-COMPLETION-PLAN.md` (v1, 2026-09-10; its phase
+statuses predate the T15 cutover, Workshop v3, and the 2026-09-15 finish
+pass — verify against code). This roadmap does not duplicate it; items
+below are direction and history, not the execution plan.
 
 ## Now
 
@@ -41,7 +43,8 @@ by the current finish line:
   **Not present as implemented states in the current tree:** Today
   Bad Day (17:2117) and Question (17:6245) — the canonical frames are
   recorded and `ShellModes.ts` documents their modes, but the screens do
-  not render them; Notifications (17:6369) — the only artifact was an
+  not render them ([issue #52](https://github.com/Rylee-Bee/personal-world/issues/52));
+  Notifications (17:6369) — the only artifact was an
   unused, self-described stub, removed 2026-09-15; Journal Reading
   (17:5763) — no frame reference in the frontend (UNKNOWN whether the
   existing Journal screen covers it).
@@ -54,28 +57,6 @@ by the current finish line:
   waves-ladder/waterline placement, mobile-nav item count, chat send
   button sizing, login key icon.
 
-- **Secret vault.** DONE (2026-09-09): Fernet-encrypted file vault
-  (`/data/vault.enc`, PBKDF2-600k) behind real unlock/lock/set/
-  delete/names endpoints; the image installs `cryptography` so the
-  container path encrypts. Without the crypto extra the vault now
-  **fails closed** — `unlock` reports `unavailable`, no secret is stored,
-  and status honestly reports `encrypted: false` (there is no base64
-  fallback). Native HTTP backend selection and stronger re-authentication
-  remain incomplete. See `docs/ARCHITECTURE.md` for the boundary. The UI
-  lists names rather than redisplaying stored values.
-
-- **Accessibility-preference → dashboard wiring.** DONE (2026-09-07):
-  preferences render server-side and apply live in the dashboard
-  (text scale, density, targets, companion, accent); the floor stays
-  test-enforced. Remaining polish: more granular reading preferences.
-- **Chat surface.** DONE (2026-09-07, extended 2026-09-09): Chat is a
-  first-class surface with a provider-neutral adapter (`ollama` or
-  `openai_compat` connections), a trimmed read-only world-context
-  injection, honest not_configured/unavailable states, and
-  conversation history. Verified end-to-end in-container against the
-  Xiaomi MiMo cloud endpoint (2026-09-09); provider keys reach the
-  core by env indirection. Remaining: streaming responses, richer
-  per-surface context.
 - **Provider-neutral SSO / stronger authentication.** REQUIRED by the
   current finish line, not yet complete. Preserve the existing
   fail-closed bearer-token boundary while adding a provider-neutral
@@ -102,9 +83,13 @@ Relevant remaining work and partially implemented seams:
 - **Ingress rollups.** `providers/traefik_ingress.py` and
   `/api/ingress/rollups` now exist. Verify configured-provider behavior in the
   deployment; implementation alone is not operational acceptance.
-- **"Last observed" age display** for stale surfacing.
-- Quick actions — DONE 2026-09-09: "Add a note" composer (POST /api/journal) + step-up writes; more verbs can follow.
-- Apps/Services launcher — DONE 2026-09-09: GET/PUT /api/apps registry (data/apps.json, step-up gated, journal-audited) + dashboard Services card.
+- **Project-estate vocabulary.** The shared helpers
+  `frontend/src/lib/project-status.ts` and
+  `frontend/src/lib/observation-age.ts` (estate categories; the
+  "Observed N minutes ago" age line for stale surfacing) are unit-tested
+  but imported by no production screen, and `ProjectsScreen`
+  re-implements a smaller local status chip. Re-wire or remove
+  deliberately ([issue #51](https://github.com/Rylee-Bee/personal-world/issues/51)).
 
 ## Exploring
 
@@ -124,6 +109,43 @@ Preserved ideas, no commitment:
   [issue #39](https://github.com/Rylee-Bee/personal-world/issues/39)).
 
 ## Completed
+
+- 2026-09-15: finish pass + integration pass merged to `main`. PR #50
+  (`8f061e7`) landed the D1–D3 auth/authority convergence
+  (bearer/session/OIDC on one `Principal`; step-up bound to a
+  credential-verified human session) and the repo/docs reorg. PR #53
+  (`0445770`) landed the finish pass: honest Today capability health
+  (`frontend/src/lib/capability-health.ts`), vault status reporting real
+  Fernet state (fail-closed, no base64 fallback), one meaning for the
+  `capabilities` API key (`declared_capabilities` split out), the
+  canonical Figma implementation contracts tracked, deterministic +
+  sanitized documentation screenshots, and the corrected ROADMAP/CURRENT
+  claims. `main` @ `0445770`: 873 backend / 343 frontend / 54 e2e green;
+  `validate` + `publish-image` CI green.
+
+- Shipped earlier (moved here from Now/Next in the 2026-09-15 docs-truth
+  pass so those horizons list only remaining work; details preserved):
+  - **Secret vault** (2026-09-09): Fernet-encrypted file vault
+    (`/data/vault.enc`, PBKDF2-600k) behind real unlock/lock/set/delete/
+    names endpoints; the image installs `cryptography` so the container
+    path encrypts. Without the crypto extra it fails closed — `unlock`
+    reports `unavailable`, no secret is stored, status honestly reports
+    `encrypted: false`. Native HTTP backend selection and stronger
+    re-authentication remain open.
+  - **Accessibility-preference → dashboard wiring** (2026-09-07):
+    preferences apply live (text scale, density, targets, companion,
+    accent); the floor stays test-enforced. Remaining polish: more
+    granular reading preferences.
+  - **Chat surface** (2026-09-07, extended 2026-09-09): first-class
+    surface with a provider-neutral adapter (`ollama`/`openai_compat`),
+    trimmed read-only world-context injection, honest
+    not_configured/unavailable states, conversation history. Remaining:
+    streaming responses, richer per-surface context.
+  - **Quick actions** (2026-09-09): "Add a note" composer
+    (`POST /api/journal`) + step-up writes.
+  - **Apps/Services launcher** (2026-09-09): `GET/PUT /api/apps`
+    registry (`data/apps.json`, step-up gated, journal-audited) +
+    dashboard Services card.
 
 - 2026-09-09: first-run setup wizard /setup-wizard (5 steps,
   low-cognition, skippable pieces; world.name fact + companion pref
