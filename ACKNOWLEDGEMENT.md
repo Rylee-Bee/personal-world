@@ -15,9 +15,13 @@ for the canonical semantics of the "Implements Play Nice" stamp.
 
 ## What we did NOT adopt
 
-- We did not adopt the Play-Nice tooling (`tools/contractctl`).
-  Project Worlds uses its own agent contract system in
-  `AGENT_CONTRACTS.md` and `docs/accessibility/`.
+- We do not vendor or depend on the Play-Nice tooling
+  (`tools/contractctl`); it stays in the shared library. Where the
+  project-context workflow resolves contracts, it runs against the
+  canonical library using this project's adopted manifest
+  (`.project/contracts/adoption.yaml`). Day-to-day agent contract
+  behaviour is governed by this repository's own `AGENT_CONTRACTS.md`
+  and `docs/accessibility/`.
 - We did not copy the canonical contracts into this repository.
   The canonical home is the Play-Nice Contracts repository.
 
