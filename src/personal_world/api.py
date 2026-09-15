@@ -118,52 +118,57 @@ def _reconcile_boot_token(data_dir: Path) -> None:
         return
 
 
-def _step_up_authorized(request: Request) -> bool:
-    """Write path trust/elevation check.
+def _set_principal(request: Request, principal: Any, source: str) -> None:
+    """Attach the resolved principal and its credential source.
 
-    Three paths grant write access. None of these constitute fresh
-    re-authentication or MFA — they are trust elevation mechanisms
-    appropriate for a single-owner personal system:
-
-    1. Session elevation: the owner authenticated through the login
-       flow and then explicitly requested step-up within the last
-       300 seconds. The session cookie carries the elevation window.
-
-    2. Trusted local/network: the request originates from loopback,
-       private, or Docker bridge networks. Intentional: the owner
-       is on the same machine or LAN.
-
-    3. Trusted proxy header: X-PW-StepUp: 1 from a consumer behind
-       a reverse proxy (e.g., Authelia) that handles its own
-       authentication. The header is trust delegation, not proof
-       of fresh authentication.
-
-    Genuine fresh re-authentication (password re-entry, MFA challenge)
-    is NOT implemented. The session elevation is a time-window flag,
-    not a re-verification. This is a known remaining gap.
+    ``auth_source`` lets step-up (and diagnostics) reason about which
+    credential event authenticated the request instead of re-deriving it
+    from cookies and headers a second time.
     """
-    # Path 1: Check session-based step-up
+    request.state.principal = principal
+    request.state.auth_source = source
+
+
+def _current_session(request: Request):
+    """The validated browser session for this request, if any."""
     session_id = request.cookies.get("pw_session")
-    if session_id:
-        auth = getattr(request.app.state, "auth", None)
-        if auth is not None:
-            session = auth.validate_session(session_id)
-            if session and session.has_step_up():
-                return True
+    if not session_id:
+        return None
+    auth = getattr(request.app.state, "auth", None)
+    if auth is None:
+        return None
+    return auth.validate_session(session_id)
 
-    # Path 2: Loopback / private network
-    client = request.client.host if request.client else "?"
-    if client in ("127.0.0.1", "::1", "localhost", "testclient"):
-        return True
-    import ipaddress as _ipa
-    try:
-        ip = _ipa.ip_address(client)
-    except ValueError:
-        ip = None
-    if ip is not None and (ip.is_loopback or ip.is_private):
+
+def _step_up_authorized(request: Request, principal: Any = None) -> bool:
+    """Single step-up seam: one ordering, three documented mechanisms.
+
+    1. **Canonical elevation** — a live, time-bounded session grant
+       minted by ``POST /api/auth/step-up`` after re-presenting a
+       credential, bound to the authenticated principal. This is the
+       finish-line mechanism.
+
+    2. **Local-owner exception** — the request peer is true loopback
+       (127.0.0.1 / ::1 only). The owner is on the machine; this is a
+       deliberate, documented local-development exception, not a general
+       network trust rule (RFC1918 LAN addresses do not qualify).
+
+    3. **Delegated proxy header** — ``X-PW-StepUp: 1`` from a consumer
+       behind a reverse proxy that performs its own authentication. This
+       is explicit trust delegation and remains for the transitional
+       browser client; it is not proof of fresh authentication.
+    """
+    if principal is None:
+        principal = getattr(request.state, "principal", None)
+    principal_id = principal.id if principal is not None else None
+
+    session = _current_session(request)
+    if session is not None and session.has_step_up(principal_id):
         return True
 
-    # Path 3: Trusted proxy header
+    if _is_true_loopback(request):
+        return True
+
     if request.headers.get("X-PW-StepUp") == "1":
         return True
 
@@ -172,7 +177,14 @@ def _step_up_authorized(request: Request) -> bool:
 
 async def require_step_up(request: Request) -> None:
     await require_auth(request)
-    if not _step_up_authorized(request):
+    principal = getattr(request.state, "principal", None)
+    # Step-up is a human elevation: an agent principal never acquires
+    # it, even with a delegated header or a loopback peer. Agents that
+    # need a write go through person-approved proposal execution.
+    if principal is not None and principal.kind == "agent":
+        raise HTTPException(
+            status_code=403, detail="step-up is person-only")
+    if not _step_up_authorized(request, principal):
         raise HTTPException(
             status_code=403, detail="write requires step-up auth")
 
@@ -197,43 +209,71 @@ def _is_true_loopback(request: Request) -> bool:
 
 
 async def require_auth(request: Request) -> None:
-    """Gate + principal resolution (the single seam).
+    """Gate + canonical principal resolution (the single seam).
 
-    On success the resolved principal lands on request.state.principal
-    for sub-dependencies and handlers. In "single" mode the bootstrap
-    "primary" person is the only principal; "multi" resolves hashed
-    user tokens from the local identity store.
+    Every accepted credential — bearer token, browser session (local or
+    OIDC), or the explicit loopback development bypass — resolves to
+    exactly one ``Principal`` on ``request.state.principal`` before
+    handler code runs. Precedence is deliberate and documented:
 
-    Temporary dev ergonomics: with PW_DEV_AUTH_BYPASS=1 (explicit
-    opt-in), a request whose peer is true loopback (127.0.0.1 / ::1
-    only — never RFC1918/private) resolves as the primary person
-    WITHOUT a bearer token. The bypass never activates implicitly and
-    bearer auth is unchanged when the flag is off. It satisfies
-    authentication, not step-up: writes still require the step-up
-    header/loopback rule on top of it.
+    1. development bypass (opt-in, true loopback only),
+    2. an explicit ``Authorization: Bearer`` credential,
+    3. a ``pw_session`` cookie (re-resolved against the current enabled
+       identity records, so disabling a user revokes their browser
+       session like their token),
+    4. otherwise fail closed: 503 when the instance has no credential
+       store configured at all, 401 when it does but nothing matched.
+
+    In "single" mode the bootstrap "primary" person is the only
+    principal; "multi" resolves hashed user tokens from the local
+    identity store. The session never becomes a parallel credential
+    system: it lands on the same Principal a bearer request produces.
     """
     from .identity import (
-        resolve_principal, NoPrincipalError,
+        resolve_principal, resolve_session_principal, NoPrincipalError,
         dev_bypass_enabled, dev_bypass_principal,
     )
     identity = getattr(request.app.state, "identity", None)
-    if dev_bypass_enabled() and _is_true_loopback(request):
-        request.state.principal = dev_bypass_principal()
-        return
-    token = _token()
-    if not token:
-        raise HTTPException(status_code=503, detail="auth not configured")
-    header = request.headers.get("Authorization", "")
-    supplied = header.removeprefix("Bearer ").strip()
-    if not supplied:
-        raise HTTPException(status_code=401, detail="unauthorized")
     mode = identity["mode"] if identity else "single"
     store = identity["store"] if identity else None
-    try:
-        principal = resolve_principal(supplied, store, mode, token)
-    except NoPrincipalError:
-        raise HTTPException(status_code=401, detail="unauthorized")
-    request.state.principal = principal
+    instance_token = _token()
+
+    # 1. Explicit loopback development bypass (never implicit).
+    if dev_bypass_enabled() and _is_true_loopback(request):
+        _set_principal(request, dev_bypass_principal(), "dev-bypass")
+        return
+
+    # 2. Explicit bearer credential takes precedence over a cookie.
+    header = request.headers.get("Authorization", "")
+    supplied = header.removeprefix("Bearer ").strip()
+    if supplied:
+        if mode == "multi" or instance_token:
+            try:
+                principal = resolve_principal(
+                    supplied, store, mode, instance_token)
+            except NoPrincipalError:
+                raise HTTPException(status_code=401, detail="unauthorized")
+            _set_principal(request, principal, principal.source)
+            return
+        # A bearer was presented but no credential store is configured:
+        # fail closed instead of silently falling through to a cookie.
+        raise HTTPException(status_code=503, detail="auth not configured")
+
+    # 3. Browser session (local or OIDC), same seam.
+    session = _current_session(request)
+    if session is not None:
+        try:
+            principal = resolve_session_principal(
+                session.principal_id, store, mode, session.auth_method)
+        except NoPrincipalError:
+            raise HTTPException(status_code=401, detail="unauthorized")
+        _set_principal(request, principal, principal.source)
+        return
+
+    # 4. Nothing usable.
+    if not instance_token and mode != "multi":
+        raise HTTPException(status_code=503, detail="auth not configured")
+    raise HTTPException(status_code=401, detail="unauthorized")
 
 
 def _capability_description(cap: str) -> str:
@@ -330,9 +370,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # --- Native auth (session-cookie + OIDC) ---
     from .auth import AuthManager
     from .auth_routes import register_auth_routes
-    _auth = AuthManager(data_dir, config_dir)
+    # Pass the identity seam state so browser local/OIDC logins resolve
+    # to the same Principal the bearer path produces (D1 convergence).
+    _auth = AuthManager(data_dir, config_dir, identity=app.state.identity)
     register_auth_routes(app, _auth)
     app.state.auth = _auth
+
+    # --- Durable brain-proposal store (D3) ---
+    # Server-held proposals + approval evidence persist to the data dir
+    # so an owner approval survives a restart and is never re-derived
+    # from a model argument.
+    from .tool_registry import configure_proposal_store
+    configure_proposal_store(data_dir, journal=journal)
 
     # --- Setup & Login ---
 
@@ -910,7 +959,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         from .tool_registry import approve_proposal
         principal = getattr(request.state, "principal", None)
         actor = principal.id if principal else "unknown"
-        r = approve_proposal(proposal_id, actor)
+        r = approve_proposal(proposal_id, actor, journal=journal)
         if not r.ok:
             return r.model_dump(mode="json")
         return r.model_dump(mode="json")
@@ -922,7 +971,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         from .tool_registry import reject_proposal
         principal = getattr(request.state, "principal", None)
         actor = principal.id if principal else "unknown"
-        r = reject_proposal(proposal_id, actor)
+        r = reject_proposal(proposal_id, actor, journal=journal)
         if not r.ok:
             return r.model_dump(mode="json")
         return r.model_dump(mode="json")
@@ -948,12 +997,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 "warnings": [f"proposal is {p.get('status')}, not approved"],
             }
         world, registry = _state()
-        r = _execute_approved_write(journal, world, proposal_id, _reminders)
-        if r.ok:
-            ptype = p.get("type")
-            # Persist world mutations
-            if ptype in ("world_intent", "world_fact"):
-                save_world(world, world_path)
+        # world_path is part of the trusted execution act: the executor
+        # persists world mutations through the authoritative save path
+        # and reports what it changed (no redundant second save here).
+        r = _execute_approved_write(
+            journal, world, proposal_id, _reminders, world_path=world_path)
         return r.model_dump(mode="json")
 
     @app.get("/api/actors", dependencies=[Depends(require_auth)])

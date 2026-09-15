@@ -8,8 +8,11 @@ Write tools go through propose → approval → execution → evidence.
 """
 
 import json
+import os
+import threading
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable
 
 from .envelope import Result, fail, ok
@@ -547,15 +550,79 @@ def build_default_tools(
     return tools
 
 
-# ── Proposal store ──
+# ── Proposal store (server-held, durable) ──
 #
 # Proposals are server-held state. The model may create proposals
 # through propose_* tools. Only the owner can approve them through
 # a trusted API path (step-up gated). Execution checks that the
 # proposal was actually approved with actor/time/evidence.
+#
+# Durability: when a data dir is configured (create_app does this), the
+# store is written atomically to <data_dir>/proposals.json after every
+# state change, so an owner approval survives a restart and is never
+# re-derived from a model-supplied argument. The in-memory dict object
+# is never rebound, so helpers holding a reference to ``_proposals``
+# always observe live state.
 
 _proposals: dict[str, dict[str, Any]] = {}
 _proposal_counter = 0
+_proposal_path: Path | None = None
+_proposal_journal: Any = None
+_proposal_lock = threading.RLock()
+
+
+def configure_proposal_store(data_dir: Any, journal: Any = None) -> None:
+    """Point the proposal store at a data dir and load prior state.
+
+    Called once per app instance at create_app time. Existing proposals
+    (and their approval evidence) are restored and the id counter
+    resumes above the highest persisted id. Mutates ``_proposals`` in
+    place so existing references stay valid.
+    """
+    global _proposal_path, _proposal_counter, _proposal_journal
+    with _proposal_lock:
+        _proposal_path = Path(data_dir) / "proposals.json"
+        _proposal_journal = journal
+        _proposals.clear()
+        if _proposal_path.is_file():
+            try:
+                data = json.loads(_proposal_path.read_text(encoding="utf-8"))
+            except Exception:
+                data = {}
+            if isinstance(data, dict):
+                _proposals.update(data)
+        highest = 0
+        for pid in _proposals:
+            try:
+                highest = max(highest, int(str(pid).rsplit("-", 1)[-1]))
+            except (ValueError, IndexError):
+                continue
+        _proposal_counter = highest
+
+
+def _persist_proposals_locked() -> None:
+    """Atomic write of the proposal store (caller holds the lock)."""
+    if _proposal_path is None:
+        return
+    try:
+        _proposal_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = _proposal_path.with_suffix(_proposal_path.suffix + ".tmp")
+        tmp.write_text(json.dumps(_proposals, indent=2), encoding="utf-8")
+        os.replace(tmp, _proposal_path)
+    except OSError:
+        # Persistence failure must never fake a successful approval: the
+        # in-memory state stands and the next write retries.
+        pass
+
+
+def _journal_proposal_event(journal: Any, kind: str, summary: str) -> None:
+    target = journal if journal is not None else _proposal_journal
+    if target is None:
+        return
+    try:
+        target.record(kind, summary, source="brain-proposal")
+    except Exception:
+        pass
 
 
 def _next_proposal_id() -> str:
@@ -571,11 +638,14 @@ def _propose(proposal: dict[str, Any], journal: Any, description: str) -> Result
     and status; approval/rejection evidence is recorded at the trust
     boundary, never by the model loop)."""
     global _proposal_counter
-    _proposal_counter += 1
-    pid = f"proposal-{_proposal_counter}"
-    proposal["id"] = pid
-    proposal["status"] = "pending"
-    _proposals[pid] = proposal
+    with _proposal_lock:
+        _proposal_counter += 1
+        pid = f"proposal-{_proposal_counter}"
+        proposal["id"] = pid
+        proposal["status"] = "pending"
+        proposal["created_at"] = time.time()
+        _proposals[pid] = proposal
+        _persist_proposals_locked()
     return ok("healthy", data={
         "proposal_id": pid,
         "type": proposal["type"],
@@ -766,26 +836,48 @@ def _execute_approved_write(
     except Exception as e:
         proposal["status"] = "failed"
         return fail("unavailable", warnings=[f"execute failed: {e}"])
+    finally:
+        # Persist the terminal status (executed/failed/left-pending) so
+        # a restart sees an honest, non-replayable proposal state.
+        with _proposal_lock:
+            _persist_proposals_locked()
 
 
-def approve_proposal(proposal_id: str, actor: str) -> Result:
+def approve_proposal(proposal_id: str, actor: str,
+                     journal: Any = None) -> Result:
     """Approve a pending proposal. Called through the trusted owner path.
 
-    Records actor, time, and evidence of approval. This is the ONLY
-    way a proposal becomes approved — the model cannot do this.
+    Records actor, time, and server-held approval evidence, then
+    persists them. This is the ONLY way a proposal becomes approved —
+    the model cannot do this, and no model-supplied boolean can forge
+    the evidence. The trusted approval is journalled when a journal is
+    available.
     """
-    proposal = _proposals.get(proposal_id)
-    if not proposal:
-        return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
-    if proposal["status"] != "pending":
-        return fail(
-            "invalid_state",
-            warnings=[f"proposal is {proposal['status']}, not pending"],
-        )
-    import time as _time
-    proposal["status"] = "approved"
-    proposal["approved_by"] = actor
-    proposal["approved_at"] = _time.time()
+    with _proposal_lock:
+        proposal = _proposals.get(proposal_id)
+        if not proposal:
+            return fail("not_found",
+                        warnings=[f"proposal '{proposal_id}' not found"])
+        if proposal["status"] != "pending":
+            return fail(
+                "invalid_state",
+                warnings=[f"proposal is {proposal['status']}, not pending"],
+            )
+        approved_at = time.time()
+        proposal["status"] = "approved"
+        proposal["approved_by"] = actor
+        proposal["approved_at"] = approved_at
+        proposal["approval_evidence"] = {
+            "method": "trusted-api-approval",
+            "approved_by": actor,
+            "approved_at": approved_at,
+        }
+        _persist_proposals_locked()
+    _journal_proposal_event(
+        journal, "approval",
+        f"brain write proposal {proposal_id} approved by owner "
+        f"(type {proposal['type']}) by {actor}",
+    )
     return ok("healthy", data={
         "proposal_id": proposal_id,
         "status": "approved",
@@ -793,45 +885,48 @@ def approve_proposal(proposal_id: str, actor: str) -> Result:
     })
 
 
-def reject_proposal(proposal_id: str, actor: str) -> Result:
-    """Reject a pending proposal."""
-    proposal = _proposals.get(proposal_id)
-    if not proposal:
-        return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
-    if proposal["status"] != "pending":
-        return fail(
-            "invalid_state",
-            warnings=[f"proposal is {proposal['status']}, not pending"],
-        )
-    proposal["status"] = "rejected"
-    proposal["rejected_by"] = actor
-    try:
-        journal.record(
-            "recommendation",
-            f"brain write proposal {proposal_id} rejected by owner "
-            f"(type {proposal['type']}) by {actor}",
-            source="brain-proposal",
-        )
-    except Exception:
-        pass
+def reject_proposal(proposal_id: str, actor: str,
+                    journal: Any = None) -> Result:
+    """Reject a pending proposal and persist the decision."""
+    with _proposal_lock:
+        proposal = _proposals.get(proposal_id)
+        if not proposal:
+            return fail("not_found",
+                        warnings=[f"proposal '{proposal_id}' not found"])
+        if proposal["status"] != "pending":
+            return fail(
+                "invalid_state",
+                warnings=[f"proposal is {proposal['status']}, not pending"],
+            )
+        proposal["status"] = "rejected"
+        proposal["rejected_by"] = actor
+        proposal["rejected_at"] = time.time()
+        _persist_proposals_locked()
+    _journal_proposal_event(
+        journal, "recommendation",
+        f"brain write proposal {proposal_id} rejected by owner "
+        f"(type {proposal['type']}) by {actor}",
+    )
     return ok("healthy", data={"proposal_id": proposal_id, "status": "rejected"})
 
 
 def list_proposals(status: str | None = None) -> list[dict[str, Any]]:
     """List proposals, optionally filtered by status."""
-    results = []
-    for pid, p in _proposals.items():
-        if status is None or p.get("status") == status:
-            results.append({"proposal_id": pid, **p})
-    return results
+    with _proposal_lock:
+        results = []
+        for pid, p in _proposals.items():
+            if status is None or p.get("status") == status:
+                results.append({"proposal_id": pid, **p})
+        return results
 
 
 def get_proposal(proposal_id: str) -> dict[str, Any] | None:
     """Get a single proposal by ID."""
-    p = _proposals.get(proposal_id)
-    if p is None:
-        return None
-    return {"proposal_id": proposal_id, **p}
+    with _proposal_lock:
+        p = _proposals.get(proposal_id)
+        if p is None:
+            return None
+        return {"proposal_id": proposal_id, **p}
 
 
 # ── Tool implementations ──

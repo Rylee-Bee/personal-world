@@ -8,14 +8,14 @@
 | PROV-030 | SOPSVaultAdapter | ORPHAN | Read-through adapter; set/delete unsupported; no caller found | HIGH |
 | STORE-020 | data/executions.json (ExecutionViewer/ExecutionStore) | ORPHAN | Wired in build_registry but no route/tool caller found | HIGH |
 | ASSET-007a | ThemePack default paths /static/companions/*.svg | ORPHAN | theme_pack.py defaults use /static/companions; api.py serves /companions/{name}.svg only (no /static route) | HIGH |
-| AUTH-008 | Session step-up grant (POST /api/auth/step-up → step_up_until) | PARTIAL | Grant implemented + persisted, but require_step_up never reads sessions | HIGH |
-| AUTH-002/003 | Session cookie + OIDC as API gate | PARTIAL | Sessions created and stored; require_auth is bearer-only | HIGH |
+| AUTH-008 | Session step-up grant (POST /api/auth/step-up → step_up_until) | RESOLVED (D1–D3) | require_step_up consumes the principal-bound grant (api.py:143-175, auth.py:31-42) | HIGH |
+| AUTH-002/003 | Session cookie + OIDC as API gate | RESOLVED (D1–D3) | require_auth resolves bearer OR session to one Principal (api.py:211-276) | HIGH |
 | API-065 | Themes API | PARTIAL | GET /api/themes(/{name}) implemented; no frontend consumer found | MEDIUM |
 | STORE-013 | data/theme-packs runtime integration | PARTIAL | Registry reads manifests; ARCHITECTURE.md says "not full frontend pack integration" | HIGH |
-| TOOL-027 | propose_reminder executor | STUB | Executor returns "executed" without touching reminders.json | HIGH |
-| TOOL-028 | propose_reconciler_apply executor | STUB | Executor notes "Actual provider apply requires adapter" | HIGH |
+| TOOL-027 | propose_reminder executor | RESOLVED (D1–D3) | Executor persists via wired `Scheduler.add` (tool_registry.py:799-817) | HIGH |
+| TOOL-028 | propose_reconciler_apply executor | PARTIAL (honest) | Returns `unsupported`, leaves proposal `pending`, applies nothing (tool_registry.py:819-830) — no fake success | HIGH |
 | TOOL-013 | inspect_reconciler_diff | PARTIAL | Returns desired state only; "Observed state not available for diff" | HIGH |
-| TOOL-029 | execute_approved_write approval semantics | PARTIAL | Approval is a caller-supplied boolean; proposals in-memory per-process | HIGH |
+| TOOL-029 | execute_approved_write approval semantics | RESOLVED (D1–D3) | Requires durable `status == "approved"`; approval server-held via step-up API; no model-supplied boolean (tool_registry.py:722-885, api.py:979-1004) | HIGH |
 | PROV-011 | NativeDeploymentProvider (compose/systemd adapters) | PARTIAL | Registered; status/observe only; no live deploy caller | MEDIUM |
 | PROV-009 (send) | NativeNotificationsProvider.send (webhook/ntfy) | PARTIAL | Provider registered and observed; no current send() caller in api/cli/tools | MEDIUM |
 | CAP-013 | scheduler capability (no provider registered) | PARTIAL | Capability defined; Scheduler used directly, not via capability | HIGH |
@@ -23,13 +23,13 @@
 | PROV-024 | CandyDispenser | INTERNAL | Demo/reference provider behind explicit connections type=candy | HIGH |
 | PROV-003 | FakeSourceControl | INTERNAL | Substitution-proof machinery for tests | HIGH |
 | PROV-028 | FakeUpdateProvider | INTERNAL | Update state-machine reference for tests | HIGH |
-| API-080 | source-control rollups direct connections.json read | SUPERSEDED-adjacent | ARCHITECTURE.md records the override-merge divergence; endpoint still reads tracked file directly | MEDIUM |
+| API-080 | source-control rollups | REMOVED | `/api/source-control/rollups` no longer exists; search paths still read connections.json directly (source_control.py:283,311) | MEDIUM |
 | NAV-002 | /setup-wizard alias | ACTIVE (alias) | Intentional legacy alias Navigate→/setup (T15 cutover) | HIGH |
 | DOC-008 | design/handoff package | HIDDEN | Archived spec; never edit (AGENT_CONTRACTS rule) | HIGH |
 | ASSET-005 | Mermaid master .lottie | HIDDEN | Deliberate artwork, byte-identical by decision; not runtime-served | HIGH |
 | PROV-002 | Gitea forge adapter | PARTIAL | Retained as substitution-proof machinery; not a supported live provider (ARCHITECTURE.md) | HIGH |
 | CHAT-005 (copies) | OpenAICompatChat in both chat.py and chat_registry.py | PARTIAL | Two class copies; registry copy live | HIGH |
-| TOOL-019 | inspect_reminders direct file read | PARTIAL | Duplicates Scheduler read path via PW_DATA_DIR env | HIGH |
+| TOOL-019 | inspect_reminders | RESOLVED (D1–D3) | Now reads through a wired Scheduler; no raw file scrape (tool_registry.py:1154-1168) | HIGH |
 | A11Y-003 | Design preference schema (motion beyond reduced) | PARTIAL | Schema richer than prefs.py accepts; default agrees (ARCHITECTURE.md recorded boundary) | HIGH |
 | API-012 | /api/chat/test | ACTIVE | Was unauthenticated per older docs; current code has require_auth | HIGH (code) |
 
