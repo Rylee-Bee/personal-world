@@ -7,7 +7,7 @@
 | UI-001 Today | run daily loop | API-004 (POST) | Write | ACTIVE |
 | UI-001 Today | reminders | API-067 (GET) | Read | ACTIVE |
 | UI-001 Today | apps launcher | API-066 (GET) | Read | ACTIVE |
-| UI-002 Interests | discovery status/sources/interests/discover | API-049..052 | Read (POSTs not step-up gated) | ACTIVE |
+| UI-002 Interests | discovery status/sources/interests/discover | API-049..052 | Read / Write (POSTs step-up gated) | ACTIVE |
 | UI-003 Media | status/library/recent/activity/search | API-053..057 | Read | ACTIVE |
 | UI-004 Projects | estate status | API-079 | Read | ACTIVE |
 | UI-004 Projects | repo status/history | API-033, API-034 | Read | ACTIVE |
@@ -45,11 +45,12 @@
 | UI-021 ConnectionsPanel | schemas/overview/config | API-017..020 | Read | ACTIVE |
 | UI-021 ConnectionsPanel | save/delete connection, native config | API-021, API-022 | Write (step-up in-handler) | ACTIVE |
 | UI-021 ConnectionsPanel | test/validate | API-023, API-024 | Read (probe) | ACTIVE |
-| UI-018 StepUpPrompt | step-up grant | AUTH-009 (POST /api/auth/step-up) | Write | PARTIAL (grant exists; require_step_up does not consume it) |
+| UI-018 StepUpPrompt | step-up grant | AUTH-009 (POST /api/auth/step-up) | Write | ACTIVE (grant is persisted and consumed by `require_step_up`, D1–D3) |
 | UI-005 Lab (settings) | prefs/sections (Settings owns) | API-030/032 | — | Settings screen only |
 | UI-003 Media | themes (none) | API-065 | — | API exists; no UI consumer found |
 | (no UI) | theme packs | API-065 | Read | PARTIAL (no frontend consumer found) |
 | (no UI) | identity admin users | API-068..070 | Read/Write | ACTIVE API, no visible UI surface |
+| (no UI) | brain-write proposal review (list/approve/reject/execute) | `/api/proposals*` (not in original API-ID list) | Read / Write (step-up) | ACTIVE API + durable store, no frontend consumer |
 | (no UI) | updates apply/rollback | CLI-018 | Write | deliberately CLI-only |
 | (no UI) | backup | API-028, CLI-008 | Read | ACTIVE (external encryption expected) |
 

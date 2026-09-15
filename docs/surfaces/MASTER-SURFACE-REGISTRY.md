@@ -9,12 +9,35 @@ unchanged. Source of truth is the code, not docs.
 State vocabulary: ACTIVE, PARTIAL, HIDDEN, INTERNAL, STUB, ORPHAN,
 SUPERSEDED, UNKNOWN.
 
+> **Delta (2026-09-15, D1–D3 auth/authority pass).** This extraction
+> predates the auth convergence. Corrections now applied below and
+> verified against code at SHA `db6ca02`:
+>
+> - **AUTH-002 / AUTH-003 / AUTH-008 are ACTIVE, not PARTIAL.** Browser
+>   session and OIDC both resolve through `require_auth`
+>   (`api.py:211-276`); the session step-up grant is consumed by
+>   `require_step_up` (`api.py:143-175`, `auth.py:31-42`).
+> - **`POST /api/discovery/sources` and `POST /api/discovery/interests`
+>   now require step-up** (`api.py:1647/1673`), correcting API-050/051.
+> - **`GET /api/proposals{,/{id},/approve,/reject,/execute}` exists**
+>   (`api.py:936-1004`) — not in the original API-ID list. Durable store
+>   `data/proposals.json`.
+> - **`GET /api/source-control/rollups` no longer exists** (API-080 is
+>   stale); source-control search paths are read directly from
+>   `config/connections.json` in `source_control.py:283,311`.
+> - **TOOL-019 no longer reads `reminders.json` directly**; the tool
+>   requires a wired `Scheduler` (`tool_registry.py:1154-1168`).
+> - **`/api/auth/*` (login/logout/session/oidc/step-up) routes** live in
+>   `auth_routes.py`; the registry's AUTH-009 row covers them.
+>
+> See `docs/repo/WIRING-READINESS.md` for the consolidated assessment.
+
 ## Human / UI surfaces
 
 | ID | Kind | Name | Human? | Entry point | Source location | Reads | Writes | Calls | Called by | Auth | Source of truth | State |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | UI-001 | screen | Today | YES | `GET /` (SPA route `/`) | `frontend/src/screens/TodayScreen.tsx` | API-003, API-004, API-030, API-032, API-066 | none | api.ts lib | NAV-001, NAV-013 | session/bearer client-side | API | ACTIVE |
-| UI-002 | screen | Interests | YES | SPA route `/interests` | `frontend/src/screens/InterestsScreen.tsx` | API-051, API-052 | none | api.ts | NAV-001 | session/bearer | API | ACTIVE |
+| UI-002 | screen | Interests | YES | SPA route `/interests` | `frontend/src/screens/InterestsScreen.tsx` | API-051, API-052 | API-050/051 (step-up) | api.ts | NAV-001 | session/bearer | API | ACTIVE |
 | UI-003 | screen | Media | YES | SPA route `/media` | `frontend/src/screens/MediaScreen.tsx` | API-053..API-057 | none | api.ts | NAV-001 | session/bearer | API (media adapters) | ACTIVE |
 | UI-004 | screen | Projects | YES | SPA route `/projects` | `frontend/src/screens/ProjectsScreen.tsx` | API-033, API-036, API-037, API-067 | API-035 (approved refresh) | api.ts, `lib/project-status.ts` | NAV-001 | session/bearer | agent-sync + native git | ACTIVE |
 | UI-005 | screen | Lab | YES | SPA route `/lab` | `frontend/src/screens/LabScreen.tsx` | API-037..API-048 | none | api.ts | NAV-001 | session/bearer | lab CLI / native lab | ACTIVE |
@@ -101,8 +124,8 @@ SUPERSEDED, UNKNOWN.
 | API-047 | route | GET /api/native-lab/settings | INDIRECT | native lab settings | `api.py::native_lab_settings` | PROV-012 | none | NativeLabSettings.observe | UI-005 | require_auth | native lab | ACTIVE |
 | API-048 | route | GET /api/native-lab/resources | INDIRECT | native resources | `api.py::native_lab_resources` | PROV-012 | none | NativeLabResources.observe | UI-005 | require_auth | system observation | ACTIVE |
 | API-049 | route | GET /api/discovery/status | INDIRECT | discovery status | `api.py::discovery_status` | PROV-013 | none | NativeDiscovery.observe | UI-002 | require_auth | CFG-008 discovery.json | ACTIVE |
-| API-050 | route | GET/POST /api/discovery/sources | INDIRECT | discovery sources | `api.py::discovery_sources/add_source` | PROV-013 | CFG-008 (POST) | add_source | UI-002 | require_auth (POST not step-up) | CFG-008 | ACTIVE |
-| API-051 | route | GET/POST /api/discovery/interests | INDIRECT | interests | `api.py::discovery_interests/add_interest` | PROV-013 | CFG-008 (POST) | add_interest | UI-002 | require_auth | CFG-008 | ACTIVE |
+| API-050 | route | GET/POST /api/discovery/sources | INDIRECT | discovery sources | `api.py::discovery_sources/add_source` | PROV-013 | CFG-008 (POST) | add_source | UI-002 | require_auth; POST require_step_up | CFG-008 | ACTIVE |
+| API-051 | route | GET/POST /api/discovery/interests | INDIRECT | interests | `api.py::discovery_interests/add_interest` | PROV-013 | CFG-008 (POST) | add_interest | UI-002 | require_auth; POST require_step_up | CFG-008 | ACTIVE |
 | API-052 | route | GET /api/discovery/discover | INDIRECT | run discovery | `api.py::discovery_discover` | PROV-013 | CFG-008 (feedback/save) | discover() | UI-002 | require_auth | RSS/API fetch | ACTIVE |
 | API-053 | route | GET /api/media/status | INDIRECT | media status | `api.py::media_status` | PROV-015 | none | engine.status() | UI-003, TOOL | require_auth | adapters | ACTIVE |
 | API-054 | route | GET /api/media/library | INDIRECT | media library | `api.py::media_library` | PROV-015 | none | engine.library() | UI-003 | require_auth | adapters | ACTIVE |
@@ -131,7 +154,7 @@ SUPERSEDED, UNKNOWN.
 | API-077 | route | GET /api/brain/templates; GET /api/brain/provenance | INDIRECT | brain templates | `api.py::brain_templates/brain_provenance` | CHAT-015 | none | TemplateRegistry | Nerd Mode | require_auth | config/prompts | ACTIVE |
 | API-078 | route | GET /api/ingress/rollups | INDIRECT | Traefik rollups | `api.py::ingress_rollups` | PROV-023 | none | TraefikIngress.observe | UI-005 | require_auth | external Traefik API | ACTIVE |
 | API-079 | route | GET /api/projects/status | INDIRECT | project estate | `api.py::projects_status` | PROV-026 (agent-sync) | none | observe_projects | UI-004 | require_auth | agent-sync subprocess | ACTIVE |
-| API-080 | route | GET /api/source-control/{status,history,rollups} legacy shape | INDIRECT | older sc surface | `api.py` (rollups via connections.json direct read) | STORE-014 direct | none | — | — | require_auth | connections.json | PARTIAL (rollup override-merge divergence) |
+| API-080 | route | ~~GET /api/source-control/rollups~~ | — | REMOVED | (no such route at db6ca02) | — | — | — | — | — | — | SUPERSEDED (search paths still read connections.json directly in source_control.py:283,311) |
 | API-081 | route | GET /api/tools → see API-013 | — | — | — | — | — | — | — | — | — | — |
 
 ## CLI commands
@@ -162,13 +185,13 @@ SUPERSEDED, UNKNOWN.
 | ID | Kind | Name | Human? | Entry point | Source location | Reads | Writes | Calls | Called by | Auth | Source of truth | State |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | AUTH-001 | auth | require_auth (bearer) | INDIRECT | `Depends(require_auth)` | `api.py::require_auth` | env PW_API_TOKEN, STORE-005 (multi) | request.state.principal | identity.resolve_principal | all protected routes | bearer | PW_API_TOKEN env / data/.env | ACTIVE |
-| AUTH-002 | auth | Session cookie (pw_session) | INDIRECT | AuthManager via auth_routes | `auth.py::AuthManager/SessionStore`, `auth_routes.py` | STORE-004 | STORE-004 | login_local/login_oidc | UI-011, OIDC | session cookie | data/sessions.json | PARTIAL (sessions not consumed by require_auth — parallel path) |
-| AUTH-003 | auth | OIDC | INDIRECT | /api/auth/oidc/* | `auth.py::OIDCConfig`, `auth_routes.py::auth_oidc_*` | CFG-007, client_secret env | STORE-004 | token/userinfo endpoints | UI-011 | OIDC | external IdP | PARTIAL (works but session never gates API) |
+| AUTH-002 | auth | Session cookie (pw_session) | INDIRECT | AuthManager via auth_routes | `auth.py::AuthManager/SessionStore`, `auth_routes.py` | STORE-004 | STORE-004 | login_local/login_oidc | UI-011, OIDC | session cookie | data/sessions.json | ACTIVE (resolved by require_auth via resolve_session_principal, api.py:262-271; D1–D3) |
+| AUTH-003 | auth | OIDC | INDIRECT | /api/auth/oidc/* | `auth.py::OIDCConfig`, `auth_routes.py::auth_oidc_*` | CFG-007, client_secret env | STORE-004 | token/userinfo endpoints | UI-011 | OIDC | external IdP | ACTIVE (maps to Principal; session gates API; D1–D3) |
 | AUTH-004 | auth | require_step_up | INDIRECT | `Depends(require_step_up)` | `api.py::require_step_up/_step_up_authorized` | AUTH-001, request client/X-PW-StepUp | none | AUTH-001 | world writes, prefs, apps, sections, journal supersede, identity, reminders, sc refresh, connections writes | bearer + step-up | loopback/private/header logic | ACTIVE |
 | AUTH-005 | auth | Loopback/private-peer elevation | INDIRECT | `_step_up_authorized` / vault GET check | `api.py` | peer address | none | ipaddress classification | AUTH-004, API-064 | internal | peer IP | ACTIVE |
 | AUTH-006 | lifecycle | Boot-token reconciliation | INDIRECT | `create_app` start | `api.py::_reconcile_boot_token` | STORE-010 | process env | none | create_app | N/A | data/.env wins over compose env | ACTIVE |
 | AUTH-007 | auth | Admin gate | INDIRECT | `_is_admin` | `api.py::_is_admin` | IDENT-001 | none | principal scopes | API-068..API-070 | principal admin scope | users.json + bootstrap primary | ACTIVE |
-| AUTH-008 | auth | Session step-up (grant) | INDIRECT | POST /api/auth/step-up | `auth_routes.py::auth_step_up`, `auth.py::grant_step_up` | STORE-004 | STORE-004 (step_up_until) | — | UI-018 conceptually | session | sessions.json | PARTIAL (grant exists; require_step_up does not consult sessions) |
+| AUTH-008 | auth | Session step-up (grant) | INDIRECT | POST /api/auth/step-up | `auth_routes.py::auth_step_up`, `auth.py::grant_step_up` | STORE-004 | STORE-004 (step_up_until) | — | UI-018 | session | sessions.json | ACTIVE (consumed by require_step_up; principal-bound; D1–D3) |
 
 ## Identity
 
@@ -239,17 +262,17 @@ SUPERSEDED, UNKNOWN.
 | TOOL-016 | tool | list_interests | INDIRECT | read | `tool_registry.py` | PROV-013 | none | discovery.observe | chat tool loop | internal | CFG-008 | ACTIVE |
 | TOOL-017 | tool | run_discovery | INDIRECT | read-labeled fetch | `tool_registry.py::_discovery_discover` | PROV-013 | CFG-008 (saves/feedback) | discovery.discover | chat tool loop | internal | CFG-008 | ACTIVE |
 | TOOL-018 | tool | inspect_vault_status | INDIRECT | read (never values) | `tool_registry.py::_vault_status` | STORE-003 lock state | none | vault.is_unlocked | chat tool loop | internal | vault.enc | ACTIVE |
-| TOOL-019 | tool | inspect_reminders | INDIRECT | read (direct file read, PW_DATA_DIR env) | `tool_registry.py::_reminders` | STORE-006 | none | json read | chat tool loop | internal | reminders.json | ACTIVE (duplicate read path vs Scheduler) |
+| TOOL-019 | tool | inspect_reminders | INDIRECT | read (via wired Scheduler) | `tool_registry.py::_reminders` | STORE-006 | none | Scheduler.list_reminders | chat tool loop | internal | reminders.json | ACTIVE (no longer a parallel file read; D1–D3) |
 | TOOL-020 | tool | inspect_media_status | INDIRECT | read | `tool_registry.py::_media_status` | PROV-015 | none | engine.status | chat tool loop | internal | media adapters | ACTIVE |
 | TOOL-021 | tool | inspect_media_recent | INDIRECT | read | `tool_registry.py` | PROV-015 | none | engine.recent | chat tool loop | internal | media adapters | ACTIVE |
 | TOOL-022 | tool | inspect_media_activity | INDIRECT | read | `tool_registry.py` | PROV-015 | none | engine.activity | chat tool loop | internal | media adapters | ACTIVE |
 | TOOL-023 | tool | search_media | INDIRECT | read | `tool_registry.py::_media_search` | PROV-015 | none | engine.search | chat tool loop | internal | media adapters | ACTIVE |
-| TOOL-024 | tool | propose_journal_entry | INDIRECT | write proposal | `tool_registry.py::_propose_journal_write` | — | proposal store | _proposals | chat tool loop | approval required | in-memory proposals | ACTIVE |
-| TOOL-025 | tool | propose_world_intent | INDIRECT | write proposal | `tool_registry.py::_propose_world_intent` | — | proposal store | _proposals | chat tool loop | approval required | in-memory | ACTIVE |
-| TOOL-026 | tool | propose_world_fact | INDIRECT | write proposal | `tool_registry.py::_propose_world_fact` | — | proposal store | _proposals | chat tool loop | approval required | in-memory | ACTIVE |
-| TOOL-027 | tool | propose_reminder | INDIRECT | write proposal | `tool_registry.py::_propose_reminder` | — | proposal store | _proposals | chat tool loop | approval required | in-memory | PARTIAL (executor marks executed WITHOUT touching reminders.json) |
-| TOOL-028 | tool | propose_reconciler_apply | INDIRECT | write proposal | `tool_registry.py::_propose_reconciler_apply` | PROV-014 desired | proposal store | reconciler._desired | chat tool loop | approval required | in-memory | PARTIAL (executor notes but does not apply) |
-| TOOL-029 | tool | execute_approved_write | INDIRECT | write executor | `tool_registry.py::_execute_approved_write` | _proposals | JOURNAL-001, STORE-001 (intent/fact) | journal.record/world.set_intent/record_fact | chat tool loop | requires_step_up flag; approval trusted from args | proposals in-memory | PARTIAL (in-memory, per-process; approved flag is model-supplied) |
+| TOOL-024 | tool | propose_journal_entry | INDIRECT | write proposal | `tool_registry.py::_propose_journal_write` | — | durable proposal store | _proposals | chat tool loop | owner approval required | data/proposals.json | ACTIVE |
+| TOOL-025 | tool | propose_world_intent | INDIRECT | write proposal | `tool_registry.py::_propose_world_intent` | — | durable proposal store | _proposals | chat tool loop | owner approval required | data/proposals.json | ACTIVE |
+| TOOL-026 | tool | propose_world_fact | INDIRECT | write proposal | `tool_registry.py::_propose_world_fact` | — | durable proposal store | _proposals | chat tool loop | owner approval required | data/proposals.json | ACTIVE |
+| TOOL-027 | tool | propose_reminder | INDIRECT | write proposal | `tool_registry.py::_propose_reminder` | — | durable proposal store | _proposals | chat tool loop | owner approval required | data/proposals.json | ACTIVE (executor persists via Scheduler; D1–D3) |
+| TOOL-028 | tool | propose_reconciler_apply | INDIRECT | write proposal | `tool_registry.py::_propose_reconciler_apply` | PROV-014 desired | durable proposal store | reconciler.desired_state | chat tool loop | owner approval required | data/proposals.json | PARTIAL (executor returns honest unsupported; D1–D3) |
+| TOOL-029 | tool | execute_approved_write | INDIRECT | write executor | `tool_registry.py::_execute_approved_write` | proposals.json | JOURNAL-001, STORE-001 (intent/fact), STORE-006 (reminder) | journal.record/save_world/Scheduler.add | step-up API only | server-held approval (`status==approved`) | data/proposals.json | ACTIVE (model cannot invoke; D1–D3) |
 
 Note: the mission brief said 26 tools; the code registers 29 (read count above). Repository truth wins.
 

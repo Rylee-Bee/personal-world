@@ -14,14 +14,18 @@ CLI-010 init → LIFE-006 init_world → STORE-001 world.json + STORE-002 journa
 → SPA (UI-013 via API-001 setup_needed → redirect)
 ```
 
-## Browser auth (current reality)
+## Browser auth (current reality, D1–D3)
 
 ```text
 UI-011 login (token) → AUTH-009 POST /api/auth/login → AUTH-002 login_local (PW_API_TOKEN compare) → STORE-004 session + pw_session cookie
    (OIDC variant: AUTH-003 /api/auth/oidc/login → INT-006 exchange → login_oidc → STORE-004)
-→ BUT: protected API calls still require AUTH-001 bearer (pw_token in localStorage)
-→ require_auth → IDENT-003 resolve_principal (single: bootstrap primary; multi: STORE-005 hashed tokens)
+→ protected API calls resolve through the SAME seam: require_auth (AUTH-001)
+   accepts either an Authorization: Bearer token OR the pw_session cookie
+→ IDENT-003 resolve_principal / resolve_session_principal
+   (single: bootstrap primary; multi: STORE-005 hashed tokens + local records)
 → request.state.principal → protected route
+Step-up: require_step_up consumes the persisted, principal-bound session grant
+   (AUTH-008, POST /api/auth/step-up), then true-loopback, then X-PW-StepUp.
 ```
 
 ## World read
@@ -33,16 +37,23 @@ UI-001/UI-012 → API-003 GET /api/status (AUTH-001)
 → world.summary() + registry.status_map() + registry.actors()
 ```
 
-## World brain write
+## World brain write (propose → owner approval → execute)
 
 ```text
 UI-008 Chat → API-010 POST /api/chat (AUTH-001)
 → CHAT-009/010 context (STORE-001, JOURNAL-002, CHAT-015 templates, CHAT-010 UI block)
 → CHAT-011 tool schemas → TOOL-000 loop (CHAT-004..008 provider)
-→ TOOL-024/025/026 propose_* → in-memory _proposals (tool_registry)
-→ TOOL-029 execute_approved_write (approved flag from loop)
+   (only read + proposal tools are exposed; execution tools are blocked, tool_registry.py:96-127)
+→ TOOL-024/025/026 propose_* → durable pending proposal in STORE (proposals.json, atomic)
+→ [model turn ends; the model CANNOT approve or execute]
+
+Owner approval path (human elevation):
+→ API POST /api/proposals/{id}/approve (require_step_up) → approve_proposal
+→ records approved_by/approved_at/approval_evidence → STORE (persisted) + JOURNAL-001 (approval)
+→ API POST /api/proposals/{id}/execute (require_step_up)
+→ TOOL-029 _execute_approved_write (checks status == "approved")
 → JOURNAL-001 journal.record(source=brain-tool) / WORLD-001/002 world mutation (MutationDenied gate)
-→ STORE-001 is NOT saved by the tool executor in this path (facts/intents mutate the in-memory per-request World)
+→ save_world persists STORE-001 world.json; Scheduler persists STORE-006; proposal status persisted
 ```
 
 ## Journal
@@ -72,7 +83,7 @@ UI-004 Projects → API-079 GET /api/projects/status (AUTH-001)
 ```text
 UI/API write → API-067 POST/PATCH/DELETE (step-up) → LIFE-004 Scheduler.add/toggle/remove → STORE-006 reminders.json
 read → API-067 GET → Scheduler.list_reminders (instance)
-parallel read → TOOL-019 inspect_reminders → direct STORE-006 file read (env PW_DATA_DIR)  [DUPLICATES row]
+read (chat) → TOOL-019 inspect_reminders → wired Scheduler (no parallel file read)
 fire → LIFE-004 scheduler thread check_and_fire → JOURNAL-001 observation
 ```
 

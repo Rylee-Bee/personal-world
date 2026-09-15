@@ -9,8 +9,12 @@ finish line). **Version 1, 2026-09-10.**
 > **Update (2026-09-14):** The architecture branch merged to main via
 > PR #42 and PR #43. Several findings from A0 below have been resolved:
 > the reminder scheduler (H6) is implemented and running, native providers
-> cover all capabilities, and 726 tests pass with 0 warnings. See
-> [FINAL-RECEIPT.md](FINAL-RECEIPT.md) for current state.
+> cover all capabilities, and 726 tests pass with 0 warnings.
+> **Current state now lives in [`.project/CURRENT.md`](../.project/CURRENT.md)**
+> (the canonical current-state pointer); the dated merge receipt moved to
+> [history/FINAL-RECEIPT.md](history/FINAL-RECEIPT.md). See
+> [repo/WIRING-READINESS.md](repo/WIRING-READINESS.md) for the verified
+> wiring map.
 
 This plan compares the real implementation against
 [`PERSONAL-WORLD-FINISH-LINE.md`](PERSONAL-WORLD-FINISH-LINE.md) and defines
