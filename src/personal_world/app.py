@@ -132,17 +132,23 @@ def load_world(path: Path) -> World:
 
 
 def _read_extra_config(config_dir: Path, key: str) -> dict:
-    """Read extra configuration from connections.json or connections.local.json."""
+    """Read extra configuration from connections.json or connections.local.json.
+
+    Resolves flat UI config into the nested shape native providers expect.
+    """
+    from .connection_manager import resolve_native_config
+    raw = {}
     for name in ("connections.local.json", "connections.json"):
         path = config_dir / name
         if path.exists():
             try:
                 data = json.loads(path.read_text())
                 if key in data:
-                    return data[key]
+                    raw = data[key]
+                    break
             except Exception:
                 pass
-    return {}
+    return resolve_native_config(raw, key)
 
 
 def build_registry(world: World, registry: Registry, config_dir: Path, vault=None, journal=None, data_dir: Path = None) -> Registry:

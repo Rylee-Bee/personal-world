@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   gap: 32px;
-  padding: var(--pw-spacing-page-top) var(--pw-spacing-page-side) var(--pw-spacing-page-bottom);
+  padding: 56px 64px 80px;
   min-height: 100vh;
   position: relative;
 }
@@ -72,7 +72,7 @@
   width: 56px;
   height: 68px;
   border: 3px solid var(--pw-color-text-secondary);
-  border-radius: var(--pw-radius-control) 8px 4px 4px;
+  border-radius: 8px 8px 4px 4px;
   position: relative;
 }
 
@@ -116,7 +116,7 @@
   align-items: center;
   justify-content: center;
   background: var(--pw-color-warmth-teal-wash);
-  border: 1px solid var(--pw-color-warmth-teal-glow);
+  border: 1px solid var(--pw-color-warmth-teal-18);
 }
 
 .pw-vault-lock-icon {
@@ -168,9 +168,9 @@
   align-items: center;
   gap: 8px;
   padding: 5px 14px 5px 10px;
-  border-radius: var(--pw-radius-pill);
+  border-radius: 999px;
   background: var(--pw-color-warmth-teal-wash);
-  border: 1px solid var(--pw-color-warmth-teal-veil);
+  border: 1px solid var(--pw-color-warmth-teal-14);
   box-shadow: var(--pw-color-warmth-vault-glow);
   width: fit-content;
   margin-top: 4px;
@@ -180,15 +180,15 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--pw-color-warmth-rose-bold);
+  background: var(--pw-color-warmth-rose-70);
 }
 
 .pw-vault-lock-dot--unlocked {
-  background: var(--pw-color-warmth-teal-bold);
+  background: var(--pw-color-warmth-teal-70);
 }
 
 .pw-vault-lock-label {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--pw-color-text-primary);
 }
@@ -200,7 +200,7 @@
 }
 
 .pw-vault-hint {
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   color: var(--pw-color-text-muted);
   margin: 0;
   line-height: 1.5;
@@ -228,12 +228,12 @@
 
 .pw-vault-unlock-input {
   min-height: var(--pw-target-minimum);
-  border-radius: var(--pw-radius-card);
+  border-radius: 12px;
   border: 1px solid var(--pw-color-vault-input-border);
   background: var(--pw-color-surface-elevated);
   padding: 0 16px;
   color: var(--pw-color-text-primary);
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   box-shadow: var(--pw-color-warmth-login-field-glow);
   outline: none;
 }
@@ -249,12 +249,12 @@
 
 .pw-vault-unlock-submit {
   min-height: var(--pw-target-minimum);
-  border-radius: var(--pw-radius-card);
+  border-radius: 12px;
   border: none;
   background: var(--pw-color-accent-primary);
   color: var(--pw-color-surface-canvas);
   font-weight: 500;
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   cursor: pointer;
   box-shadow: var(--pw-color-warmth-enter-glow);
 }
@@ -302,14 +302,14 @@
 
 .pw-vault-secrets-heading {
   font-family: var(--pw-typography-font-expressive);
-  font-size: var(--pw-typography-heading-section);
+  font-size: 1.25rem;
   font-weight: 400;
   color: var(--pw-color-text-primary);
   margin: 0;
 }
 
 .pw-vault-secrets-count {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-muted);
 }
 
@@ -344,7 +344,7 @@
   width: 32px;
   height: 32px;
   min-width: 32px;
-  border-radius: var(--pw-radius-control);
+  border-radius: 8px;
   background: var(--pw-color-warmth-teal-wash);
   border: 1px solid var(--pw-color-warmth-teal-touch);
   display: flex;
@@ -380,7 +380,7 @@
 }
 
 .pw-vault-secret-meta {
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
 }
 
@@ -391,10 +391,10 @@
   min-height: var(--pw-target-minimum);
   min-width: var(--pw-target-minimum);
   border-radius: 10px;
-  border: 1px solid var(--pw-color-warmth-rose-veil);
+  border: 1px solid var(--pw-color-warmth-rose-25);
   background: var(--pw-color-warmth-rose-wash);
   color: var(--pw-color-accent-secondary);
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   cursor: pointer;
   padding: 0 14px;
   white-space: nowrap;
@@ -426,7 +426,7 @@
 }
 
 .pw-vault-secrets-empty {
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   color: var(--pw-color-text-muted);
   margin: 0;
   line-height: 1.5;
@@ -441,7 +441,7 @@
 }
 
 .pw-vault-secrets-footer-text {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-muted);
   font-style: italic;
   margin: 0;
@@ -455,11 +455,11 @@
   gap: 8px;
   min-height: var(--pw-target-minimum);
   padding: 0 18px;
-  border-radius: var(--pw-radius-card);
+  border-radius: 12px;
   border: 1px solid var(--pw-color-border-strong);
   background: var(--pw-color-surface-elevated);
   color: var(--pw-color-text-secondary);
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -514,7 +514,7 @@
 
 .pw-vault-store-heading {
   font-family: var(--pw-typography-font-expressive);
-  font-size: var(--pw-typography-heading-section);
+  font-size: 1.25rem;
   font-weight: 400;
   color: var(--pw-color-text-primary);
   margin: 0;
@@ -545,7 +545,7 @@
 }
 
 .pw-vault-store-subtitle {
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   color: var(--pw-color-text-muted);
   margin: 0;
   line-height: 1.5;
@@ -564,7 +564,7 @@
 }
 
 .pw-vault-store-label {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--pw-color-text-secondary);
 }
@@ -574,7 +574,7 @@
   align-items: center;
   gap: 10px;
   min-height: var(--pw-target-minimum);
-  border-radius: var(--pw-radius-card);
+  border-radius: 12px;
   border: 1px solid var(--pw-color-vault-input-border);
   background: var(--pw-color-surface-elevated);
   padding: 0 14px;
@@ -601,7 +601,7 @@
   background: transparent;
   padding: 0;
   color: var(--pw-color-text-primary);
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   outline: none;
 }
 
@@ -613,14 +613,14 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
   margin: 0;
   line-height: 1.5;
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--pw-color-warmth-teal-ghost);
-  border: 1px solid var(--pw-color-warmth-teal-mist);
+  border: 1px solid var(--pw-color-warmth-teal-08);
 }
 
 .pw-vault-store-note-icon {
@@ -640,12 +640,12 @@
   gap: 8px;
   min-height: var(--pw-target-minimum);
   padding: 0 22px;
-  border-radius: var(--pw-radius-card);
+  border-radius: 12px;
   border: none;
   background: var(--pw-color-accent-primary);
   color: var(--pw-color-surface-canvas);
   font-weight: 500;
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   cursor: pointer;
   box-shadow: var(--pw-color-warmth-enter-glow);
 }
@@ -692,7 +692,7 @@
 /* ── Footer quote ── */
 .pw-vault-footer {
   text-align: center;
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-muted);
   font-style: italic;
   opacity: 0.7;
@@ -742,13 +742,13 @@
 }
 
 .pw-vault-error-message {
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   color: var(--pw-color-accent-secondary);
   margin: 0;
 }
 
 .pw-vault-error-reassurance {
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-muted);
   margin: 0;
 }

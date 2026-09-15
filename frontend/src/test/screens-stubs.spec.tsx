@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { MemoryRouter } from "react-router-dom";
 import { CompanionProvider } from "../lib/companion-context";
@@ -39,27 +39,64 @@ afterEach(() => {
 });
 
 describe("section stubs: honest EmptyStates (T13)", () => {
-  it("Interests names the discovery capability and the warm invitation", () => {
+  it("Interests names the discovery capability and the warm invitation", async () => {
     render(stubProviders(<InterestsScreen />));
     expect(screen.getByRole("heading", { name: "Interests" })).toBeTruthy();
-    expect(screen.getByText("This room is still empty.")).toBeTruthy();
-    expect(screen.getByText(/Interests helps your world learn what you care about/)).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText("This room is still empty.")).toBeTruthy();
+    });
+    expect(
+      screen.getByText(/Interests helps your world learn/)
+    ).toBeTruthy();
+    expect(screen.getByText("Start exploring \u2192")).toBeTruthy();
   });
 
-  it("Media names the media capability and the Settings knob", () => {
-    // MediaScreen renders its full view initially; the EmptyState appears
-    // after the status fetch completes. Test the initial render content.
+  it("Media names the media capability and the Settings knob", async () => {
     render(stubProviders(<MediaScreen />));
-    expect(screen.getByRole("heading", { name: "Media" })).toBeTruthy();
-    expect(screen.getByText("Your library, activity, and discoveries")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Media" })).toBeTruthy();
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText("Media gathers your movies, shows, and music from Plex, Sonarr, Radarr, and Lidarr.")
+      ).toBeTruthy();
+    });
+    expect(
+      screen.getByText(/media connection in Settings → Connections/)
+    ).toBeTruthy();
+    expect(screen.getByText("not configured")).toBeTruthy();
   });
 
   it("Projects names the source_control capability and its knob", async () => {
-    // ProjectsScreen renders its own UI with real repo data.
-    // In the initial state (before fetches), it shows the heading and subtitle.
+    // The screen fetches real repo status now (Projects workspace v1);
+    // a zero-provider deployment answers the honest not_configured
+    // envelope, which must render the same EmptyState + knob as before.
+    const fetchMock = vi.fn().mockImplementation((input: unknown) => {
+      const path = typeof input === "string" ? input : String(input);
+      if (path.includes("/api/source-control/status")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({
+            ok: false,
+            status: "not_configured",
+            warnings: ["no source_control search paths configured"],
+          }), { status: 200, headers: { "Content-Type": "application/json" } })
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify({ ok: true, data: null }), { headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
     render(stubProviders(<ProjectsScreen />));
-    expect(screen.getByRole("heading", { name: "Projects" })).toBeTruthy();
-    expect(screen.getByText("Your repositories, builds, and code.")).toBeTruthy();
+    expect(
+      await screen.findByText("Your repositories, builds, and code.")
+    ).toBeTruthy();
+    expect(
+      screen.getByText("No repositories found")
+    ).toBeTruthy();
+    expect(
+      screen.getByText("no source_control search paths configured")
+    ).toBeTruthy();
+    // No capability dependency: no chip rather than an invented status.
+    expect(document.querySelector(".chip")).toBeNull();
   });
 
   it("no fabricated content: no lists or demo rows in any stub", () => {
@@ -105,12 +142,14 @@ describe("section stubs: honest EmptyStates (T13)", () => {
     }
   });
 
-  it("statuses are canonical only (chip vocabulary from status.py)", () => {
-    // The InterestsScreen custom empty state doesn't use a chip.
-    // Verify the StatusChip component renders canonical statuses.
-    // This is now tested via the heading-hierarchy and screen-specific tests.
-    // Skipping per-screen chip check since screens were rewritten.
-    expect(true).toBe(true);
+  it("statuses are canonical only (chip vocabulary from status.py)", async () => {
+    const { container } = render(stubProviders(<MediaScreen />));
+    await waitFor(() => {
+      const chip = container.querySelector(".chip") as HTMLElement | null;
+      expect(chip).not.toBeNull();
+    });
+    const chip = container.querySelector(".chip") as HTMLElement | null;
+    expect(chip?.getAttribute("data-status")).toBe("not_configured");
   });
 
   it("axe: 0 violations (color-contrast off, jsdom limit)", async () => {
@@ -124,6 +163,9 @@ describe("section stubs: honest EmptyStates (T13)", () => {
       <ProjectsScreen key="p" />,
     ]) {
       const { container, unmount } = render(stubProviders(ui));
+      await waitFor(() => {
+        expect(container.querySelector("h1")).not.toBeNull();
+      });
       expect(await axeNoContrast(container)).toHaveNoViolations();
       unmount();
     }

@@ -10,7 +10,7 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 50% 45%, var(--pw-color-warmth-teal-whisper) 0%, var(--pw-color-warmth-rose-breath-light) 40%, transparent 70%);
+    radial-gradient(ellipse at 50% 45%, var(--pw-color-warmth-teal-whisper) 0%, var(--pw-color-warmth-rose-03) 40%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -29,8 +29,8 @@
   width: 420px;
   height: 500px;
   border-radius: 210px 210px 24px 24px;
-  border: 1px solid var(--pw-color-warmth-teal-veil);
-  background: var(--pw-color-warmth-teal-breath-light);
+  border: 1px solid var(--pw-color-warmth-teal-14);
+  background: var(--pw-color-warmth-teal-03);
   pointer-events: none;
   z-index: 0;
 }
@@ -39,7 +39,7 @@
   position: absolute;
   inset: -40px;
   border-radius: inherit;
-  background: radial-gradient(ellipse at 50% 30%, var(--pw-color-warmth-teal-mist) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 50% 30%, var(--pw-color-warmth-teal-08) 0%, transparent 60%);
 }
 
 .pw-interests-doorway--subtle {
@@ -50,7 +50,7 @@
   width: 680px;
   height: 100%;
   border-radius: 340px 340px 0 0;
-  border: 1px solid var(--pw-color-warmth-teal-whisper);
+  border: 1px solid var(--pw-color-warmth-teal-06);
   background: transparent;
   pointer-events: none;
   z-index: 0;
@@ -58,7 +58,7 @@
 
 .pw-interests-doorway--subtle .pw-interests-doorway-glow {
   inset: -30px;
-  background: radial-gradient(ellipse at 50% 15%, var(--pw-color-warmth-teal-ghost) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 50% 15%, var(--pw-color-warmth-teal-04) 0%, transparent 60%);
 }
 
 .pw-interests-motes--populated {
@@ -175,7 +175,7 @@
   position: absolute;
   top: 8px;
   right: 12px;
-  font-size: 1.125rem;
+  font-size: 18px;
   color: var(--pw-color-accent-gold);
   opacity: 0.5;
 }
@@ -194,7 +194,7 @@
 }
 
 .pw-interests-bookmark {
-  font-size: var(--pw-typography-heading-section);
+  font-size: 1.25rem;
   color: var(--pw-color-accent-primary);
   opacity: 0.7;
 }
@@ -263,7 +263,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: var(--pw-typography-text-detail);
+  font-size: 0.8125rem;
   color: var(--pw-color-text-muted);
   margin: 0;
   opacity: 0.7;
@@ -285,7 +285,7 @@
 }
 
 .pw-interests-setup-summary {
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   color: var(--pw-color-text-muted);
   cursor: pointer;
   padding: 12px 0;
@@ -315,7 +315,7 @@ details[open] > .pw-interests-setup-summary::before {
 
 /* ── Populated state ── */
 .pw-interests--populated {
-  padding: var(--pw-spacing-page-top) var(--pw-spacing-page-side) var(--pw-spacing-page-bottom);
+  padding: 48px 64px 80px;
   max-width: 760px;
   margin: 0 auto;
   position: relative;
@@ -326,7 +326,7 @@ details[open] > .pw-interests-setup-summary::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at 50% 30%, var(--pw-color-warmth-teal-ghost) 0%, var(--pw-color-warmth-rose-dust) 40%, transparent 70%);
+    radial-gradient(ellipse at 50% 30%, var(--pw-color-warmth-teal-04) 0%, var(--pw-color-warmth-rose-02) 40%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -339,7 +339,7 @@ details[open] > .pw-interests-setup-summary::before {
 .pw-interests-populated-header {
   margin-bottom: 40px;
   padding-bottom: 24px;
-  border-bottom: 1px solid var(--pw-color-warmth-teal-mist);
+  border-bottom: 1px solid var(--pw-color-warmth-teal-08);
 }
 
 .pw-interests-populated-subtitle {
@@ -352,7 +352,7 @@ details[open] > .pw-interests-setup-summary::before {
 .pw-interests-content {
   margin-bottom: 40px;
   padding: 24px 0;
-  border-bottom: 1px solid var(--pw-color-warmth-teal-whisper);
+  border-bottom: 1px solid var(--pw-color-warmth-teal-06);
 }
 
 .pw-interests-content:last-of-type {
@@ -391,16 +391,16 @@ details[open] > .pw-interests-setup-summary::before {
   align-items: center;
   gap: 6px;
   padding: 20px 28px;
-  background: linear-gradient(135deg, var(--pw-color-warmth-teal-whisper) 0%, var(--pw-color-warmth-rose-ghost) 100%);
-  border: 1px solid var(--pw-color-warmth-teal-breath);
-  border-radius: var(--pw-radius-panel);
+  background: linear-gradient(135deg, var(--pw-color-warmth-teal-06) 0%, var(--pw-color-warmth-rose-04) 100%);
+  border: 1px solid var(--pw-color-shell-nav-active-bg);
+  border-radius: 16px;
   min-width: 100px;
-  box-shadow: 0 0 24px var(--pw-color-warmth-teal-ghost);
+  box-shadow: 0 0 24px var(--pw-color-warmth-teal-04);
 }
 
 .pw-interests-status-card:hover {
-  background: linear-gradient(135deg, var(--pw-color-warmth-teal-wash) 0%, var(--pw-color-warmth-rose-whisper) 100%);
-  box-shadow: 0 0 32px var(--pw-color-warmth-teal-mist);
+  background: linear-gradient(135deg, var(--pw-color-warmth-teal-wash) 0%, var(--pw-color-warmth-rose-06) 100%);
+  box-shadow: 0 0 32px var(--pw-color-warmth-teal-08);
 }
 
 .pw-interests-status-count {
@@ -408,7 +408,7 @@ details[open] > .pw-interests-setup-summary::before {
   font-size: 1.75rem;
   color: var(--pw-color-accent-primary);
   line-height: 1;
-  text-shadow: 0 0 20px var(--pw-color-warmth-teal-halo);
+  text-shadow: 0 0 20px var(--pw-color-warmth-teal-20);
 }
 
 .pw-interests-status-label {
@@ -433,7 +433,7 @@ details[open] > .pw-interests-setup-summary::before {
   content: "";
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, var(--pw-color-warmth-teal-touch) 0%, transparent 80%);
+  background: linear-gradient(90deg, var(--pw-color-warmth-teal-12) 0%, transparent 80%);
 }
 
 .pw-interests-list {
@@ -450,17 +450,17 @@ details[open] > .pw-interests-setup-summary::before {
   align-items: center;
   gap: 12px;
   padding: 14px 18px;
-  background: linear-gradient(135deg, var(--pw-color-warmth-teal-ghost) 0%, var(--pw-color-warmth-rose-breath-light) 100%);
-  border: 1px solid var(--pw-color-warmth-teal-mist);
-  border-radius: var(--pw-radius-card);
-  font-size: var(--pw-typography-text-body);
-  box-shadow: 0 0 16px var(--pw-color-warmth-teal-dust);
+  background: linear-gradient(135deg, var(--pw-color-warmth-teal-04) 0%, var(--pw-color-warmth-rose-03) 100%);
+  border: 1px solid var(--pw-color-warmth-teal-08);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  box-shadow: 0 0 16px var(--pw-color-warmth-teal-02);
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .pw-interests-list-item:hover {
-  background: linear-gradient(135deg, var(--pw-color-warmth-teal-calm) 0%, var(--pw-color-warmth-rose-mist) 100%);
-  box-shadow: 0 0 24px var(--pw-color-warmth-teal-whisper);
+  background: linear-gradient(135deg, var(--pw-color-warmth-teal-07) 0%, var(--pw-color-warmth-rose-05) 100%);
+  box-shadow: 0 0 24px var(--pw-color-warmth-teal-06);
 }
 
 .pw-interests-list-item-name {
@@ -470,7 +470,7 @@ details[open] > .pw-interests-setup-summary::before {
 
 .pw-interests-list-item-meta {
   color: var(--pw-color-text-muted);
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -479,11 +479,11 @@ details[open] > .pw-interests-setup-summary::before {
 
 .pw-interests-list-item-tag {
   color: var(--pw-color-accent-primary);
-  font-size: var(--pw-typography-text-caption);
+  font-size: 0.75rem;
   padding: 3px 10px;
-  background: var(--pw-color-warmth-teal-mist);
-  border: 1px solid var(--pw-color-warmth-teal-breath);
-  border-radius: var(--pw-radius-card);
+  background: var(--pw-color-warmth-teal-08);
+  border: 1px solid var(--pw-color-shell-nav-active-bg);
+  border-radius: 12px;
 }
 
 .pw-interests-list-item-link {
@@ -501,9 +501,9 @@ details[open] > .pw-interests-setup-summary::before {
 .pw-interests-form {
   margin-top: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, var(--pw-color-warmth-teal-breath-light) 0%, var(--pw-color-warmth-rose-dust) 100%);
-  border: 1px solid var(--pw-color-warmth-teal-mist);
-  border-radius: var(--pw-radius-panel);
+  background: linear-gradient(135deg, var(--pw-color-warmth-teal-03) 0%, var(--pw-color-warmth-rose-02) 100%);
+  border: 1px solid var(--pw-color-warmth-teal-08);
+  border-radius: 14px;
 }
 
 .pw-interests-form-label {
@@ -525,11 +525,11 @@ details[open] > .pw-interests-setup-summary::before {
   min-width: 120px;
   height: var(--pw-target-minimum);
   padding: 0 14px;
-  background: var(--pw-color-warmth-canvas-shadow);
-  border: 1px solid var(--pw-color-warmth-teal-breath);
-  border-radius: var(--pw-radius-control);
+  background: var(--pw-color-surface-dark-40);
+  border: 1px solid var(--pw-color-shell-nav-active-bg);
+  border-radius: 10px;
   color: var(--pw-color-text-primary);
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   font-family: var(--pw-typography-font-interface);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -537,7 +537,7 @@ details[open] > .pw-interests-setup-summary::before {
 
 .pw-interests-input:focus {
   border-color: var(--pw-color-accent-primary);
-  box-shadow: 0 0 16px var(--pw-color-warmth-teal-breath);
+  box-shadow: 0 0 16px var(--pw-color-shell-nav-active-bg);
 }
 
 .pw-interests-input::placeholder {
@@ -552,11 +552,11 @@ details[open] > .pw-interests-setup-summary::before {
 .pw-interests-button {
   height: var(--pw-target-minimum);
   padding: 0 22px;
-  background: var(--pw-color-warmth-teal-breath);
-  border: 1px solid var(--pw-color-warmth-teal-halo);
-  border-radius: var(--pw-radius-card);
+  background: var(--pw-color-shell-nav-active-bg);
+  border: 1px solid var(--pw-color-warmth-teal-20);
+  border-radius: 12px;
   color: var(--pw-color-accent-primary);
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   font-family: var(--pw-typography-font-interface);
   cursor: pointer;
   white-space: nowrap;
@@ -564,8 +564,8 @@ details[open] > .pw-interests-setup-summary::before {
 }
 
 .pw-interests-button:hover {
-  background: var(--pw-color-warmth-teal-glow);
-  box-shadow: 0 0 20px var(--pw-color-warmth-teal-breath);
+  background: var(--pw-color-warmth-teal-18);
+  box-shadow: 0 0 20px var(--pw-color-shell-nav-active-bg);
 }
 
 .pw-interests-button:focus-visible {
@@ -595,11 +595,11 @@ details[open] > .pw-interests-setup-summary::before {
 .pw-interests-select {
   height: var(--pw-target-minimum);
   padding: 0 14px;
-  background: var(--pw-color-warmth-canvas-shadow);
-  border: 1px solid var(--pw-color-warmth-teal-breath);
-  border-radius: var(--pw-radius-control);
+  background: var(--pw-color-surface-dark-40);
+  border: 1px solid var(--pw-color-shell-nav-active-bg);
+  border-radius: 10px;
   color: var(--pw-color-text-primary);
-  font-size: var(--pw-typography-text-body);
+  font-size: 0.875rem;
   font-family: var(--pw-typography-font-interface);
   outline: none;
   cursor: pointer;

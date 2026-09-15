@@ -4,6 +4,7 @@ import {
   saveConnection,
   testConnection,
   fetchConnections,
+  fetchNativeConfig,
   type ProviderSchemaDef,
   type ConfigFieldDef,
   type ConnectionTestResult,
@@ -21,21 +22,21 @@ const mutedClasses = "text-[var(--pw-color-text-muted)]";
 const actionButtonClasses = [
   "inline-flex min-h-[var(--pw-target-minimum)] items-center justify-center gap-2",
   "rounded-lg border border-[var(--pw-color-border-subtle)] bg-transparent",
-  "px-2.5 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-primary)]",
+  "px-2.5 text-[11px] text-[var(--pw-color-text-primary)]",
   "hover:border-[var(--pw-color-accent-primary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const screenButtonClasses = [
   "inline-flex min-h-[var(--pw-target-minimum)] items-center justify-center",
-  "rounded-lg bg-[var(--pw-color-accent-primary)] px-3.5 font-medium",
-  "text-[var(--pw-color-accent-on-primary)]",
+  "rounded-lg bg-[var(--pw-color-accent-primary)] px-3.5 text-[12px] font-medium",
+  "text-[var(--pw-color-surface-canvas)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
 const textInputClasses = [
   "min-h-[var(--pw-target-minimum)] flex-1 rounded-lg border border-[var(--pw-color-border-subtle)]",
-  "bg-[var(--pw-color-surface-elevated)] px-3 text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)]",
+  "bg-[var(--pw-color-surface-elevated)] px-3 text-[11px] text-[var(--pw-color-text-secondary)]",
   "focus-visible:outline-[var(--pw-focus-ring)] focus-visible:outline-2 focus-visible:outline-offset-2",
 ].join(" ");
 
@@ -70,7 +71,7 @@ function CapabilityCard({
           <span className="text-xs font-semibold text-[var(--pw-color-text-primary)]">
             {cap.display_name}
           </span>
-          <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)] truncate">
+          <span className="text-[10px] text-[var(--pw-color-text-secondary)] truncate">
             {needsSetup ? cap.help_text : cap.description}
           </span>
         </span>
@@ -120,8 +121,17 @@ function ConfigForm({
   const [values, setValues] = useState<Record<string, string>>(initialValues || {});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  // Populate form when initialValues arrive (only if user hasn't edited)
+  useEffect(() => {
+    if (initialValues && !touched) {
+      setValues(initialValues);
+    }
+  }, [initialValues, touched]);
 
   const setField = (key: string, value: string) => {
+    setTouched(true);
     setValues((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
   };
@@ -195,10 +205,11 @@ function FieldInput({
         {field.required && <span className="text-[var(--pw-color-text-primary)]"> *</span>}
       </span>
       {field.description && (
-        <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)]">{field.description}</span>
+        <span className="text-[10px] text-[var(--pw-color-text-secondary)]">{field.description}</span>
       )}
       {field.type === "select" && field.options ? (
         <select
+          name={field.key}
           className={textInputClasses}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -211,18 +222,20 @@ function FieldInput({
       ) : isSecret && field.secret_ref ? (
         <span className="flex items-center gap-2">
           <input
+            name={field.key}
             className={textInputClasses}
             type="text"
             value={value}
             placeholder={field.placeholder || "Vault secret name"}
             onChange={(e) => onChange(e.target.value)}
           />
-          <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-accent-primary)] shrink-0">
+          <span className="text-[10px] text-[var(--pw-color-accent-primary)] shrink-0">
             Stored in Vault
           </span>
         </span>
       ) : (
         <input
+          name={field.key}
           className={textInputClasses}
           type={isSecret ? "password" : field.type === "url" ? "url" : "text"}
           value={value}
@@ -231,7 +244,7 @@ function FieldInput({
         />
       )}
       {error && (
-        <span role="alert" className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-primary)]">{error}</span>
+        <span role="alert" className="text-[10px] text-[var(--pw-color-text-primary)]">{error}</span>
       )}
     </label>
   );
@@ -255,7 +268,7 @@ function TestResult({ result }: { result: ConnectionTestResult | null }) {
       <span className="size-2 rounded-full" style={{ backgroundColor: info.color }} />
       <span className="text-xs text-[var(--pw-color-text-primary)]">{info.label}</span>
       {result.detail && (
-        <span className="text-[var(--pw-typography-text-caption)] text-[var(--pw-color-text-secondary)] truncate">{result.detail}</span>
+        <span className="text-[10px] text-[var(--pw-color-text-secondary)] truncate">{result.detail}</span>
       )}
     </div>
   );
@@ -279,11 +292,64 @@ function ConfigurePanel({
   );
   const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
   const [testing, setTesting] = useState(false);
+  const [existingConfig, setExistingConfig] = useState<Record<string, string> | undefined>(undefined);
 
   // Load existing config for this capability
   useEffect(() => {
-    fetchConnections().catch(() => {});
-  }, []);
+    let cancelled = false;
+
+    const loadConfig = async () => {
+      try {
+        if (cap.capability === "reasoning") {
+          // Reasoning: fetch from connections array
+          const conns = await fetchConnections();
+          if (cancelled) return;
+          const existing = conns.find(
+            (c) => (c as Record<string, unknown>).capability === cap.capability
+          ) as Record<string, unknown> | undefined;
+          if (existing) {
+            const init: Record<string, string> = {};
+            for (const [k, v] of Object.entries(existing)) {
+              if (k === "name" || k === "type" || k === "capability") continue;
+              if (typeof v === "string") init[k] = v;
+            }
+            setExistingConfig(init);
+            if (!selectedProvider && existing.type) {
+              const match = cap.providers.find(
+                (p) => p.adapter_type === existing.type
+              );
+              if (match) setSelectedProvider(match);
+            }
+          }
+        } else {
+          // Native capabilities: fetch from /api/connections/config/{key}
+          const nativeCfg = await fetchNativeConfig(cap.capability);
+          if (cancelled) return;
+          if (nativeCfg && Object.keys(nativeCfg).length > 0) {
+            const init: Record<string, string> = {};
+            for (const [k, v] of Object.entries(nativeCfg)) {
+              if (k.startsWith("_")) continue;
+              if (typeof v === "string") init[k] = v;
+            }
+            setExistingConfig(init);
+            // Auto-select matching provider
+            const adapter = nativeCfg._adapter;
+            if (!selectedProvider && typeof adapter === "string") {
+              const match = cap.providers.find(
+                (p) => p.adapter_type === adapter
+              );
+              if (match) setSelectedProvider(match);
+            }
+          }
+        }
+      } catch {
+        // Config not available — fresh form
+      }
+    };
+
+    loadConfig();
+    return () => { cancelled = true; };
+  }, [cap.capability]);
 
   const handleTest = async (values: Record<string, string>) => {
     if (!selectedProvider) return;
@@ -366,6 +432,7 @@ function ConfigurePanel({
         <>
           <ConfigForm
             provider={selectedProvider}
+            initialValues={existingConfig}
             onSave={handleSave}
             onCancel={onClose}
           />
@@ -410,8 +477,6 @@ export function ConnectionsPanel() {
     overview.refetch();
   };
 
-  // Overview is an array from the server; a non-array payload (or a
-  // mocked shape) must degrade to an empty list, never crash the panel.
   const caps = Array.isArray(overview.data) ? overview.data : [];
   const needsSetup = caps.filter((c) => !c.configured && c.needs_setup);
   const connected = caps.filter((c) => c.configured);
@@ -423,7 +488,7 @@ export function ConnectionsPanel() {
   return (
     <section aria-labelledby="connections-heading" data-testid="connections-panel" className={panelClasses}>
       <div className="flex flex-col gap-1.5">
-        <h2 id="connections-heading" className="text-[var(--pw-typography-heading-section)]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
+        <h2 id="connections-heading" className="text-[22px]" style={{ fontFamily: "var(--pw-typography-font-expressive)" }}>
           Connections & Providers
         </h2>
         <p className={`text-xs leading-relaxed ${mutedClasses}`}>
