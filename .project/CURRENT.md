@@ -23,6 +23,54 @@ merge-base`/`git rev-parse` against the real GitHub repository, `gh pr`
 CI status, `contractctl` tool output, live CDP-driven browser checks —
 not memory, not narrative).
 
+## 2026-09-15 finish-pass truth (read from the code, not from handoffs)
+
+**Baseline** (this checkout, `docs/current-product-refresh` @ `b91b8de`,
+`uv sync --extra test --extra crypto`): backend **824 pytest pass**,
+frontend **343 vitest pass**, `vite build` clean, Playwright **54/54 pass**
+(incl. axe with color-contrast ENABLED).
+
+**What Today actually implements:** Today — Quiet Day (17:481) only. The
+Workshop v3 Bad Day (17:2117) and Question (17:6245) states are **not
+rendered** by the current screen; `ShellModes.ts` records their modes but
+nothing switches to them. The first Figma-faithful build (`5837c99`, a
+1535-line Today with Bad Day + Question + Mobile) was replaced during the
+integration pass (`4b7ec55` / `565dcd1`, "wire all screens to real API")
+because it was not driven by real data. An unfinished attempt to re-add
+Bad Day + Question is preserved on branch `wip/today-workshop-v3-frames`
+(unmerged; it counts dirty/ahead/behind local git work as "attention").
+This is why `ROADMAP.md` no longer says "16/16 implemented".
+
+**Capability health:** Today classifies capabilities by the canonical
+`src/personal_world/status.py` vocabulary via
+`frontend/src/lib/capability-health.ts`. `not_configured`/`disabled` are
+quiet, `unavailable`/`stale` earn one calm sentence, and only
+`needs_attention`/`warning` count as attention. The provider-owned `ok`
+flag is inconsistent (some providers report `ok: true` with
+`status: not_configured`; others `ok: false`) and is deliberately not the
+decision input.
+
+**Vault:** fails closed without the `cryptography` extra — there is no
+base64 fallback. `/api/vault/status`, `Vault.audit()`, and the brain tool
+`inspect_vault_status` all report actual Fernet state.
+
+**Historical, not current:** `HANDOFF-UAT-ROUND-1.md` (2026-09-12; test
+counts 578/356/43 and its NEXT list) and the T10–T14 construction-era
+sections below describe a superseded state. `DECISIONS.md` remains the
+durable decisions record. The repository's local `main` ref may lag
+`origin/main` (44 commits behind at the time of this pass) — trust
+`origin/main`.
+
+**Known drift the next agent should resolve explicitly, not silently:**
+
+- `frontend/src/lib/project-status.ts` and `frontend/src/lib/observation-age.ts`
+  are unit-tested but imported by no production screen; `ProjectsScreen`
+  re-implements a smaller local `agentSyncStatus()`. The "Observed N
+  minutes ago" age line and the five estate-category sentences described
+  in older sections are **not** in the current UI.
+- A personal-world container already runs on this host at `:8000`
+  (the owner's instance); the repo's Playwright server uses `:8731`.
+
 ## Identity
 
 - **Product name:** Project Worlds (renamed from "Personal World"
