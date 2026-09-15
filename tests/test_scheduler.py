@@ -8,10 +8,12 @@ person thinks is happening and what is.
 """
 import sys
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from personal_world.envelope import Result  # noqa: E402
 from personal_world.journal import Journal  # noqa: E402
 from personal_world.model import JournalKind  # noqa: E402
 from personal_world.scheduler import Reminder, Scheduler  # noqa: E402
@@ -69,3 +71,89 @@ def test_background_thread_survives_a_failing_tick(tmp_path, monkeypatch):
     s._thread.join(timeout=1)
     assert calls["n"] >= 2, "thread must keep ticking after an exception"
     assert s._last_error and "bad tick" in s._last_error
+
+
+# ─ Notification delivery (issue #44): optional, injected, never fatal ──
+
+
+def _notifier(calls, ok=True, status="healthy", raises=False):
+    def send(title, body):
+        if raises:
+            raise RuntimeError("transport down")
+        calls.append((title, body))
+        return Result(ok=ok, status=status)
+
+    return send
+
+
+def test_due_reminder_delivers_through_the_injected_notifier(tmp_path):
+    calls = []
+    journal = Journal(tmp_path / "journal.ndjson")
+    s = Scheduler(
+        tmp_path / "reminders.json", journal=journal, notifier=_notifier(calls)
+    )
+    s.add(Reminder(id="r1", text="drink water"))
+    assert s.check_and_fire() == ["drink water"]
+    assert calls == [("Project Worlds reminder", "drink water")]
+    summary = list(journal.events())[0].summary
+    assert "Reminder: drink water" in summary
+    assert "notification sent (healthy)" in summary
+
+
+def test_delivery_failure_is_visible_and_never_kills_the_fire(tmp_path):
+    calls = []
+    journal = Journal(tmp_path / "journal.ndjson")
+    s = Scheduler(
+        tmp_path / "reminders.json",
+        journal=journal,
+        notifier=_notifier(calls, raises=True),
+    )
+    s.add(Reminder(id="r1", text="stretch"))
+    assert s.check_and_fire() == ["stretch"]  # the fire still counted
+    assert calls == []
+    assert "notification failed (RuntimeError)" in list(journal.events())[0].summary
+
+
+def test_unconfigured_delivery_is_reported_honestly(tmp_path):
+    journal = Journal(tmp_path / "journal.ndjson")
+    s = Scheduler(
+        tmp_path / "reminders.json",
+        journal=journal,
+        notifier=_notifier([], ok=False, status="not_configured"),
+    )
+    s.add(Reminder(id="breathe", text="breathe"))
+    s.check_and_fire()
+    summary = list(journal.events())[0].summary
+    assert "notification not delivered (not_configured)" in summary
+
+
+def test_no_notifier_keeps_the_plain_reminder_entry(tmp_path):
+    s, journal = _sched(tmp_path)
+    s.add(Reminder(id="r1", text="plain"))
+    assert s.check_and_fire() == ["plain"]
+    events = list(journal.events())
+    assert len(events) == 1
+    assert events[0].summary == "Reminder: plain"  # no delivery suffix
+
+
+# ── Missed-fire policy (issue #44): SKIP, never replay ──
+
+
+def test_missed_fire_is_skipped_not_replayed(tmp_path):
+    """A reminder fires only in its matching minute. An occurrence the
+    process was not running for is missed, never delivered late."""
+    s, journal = _sched(tmp_path)
+    now = datetime.now(UTC)
+    # Scheduled for an hour that is not the current one -> never matches.
+    s.add(
+        Reminder(
+            id="r1",
+            text="stale",
+            cron_hour=(now.hour + 1) % 24,
+            cron_minute=now.minute,
+        )
+    )
+    assert s.check_and_fire() == []
+    assert s.check_and_fire() == []  # still not replayed on a later tick
+    assert list(journal.events()) == []
+    assert s.list_reminders()[0].last_fired is None
