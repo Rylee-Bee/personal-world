@@ -1,17 +1,35 @@
 # Acknowledgement 🐝
 
-Project Worlds adopts
+Project Worlds **accepts and implements**
 [Play-Nice Contracts](https://github.com/Rylee-Bee/play-nice-contracts)
-as its shared cooperation and engineering constitution. This page
-acknowledges that and points back home.
+as its shared cooperation and engineering constitution. This page states
+that plainly and points back home.
 
-## What we adopted
+##  IMPLEMENTS PLAY NICE
 
-We adopt the canonical Play-Nice contracts at the revision pinned
-in `AGENT_CONTRACTS.md`. Our adoption is a downstream project
-claim, not certification by Rylee. See
-`https://github.com/Rylee-Bee/play-nice-contracts/docs/ACKNOWLEDGEMENT.md`
-for the canonical semantics of the "Implements Play Nice" stamp.
+This is a **downstream project claim** — not certification, audit, or
+endorsement by the Play Nice project. Canonical semantics of the stamp:
+[Play-Nice `docs/ACKNOWLEDGEMENT.md`](https://github.com/Rylee-Bee/play-nice-contracts/blob/main/docs/ACKNOWLEDGEMENT.md).
+
+- **Targets:** Play-Nice library **v0.6.0**, revision
+  `21b6841a50a1b0d459a760861385e99679852430` — the pin in
+  [`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml).
+- **Always-applicable contracts implemented:** `ask-for-help`,
+  `truth-and-evidence`, `human-reliability`, `recovery-and-reversibility`,
+  `provenance-and-audit`, `explicit-state`,
+  `stable-truth-replaceable-machinery`, `participation-and-contribution`,
+  `mutual-contribution`, `collaborative-good-faith` — plus the `triggers`
+  map for UI, API, CLI, security, agent, engineering, and design work.
+- **Evidence:** [`AGENT_CONTRACTS.md`](AGENT_CONTRACTS.md) is the contract
+  index that routes agents to these floors; [`docs/README.md`](docs/README.md)
+  names the canonical source per subject; the repository gates are
+  `tests/test_public_safety.py`, `tests/test_docs.py`, and
+  `personal-world framework validate`.
+- **Honest gap:** the library has since released **v0.7.0**, which adds
+  `assume-unknown` to the always-applicable set. Re-pinning this project
+  and re-attesting the changed bundle is a deliberate follow-up, not
+  silently claimed here — this page describes the revision the project
+  actually pins today.
 
 ## What we did NOT adopt
 
