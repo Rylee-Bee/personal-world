@@ -330,7 +330,7 @@ export default function TodayScreen() {
                   <div key={i} className="pw-today-entry">
                     <span className="pw-today-entry-sparkle" aria-hidden="true" />
                     <div className="pw-today-entry-copy">
-                      <p className="pw-today-entry-title">{entry.text.slice(0, 80)}</p>
+                      <p className="pw-today-entry-title">{(entry.summary || entry.text || "").slice(0, 80)}</p>
                       <p className="pw-today-entry-time">{dayLabel}</p>
                     </div>
                   </div>
