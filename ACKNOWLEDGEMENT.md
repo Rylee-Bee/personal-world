@@ -11,12 +11,12 @@ This is a **downstream project claim** — not certification, audit, or
 endorsement by the Play Nice project. Canonical semantics of the stamp:
 [Play-Nice `docs/ACKNOWLEDGEMENT.md`](https://github.com/Rylee-Bee/play-nice-contracts/blob/main/docs/ACKNOWLEDGEMENT.md).
 
-- **Targets:** Play-Nice library **v0.6.0**, revision
-  `21b6841a50a1b0d459a760861385e99679852430` — the pin in
+- **Targets:** Play-Nice library **v0.7.0**, revision
+  `79cadaceb8654279f7b2be135fcd67ba138728fb` — the pin in
   [`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml).
-- **Always-applicable contracts implemented:** `ask-for-help`,
-  `truth-and-evidence`, `human-reliability`, `recovery-and-reversibility`,
-  `provenance-and-audit`, `explicit-state`,
+- **Always-applicable contracts implemented:** `assume-unknown`,
+  `ask-for-help`, `truth-and-evidence`, `human-reliability`,
+  `recovery-and-reversibility`, `provenance-and-audit`, `explicit-state`,
   `stable-truth-replaceable-machinery`, `participation-and-contribution`,
   `mutual-contribution`, `collaborative-good-faith` — plus the `triggers`
   map for UI, API, CLI, security, agent, engineering, and design work.
@@ -25,11 +25,10 @@ endorsement by the Play Nice project. Canonical semantics of the stamp:
   names the canonical source per subject; the repository gates are
   `tests/test_public_safety.py`, `tests/test_docs.py`, and
   `personal-world framework validate`.
-- **Honest gap:** the library has since released **v0.7.0**, which adds
-  `assume-unknown` to the always-applicable set. Re-pinning this project
-  and re-attesting the changed bundle is a deliberate follow-up, not
-  silently claimed here — this page describes the revision the project
-  actually pins today.
+- **Gate:** re-attested 2026-09-15 with the real `contractctl` tool
+  against the pinned revision: `adopt` = ADOPTION VALID (always=11,
+  triggers=9); `commit` = CONTRACT COMMITMENT ACTIVE (bundle
+  `dovetail-harbor-prairie`, 11 contracts).
 
 ## What we did NOT adopt
 
