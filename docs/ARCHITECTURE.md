@@ -75,11 +75,12 @@ redisplaying stored values. Locking clears decrypted in-memory state.
 
 With the optional `cryptography` dependency installed
 (`uv sync --frozen --extra crypto`), storage uses Fernet and a
-PBKDF2-SHA256-derived key. The Dockerfile installs that extra. **Without that
-dependency, current code falls back to base64, not encryption.** The status API
-still returns `encrypted: true`; that field and the UI copy are not sufficient
-evidence of encrypted storage. This is an implementation gap, not an acceptable
-relaxation of the secret contract.
+PBKDF2-SHA256-derived key. The Dockerfile installs that extra. **Without
+that dependency the vault fails closed:** `unlock` returns `unavailable`,
+no secret is stored, and both `/api/vault/status` and `inspect_vault_status`
+report `encrypted: false` with the vault's own warning. There is no base64
+fallback. `_vault_status()` in `tool_registry.py` and `Vault.audit()` read
+real Fernet state; neither hardcodes the claim.
 
 `providers/adapters.py::SopsBroker` is a separate pipe-to-consumer path.
 `vault.py::SOPSVaultAdapter` is an implemented read-through adapter; writes and

@@ -477,6 +477,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     async def status() -> dict:
         world, registry = _state()
         s = world.summary()
+        # `capabilities` here is the provider capability-STATUS map (the
+        # product contract the React frontend reads). The world's own
+        # declared-capability COUNT travels as `declared_capabilities`
+        # from world.summary() — one key, one meaning.
         s["capabilities"] = registry.status_map()
         s["actors"] = [a.model_dump(mode="json") for a in registry.actors()]
         return {"ok": True, "status": "healthy", "data": s}
