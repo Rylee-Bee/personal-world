@@ -468,8 +468,8 @@ door.**
   the acknowledgement is journaled.
 - Credential changes require step-up: changing or resetting the local
   credential requires `auth_level 2` within TTL. The CLI reset path
-  (`personal-world auth reset --confirm`) requires host shell access and is
-  journaled.
+  (`personal-world auth reset --confirm` — proposed in this plan; not a
+  current command) requires host shell access and is journaled.
 - Local login grants `auth_level 1` only; step-up is still required for
   severe actions after break-glass.
 - Loopback is a bonus recovery path, never the only one (D2).
@@ -739,7 +739,8 @@ FTS, UI, adapter.
 - Memory: `data/memory/**/*.md` with front-matter (`id, created, updated,
   classification, tags, project, supersedes`) as canonical; editor in UI;
   exports respect classification.
-- Index: SQLite FTS5 under `data/index/`; `personal-world index rebuild`;
+- Index: SQLite FTS5 under `data/index/`; `personal-world index rebuild`
+  (proposed in this plan; not a current command);
   a `memory` capability contract so vector/semantic providers can enrich or
   replace acceleration (C-3).
 - Lore: `lore` capability with a `rylee_lore` adapter that reads `lore/*.md`
