@@ -129,6 +129,28 @@ function emit(root) {
     lines.push("");
   }
 
+  // ── Radius (shape scale) ────────────────────────────────────
+  const radius = sectionEntries(root.radius ?? {});
+  if (radius.length) {
+    lines.push(":root {");
+    for (const [name, value] of radius) {
+      lines.push(`  ${cssName("radius", name.replace(/^radius\./, ""))}: ${value};`);
+    }
+    lines.push("}");
+    lines.push("");
+  }
+
+  // ── Shadow (warmth glow scale) ──────────────────────────────
+  const shadow = sectionEntries(root.shadow ?? {});
+  if (shadow.length) {
+    lines.push(":root {");
+    for (const [name, value] of shadow) {
+      lines.push(`  ${cssName("shadow", name.replace(/^shadow\./, "").replace(/^warmth\./, "warmth-"))}: ${value};`);
+    }
+    lines.push("}");
+    lines.push("");
+  }
+
   // ── Focus ───────────────────────────────────────────────────
   const focus = sectionEntries(root.focus ?? {});
   for (const [name, value] of focus) {

@@ -14,6 +14,7 @@
   --pw-color-text-secondary: #a397b8;
   --pw-color-text-muted: #9185a8;
   --pw-color-accent-primary: #72b1b1;
+  --pw-color-accent-on-primary: #0a2830;
   --pw-color-accent-primary-bright: #a5dbd7;
   --pw-color-accent-secondary: #b57f8b;
   --pw-color-accent-gold: #e4c58d;
@@ -29,6 +30,31 @@
   --pw-color-warmth-rose-wash-soft: rgba(181,127,139,0.09);
   --pw-color-warmth-aura-rose: radial-gradient(circle, rgba(181,127,139,0.18) 0%, rgba(0,0,0,0) 70%);
   --pw-color-warmth-teal-reassure: rgba(114,177,177,0.05);
+  --pw-color-warmth-teal-dust: rgba(114,177,177,0.02);
+  --pw-color-warmth-teal-breath-light: rgba(114,177,177,0.03);
+  --pw-color-warmth-teal-ghost: rgba(114,177,177,0.04);
+  --pw-color-warmth-teal-whisper: rgba(114,177,177,0.06);
+  --pw-color-warmth-teal-calm: rgba(114,177,177,0.07);
+  --pw-color-warmth-teal-mist: rgba(114,177,177,0.08);
+  --pw-color-warmth-teal-breath: rgba(114,177,177,0.1);
+  --pw-color-warmth-teal-touch: rgba(114,177,177,0.12);
+  --pw-color-warmth-teal-veil: rgba(114,177,177,0.14);
+  --pw-color-warmth-teal-glow: rgba(114,177,177,0.18);
+  --pw-color-warmth-teal-halo: rgba(114,177,177,0.2);
+  --pw-color-warmth-teal-deep: rgba(114,177,177,0.3);
+  --pw-color-warmth-teal-bold: rgba(114,177,177,0.7);
+  --pw-color-warmth-rose-dust: rgba(181,127,139,0.02);
+  --pw-color-warmth-rose-breath-light: rgba(181,127,139,0.03);
+  --pw-color-warmth-rose-ghost: rgba(181,127,139,0.04);
+  --pw-color-warmth-rose-mist: rgba(181,127,139,0.05);
+  --pw-color-warmth-rose-whisper: rgba(181,127,139,0.06);
+  --pw-color-warmth-rose-breath: rgba(181,127,139,0.1);
+  --pw-color-warmth-rose-touch: rgba(181,127,139,0.15);
+  --pw-color-warmth-rose-halo: rgba(181,127,139,0.2);
+  --pw-color-warmth-rose-veil: rgba(181,127,139,0.25);
+  --pw-color-warmth-rose-deep: rgba(181,127,139,0.3);
+  --pw-color-warmth-rose-bold: rgba(181,127,139,0.7);
+  --pw-color-warmth-canvas-shadow: rgba(10,8,16,0.4);
   --pw-color-warmth-glass-pill: rgba(255,255,255,0.03);
   --pw-color-vault-panel-translucent: rgba(18,16,26,0.85);
   --pw-color-vault-store-panel: rgba(26,23,36,0.91);
@@ -45,16 +71,8 @@
   --pw-color-shell-sidebar-bg: #0e0b14;
   --pw-color-shell-sidebar-border: #292337;
   --pw-color-shell-nav-active-bg: rgba(114,177,177,0.1);
-  --pw-color-shell-world-identity-label: #6e647d;
+  --pw-color-shell-world-identity-label: #9185a8;
   --pw-color-shell-sidebar-organic-edge: linear-gradient(180deg, rgba(41,35,55,0.6) 0%, rgba(41,35,55,0.3) 40%, rgba(41,35,55,0.6) 100%);
-  --pw-color-warmth-teal-ghost: rgba(114,177,177,0.04);
-  --pw-color-warmth-teal-whisper: rgba(114,177,177,0.06);
-  --pw-color-warmth-teal-breath: rgba(114,177,177,0.1);
-  --pw-color-warmth-teal-touch: rgba(114,177,177,0.12);
-  --pw-color-warmth-rose-ghost: rgba(181,127,139,0.04);
-  --pw-color-warmth-rose-whisper: rgba(181,127,139,0.06);
-  --pw-color-warmth-rose-breath: rgba(181,127,139,0.1);
-  --pw-color-warmth-rose-touch: rgba(181,127,139,0.15);
 }
 
 [data-pw-theme="light"] {
@@ -77,6 +95,9 @@
   --pw-spacing-normal: 0.5rem;
   --pw-spacing-loose: 1rem;
   --pw-spacing-section: 1.5rem;
+  --pw-spacing-page-top: 48px;
+  --pw-spacing-page-side: 64px;
+  --pw-spacing-page-bottom: 80px;
 }
 
 :root {
@@ -95,10 +116,29 @@
   --pw-typography-font-interface: Instrument Sans;
   --pw-typography-text-scale-base: 1rem;
   --pw-typography-line-height-body: 1.6;
+  --pw-typography-heading-page: 2.25rem;
+  --pw-typography-heading-section: 1.25rem;
+  --pw-typography-heading-subsection: 1rem;
+  --pw-typography-text-body: 0.875rem;
+  --pw-typography-text-detail: 0.8125rem;
+  --pw-typography-text-caption: 0.75rem;
 }
 
-:root { --pw-focus-ring: 2px solid var(--pw-color-accent-primary); }
-:root { --pw-focus-ring-high-contrast: 2px solid var(--pw-color-text-primary); }
+:root {
+  --pw-radius-panel: 14px;
+  --pw-radius-card: 12px;
+  --pw-radius-control: 8px;
+  --pw-radius-pill: 999px;
+}
+
+:root {
+  --pw-shadow-warmth-glow-soft: 0 0 12px 1px rgba(114,177,177,0.12);
+  --pw-shadow-warmth-glow-medium: 0 0 24px 2px rgba(114,177,177,0.18);
+  --pw-shadow-warmth-glow-bright: 0 0 32px 3px rgba(114,177,177,0.25);
+}
+
+:root { --pw-focus-ring: 2px solid #72b1b1; }
+:root { --pw-focus-ring-high-contrast: 2px solid #FFFFFF; }
 
 :root { --pw-motion-duration: 0ms; --pw-motion-ambient: 0; }
 
