@@ -83,13 +83,6 @@ Relevant remaining work and partially implemented seams:
 - **Ingress rollups.** `providers/traefik_ingress.py` and
   `/api/ingress/rollups` now exist. Verify configured-provider behavior in the
   deployment; implementation alone is not operational acceptance.
-- **Project-estate vocabulary.** The shared helpers
-  `frontend/src/lib/project-status.ts` and
-  `frontend/src/lib/observation-age.ts` (estate categories; the
-  "Observed N minutes ago" age line for stale surfacing) are unit-tested
-  but imported by no production screen, and `ProjectsScreen`
-  re-implements a smaller local status chip. Re-wire or remove
-  deliberately ([issue #51](https://github.com/Rylee-Bee/personal-world/issues/51)).
 
 ## Exploring
 
@@ -109,6 +102,14 @@ Preserved ideas, no commitment:
   [issue #39](https://github.com/Rylee-Bee/personal-world/issues/39)).
 
 ## Completed
+
+- 2026-09-15: project-estate vocabulary re-wired. `ProjectsScreen` now
+  consumes the shared helpers (`frontend/src/lib/project-status.ts` +
+  `frontend/src/lib/observation-age.ts`) instead of a local duplicate:
+  a category-labelled status chip, one plain human sentence per project
+  (diverged / unpublished / local work / unknown), the dated "Observed …"
+  line, and technical guts behind one nested disclosure
+  ([issue #51](https://github.com/Rylee-Bee/personal-world/issues/51)).
 
 - 2026-09-15: finish pass + integration pass merged to `main`. PR #50
   (`8f061e7`) landed the D1–D3 auth/authority convergence
