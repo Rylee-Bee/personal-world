@@ -56,3 +56,12 @@
 
 Note: the SPA also boot-fetches API-030 (prefs) on every non-auth
 route before first paint (App.tsx bootstrap).
+
+Machine-readable form: `src/personal_world/api_manifest.py` is the single
+curated source for `{id, method, path, capability, kind, gate, auth}`,
+served as the `endpoints` key of `GET /api/manifest` and verified against
+the live route table on every request. Update that module — not this
+table — when a route's gate or kind changes; this file stays the prose
+view. It also reports `writes_without_elevation`, the writes the code
+gates with `require_auth` only, which is where this matrix's "Write"
+column and the enforced gate diverge (decision #17 wants that visible).

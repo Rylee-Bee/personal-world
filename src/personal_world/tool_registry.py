@@ -21,6 +21,7 @@ from .envelope import Result, fail, ok
 @dataclass
 class Tool:
     """A capability the brain can invoke."""
+
     id: str
     capability: str
     operation: str
@@ -84,9 +85,7 @@ class ToolRegistry:
         return [
             t.to_ollama_schema()
             for t in self._tools.values()
-            if t.handler is not None and (
-                t.read_write == "read" or t.requires_approval
-            )
+            if t.handler is not None and (t.read_write == "read" or t.requires_approval)
         ]
 
     def list_metadata(self) -> list[dict[str, Any]]:
@@ -106,7 +105,9 @@ class ToolRegistry:
         if tool is None:
             return fail("not_found", warnings=[f"tool '{tool_id}' not registered"])
         if tool.handler is None:
-            return fail("not_implemented", warnings=[f"tool '{tool_id}' has no handler"])
+            return fail(
+                "not_implemented", warnings=[f"tool '{tool_id}' has no handler"]
+            )
         # Proposal tools (requires_approval=True) are safe for the
         # brain to call — they create pending state, nothing more.
         # Execution write tools (requires_approval=False) are blocked.
@@ -139,6 +140,8 @@ def build_default_tools(
     world_path: Any = None,
     scheduler: Any = None,
     memory_provider: Any = None,
+    proposal_store: Any = None,
+    discovery_config_path: Any = None,
 ) -> ToolRegistry:
     """Build the default tool set from existing domain objects.
 
@@ -148,404 +151,511 @@ def build_default_tools(
     write tools answer honestly that persistence is not wired.
     ``connection_manager`` (origin/main) routes media engine
     construction through merged config.
+    ``proposal_store`` / ``discovery_config_path`` scope proposals and
+    interests to the CALLING principal's own tree (multi-user decision
+    #13); omitted, they stay on the instance-global store/config.
     """
     tools = ToolRegistry()
 
     # ── World ──
 
-    tools.register(Tool(
-        id="inspect_world_status",
-        capability="world",
-        operation="status",
-        description="Inspect world status: facts, intents, policies, lore, capabilities.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: ok("healthy", data=world.summary()),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_world_status",
+            capability="world",
+            operation="status",
+            description="Inspect world status: facts, intents, policies, lore, capabilities.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: ok("healthy", data=world.summary()),
+        )
+    )
 
-    tools.register(Tool(
-        id="inspect_manifest",
-        capability="manifest",
-        operation="read",
-        description="Read the capability manifest: what capabilities exist, which are native, which have providers.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: ok("healthy", data=registry.manifest()),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_manifest",
+            capability="manifest",
+            operation="read",
+            description="Read the capability manifest: what capabilities exist, which are native, which have providers.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: ok("healthy", data=registry.manifest()),
+        )
+    )
 
     # ── Journal ──
 
-    tools.register(Tool(
-        id="read_journal",
-        capability="journal",
-        operation="read",
-        description="Read recent journal entries. Returns entries newest-first.",
-        read_write="read",
-        parameters={
-            "type": "object",
-            "properties": {
-                "count": {"type": "integer", "description": "Number of entries to read (default 10)"}
+    tools.register(
+        Tool(
+            id="read_journal",
+            capability="journal",
+            operation="read",
+            description="Read recent journal entries. Returns entries newest-first.",
+            read_write="read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "description": "Number of entries to read (default 10)",
+                    }
+                },
+                "required": [],
             },
-            "required": [],
-        },
-        handler=lambda count=10: _read_journal(journal, count),
-    ))
+            handler=lambda count=10: _read_journal(journal, count),
+        )
+    )
 
-    tools.register(Tool(
-        id="search_journal",
-        capability="journal",
-        operation="search",
-        description="Search journal entries by text query. Returns matching entries.",
-        read_write="read",
-        parameters={
-            "type": "object",
-            "properties": {
-                "query": {"type": "string", "description": "Text to search for in journal entries"}
+    tools.register(
+        Tool(
+            id="search_journal",
+            capability="journal",
+            operation="search",
+            description="Search journal entries by text query. Returns matching entries.",
+            read_write="read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Text to search for in journal entries",
+                    }
+                },
+                "required": ["query"],
             },
-            "required": ["query"],
-        },
-        handler=lambda query: _search_journal(journal, query, memory_provider),
-    ))
+            handler=lambda query: _search_journal(journal, query, memory_provider),
+        )
+    )
 
     # ── Source Control ──
 
-    tools.register(Tool(
-        id="inspect_source_control",
-        capability="source_control",
-        operation="status",
-        description="Inspect source control: list repositories with branch, revision, dirty state, ahead/behind.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _source_control_status(source_control, config_dir),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_source_control",
+            capability="source_control",
+            operation="status",
+            description="Inspect source control: list repositories with branch, revision, dirty state, ahead/behind.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _source_control_status(source_control, config_dir),
+        )
+    )
 
-    tools.register(Tool(
-        id="inspect_source_control_history",
-        capability="source_control",
-        operation="history",
-        description="Read recent commit history for a repository.",
-        read_write="read",
-        parameters={
-            "type": "object",
-            "properties": {
-                "repo": {"type": "string", "description": "Repository name or path"},
-                "limit": {"type": "integer", "description": "Number of commits (default 10)"}
+    tools.register(
+        Tool(
+            id="inspect_source_control_history",
+            capability="source_control",
+            operation="history",
+            description="Read recent commit history for a repository.",
+            read_write="read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "repo": {
+                        "type": "string",
+                        "description": "Repository name or path",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Number of commits (default 10)",
+                    },
+                },
+                "required": ["repo"],
             },
-            "required": ["repo"],
-        },
-        handler=lambda repo, limit=10: _source_control_history(source_control, repo, limit),
-    ))
+            handler=lambda repo, limit=10: _source_control_history(
+                source_control, repo, limit
+            ),
+        )
+    )
 
-    tools.register(Tool(
-        id="inspect_projects",
-        capability="projects",
-        operation="status",
-        description="Inspect agent-sync project estate: settled, local work, unpublished, diverged.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _projects_status(),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_projects",
+            capability="projects",
+            operation="status",
+            description="Inspect agent-sync project estate: settled, local work, unpublished, diverged.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _projects_status(),
+        )
+    )
 
     # ── Lab ──
 
-    tools.register(Tool(
-        id="inspect_lab_inventory",
-        capability="lab",
-        operation="inventory",
-        description="Inspect native lab service inventory: list services with type and status.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _lab_inventory(),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_lab_inventory",
+            capability="lab",
+            operation="inventory",
+            description="Inspect native lab service inventory: list services with type and status.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _lab_inventory(),
+        )
+    )
 
-    tools.register(Tool(
-        id="inspect_lab_health",
-        capability="lab",
-        operation="health",
-        description="Inspect native lab health: summary of healthy/unhealthy/unknown services.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _lab_health(),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_lab_health",
+            capability="lab",
+            operation="health",
+            description="Inspect native lab health: summary of healthy/unhealthy/unknown services.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _lab_health(),
+        )
+    )
 
-    tools.register(Tool(
-        id="inspect_lab_resources",
-        capability="lab",
-        operation="resources",
-        description="Inspect system resources: CPU, memory, disk.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _lab_resources(),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_lab_resources",
+            capability="lab",
+            operation="resources",
+            description="Inspect system resources: CPU, memory, disk.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _lab_resources(),
+        )
+    )
 
-    tools.register(Tool(
-        id="inspect_lab_settings",
-        capability="lab",
-        operation="settings",
-        description="Inspect native lab settings: services with desired state defined.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _lab_settings(),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_lab_settings",
+            capability="lab",
+            operation="settings",
+            description="Inspect native lab settings: services with desired state defined.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _lab_settings(),
+        )
+    )
 
     # ── Reconciler ──
 
-    tools.register(Tool(
-        id="inspect_reconciler_status",
-        capability="reconciler",
-        operation="status",
-        description="Inspect settings reconciler: which services have desired state defined.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _reconciler_status(),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_reconciler_status",
+            capability="reconciler",
+            operation="status",
+            description="Inspect settings reconciler: which services have desired state defined.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _reconciler_status(),
+        )
+    )
 
-    tools.register(Tool(
-        id="inspect_reconciler_diff",
-        capability="reconciler",
-        operation="diff",
-        description="Inspect desired-vs-observed diff for a service. Shows what differs from what was asked for.",
-        read_write="read",
-        parameters={
-            "type": "object",
-            "properties": {
-                "service": {"type": "string", "description": "Service name to inspect drift for"}
+    tools.register(
+        Tool(
+            id="inspect_reconciler_diff",
+            capability="reconciler",
+            operation="diff",
+            description="Inspect desired-vs-observed diff for a service. Shows what differs from what was asked for.",
+            read_write="read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "service": {
+                        "type": "string",
+                        "description": "Service name to inspect drift for",
+                    }
+                },
+                "required": ["service"],
             },
-            "required": ["service"],
-        },
-        handler=lambda service: _reconciler_diff(service),
-    ))
+            handler=lambda service: _reconciler_diff(service),
+        )
+    )
 
     # ── Discovery ──
 
-    tools.register(Tool(
-        id="inspect_discovery_status",
-        capability="discovery",
-        operation="status",
-        description="Inspect discovery engine: sources, interests, discovered items count.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _discovery_status(),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_discovery_status",
+            capability="discovery",
+            operation="status",
+            description="Inspect discovery engine: sources, interests, discovered items count.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _discovery_status(discovery_config_path),
+        )
+    )
 
-    tools.register(Tool(
-        id="list_discovery_sources",
-        capability="discovery",
-        operation="sources",
-        description="List configured discovery sources (RSS feeds, APIs).",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _discovery_sources(),
-    ))
+    tools.register(
+        Tool(
+            id="list_discovery_sources",
+            capability="discovery",
+            operation="sources",
+            description="List configured discovery sources (RSS feeds, APIs).",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _discovery_sources(discovery_config_path),
+        )
+    )
 
-    tools.register(Tool(
-        id="list_interests",
-        capability="discovery",
-        operation="interests",
-        description="List configured interests.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _discovery_interests(),
-    ))
+    tools.register(
+        Tool(
+            id="list_interests",
+            capability="discovery",
+            operation="interests",
+            description="List configured interests.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _discovery_interests(discovery_config_path),
+        )
+    )
 
-    tools.register(Tool(
-        id="run_discovery",
-        capability="discovery",
-        operation="discover",
-        description="Run discovery: fetch new content from configured sources.",
-        read_write="read",
-        parameters={
-            "type": "object",
-            "properties": {
-                "source": {"type": "string", "description": "Optional source ID to discover from (default: all)"}
+    tools.register(
+        Tool(
+            id="run_discovery",
+            capability="discovery",
+            operation="discover",
+            description="Run discovery: fetch new content from configured sources.",
+            read_write="read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "description": "Optional source ID to discover from (default: all)",
+                    }
+                },
+                "required": [],
             },
-            "required": [],
-        },
-        handler=lambda source=None: _discovery_discover(source),
-    ))
+            handler=lambda source=None: _discovery_discover(
+                source, discovery_config_path
+            ),
+        )
+    )
 
     # ── Vault ──
 
-    tools.register(Tool(
-        id="inspect_vault_status",
-        capability="vault",
-        operation="status",
-        description="Inspect vault lock state. Never returns secret values.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _vault_status(vault),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_vault_status",
+            capability="vault",
+            operation="status",
+            description="Inspect vault lock state. Never returns secret values.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _vault_status(vault),
+        )
+    )
 
     # ── Reminders ──
 
-    tools.register(Tool(
-        id="inspect_reminders",
-        capability="reminders",
-        operation="list",
-        description="List active reminders.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _reminders(scheduler),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_reminders",
+            capability="reminders",
+            operation="list",
+            description="List active reminders.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _reminders(scheduler),
+        )
+    )
 
     # ── Media ──
 
-    tools.register(Tool(
-        id="inspect_media_status",
-        capability="media",
-        operation="status",
-        description="Inspect media providers: Plex, Sonarr, Radarr, Lidarr status.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _media_status(connection_manager),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_media_status",
+            capability="media",
+            operation="status",
+            description="Inspect media providers: Plex, Sonarr, Radarr, Lidarr status.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _media_status(connection_manager),
+        )
+    )
 
-    tools.register(Tool(
-        id="inspect_media_recent",
-        capability="media",
-        operation="recent",
-        description="Recently added media: new movies, episodes, albums.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _media_recent(connection_manager),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_media_recent",
+            capability="media",
+            operation="recent",
+            description="Recently added media: new movies, episodes, albums.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _media_recent(connection_manager),
+        )
+    )
 
-    tools.register(Tool(
-        id="inspect_media_activity",
-        capability="media",
-        operation="activity",
-        description="Media queue: downloading, queued, failed items.",
-        read_write="read",
-        parameters={"type": "object", "properties": {}, "required": []},
-        handler=lambda: _media_activity(connection_manager),
-    ))
+    tools.register(
+        Tool(
+            id="inspect_media_activity",
+            capability="media",
+            operation="activity",
+            description="Media queue: downloading, queued, failed items.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _media_activity(connection_manager),
+        )
+    )
 
-    tools.register(Tool(
-        id="search_media",
-        capability="media",
-        operation="search",
-        description="Search for media by title across all providers.",
-        read_write="read",
-        parameters={
-            "type": "object",
-            "properties": {
-                "query": {"type": "string", "description": "Title to search for"}
+    tools.register(
+        Tool(
+            id="search_media",
+            capability="media",
+            operation="search",
+            description="Search for media by title across all providers.",
+            read_write="read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Title to search for"}
+                },
+                "required": ["query"],
             },
-            "required": ["query"],
-        },
-        handler=lambda query: _media_search(query, connection_manager),
-    ))
+            handler=lambda query: _media_search(query, connection_manager),
+        )
+    )
 
     # ── Write tools (proposal-based) ──
 
-    tools.register(Tool(
-        id="propose_journal_entry",
-        capability="journal",
-        operation="write",
-        description="Propose writing a journal entry. Returns a proposal for owner approval before writing.",
-        read_write="write",
-        requires_approval=True,
-        parameters={
-            "type": "object",
-            "properties": {
-                "text": {"type": "string", "description": "Journal entry text (1-2000 chars)"}
+    tools.register(
+        Tool(
+            id="propose_journal_entry",
+            capability="journal",
+            operation="write",
+            description="Propose writing a journal entry. Returns a proposal for owner approval before writing.",
+            read_write="write",
+            requires_approval=True,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "Journal entry text (1-2000 chars)",
+                    }
+                },
+                "required": ["text"],
             },
-            "required": ["text"],
-        },
-        handler=lambda text: _propose_journal_write(journal, text),
-    ))
+            handler=lambda text: _propose_journal_write(
+                journal, text, store=proposal_store
+            ),
+        )
+    )
 
-    tools.register(Tool(
-        id="propose_world_intent",
-        capability="world",
-        operation="write",
-        description="Propose setting a world intent. Returns a proposal for owner approval.",
-        read_write="write",
-        requires_approval=True,
-        parameters={
-            "type": "object",
-            "properties": {
-                "key": {"type": "string", "description": "Intent key"},
-                "intent": {"type": "string", "description": "What the owner wants true"}
+    tools.register(
+        Tool(
+            id="propose_world_intent",
+            capability="world",
+            operation="write",
+            description="Propose setting a world intent. Returns a proposal for owner approval.",
+            read_write="write",
+            requires_approval=True,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string", "description": "Intent key"},
+                    "intent": {
+                        "type": "string",
+                        "description": "What the owner wants true",
+                    },
+                },
+                "required": ["key", "intent"],
             },
-            "required": ["key", "intent"],
-        },
-        handler=lambda key, intent: _propose_world_intent(journal, world, key, intent),
-    ))
+            handler=lambda key, intent: _propose_world_intent(
+                journal, world, key, intent, store=proposal_store
+            ),
+        )
+    )
 
-    tools.register(Tool(
-        id="propose_world_fact",
-        capability="world",
-        operation="write",
-        description="Propose recording a world fact. Returns a proposal for owner approval.",
-        read_write="write",
-        requires_approval=True,
-        parameters={
-            "type": "object",
-            "properties": {
-                "key": {"type": "string", "description": "Fact key"},
-                "fact": {"type": "string", "description": "Observed reality"}
+    tools.register(
+        Tool(
+            id="propose_world_fact",
+            capability="world",
+            operation="write",
+            description="Propose recording a world fact. Returns a proposal for owner approval.",
+            read_write="write",
+            requires_approval=True,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string", "description": "Fact key"},
+                    "fact": {"type": "string", "description": "Observed reality"},
+                },
+                "required": ["key", "fact"],
             },
-            "required": ["key", "fact"],
-        },
-        handler=lambda key, fact: _propose_world_fact(journal, world, key, fact),
-    ))
+            handler=lambda key, fact: _propose_world_fact(
+                journal, world, key, fact, store=proposal_store
+            ),
+        )
+    )
 
-    tools.register(Tool(
-        id="propose_reminder",
-        capability="reminders",
-        operation="write",
-        description="Propose adding a reminder. Returns a proposal for owner approval.",
-        read_write="write",
-        requires_approval=True,
-        parameters={
-            "type": "object",
-            "properties": {
-                "text": {"type": "string", "description": "Reminder text"}
+    tools.register(
+        Tool(
+            id="propose_reminder",
+            capability="reminders",
+            operation="write",
+            description="Propose adding a reminder. Returns a proposal for owner approval.",
+            read_write="write",
+            requires_approval=True,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "Reminder text"}
+                },
+                "required": ["text"],
             },
-            "required": ["text"],
-        },
-        handler=lambda text: _propose_reminder(journal, text),
-    ))
+            handler=lambda text: _propose_reminder(journal, text, store=proposal_store),
+        )
+    )
 
-    tools.register(Tool(
-        id="propose_reconciler_apply",
-        capability="reconciler",
-        operation="write",
-        description="Propose applying reconciliation for a service. Returns a proposal for owner approval.",
-        read_write="write",
-        requires_approval=True,
-        parameters={
-            "type": "object",
-            "properties": {
-                "service": {"type": "string", "description": "Service name to reconcile"}
+    tools.register(
+        Tool(
+            id="propose_reconciler_apply",
+            capability="reconciler",
+            operation="write",
+            description="Propose applying reconciliation for a service. Returns a proposal for owner approval.",
+            read_write="write",
+            requires_approval=True,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "service": {
+                        "type": "string",
+                        "description": "Service name to reconcile",
+                    }
+                },
+                "required": ["service"],
             },
-            "required": ["service"],
-        },
-        handler=lambda service: _propose_reconciler_apply(journal, service),
-    ))
+            handler=lambda service: _propose_reconciler_apply(
+                journal, service, store=proposal_store
+            ),
+        )
+    )
 
     # ── Execute approved writes ──
 
-    tools.register(Tool(
-        id="execute_approved_write",
-        capability="write",
-        operation="execute",
-        description="Execute an approved write proposal. Only call after owner approval.",
-        read_write="write",
-        requires_step_up=True,
-        parameters={
-            "type": "object",
-            "properties": {
-                "proposal_id": {"type": "string", "description": "The approved proposal ID"},
+    tools.register(
+        Tool(
+            id="execute_approved_write",
+            capability="write",
+            operation="execute",
+            description="Execute an approved write proposal. Only call after owner approval.",
+            read_write="write",
+            requires_step_up=True,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "proposal_id": {
+                        "type": "string",
+                        "description": "The approved proposal ID",
+                    },
+                },
+                "required": ["proposal_id"],
             },
-            "required": ["proposal_id"],
-        },
-        handler=lambda proposal_id: _execute_approved_write(
-            journal, world, proposal_id,
-            world_path=world_path, scheduler=scheduler,
-        ),
-    ))
+            handler=lambda proposal_id: _execute_approved_write(
+                journal,
+                world,
+                proposal_id,
+                world_path=world_path,
+                scheduler=scheduler,
+                store=proposal_store,
+            ),
+        )
+    )
 
     return tools
 
@@ -571,6 +681,417 @@ _proposal_journal: Any = None
 _proposal_lock = threading.RLock()
 
 
+class ProposalStore:
+    """One durable proposal collection bound to a JSON file.
+
+    Per-user namespacing (decision #13): a multi-user instance keeps one
+    store per principal tree (data/users/<id>/proposals.json), while the
+    single-user default keeps the legacy instance-global file
+    (<data_dir>/proposals.json). Trust semantics are identical in every
+    store — creation is pending-only, approval records server-held
+    evidence, execution requires that evidence — and stores never see
+    each other's proposals.
+    """
+
+    def __init__(self, path: Any = None, journal: Any = None) -> None:
+        self.path = Path(path) if path is not None else None
+        self.journal = journal
+        self.proposals: dict[str, dict[str, Any]] = {}
+        self.counter = 0
+        self.lock = threading.RLock()
+        self._load()
+
+    def _load(self) -> None:
+        """(Re)read the backing file. The proposals dict object is never
+        rebound, so holders of a reference always observe live state."""
+        with self.lock:
+            self.proposals.clear()
+            if self.path is not None and self.path.is_file():
+                try:
+                    data = json.loads(self.path.read_text(encoding="utf-8"))
+                except Exception:
+                    data = {}
+                if isinstance(data, dict):
+                    self.proposals.update(data)
+            highest = 0
+            for pid in self.proposals:
+                try:
+                    highest = max(highest, int(str(pid).rsplit("-", 1)[-1]))
+                except (ValueError, IndexError):
+                    continue
+            self.counter = highest
+
+    def _persist_locked(self) -> None:
+        """Atomic write of the store (caller holds the lock)."""
+        if self.path is None:
+            return
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.path.with_suffix(self.path.suffix + ".tmp")
+            tmp.write_text(json.dumps(self.proposals, indent=2), encoding="utf-8")
+            os.replace(tmp, self.path)
+        except OSError:
+            # Persistence failure must never fake a successful approval:
+            # the in-memory state stands and the next write retries.
+            pass
+
+    def _journal_event(self, journal: Any, kind: str, summary: str) -> None:
+        target = journal if journal is not None else self.journal
+        if target is None:
+            return
+        try:
+            target.record(kind, summary, source="brain-proposal")
+        except Exception:
+            pass
+
+    def propose(
+        self, proposal: dict[str, Any], journal: Any, description: str
+    ) -> Result:
+        """Record a pending proposal. Server-held state only: creation
+        journals NOTHING (the proposal store itself is the audit of
+        preparation — ``list()``/``get()`` expose id, type, and status;
+        approval/rejection evidence is recorded at the trust boundary,
+        never by the model loop)."""
+        with self.lock:
+            self.counter += 1
+            pid = f"proposal-{self.counter}"
+            proposal["id"] = pid
+            proposal["status"] = "pending"
+            proposal["created_at"] = time.time()
+            self.proposals[pid] = proposal
+            self._persist_locked()
+        return ok(
+            "healthy",
+            data={
+                "proposal_id": pid,
+                "type": proposal["type"],
+                "status": "pending",
+                "description": description,
+                "requires_approval": True,
+            },
+        )
+
+    def get(self, proposal_id: str) -> dict[str, Any] | None:
+        """Get a single proposal by ID."""
+        with self.lock:
+            p = self.proposals.get(proposal_id)
+            if p is None:
+                return None
+            return {"proposal_id": proposal_id, **p}
+
+    def list(self, status: str | None = None) -> list[dict[str, Any]]:
+        """List proposals, optionally filtered by status."""
+        with self.lock:
+            results = []
+            for pid, p in self.proposals.items():
+                if status is None or p.get("status") == status:
+                    results.append({"proposal_id": pid, **p})
+            return results
+
+    def approve(self, proposal_id: str, actor: str, journal: Any = None) -> Result:
+        """Approve a pending proposal. Called through the trusted owner
+        path.
+
+        Records actor, time, and server-held approval evidence, then
+        persists them. This is the ONLY way a proposal becomes approved
+        — the model cannot do this, and no model-supplied boolean can
+        forge the evidence. The trusted approval is journalled when a
+        journal is available.
+        """
+        with self.lock:
+            proposal = self.proposals.get(proposal_id)
+            if not proposal:
+                return fail(
+                    "not_found", warnings=[f"proposal '{proposal_id}' not found"]
+                )
+            if proposal["status"] != "pending":
+                return fail(
+                    "invalid_state",
+                    warnings=[f"proposal is {proposal['status']}, not pending"],
+                )
+            approved_at = time.time()
+            proposal["status"] = "approved"
+            proposal["approved_by"] = actor
+            proposal["approved_at"] = approved_at
+            proposal["approval_evidence"] = {
+                "method": "trusted-api-approval",
+                "approved_by": actor,
+                "approved_at": approved_at,
+            }
+            self._persist_locked()
+        self._journal_event(
+            journal,
+            "approval",
+            f"brain write proposal {proposal_id} approved by owner "
+            f"(type {proposal['type']}) by {actor}",
+        )
+        return ok(
+            "healthy",
+            data={
+                "proposal_id": proposal_id,
+                "status": "approved",
+                "approved_by": actor,
+            },
+        )
+
+    def reject(self, proposal_id: str, actor: str, journal: Any = None) -> Result:
+        """Reject a pending proposal and persist the decision."""
+        with self.lock:
+            proposal = self.proposals.get(proposal_id)
+            if not proposal:
+                return fail(
+                    "not_found", warnings=[f"proposal '{proposal_id}' not found"]
+                )
+            if proposal["status"] != "pending":
+                return fail(
+                    "invalid_state",
+                    warnings=[f"proposal is {proposal['status']}, not pending"],
+                )
+            proposal["status"] = "rejected"
+            proposal["rejected_by"] = actor
+            proposal["rejected_at"] = time.time()
+            self._persist_locked()
+        self._journal_event(
+            journal,
+            "recommendation",
+            f"brain write proposal {proposal_id} rejected by owner "
+            f"(type {proposal['type']}) by {actor}",
+        )
+        return ok("healthy", data={"proposal_id": proposal_id, "status": "rejected"})
+
+    def execute(
+        self,
+        journal: Any,
+        world: Any,
+        proposal_id: str,
+        scheduler: Any = None,
+        world_path: Any = None,
+    ) -> Result:
+        """Execute an approved write proposal.
+
+        Called by the server after the owner approved the proposal
+        through the trusted path (server-held approval evidence:
+        approved_by/approved_at). Persistence is part of the act: world
+        writes save through the authoritative path and report what they
+        changed; a scheduler-less environment leaves a reminder pending
+        rather than reporting success.
+        """
+        proposal = self.proposals.get(proposal_id)
+        if not proposal:
+            return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
+        if proposal["status"] != "approved":
+            return fail(
+                "invalid_state",
+                warnings=[
+                    f"proposal is {proposal['status']}, not approved. "
+                    "Only proposals approved through the trusted owner "
+                    "path can be executed."
+                ],
+            )
+
+        proposal["status"] = "executing"
+        ptype = proposal["type"]
+
+        try:
+            if ptype == "journal_write":
+                journal.record("observation", proposal["text"], source="brain-tool")
+                proposal["status"] = "executed"
+                return ok(
+                    "healthy",
+                    data={
+                        "proposal_id": proposal_id,
+                        "status": "executed",
+                        "type": ptype,
+                    },
+                )
+
+            elif ptype == "world_intent":
+                from .model import Intent, Provenance
+
+                world.set_intent(
+                    Intent(
+                        key=proposal["key"],
+                        value=proposal["intent"],
+                        provenance=Provenance(source="brain-tool"),
+                    )
+                )
+                if world_path is not None:
+                    from .app import save_world
+
+                    save_world(world, world_path)
+                    proposal["status"] = "executed"
+                    return ok(
+                        "healthy",
+                        data={
+                            "proposal_id": proposal_id,
+                            "status": "executed",
+                            "type": ptype,
+                            "persisted": "world.json",
+                        },
+                    )
+                proposal["status"] = "failed"
+                return fail(
+                    "unavailable",
+                    warnings=["no world_path wired; intent not persisted"],
+                )
+
+            elif ptype == "world_fact":
+                from .model import Fact, Provenance
+
+                world.record_fact(
+                    Fact(
+                        key=proposal["key"],
+                        value=proposal["fact"],
+                        provenance=Provenance(source="brain-tool"),
+                    )
+                )
+                if world_path is not None:
+                    from .app import save_world
+
+                    save_world(world, world_path)
+                    proposal["status"] = "executed"
+                    return ok(
+                        "healthy",
+                        data={
+                            "proposal_id": proposal_id,
+                            "status": "executed",
+                            "type": ptype,
+                            "persisted": "world.json",
+                        },
+                    )
+                proposal["status"] = "failed"
+                return fail(
+                    "unavailable",
+                    warnings=["no world_path wired; fact not persisted"],
+                )
+
+            elif ptype == "reminder":
+                if scheduler is None or not hasattr(scheduler, "add"):
+                    proposal["status"] = "failed"
+                    return fail(
+                        "unavailable",
+                        warnings=["scheduler not available for reminder execution"],
+                    )
+                from .scheduler import Reminder
+
+                rid = f"proposal-{proposal_id}"
+                r = scheduler.add(Reminder(id=rid, text=proposal.get("text", "")))
+                if not r.ok:
+                    proposal["status"] = "failed"
+                    return fail("unavailable", warnings=r.warnings)
+                proposal["status"] = "executed"
+                return ok(
+                    "healthy",
+                    data={
+                        "proposal_id": proposal_id,
+                        "status": "executed",
+                        "type": ptype,
+                        "persisted": "reminders.json",
+                        "reminder_id": rid,
+                    },
+                )
+
+            elif ptype == "reconciler_apply":
+                # No reconciliation adapter exists yet. Honesty over a
+                # fake success: the proposal is NOT consumed and nothing
+                # is applied.
+                proposal["status"] = "pending"
+                return fail(
+                    "unsupported",
+                    warnings=[
+                        "no reconciliation adapter exists; nothing was "
+                        "applied and the proposal remains pending",
+                    ],
+                )
+
+            else:
+                proposal["status"] = "failed"
+                return fail("unsupported", warnings=[f"unknown proposal type: {ptype}"])
+
+        except Exception as e:
+            proposal["status"] = "failed"
+            return fail("unavailable", warnings=[f"execute failed: {e}"])
+        finally:
+            # Persist the terminal status (executed/failed/left-pending)
+            # so a restart sees an honest, non-replayable proposal state.
+            with self.lock:
+                self._persist_locked()
+
+
+class _GlobalProposalStore(ProposalStore):
+    """The historical instance-global store.
+
+    Its state lives in the long-standing module-level names
+    (``_proposals``/``_proposal_path``/``_proposal_counter``/
+    ``_proposal_journal``/``_proposal_lock``) so embedded callers and
+    existing fixtures keep working byte-identically.
+    """
+
+    def __init__(self) -> None:  # noqa: D107 — no load at import time
+        pass
+
+    @property
+    def path(self) -> Path | None:
+        return _proposal_path
+
+    @path.setter
+    def path(self, value: Path | None) -> None:
+        global _proposal_path
+        _proposal_path = value
+
+    @property
+    def journal(self) -> Any:
+        return _proposal_journal
+
+    @journal.setter
+    def journal(self, value: Any) -> None:
+        global _proposal_journal
+        _proposal_journal = value
+
+    @property
+    def proposals(self) -> dict[str, dict[str, Any]]:
+        return _proposals
+
+    @property
+    def counter(self) -> int:
+        return _proposal_counter
+
+    @counter.setter
+    def counter(self, value: int) -> None:
+        global _proposal_counter
+        _proposal_counter = value
+
+    @property
+    def lock(self) -> threading.RLock:
+        return _proposal_lock
+
+
+_default_store = _GlobalProposalStore()
+_scoped_stores: dict[str, ProposalStore] = {}
+_scoped_stores_lock = threading.RLock()
+
+
+def proposal_store_for(path: Any, journal: Any = None) -> ProposalStore:
+    """The (cached) store owning one proposals file.
+
+    When ``path`` is the configured instance-global file this returns
+    the same default store ``configure_proposal_store`` manages, so the
+    API and the chat tool loop can never diverge on the legacy tree.
+    Any other path (a per-user tree in multi mode) gets its own cached
+    store loaded from that file.
+    """
+    p = Path(path)
+    if _default_store.path is not None and p == _default_store.path:
+        return _default_store
+    key = str(p)
+    with _scoped_stores_lock:
+        store = _scoped_stores.get(key)
+        if store is None:
+            store = ProposalStore(p, journal)
+            _scoped_stores[key] = store
+        return store
+
+
 def configure_proposal_store(data_dir: Any, journal: Any = None) -> None:
     """Point the proposal store at a data dir and load prior state.
 
@@ -579,83 +1100,24 @@ def configure_proposal_store(data_dir: Any, journal: Any = None) -> None:
     resumes above the highest persisted id. Mutates ``_proposals`` in
     place so existing references stay valid.
     """
-    global _proposal_path, _proposal_counter, _proposal_journal
-    with _proposal_lock:
-        _proposal_path = Path(data_dir) / "proposals.json"
-        _proposal_journal = journal
-        _proposals.clear()
-        if _proposal_path.is_file():
-            try:
-                data = json.loads(_proposal_path.read_text(encoding="utf-8"))
-            except Exception:
-                data = {}
-            if isinstance(data, dict):
-                _proposals.update(data)
-        highest = 0
-        for pid in _proposals:
-            try:
-                highest = max(highest, int(str(pid).rsplit("-", 1)[-1]))
-            except (ValueError, IndexError):
-                continue
-        _proposal_counter = highest
+    _default_store.path = Path(data_dir) / "proposals.json"
+    _default_store.journal = journal
+    _default_store._load()
 
 
-def _persist_proposals_locked() -> None:
-    """Atomic write of the proposal store (caller holds the lock)."""
-    if _proposal_path is None:
-        return
-    try:
-        _proposal_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = _proposal_path.with_suffix(_proposal_path.suffix + ".tmp")
-        tmp.write_text(json.dumps(_proposals, indent=2), encoding="utf-8")
-        os.replace(tmp, _proposal_path)
-    except OSError:
-        # Persistence failure must never fake a successful approval: the
-        # in-memory state stands and the next write retries.
-        pass
+def _propose(
+    proposal: dict[str, Any],
+    journal: Any,
+    description: str,
+    store: ProposalStore | None = None,
+) -> Result:
+    """Record a pending proposal in the given (or default) store."""
+    return (store or _default_store).propose(proposal, journal, description)
 
 
-def _journal_proposal_event(journal: Any, kind: str, summary: str) -> None:
-    target = journal if journal is not None else _proposal_journal
-    if target is None:
-        return
-    try:
-        target.record(kind, summary, source="brain-proposal")
-    except Exception:
-        pass
-
-
-def _next_proposal_id() -> str:
-    global _proposal_counter
-    _proposal_counter += 1
-    return f"proposal-{_proposal_counter}"
-
-
-def _propose(proposal: dict[str, Any], journal: Any, description: str) -> Result:
-    """Record a pending proposal. Server-held state only: creation
-    journals NOTHING (the proposal store itself is the audit of
-    preparation — `list_proposals()`/`get_proposal()` expose id, type,
-    and status; approval/rejection evidence is recorded at the trust
-    boundary, never by the model loop)."""
-    global _proposal_counter
-    with _proposal_lock:
-        _proposal_counter += 1
-        pid = f"proposal-{_proposal_counter}"
-        proposal["id"] = pid
-        proposal["status"] = "pending"
-        proposal["created_at"] = time.time()
-        _proposals[pid] = proposal
-        _persist_proposals_locked()
-    return ok("healthy", data={
-        "proposal_id": pid,
-        "type": proposal["type"],
-        "status": "pending",
-        "description": description,
-        "requires_approval": True,
-    })
-
-
-def _propose_journal_write(journal: Any, text: str) -> Result:
+def _propose_journal_write(
+    journal: Any, text: str, store: ProposalStore | None = None
+) -> Result:
     """Propose a journal entry. Returns proposal for approval."""
     if not text or len(text) > 2000:
         return fail("invalid_args", warnings=["text must be 1-2000 chars"])
@@ -663,10 +1125,13 @@ def _propose_journal_write(journal: Any, text: str) -> Result:
         {"type": "journal_write", "text": text},
         journal,
         f"Write journal entry: {text[:100]}...",
+        store=store,
     )
 
 
-def _propose_world_intent(journal: Any, world: Any, key: str, intent: str) -> Result:
+def _propose_world_intent(
+    journal: Any, world: Any, key: str, intent: str, store: ProposalStore | None = None
+) -> Result:
     """Propose a world intent. Returns proposal for approval."""
     if not key:
         return fail("invalid_args", warnings=["key required"])
@@ -674,10 +1139,17 @@ def _propose_world_intent(journal: Any, world: Any, key: str, intent: str) -> Re
         {"type": "world_intent", "key": key, "intent": intent},
         journal,
         f"Set intent '{key}': {intent[:100]}",
+        store=store,
     )
 
 
-def _propose_world_fact(journal: Any, world: Any, key: str, fact: str) -> Result:
+def _propose_world_fact(
+    journal: Any,
+    world: Any,
+    key: str,
+    fact: str,
+    store: "ProposalStore | None" = None,
+) -> Result:
     """Propose a world fact. Returns proposal for approval."""
     if not key:
         return fail("invalid_args", warnings=["key required"])
@@ -685,10 +1157,13 @@ def _propose_world_fact(journal: Any, world: Any, key: str, fact: str) -> Result
         {"type": "world_fact", "key": key, "fact": fact},
         journal,
         f"Record fact '{key}': {fact[:100]}",
+        store=store,
     )
 
 
-def _propose_reminder(journal: Any, text: str) -> Result:
+def _propose_reminder(
+    journal: Any, text: str, store: "ProposalStore | None" = None
+) -> Result:
     """Propose a reminder. Returns proposal for approval."""
     if not text or not text.strip():
         return fail("invalid_args", warnings=["text required"])
@@ -696,17 +1171,23 @@ def _propose_reminder(journal: Any, text: str) -> Result:
         {"type": "reminder", "text": text},
         journal,
         f"Add reminder: {text[:100]}",
+        store=store,
     )
 
 
-def _propose_reconciler_apply(journal: Any, service: str) -> Result:
+def _propose_reconciler_apply(
+    journal: Any, service: str, store: "ProposalStore | None" = None
+) -> Result:
     """Propose reconciliation. Returns proposal for approval."""
     try:
         from .providers.native_reconciler import NativeSettingsReconciler
+
         reconciler = NativeSettingsReconciler()
         if not hasattr(reconciler, "desired_state"):
-            return fail("unsupported", warnings=[
-                "reconciler exposes no public desired-state reader"])
+            return fail(
+                "unsupported",
+                warnings=["reconciler exposes no public desired-state reader"],
+            )
         desired = reconciler.desired_state(service)
         if desired is None:
             return fail("not_found", warnings=[f"no desired state for '{service}'"])
@@ -714,6 +1195,7 @@ def _propose_reconciler_apply(journal: Any, service: str) -> Result:
             {"type": "reconciler_apply", "service": service, "desired": desired},
             journal,
             f"Apply reconciliation for {service}",
+            store=store,
         )
     except Exception as e:
         return fail("unavailable", warnings=[f"reconciler: {e}"])
@@ -725,212 +1207,60 @@ def _execute_approved_write(
     proposal_id: str,
     scheduler: Any = None,
     world_path: Any = None,
+    store: "ProposalStore | None" = None,
 ) -> Result:
-    """Execute an approved write proposal.
+    """Execute an approved write proposal (see ``ProposalStore.execute``).
 
-    Called by the server after the owner approved the proposal
-    through the trusted path (server-held approval evidence:
-    approved_by/approved_at). Persistence is part of the act: world
-    writes save through the authoritative path and report what they
-    changed; a scheduler-less environment leaves a reminder pending
-    rather than reporting success.
+    ``store`` selects the caller's own proposal tree (multi-user,
+    decision #13); the default is the instance-global store, keeping
+    embedded callers and the legacy single-user path unchanged.
     """
-    proposal = _proposals.get(proposal_id)
-    if not proposal:
-        return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
-    if proposal["status"] != "approved":
-        return fail(
-            "invalid_state",
-            warnings=[
-                f"proposal is {proposal['status']}, not approved. "
-                "Only proposals approved through the trusted owner "
-                "path can be executed."
-            ],
-        )
-
-    proposal["status"] = "executing"
-    ptype = proposal["type"]
-
-    try:
-        if ptype == "journal_write":
-            journal.record("observation", proposal["text"], source="brain-tool")
-            proposal["status"] = "executed"
-            return ok("healthy", data={"proposal_id": proposal_id, "status": "executed", "type": ptype})
-
-        elif ptype == "world_intent":
-            from .model import Intent, Provenance
-            world.set_intent(Intent(
-                key=proposal["key"], value=proposal["intent"],
-                provenance=Provenance(source="brain-tool"),
-            ))
-            if world_path is not None:
-                from .app import save_world
-                save_world(world, world_path)
-                proposal["status"] = "executed"
-                return ok("healthy", data={
-                    "proposal_id": proposal_id, "status": "executed",
-                    "type": ptype, "persisted": "world.json",
-                })
-            proposal["status"] = "failed"
-            return fail(
-                "unavailable",
-                warnings=["no world_path wired; intent not persisted"],
-            )
-
-        elif ptype == "world_fact":
-            from .model import Fact, Provenance
-            world.record_fact(Fact(
-                key=proposal["key"], value=proposal["fact"],
-                provenance=Provenance(source="brain-tool"),
-            ))
-            if world_path is not None:
-                from .app import save_world
-                save_world(world, world_path)
-                proposal["status"] = "executed"
-                return ok("healthy", data={
-                    "proposal_id": proposal_id, "status": "executed",
-                    "type": ptype, "persisted": "world.json",
-                })
-            proposal["status"] = "failed"
-            return fail(
-                "unavailable", warnings=["no world_path wired; fact not persisted"],
-            )
-
-        elif ptype == "reminder":
-            if scheduler is None or not hasattr(scheduler, "add"):
-                proposal["status"] = "failed"
-                return fail(
-                    "unavailable",
-                    warnings=["scheduler not available for reminder execution"],
-                )
-            from .scheduler import Reminder
-            rid = f"proposal-{proposal_id}"
-            r = scheduler.add(Reminder(id=rid, text=proposal.get("text", "")))
-            if not r.ok:
-                proposal["status"] = "failed"
-                return fail("unavailable", warnings=r.warnings)
-            proposal["status"] = "executed"
-            return ok("healthy", data={
-                "proposal_id": proposal_id, "status": "executed",
-                "type": ptype, "persisted": "reminders.json",
-                "reminder_id": rid,
-            })
-
-        elif ptype == "reconciler_apply":
-            # No reconciliation adapter exists yet. Honesty over a
-            # fake success: the proposal is NOT consumed and nothing
-            # is applied.
-            proposal["status"] = "pending"
-            return fail(
-                "unsupported",
-                warnings=[
-                    "no reconciliation adapter exists; nothing was "
-                    "applied and the proposal remains pending",
-                ],
-            )
-
-        else:
-            proposal["status"] = "failed"
-            return fail("unsupported", warnings=[f"unknown proposal type: {ptype}"])
-
-    except Exception as e:
-        proposal["status"] = "failed"
-        return fail("unavailable", warnings=[f"execute failed: {e}"])
-    finally:
-        # Persist the terminal status (executed/failed/left-pending) so
-        # a restart sees an honest, non-replayable proposal state.
-        with _proposal_lock:
-            _persist_proposals_locked()
+    return (store or _default_store).execute(
+        journal, world, proposal_id, scheduler=scheduler, world_path=world_path
+    )
 
 
-def approve_proposal(proposal_id: str, actor: str,
-                     journal: Any = None) -> Result:
-    """Approve a pending proposal. Called through the trusted owner path.
+def approve_proposal(
+    proposal_id: str,
+    actor: str,
+    journal: Any = None,
+    store: "ProposalStore | None" = None,
+) -> Result:
+    """Approve a pending proposal (see ``ProposalStore.approve``).
 
-    Records actor, time, and server-held approval evidence, then
-    persists them. This is the ONLY way a proposal becomes approved —
-    the model cannot do this, and no model-supplied boolean can forge
-    the evidence. The trusted approval is journalled when a journal is
-    available.
+    ``store`` selects the caller's own proposal tree; the default is the
+    instance-global store.
     """
-    with _proposal_lock:
-        proposal = _proposals.get(proposal_id)
-        if not proposal:
-            return fail("not_found",
-                        warnings=[f"proposal '{proposal_id}' not found"])
-        if proposal["status"] != "pending":
-            return fail(
-                "invalid_state",
-                warnings=[f"proposal is {proposal['status']}, not pending"],
-            )
-        approved_at = time.time()
-        proposal["status"] = "approved"
-        proposal["approved_by"] = actor
-        proposal["approved_at"] = approved_at
-        proposal["approval_evidence"] = {
-            "method": "trusted-api-approval",
-            "approved_by": actor,
-            "approved_at": approved_at,
-        }
-        _persist_proposals_locked()
-    _journal_proposal_event(
-        journal, "approval",
-        f"brain write proposal {proposal_id} approved by owner "
-        f"(type {proposal['type']}) by {actor}",
-    )
-    return ok("healthy", data={
-        "proposal_id": proposal_id,
-        "status": "approved",
-        "approved_by": actor,
-    })
+    return (store or _default_store).approve(proposal_id, actor, journal=journal)
 
 
-def reject_proposal(proposal_id: str, actor: str,
-                    journal: Any = None) -> Result:
-    """Reject a pending proposal and persist the decision."""
-    with _proposal_lock:
-        proposal = _proposals.get(proposal_id)
-        if not proposal:
-            return fail("not_found",
-                        warnings=[f"proposal '{proposal_id}' not found"])
-        if proposal["status"] != "pending":
-            return fail(
-                "invalid_state",
-                warnings=[f"proposal is {proposal['status']}, not pending"],
-            )
-        proposal["status"] = "rejected"
-        proposal["rejected_by"] = actor
-        proposal["rejected_at"] = time.time()
-        _persist_proposals_locked()
-    _journal_proposal_event(
-        journal, "recommendation",
-        f"brain write proposal {proposal_id} rejected by owner "
-        f"(type {proposal['type']}) by {actor}",
-    )
-    return ok("healthy", data={"proposal_id": proposal_id, "status": "rejected"})
+def reject_proposal(
+    proposal_id: str,
+    actor: str,
+    journal: Any = None,
+    store: "ProposalStore | None" = None,
+) -> Result:
+    """Reject a pending proposal (see ``ProposalStore.reject``)."""
+    return (store or _default_store).reject(proposal_id, actor, journal=journal)
 
 
-def list_proposals(status: str | None = None) -> list[dict[str, Any]]:
+def list_proposals(
+    status: str | None = None, store: "ProposalStore | None" = None
+) -> list[dict[str, Any]]:
     """List proposals, optionally filtered by status."""
-    with _proposal_lock:
-        results = []
-        for pid, p in _proposals.items():
-            if status is None or p.get("status") == status:
-                results.append({"proposal_id": pid, **p})
-        return results
+    return (store or _default_store).list(status)
 
 
-def get_proposal(proposal_id: str) -> dict[str, Any] | None:
+def get_proposal(
+    proposal_id: str, store: "ProposalStore | None" = None
+) -> dict[str, Any] | None:
     """Get a single proposal by ID."""
-    with _proposal_lock:
-        p = _proposals.get(proposal_id)
-        if p is None:
-            return None
-        return {"proposal_id": proposal_id, **p}
+    return (store or _default_store).get(proposal_id)
 
 
 # ── Tool implementations ──
 # These call the same domain operations the HTTP API uses.
+
 
 def _search_journal(journal: Any, query: str, memory_provider: Any = None) -> Result:
     """Search journal entries through the canonical memory/search
@@ -938,8 +1268,10 @@ def _search_journal(journal: Any, query: str, memory_provider: Any = None) -> Re
     /api/memory/search reads). Falls back to an honest unavailable
     result; it never pretends to have searched."""
     if memory_provider is None or not hasattr(memory_provider, "search"):
-        return fail("unavailable", warnings=[
-            "no memory search provider wired; journal search unavailable"])
+        return fail(
+            "unavailable",
+            warnings=["no memory search provider wired; journal search unavailable"],
+        )
     try:
         result = memory_provider.search(query)
         if not result.ok:
@@ -953,10 +1285,15 @@ def _search_journal(journal: Any, query: str, memory_provider: Any = None) -> Re
             }
             for r in data.get("results", [])
         ]
-        return ok("healthy", data={
-            "entries": results, "query": query,
-            "count": len(results), "source": "memory-fts",
-        })
+        return ok(
+            "healthy",
+            data={
+                "entries": results,
+                "query": query,
+                "count": len(results),
+                "source": "memory-fts",
+            },
+        )
     except Exception as e:
         return fail("unavailable", warnings=[f"journal search: {e}"])
 
@@ -969,14 +1306,16 @@ def _read_journal(journal: Any, count: int) -> Result:
         if hasattr(journal, "current_events"):
             entries = journal.current_events(count)
         else:
-            entries = journal.recent(count) if hasattr(journal, 'recent') else []
+            entries = journal.recent(count) if hasattr(journal, "recent") else []
         results = []
         for e in entries:
-            results.append({
-                "ts": e.ts.isoformat() if hasattr(e, 'ts') else str(e.ts),
-                "kind": e.kind.value if hasattr(e, 'kind') else str(e.kind),
-                "summary": e.summary if hasattr(e, 'summary') else str(e),
-            })
+            results.append(
+                {
+                    "ts": e.ts.isoformat() if hasattr(e, "ts") else str(e.ts),
+                    "kind": e.kind.value if hasattr(e, "kind") else str(e.kind),
+                    "summary": e.summary if hasattr(e, "summary") else str(e),
+                }
+            )
         return ok("healthy", data={"entries": results, "count": len(results)})
     except Exception as e:
         return fail("unavailable", warnings=[f"journal read: {e}"])
@@ -987,11 +1326,14 @@ def _source_control_status(source_control: Any, config_dir: Any = None) -> Resul
     try:
         from .source_control import configured_search_paths, status_all
         from pathlib import Path
+
         if config_dir is None:
             return fail("not_configured", warnings=["no config directory"])
         paths = configured_search_paths(Path(config_dir))
         if not paths:
-            return fail("not_configured", warnings=["no source control search paths configured"])
+            return fail(
+                "not_configured", warnings=["no source control search paths configured"]
+            )
         repos = status_all(paths)
         return ok("healthy", data={"repos": repos, "count": len(repos)})
     except Exception as e:
@@ -1002,8 +1344,11 @@ def _source_control_history(source_control: Any, repo: str, limit: int) -> Resul
     """Get commit history."""
     try:
         from .source_control import history as sc_history
+
         commits = sc_history(repo, limit)
-        return ok("healthy", data={"repo": repo, "commits": commits, "count": len(commits)})
+        return ok(
+            "healthy", data={"repo": repo, "commits": commits, "count": len(commits)}
+        )
     except Exception as e:
         return fail("unavailable", warnings=[f"source control history: {e}"])
 
@@ -1012,6 +1357,7 @@ def _projects_status() -> Result:
     """Get agent-sync project status."""
     try:
         from .providers.agent_sync import AgentSyncProjectSensor
+
         result = AgentSyncProjectSensor().observe_projects()
         return result
     except Exception as e:
@@ -1022,6 +1368,7 @@ def _lab_inventory() -> Result:
     """Get native lab inventory."""
     try:
         from .providers.native_lab import NativeLabInventory
+
         inventory = NativeLabInventory()
         return inventory.observe()
     except Exception as e:
@@ -1032,6 +1379,7 @@ def _lab_health() -> Result:
     """Get native lab health."""
     try:
         from .providers.native_lab import NativeLabInventory, NativeLabHealth
+
         inventory = NativeLabInventory()
         health = NativeLabHealth(inventory)
         return health.observe()
@@ -1043,6 +1391,7 @@ def _lab_resources() -> Result:
     """Get native lab resources."""
     try:
         from .providers.native_lab import NativeLabResources
+
         resources = NativeLabResources()
         return resources.observe()
     except Exception as e:
@@ -1053,6 +1402,7 @@ def _lab_settings() -> Result:
     """Get native lab settings."""
     try:
         from .providers.native_lab import NativeLabSettings
+
         settings = NativeLabSettings()
         return settings.observe()
     except Exception as e:
@@ -1063,6 +1413,7 @@ def _reconciler_status() -> Result:
     """Get reconciler status."""
     try:
         from .providers.native_reconciler import NativeSettingsReconciler
+
         reconciler = NativeSettingsReconciler()
         return reconciler.observe()
     except Exception as e:
@@ -1073,37 +1424,48 @@ def _reconciler_diff(service: str) -> Result:
     """Get desired-vs-observed diff for a service."""
     try:
         from .providers.native_reconciler import NativeSettingsReconciler
+
         reconciler = NativeSettingsReconciler()
         if not hasattr(reconciler, "desired_state"):
-            return fail("unsupported", warnings=[
-                "reconciler exposes no public desired-state reader"])
+            return fail(
+                "unsupported",
+                warnings=["reconciler exposes no public desired-state reader"],
+            )
         desired = reconciler.desired_state(service)
         if desired is None:
-            return fail("not_found", warnings=[f"no desired state for service '{service}'"])
-        return ok("healthy", data={
-            "service": service,
-            "desired": desired,
-            "note": "Desired state only — no observed-state diff exists yet.",
-        })
+            return fail(
+                "not_found", warnings=[f"no desired state for service '{service}'"]
+            )
+        return ok(
+            "healthy",
+            data={
+                "service": service,
+                "desired": desired,
+                "note": "Desired state only — no observed-state diff exists yet.",
+            },
+        )
     except Exception as e:
         return fail("unavailable", warnings=[f"reconciler diff: {e}"])
 
 
-def _discovery_status() -> Result:
-    """Get discovery status."""
+def _discovery_status(config_path: Any = None) -> Result:
+    """Get discovery status. ``config_path`` scopes interests/sources to
+    the calling principal's own tree (None = the legacy shared config)."""
     try:
         from .providers.native_discovery import NativeDiscovery
-        discovery = NativeDiscovery()
+
+        discovery = NativeDiscovery(config_path)
         return discovery.observe()
     except Exception as e:
         return fail("unavailable", warnings=[f"discovery: {e}"])
 
 
-def _discovery_sources() -> Result:
+def _discovery_sources(config_path: Any = None) -> Result:
     """List discovery sources."""
     try:
         from .providers.native_discovery import NativeDiscovery
-        discovery = NativeDiscovery()
+
+        discovery = NativeDiscovery(config_path)
         r = discovery.observe()
         if r.ok:
             return ok("healthy", data={"sources": r.data.get("sources", [])})
@@ -1112,11 +1474,12 @@ def _discovery_sources() -> Result:
         return fail("unavailable", warnings=[f"discovery sources: {e}"])
 
 
-def _discovery_interests() -> Result:
+def _discovery_interests(config_path: Any = None) -> Result:
     """List interests."""
     try:
         from .providers.native_discovery import NativeDiscovery
-        discovery = NativeDiscovery()
+
+        discovery = NativeDiscovery(config_path)
         r = discovery.observe()
         if r.ok:
             return ok("healthy", data={"interests": r.data.get("interests", [])})
@@ -1125,11 +1488,12 @@ def _discovery_interests() -> Result:
         return fail("unavailable", warnings=[f"discovery interests: {e}"])
 
 
-def _discovery_discover(source: str | None = None) -> Result:
+def _discovery_discover(source: str | None = None, config_path: Any = None) -> Result:
     """Run discovery."""
     try:
         from .providers.native_discovery import NativeDiscovery
-        discovery = NativeDiscovery()
+
+        discovery = NativeDiscovery(config_path)
         return discovery.discover(source)
     except Exception as e:
         return fail("unavailable", warnings=[f"discovery: {e}"])
@@ -1143,11 +1507,16 @@ def _vault_status(vault: Any) -> Result:
     try:
         warning = getattr(vault, "warning", None)
         encrypted = getattr(vault, "_fernet", None) is not None
-        return ok("healthy", data={
-            "locked": not vault.is_unlocked if hasattr(vault, 'is_unlocked') else True,
-            "encrypted": encrypted,
-            **({"warning": warning} if warning else {}),
-        })
+        return ok(
+            "healthy",
+            data={
+                "locked": not vault.is_unlocked
+                if hasattr(vault, "is_unlocked")
+                else True,
+                "encrypted": encrypted,
+                **({"warning": warning} if warning else {}),
+            },
+        )
     except Exception as e:
         return fail("unavailable", warnings=[f"vault: {e}"])
 
@@ -1158,8 +1527,10 @@ def _reminders(scheduler: Any = None) -> Result:
     honest answer is unavailable, not a raw file scrape."""
     try:
         if scheduler is None or not hasattr(scheduler, "list_reminders"):
-            return fail("unavailable", warnings=[
-                "scheduler not wired; reminder listing unavailable"])
+            return fail(
+                "unavailable",
+                warnings=["scheduler not wired; reminder listing unavailable"],
+            )
         reminders = [
             r.model_dump(mode="json") if hasattr(r, "model_dump") else r
             for r in scheduler.list_reminders()
@@ -1170,6 +1541,7 @@ def _reminders(scheduler: Any = None) -> Result:
 
 
 # ── Media tool implementations ──
+
 
 def _build_media_engine(connection_manager: Any = None, config_dir: Any = None):
     """Build media engine from MERGED connection config.
@@ -1187,6 +1559,7 @@ def _build_media_engine(connection_manager: Any = None, config_dir: Any = None):
         import json as _json
         from pathlib import Path
         import os
+
         cfg_dir = Path(config_dir or os.environ.get("PW_CONFIG_DIR", "./config"))
         connections_path = cfg_dir / "connections.json"
         if not connections_path.exists():

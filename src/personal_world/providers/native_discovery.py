@@ -119,7 +119,9 @@ class NativeDiscovery(StatusContract):
     """Native content discovery engine."""
 
     def __init__(self, config_path: Path | None = None):
-        self.config_path = config_path or Path("~/.config/personal-world/discovery.json").expanduser()
+        self.config_path = (
+            config_path or Path("~/.config/personal-world/discovery.json").expanduser()
+        )
         self._sources: dict[str, DiscoverySource] = {}
         self._interests: dict[str, Interest] = {}
         self._items: dict[str, ContentItem] = {}
@@ -134,7 +136,17 @@ class NativeDiscovery(StatusContract):
                 for s in data.get("sources", []):
                     self._sources[s["id"]] = DiscoverySource(**s)
                 for i in data.get("interests", []):
-                    self._interests[i["id"]] = Interest(**i)
+                    payload = dict(i)
+                    # created_at round-trips through JSON as an ISO
+                    # string; rehydrate it so to_dict() stays honest
+                    if isinstance(payload.get("created_at"), str):
+                        try:
+                            payload["created_at"] = datetime.fromisoformat(
+                                payload["created_at"]
+                            )
+                        except ValueError:
+                            payload["created_at"] = None
+                    self._interests[payload["id"]] = Interest(**payload)
             except (json.JSONDecodeError, OSError):
                 pass
 
@@ -286,7 +298,9 @@ class RSSDiscoverySource(DiscoverySource):
 class APIDiscoverySource(DiscoverySource):
     """API-based discovery source."""
 
-    def __init__(self, id: str, name: str, url: str, auth: dict[str, Any] | None = None):
+    def __init__(
+        self, id: str, name: str, url: str, auth: dict[str, Any] | None = None
+    ):
         super().__init__(
             id=id,
             name=name,

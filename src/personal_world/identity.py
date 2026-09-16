@@ -14,11 +14,13 @@ Identity modes via PW_IDENTITY_MODE ("single" | "multi"):
 
 The single-user install remains byte-identical after every phase.
 """
+
 from __future__ import annotations
 
 import hashlib
 import hmac
 import os
+import re
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -31,13 +33,14 @@ Kind = Literal["person", "agent", "service"]
 @dataclass(frozen=True)
 class Principal:
     """The identity that reached the handler. Scope model per issue #8."""
+
     id: str
     kind: Kind = "person"
-    owner_id: str | None = None   # set when kind == "agent"
+    owner_id: str | None = None  # set when kind == "agent"
     display_name: str | None = None
     scopes: tuple[str, ...] = ()  # subset of owner scopes for agents
-    auth_level: int = 1           # 1 bearer/session, 2 recent, 3 fresh-2fa
-    source: str = "token"         # token | oidc | header | scheduler
+    auth_level: int = 1  # 1 bearer/session, 2 recent, 3 fresh-2fa
+    source: str = "token"  # token | oidc | header | scheduler
 
 
 def _token_fingerprint(token: str) -> str:
@@ -66,6 +69,7 @@ class IdentityStore:
     def _load(self) -> dict:
         if self.path.exists():
             import json
+
             try:
                 return json.loads(self.path.read_text())
             except Exception:
@@ -74,21 +78,30 @@ class IdentityStore:
 
     def _save(self, payload: dict) -> None:
         import json
+
         self.data_dir.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(self.path.suffix + ".tmp")
         tmp.write_text(json.dumps(payload, indent=2))
         os.replace(tmp, self.path)
 
     # -- operations ------------------------------------------------------
-    def create_user(self, user_id: str, display_name: str | None,
-                    initial_plain_token: str | None = None) -> dict:
+    def create_user(
+        self,
+        user_id: str,
+        display_name: str | None,
+        initial_plain_token: str | None = None,
+    ) -> dict:
         payload = self._load()
         if any(u.get("user_id") == user_id for u in payload["users"]):
             raise ValueError(f"user exists: {user_id}")
-        u = {"user_id": user_id, "display_name": display_name,
-             "hashed_tokens": [], "token_prefixes": [],
-             "enabled": True,
-             "created_at": time.time()}
+        u = {
+            "user_id": user_id,
+            "display_name": display_name,
+            "hashed_tokens": [],
+            "token_prefixes": [],
+            "enabled": True,
+            "created_at": time.time(),
+        }
         if initial_plain_token:
             self._attach_token(u, initial_plain_token)
         payload["users"].append(u)
@@ -134,16 +147,20 @@ class IdentityStore:
                 u["display_name"] = display_name
                 self._save(payload)
                 return u
-        u = {"user_id": user_id, "display_name": display_name,
-             "hashed_tokens": [], "token_prefixes": [],
-             "enabled": True, "created_at": time.time()}
+        u = {
+            "user_id": user_id,
+            "display_name": display_name,
+            "hashed_tokens": [],
+            "token_prefixes": [],
+            "enabled": True,
+            "created_at": time.time(),
+        }
         payload["users"].append(u)
         self._save(payload)
         return u
 
     def _attach_token(self, user: dict, plain_token: str) -> None:
-        user.setdefault("hashed_tokens", []).append(
-            _token_fingerprint(plain_token))
+        user.setdefault("hashed_tokens", []).append(_token_fingerprint(plain_token))
         user.setdefault("token_prefixes", []).append(plain_token[:8])
 
     # -- resolution -------------------------------------------------------
@@ -175,10 +192,14 @@ class IdentityStore:
         return None
 
     # -- agent principals (phase 3) --------------------------------------
-    def create_agent(self, agent_id: str, owner_id: str,
-                     scopes: tuple[str, ...],
-                     plain_token: str | None = None,
-                     display_name: str | None = None) -> dict:
+    def create_agent(
+        self,
+        agent_id: str,
+        owner_id: str,
+        scopes: tuple[str, ...],
+        plain_token: str | None = None,
+        display_name: str | None = None,
+    ) -> dict:
         """An agent is a first-class principal owned by a person.
 
         Scopes are a subset language from the owner: "read", "write",
@@ -188,11 +209,17 @@ class IdentityStore:
         payload = self._load()
         if any(a.get("user_id") == agent_id for a in payload.get("agents", [])):
             raise ValueError(f"agent exists: {agent_id}")
-        a = {"user_id": agent_id, "kind": "agent", "owner_id": owner_id,
-             "display_name": display_name or agent_id,
-             "scopes": list(scopes), "hashed_tokens": [],
-             "token_prefixes": [], "enabled": True,
-             "created_at": time.time()}
+        a = {
+            "user_id": agent_id,
+            "kind": "agent",
+            "owner_id": owner_id,
+            "display_name": display_name or agent_id,
+            "scopes": list(scopes),
+            "hashed_tokens": [],
+            "token_prefixes": [],
+            "enabled": True,
+            "created_at": time.time(),
+        }
         if plain_token:
             self._attach_token(a, plain_token)
         payload.setdefault("agents", []).append(a)
@@ -228,8 +255,9 @@ class IdentityStore:
                     self._attach_token(u, instance_token)
                     self._save(payload)
                 return u
-        return self.create_user("primary", "Primary person",
-                                initial_plain_token=instance_token)
+        return self.create_user(
+            "primary", "Primary person", initial_plain_token=instance_token
+        )
 
 
 DEV_BYPASS_ENV = "PW_DEV_AUTH_BYPASS"
@@ -248,9 +276,13 @@ def dev_bypass_enabled() -> bool:
 def dev_bypass_principal() -> Principal:
     """The principal the dev bypass resolves to: the bootstrap primary
     person, visibly marked with its own auth source."""
-    return Principal(id="primary", kind="person",
-                     display_name="Primary person",
-                     auth_level=1, source="dev-bypass")
+    return Principal(
+        id="primary",
+        kind="person",
+        display_name="Primary person",
+        auth_level=1,
+        source="dev-bypass",
+    )
 
 
 def principal_from_record(record: dict, source: str = "token") -> Principal:
@@ -259,20 +291,30 @@ def principal_from_record(record: dict, source: str = "token") -> Principal:
     resolution reuse this so every credential path lands on the same
     Principal shape."""
     if record.get("kind") == "agent":
-        return Principal(id=record["user_id"], kind="agent",
-                         owner_id=record.get("owner_id"),
-                         display_name=record.get("display_name"),
-                         scopes=tuple(record.get("scopes") or ()),
-                         auth_level=1, source=source)
-    return Principal(id=record["user_id"], kind="person",
-                     display_name=record.get("display_name"),
-                     auth_level=1, source=source)
+        return Principal(
+            id=record["user_id"],
+            kind="agent",
+            owner_id=record.get("owner_id"),
+            display_name=record.get("display_name"),
+            scopes=tuple(record.get("scopes") or ()),
+            auth_level=1,
+            source=source,
+        )
+    return Principal(
+        id=record["user_id"],
+        kind="person",
+        display_name=record.get("display_name"),
+        auth_level=1,
+        source=source,
+    )
 
 
-def resolve_principal(token: str | None,
-                      store: IdentityStore | None,
-                      mode: str,
-                      instance_token: str | None) -> Principal:
+def resolve_principal(
+    token: str | None,
+    store: IdentityStore | None,
+    mode: str,
+    instance_token: str | None,
+) -> Principal:
     """The single seam. No handler ever sees the raw token."""
     if mode == "multi" and store is not None:
         found = store.match_token(token or "")
@@ -280,18 +322,27 @@ def resolve_principal(token: str | None,
             raise NoPrincipalError("no principal for token")
         return principal_from_record(found, source="token")
     # single mode: bootstrap "primary" directly from the instance token
-    if not instance_token or not token or not hmac.compare_digest(
-        token, instance_token):
+    if (
+        not instance_token
+        or not token
+        or not hmac.compare_digest(token, instance_token)
+    ):
         raise NoPrincipalError()
-    return Principal(id="primary", kind="person",
-                     display_name="Primary person", auth_level=1,
-                     source="token")
+    return Principal(
+        id="primary",
+        kind="person",
+        display_name="Primary person",
+        auth_level=1,
+        source="token",
+    )
 
 
-def resolve_session_principal(session_principal_id: str | None,
-                              store: IdentityStore | None,
-                              mode: str,
-                              auth_method: str = "local") -> Principal:
+def resolve_session_principal(
+    session_principal_id: str | None,
+    store: IdentityStore | None,
+    mode: str,
+    auth_method: str = "local",
+) -> Principal:
     """Resolve a browser session through the same canonical seam.
 
     A session stores only the id of the principal it was created for;
@@ -309,15 +360,21 @@ def resolve_session_principal(session_principal_id: str | None,
         return principal_from_record(record, source=source)
     if not session_principal_id:
         raise NoPrincipalError("empty session principal")
-    return Principal(id="primary", kind="person",
-                     display_name="Primary person", auth_level=1,
-                     source=source)
+    return Principal(
+        id="primary",
+        kind="person",
+        display_name="Primary person",
+        auth_level=1,
+        source=source,
+    )
 
 
-def resolve_oidc_principal(sub: str | None,
-                           store: IdentityStore | None,
-                           mode: str,
-                           display_name: str | None = None) -> Principal:
+def resolve_oidc_principal(
+    sub: str | None,
+    store: IdentityStore | None,
+    mode: str,
+    display_name: str | None = None,
+) -> Principal:
     """Map a verified OIDC identity onto a local principal.
 
     Single mode has exactly one person, so a verified external identity
@@ -335,6 +392,87 @@ def resolve_oidc_principal(sub: str | None,
         raise NoPrincipalError("oidc identity has no local account")
     if not sub:
         raise NoPrincipalError("empty oidc subject")
-    return Principal(id="primary", kind="person",
-                     display_name="Primary person", auth_level=1,
-                     source="oidc")
+    return Principal(
+        id="primary",
+        kind="person",
+        display_name="Primary person",
+        auth_level=1,
+        source="oidc",
+    )
+
+
+# ── Per-user data paths (product decision #13: multi-user) ─────────────
+#
+# One instance can serve several people. Per-user state resolves through
+# ONE helper — principal_scoped_path() — so every store (world, journal,
+# reminders, proposals, chat history, interests) partitions the same way
+# and no handler invents its own layout.
+#
+# Boundary (see docs/IDENTITY-BOUNDARY.md):
+#   per-user — world (incl. prefs + sections/map layout), journal,
+#              reminders, proposals, chat history, interests
+#   global   — runtime/app config, capability catalog, system health,
+#              deployment config, shared connections registry
+#
+# Legacy mapping (no silent migration loss): in single mode — the
+# default — every kind resolves to the SAME instance-level path current
+# installs already use (world.json, journal.ndjson, reminders.json,
+# proposals.json under the data dir; discovery.json under ~/.config).
+# A multi-mode install is an explicit opt-in: each person (and each
+# agent, via its owner) gets data/users/<id>/<file>.
+
+#: Per-user state kinds and their file names inside a user tree.
+SCOPED_PATH_FILENAMES: dict[str, str] = {
+    "world": "world.json",
+    "journal": "journal.ndjson",
+    "reminders": "reminders.json",
+    "proposals": "proposals.json",
+    "chat_history": "chat-history.ndjson",
+    "discovery": "discovery.json",
+}
+
+#: Legacy (single-user default) discovery config location. Matches
+#: NativeDiscovery's own default so a single-mode install keeps reading
+#: the interests file it has always used.
+LEGACY_DISCOVERY_PATH = Path("~/.config/personal-world/discovery.json")
+
+_SAFE_PRINCIPAL_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+
+
+def legacy_scoped_path(data_dir: Path | str, kind: str) -> Path:
+    """The instance-level path a kind has always used (single mode)."""
+    if kind not in SCOPED_PATH_FILENAMES:
+        raise ValueError(f"unknown scoped path kind: {kind!r}")
+    if kind == "discovery":
+        return LEGACY_DISCOVERY_PATH.expanduser()
+    return Path(data_dir) / SCOPED_PATH_FILENAMES[kind]
+
+
+def principal_scoped_path(
+    data_dir: Path | str,
+    principal: Principal | None,
+    kind: str,
+    *,
+    mode: str = "single",
+) -> Path:
+    """Resolve one per-user state kind to a concrete file path.
+
+    Rules (in order):
+    - unknown kind → ValueError (fail closed, never a guessed path)
+    - single mode, or no principal (background/scheduler seams) →
+      the legacy instance path, byte-identical to today's behavior
+    - multi mode → data/users/<id>/<file>, where <id> is the person's
+      id, or an agent's OWNER id (agents act on their owner's tree, so
+      an agent-proposed reminder lands where the owner will review it)
+    - an id that is not a safe path segment → ValueError (no traversal)
+    """
+    if kind not in SCOPED_PATH_FILENAMES:
+        raise ValueError(f"unknown scoped path kind: {kind!r}")
+    if mode != "multi" or principal is None:
+        return legacy_scoped_path(data_dir, kind)
+    tree_id = principal.id
+    if principal.kind == "agent" and principal.owner_id:
+        tree_id = principal.owner_id
+    if not _SAFE_PRINCIPAL_ID.match(tree_id or ""):
+        raise ValueError(f"principal id is not a safe path segment: {tree_id!r}")
+    return Path(data_dir) / "users" / tree_id / SCOPED_PATH_FILENAMES[kind]

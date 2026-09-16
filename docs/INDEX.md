@@ -28,6 +28,7 @@ open an issue.
 | Doc | Status | What it is |
 |---|---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Canonical current | World model, current APIs/layout, identity and Vault limits, daily loop, target auth distinction. |
+| [IDENTITY-BOUNDARY.md](IDENTITY-BOUNDARY.md) | Canonical current | Per-user vs instance-global state boundary (decision #13), legacy path mapping, and the sync-friendliness rule (decision #15). |
 | [NATIVE-BASELINE-AND-ENRICHMENT.md](NATIVE-BASELINE-AND-ENRICHMENT.md) | Normative | The core invariant: capabilities core-owned, providers optional. Enforced by `framework validate`. |
 | [adr/0001](adr/0001-capabilities-core-owned-providers-optional.md) | Accepted | Why the capability-ownership rule became test-enforced. |
 | [adr/0002](adr/0002-default-brain-selection.md) | Accepted | Default brain selection (Qwen3 1.7B with an LFM2.5 fallback). |

@@ -39,6 +39,7 @@ def _search_paths(config_dir: Path) -> list[str]:
     (source_control.search_paths). The same helper the registry uses,
     so CLI, API, and provider observe() read one config shape."""
     from .source_control import configured_search_paths
+
     return configured_search_paths(config_dir)
 
 
@@ -80,16 +81,20 @@ def cmd_daily(world, registry, journal, args) -> int:
 def cmd_journal(world, registry, journal, args) -> int:
     events = journal.recent(getattr(args, "n", 20))
     return _emit(
-        Result(ok=True, status="healthy",
-               data=[e.model_dump(mode="json") for e in events]),
+        Result(
+            ok=True, status="healthy", data=[e.model_dump(mode="json") for e in events]
+        ),
         args.json,
     )
 
 
 def cmd_actors(world, registry, journal, args) -> int:
     return _emit(
-        Result(ok=True, status="healthy",
-               data=[a.model_dump(mode="json") for a in registry.actors()]),
+        Result(
+            ok=True,
+            status="healthy",
+            data=[a.model_dump(mode="json") for a in registry.actors()],
+        ),
         args.json,
     )
 
@@ -110,8 +115,7 @@ def cmd_world_export(world, registry, journal, args) -> int:
 
 def cmd_story_export(world, registry, journal, args) -> int:
     return _emit(
-        Result(ok=True, status="healthy",
-               data={"text": export.story_export(journal)}),
+        Result(ok=True, status="healthy", data={"text": export.story_export(journal)}),
         args.json,
     )
 
@@ -122,16 +126,20 @@ def cmd_backup(world, registry, journal, args) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     if not getattr(args, "apply", False):
         return _emit(
-            Result(ok=True, status="dry-run",
-                   data={"would_write": str(out),
-                         "note": "payload is unencrypted; encrypt with your "
-                                 "SOPS/age mechanism before storage"}),
+            Result(
+                ok=True,
+                status="dry-run",
+                data={
+                    "would_write": str(out),
+                    "note": "payload is unencrypted; encrypt with your "
+                    "SOPS/age mechanism before storage",
+                },
+            ),
             args.json,
         )
     out.write_text(json.dumps(payload, indent=2, default=str))
     return _emit(
-        Result(ok=True, status="written", changed=True,
-               data={"path": str(out)}),
+        Result(ok=True, status="written", changed=True, data={"path": str(out)}),
         args.json,
     )
 
@@ -151,7 +159,8 @@ def cmd_prefs(world, registry, journal, args) -> int:
     except prefs.PrefsValueError as e:
         return _emit(
             Result(ok=False, status="rejected", warnings=[str(e)]),
-            args.json, EXIT_ERROR,
+            args.json,
+            EXIT_ERROR,
         )
     save_world(world, world_path)
     return _emit(
@@ -165,17 +174,23 @@ def cmd_cement(world, registry, journal, args) -> int:
         world.cement(args.key)
         save_world(world, Path(args.data_dir) / "world.json")
     except KeyError:
-        return _emit(Result(ok=False, status="unknown-policy",
-                            warnings=[f"no policy '{args.key}'"]),
-                      args.json, EXIT_ERROR)
-    return _emit(Result(ok=True, status="cemented", changed=True,
-                        data={"key": args.key}), args.json)
+        return _emit(
+            Result(
+                ok=False, status="unknown-policy", warnings=[f"no policy '{args.key}'"]
+            ),
+            args.json,
+            EXIT_ERROR,
+        )
+    return _emit(
+        Result(ok=True, status="cemented", changed=True, data={"key": args.key}),
+        args.json,
+    )
 
 
 def cmd_init(world, registry, journal, args) -> int:
     from .init import init_world
-    return _emit(init_world(Path(args.data_dir), Path(args.config_dir)),
-                 args.json)
+
+    return _emit(init_world(Path(args.data_dir), Path(args.config_dir)), args.json)
 
 
 def cmd_changes(world, registry, journal, args) -> int:
@@ -184,10 +199,15 @@ def cmd_changes(world, registry, journal, args) -> int:
     paths = _search_paths(Path(args.config_dir))
     if not paths:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no source_control search paths configured "
-                             "(add source_control.search_paths to "
-                             "connections.json)"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=[
+                    "no source_control search paths configured "
+                    "(add source_control.search_paths to "
+                    "connections.json)"
+                ],
+            ),
             args.json,
         )
     discovered = discover_repositories(paths)
@@ -199,17 +219,22 @@ def cmd_changes(world, registry, journal, args) -> int:
     }
     if not repos:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no git repositories found in configured "
-                             "search paths"],
-                   data=data),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=["no git repositories found in configured search paths"],
+                data=data,
+            ),
             args.json,
         )
     dirty = sum(1 for r in data["repositories"] if r["dirty"])
     return _emit(
-        Result(ok=True, status="healthy",
-               data=data,
-               actions=[f"{dirty} dirty of {len(repos)} repositories"]),
+        Result(
+            ok=True,
+            status="healthy",
+            data=data,
+            actions=[f"{dirty} dirty of {len(repos)} repositories"],
+        ),
         args.json,
     )
 
@@ -218,34 +243,49 @@ def cmd_history(world, registry, journal, args) -> int:
     paths = _search_paths(Path(args.config_dir))
     if not paths:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no source_control search paths configured "
-                             "(add source_control.search_paths to "
-                             "connections.json)"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=[
+                    "no source_control search paths configured "
+                    "(add source_control.search_paths to "
+                    "connections.json)"
+                ],
+            ),
             args.json,
         )
     repos = [e for e in discover_repositories(paths) if e["is_repository"]]
     if not repos:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no git repositories found in configured "
-                             "search paths"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=["no git repositories found in configured search paths"],
+            ),
             args.json,
         )
     if len(repos) == 1:
         return _emit(
-            Result(ok=True, status="healthy",
-                   data={"repo": repos[0]["name"],
-                         "commits": repository_history(
-                             repos[0]["path"], args.limit)}),
+            Result(
+                ok=True,
+                status="healthy",
+                data={
+                    "repo": repos[0]["name"],
+                    "commits": repository_history(repos[0]["path"], args.limit),
+                },
+            ),
             args.json,
         )
     return _emit(
-        Result(ok=True, status="healthy",
-               data={"history": {
-                   r["name"]: repository_history(r["path"], args.limit)
-                   for r in repos
-               }}),
+        Result(
+            ok=True,
+            status="healthy",
+            data={
+                "history": {
+                    r["name"]: repository_history(r["path"], args.limit) for r in repos
+                }
+            },
+        ),
         args.json,
     )
 
@@ -257,30 +297,42 @@ def cmd_sync_status(world, registry, journal, args) -> int:
     paths = _search_paths(Path(args.config_dir))
     if not paths:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no source_control search paths configured "
-                             "(add source_control.search_paths to "
-                             "connections.json)"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=[
+                    "no source_control search paths configured "
+                    "(add source_control.search_paths to "
+                    "connections.json)"
+                ],
+            ),
             args.json,
         )
     repos = [
-        r for r in status_all(paths)
+        r
+        for r in status_all(paths)
         if r.get("error") is None or r.get("branch") is not None
     ]
     if not repos:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no git repositories found in configured "
-                             "search paths"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=["no git repositories found in configured search paths"],
+            ),
             args.json,
         )
     sync = [
-        {"name": r["name"], "branch": r["branch"],
-         "ahead": r["ahead"], "behind": r["behind"], "remote": r["remote"]}
+        {
+            "name": r["name"],
+            "branch": r["branch"],
+            "ahead": r["ahead"],
+            "behind": r["behind"],
+            "remote": r["remote"],
+        }
         for r in repos
     ]
-    return _emit(Result(ok=True, status="healthy", data={"repos": sync}),
-                 args.json)
+    return _emit(Result(ok=True, status="healthy", data={"repos": sync}), args.json)
 
 
 def cmd_manifest(world, registry, journal, args) -> int:
@@ -294,11 +346,15 @@ def cmd_framework_validate(world, registry, journal, args) -> int:
     """Validate connections.json, compose, and settings-export against
     the framework invariants (docs/NATIVE-BASELINE-AND-ENRICHMENT.md)."""
     import json as _json
+
     conn_path = Path(args.config_dir) / "connections.json"
     if not conn_path.exists():
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no connections.json to validate"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=["no connections.json to validate"],
+            ),
             args.json,
         )
     connections = _json.loads(conn_path.read_text())
@@ -306,9 +362,7 @@ def cmd_framework_validate(world, registry, journal, args) -> int:
     result = validate_connections(connections, known)
     compose_path = Path(__file__).resolve().parents[2] / "compose.yaml"
     if compose_path.exists():
-        provider_names = {
-            c.get("name") for c in connections.get("connections", [])
-        }
+        provider_names = {c.get("name") for c in connections.get("connections", [])}
         compose_result = validate_compose_file(compose_path, provider_names)
         result.violations.extend(compose_result.violations)
         result.ok = result.ok and compose_result.ok
@@ -324,9 +378,14 @@ def cmd_framework_validate(world, registry, journal, args) -> int:
     if result.ok:
         return _emit(Result(ok=True, status="healthy", data=payload), args.json)
     return _emit(
-        Result(ok=False, status="unhealthy",
-               warnings=[str(v) for v in result.violations], data=payload),
-        args.json, EXIT_ERROR,
+        Result(
+            ok=False,
+            status="unhealthy",
+            warnings=[str(v) for v in result.violations],
+            data=payload,
+        ),
+        args.json,
+        EXIT_ERROR,
     )
 
 
@@ -349,9 +408,14 @@ def cmd_framework_validate_packs(world, registry, journal, args) -> int:
     if result.ok:
         return _emit(Result(ok=True, status="healthy", data=payload), args.json)
     return _emit(
-        Result(ok=False, status="unhealthy",
-               warnings=[str(v) for v in result.violations], data=payload),
-        args.json, EXIT_ERROR,
+        Result(
+            ok=False,
+            status="unhealthy",
+            warnings=[str(v) for v in result.violations],
+            data=payload,
+        ),
+        args.json,
+        EXIT_ERROR,
     )
 
 
@@ -376,12 +440,19 @@ def cmd_updates_check(world, registry, journal, args) -> int:
     provider, mgr = _updates_manager(world, registry, journal, args)
     if provider is None:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no update target configured; set "
-                             "PW_UPDATES_PROJECT_DIR or pass --project-dir"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=[
+                    "no update target configured; set "
+                    "PW_UPDATES_PROJECT_DIR or pass --project-dir"
+                ],
+            ),
             args.json,
         )
-    result = mgr.check(None if getattr(args, "all", False) else getattr(args, "target", None))
+    result = mgr.check(
+        None if getattr(args, "all", False) else getattr(args, "target", None)
+    )
     return _emit(Result(ok=True, status="healthy", data=result), args.json)
 
 
@@ -389,17 +460,24 @@ def cmd_updates_preview(world, registry, journal, args) -> int:
     provider, mgr = _updates_manager(world, registry, journal, args)
     if provider is None:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no update target configured"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=["no update target configured"],
+            ),
             args.json,
         )
     try:
         preview = mgr.preview(args.target)
     except KeyError:
         return _emit(
-            Result(ok=False, status="unknown-target",
-                   warnings=[f"unknown target '{args.target}' for provider "
-                             f"'{provider.name}'"]),
+            Result(
+                ok=False,
+                status="unknown-target",
+                warnings=[
+                    f"unknown target '{args.target}' for provider '{provider.name}'"
+                ],
+            ),
             args.json,
         )
     return _emit(Result(ok=True, status="healthy", data=preview), args.json)
@@ -409,33 +487,50 @@ def cmd_updates_apply(world, registry, journal, args) -> int:
     provider, mgr = _updates_manager(world, registry, journal, args)
     if provider is None:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no update target configured"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=["no update target configured"],
+            ),
             args.json,
         )
     try:
         result = mgr.apply(args.target, confirm=bool(getattr(args, "yes", False)))
     except UpdateRefused as e:
-        return _emit(Result(ok=False, status="refused", warnings=[str(e)]),
-                     args.json, EXIT_DENIED)
+        return _emit(
+            Result(ok=False, status="refused", warnings=[str(e)]),
+            args.json,
+            EXIT_DENIED,
+        )
     except UpdateRollbackFailed as e:
         return _emit(
-            Result(ok=False, status="rollback-failed",
-                   warnings=[str(e)],
-                   data={"applied": True, "verified": False,
-                         "rolled_back": False}),
-            args.json, EXIT_ERROR,
+            Result(
+                ok=False,
+                status="rollback-failed",
+                warnings=[str(e)],
+                data={"applied": True, "verified": False, "rolled_back": False},
+            ),
+            args.json,
+            EXIT_ERROR,
         )
     if not result.verified and result.rolled_back:
         return _emit(
-            Result(ok=False, status="rolled-back",
-                   warnings=[result.error or "verify failed; rolled back"],
-                   data=result),
-            args.json, EXIT_ERROR,
+            Result(
+                ok=False,
+                status="rolled-back",
+                warnings=[result.error or "verify failed; rolled back"],
+                data=result,
+            ),
+            args.json,
+            EXIT_ERROR,
         )
     return _emit(
-        Result(ok=True, status="verified" if result.verified else "unverified",
-               changed=result.applied, data=result),
+        Result(
+            ok=True,
+            status="verified" if result.verified else "unverified",
+            changed=result.applied,
+            data=result,
+        ),
         args.json,
     )
 
@@ -444,15 +539,21 @@ def cmd_updates_rollback(world, registry, journal, args) -> int:
     provider, mgr = _updates_manager(world, registry, journal, args)
     if provider is None:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no update target configured"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=["no update target configured"],
+            ),
             args.json,
         )
     try:
         result = mgr.rollback(args.target)
     except UpdateRefused as e:
-        return _emit(Result(ok=False, status="refused", warnings=[str(e)]),
-                     args.json, EXIT_DENIED)
+        return _emit(
+            Result(ok=False, status="refused", warnings=[str(e)]),
+            args.json,
+            EXIT_DENIED,
+        )
     return _emit(
         Result(ok=True, status="rolled-back", changed=True, data=result),
         args.json,
@@ -463,13 +564,100 @@ def cmd_updates_status(world, registry, journal, args) -> int:
     provider, mgr = _updates_manager(world, registry, journal, args)
     if provider is None:
         return _emit(
-            Result(ok=False, status="not_configured",
-                   warnings=["no update target configured"]),
+            Result(
+                ok=False,
+                status="not_configured",
+                warnings=["no update target configured"],
+            ),
             args.json,
         )
-    return _emit(Result(ok=True, status="healthy",
-                        data=mgr.status(live=bool(getattr(args, "live", False)))),
-                 args.json)
+    return _emit(
+        Result(
+            ok=True,
+            status="healthy",
+            data=mgr.status(live=bool(getattr(args, "live", False))),
+        ),
+        args.json,
+    )
+
+
+# ── worlds backup/restore (SOS escape hatch) ─────────────────────────
+#
+# The passphrase is read from a terminal prompt or the
+# PW_BACKUP_PASSPHRASE env var — NEVER from argv. Command-line values
+# are visible to every local process (`ps`), land in shell history,
+# and get captured by process accounting; a passphrase in argv would
+# leak the key to the whole world's backup. The env var exists for
+# non-interactive recovery (systemd-run, restore scripts) and should
+# be set per-command, not exported in a profile.
+
+
+def _backup_passphrase(args, confirm: bool) -> str | None:
+    import os
+
+    env = os.environ.get("PW_BACKUP_PASSPHRASE")
+    if env:
+        return env
+    import getpass
+
+    pw = getpass.getpass("Backup passphrase (input hidden): ")
+    if confirm:
+        again = getpass.getpass("Repeat passphrase: ")
+        if pw != again:
+            return None
+    return pw
+
+
+def cmd_worlds_backup(world, registry, journal, args) -> int:
+    from . import worlds_backup
+
+    passphrase = _backup_passphrase(
+        args, confirm=not getattr(args, "no_confirm", False)
+    )
+    if passphrase is None:
+        return _emit(
+            Result(
+                ok=False,
+                status="rejected",
+                warnings=["passphrases did not match; nothing written"],
+            ),
+            args.json,
+            EXIT_ERROR,
+        )
+    result = worlds_backup.backup(
+        Path(args.data_dir),
+        Path(args.target),
+        passphrase,
+        include_vault=bool(getattr(args, "include_vault", False)),
+        config_dir=Path(args.config_dir),
+        home_config_dir=getattr(args, "home_config_dir", None),
+    )
+    return _emit(result, args.json)
+
+
+def cmd_worlds_restore(world, registry, journal, args) -> int:
+    from . import worlds_backup
+
+    passphrase = _backup_passphrase(args, confirm=False)
+    if passphrase is None:
+        return _emit(
+            Result(
+                ok=False,
+                status="rejected",
+                warnings=["no passphrase provided; nothing written"],
+            ),
+            args.json,
+            EXIT_ERROR,
+        )
+    result = worlds_backup.restore(
+        Path(args.data_dir),
+        Path(args.file),
+        passphrase,
+        overwrite=bool(getattr(args, "overwrite", False)),
+        config_dir=Path(args.config_dir),
+        home_config_dir=getattr(args, "home_config_dir", None),
+    )
+    return _emit(result, args.json)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -488,27 +676,37 @@ def main(argv: list[str] | None = None) -> int:
     add("daily", cmd_daily, help="run the daily loop")
     sub.choice_map = None
     d = sub.choices["daily"]
-    d.add_argument("--apply", action="store_true",
-                   help="persist observed facts (default: dry-run)")
+    d.add_argument(
+        "--apply", action="store_true", help="persist observed facts (default: dry-run)"
+    )
     add("journal", cmd_journal, help="recent journal events")
     sub.choices["journal"].add_argument("-n", type=int, default=20)
     add("actors", cmd_actors, help="staff-directory view of providers")
-    add("settings-export", cmd_settings_export,
-        help="shareable blueprint (no personal data)")
-    add("world-export", cmd_world_export,
-        help="portable personal configuration (no secrets)")
-    add("story-export", cmd_story_export,
-        help="human-readable journal rendering")
+    add(
+        "settings-export",
+        cmd_settings_export,
+        help="shareable blueprint (no personal data)",
+    )
+    add(
+        "world-export",
+        cmd_world_export,
+        help="portable personal configuration (no secrets)",
+    )
+    add("story-export", cmd_story_export, help="human-readable journal rendering")
     b = add("backup", cmd_backup, help="backup payload (encrypt before storing)")
     b.add_argument("--apply", action="store_true")
-    add("cement", cmd_cement,
-        help="make a policy cemented (explicit user action)")
-    add("init", cmd_init,
-        help="initialize local world state (idempotent, zero providers)")
-    add("manifest", cmd_manifest,
-        help="machine-readable capability/provider manifest")
-    prefs_p = add("prefs", cmd_prefs,
-                  help="presentation preferences (accessibility floor enforced)")
+    add("cement", cmd_cement, help="make a policy cemented (explicit user action)")
+    add(
+        "init",
+        cmd_init,
+        help="initialize local world state (idempotent, zero providers)",
+    )
+    add("manifest", cmd_manifest, help="machine-readable capability/provider manifest")
+    prefs_p = add(
+        "prefs",
+        cmd_prefs,
+        help="presentation preferences (accessibility floor enforced)",
+    )
     prefs_sub = prefs_p.add_subparsers(dest="prefs_cmd", required=True)
     prefs_show = prefs_sub.add_parser("show", help="effective preferences")
     prefs_show.add_argument("--json", action="store_true")
@@ -518,33 +716,48 @@ def main(argv: list[str] | None = None) -> int:
     pset.add_argument("value")
     pset.add_argument("--json", action="store_true")
     pset.set_defaults(fn=cmd_prefs)
-    add("changes", cmd_changes,
-        help="native git status for configured repositories (read-only)")
-    h = add("history", cmd_history,
-            help="native git commit history, newest first (read-only)")
+    add(
+        "changes",
+        cmd_changes,
+        help="native git status for configured repositories (read-only)",
+    )
+    h = add(
+        "history",
+        cmd_history,
+        help="native git commit history, newest first (read-only)",
+    )
     h.add_argument("--limit", type=int, default=20)
-    add("sync-status", cmd_sync_status,
-        help="native git ahead/behind per repository (read-only)")
+    add(
+        "sync-status",
+        cmd_sync_status,
+        help="native git ahead/behind per repository (read-only)",
+    )
     fw = sub.add_parser("framework", help="framework-level tooling")
     fw_sub = fw.add_subparsers(dest="framework_cmd", required=True)
-    fw_v = fw_sub.add_parser("validate",
-                             help="validate config against framework invariants")
+    fw_v = fw_sub.add_parser(
+        "validate", help="validate config against framework invariants"
+    )
     fw_v.add_argument("--json", action="store_true")
     fw_v.set_defaults(fn=cmd_framework_validate)
     fw_vp = fw_sub.add_parser(
         "validate-packs",
         help="validate every participant pack under .project/participants/ "
-             "(parse, required keys, schema namespace, id uniqueness)",
+        "(parse, required keys, schema namespace, id uniqueness)",
     )
     fw_vp.add_argument("--json", action="store_true")
     fw_vp.set_defaults(fn=cmd_framework_validate_packs)
 
-    up = sub.add_parser("updates",
-                        help="safe update flow: check/preview/apply/rollback")
-    up.add_argument("--provider", default="compose",
-                    help="update provider kind (compose|fake)")
-    up.add_argument("--project-dir", default=None,
-                    help="compose project directory (default: $PW_UPDATES_PROJECT_DIR)")
+    up = sub.add_parser(
+        "updates", help="safe update flow: check/preview/apply/rollback"
+    )
+    up.add_argument(
+        "--provider", default="compose", help="update provider kind (compose|fake)"
+    )
+    up.add_argument(
+        "--project-dir",
+        default=None,
+        help="compose project directory (default: $PW_UPDATES_PROJECT_DIR)",
+    )
     up_sub = up.add_subparsers(dest="updates_cmd", required=True)
 
     def up_add(name, fn, help_):
@@ -556,20 +769,71 @@ def main(argv: list[str] | None = None) -> int:
     up_c = up_add("check", cmd_updates_check, "check for available updates (read-only)")
     up_c.add_argument("target", nargs="?", default=None)
     up_c.add_argument("--all", action="store_true", help="check every target")
-    up_add("preview", cmd_updates_preview,
-           "show exactly what an apply would change (read-only)")\
-        .add_argument("target")
-    up_a = up_add("apply", cmd_updates_apply,
-                  "apply the previewed update (requires --yes)")
+    up_add(
+        "preview",
+        cmd_updates_preview,
+        "show exactly what an apply would change (read-only)",
+    ).add_argument("target")
+    up_a = up_add(
+        "apply", cmd_updates_apply, "apply the previewed update (requires --yes)"
+    )
     up_a.add_argument("target")
-    up_a.add_argument("--yes", action="store_true",
-                      help="explicit confirmation; refused without it")
-    up_add("rollback", cmd_updates_rollback,
-           "roll back to the journaled known-good state")\
-        .add_argument("target")
+    up_a.add_argument(
+        "--yes", action="store_true", help="explicit confirmation; refused without it"
+    )
+    up_add(
+        "rollback", cmd_updates_rollback, "roll back to the journaled known-good state"
+    ).add_argument("target")
     up_s = up_add("status", cmd_updates_status, "updates session state")
-    up_s.add_argument("--live", action="store_true",
-                      help="include a read-only check per target")
+    up_s.add_argument(
+        "--live", action="store_true", help="include a read-only check per target"
+    )
+
+    w = sub.add_parser(
+        "worlds",
+        help="encrypted full-instance backup/restore (SOS escape hatch); "
+        "passphrase via prompt or PW_BACKUP_PASSPHRASE env, never argv",
+    )
+    w.add_argument(
+        "--home-config-dir",
+        default=None,
+        help="per-user config home (default: ~/.config/personal-world)",
+    )
+    w_sub = w.add_subparsers(dest="worlds_cmd", required=True)
+
+    def w_add(name, fn, help_):
+        sp = w_sub.add_parser(name, help=help_)
+        sp.add_argument("--json", action="store_true")
+        sp.set_defaults(fn=fn)
+        return sp
+
+    wb = w_add(
+        "backup",
+        cmd_worlds_backup,
+        "write ONE encrypted archive of the full-restore boundary",
+    )
+    wb.add_argument("target", help="archive path to write (e.g. ~/sos/world.pwbackup)")
+    wb.add_argument(
+        "--include-vault",
+        action="store_true",
+        help="also archive vault.enc (already encrypted at rest; excluded by default)",
+    )
+    wb.add_argument(
+        "--no-confirm",
+        action="store_true",
+        help="skip the repeat-passphrase confirmation prompt",
+    )
+    wr = w_add(
+        "restore",
+        cmd_worlds_restore,
+        "import an encrypted archive (create-if-absent by default)",
+    )
+    wr.add_argument("file", help="archive path to restore from")
+    wr.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="replace existing files (default: keep them, report skipped)",
+    )
 
     args = p.parse_args(argv)
     data_dir = Path(args.data_dir)
@@ -581,8 +845,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return args.fn(world, registry, journal, args)
     except MutationDenied as e:
-        return _emit(Result(ok=False, status="denied", warnings=[str(e)]),
-                     args.json, EXIT_DENIED)
+        return _emit(
+            Result(ok=False, status="denied", warnings=[str(e)]), args.json, EXIT_DENIED
+        )
 
 
 if __name__ == "__main__":
