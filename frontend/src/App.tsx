@@ -22,7 +22,7 @@ import {
 } from "./lib/prefs-context";
 import { LiveRegionProvider } from "./primitives/LiveRegion";
 import { fetchPrefs, setLoginNavigation } from "./lib/api";
-import { WorkshopShell } from "./shell/WorkshopShell";
+import { Shell } from "./shell/Shell";
 import { AuthLayout } from "./shell/AuthLayout";
 
 /**
@@ -175,9 +175,9 @@ function App() {
                 storm from a hidden shell: the shell is ABSENT, not
                 display:none'd — see ShellGate). */}
             <ShellGate>
-              <WorkshopShell>
+              <Shell>
                 <AppRoutes />
-              </WorkshopShell>
+              </Shell>
             </ShellGate>
             <AuthRoutes />
           </BrowserRouter>
