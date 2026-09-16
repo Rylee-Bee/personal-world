@@ -10,7 +10,7 @@ import {
 } from "../lib/hooks";
 import { runDailyLoop } from "../lib/api";
 import { summarizeCapabilities } from "../lib/capability-health";
-import { projectToday, type TodayItem } from "../lib/today-state";
+import { projectToday } from "../lib/today-state";
 import { useCompanion, COMPANIONS } from "../lib/companion-context";
 import { Icon } from "../lib/icons";
 import { StatusChip } from "../primitives/StatusChip";
@@ -18,17 +18,18 @@ import { Link } from "react-router-dom";
 import "./today-screen.css";
 
 /**
- * TodayScreen — §16.1 "Today — Quiet Day" (+ §16.2–16.6 states)
+ * TodayScreen — "Calm Linear living inside a warm personal world."
  *
- * Dashboard-calibrated: scannable cards, real data surfaces, status
- * at a glance. Calm and accessible, not a cold admin panel.
+ * The morning screen. Primary question: "Does anything need me?"
  *
- * Composition priority (§18):
- *   1. Genuine time-sensitive blocking matter → Attention
- *   2. Relevant actionable matter → Attention (lower volume)
- *   3. Material limitation → Reservation
- *   4. Question / good news when real
- *   5. Otherwise → Quiet
+ * Composition: Ambient register. Scannable cards with real data.
+ * Silence is valid content. The companion is a small meaningful
+ * presence. Health stars are secondary decoration.
+ *
+ * §37: "I open Project Worlds and can immediately tell: How is my
+ * world? Does anything need me? What changed? What can I do next?"
+ *
+ * §39: "Good morning, Rylee. Nothing needs you right now."
  */
 
 export default function TodayScreen() {
@@ -88,7 +89,7 @@ export default function TodayScreen() {
     (p) => p.work_state !== "idle" && p.work_state !== "unknown"
   );
 
-  // §18: Project the Today composition from real evidence.
+  // §18: Project composition from real evidence.
   const projection = projectToday({
     health,
     repoAttention: reposNeedingAttention.map((r) => ({
@@ -106,7 +107,7 @@ export default function TodayScreen() {
     agentActivity: activeAgentProjects.map((p) => ({
       project: p.project,
       state: p.work_state,
-      branch: p.branch,
+      branch: p.branch ?? undefined,
     })),
     reminderCount: activeReminders.length,
     dailyLoaded: !!daily.data,
@@ -116,36 +117,59 @@ export default function TodayScreen() {
   const isQuiet = projection.composition === "quiet";
   const isAttention = projection.composition === "attention";
 
+  // Count total things that might need attention.
+  const totalAttention = health.attention.length + reposNeedingAttention.length;
+  // Differentiate normal active work from something actually going wrong.
+  // Agent activity is "active work" — calm, not attention.
+  const hasAgentActivity = activeAgentProjects.length > 0;
+
   return (
     <div className="pw-today" data-pw-composition={projection.composition}>
-      {/* ── Header: greeting + world status ─────────────────────── */}
+      {/* ── Header: greeting + companion presence ───────────────── */}
       <header className="pw-today-header">
         <div className="pw-today-header-left">
           <h1 id="today-greeting" className="pw-today-greeting">
-            Good morning{name ? `, ${name}` : ""}{" "}
-            <span aria-hidden="true" className="pw-today-greeting-mark">✦</span>
+            Good morning{name ? `, ${name}` : ""}
+            <span aria-hidden="true" className="pw-today-greeting-mark"> ✦</span>
           </h1>
           <p className="pw-today-date">{dayName}, {monthDay}</p>
         </div>
-        <div className="pw-today-header-right">
-          <div className="pw-today-companion-art" aria-hidden="true">
+        <div className="pw-today-header-right" aria-hidden="true">
+          <div className="pw-today-companion-art">
             <img src={companionIcon} alt="" className="pw-today-companion-img" />
           </div>
         </div>
       </header>
 
-      {/* ── Status banner (§18): the honest truth ──────────────── */}
-      <section
-        className={`pw-today-status ${isAttention ? "pw-today-status--attention" : isQuiet ? "pw-today-status--quiet" : ""}`}
-        role="status"
-        aria-label="World state"
-      >
-        <p className="pw-today-status-text">{projection.reason}</p>
+      {/* ── Truth sentence (§39): "caught up, not behind" ────────── */}
+      <section className="pw-today-truth" role="status" aria-label="World state">
+        <p className="pw-today-truth-text">
+          {isQuiet
+            ? totalAttention === 0
+              ? "Nothing needs you right now."
+              : totalAttention === 1
+                ? "There is one thing worth looking at when you're ready."
+                : `There are ${totalAttention} things worth looking at when you're ready.`
+            : isAttention
+              ? projection.reason
+              : projection.reason}
+        </p>
+        {/* Health stars: secondary decoration, aria-hidden (§14). */}
+        {health.configured > 0 && (
+          <div className="pw-today-truth-stars" aria-hidden="true">
+            {[0, 1, 2, 3].map((i) => (
+              <span
+                key={i}
+                className={`pw-today-star ${i < health.meter ? "pw-today-star--on" : ""}`}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* ── Capability health overview ──────────────────────────── */}
+      {/* ── Summary cards (§16): scannable, only when real data ─── */}
       <section className="pw-today-grid" aria-label="World overview">
-        {/* Health summary card */}
+        {/* World health card */}
         <div className="pw-today-card">
           <div className="pw-today-card-header">
             <Icon name="icon-world-content-world" size={18} className="pw-today-card-icon" aria-hidden />
@@ -171,7 +195,7 @@ export default function TodayScreen() {
           </div>
         </div>
 
-        {/* Reminders card — only when active */}
+        {/* Reminders — quiet, only when active */}
         {activeReminders.length > 0 && (
           <div className="pw-today-card">
             <div className="pw-today-card-header">
@@ -194,7 +218,7 @@ export default function TodayScreen() {
           </div>
         )}
 
-        {/* Projects needing attention — only when real */}
+        {/* Projects: calm summary when attention needed */}
         {reposNeedingAttention.length > 0 && (
           <div className="pw-today-card">
             <div className="pw-today-card-header">
@@ -224,9 +248,9 @@ export default function TodayScreen() {
           </div>
         )}
 
-        {/* Agent activity — only when something is active */}
-        {activeAgentProjects.length > 0 && (
-          <div className="pw-today-card">
+        {/* Agent activity: active work, NOT attention. Calm. */}
+        {hasAgentActivity && (
+          <div className="pw-today-card pw-today-card--quiet">
             <div className="pw-today-card-header">
               <Icon name="icon-chat-ai-agent" size={18} className="pw-today-card-icon" aria-hidden />
               <h2 className="pw-today-card-title">Agent Activity</h2>
@@ -244,91 +268,69 @@ export default function TodayScreen() {
             </div>
           </div>
         )}
+
+        {/* Recent journal — only when entries exist */}
+        {journalEntries.length > 0 && (
+          <div className="pw-today-card pw-today-card--wide">
+            <div className="pw-today-card-header">
+              <Icon name="icon-navigation-journal" size={18} className="pw-today-card-icon" aria-hidden />
+              <h2 className="pw-today-card-title">Recent Writing</h2>
+              <Link to="/journal" className="pw-today-card-link">View all →</Link>
+            </div>
+            <div className="pw-today-card-body">
+              <div className="pw-today-journal-entries">
+                {journalEntries.slice(0, 3).map((entry: any, i: number) => {
+                  const date = new Date(entry.ts);
+                  const dayLabel = date.toLocaleDateString("en-US", {
+                    weekday: "short", month: "short", day: "numeric",
+                  });
+                  return (
+                    <div key={i} className="pw-today-journal-entry">
+                      <p className="pw-today-journal-text">{entry.text.slice(0, 120)}</p>
+                      <p className="pw-today-journal-time">{dayLabel}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
-      {/* ── Recent writing — only when entries exist ────────────── */}
-      {journalEntries.length > 0 && (
-        <section className="pw-today-section" aria-label="Recent writing">
-          <div className="pw-today-section-header">
-            <Icon name="icon-navigation-journal" size={18} className="pw-today-card-icon" aria-hidden />
-            <h2 className="pw-today-section-title">Recent Writing</h2>
-            <Link to="/journal" className="pw-today-card-link">View all →</Link>
-          </div>
-          <div className="pw-today-entries">
-            {journalEntries.slice(0, 3).map((entry: any, i: number) => {
-              const date = new Date(entry.ts);
-              const dayLabel = date.toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              });
-              return (
-                <div key={i} className="pw-today-entry">
-                  <p className="pw-today-entry-text">{entry.text.slice(0, 140)}</p>
-                  <p className="pw-today-entry-time">{dayLabel}</p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ── Attention items (§16.4) — when present ─────────────── */}
+      {/* ── Attention items (§16.4) — only when real ───────────── */}
       {isAttention && projection.items && projection.items.length > 0 && (
-        <section className="pw-today-section" aria-label="Needs attention">
+        <section className="pw-today-attention" aria-label="Needs attention">
           <h2 className="pw-today-section-title">Needs Attention</h2>
-          <div className="pw-today-attention-list">
-            {projection.items.map((item: TodayItem) => (
-              <div key={item.id} className="pw-today-attention-item">
-                <StatusChip status="needs_attention" />
-                <span className="pw-today-attention-summary">{item.summary}</span>
+          <div className="pw-today-attention-items">
+            {projection.items.map((item) => (
+              <div key={item.id} className="pw-today-attention-row">
+                <StatusChip status="needs_attention" size="sm" />
+                <span>{item.summary}</span>
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* ── Reservation items (§16.3) — when present ───────────── */}
-      {!isAttention && projection.items && projection.items.length > 0 && (
-        <section className="pw-today-section" aria-label="Unavailable">
-          <h2 className="pw-today-section-title">Currently Unavailable</h2>
-          <div className="pw-today-attention-list">
-            {projection.items.map((item: TodayItem) => (
-              <div key={item.id} className="pw-today-attention-item">
-                <StatusChip status="unavailable" />
-                <span className="pw-today-attention-summary">{item.summary}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Daily loop trigger — muted, accessible ─────────────── */}
-      <section className="pw-today-section pw-today-section--muted" aria-label="Daily loop">
-        <details>
-          <summary className="pw-today-section-title pw-today-section-title--summary">
-            Run Daily Loop
-          </summary>
-          <div className="pw-today-daily">
-            <p className="pw-today-daily-desc">
-              Triggers the daily digest — observations, enrichment, and journal entries.
-            </p>
+      {/* ── Daily loop: buried in progressive disclosure ────────── */}
+      <footer className="pw-today-footer">
+        <details className="pw-today-daily">
+          <summary className="pw-today-daily-trigger">Advanced</summary>
+          <div className="pw-today-daily-body">
             <button
               type="button"
               className="pw-today-daily-btn"
               onClick={runDaily}
               disabled={dailyRunning}
             >
-              {dailyRunning ? "Running…" : "Run daily"}
+              {dailyRunning ? "Running…" : "Run daily loop"}
             </button>
             {dailyResult && (
               <p className="pw-today-daily-result">{dailyResult}</p>
             )}
           </div>
         </details>
-      </section>
+      </footer>
     </div>
   );
 }

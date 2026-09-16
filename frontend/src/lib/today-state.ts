@@ -80,9 +80,11 @@ export function projectToday(input: TodayProjectionInput): TodayEvidence {
     health,
     repoAttention,
     agentActivity,
-    reminderCount,
+    // Retained in the interface for future use (e.g. reminders
+    // contributing to Question state).
+    reminderCount: _reminderCount,
     dailyLoaded,
-    dailyWarnings,
+    dailyWarnings: _dailyWarnings,
   } = input;
 
   // Build the items list from real observations.
