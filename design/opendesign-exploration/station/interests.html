@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="What you follow, the clusters inside it, and the quiet threads connecting them.">
+<meta name="theme-color" content="#D4A057">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<title>Interests — Personal Worlds</title>
+<link rel="stylesheet" href="station.css">
+<link rel="stylesheet" href="content-views.css">
+<link rel="stylesheet" href="search.css">
+<link rel="stylesheet" href="onboarding.css">
+<link rel="stylesheet" href="mobile.css">
+<script src="station.js" defer></script>
+<script src="chat.js" defer></script>
+<script src="starmap.js" defer></script>
+<script src="shapemap.js" defer></script>
+<script src="deeplink.js" defer></script>
+<script src="onboarding.js" defer></script>
+<script src="search.js" defer></script>
+
+<script src="interests-view.js" defer></script>
+<style>
+  /* ── Interest cards ── */
+  .interest-section { margin-bottom: var(--s6); }
+  .interest-section h3 {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: var(--fs-lead); color: var(--cream);
+    margin-bottom: var(--s3);
+    display: flex; align-items: center; gap: var(--s2);
+  }
+  .interest-section h3 .count {
+    font-family: var(--font-mono); font-size: var(--fs-micro);
+    color: var(--text-faint); font-style: normal;
+  }
+  .interest-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--s3);
+  }
+  .interest-card {
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    background: var(--panel); padding: var(--s4);
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+  .interest-card:hover {
+    border-color: var(--border-warm); transform: translateY(-2px);
+    box-shadow: var(--shadow-warm);
+  }
+  .interest-card .card-type {
+    font-family: var(--font-mono); font-size: var(--fs-micro);
+    color: var(--text-faint); letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: var(--s1);
+  }
+  .interest-card .card-name {
+    font-family: var(--font-serif); font-size: 18px;
+    color: var(--cream); font-weight: 400; margin-bottom: var(--s2);
+  }
+  .interest-card .card-note {
+    font-size: var(--fs-small); color: var(--text-soft);
+    line-height: 1.5;
+  }
+  .interest-card .card-source {
+    font-size: var(--fs-micro); color: var(--text-faint);
+    font-family: var(--font-mono); margin-top: var(--s2);
+  }
+  .interest-card .card-remove {
+    position: absolute; top: var(--s2); right: var(--s3);
+    min-width: 32px; min-height: 32px;
+    background: none; border: none; color: var(--text-faint);
+    font-size: 16px; cursor: pointer; border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .interest-card:hover .card-remove { opacity: 1; }
+  .interest-card .card-remove:hover { color: var(--coral); }
+  .interest-card .card-remove:focus-visible { opacity: 1; outline: 2px solid #72b1b1; outline-offset: 2px; }
+
+  /* Add form */
+  .add-form {
+    border: 2px dashed var(--border); border-radius: var(--r-lg);
+    padding: var(--s4); margin-top: var(--s3);
+    display: flex; gap: var(--s2); flex-wrap: wrap; align-items: end;
+  }
+  .add-form label {
+    font-size: var(--fs-micro); color: var(--text-faint);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    display: block; margin-bottom: var(--s1); width: 100%;
+  }
+  .add-form input, .add-form select {
+    min-height: 44px; background: var(--space-warm); color: var(--text);
+    border: 1.5px solid var(--border); border-radius: var(--r-md);
+    padding: 0 var(--s3); font-size: var(--fs-small); font-family: var(--font-sans);
+    transition: border-color 0.2s;
+  }
+  .add-form input:focus, .add-form select:focus { border-color: var(--accent, var(--amber)); outline: none; }
+  .add-form input { flex: 1; min-width: 140px; }
+  .add-form select { min-width: 120px; }
+  .btn-add {
+    min-height: 44px; padding: 0 var(--s4); border-radius: var(--r-full);
+    border: 1.5px solid var(--accent, var(--amber));
+    background: var(--accent-soft, var(--amber-soft));
+    color: var(--cream); font-weight: 700; font-size: var(--fs-small);
+    font-family: var(--font-sans); cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .btn-add:hover { transform: scale(1.05); }
+
+  .section-divider {
+    display: flex; align-items: center; gap: var(--s3);
+    margin: var(--s6) 0 var(--s4);
+    font-family: var(--font-mono); font-size: var(--fs-label);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .section-divider::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  .interest-empty {
+    text-align: center; padding: var(--s6) var(--s4);
+    border: 2px dashed var(--border); border-radius: var(--r-lg);
+    background: rgba(255,255,255,0.015);
+  }
+  .interest-empty h3 {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: var(--fs-lead); color: var(--cream);
+    margin-bottom: var(--s2);
+  }
+  .interest-empty p {
+    font-size: var(--fs-small); color: var(--text-faint);
+    max-width: 40ch; margin: 0 auto; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<div class="station-bg" aria-hidden="true">
+  <div class="bg-stars"></div><div class="bg-ribs"></div><div class="bg-spill"></div>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="orb" aria-hidden="true"></span>Personal Worlds</a>
+  <nav class="topnav" aria-label="Primary">
+    <a href="index.html">World</a>
+    <a href="interests.html" aria-current="page">Interests</a>
+    <a href="journal.html">Journal</a>
+    <a href="projects.html">Projects</a>
+    <a href="chat.html">Chat</a>
+    <a href="settings.html">Settings</a>
+  </nav>
+  <span class="region" id="topbar-region"></span>
+</header>
+
+<main class="shell-main" id="main">
+  <header style="margin-bottom:var(--gap-block)">
+    <div class="station-sign">
+      <span class="fn">Constellation · what you follow</span>
+      <h1 class="cn">Interests</h1>
+    </div>
+    <p style="color:var(--text-soft);font-size:var(--fs-lead);max-width:62ch;margin-top:var(--s2)">
+      What you follow, the clusters inside it, and the quiet threads connecting them. ✦
+    </p>
+  </header>
+
+  <div class="sky-crumb" id="sky-crumb" aria-label="Where you are in the map"></div>
+  <div class="sky" id="sky" data-start="interests" role="group"
+       aria-label="Map of Interests. Use the buttons to move toward a cluster."></div>
+  <div class="sky-info" id="sky-info"></div>
+  <div class="dive" id="sky-dive" tabindex="-1" hidden></div>
+
+  <!-- ══ INTERESTS: discoveries content view ══
+       Rendered by interests-view.js. SPECIMEN — no discovery backend exists;
+       see the technical disclosure inside the view (API-051 / API-052). -->
+  <div id="interests-view" class="cv-view"></div>
+
+  <!-- ══ INTERESTS: content views ══ -->
+
+  <!-- Music -->
+  <div class="section-divider">Music</div>
+  <div class="interest-section" data-section="music">
+    <h3>Musicians & albums <span class="count" id="music-count"></span></h3>
+    <div class="interest-grid" id="music-grid"></div>
+    <div class="add-form" id="music-add-form">
+      <label>Add to Music</label>
+      <input type="text" id="music-name" placeholder="Artist or album name…" aria-label="Artist or album name">
+      <select id="music-type" aria-label="Type">
+        <option value="artist">Artist</option>
+        <option value="album">Album</option>
+        <option value="playlist">Playlist</option>
+      </select>
+      <input type="text" id="music-note" placeholder="A note (optional)" aria-label="Note" style="max-width:200px">
+      <button type="button" class="btn-add" data-add="music">Add ✦</button>
+    </div>
+  </div>
+
+  <!-- AI & local-first -->
+  <div class="section-divider">AI & local-first</div>
+  <div class="interest-section" data-section="ai">
+    <h3>Topics & threads <span class="count" id="ai-count"></span></h3>
+    <div class="interest-grid" id="ai-grid"></div>
+    <div class="add-form" id="ai-add-form">
+      <label>Add to AI & local-first</label>
+      <input type="text" id="ai-name" placeholder="Topic or thread…" aria-label="Topic name">
+      <input type="text" id="ai-note" placeholder="A note (optional)" aria-label="Note" style="max-width:200px">
+      <button type="button" class="btn-add" data-add="ai">Add ✦</button>
+    </div>
+  </div>
+
+  <!-- Reading -->
+  <div class="section-divider">Reading</div>
+  <div class="interest-section" data-section="reading">
+    <h3>Books, articles & sources <span class="count" id="reading-count"></span></h3>
+    <div class="interest-grid" id="reading-grid"></div>
+    <div class="add-form" id="reading-add-form">
+      <label>Add to Reading</label>
+      <input type="text" id="reading-name" placeholder="Title or source…" aria-label="Title">
+      <select id="reading-type" aria-label="Type">
+        <option value="book">Book</option>
+        <option value="article">Article</option>
+        <option value="paper">Paper</option>
+        <option value="newsletter">Newsletter</option>
+      </select>
+      <input type="text" id="reading-note" placeholder="A note (optional)" aria-label="Note" style="max-width:200px">
+      <button type="button" class="btn-add" data-add="reading">Add ✦</button>
+    </div>
+  </div>
+
+  <p class="map-note" style="font-size:var(--fs-small);color:var(--text-faint);margin-top:var(--s5);max-width:62ch;line-height:1.6">
+    You opened inside this region. Zoom out any time to see the whole sky. Drag planets to rearrange them. ✦
+  </p>
+
+  <details class="more-settings">
+    <summary>Shape this map</summary>
+    <div class="ms-body">
+      <div id="shape-map" data-region="interests" class="shape" style="margin-top:0;border:none;padding:0;background:none"></div>
+    </div>
+  </details>
+
+  <div style="height:100px"></div>
+</main>
+
+<script>
+(function() {
+  'use strict';
+  var STORE_KEY = 'pw-interests';
+
+  function read() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function write(data) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch(e) {}
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function(c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+
+  function renderSection(section) {
+    var data = read();
+    var items = data[section] || [];
+    var grid = document.getElementById(section + '-grid');
+    var count = document.getElementById(section + '-count');
+    if (!grid) return;
+
+    count.textContent = items.length ? '(' + items.length + ')' : '';
+
+    if (items.length) {
+      grid.innerHTML = items.map(function(item, i) {
+        return '<div class="interest-card">' +
+          '<button class="card-remove" data-section="' + section + '" data-index="' + i + '" ' +
+          'aria-label="Remove ' + esc(item.name) + '">&times;</button>' +
+          '<div class="card-type">' + esc(item.type || section) + '</div>' +
+          '<div class="card-name">' + esc(item.name) + '</div>' +
+          (item.note ? '<div class="card-note">' + esc(item.note) + '</div>' : '') +
+          '<div class="card-source">yours · added ' + new Date(item.ts).toLocaleDateString() + '</div>' +
+        '</div>';
+      }).join('');
+    } else {
+      var messages = {
+        music: 'No musicians yet. Add someone you have been listening to.',
+        ai: 'No topics yet. Add something you have been thinking about.',
+        reading: 'Nothing on the shelf yet. Add a book, article, or source.'
+      };
+      grid.innerHTML =
+        '<div class="interest-empty" style="grid-column:1/-1">' +
+          '<h3>Quiet for now ✦</h3>' +
+          '<p>' + (messages[section] || 'Nothing here yet. Add something when you are ready.') + '</p>' +
+        '</div>';
+    }
+  }
+
+  function renderAll() {
+    ['music', 'ai', 'reading'].forEach(renderSection);
+  }
+
+  // Add items
+  document.querySelectorAll('.btn-add').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var section = btn.getAttribute('data-add');
+      var name = document.getElementById(section + '-name').value.trim();
+      if (!name) return;
+      var note = document.getElementById(section + '-note');
+      var typeEl = document.getElementById(section + '-type');
+      var data = read();
+      if (!data[section]) data[section] = [];
+      data[section].push({
+        id: section + '-' + Date.now(),
+        name: name,
+        type: typeEl ? typeEl.value : section,
+        note: note ? note.value.trim() : '',
+        ts: Date.now()
+      });
+      write(data);
+      document.getElementById(section + '-name').value = '';
+      if (note) note.value = '';
+      renderSection(section);
+    });
+  });
+
+  // Remove items (event delegation)
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.card-remove');
+    if (!btn) return;
+    var section = btn.getAttribute('data-section');
+    var index = parseInt(btn.getAttribute('data-index'), 10);
+    var data = read();
+    if (data[section]) {
+      data[section].splice(index, 1);
+      write(data);
+      renderSection(section);
+    }
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Workshop — Personal Worlds Station</title>
+<link rel="stylesheet" href="station.css">
+<script src="station.js" defer></script>
+<script src="chat.js" defer></script>
+<style>
+  .ws{ --glow: var(--teal-soft); }
+  .bench{ display:grid; grid-template-columns:1.3fr 1fr; gap:var(--s6); }
+  @media(max-width:860px){ .bench{grid-template-columns:1fr;} }
+  .term{
+    background:#14181F; border:1px solid var(--border); border-radius:var(--r-md);
+    padding:var(--s4); font-family:var(--font-mono); font-size:12.5px;
+    color:var(--text-soft); line-height:1.7; position:relative; overflow:hidden;
+  }
+  .term .ok{ color:var(--green);} .term .warn{ color:var(--amber);} .term .dim{ color:var(--text-faint);}
+  .proj{ display:flex; justify-content:space-between; gap:var(--s3); align-items:center;
+    padding:var(--s3) var(--s4); border:1px solid var(--border); border-radius:var(--r-sm);
+    background:var(--panel); margin-bottom:var(--s2); }
+  .proj .name{ font-weight:600; color:var(--text); }
+  .proj .sub{ font-size:12px; color:var(--text-faint); }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<!-- the world, behind the glass: alive and busy, never the foreground -->
+<div class="station-bg" aria-hidden="true">
+  <div class="bg-stars"></div><div class="bg-ribs"></div><div class="bg-spill"></div>
+  <svg class="bg-tree" viewBox="0 0 200 200" focusable="false">
+    <path d="M95 200 Q97 140 99 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M105 200 Q103 140 101 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <g stroke="currentColor" fill="none" stroke-linecap="round">
+      <path d="M100 90 Q70 70 45 62" stroke-width="4"/>
+      <path d="M100 80 Q130 60 155 55" stroke-width="4"/>
+      <path d="M100 65 Q80 45 60 40" stroke-width="3"/>
+      <path d="M100 58 Q120 40 140 36" stroke-width="3"/>
+    </g>
+    <g fill="currentColor" opacity="0.4">
+      <circle cx="45" cy="60" r="20"/><circle cx="80" cy="42" r="18"/>
+      <circle cx="120" cy="38" r="18"/><circle cx="155" cy="53" r="20"/>
+      <circle cx="100" cy="34" r="22"/>
+    </g>
+  </svg>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="orb" aria-hidden="true"></span>Personal Worlds</a>
+  <nav class="topnav" aria-label="Primary">
+    <a href="index.html">World</a>
+    <a href="interests.html">Interests</a>
+    <a href="journal.html">Journal</a>
+    <a href="projects.html">Projects</a>
+    <a href="chat.html">Chat</a>
+    <a href="settings.html">Settings</a>
+  </nav>
+  <span class="region" id="topbar-region"></span>
+</header>
+
+<main class="shell-main ws" id="main">
+  <div class="station-sign"><span class="fn">Fabrication &amp; Repair</span><h1 class="cn">The Workshop</h1></div>
+  <p style="max-width:620px;color:var(--text-soft);margin-bottom:var(--s5)">
+    Things get taken apart here to see how they work. A sign above the bench asks
+    "better for whom?" Failure is information. Your projects and experiments live here.
+  </p>
+
+  <div class="bench">
+    <!-- Projects estate: API-079 + API-033/034 -->
+    <section aria-label="Your projects">
+      <h2 style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-bottom:var(--s3)">Projects</h2>
+      <div class="loading" data-api="API-079">Reading project estate…</div>
+      <!-- example honest rows shown once loaded (structure only, no fake values): -->
+      <div class="proj" hidden>
+        <div><span class="name">project-name</span><span class="sub"> · local work not published yet</span></div>
+        <span class="chip needs_attention"><span class="cdot"></span>needs_attention</span>
+      </div>
+      <div class="proj" hidden>
+        <div><span class="name">project-name</span><span class="sub"> · up to date</span></div>
+        <span class="chip healthy"><span class="cdot"></span>healthy</span>
+      </div>
+      <p style="font-size:12px;color:var(--text-faint);margin-top:var(--s3)">
+        A dirty tree is not an emergency. Status reflects the real estate, never invented.
+      </p>
+    </section>
+
+    <!-- Running experiment / terminal: Lab API-037..048 -->
+    <section aria-label="Running work">
+      <h2 style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-bottom:var(--s3)">On the bench</h2>
+      <div class="term" data-api="API-037">
+        <div class="dim">$ personal-world lab health</div>
+        <div>lab CLI: <span class="warn">not_configured</span></div>
+        <div class="dim">  (no lab provider connected — that's okay, the bench still works)</div>
+        <div style="margin-top:8px" class="dim">$ # Robot's current experiment would appear here</div>
+        <div class="dim"># when a real one is running.</div>
+      </div>
+      <div style="display:flex;gap:var(--s3);flex-wrap:wrap;margin-top:var(--s4)">
+        <details class="trace"><summary><span class="who">Robot's</span> taps into the conduit</summary>
+          <p style="margin-top:var(--s2);font-style:normal">He borrowed station power for the gentle-notification prototype. Engineering pretends not to notice.</p></details>
+        <details class="trace"><summary>a <span class="who">Medbay</span> lamp, mid-repair</summary>
+          <p style="margin-top:var(--s2);font-style:normal">It flickered. Robot insisted on fixing it properly, not quickly.</p></details>
+      </div>
+    </section>
+  </div>
+
+  <div class="calm" style="margin-top:var(--s6);padding:var(--s5);border-radius:var(--r-md);background:var(--cream-soft);border:1px solid var(--border);color:var(--text-soft);font-family:var(--font-serif);font-style:italic;font-size:17px;text-align:center">
+    "Failure isn't embarrassing. It's information."
+  </div>
+
+  <!-- a deck is somewhere you DUCK INTO, not somewhere you must patrol -->
+  <nav class="deck-exit" aria-label="Leave the Workshop">
+    <a class="beam" href="index.html">&larr; Back to your map</a>
+    <p>You do not have to check this deck. It will send a signal to
+       your map when it genuinely needs you, and stay quiet when it does not.</p>
+  </nav>
+</main>
+</body>
+</html>

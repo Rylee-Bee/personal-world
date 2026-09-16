@@ -1,0 +1,1592 @@
+/* ═══════════════════════════════════════════════════════
+   PERSONAL WORLDS — STATION SHELL
+   Shared across the Places hub and all neighborhood pages.
+
+   Warm, lived-in station. Deep navy/indigo structure with
+   amber, cream, wood, gold, green, coral practical light.
+   NOT near-black. NOT neon. Cozy cabin inside a station.
+
+   Typography: serif for place names / narrative headings.
+               sans for interface and body copy.
+   Motion: event-driven only. Reduced-motion first-class.
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* ── STRUCTURE: deep navy/indigo, warm-leaning ── */
+  --space:        #080B14;   /* deepest structural — a real void, not near-black mud */
+  --space-warm:   #0C101C;
+  --hull:         #131926;
+  --hull-warm:    #1A2130;
+  --panel:        #1E2636;
+  --panel-warm:   #273144;
+
+  /* ── WARM PRACTICAL LIGHT ── */
+  --amber:        #D4A057;
+  --amber-soft:   rgba(212, 160, 87, 0.16);
+  --cream:        #E8DCC8;
+  --cream-soft:   rgba(232, 220, 200, 0.10);
+  --wood:         #8B6F47;
+  --wood-soft:    rgba(139, 111, 71, 0.18);
+  --gold:         #C9A227;
+  --gold-soft:    rgba(201, 162, 39, 0.14);
+  --green:        #6A9A66;
+  --green-soft:   rgba(106, 154, 102, 0.16);
+  --coral:        #C47D6D;
+  --coral-soft:   rgba(196, 125, 109, 0.14);
+  --teal:         #5A9E9E;
+  --teal-soft:    rgba(90, 158, 158, 0.14);
+  --lavender:     #9B8EC4;
+  --lavender-soft:rgba(155, 142, 196, 0.14);
+
+  /* ── TEXT ── */
+  --text:         #EDE7DB;   /* warm cream-white */
+  --text-soft:    #CDC6B8;   /* lifted to hold AA on panels */
+  --text-faint:   #A29A8C;   /* lifted to hold AA on panels */
+
+  /* ── BORDERS ── */
+  --border:       rgba(232, 220, 200, 0.10);
+  --border-warm:  rgba(212, 160, 87, 0.22);
+  --border-hover: rgba(232, 220, 200, 0.20);
+
+  /* ── TYPE ── */
+  --font-serif: Georgia, 'Times New Roman', 'Palatino Linotype', serif;
+  --font-sans:  'Avenir Next', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono:  'SF Mono', 'Cascadia Code', Consolas, monospace;
+
+  /* ── SPACING (4px) ── */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+  --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
+
+  /* ── TYPE SCALE (density-adjustable; content is the foreground) ──
+     Comfortable defaults are set for legibility first (owner: "it feels tiny"). */
+  --fs-h1:    clamp(30px, 4.4vw, 44px);
+  --fs-lead:  18px;
+  --fs-body:  16px;
+  --fs-small: 14px;
+  --fs-micro: 12px;
+  --fs-label: 12.5px;
+
+  /* ── DENSITY (comfortable default) ── */
+  --pad-main: var(--s5);
+  --gap-main: var(--s4);
+  --gap-block: var(--s5);
+
+  /* ── RADII (round = cute) ── */
+  --r-sm: 10px; --r-md: 16px; --r-lg: 24px; --r-full: 9999px;
+
+  /* ── SHADOWS (warm, soft, layered) ── */
+  --shadow-soft: 0 2px 16px rgba(0,0,0,0.22), 0 0 40px rgba(212,160,87,0.04);
+  --shadow-warm: 0 4px 24px rgba(212,160,87,0.12), 0 0 60px rgba(212,160,87,0.06);
+  --shadow-glow: 0 0 20px rgba(212,160,87,0.18), 0 0 40px rgba(212,160,87,0.08);
+}
+
+/* ── THEME SLOT (themes-and-personalization) ──
+   Themes restyle atmosphere/accent/density WITHIN the accessibility floor.
+   They never reorder IA or hide capability. Bound to GET /api/themes (API-065). */
+[data-theme="ember"]  { --amber:#E08A4A; --green:#7A9A56; --space:#161019; }
+[data-theme="tide"]   { --amber:#5AA8B8; --green:#4A9A8A; --space:#0E1620; }
+[data-theme="moss"]   { --amber:#A8B85A; --green:#5A9A66; --space:#101A12; }
+
+/* ── DENSITY CONTROL: Comfortable / Compact ──
+   A comfort layer ABOVE the accessibility floor, never a violation of it.
+   Compact tightens whitespace and type. It NEVER:
+     - drops a hit area below 44x44 CSS px,
+     - drops contrast below WCAG AA,
+     - removes a status text label,
+     - reorders information architecture or hides a capability.
+   Bound to Reading & Interaction preferences (API-030). */
+[data-density="compact"] {
+  --s1: 3px; --s2: 6px; --s3: 8px; --s4: 11px;
+  --s5: 15px; --s6: 20px; --s7: 28px; --s8: 40px;
+
+  --fs-h1:    clamp(24px, 3.2vw, 32px);
+  --fs-lead:  16px;
+  --fs-body:  14px;
+  --fs-small: 13px;
+  --fs-micro: 11px;
+  --fs-label: 11.5px;
+
+  --pad-main: var(--s4);
+  --gap-main: var(--s3);
+  --gap-block: var(--s4);
+}
+
+/* ── RESET ── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+/* the hidden attribute must always win over component display rules */
+[hidden] { display:none !important; }
+
+/* ── SKIP LINK (accessibility-floor 2.6: first focusable) ── */
+.skip-link {
+  position:absolute; left:-9999px; top:0;
+  min-height:44px; display:flex; align-items:center;
+  background:var(--cream); color:var(--space);
+  padding:var(--s3) var(--s4); border-radius:0 0 var(--r-sm) 0;
+  z-index:200; font-weight:600;
+}
+.skip-link:focus { left:0; }
+
+/* ── FOCUS (accessibility-floor 2.4: always visible, teal comfortable) ── */
+:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+
+/* ── 44px HIT-AREA FLOOR (accessibility-floor 2.1) ──
+   Applies to every standalone interactive control — including <summary>,
+   which is a real control and is easy to forget. Visual weight may stay
+   delicate; the hit area may not. Density=compact must never reduce these.
+   Truly inline links inside prose are exempt per WCAG 2.5.8 (targets in a
+   sentence), which is the one place the floor is not applied. */
+button, select, input, summary,
+.nav-link, .beam, .presence, .stroll-item, .sig-dismiss, .door {
+  min-height: 44px;
+}
+summary { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior:auto; }
+  *, *::before, *::after {
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--space);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Default theme: PURE SPACE. No warm washes — they were hiding the stars.
+   Warmth is now a theme choice, not the baseline. Low-glare floor still applies. */
+body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0; background:none; }
+
+/* Nebula clouds — subtle, atmospheric */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: 
+    radial-gradient(ellipse 600px 400px at 20% 30%, rgba(100, 120, 180, 0.08), transparent 70%),
+    radial-gradient(ellipse 500px 350px at 80% 70%, rgba(140, 100, 160, 0.06), transparent 70%),
+    radial-gradient(ellipse 700px 500px at 50% 50%, rgba(80, 140, 160, 0.05), transparent 80%);
+}
+
+[data-theme="ember"] body::before {
+  background: radial-gradient(ellipse 900px 600px at 20% 10%, var(--amber-soft), transparent 60%);
+}
+[data-theme="tide"] body::before {
+  background: radial-gradient(ellipse 900px 600px at 20% 10%, var(--teal-soft), transparent 60%);
+}
+[data-theme="moss"] body::before {
+  background: radial-gradient(ellipse 900px 600px at 20% 10%, var(--green-soft), transparent 60%);
+}
+
+/* ═══ TOP BAR — identity + orientation, not dead links ═══
+   The star map is the navigation; the top bar tells you who/where you are.
+   Brand = home (galaxy). The region readout tracks the map live. */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: var(--s3);
+  min-height: 56px; padding: 0 var(--s4);
+  background: rgba(8,11,20,0.9); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar .brand {
+  display: flex; align-items: center; gap: var(--s2);
+  min-height: 44px; padding: 0 var(--s2);
+  color: var(--text); text-decoration: none;
+  font-size: var(--fs-body); font-weight: 600; border-radius: var(--r-sm);
+}
+.topbar .brand:hover { color: var(--cream); background: var(--cream-soft); }
+.topbar .brand:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.topbar .brand .orb {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink:0;
+  background: radial-gradient(circle at 40% 35%, #FFF5E6, #E8C48A 60%, #D4A057);
+  box-shadow: 0 0 10px rgba(212,160,87,0.35);
+}
+.topbar .region {
+  margin-left: auto;
+  font-family: var(--font-mono); font-size: var(--fs-small);
+  letter-spacing: 0.06em; color: var(--text-faint);
+}
+.topbar .help-btn {
+  min-height: 44px; padding: 0 var(--s3);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-warm);
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-size: var(--fs-small); font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  margin-left: var(--s3);
+}
+.topbar .help-btn:hover { background: var(--amber); color: var(--space); }
+.topbar .help-btn:focus-visible { outline: 2px solid #72b1b1; outline-offset: 2px; }
+/* constant primary nav: the obvious way to jump straight to a region */
+.topnav { display:flex; align-items:center; gap:var(--s1); margin-left:var(--s4); }
+.topnav a {
+  display:inline-flex; align-items:center;
+  min-height:44px; padding:0 var(--s3);
+  border-radius:var(--r-sm);
+  color:var(--text-soft); text-decoration:none;
+  font-size:var(--fs-small); font-weight:500;
+}
+.topnav a:hover { color:var(--text); background:var(--cream-soft); }
+.topnav a:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.topnav a[aria-current="page"] { color:var(--cream); background:var(--cream-soft); font-weight:600; }
+@media (max-width: 760px) {
+  .topbar { flex-wrap:wrap; min-height:0; padding:var(--s2) var(--s4); }
+  .topnav { margin-left:0; order:3; width:100%; overflow-x:auto; }
+  .topbar .region { display:none; }
+}
+.shell-nav {
+  position: sticky; top:0; z-index:100;
+  display:flex; align-items:center; gap:var(--s2);
+  padding: var(--s2) var(--s4);
+  background: rgba(16,20,31,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.shell-nav .orb {
+  width:28px; height:28px; border-radius:50%; flex-shrink:0;
+  background: radial-gradient(circle at 40% 35%, #FFF5E6, #E8C48A 60%, #D4A057);
+  box-shadow: 0 0 10px rgba(212,160,87,0.35);
+  position:relative;
+}
+.shell-nav .orb::after {
+  content:''; position:absolute; inset:-4px -8px;
+  border:1px solid rgba(212,160,87,0.3); border-radius:50%;
+  transform: rotate(-15deg);
+}
+.nav-link {
+  display:flex; align-items:center; gap:var(--s2);
+  min-height:44px; padding:0 var(--s4);
+  border-radius: var(--r-sm);
+  color: var(--text-soft); text-decoration:none;
+  font-size:14px; font-weight:500;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-link:hover { background: var(--cream-soft); color: var(--text); }
+.nav-link:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
+.nav-link[aria-current="page"] { background: var(--amber-soft); color: var(--amber); font-weight:600; }
+.nav-link .ico { width:18px; height:18px; flex-shrink:0; }
+.nav-spacer { flex:1; }
+.nav-places {
+  border:1px solid var(--border-warm);
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+/* ═══ STATION SIGN (dual naming) ═══ */
+.station-sign { margin-bottom: var(--s2); }
+.station-sign .fn {
+  display:block;
+  font-family: var(--font-mono);
+  font-size:11px; letter-spacing:0.18em; text-transform:uppercase;
+  color: var(--text-faint);
+}
+.station-sign .cn {
+  font-family: var(--font-serif);
+  font-style: italic; font-weight:400;
+  font-size: var(--fs-h1);
+  color: var(--cream);
+  line-height:1.15;
+}
+
+/* ═══ LAYOUT ═══
+   Content is the foreground. The station is the background.
+   --pad-main/--gap-block come from the density control. */
+.shell-main {
+  position:relative; z-index:1;
+  max-width:1180px; margin:0 auto;
+  padding: var(--pad-main) var(--s5) calc(var(--s7) + 220px);
+}
+
+/* Reading column: content never sprawls to full width */
+.stroll { max-width: 720px; }
+body { font-size: var(--fs-body); }
+
+/* ═══ CHARACTER ICONS ═══ */
+.char { display:inline-flex; align-items:center; justify-content:center; }
+.char svg { display:block; }
+.char--sm svg { width:24px; height:24px; }
+.char--md svg { width:40px; height:40px; }
+.char--lg svg { width:72px; height:72px; }
+
+/* ═══ CROSS-CONTAMINATION TRACE (visible + interactive) ═══ */
+.trace {
+  display:inline-flex; align-items:center; gap:var(--s2);
+  padding: var(--s1) var(--s3);
+  border:1px dashed var(--border-warm);
+  border-radius: var(--r-full);
+  background: rgba(212,160,87,0.06);
+  color: var(--text-soft);
+  font-size:12px; font-style:italic;
+  opacity:0.6;                       /* visible, not hidden */
+  cursor:pointer;
+  transition: opacity 0.15s, background 0.15s;
+}
+.trace:hover, .trace:focus-visible { opacity:1; background: var(--amber-soft); }
+.trace:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
+.trace .who { font-style:normal; font-weight:600; }
+/* the pill stays visually delicate; the hit area does not */
+.trace > summary {
+  min-height:44px; display:inline-flex; align-items:center; gap:var(--s2);
+  list-style:none;
+}
+.trace > summary::-webkit-details-marker { display:none; }
+
+/* ═══ SPECIMEN FRAMING (shared) ═══
+   Design patterns shown for review. Never a claim about the user's world. */
+.specimen-note {
+  font-size: var(--fs-micro); color: var(--text-faint);
+  letter-spacing:0.06em; text-transform:uppercase; font-family: var(--font-mono);
+}
+details.pattern-ref {
+  border:1px dashed var(--border); border-radius: var(--r-sm);
+  padding: var(--s2) var(--s3); margin-top: var(--s3);
+}
+details.pattern-ref > summary {
+  font-size: var(--fs-small); color: var(--text-faint);
+  display:flex; align-items:center;
+}
+details.pattern-ref > summary:hover { color: var(--text-soft); }
+details.pattern-ref .pattern-body { padding-top: var(--s3); }
+.is-specimen { position:relative; }
+.is-specimen::after {
+  content:'specimen';
+  position:absolute; top:var(--s2); right:var(--s3);
+  font-family: var(--font-mono); font-size:9px;
+  letter-spacing:0.1em; text-transform:uppercase;
+  color: var(--text-faint); opacity:0.75; pointer-events:none;
+}
+
+/* ═══ ENVIRONMENTAL DETAILS (inhabited, still) ═══ */
+.env { position:relative; }
+.env-window {
+  position:relative; border-radius: var(--r-lg);
+  border:1px solid var(--border);
+  background: linear-gradient(160deg, #0B1020, #131A2E 60%, #1A2238);
+  overflow:hidden; min-height:180px;
+}
+.env-window .star { position:absolute; border-radius:50%; background:var(--cream); }
+.env-shelf {
+  display:flex; gap:var(--s1); align-items:flex-end;
+  padding: var(--s3); border-bottom:3px solid var(--wood);
+}
+.env-shelf .book { width:14px; border-radius:2px 2px 0 0; }
+.env-plant { color: var(--green); }
+.env-cup { color: var(--cream); }
+
+/* ═══ HONEST STATES (empty / loading / unavailable) ═══ */
+.state {
+  padding: var(--s5); border-radius: var(--r-md);
+  border:1px dashed var(--border);
+  background: rgba(255,255,255,0.02);
+  color: var(--text-faint); font-size:14px; text-align:center;
+}
+.state .state-title { color: var(--text-soft); font-weight:600; margin-bottom:var(--s1); }
+
+/* ═══ DISCOVERY SLOT (Observatory pop-out pattern) ═══ */
+.discovery {
+  border:1px solid var(--border); border-radius: var(--r-md);
+  background: var(--panel); padding: var(--s4);
+  cursor:pointer; transition: border-color 0.15s, transform 0.15s;
+}
+.discovery:hover, .discovery:focus-visible { border-color: var(--border-warm); }
+.discovery:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
+.discovery .src { font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-faint); }
+.discovery .ttl { font-family: var(--font-serif); font-size:18px; color:var(--cream); margin:var(--s1) 0; }
+
+/* ═══ ORIENTATION BAND (attention-and-focus) ═══
+   Answers in order: What needs me? What was I working on? What is coming up?
+   Attention flows to EXCEPTIONS, not routine success. */
+.orient { display:grid; grid-template-columns: repeat(3, 1fr); gap: var(--s5); margin: var(--s6) 0; }
+@media (max-width: 860px){ .orient{ grid-template-columns:1fr; } }
+.orient-col h2 {
+  font-family:var(--font-sans); font-size:12px; font-weight:600;
+  letter-spacing:0.14em; text-transform:uppercase; color:var(--text-faint);
+  margin-bottom:var(--s3);
+}
+.orient-item {
+  display:flex; gap:var(--s3); align-items:flex-start;
+  padding:var(--s3) var(--s4); margin-bottom:var(--s2);
+  border-radius:var(--r-sm); border:1px solid var(--border);
+  background:var(--panel); font-size:14px; color:var(--text-soft);
+}
+.orient-item.needs { border-color:var(--border-warm); background:var(--amber-soft); color:var(--text); }
+.orient-item .what { font-weight:600; color:var(--text); }
+.orient-item .why { display:block; font-size:12.5px; color:var(--text-faint); margin-top:2px; }
+
+/* All-quiet path (quiet-when-healthy): explicit, calm, one line */
+.all-quiet {
+  display:flex; align-items:center; gap:var(--s3);
+  padding:var(--s4) var(--s5); border-radius:var(--r-md);
+  background:var(--green-soft); border:1px solid rgba(106,154,102,0.3);
+  color:var(--text-soft); font-size:15px;
+}
+.all-quiet .dot { width:8px;height:8px;border-radius:50%; background:var(--green); flex-shrink:0; }
+/* slim variant for the top-of-page strip so the map stays the hero */
+.all-quiet.slim { padding: var(--s2) var(--s3); font-size: var(--fs-small); border-radius: var(--r-sm); }
+
+/* ═══ STATUS CHIPS (never color-alone: text label always) ═══ */
+.chip {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:2px 10px; border-radius:var(--r-full);
+  font-size:11.5px; font-weight:600; letter-spacing:0.02em;
+  border:1px solid var(--border);
+}
+.chip .cdot { width:6px;height:6px;border-radius:50%; background:currentColor; }
+.chip.healthy       { color:var(--green);  background:var(--green-soft); }
+.chip.needs_attention{ color:var(--amber); background:var(--amber-soft); }
+.chip.unavailable   { color:var(--coral);  background:var(--coral-soft); }
+.chip.stale         { color:var(--text-faint); background:rgba(255,255,255,0.04); }
+.chip.unknown       { color:var(--text-faint); background:rgba(255,255,255,0.04); border-style:dashed; }
+.chip.not_configured{ color:var(--text-faint); background:rgba(255,255,255,0.03); border-style:dotted; }
+
+/* ═══ STATIC LOADING (accessibility-floor 1.5: no shimmer) ═══ */
+.loading {
+  padding:var(--s4); border-radius:var(--r-sm);
+  border:1px dashed var(--border); color:var(--text-faint);
+  font-size:13px; text-align:center;
+}
+
+/* ═══ TIGHTER ORIENTATION (uses density tokens) ═══ */
+.orient { gap: var(--gap-block); margin: var(--gap-block) 0; }
+.orient-col h2 { font-size: var(--fs-label); }
+
+/* ═══════════════════════════════════════════════════════════
+   BACKGROUND ATMOSPHERE — the world, behind the glass
+   The station is ALIVE and BUSY, but it is never the foreground.
+   Static by contract (migraine-and-sensory-safety 1.5 / motion):
+   no parallax, no shimmer, no pulse. "Busy" is expressed as
+   calm batched TEXT, not as animation.
+   Always aria-hidden + pointer-events:none — decoration carries
+   no operational meaning (themes-and-personalization).
+   ═══════════════════════════════════════════════════════════ */
+.station-bg {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+}
+.station-bg .bg-stars {
+  position:absolute; inset:0; opacity:0.7;
+  background-image:
+    /* Bright stars */
+    radial-gradient(2px 2px at 15% 25%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(2px 2px at 72% 18%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(2.5px 2.5px at 45% 62%, rgba(255,255,255,0.9), transparent),
+    radial-gradient(2px 2px at 88% 45%, rgba(255,255,255,0.75), transparent),
+    radial-gradient(2px 2px at 28% 78%, rgba(255,255,255,0.8), transparent),
+    /* Medium stars */
+    radial-gradient(1.5px 1.5px at 33% 12%, rgba(232,220,200,0.6), transparent),
+    radial-gradient(1.5px 1.5px at 58% 35%, rgba(232,220,200,0.55), transparent),
+    radial-gradient(1.5px 1.5px at 82% 68%, rgba(232,220,200,0.6), transparent),
+    radial-gradient(1.5px 1.5px at 12% 52%, rgba(232,220,200,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 65% 88%, rgba(232,220,200,0.55), transparent),
+    /* Faint stars */
+    radial-gradient(1px 1px at 22% 42%, rgba(232,220,200,0.35), transparent),
+    radial-gradient(1px 1px at 48% 28%, rgba(232,220,200,0.3), transparent),
+    radial-gradient(1px 1px at 75% 55%, rgba(232,220,200,0.35), transparent),
+    radial-gradient(1px 1px at 38% 85%, rgba(232,220,200,0.3), transparent),
+    radial-gradient(1px 1px at 92% 22%, rgba(232,220,200,0.35), transparent),
+    radial-gradient(1px 1px at 55% 72%, rgba(232,220,200,0.3), transparent),
+    radial-gradient(1px 1px at 8% 68%, rgba(232,220,200,0.32), transparent),
+    radial-gradient(1px 1px at 68% 8%, rgba(232,220,200,0.3), transparent);
+}
+/* hull ribs: you are indoors, in a built place */
+.station-bg .bg-ribs {
+  position:absolute; inset:0; opacity:0.35;
+  background-image: repeating-linear-gradient(
+    90deg, transparent 0 118px, rgba(232,220,200,0.028) 118px 120px);
+}
+/* the World Tree is a PLACE you can visit (Library nook, Helm console),
+   deliberately NOT background wallpaper — it competed with the content.
+   Removed from .station-bg 2026-09-16 at owner direction. */
+/* warm doorway spill: OFF by default (it hid the space). Themes may bring it back. */
+.station-bg .bg-spill { display:none; }
+[data-theme="ember"] .station-bg .bg-spill,
+[data-theme="tide"] .station-bg .bg-spill,
+[data-theme="moss"] .station-bg .bg-spill {
+  display:block;
+  position:absolute; left:-10vw; top:22vh; width:44vw; height:44vw;
+  background: radial-gradient(circle, var(--amber-soft), transparent 62%);
+  opacity:0.4;
+}
+/* a faint milky-way band: you are looking OUT, not at a wallpaper */
+.station-bg::before {
+  content:''; position:absolute; inset:-25%;
+  background: linear-gradient(112deg,
+    transparent 38%,
+    rgba(155,142,196,0.055) 48%,
+    rgba(232,220,200,0.035) 53%,
+    rgba(90,158,158,0.05) 58%,
+    transparent 70%);
+}
+/* viewport horizon: cool and faint — a curve of somewhere, not a warm lamp */
+.station-bg::after {
+  content:''; position:absolute; left:0; right:0; bottom:0; height:42vh;
+  background: radial-gradient(ellipse 130% 62% at 50% 122%,
+    rgba(140,170,190,0.10), rgba(120,150,180,0.04) 46%, transparent 72%);
+}
+/* a second, brighter star layer so the void reads as space, not flat black */
+.station-bg .bg-stars::after {
+  content:''; position:absolute; inset:0;
+  background-image:
+    radial-gradient(2px 2px at 22% 14%, rgba(237,231,219,0.7), transparent),
+    radial-gradient(1.5px 1.5px at 70% 22%, rgba(237,231,219,0.55), transparent),
+    radial-gradient(2px 2px at 86% 68%, rgba(237,231,219,0.6), transparent),
+    radial-gradient(1.5px 1.5px at 40% 76%, rgba(237,231,219,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 58% 34%, rgba(237,231,219,0.45), transparent),
+    radial-gradient(2px 2px at 8% 46%, rgba(237,231,219,0.5), transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PROMENADE LAYOUT — content foreground, presences to the side
+   ═══════════════════════════════════════════════════════════ */
+.promenade {
+  position:relative; z-index:1;
+  display:grid; grid-template-columns: minmax(0,1fr) 268px;
+  gap: var(--s6); align-items:start;
+}
+@media (max-width: 980px) {
+  .promenade { grid-template-columns: 1fr; }
+}
+
+/* ═══ SECTION LABEL (quiet, consistent, uppercase micro-type) ═══ */
+.sec-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label); font-weight:600;
+  letter-spacing:0.16em; text-transform:uppercase;
+  color: var(--text-faint);
+  margin-bottom: var(--s3);
+  display:flex; align-items:center; gap:var(--s2);
+  text-shadow: 0 0 8px rgba(100, 140, 180, 0.3);
+}
+.sec-label::after {
+  content:''; flex:1; height:1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SIGNALS — the alert / communication system
+   "A distress call beams you right there."
+   Severity is TEXT, never color alone (accessibility-floor 1.3).
+   Dismissible + recoverable (interruption-and-resumption): the
+   dismissed signal is listed in the log, never silently lost.
+   ═══════════════════════════════════════════════════════════ */
+.signals { display:flex; flex-direction:column; gap: var(--s3); }
+.signal {
+  position:relative;
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto;
+  gap: var(--s3); align-items:start;
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  border:1px solid var(--border);
+  border-left:3px solid var(--sig-color, var(--text-faint));
+  background: var(--panel);
+}
+.signal.distress      { --sig-color: var(--coral);  background: var(--coral-soft); }
+.signal.communication { --sig-color: var(--amber);  background: var(--amber-soft); }
+.signal.fyi           { --sig-color: var(--teal); }
+
+.signal .sig-who {
+  display:flex; align-items:center; gap:var(--s2);
+  font-size: var(--fs-small); font-weight:600; color: var(--text);
+}
+.signal .sig-kind {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro); letter-spacing:0.1em; text-transform:uppercase;
+  color: var(--sig-color, var(--text-faint));
+  border:1px solid currentColor; border-radius:var(--r-full);
+  padding:1px 8px;
+}
+.signal .sig-what { font-size: var(--fs-body); color: var(--text); margin-top:2px; font-weight:600; }
+.signal .sig-why  { font-size: var(--fs-small); color: var(--text-soft); margin-top:2px; }
+.signal .sig-from { font-size: var(--fs-micro); color: var(--text-faint); margin-top:var(--s2); }
+
+/* Beam there: the primary action. 44px min, always. */
+.beam {
+  display:inline-flex; align-items:center; justify-content:center; gap:var(--s2);
+  min-height:44px; padding: 0 var(--s4);
+  border-radius: var(--r-sm);
+  border:1px solid var(--sig-color, var(--border-warm));
+  background: rgba(0,0,0,0.18);
+  color: var(--text); font-size: var(--fs-body); font-weight:600;
+  text-decoration:none; cursor:pointer; white-space:nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.beam:hover, .beam:focus-visible { background: var(--sig-color, var(--amber)); color: var(--space); }
+.beam:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+
+/* secondary: dismiss without losing it */
+.sig-dismiss {
+  min-width:44px; min-height:44px;
+  background:none; border:none; color:var(--text-faint);
+  font-size:var(--fs-small); cursor:pointer; border-radius:var(--r-sm);
+  text-decoration:underline; text-underline-offset:3px;
+}
+.sig-dismiss:hover { color:var(--text); }
+
+/* ═══════════════════════════════════════════════════════════
+   THE STROLL — content is the primary focus
+   Each item answers What / Why it matters / Next, carries its
+   provenance, and offers a way to duck into the deck that owns it.
+   ═══════════════════════════════════════════════════════════ */
+.stroll { display:flex; flex-direction:column; gap: var(--s3); }
+.stroll-item {
+  display:block; width:100%; text-align:left;
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  border:1px solid var(--border);
+  background: var(--panel);
+  text-decoration:none; color:inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+.stroll-item:hover, .stroll-item:focus-visible {
+  border-color: var(--border-warm); background: var(--panel-warm);
+}
+.stroll-item:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.stroll-item .si-top {
+  display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap;
+  font-size: var(--fs-micro); letter-spacing:0.1em; text-transform:uppercase;
+  color: var(--text-faint); font-family:var(--font-mono);
+}
+.stroll-item .si-title {
+  font-family: var(--font-serif); font-size: calc(var(--fs-lead) + 2px);
+  color: var(--cream); margin: var(--s1) 0; line-height:1.35;
+}
+.stroll-item .si-why { font-size: var(--fs-small); color: var(--text-soft); }
+.stroll-item .si-next {
+  font-size: var(--fs-small); color: var(--text-faint);
+  margin-top: var(--s2); display:flex; align-items:center; gap:var(--s2);
+}
+.stroll-item .si-next .duck { color: var(--amber); text-decoration:underline; text-underline-offset:3px; }
+
+/* ═══════════════════════════════════════════════════════════
+   PRESENCE RAIL — decks are PRESENCES, not destinations
+   "I don't need to go to Medbay; Medbay has a presence as needed.
+    I don't need to open Engineering; Engineering keeps me up to date."
+   So the rail states what each deck is DOING and whether it will
+   speak up. Ducking in is optional and always available.
+   ═══════════════════════════════════════════════════════════ */
+.rail { display:flex; flex-direction:column; gap: var(--gap-block); }
+.presences { display:flex; flex-direction:column; gap: var(--s1); }
+.presence {
+  display:grid; grid-template-columns:auto minmax(0,1fr);
+  gap: var(--s3); align-items:center;
+  min-height:44px; padding: var(--s2) var(--s3);
+  border-radius: var(--r-sm);
+  border:1px solid transparent;
+  text-decoration:none; color:inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+.presence:hover, .presence:focus-visible {
+  border-color: var(--border); background: var(--panel);
+}
+.presence:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.presence .p-glow {
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+  background: var(--p-color, var(--text-faint));
+}
+.presence .p-name { font-size: var(--fs-body); color: var(--text); font-weight:500; }
+.presence .p-doing { font-size: var(--fs-micro); color: var(--text-faint); display:block; line-height:1.4; }
+.presence.speaks .p-doing { color: var(--text-soft); }
+
+/* The backstage line: the station IS busy. Said once, calmly, in text. */
+.backstage {
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-sm);
+  border:1px dashed var(--border);
+  background: rgba(255,255,255,0.02);
+  font-size: var(--fs-small); color: var(--text-faint); line-height:1.6;
+}
+.backstage strong { color: var(--text-soft); font-weight:600; }
+
+/* ═══════════════════════════════════════════════════════════
+   COMFORT CONTROLS — density + theme (a real preference, not a mode)
+   ═══════════════════════════════════════════════════════════ */
+.comfort {
+  display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap;
+}
+.comfort .c-label {
+  font-size: var(--fs-micro); color: var(--text-faint);
+  letter-spacing:0.1em; text-transform:uppercase;
+}
+.seg { display:inline-flex; border:1px solid var(--border); border-radius:var(--r-sm); overflow:hidden; }
+.seg button {
+  min-height:44px; padding: 0 var(--s3);
+  background:none; border:none; border-right:1px solid var(--border);
+  color: var(--text-faint); font-size: var(--fs-small);
+  font-family: var(--font-sans); cursor:pointer;
+}
+.seg button:last-child { border-right:none; }
+.seg button[aria-pressed="true"] { background: var(--amber-soft); color: var(--amber); font-weight:600; }
+.seg button:hover { color: var(--text); }
+
+/* Star-map navigation (Mass Effect / Starfield grammar):
+   Promenade = galaxy layer; drill in = a system's own map; drill again = content.
+   Same grammar at every depth, so it reads instantly and costs almost nothing. */
+.sky-center {
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  min-width:44px; min-height:44px; justify-content:center;
+  background:none; border:none; cursor:pointer; color:var(--text-soft);
+  border-radius:var(--r-sm); padding:var(--s1);
+}
+.sky-center .core {
+  width:26px; height:26px; border-radius:50%;
+  background: radial-gradient(circle at 40% 35%, #FFF5E6, #E8C48A 60%, #D4A057);
+  box-shadow: 0 0 18px rgba(212,160,87,0.5);
+}
+.sky-center .core-label { font-size:var(--fs-micro); color:var(--text-faint); white-space:nowrap; }
+.sky-center:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.orbit {
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  border: 1.5px solid rgba(100, 160, 200, 0.15);
+  border-radius:50%; pointer-events:none;
+  box-shadow: 0 0 10px rgba(100, 160, 200, 0.1);
+}
+.sky-crumb { 
+  display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap; 
+  margin-bottom:var(--s2);
+  padding: var(--s2) var(--s3);
+  background: rgba(10, 15, 25, 0.5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+}
+.sky-crumb button {
+  min-height:44px; display:inline-flex; align-items:center; gap:var(--s2);
+  padding:0 var(--s3); border-radius:var(--r-sm);
+  border:1px solid var(--border); background:var(--panel);
+  color:var(--text-soft); font-size:var(--fs-small); font-family:var(--font-sans); cursor:pointer;
+}
+.sky-crumb button:hover { color:var(--text); border-color:var(--border-warm); }
+.sky-crumb .crumb-here {
+  min-height:44px; display:inline-flex; align-items:center;
+  padding:0 var(--s2); color:var(--cream); font-size:var(--fs-body); font-weight:600;
+}
+.sky-crumb .crumb-sep { color:var(--text-faint); }
+
+/* ═══════════════════════════════════════════════════════════
+   THE SKY — your interests as a constellation
+   The emotional centre of the product: "what is interesting for me."
+   Threads are stars you actually follow; lines are the connections
+   your World has noticed between them.
+   Static by contract: no twinkle/pulse/orbit by default. The sky is
+   alive because it is YOURS and it changes as you do — not because
+   pixels move. (Motion stays event-driven + reduced-motion safe.)
+   ═══════════════════════════════════════════════════════════ */
+.sky {
+  position: relative;
+  min-height: 520px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(ellipse 800px 500px at 25% 25%, rgba(120, 150, 200, 0.08), transparent 65%),
+    radial-gradient(ellipse 700px 450px at 75% 75%, rgba(160, 130, 180, 0.06), transparent 65%),
+    radial-gradient(ellipse 900px 600px at 50% 50%, rgba(100, 160, 180, 0.05), transparent 75%),
+    linear-gradient(180deg, #080C18 0%, #0E1220 50%, #0A0F1A 100%);
+  overflow: hidden;
+}
+/* Sci-fi grid overlay */
+.sky::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(100, 160, 200, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 160, 200, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+/* Radial scan lines */
+.sky::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(100, 160, 200, 0.02) 1deg,
+    transparent 2deg
+  );
+  pointer-events: none;
+  opacity: 0.5;
+}
+.sky .threads { position:absolute; inset:0; width:100%; height:100%; }
+.sky .thread-line { 
+  stroke-width: 1.5; 
+  fill: none; 
+  opacity: 0.6;
+  filter: drop-shadow(0 0 2px currentColor);
+}
+.sky .thread-line.ai       { stroke: var(--lavender); }
+.sky .thread-line.music    { stroke: var(--coral); }
+.sky .thread-line.build    { stroke: var(--teal); }
+.sky .thread-line.reading  { stroke: var(--gold); }
+.sky .thread-line.creative { stroke: var(--green); }
+.sky .thread-line.world    { stroke: var(--cream); opacity: 0.4; }
+
+/* A star you follow. It is a real control: 44px hit area, keyboard, label.
+   Positioned by its .drift parent (the chart point); the button centres on it.
+   CUTE PASS: bigger orbs, stronger glow, warm hover bounce. */
+.node {
+  position:absolute; left:0; top:0;
+  transform: translate(-50%, -50%);
+  min-width:44px; min-height:44px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; background:none; border:none; cursor:pointer;
+  color: var(--text-soft); font-family: var(--font-sans);
+  padding: var(--s2);
+  border-radius: var(--r-md);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.node:hover { transform: translate(-50%, -50%) scale(1.08); }
+.node:focus-visible { outline:2px solid #72b1b1; outline-offset:4px; }
+.node-orb {
+  position: relative;
+  width: var(--orb, 40px); height: var(--orb, 40px); border-radius: 50%;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%,
+    color-mix(in srgb, var(--node-color, var(--cream)) 95%, white),
+    var(--node-color, var(--cream)) 50%,
+    color-mix(in srgb, var(--node-color, var(--cream)) 55%, black));
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--node-color, var(--cream)) 80%, transparent),
+    0 0 40px color-mix(in srgb, var(--node-color, var(--cream)) 45%, transparent),
+    0 0 80px color-mix(in srgb, var(--node-color, var(--cream)) 20%, transparent),
+    inset 0 0 12px rgba(255,255,255,0.45),
+    inset 0 -2px 6px color-mix(in srgb, var(--node-color, var(--cream)) 30%, black);
+  color: #0A0D16;
+  transition: box-shadow 0.3s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+/* Atmospheric ring — soft halo */
+.node-orb::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--node-color, var(--cream)) 45%, transparent);
+  opacity: 0.6;
+}
+/* Outer glow ring */
+.node-orb::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--node-color, var(--cream)) 20%, transparent);
+  opacity: 0.5;
+  background: radial-gradient(circle, color-mix(in srgb, var(--node-color, var(--cream)) 8%, transparent), transparent 70%);
+}
+.node-ic {
+  width: 52%; height: 52%;
+  display: block;
+  filter: brightness(1.4) drop-shadow(0 0 4px rgba(255,255,255,0.7));
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s;
+}
+@keyframes orbit-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.04); }
+}
+/* Hover/focus: bright glow + icon bounce */
+.node:hover .node-orb, .node:focus-visible .node-orb {
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--node-color, var(--cream)) 90%, transparent),
+    0 0 50px color-mix(in srgb, var(--node-color, var(--cream)) 50%, transparent),
+    0 0 90px color-mix(in srgb, var(--node-color, var(--cream)) 25%, transparent),
+    inset 0 0 14px rgba(255,255,255,0.5);
+}
+.node:hover .node-ic, .node:focus-visible .node-ic {
+  filter: brightness(1.5) drop-shadow(0 0 6px rgba(255,255,255,0.8));
+  transform: scale(1.1);
+}
+/* The extra wiggle is opt-in motion only; reduced-motion never gets it. */
+@keyframes ic-charm {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.22) rotate(-10deg); }
+  60%  { transform: scale(0.95) rotate(4deg); }
+  100% { transform: scale(1); }
+}
+[data-motion="on"] .node:hover .node-ic,
+[data-motion="on"] .node:focus-visible .node-ic { animation: ic-charm 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@media (prefers-reduced-motion: reduce) { .node-ic { animation: none !important; } }
+.node-label {
+  font-size: var(--fs-small); font-weight: 600;
+  color: var(--cream); white-space:nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6), 0 0 12px rgba(0,0,0,0.3);
+  letter-spacing: 0.02em;
+}
+.node-count { font-size: var(--fs-micro); color: var(--text-soft); font-family:var(--font-mono); white-space:nowrap; }
+/* one condensed line: name + count together, so a planet is orb + one line */
+.node-line { display:flex; align-items:baseline; gap:6px; white-space:nowrap; }
+.node.distant { opacity:0.5; }
+.node.distant .node-orb { width:14px; height:14px; box-shadow:0 0 8px var(--node-color); }
+
+/* The chart point a body sits on. Carries the slow organic drift so labels
+   stay upright. Static unless gentle motion is opted in; never under
+   prefers-reduced-motion. This is what makes it feel like a living chart
+   rather than a manual diagram. */
+.drift { position:absolute; width:0; height:0; animation: node-in 0.3s ease-out both; }
+[data-motion="on"] .drift {
+  animation: node-in 0.3s ease-out both,
+             drift var(--ddur, 26s) ease-in-out var(--ddelay, 0s) infinite;
+}
+@keyframes node-in { from { opacity:0; } to { opacity:1; } }
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  25%      { transform: translate(4px, -5px); }
+  50%      { transform: translate(-3px, 4px); }
+  75%      { transform: translate(5px, 3px); }
+}
+@media (prefers-reduced-motion: reduce) { .drift { animation: none !important; } }
+
+/* Star-chart graticule: faint degree ticks in a band, like a real celestial chart */
+.sky::before {
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background: repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(232,220,200,0.06) 0deg 0.35deg, transparent 0.35deg 15deg);
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent 30%, #000 31%, #000 46%, transparent 47%);
+          mask: radial-gradient(circle at 50% 50%, transparent 30%, #000 31%, #000 46%, transparent 47%);
+}
+
+/* Thread dive: opens inline (native disclosure), never a separate page */
+.dive {
+  border:1px solid var(--border); border-top:none;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  background: var(--panel);
+  padding: var(--s4);
+}
+.dive[hidden] { display:none; }
+.dive-head { display:flex; align-items:baseline; gap:var(--s3); flex-wrap:wrap; margin-bottom:var(--s3); }
+.dive-title { font-family:var(--font-serif); font-size:var(--fs-lead); color:var(--cream); }
+.dive-meta { font-size:var(--fs-micro); color:var(--text-faint); font-family:var(--font-mono); }
+.dive-list { list-style:none; display:flex; flex-direction:column; gap:var(--s2); }
+.dive-list li {
+  padding: var(--s3); border-radius: var(--r-sm);
+  border:1px solid var(--border); background: rgba(255,255,255,0.02);
+}
+.dive-list .t { font-size: var(--fs-body); color: var(--text); }
+.dive-list .s { font-size: var(--fs-micro); color: var(--text-faint); margin-top:2px; }
+
+/* What your World notices — patterns, with provenance */
+.notices { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--s3); }
+.pattern-card {
+  padding: var(--s4); border-radius: var(--r-md);
+  border:1px solid var(--border); background: var(--panel);
+}
+.pattern-card .pt {
+  font-family: var(--font-serif); font-style: italic;
+  font-size: var(--fs-body); color: var(--text); line-height:1.6;
+}
+.pattern-card .ps {
+  font-size: var(--fs-micro); color: var(--text-faint);
+  margin-top: var(--s2); font-family: var(--font-mono);
+}
+
+/* Plain "elsewhere" list — few names, no ornate doors */
+.elsewhere { list-style:none; display:flex; flex-direction:column; }
+.elsewhere a {
+  display:flex; align-items:center; justify-content:space-between; gap:var(--s3);
+  min-height:44px; padding: 0 var(--s2);
+  border-radius: var(--r-sm);
+  color: var(--text-soft); text-decoration:none; font-size: var(--fs-body);
+}
+.elsewhere a:hover, .elsewhere a:focus-visible { background: var(--panel); color: var(--text); }
+.elsewhere a:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.elsewhere .hint { font-size: var(--fs-micro); color: var(--text-faint); }
+
+/* Attention is carried by the node itself: it grows a little with the number
+   of items inside that need you, and gets a gentle status ring.
+   Size/ring are REDUNDANT — the text count always carries the same meaning,
+   so nothing is communicated by size or colour alone (accessibility-floor 1.4).
+   The ring is STATIC by default; it only breathes when motion is opted in. */
+.node { transform: translate(-50%,-50%) scale(var(--nscale, 1)); transform-origin: center; }
+.node.attn .node-orb {
+  box-shadow: 0 0 0 3px rgba(212,160,87,0.16), 0 0 14px var(--node-color, var(--cream));
+}
+.node.attn .node-count { color: var(--amber); font-weight:600; }
+.node.sel .node-orb { box-shadow: 0 0 0 2px var(--cream), 0 0 12px var(--node-color, var(--cream)); }
+@keyframes attn-breathe {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(212,160,87,0.10), 0 0 10px var(--node-color, var(--cream)); }
+  50%      { box-shadow: 0 0 0 5px rgba(212,160,87,0.22), 0 0 16px var(--node-color, var(--cream)); }
+}
+[data-motion="on"] .node.attn .node-orb { animation: attn-breathe 6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .node.attn .node-orb { animation: none !important; } }
+
+/* Info strip under the map: recent activity / provenance / suggestion.
+   Shown for wherever you currently are — depth emerges from movement. */
+.sky-info {
+  display:flex; flex-wrap:wrap; gap:var(--s2) var(--s5);
+  padding: var(--s3) var(--s4);
+  border:1px solid var(--border); border-top:none;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  background: rgba(10, 15, 25, 0.6);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small); color: var(--text-soft);
+}
+.sky-info .il {
+  font-family:var(--font-mono); font-size:var(--fs-micro);
+  letter-spacing:0.08em; text-transform:uppercase; color:var(--teal);
+  margin-right:var(--s1);
+  opacity: 0.8;
+}
+
+/* Drillable bodies wear a faint orbit ring — a SHAPE cue, not a colour cue,
+   so "there is more inside" never rides on hue alone (aria-label says it too). */
+.node.drill .node-orb::after {
+  content:''; position:absolute; inset:-5px; border-radius:50%;
+  border:1px solid var(--node-color, var(--cream)); opacity:0.45;
+}
+.node.drill:hover .node-orb::after, .node.drill:focus-visible .node-orb::after { opacity:0.8; }
+
+/* ═══ "SHAPE THIS MAP" editor — the taxonomy is user data ═══ */
+.shape { border:1px solid var(--border); border-radius:var(--r-md); background:var(--panel); padding:var(--s4); margin-top:var(--s4); }
+.shape-row {
+  display:grid; grid-template-columns: minmax(0,1fr) auto auto auto;
+  gap:var(--s2); align-items:center; padding:var(--s2) 0;
+  border-bottom:1px dashed var(--border);
+}
+.shape-row:last-child { border-bottom:none; }
+.shape-row .nm { font-size:var(--fs-small); color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.shape-row .nm .d { color:var(--text-faint); }
+.shape input[type=text], .shape select {
+  min-height:44px; background:var(--space-warm); color:var(--text);
+  border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:0 var(--s2); font-size:var(--fs-small); font-family:var(--font-sans);
+}
+.shape button {
+  min-height:44px; padding:0 var(--s3); border-radius:var(--r-sm);
+  border:1px solid var(--border); background:rgba(255,255,255,0.02);
+  color:var(--text-soft); font-size:var(--fs-small); font-family:var(--font-sans); cursor:pointer;
+}
+.shape button:hover { color:var(--text); border-color:var(--border-warm); }
+.shape button:focus-visible, .shape input:focus-visible, .shape select:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.shape-add { display:flex; gap:var(--s2); flex-wrap:wrap; margin-top:var(--s3); }
+.shape-add input[type=text] { flex:1; min-width:140px; }
+
+/* ═══ MOOD — the Observation Deck drives the theme ═══
+   Drilling into a system tints the shell to that system's colour.
+   Subtle by design: it changes atmosphere, never meaning or IA. */
+:root { --accent: var(--amber); --accent-soft: var(--amber-soft); }
+[data-mood="ai"]       { --accent: var(--lavender); --accent-soft: var(--lavender-soft); }
+[data-mood="music"]    { --accent: var(--coral);    --accent-soft: var(--coral-soft); }
+[data-mood="build"]    { --accent: var(--teal);     --accent-soft: var(--teal-soft); }
+[data-mood="reading"]  { --accent: var(--gold);     --accent-soft: var(--gold-soft); }
+[data-mood="creative"] { --accent: var(--green);    --accent-soft: var(--green-soft); }
+[data-mood="world"]    { --accent: var(--cream);    --accent-soft: var(--cream-soft); }
+
+/* ═══ COMPANION PRESENCE — cute, warm, travels with you ═══ */
+/* The assistant orb — a glowing little friend in the corner.
+   Round, warm, unmistakably alive. Floats gently on hover. */
+.companion {
+  position: fixed; right: var(--s4); bottom: var(--s4); z-index: 90;
+  width: 64px; height: 64px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 40% 32%,
+    rgba(232,220,200,0.22) 0%,
+    rgba(30,38,54,0.95) 55%,
+    rgba(14,18,30,0.98) 100%);
+  border: 2px solid var(--accent, rgba(212,160,87,0.5));
+  box-shadow:
+    0 0 0 5px rgba(10,13,22,0.6),
+    0 0 24px var(--accent-soft, rgba(212,160,87,0.3)),
+    0 0 48px var(--accent-soft, rgba(212,160,87,0.12));
+  color: var(--accent, var(--amber));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.companion .c-sil { width: 30px; height: 30px; }
+.companion .c-sil svg { width:100%; height:100%; display:block; }
+.companion::after {           /* the "press me" ring */
+  content:''; position:absolute; inset:-8px; border-radius:50%;
+  border:2px solid var(--accent, rgba(212,160,87,0.35)); opacity:0.5;
+}
+.companion:hover {
+  transform: translateY(-4px) scale(1.06);
+  box-shadow:
+    0 0 0 5px rgba(10,13,22,0.6),
+    0 0 30px var(--accent-soft, rgba(212,160,87,0.4)),
+    0 0 60px var(--accent-soft, rgba(212,160,87,0.18));
+}
+.companion:focus-visible { outline:2px solid #72b1b1; outline-offset:4px; }
+@keyframes orb-breathe {
+  0%,100% { opacity:0.4; transform:scale(1); }
+  50% { opacity:0.75; transform:scale(1.06); }
+}
+@keyframes orb-float {
+  0%,100% { transform:translateY(0); }
+  50% { transform:translateY(-3px); }
+}
+[data-motion="on"] .companion { animation: orb-float 4s ease-in-out infinite; }
+[data-motion="on"] .companion::after { animation: orb-breathe 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .companion { animation:none; }
+  .companion::after { animation:none; }
+  .companion:hover { transform:none; }
+}
+
+/* ═══ CHAT — cute, warm, inviting — mini dock + full room ═══ */
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.chat-dock {
+  position:fixed; right:var(--s4); bottom:calc(var(--s4) + 76px); z-index:94;
+  width:min(400px, calc(100vw - 2*var(--s4))); height:min(560px, 72vh);
+  display:flex; flex-direction:column;
+  background:var(--panel);
+  border:2px solid var(--border-warm);
+  border-radius:var(--r-lg); box-shadow:var(--shadow-warm); overflow:hidden;
+}
+.chat-dock[hidden] { display:none; }
+.chat-page {
+  max-width:760px; margin:0 auto; height:min(660px, 74vh);
+  display:flex; flex-direction:column;
+  border:2px solid var(--border); border-radius:var(--r-lg);
+  background:var(--panel); overflow:hidden;
+}
+.chat-head {
+  display:flex; align-items:center; gap:var(--s3);
+  padding:var(--s3) var(--s4); border-bottom:1px solid var(--border);
+  background: linear-gradient(180deg, rgba(212,160,87,0.06), transparent);
+}
+.chat-ava { width:32px; height:32px; color:var(--cc, var(--amber)); flex-shrink:0; }
+.chat-ava svg { width:100%; height:100%; display:block; }
+.chat-who { font-weight:700; color:var(--cream); font-size:var(--fs-body); }
+.chat-pers { font-size:var(--fs-micro); color:var(--text-soft); font-style:italic; margin-left:auto; text-align:right; max-width:52%; }
+
+/* Template cards — visible personality chips, not a hidden dropdown */
+.chat-templates {
+  display:flex; flex-wrap:wrap; gap:var(--s2);
+  padding:var(--s3) var(--s4); border-bottom:1px solid var(--border);
+  background: rgba(255,255,255,0.015);
+}
+.chat-tl {
+  width:100%; font-size:var(--fs-micro); color:var(--text-faint);
+  letter-spacing:0.08em; text-transform:uppercase; margin-bottom:var(--s1);
+}
+.chat-tpl {
+  min-height:44px; padding:var(--s2) var(--s3);
+  background: var(--panel-warm); color:var(--text-soft);
+  border:1.5px solid var(--border); border-radius:var(--r-full);
+  font-size:var(--fs-small); font-family:var(--font-sans); font-weight:500;
+  cursor:pointer; transition: all 0.2s ease;
+  white-space:nowrap;
+}
+.chat-tpl:hover {
+  background: var(--accent-soft, var(--amber-soft));
+  border-color: var(--accent, var(--amber));
+  color: var(--cream);
+  transform: translateY(-1px);
+}
+.chat-tpl:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.chat-tpl .tpl-label { font-weight:600; }
+.chat-tpl .tpl-desc {
+  display:block; font-size:var(--fs-micro); color:var(--text-faint);
+  font-weight:400; margin-top:2px; font-style:italic;
+}
+/* Hidden select fallback (for the mini dock which is smaller) */
+.chat-templates select.chat-tpl-select {
+  flex:1; min-height:44px; background:var(--space-warm); color:var(--text);
+  border:1.5px solid var(--border); border-radius:var(--r-full);
+  padding:0 var(--s3); font-size:var(--fs-small); font-family:var(--font-sans);
+}
+
+.chat-log { flex:1; overflow-y:auto; padding:var(--s3) var(--s4); display:flex; flex-direction:column; gap:var(--s3); }
+.msg { padding:var(--s3) var(--s4); border-radius:var(--r-md); font-size:var(--fs-small); line-height:1.55; max-width:85%; }
+.msg.you {
+  align-self:flex-end;
+  background: linear-gradient(135deg, var(--accent-soft, var(--amber-soft)), rgba(212,160,87,0.08));
+  color:var(--text); border:1px solid rgba(212,160,87,0.15);
+}
+.msg.sys {
+  align-self:flex-start;
+  background:rgba(255,255,255,0.03); color:var(--text-faint);
+  font-size:var(--fs-micro); border:1px dashed var(--border);
+}
+.msg.empty {
+  align-self:center; background:none; color:var(--text-faint);
+  text-align:center; padding:var(--s5);
+}
+
+/* Cute empty state — companion presence */
+.chat-empty {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:var(--s3); padding:var(--s6) var(--s4); text-align:center; flex:1;
+}
+.chat-empty .empty-orb {
+  width:64px; height:64px; border-radius:50%;
+  background: radial-gradient(circle at 40% 32%,
+    color-mix(in srgb, var(--cc, var(--teal)) 20%, rgba(30,38,54,0.6)),
+    rgba(14,18,30,0.9));
+  border:2px solid color-mix(in srgb, var(--cc, var(--teal)) 40%, transparent);
+  display:grid; place-items:center;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--cc, var(--teal)) 20%, transparent);
+  color: var(--cc, var(--teal));
+}
+.chat-empty .empty-orb svg { width:28px; height:28px; }
+.chat-empty .empty-greeting {
+  font-family:var(--font-serif); font-style:italic;
+  font-size:var(--fs-lead); color:var(--cream); max-width:32ch; line-height:1.4;
+}
+.chat-empty .empty-sub {
+  font-size:var(--fs-small); color:var(--text-faint); max-width:40ch; line-height:1.5;
+}
+.chat-empty .empty-chips {
+  display:flex; flex-wrap:wrap; gap:var(--s2); justify-content:center;
+  margin-top:var(--s2);
+}
+.chat-empty .empty-chip {
+  min-height:44px; padding:var(--s2) var(--s4);
+  background:var(--panel-warm); color:var(--text-soft);
+  border:1.5px solid var(--border); border-radius:var(--r-full);
+  font-size:var(--fs-small); font-family:var(--font-sans); font-weight:500;
+  cursor:pointer; transition: all 0.2s ease;
+}
+.chat-empty .empty-chip:hover {
+  background: var(--accent-soft, var(--amber-soft));
+  border-color: var(--accent, var(--amber));
+  color: var(--cream);
+  transform: translateY(-2px);
+}
+.chat-empty .empty-chip:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+
+.chat-form { display:flex; gap:var(--s2); padding:var(--s3) var(--s4); border-top:1px solid var(--border); }
+.chat-in {
+  flex:1; resize:vertical; min-height:44px;
+  background:var(--space-warm); color:var(--text);
+  border:1.5px solid var(--border); border-radius:var(--r-md);
+  padding:var(--s2) var(--s3); font-size:var(--fs-small); font-family:var(--font-sans);
+  transition: border-color 0.2s;
+}
+.chat-in:focus { border-color: var(--accent, var(--amber)); }
+.chat-send {
+  min-height:44px; padding:0 var(--s5); border-radius:var(--r-full);
+  border:none;
+  background: linear-gradient(135deg, var(--accent, var(--amber)), color-mix(in srgb, var(--accent, var(--amber)) 70%, white));
+  color:var(--space); font-weight:700; font-size:var(--fs-small);
+  font-family:var(--font-sans); cursor:pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent, var(--amber)) 30%, transparent);
+}
+.chat-send:hover { transform:scale(1.05); box-shadow: 0 4px 16px color-mix(in srgb, var(--accent, var(--amber)) 40%, transparent); }
+.chat-send:focus-visible, .chat-tpl:focus-visible, .chat-in:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.chat-full {
+  display:block; text-align:center; padding:var(--s3); font-size:var(--fs-micro);
+  color:var(--text-soft); text-decoration:none; border-top:1px solid var(--border);
+  transition: color 0.15s, background 0.15s;
+}
+.chat-full:hover { color:var(--cream); background:var(--cream-soft); }
+
+/* ═══ STAR-MAP EASTER EGGS (decorative only) ═══
+   A companion silhouette tucked into a node, revealed on hover/focus.
+   And a rare ambient visit. Neither carries operational meaning,
+   neither is announced, both are removable via the companions pref. */
+.node-orb { position:relative; }
+.node-egg {
+  position:absolute; top:-15px; right:-11px; width:16px; height:16px;
+  color: var(--node-color, var(--cream));
+  opacity:0; transition: opacity 0.2s; pointer-events:none;
+}
+.node-egg svg { width:100%; height:100%; display:block; }
+.node:hover .node-egg, .node:focus-visible .node-egg { opacity:0.6; }
+
+.egg-visit {
+  position:absolute; width:26px; height:26px;
+  transform: translate(-50%,-50%);
+  color: var(--cream); opacity:0.26; pointer-events:none;
+}
+.egg-visit svg { width:100%; height:100%; display:block; }
+.egg-visit .egg-shoo {
+  position:absolute; top:-16px; right:-16px;
+  width:24px; height:24px; pointer-events:auto;
+  background:none; border:none; color:var(--text-faint);
+  font-size:15px; line-height:1; cursor:pointer; border-radius:50%;
+}
+.egg-visit .egg-shoo:hover { color: var(--text); }
+
+/* ═══ PLAIN-LANGUAGE SETTINGS (complexity on demand) ═══
+   The surface offers a few plain choices. The deep preference schema
+   (API-030) lives behind one disclosure, never in your face. */
+details.more-settings { border:1px solid var(--border); border-radius:var(--r-sm); margin-top:var(--s3); }
+details.more-settings > summary {
+  min-height:44px; display:flex; align-items:center;
+  padding:0 var(--s3); font-size:var(--fs-small); color:var(--text-faint);
+}
+details.more-settings > summary:hover { color:var(--text-soft); }
+details.more-settings .ms-body { padding: var(--s3); display:flex; flex-direction:column; gap:var(--s3); }
+.pref-row { display:flex; align-items:center; justify-content:space-between; gap:var(--s3); }
+.pref-row .pl { font-size:var(--fs-small); color:var(--text-soft); }
+.pref-row .ph { font-size:var(--fs-micro); color:var(--text-faint); font-family:var(--font-mono); }
+
+/* Technical detail: canonical vocabulary + endpoints, one disclosure down */
+details.tech { border:1px dashed var(--border); border-radius:var(--r-sm); margin-top:var(--s2); }
+details.tech > summary {
+  min-height:44px; display:flex; align-items:center;
+  padding:0 var(--s3); font-size:var(--fs-micro); color:var(--text-faint);
+  font-family:var(--font-mono); letter-spacing:0.06em;
+}
+details.tech > summary:hover { color:var(--text-soft); }
+details.tech .tech-body {
+  padding: var(--s3); font-size:var(--fs-micro); color:var(--text-faint);
+  font-family:var(--font-mono); line-height:1.7;
+}
+
+/* ═══ "HAIL ASSISTANT" — the lowest-bandwidth escape hatch ═══
+   In the topbar, always visible. It never says "you're okay."
+   It lowers what the world asks of you while keeping the world intact. */
+.help-dialog {
+  position:fixed; left:var(--s4); right:var(--s4); bottom:calc(var(--s4) + 56px);
+  max-width:440px; margin:0 auto; z-index:96;
+  background:var(--panel); border:1px solid var(--border-warm);
+  border-radius:var(--r-md); padding:var(--s5); box-shadow:var(--shadow-soft);
+}
+.help-dialog[hidden] { display:none; }
+.help-dialog h2 {
+  font-family:var(--font-serif); font-style:italic;
+  font-size:var(--fs-lead); color:var(--cream); margin-bottom:var(--s2);
+}
+.help-dialog p { font-size:var(--fs-small); color:var(--text-soft); margin-bottom:var(--s4); line-height:1.6; }
+.help-actions { display:flex; flex-direction:column; gap:var(--s2); }
+.help-actions button, .help-actions a {
+  min-height:44px; display:flex; align-items:center;
+  padding:0 var(--s4); border-radius:var(--r-sm);
+  border:1px solid var(--border); background:rgba(255,255,255,0.02);
+  color:var(--text); font-size:var(--fs-body); font-family:var(--font-sans);
+  text-decoration:none; cursor:pointer; text-align:left;
+}
+.help-actions button:hover, .help-actions a:hover { border-color:var(--border-warm); background:var(--panel-warm); }
+.help-actions button:focus-visible, .help-actions a:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+
+/* Low-demand: keep the whole world, lower what it asks. Never "you're okay." */
+[data-demand="low"] .sky,
+[data-demand="low"] .notices,
+[data-demand="low"] .stroll,
+[data-demand="low"] .elsewhere,
+[data-demand="low"] .backstage,
+[data-demand="low"] .pattern-ref,
+[data-demand="low"] .presences,
+[data-demand="low"] .rail { display:none; }
+[data-demand="low"] .promenade { grid-template-columns:1fr; }
+[data-demand="low"] body { font-size: calc(var(--fs-body) + 1px); }
+.quiet-only { display:none; }
+[data-demand="low"] .quiet-only { display:block; }
+
+/* ═══ LOW-MOTION DRILL ZOOM ═══
+   Feedback for an action YOU took: ~180ms, tiny scale, no travel.
+   Fully removed under prefers-reduced-motion or motion=off. */
+@keyframes sky-zoom {
+  from { opacity:0.35; transform:scale(0.985); }
+  to   { opacity:1;    transform:scale(1); }
+}
+.sky.zooming { animation: sky-zoom 0.18s ease-out; }
+/* event-driven feedback for an action you took; removed for reduced motion */
+@media (prefers-reduced-motion: reduce) { .sky.zooming { animation:none; } }
+
+/* ═══ DECK EXIT — a deck is somewhere you duck into, not patrol ═══ */
+.deck-exit {
+  margin-top: var(--s7);
+  padding-top: var(--s5);
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--s3);
+}
+.deck-exit p {
+  font-size: var(--fs-small); color: var(--text-faint);
+  max-width: 60ch; line-height: 1.6;
+}
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 768px) {
+  .shell-main { padding: var(--pad-main) var(--s4) var(--s6); }
+  .shell-nav { overflow-x:auto; }
+  .signal { grid-template-columns: auto minmax(0,1fr); }
+  .signal .beam { grid-column: 1 / -1; width:100%; }
+  .companion { width:56px; height:56px; right:var(--s3); bottom:var(--s3); }
+  .companion .c-sil { width:26px; height:26px; }
+  .chat-dock { right:var(--s2); bottom:calc(var(--s3) + 66px); width:calc(100vw - 2*var(--s2)); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CUTE PASS — extra whimsy, warmth, and delight
+   ═══════════════════════════════════════════════════════════ */
+
+/* Twinkling stars — tiny CSS dots that pulse gently in the background.
+   Only active when motion is on. Reduced-motion = static dots (still cute). */
+.station-bg .bg-stars::before {
+  content:'';
+  position:absolute; inset:0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1.5px 1.5px at 34% 8%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 56% 32%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1.5px 1.5px at 78% 15%, rgba(255,255,255,0.55), transparent),
+    radial-gradient(1px 1px at 88% 42%, rgba(255,255,255,0.45), transparent),
+    radial-gradient(1px 1px at 22% 58%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 45% 72%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 67% 55%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 8% 82%, rgba(255,255,255,0.45), transparent),
+    radial-gradient(1.5px 1.5px at 92% 68%, rgba(255,255,255,0.35), transparent);
+}
+[data-motion="on"] .station-bg .bg-stars::before {
+  animation: twinkle 6s ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  0%   { opacity: 0.5; }
+  50%  { opacity: 0.9; }
+  100% { opacity: 0.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .station-bg .bg-stars::before { animation: none; }
+}
+
+/* Cuter dive panel — warm, rounded, inviting */
+.dive {
+  border:2px solid var(--border-warm); border-top:none;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  background: linear-gradient(180deg, var(--panel), var(--panel-warm));
+  padding: var(--s5);
+  box-shadow: inset 0 2px 12px rgba(0,0,0,0.1);
+}
+.dive-list li {
+  padding: var(--s3) var(--s4); border-radius: var(--r-md);
+  border:1px solid var(--border); background: rgba(255,255,255,0.025);
+  transition: border-color 0.2s, background 0.2s;
+}
+.dive-list li:hover {
+  border-color: var(--border-warm); background: var(--cream-soft);
+}
+
+/* Cuter cards — warm hover, soft shadows */
+.stroll-item {
+  transition: border-color 0.2s, background 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+}
+.stroll-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-warm);
+}
+
+/* Cuter all-quiet — softer, warmer, with a tiny companion peek */
+.all-quiet {
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--green-soft), rgba(106,154,102,0.08));
+  border:1.5px solid rgba(106,154,102,0.25);
+}
+.all-quiet .dot {
+  box-shadow: 0 0 6px var(--green), 0 0 12px rgba(106,154,102,0.3);
+}
+
+/* Cuter beam button — pill shape, gradient, bouncy hover */
+.beam {
+  border-radius: var(--r-full);
+  border:2px solid var(--sig-color, var(--border-warm));
+  background: linear-gradient(135deg, rgba(0,0,0,0.15), rgba(0,0,0,0.22));
+  font-weight:700;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.beam:hover, .beam:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--sig-color, var(--amber)) 30%, transparent);
+}
+
+/* Cuter help dialog — warmer border, softer shadow */
+.help-dialog {
+  border:2px solid var(--border-warm);
+  border-radius:var(--r-lg);
+  box-shadow: var(--shadow-warm);
+}
+.help-actions button, .help-actions a {
+  border-radius: var(--r-md);
+  transition: all 0.2s ease;
+}
+.help-actions button:hover, .help-actions a:hover {
+  transform: translateX(4px);
+}
+
+/* Cuter settings segments — pill buttons */
+.seg button {
+  border-radius: var(--r-full);
+  transition: all 0.2s ease;
+}
+.seg button[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--amber-soft), rgba(212,160,87,0.08));
+}
+
+/* Warm info strip */
+.sky-info {
+  background: linear-gradient(180deg, rgba(10, 15, 25, 0.5), rgba(10, 15, 25, 0.7));
+  border:1.5px solid var(--border);
+  border-top:none;
+}
+
+/* Cute breadcrumb — warm pill buttons */
+.sky-crumb button {
+  border-radius: var(--r-full);
+  transition: all 0.2s ease;
+}
+.sky-crumb button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Cute section label — tiny sparkle accent */
+.sec-label {
+  text-shadow: 0 0 10px rgba(100, 140, 180, 0.35);
+}
+
+/* Warm stat chips */
+.chip {
+  border-radius: var(--r-full);
+  transition: transform 0.15s ease;
+}
+.chip:hover { transform: scale(1.04); }
+
+/* Cute companion egg visit — slightly bigger, more visible */
+.egg-visit {
+  width:32px; height:32px; opacity:0.35;
+}
+
+/* Companion sparkle — tiny first-visit indicator */
+.companion-sparkle {
+  position:absolute; top:-4px; right:-2px;
+  font-size:14px; color:var(--accent, var(--amber));
+  pointer-events:none;
+  animation: sparkle-pop 2s ease-in-out 1s 1 forwards;
+  opacity:0;
+}
+@keyframes sparkle-pop {
+  0%   { opacity:0; transform:scale(0.5) rotate(-20deg); }
+  30%  { opacity:1; transform:scale(1.2) rotate(10deg); }
+  60%  { opacity:1; transform:scale(1) rotate(0deg); }
+  100% { opacity:0; transform:scale(0.8) rotate(15deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .companion-sparkle { animation:none; opacity:0; }
+}
+
+/* Cute node hover — the bounce already defined above, now with glow trail */
+.node:hover .node-orb::before,
+.node:focus-visible .node-orb::before {
+  opacity: 0.9;
+  border-width: 2.5px;
+}
+
+/* Cuter topbar brand orb */
+.topbar .brand .orb {
+  box-shadow: 0 0 12px rgba(212,160,87,0.4), 0 0 24px rgba(212,160,87,0.15);
+}
+.topbar .brand:hover .orb {
+  box-shadow: 0 0 16px rgba(212,160,87,0.5), 0 0 32px rgba(212,160,87,0.2);
+}
+
+/* Global: rounder corners on everything */
+details.more-settings { border-radius: var(--r-md); }
+details.tech { border-radius: var(--r-md); }
+.state { border-radius: var(--r-lg); }
+.discovery { border-radius: var(--r-lg); }
+.pattern-card { border-radius: var(--r-lg); }
+.shape { border-radius: var(--r-lg); }
+.loading { border-radius: var(--r-md); }

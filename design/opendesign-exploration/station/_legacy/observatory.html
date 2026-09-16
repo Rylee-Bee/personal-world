@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Observatory — Personal Worlds Station</title>
+<link rel="stylesheet" href="station.css">
+<script src="station.js" defer></script>
+<script src="chat.js" defer></script>
+<style>
+  .obs-head{ display:flex; align-items:flex-end; gap:var(--s5); flex-wrap:wrap; margin-bottom:var(--s6); }
+  .obs-head .station-sign{ margin-bottom:0; }
+  .obs-head .mermaid-note{
+    display:flex; align-items:center; gap:var(--s3);
+    color:var(--text-soft); font-style:italic; font-size:14px;
+  }
+
+  /* constellation of interests — the pop-out pattern */
+  .sky { position:relative; padding: var(--s6) 0; }
+  .interest {
+    display:block; width:100%; text-align:left;
+    border:1px solid var(--border); border-radius:var(--r-md);
+    background: var(--panel); padding: var(--s4);
+    color:inherit; cursor:pointer; margin-bottom:var(--s4);
+    transition: border-color .15s, background .15s;
+  }
+  .interest:hover, .interest:focus-within { border-color: var(--border-warm); background: var(--panel-warm); }
+  .interest summary{ list-style:none; display:flex; align-items:center; gap:var(--s3); cursor:pointer; }
+  .interest summary::-webkit-details-marker{ display:none; }
+  .interest .node{ width:12px;height:12px;border-radius:50%; flex-shrink:0; box-shadow:0 0 8px currentColor; }
+  .interest .name{ font-family:var(--font-serif); font-size:19px; color:var(--cream); }
+  .interest .hint{ margin-left:auto; color:var(--text-faint); font-size:12px; }
+  .interest[open] .rich{ margin-top:var(--s4); padding-top:var(--s4); border-top:1px dashed var(--border); color:var(--text-soft); font-size:14px; }
+  .interest .prov{ margin-top:var(--s3); font-family:var(--font-mono); font-size:11px; color:var(--text-faint); }
+
+  .n-lav{ color:var(--lavender); } .n-teal{ color:var(--teal); }
+  .n-gold{ color:var(--gold); } .n-coral{ color:var(--coral); }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<!-- the world, behind the glass: alive and busy, never the foreground -->
+<div class="station-bg" aria-hidden="true">
+  <div class="bg-stars"></div><div class="bg-ribs"></div><div class="bg-spill"></div>
+  <svg class="bg-tree" viewBox="0 0 200 200" focusable="false">
+    <path d="M95 200 Q97 140 99 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M105 200 Q103 140 101 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <g stroke="currentColor" fill="none" stroke-linecap="round">
+      <path d="M100 90 Q70 70 45 62" stroke-width="4"/>
+      <path d="M100 80 Q130 60 155 55" stroke-width="4"/>
+      <path d="M100 65 Q80 45 60 40" stroke-width="3"/>
+      <path d="M100 58 Q120 40 140 36" stroke-width="3"/>
+    </g>
+    <g fill="currentColor" opacity="0.4">
+      <circle cx="45" cy="60" r="20"/><circle cx="80" cy="42" r="18"/>
+      <circle cx="120" cy="38" r="18"/><circle cx="155" cy="53" r="20"/>
+      <circle cx="100" cy="34" r="22"/>
+    </g>
+  </svg>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="orb" aria-hidden="true"></span>Personal Worlds</a>
+  <nav class="topnav" aria-label="Primary">
+    <a href="index.html">World</a>
+    <a href="interests.html">Interests</a>
+    <a href="journal.html">Journal</a>
+    <a href="projects.html">Projects</a>
+    <a href="chat.html">Chat</a>
+    <a href="settings.html">Settings</a>
+  </nav>
+  <span class="region" id="topbar-region"></span>
+</header>
+
+<main class="shell-main" id="main">
+
+  <div class="obs-head">
+    <div class="station-sign">
+      <span class="fn">Observation Deck</span>
+      <h1 class="cn">The Observatory</h1>
+    </div>
+    <div class="mermaid-note">
+      <span class="char char--md"><svg aria-hidden="true"><use href="chars.svg#char-mermaid"/></svg></span>
+      Mermaid keeps a window seat here. "Emotion is part of the map."
+    </div>
+  </div>
+
+  <p style="max-width:620px; color:var(--text-soft); margin-bottom:var(--s6);">
+    What does my World know about me that I haven't noticed yet? Threads between
+    things you didn't know were connected. Touch a light to see the pattern behind it.
+  </p>
+
+  <!-- Interests as constellation nodes that pop out into richer info -->
+  <div class="sky">
+    <details class="interest">
+      <summary>
+        <span class="node n-lav" aria-hidden="true"></span>
+        <span class="name">Oceans &amp; distance</span>
+        <span class="hint">tap to open ↗</span>
+      </summary>
+      <div class="rich">
+        Books about the sea, songs about distance, a project about mapping coastlines.
+        They keep showing up together — you may not have meant them to.
+        <div class="prov">— 3 books · 2 playlists · 1 project · connected by you, over 14 months</div>
+      </div>
+    </details>
+
+    <details class="interest">
+      <summary>
+        <span class="node n-teal" aria-hidden="true"></span>
+        <span class="name">Local models &amp; small tools</span>
+        <span class="hint">tap to open ↗</span>
+      </summary>
+      <div class="rich">
+        You keep returning to things that run on your own hardware. Whisper, local
+        transcription, quantized weights. The pattern is: ownership over convenience.
+        <div class="prov">— 5 repos · 2 experiments · 1 discovery · last touched 3 days ago</div>
+      </div>
+    </details>
+
+    <details class="interest">
+      <summary>
+        <span class="node n-gold" aria-hidden="true"></span>
+        <span class="name">Found places &amp; liminal spaces</span>
+        <span class="hint">tap to open ↗</span>
+      </summary>
+      <div class="rich">
+        Piranesi, abandoned-places photography, that one essay about airports at 3am.
+        Places that exist between purposes.
+        <div class="prov">— 1 book · 4 saved posts · connected by theme, not by you (yet)</div>
+      </div>
+    </details>
+
+    <details class="interest">
+      <summary>
+        <span class="node n-coral" aria-hidden="true"></span>
+        <span class="name">Good company</span>
+        <span class="hint">tap to open ↗</span>
+      </summary>
+      <div class="rich">
+        Cozy games, ensemble-cast shows, the crew. Stories where the point is that
+        everyone belongs.
+        <div class="prov">— 2 shows · 1 game · the crew, obviously</div>
+      </div>
+    </details>
+  </div>
+
+  <div class="state" style="max-width:520px">
+    <div class="state-title">Some threads are still forming</div>
+    The Observatory only shows patterns it can actually see. It won't invent connections to look interesting.
+  </div>
+
+
+  <!-- a deck is somewhere you DUCK INTO, not somewhere you must patrol -->
+  <nav class="deck-exit" aria-label="Leave the Observatory">
+    <a class="beam" href="index.html">&larr; Back to your map</a>
+    <p>You do not have to check this deck. It will send a signal to
+       your map when it genuinely needs you, and stay quiet when it does not.</p>
+  </nav>
+</main>
+</body>
+</html>

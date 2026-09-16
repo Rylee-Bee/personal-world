@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medbay — Personal Worlds Station</title>
+<link rel="stylesheet" href="station.css">
+<script src="station.js" defer></script>
+<script src="chat.js" defer></script>
+<style>
+  .mb{ --glow: var(--green-soft); }
+  .mb .shell-main{ max-width:720px; }
+  .rest{ display:flex; flex-direction:column; gap:var(--s4); margin:var(--s6) 0; }
+  .rest-item{ display:flex; gap:var(--s4); align-items:center; padding:var(--s4) var(--s5);
+    border-radius:var(--r-md); background:var(--green-soft); border:1px solid rgba(106,154,102,0.25); }
+  .rest-item .ic{ color:var(--green); flex-shrink:0; }
+  .rest-item .tx{ color:var(--text-soft); font-size:15px; }
+  .lowdemand{ margin-top:var(--s6); padding:var(--s5); border-radius:var(--r-md);
+    border:1px solid var(--border); background:var(--panel); }
+  .lowdemand h2{ font-size:14px; color:var(--text); margin-bottom:var(--s2); }
+  .lowdemand p{ font-size:13.5px; color:var(--text-soft); }
+  .toggle{ margin-top:var(--s3); display:inline-flex; align-items:center; gap:var(--s2);
+    min-height:44px; padding:0 var(--s4); border-radius:var(--r-sm);
+    background:var(--green-soft); border:1px solid rgba(106,154,102,0.3);
+    color:var(--text); font-size:14px; cursor:pointer; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<!-- the world, behind the glass: alive and busy, never the foreground -->
+<div class="station-bg" aria-hidden="true">
+  <div class="bg-stars"></div><div class="bg-ribs"></div><div class="bg-spill"></div>
+  <svg class="bg-tree" viewBox="0 0 200 200" focusable="false">
+    <path d="M95 200 Q97 140 99 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M105 200 Q103 140 101 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <g stroke="currentColor" fill="none" stroke-linecap="round">
+      <path d="M100 90 Q70 70 45 62" stroke-width="4"/>
+      <path d="M100 80 Q130 60 155 55" stroke-width="4"/>
+      <path d="M100 65 Q80 45 60 40" stroke-width="3"/>
+      <path d="M100 58 Q120 40 140 36" stroke-width="3"/>
+    </g>
+    <g fill="currentColor" opacity="0.4">
+      <circle cx="45" cy="60" r="20"/><circle cx="80" cy="42" r="18"/>
+      <circle cx="120" cy="38" r="18"/><circle cx="155" cy="53" r="20"/>
+      <circle cx="100" cy="34" r="22"/>
+    </g>
+  </svg>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="orb" aria-hidden="true"></span>Personal Worlds</a>
+  <nav class="topnav" aria-label="Primary">
+    <a href="index.html">World</a>
+    <a href="interests.html">Interests</a>
+    <a href="journal.html">Journal</a>
+    <a href="projects.html">Projects</a>
+    <a href="chat.html">Chat</a>
+    <a href="settings.html">Settings</a>
+  </nav>
+  <span class="region" id="topbar-region"></span>
+</header>
+
+<main class="shell-main mb" id="main">
+  <div class="station-sign"><span class="fn">Medical &amp; Restoration</span><h1 class="cn">Medbay</h1></div>
+  <p style="color:var(--text-soft);margin-bottom:var(--s5)">
+    Not urgent. Not clinical. A quiet place where broken things get mended with
+    patience. Warm light. Soft surfaces. Time. Nothing here is keeping score.
+  </p>
+
+  <div class="rest" aria-label="Comfort and restoration">
+    <div class="rest-item">
+      <span class="ic char char--md"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9 h11 v7 a4 4 0 0 1 -4 4 h-3 a4 4 0 0 1 -4 -4 z M16 10 h2 a3 3 0 0 1 0 6 h-2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+      <span class="tx">A warm mug, always ready. No obligation to drink it.</span>
+    </div>
+    <div class="rest-item">
+      <span class="ic char char--md"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22 V12 M12 12 Q6 10 5 4 Q11 5 12 11 M12 12 Q18 10 19 4 Q13 5 12 11" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></span>
+      <span class="tx">Living plants propagated from the World Tree. They're doing fine.</span>
+    </div>
+    <div class="rest-item">
+      <span class="ic char char--md"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4 h12 v16 l-6 -4 -6 4 z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+      <span class="tx">Familiar stories, well-worn pages. Rereading counts.</span>
+    </div>
+  </div>
+
+  <!-- Low-demand mode: keep world intact, lower its demands. Never "you're okay." -->
+  <div class="lowdemand">
+    <h2>Low-demand mode</h2>
+    <p>
+      For days with less bandwidth. It keeps the whole world intact but lowers what it
+      asks of you: fewer items, no incidental motion, softer discovery, obvious
+      navigation, companions quietly present. Everything stays reachable if you want it.
+      It will never tell you how you feel.
+    </p>
+    <button class="toggle" type="button" aria-pressed="false">Turn on low-demand mode</button>
+    <p style="font-size:12px;color:var(--text-faint);margin-top:var(--s2)">
+      Bound to your Reading &amp; Interaction preferences (API-030). Not an "accessibility mode" — a comfort layer above the floor.
+    </p>
+  </div>
+
+  <div style="margin-top:var(--s6);padding:var(--s5);border-radius:var(--r-md);background:var(--cream-soft);border:1px solid var(--border);color:var(--text-soft);font-family:var(--font-serif);font-style:italic;font-size:17px;text-align:center">
+    "Not everything needs to be fixed right now. Some things just need to be held."
+  </div>
+
+  <!-- a deck is somewhere you DUCK INTO, not somewhere you must patrol -->
+  <nav class="deck-exit" aria-label="Leave Medbay">
+    <a class="beam" href="index.html">&larr; Back to your map</a>
+    <p>You do not have to check this deck. It will send a signal to
+       your map when it genuinely needs you, and stay quiet when it does not.</p>
+  </nav>
+</main>
+</body>
+</html>

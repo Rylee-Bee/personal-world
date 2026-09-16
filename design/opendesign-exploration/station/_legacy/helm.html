@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Helm — Personal Worlds Station</title>
+<link rel="stylesheet" href="station.css">
+<script src="station.js" defer></script>
+<script src="chat.js" defer></script>
+<style>
+  .hm{ --glow: var(--teal-soft); }
+  .grid8{ display:grid; grid-template-columns:repeat(4,1fr); gap:var(--s3); margin:var(--s6) 0; }
+  @media(max-width:860px){ .grid8{grid-template-columns:repeat(2,1fr);} }
+  .cell{ text-align:center; padding:var(--s4); border-radius:var(--r-sm); background:var(--panel); border:1px solid var(--border); }
+  .cell .nm{ font-size:12px; color:var(--text-faint); margin-bottom:2px; }
+  .heading{ max-width:560px; margin:var(--s6) auto 0; text-align:center;
+    padding:var(--s5); border-radius:var(--r-md); background:var(--cream-soft); border:1px solid var(--border); }
+  .heading .lbl{ font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint); }
+  .heading .val{ font-family:var(--font-serif); font-style:italic; font-size:20px; color:var(--cream); margin-top:var(--s2); }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<!-- the world, behind the glass: alive and busy, never the foreground -->
+<div class="station-bg" aria-hidden="true">
+  <div class="bg-stars"></div><div class="bg-ribs"></div><div class="bg-spill"></div>
+  <svg class="bg-tree" viewBox="0 0 200 200" focusable="false">
+    <path d="M95 200 Q97 140 99 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M105 200 Q103 140 101 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <g stroke="currentColor" fill="none" stroke-linecap="round">
+      <path d="M100 90 Q70 70 45 62" stroke-width="4"/>
+      <path d="M100 80 Q130 60 155 55" stroke-width="4"/>
+      <path d="M100 65 Q80 45 60 40" stroke-width="3"/>
+      <path d="M100 58 Q120 40 140 36" stroke-width="3"/>
+    </g>
+    <g fill="currentColor" opacity="0.4">
+      <circle cx="45" cy="60" r="20"/><circle cx="80" cy="42" r="18"/>
+      <circle cx="120" cy="38" r="18"/><circle cx="155" cy="53" r="20"/>
+      <circle cx="100" cy="34" r="22"/>
+    </g>
+  </svg>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="orb" aria-hidden="true"></span>Personal Worlds</a>
+  <nav class="topnav" aria-label="Primary">
+    <a href="index.html">World</a>
+    <a href="interests.html">Interests</a>
+    <a href="journal.html">Journal</a>
+    <a href="projects.html">Projects</a>
+    <a href="chat.html">Chat</a>
+    <a href="settings.html">Settings</a>
+  </nav>
+  <span class="region" id="topbar-region"></span>
+</header>
+
+<main class="shell-main hm" id="main">
+  <div class="station-sign"><span class="fn">Station Operations</span><h1 class="cn">The Helm</h1></div>
+  <p style="max-width:620px;color:var(--text-soft);margin-bottom:var(--s5)">
+    Not a command center. Nobody sits in a captain's chair. A shared room where anyone
+    can orient themselves: where am I, what is the station doing, where can I go.
+    Its center isn't Operations — its center is the Tree. This is just where you see the whole.
+  </p>
+
+  <!-- Station state: states not grades (API-003 status, API-014 actors) -->
+  <div class="grid8" aria-label="Station state">
+    <div class="cell"><div class="nm">Observation Deck</div><span class="chip healthy"><span class="cdot"></span>you are here-ish</span></div>
+    <div class="cell"><div class="nm">Observatory</div><span class="chip healthy"><span class="cdot"></span>watching</span></div>
+    <div class="cell"><div class="nm">Workshop</div><span class="chip needs_attention"><span class="cdot"></span>learning</span></div>
+    <div class="cell"><div class="nm">Engine</div><span class="chip healthy"><span class="cdot"></span>running</span></div>
+    <div class="cell"><div class="nm">Lighthouse</div><span class="chip unknown"><span class="cdot"></span>listening</span></div>
+    <div class="cell"><div class="nm">Library</div><span class="chip healthy"><span class="cdot"></span>growing</span></div>
+    <div class="cell"><div class="nm">Medbay</div><span class="chip healthy"><span class="cdot"></span>resting</span></div>
+    <div class="cell"><div class="nm">Helm</div><span class="chip healthy"><span class="cdot"></span>you are here</span></div>
+  </div>
+
+  <!-- World intent: API-075 -->
+  <div class="heading">
+    <div class="lbl">Current heading</div>
+    <div class="val" data-api="API-075">"Toward whatever feels like home."</div>
+    <p style="font-size:12px;color:var(--text-faint);margin-top:var(--s3)">
+      The heading is a direction, not a destination. It can change. Both are valid.
+    </p>
+  </div>
+
+  <div style="display:flex;gap:var(--s3);justify-content:center;margin-top:var(--s6)">
+    <details class="trace"><summary>a <span class="who">Records</span> book left open</summary>
+      <p style="margin-top:var(--s2);font-style:normal">Someone was mid-thought. They'll be back.</p></details>
+    <details class="trace"><summary>a <span class="who">World Tree</span> shoot by the console</summary>
+      <p style="margin-top:var(--s2);font-style:normal">Operations stopped trying to relocate it. It's exactly where it wants to be.</p></details>
+  </div>
+
+  <div style="margin-top:var(--s6);padding:var(--s5);border-radius:var(--r-md);background:var(--cream-soft);border:1px solid var(--border);color:var(--text-soft);font-family:var(--font-serif);font-style:italic;font-size:17px;text-align:center">
+    "You don't need to know where you're going. You just need to know where you are."
+  </div>
+
+  <!-- a deck is somewhere you DUCK INTO, not somewhere you must patrol -->
+  <nav class="deck-exit" aria-label="Leave the Helm">
+    <a class="beam" href="index.html">&larr; Back to your map</a>
+    <p>You do not have to check this deck. It will send a signal to
+       your map when it genuinely needs you, and stay quiet when it does not.</p>
+  </nav>
+</main>
+</body>
+</html>

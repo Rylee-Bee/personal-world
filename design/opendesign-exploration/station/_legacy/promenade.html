@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Promenade — Personal Worlds Station</title>
+<link rel="stylesheet" href="station.css">
+<style>
+  .prom-grid { display:grid; grid-template-columns: 1.4fr 1fr; gap: var(--s6); align-items:start; }
+  @media (max-width: 860px){ .prom-grid{ grid-template-columns:1fr; } }
+
+  .room { position:relative; }
+
+  /* environmental, still, inhabited */
+  .env-row { display:flex; gap:var(--s4); align-items:flex-end; margin: var(--s6) 0; flex-wrap:wrap; }
+  .env-window { flex:1 1 260px; }
+  .env-window .star{ width:2px;height:2px; }
+  .env-side { display:flex; flex-direction:column; gap:var(--s3); }
+
+  .shelf-books .book{ display:inline-block; }
+  .cup { font-size:0; }
+  .cup svg{ width:26px;height:26px; }
+
+  .calm {
+    margin-top: var(--s6);
+    padding: var(--s5);
+    border-radius: var(--r-md);
+    background: var(--cream-soft);
+    border:1px solid var(--border);
+    color: var(--text-soft);
+    font-family: var(--font-serif); font-style:italic; font-size:17px;
+    text-align:center;
+  }
+
+  .corner-title { display:flex; align-items:center; gap:var(--s3); margin-bottom:var(--s4); }
+  .corner-title .cn{ font-family:var(--font-serif); font-style:italic; font-size:22px; color:var(--cream); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="orb" aria-hidden="true"></span>Personal Worlds</a>
+  <nav class="topnav" aria-label="Primary">
+    <a href="index.html">World</a>
+    <a href="interests.html">Interests</a>
+    <a href="journal.html">Journal</a>
+    <a href="projects.html">Projects</a>
+    <a href="chat.html">Chat</a>
+    <a href="settings.html">Settings</a>
+  </nav>
+  <span class="region" id="topbar-region"></span>
+</header>
+
+<main class="shell-main">
+<p style="max-width:70ch;margin:0 auto var(--s5);padding:var(--s4);border:1px dashed var(--coral);
+          border-radius:var(--r-md);background:var(--coral-soft);color:var(--text);font-size:14px">
+  <strong>SUPERSEDED (2026-09-16).</strong> This page was an early Promenade study.
+  The front page is now The Observation Deck (<a href="index.html" style="color:var(--amber)">index.html</a>)
+  &mdash; content foreground, world background, and a semantic star-map that drills to the commands. Kept for reference
+  only; nothing links here. Not deleted, per repo policy on unused artifacts.
+</p>
+
+
+  <div class="station-sign">
+    <span class="fn">Central Concourse</span>
+    <h1 class="cn">The Promenade</h1>
+  </div>
+  <p style="max-width:600px; color:var(--text-soft); margin-bottom:var(--s6);">
+    Not a corridor. Not a lobby. A place where things accumulate. Burrito's corner
+    smells like coffee. There are books no one remembers shelving. The World Tree
+    grows through the middle of it all.
+  </p>
+
+  <div class="prom-grid">
+
+    <!-- LEFT: the room itself — environmental, inhabited, still -->
+    <section class="room" aria-label="The Promenade room">
+      <div class="env-row">
+        <!-- a window onto space -->
+        <div class="env-window" role="img" aria-label="A curved window looking out onto stars and a distant ringed planet">
+          <span class="star" style="top:18%;left:12%"></span>
+          <span class="star" style="top:30%;left:40%;opacity:.6"></span>
+          <span class="star" style="top:14%;left:66%"></span>
+          <span class="star" style="top:52%;left:24%;opacity:.5"></span>
+          <span class="star" style="top:44%;left:78%;opacity:.7"></span>
+          <span class="star" style="top:66%;left:56%;opacity:.4"></span>
+          <svg viewBox="0 0 120 60" style="position:absolute;right:8%;bottom:10%;width:70px;opacity:.8" aria-hidden="true">
+            <circle cx="60" cy="30" r="16" fill="#4A8AC0"/>
+            <ellipse cx="60" cy="30" rx="26" ry="7" fill="none" stroke="#C9A227" stroke-width="1.5" transform="rotate(-15 60 30)"/>
+          </svg>
+        </div>
+
+        <div class="env-side">
+          <!-- a shelf with books -->
+          <div class="env-shelf shelf-books" role="img" aria-label="A wooden shelf with a few well-worn books">
+            <span class="book" style="height:34px;background:var(--lavender)"></span>
+            <span class="book" style="height:40px;background:var(--teal)"></span>
+            <span class="book" style="height:30px;background:var(--gold)"></span>
+            <span class="book" style="height:36px;background:var(--coral)"></span>
+            <span class="book" style="height:32px;background:var(--green)"></span>
+          </div>
+          <!-- a plant + a cup left somewhere -->
+          <div style="display:flex; gap:var(--s4); align-items:center;">
+            <span class="env-plant char char--md" role="img" aria-label="A small living plant propagated from the World Tree">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22 V12 M12 12 Q6 10 5 4 Q11 5 12 11 M12 12 Q18 10 19 4 Q13 5 12 11" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+            </span>
+            <span class="cup" role="img" aria-label="A warm mug, always ready">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9 h11 v7 a4 4 0 0 1 -4 4 h-3 a4 4 0 0 1 -4 -4 z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 10 h2 a3 3 0 0 1 0 6 h-2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 6 q1 -2 0 -3 M12 6 q1 -2 0 -3" stroke="currentColor" stroke-width="1.2" fill="none" opacity=".6"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- cross-contamination: visible + interactive -->
+      <div style="display:flex; gap:var(--s3); flex-wrap:wrap; margin-top:var(--s5);">
+        <details class="trace">
+          <summary><span class="who">Ratatoskr</span> left a map pinned here</summary>
+          <p style="margin-top:var(--s2); font-style:normal;">Half of it leads somewhere. She won't say which half.</p>
+        </details>
+        <details class="trace">
+          <summary><span class="who">Mermaid's</span> cushion, still warm</summary>
+          <p style="margin-top:var(--s2); font-style:normal;">She was reading by the window a little while ago.</p>
+        </details>
+        <details class="trace">
+          <summary>a <span class="who">Lighthouse</span> printout in the service window</summary>
+          <p style="margin-top:var(--s2); font-style:normal;">Burrito clips the good transmissions for the morning paper.</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- RIGHT: Burrito's corner — discovery slots, honest states -->
+    <aside aria-label="Burrito's corner">
+      <div class="corner-title">
+        <span class="char char--lg"><svg aria-hidden="true"><use href="chars.svg#char-burrito"/></svg></span>
+        <span class="cn">Burrito's Corner</span>
+      </div>
+
+      <!-- real-data-ready discovery slots -->
+      <div style="display:flex; flex-direction:column; gap:var(--s4);">
+        <button class="discovery" type="button">
+          <span class="src">Brought by Burrito</span>
+          <span class="ttl">Today's paper</span>
+          <span style="font-size:13px;color:var(--text-soft)">Context, not urgency. The loudest story isn't automatically the most important one.</span>
+        </button>
+
+        <!-- honest empty state (no fake data) -->
+        <div class="state">
+          <div class="state-title">Nothing new on the table yet</div>
+          Burrito hasn't left anything for you today. That's okay — quiet is also information.
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <div class="calm">
+    Nothing here needs you right now. The kettle's on if you want it.
+  </div>
+
+</main>
+</body>
+</html>
