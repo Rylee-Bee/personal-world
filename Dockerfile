@@ -59,4 +59,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # does not.
 CMD ["sh", "-c", \
      "test -n \"$PW_API_TOKEN\" || { echo 'FATAL: PW_API_TOKEN is empty or unset; refusing to boot (auth is fail-closed).' >&2; exit 1; }; \
-      exec uv run uvicorn personal_world.api:create_app --factory --host 0.0.0.0 --port 8000"]
+      exec uv run uvicorn personal_world.api:create_app --factory \
+       --proxy-headers --forwarded-allow-ips='*' \
+       --host 0.0.0.0 --port 8000"]
