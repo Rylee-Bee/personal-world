@@ -30,6 +30,10 @@ RUN pip install --no-cache-dir uv \
     && rm -rf ~/.cache
 
 COPY src ./src
+# The Station is the product frontend (decision #11). Package it at the path
+# default_station_dir() resolves to inside the image (/app/design/...), so
+# /station/ works same-origin with no machine-specific path and no env override.
+COPY design/opendesign-exploration/station ./design/opendesign-exploration/station
 RUN uv pip install --no-cache-dir .
 
 COPY --from=frontend /out /app/frontend/dist
