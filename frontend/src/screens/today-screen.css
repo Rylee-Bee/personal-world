@@ -1,287 +1,160 @@
-/* ── Today Quiet Day (17:481) — AMBIENT register ────────────────── */
+/* ── Today — Quiet Day (§16.1) — AMBIENT register ──────────────────
+   "Answer 'Does anything need me?' with honest stillness."
+   Generous breathing room. Warm typography. Real companion artwork. */
 
 .pw-today {
   display: flex;
   flex-direction: column;
-  gap: 38px;
-  padding: 70px 84px 92px 64px;
+  gap: var(--pw-spacing-section);
+  padding: 48px 56px 64px 48px;
   min-height: 100vh;
-  position: relative;
+  max-width: 56rem;
 }
 
-/* Ambient warmth background */
-.pw-today::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse at 30% 40%,
-    color-mix(in srgb, var(--pw-color-accent-primary) 4%, transparent) 0%,
-    transparent 60%
-  );
-  pointer-events: none;
-  z-index: 0;
-}
-
-.pw-today > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* ── Greeting row ── */
-.pw-today-greeting-row {
+/* ── Welcome / greeting ── */
+.pw-today-welcome {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 24px;
+  gap: 32px;
 }
 
 .pw-today-greeting {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .pw-today-greeting-text {
   font-family: var(--pw-typography-font-expressive);
-  font-size: 2.25rem;
+  font-size: 2.5rem;
   font-weight: 400;
-  line-height: 1.1;
+  line-height: 1.15;
   color: var(--pw-color-accent-primary);
   margin: 0;
 }
 
 .pw-today-date {
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   color: var(--pw-color-accent-secondary);
   margin: 0;
 }
 
-/* Health summary card */
-.pw-today-health {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 18px 22px;
-  background: var(--pw-color-surface-panel);
-  border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 12px;
-  min-width: 360px;
-}
-
-.pw-today-health-stars {
-  display: flex;
-  gap: 5px;
-}
-
-.pw-today-health-star {
-  width: 10px;
-  height: 10px;
-  background: var(--pw-color-accent-primary);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-}
-
-.pw-today-health-status {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--pw-color-text-primary);
-  margin: 0;
-}
-
-.pw-today-health-detail {
-  font-size: 0.8rem;
+.pw-today-truth {
+  font-size: 1.05rem;
   color: var(--pw-color-text-secondary);
-  margin: 0;
+  margin: 8px 0 0;
+  line-height: 1.45;
+  max-width: 32rem;
 }
 
-/* ── Companion message ── */
-.pw-today-companion-message {
-  display: flex;
-  align-items: center;
-  gap: 30px;
-  padding: 30px 38px 42px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--pw-color-accent-primary) 6%, transparent) 0%,
-    color-mix(in srgb, var(--pw-color-accent-secondary) 4%, transparent) 100%
-  );
-  border-radius: 16px;
+/* ── Companion presence (§10, §16.1) ────────────────────────────────
+   "Optional companion/environmental presence around 150–180px on
+   desktop; smaller on phone. Makes stillness inhabited; carries
+   no status." Uses real companion artwork, not CSS placeholders. */
+
+.pw-today-companion {
+  flex-shrink: 0;
 }
 
 .pw-today-companion-art {
-  position: relative;
   width: 150px;
-  height: 180px;
-  flex-shrink: 0;
-}
-
-.pw-today-companion-figure {
-  width: 112px;
-  height: 154px;
-  border: 1px solid var(--pw-color-accent-primary);
-  border-radius: 50%;
-  opacity: 0.6;
-}
-
-.pw-today-companion-bubble {
-  position: absolute;
-  bottom: 20px;
-  right: 10px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1px solid var(--pw-color-accent-primary);
-}
-
-.pw-today-companion-bubble--small {
-  width: 4px;
-  height: 4px;
-  bottom: 12px;
-  right: 4px;
-  border: none;
-  background: var(--pw-color-accent-secondary);
-}
-
-.pw-today-companion-sparkle {
-  position: absolute;
-  top: 10px;
-  right: 0;
-  width: 10px;
-  height: 10px;
-  background: var(--pw-color-text-primary);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-}
-
-.pw-today-companion-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  flex: 1;
-}
-
-.pw-today-companion-title {
-  font-family: var(--pw-typography-font-expressive);
-  font-size: 1.5rem;
-  font-weight: 400;
-  color: var(--pw-color-text-primary);
-  margin: 0;
-  line-height: 1.2;
-}
-
-.pw-today-companion-body {
-  font-size: 0.9rem;
-  color: var(--pw-color-text-secondary);
-  margin: 0;
-  line-height: 1.5;
-  max-width: 690px;
-}
-
-.pw-today-companion-arrow {
-  width: 210px;
-  height: 68px;
-  flex-shrink: 0;
-  opacity: 0.3;
-}
-
-/* ── Waves-ladder divider ── */
-.pw-today-divider {
-  height: 8px;
-  background: linear-gradient(
-    90deg,
-    var(--pw-color-border-subtle) 0%,
-    transparent 100%
-  );
-  border-radius: 4px;
-  opacity: 0.5;
-}
-
-/* ── Recent activity ── */
-.pw-today-recent {
-  display: flex;
-  gap: 28px;
-}
-
-.pw-today-recent-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  padding: 28px;
-  background: var(--pw-color-surface-panel);
-  border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 12px;
-}
-
-.pw-today-recent-header {
+  height: 160px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--pw-color-accent-primary) 6%, transparent);
+  box-shadow: var(--pw-color-warmth-quiet-glow);
+  overflow: hidden;
 }
 
-.pw-today-recent-icon {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
+.pw-today-companion-img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  opacity: 0.85;
 }
 
-.pw-today-recent-icon--changes {
-  border: 1px solid var(--pw-color-accent-primary);
-  border-radius: 50%;
+/* ── Sections (shared) ───────────────────────────────────────────── */
+
+.pw-today-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pw-spacing-normal);
 }
 
-.pw-today-recent-icon--journal {
-  border: 1px solid var(--pw-color-accent-secondary);
-  border-radius: 50%;
-}
-
-.pw-today-recent-title {
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: var(--pw-color-text-primary);
+.pw-today-section-title {
+  font-family: var(--pw-typography-font-interface);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pw-color-text-muted);
   margin: 0;
 }
 
-/* Change list */
-.pw-today-changes {
+.pw-today-section-title--summary {
+  cursor: pointer;
+  display: inline;
+}
+
+.pw-today-section--muted {
+  opacity: 0.65;
+}
+
+.pw-today-section--muted:hover {
+  opacity: 1;
+}
+
+/* ── Items list ────────────────────────────────────────────────── */
+
+.pw-today-items {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.pw-today-change {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px;
+.pw-today-item {
+  padding: 14px 16px;
+  font-size: 0.875rem;
+  color: var(--pw-color-text-primary);
   border-bottom: 1px solid var(--pw-color-border-subtle);
 }
 
-.pw-today-change:last-child {
+.pw-today-item:last-child {
   border-bottom: none;
 }
 
-.pw-today-change-marker {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--pw-color-accent-primary);
-  flex-shrink: 0;
+.pw-today-item strong {
+  font-weight: 500;
 }
 
-.pw-today-change-desc {
-  font-size: 0.85rem;
+/* ── Reminders ─────────────────────────────────────────────────── */
+
+.pw-today-reminder-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pw-today-reminder {
+  padding: 12px 16px;
+  font-size: 0.875rem;
   color: var(--pw-color-text-primary);
-  margin: 0;
+  background: var(--pw-color-surface-panel);
+  border-radius: 8px;
 }
 
-.pw-today-peaceful-note {
-  font-size: 0.75rem;
-  color: var(--pw-color-text-secondary);
-  margin: 0;
-  font-style: italic;
-}
+/* ── Journal entries ──────────────────────────────────────────────
+   "A place for personal writing and deliberate remembering.
+   Literary spacing, rose date treatment." (§16.9) */
 
-/* Journal entries */
 .pw-today-entries {
   display: flex;
   flex-direction: column;
@@ -289,33 +162,23 @@
 }
 
 .pw-today-entry {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 17px 18px;
-  background: color-mix(in srgb, var(--pw-color-text-primary) 15%, transparent);
-  border-radius: 8px;
-}
-
-.pw-today-entry-sparkle {
-  width: 9px;
-  height: 9px;
-  background: var(--pw-color-accent-secondary);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-  flex-shrink: 0;
-  margin-top: 4px;
+  padding: 16px 18px;
+  background: var(--pw-color-surface-panel);
+  border-radius: 10px;
+  border: 1px solid var(--pw-color-border-subtle);
 }
 
 .pw-today-entry-copy {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
-.pw-today-entry-title {
+.pw-today-entry-text {
   font-size: 0.9rem;
   color: var(--pw-color-text-primary);
   margin: 0;
+  line-height: 1.5;
 }
 
 .pw-today-entry-time {
@@ -324,16 +187,64 @@
   margin: 0;
 }
 
-/* ── Mobile <768px: single column, no overflow, touch targets ─────── */
+/* ── Daily loop trigger ─────────────────────────────────────────── */
+
+.pw-today-daily {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pw-spacing-normal);
+  padding-top: var(--pw-spacing-compact);
+}
+
+.pw-today-daily-desc {
+  font-size: 0.8rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+}
+
+.pw-today-daily-btn {
+  align-self: flex-start;
+  padding: var(--pw-spacing-compact) var(--pw-spacing-loose);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 8px;
+  background: var(--pw-color-surface-elevated);
+  color: var(--pw-color-text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-height: var(--pw-target-minimum);
+}
+
+.pw-today-daily-btn:hover {
+  border-color: var(--pw-color-accent-primary);
+}
+
+.pw-today-daily-btn:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+.pw-today-daily-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pw-today-daily-result {
+  font-size: 0.8rem;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+}
+
+/* ── Responsive: phone ──────────────────────────────────────────────
+   §16.7: "Preserve the meaning of every Today state on a phone." */
 
 @media (max-width: 767px) {
   .pw-today {
     padding: var(--pw-spacing-section) var(--pw-spacing-loose);
-    gap: 1.5rem;
+    gap: var(--pw-spacing-loose);
   }
 
-  .pw-today-greeting-row {
-    flex-direction: column;
+  .pw-today-welcome {
+    flex-direction: column-reverse;
     gap: var(--pw-spacing-loose);
   }
 
@@ -341,66 +252,46 @@
     font-size: 1.75rem;
   }
 
-  .pw-today-health {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .pw-today-companion-message {
-    padding: var(--pw-spacing-loose);
-    gap: var(--pw-spacing-loose);
-    flex-wrap: wrap;
+  .pw-today-truth {
+    font-size: 0.95rem;
   }
 
   .pw-today-companion-art {
-    display: none;
+    width: 120px;
+    height: 120px;
+    border-radius: 20px;
   }
 
-  .pw-today-companion-arrow {
-    display: none;
+  .pw-today-companion-img {
+    width: 72px;
+    height: 72px;
   }
 
-  .pw-today-companion-title {
-    font-size: 1.25rem;
-  }
-
-  .pw-today-companion-body {
-    max-width: none;
-  }
-
-  .pw-today-recent {
-    flex-direction: column;
-    gap: var(--pw-spacing-loose);
-  }
-
-  .pw-today-recent-card {
-    padding: var(--pw-spacing-loose);
-    gap: var(--pw-spacing-normal);
-  }
-
-  .pw-today-recent-title {
-    font-size: 1rem;
-  }
-
-  .pw-today-change {
-    padding: var(--pw-spacing-loose);
-    gap: var(--pw-spacing-normal);
+  .pw-today-item {
+    padding: var(--pw-spacing-normal) var(--pw-spacing-loose);
   }
 
   .pw-today-entry {
     padding: var(--pw-spacing-normal) var(--pw-spacing-loose);
   }
-
-  .pw-notification-action {
-    min-height: var(--pw-target-minimum);
-    min-width: var(--pw-target-minimum);
-  }
 }
 
-/* ── Bottom-bar safe area <600px (fixed bottom nav overlay) ──────── */
+/* ── Bottom-bar safe area <600px ───────────────────────────────── */
 
 @media (max-width: 599px) {
   .pw-today {
     padding-bottom: calc(var(--pw-spacing-section) + 3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* §16.7: "compact art" on phone */
+  .pw-today-companion-art {
+    width: 96px;
+    height: 96px;
+    border-radius: 16px;
+  }
+
+  .pw-today-companion-img {
+    width: 56px;
+    height: 56px;
   }
 }

@@ -10,15 +10,22 @@ import {
 } from "../lib/hooks";
 import { runDailyLoop } from "../lib/api";
 import { summarizeCapabilities } from "../lib/capability-health";
+import { useCompanion, COMPANIONS } from "../lib/companion-context";
 import "./today-screen.css";
 
 /**
- * TodayScreen — Workshop v3, frame 17:481 "Today — Quiet Day"
+ * TodayScreen — §16.1 "Today — Quiet Day"
  *
- * Built from canonical Figma evidence. AMBIENT register.
- * Shell mode: rail (112px)
+ * Purpose: Answer "Does anything need me?" with honest stillness.
+ * Register: AMBIENT, with generous breathing room.
+ * Figma: 17:481
  *
  * "Nothing needs you right now. Your world is running on its own."
+ *
+ * The screen leads with a human greeting and date, then a single
+ * honest sentence about the world's state. Companion presence is
+ * meaningful but not obligatory. Real recent context follows only
+ * when there is something genuine to show.
  */
 
 export default function TodayScreen() {
@@ -32,6 +39,10 @@ export default function TodayScreen() {
 
   const [dailyRunning, setDailyRunning] = useState(false);
   const [dailyResult, setDailyResult] = useState<string | null>(null);
+
+  const { companion } = useCompanion();
+  const companionMeta = COMPANIONS[companion];
+  const companionIcon = companionMeta?.icon || "/companions/personal-world.svg";
 
   const runDaily = useCallback(async () => {
     setDailyRunning(true);
@@ -61,9 +72,9 @@ export default function TodayScreen() {
   const worldData = worldStatus.data;
   const health = summarizeCapabilities(worldData?.capabilities);
 
-  const dailyData = daily.data;
-  const warnings = dailyData?.warnings || [];
-  const actions = dailyData?.actions || [];
+  // Future Today states (Question, Reservation, Attention) will use
+  // daily.data.warnings and daily.data.actions from this hook.
+  void daily.data;
 
   const journalEntries = journal.data || [];
 
@@ -81,218 +92,147 @@ export default function TodayScreen() {
 
   const totalAttention = health.attention.length + reposNeedingAttention.length + activeAgentProjects.length;
 
+  // §11: Determine the honest truth sentence for the world state.
+  const truthSentence = totalAttention === 0
+    ? health.unavailable.length > 0
+      ? "Your world continues. Some things are unavailable."
+      : "Nothing needs you right now."
+    : totalAttention === 1
+      ? "One thing needs your attention."
+      : `${totalAttention} things need your attention.`;
+
   return (
     <div className="pw-today">
-      {/* World welcome */}
+      {/* §16.1: Greeting — expressive heading, date, and truth sentence. */}
       <section className="pw-today-welcome" aria-labelledby="today-greeting">
-        <div className="pw-today-greeting-row">
-          <div className="pw-today-greeting">
-            <h1 id="today-greeting" className="pw-today-greeting-text">
-              Good morning{name ? `, ${name}` : ""}. <span aria-hidden="true">✦</span>
-            </h1>
-            <p className="pw-today-date">
-              {dayName}, {monthDay}
-            </p>
-          </div>
-
-          <div className="pw-today-health" role="status" aria-label="World health">
-            <div className="pw-today-health-stars" aria-hidden="true">
-              {[0, 1, 2, 3].map((i) => (
-                <span key={i} className={`pw-today-health-star ${i < health.meter ? 'pw-today-health-star--active' : ''}`} />
-              ))}
-            </div>
-            <p className="pw-today-health-status">
-              {totalAttention === 0
-                ? health.unavailable.length > 0
-                  ? `${health.healthy} healthy, ${health.unavailable.length} unavailable. Your world continues normally.`
-                  : "Your world is running well."
-                : `${totalAttention} thing${totalAttention === 1 ? '' : 's'} need${totalAttention === 1 ? 's' : ''} attention.`}
-            </p>
-            <p className="pw-today-health-detail">
-              {health.healthy} healthy · {health.unavailable.length} unavailable · {health.optional} not set up
-            </p>
-          </div>
+        <div className="pw-today-greeting">
+          <h1 id="today-greeting" className="pw-today-greeting-text">
+            Good morning{name ? `, ${name}` : ""}. <span aria-hidden="true">✦</span>
+          </h1>
+          <p className="pw-today-date">
+            {dayName}, {monthDay}
+          </p>
+          {/* §11: Honest status — one sentence, never a traffic light. */}
+          <p className="pw-today-truth" role="status" aria-label="World state">
+            {truthSentence}
+          </p>
         </div>
 
-        {/* Companion message */}
-        <div className="pw-today-companion-message" aria-label="Companion message">
-          <div className="pw-today-companion-art" aria-hidden="true">
-            <div className="pw-today-companion-figure" />
-            <span className="pw-today-companion-bubble" />
-            <span className="pw-today-companion-bubble pw-today-companion-bubble--small" />
-            <span className="pw-today-companion-sparkle" />
+        {/* §10/§16.1: Companion presence — meaningful but not obligatory.
+            Uses real companion artwork, not CSS placeholders.
+            "Recompose canonical Mermaid or selected companion at the
+            intended scene scale." */}
+        <div className="pw-today-companion" aria-hidden="true">
+          <div className="pw-today-companion-art">
+            <img
+              src={companionIcon}
+              alt=""
+              className="pw-today-companion-img"
+            />
           </div>
-          <div className="pw-today-companion-copy">
-            <p className="pw-today-companion-title">
-              {totalAttention === 0
-                ? "Nothing needs you right now."
-                : `${totalAttention} thing${totalAttention === 1 ? '' : 's'} need${totalAttention === 1 ? 's' : ''} your attention.`}
-            </p>
-            <p className="pw-today-companion-body">
-              {totalAttention === 0
-                ? "Your world is running on its own. You can check on things below, or just enjoy the quiet."
-                : "Review the items below to keep your world running smoothly."}
-            </p>
-          </div>
-          <div className="pw-today-companion-arrow" aria-hidden="true" />
         </div>
-
-        <div className="pw-today-divider" aria-hidden="true" />
       </section>
 
-      {/* Active reminders */}
+      {/* §16.1: "Quiet continuation into writing or real recent context.
+          Do not fill every region." Only render sections with real content. */}
+
+      {/* Active reminders — only when they exist */}
       {activeReminders.length > 0 && (
-        <section className="pw-today-recent" aria-label="Active reminders">
-          <div className="pw-today-recent-card" style={{ flex: 1 }}>
-            <div className="pw-today-recent-header">
-              <span className="pw-today-recent-icon pw-today-recent-icon--changes" aria-hidden="true" />
-              <h2 className="pw-today-recent-title">Active Reminders</h2>
-            </div>
-            <ul className="pw-today-warnings">
-              {activeReminders.map((r) => (
-                <li key={r.id} className="pw-today-warning">{r.text}</li>
-              ))}
-            </ul>
-          </div>
+        <section className="pw-today-section" aria-label="Active reminders">
+          <h2 className="pw-today-section-title">Active Reminders</h2>
+          <ul className="pw-today-reminder-list">
+            {activeReminders.map((r) => (
+              <li key={r.id} className="pw-today-reminder">{r.text}</li>
+            ))}
+          </ul>
         </section>
       )}
 
-      {/* Project attention */}
+      {/* Project attention — only when something genuinely needs it */}
       {reposNeedingAttention.length > 0 && (
-        <section className="pw-today-recent" aria-label="Project attention">
-          <div className="pw-today-recent-card" style={{ flex: 1 }}>
-            <div className="pw-today-recent-header">
-              <span className="pw-today-recent-icon pw-today-recent-icon--changes" aria-hidden="true" />
-              <h2 className="pw-today-recent-title">Projects Need Attention</h2>
-            </div>
-            <div className="pw-today-changes">
-              {reposNeedingAttention.map((repo) => (
-                <div key={repo.name} className="pw-today-change">
-                  <span className="pw-today-change-marker" aria-hidden="true" />
-                  <div className="pw-today-change-desc">
-                    <strong>{repo.name}</strong>
-                    {repo.error
-                      ? ` — ${repo.error}`
-                      : repo.dirty
-                        ? " — uncommitted changes"
-                        : repo.ahead != null && repo.ahead > 0
-                          ? ` — ${repo.ahead} ahead`
-                          : repo.behind != null && repo.behind > 0
-                            ? ` — ${repo.behind} behind`
-                            : ""}
-                    {repo.branch ? ` (${repo.branch})` : ""}
-                  </div>
-                </div>
-              ))}
-            </div>
+        <section className="pw-today-section" aria-label="Project attention">
+          <h2 className="pw-today-section-title">Projects</h2>
+          <div className="pw-today-items">
+            {reposNeedingAttention.map((repo) => (
+              <div key={repo.name} className="pw-today-item">
+                <strong>{repo.name}</strong>
+                {repo.error
+                  ? ` — ${repo.error}`
+                  : repo.dirty
+                    ? " — uncommitted changes"
+                    : repo.ahead != null && repo.ahead > 0
+                      ? ` — ${repo.ahead} ahead`
+                      : repo.behind != null && repo.behind > 0
+                        ? ` — ${repo.behind} behind`
+                        : ""}
+                {repo.branch ? ` (${repo.branch})` : ""}
+              </div>
+            ))}
           </div>
         </section>
       )}
 
-      {/* Agent work state */}
+      {/* Agent activity — only when something is active */}
       {activeAgentProjects.length > 0 && (
-        <section className="pw-today-recent" aria-label="Agent activity">
-          <div className="pw-today-recent-card" style={{ flex: 1 }}>
-            <div className="pw-today-recent-header">
-              <span className="pw-today-recent-icon pw-today-recent-icon--journal" aria-hidden="true" />
-              <h2 className="pw-today-recent-title">Agent Activity</h2>
-            </div>
-            <div className="pw-today-changes">
-              {activeAgentProjects.map((p) => (
-                <div key={p.project} className="pw-today-change">
-                  <span className="pw-today-change-marker" aria-hidden="true" />
-                  <div className="pw-today-change-desc">
-                    <strong>{p.project}</strong>
-                    {` — ${p.work_state}`}
-                    {p.branch ? ` (${p.branch})` : ""}
-                  </div>
-                </div>
-              ))}
-            </div>
+        <section className="pw-today-section" aria-label="Agent activity">
+          <h2 className="pw-today-section-title">Agent Activity</h2>
+          <div className="pw-today-items">
+            {activeAgentProjects.map((p) => (
+              <div key={p.project} className="pw-today-item">
+                <strong>{p.project}</strong>
+                {` — ${p.work_state}`}
+                {p.branch ? ` (${p.branch})` : ""}
+              </div>
+            ))}
           </div>
         </section>
       )}
 
-      {/* Recent activity */}
-      <section className="pw-today-recent" aria-label="Recent activity">
-        <div className="pw-today-recent-card">
-          <div className="pw-today-recent-header">
-            <span className="pw-today-recent-icon pw-today-recent-icon--changes" aria-hidden="true" />
-            <h2 className="pw-today-recent-title">Recent Changes</h2>
-          </div>
-          <div className="pw-today-changes">
-            {warnings.length > 0 ? (
-              <ul className="pw-today-warnings">
-                {warnings.map((warning: string, i: number) => (
-                  <li key={i} className="pw-today-warning">{warning}</li>
-                ))}
-              </ul>
-            ) : actions.length > 0 ? (
-              <ul className="pw-today-actions">
-                {actions.map((action: string, i: number) => (
-                  <li key={i} className="pw-today-action">{action}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="pw-today-peaceful-note">
-                The machinery is humming quietly beneath the surface.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="pw-today-recent-card">
-          <div className="pw-today-recent-header">
-            <span className="pw-today-recent-icon pw-today-recent-icon--journal" aria-hidden="true" />
-            <h2 className="pw-today-recent-title">Recent Journal</h2>
-          </div>
+      {/* Recent journal — only when entries exist */}
+      {journalEntries.length > 0 && (
+        <section className="pw-today-section" aria-label="Recent journal">
+          <h2 className="pw-today-section-title">Recent Writing</h2>
           <div className="pw-today-entries">
-            {journalEntries.length > 0 ? (
-              journalEntries.map((entry: any, i: number) => {
-                const date = new Date(entry.ts);
-                const dayLabel = date.toLocaleDateString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" });
-                return (
-                  <div key={i} className="pw-today-entry">
-                    <span className="pw-today-entry-sparkle" aria-hidden="true" />
-                    <div className="pw-today-entry-copy">
-                      <p className="pw-today-entry-title">{entry.text.slice(0, 80)}</p>
-                      <p className="pw-today-entry-time">{dayLabel}</p>
-                    </div>
+            {journalEntries.map((entry: any, i: number) => {
+              const date = new Date(entry.ts);
+              const dayLabel = date.toLocaleDateString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" });
+              return (
+                <div key={i} className="pw-today-entry">
+                  <div className="pw-today-entry-copy">
+                    <p className="pw-today-entry-text">{entry.text.slice(0, 120)}</p>
+                    <p className="pw-today-entry-time">{dayLabel}</p>
                   </div>
-                );
-              })
-            ) : (
-              <p className="pw-today-peaceful-note">
-                Your journal is quiet. Write when you're ready.
-              </p>
-            )}
+                </div>
+              );
+            })}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Run daily */}
-      <section className="pw-today-recent" aria-label="Daily loop">
-        <details className="pw-today-recent-card">
-          <summary className="pw-today-recent-header" style={{ cursor: "pointer" }}>
-            <span className="pw-today-recent-icon pw-today-recent-icon--changes" aria-hidden="true" />
-            <h2 className="pw-today-recent-title" style={{ margin: 0 }}>Run Daily Loop</h2>
+      {/* §7: "Healthy silence is valid. Empty space does not create an
+          obligation to invent recommendations, activity, or tasks."
+          No filler section when nothing needs attention. */}
+
+      {/* Daily loop trigger — collapsible, never prominent */}
+      <section className="pw-today-section pw-today-section--muted" aria-label="Daily loop">
+        <details>
+          <summary className="pw-today-section-title pw-today-section-title--summary">
+            Run Daily Loop
           </summary>
-          <div className="pw-today-changes" style={{ padding: "8px 0" }}>
-            <p className="pw-today-peaceful-note" style={{ marginBottom: 12 }}>
+          <div className="pw-today-daily">
+            <p className="pw-today-daily-desc">
               Triggers the daily digest — observations, enrichment, and journal entries.
             </p>
             <button
               type="button"
-              className="pw-notification-action"
+              className="pw-today-daily-btn"
               onClick={runDaily}
               disabled={dailyRunning}
             >
               {dailyRunning ? "Running…" : "Run daily"}
             </button>
             {dailyResult && (
-              <p className="pw-today-peaceful-note" style={{ marginTop: 12 }}>
-                {dailyResult}
-              </p>
+              <p className="pw-today-daily-result">{dailyResult}</p>
             )}
           </div>
         </details>
