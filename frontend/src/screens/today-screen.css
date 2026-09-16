@@ -1,17 +1,25 @@
-/* ── Today — "Calm Linear in a warm personal world" ──────────────
-   Ambient register. Scannable cards. Silence is valid content.
-   Companion is a small meaningful presence.
-   Stars are secondary decoration. */
+/* ── Today — the front room of Project Worlds ────────────────────
+   "A warm, living personal environment."
+   Breathable dashboard. Warm, dark, matte, soft, lived-in.
+   Summary first → explanation → evidence → machinery.
+   "Nothing needs you right now" is one of the best states. */
 
 .pw-today {
   display: flex;
   flex-direction: column;
-  gap: var(--pw-spacing-section);
-  padding: 36px 40px 48px 36px;
-  max-width: 64rem;
+  gap: 28px;
+  padding: 32px 36px 48px;
+  max-width: 56rem;
+  /* Extremely subtle ambient warmth — soft static radial, no glow */
+  background: radial-gradient(
+    ellipse at 25% 20%,
+    color-mix(in srgb, var(--pw-color-accent-primary) 2%, transparent) 0%,
+    transparent 55%
+  );
+  min-height: 100vh;
 }
 
-/* ── Header ───────────────────────────────────────────────────── */
+/* ── Header: greeting + companion ─────────────────────────────── */
 
 .pw-today-header {
   display: flex;
@@ -20,94 +28,77 @@
   gap: 24px;
 }
 
-.pw-today-header-left {
+.pw-today-header-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
   flex: 1;
   min-width: 0;
 }
 
 .pw-today-greeting {
   font-family: var(--pw-typography-font-expressive);
-  font-size: 2rem;
+  font-size: 2.25rem; /* 36px — larger than ordinary h1 */
   font-weight: 400;
   line-height: 1.2;
   color: var(--pw-color-accent-primary);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
-.pw-today-greeting-mark {
-  font-size: 0.7em;
-  opacity: 0.6;
+.pw-today-sparkle {
+  font-size: 0.6em;
+  opacity: 0.5;
 }
 
-.pw-today-date {
-  font-size: 0.85rem;
-  color: var(--pw-color-text-muted);
+/* Truth: integrated open region, not an alert banner */
+.pw-today-truth {
+  font-size: 1.05rem;
+  color: var(--pw-color-text-secondary);
+  line-height: 1.5;
   margin: 0;
+  max-width: 36rem;
 }
 
-.pw-today-header-right {
+[data-pw-composition="attention"] .pw-today-truth {
+  color: var(--pw-color-text-primary);
+}
+
+/* Companion: 96-120px, no glow, inhabits the surface */
+.pw-today-companion {
   flex-shrink: 0;
 }
 
-.pw-today-companion-art {
-  width: 72px;
-  height: 72px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--pw-color-accent-primary) 6%, transparent);
+.pw-today-companion-surface {
+  width: 100px;
+  height: 100px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--pw-color-accent-primary) 4%, var(--pw-color-surface-panel));
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  /* No glow. She inhabits the surface. */
 }
 
 .pw-today-companion-img {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
-/* ── Truth sentence + stars ───────────────────────────────────── */
+/* ── Stars: secondary, decorative ─────────────────────────────── */
 
-.pw-today-truth {
+.pw-today-stars {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  background: var(--pw-color-surface-panel);
-  border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 10px;
-}
-
-[data-pw-composition="quiet"] .pw-today-truth {
-  border-color: color-mix(in srgb, var(--pw-color-accent-primary) 40%, var(--pw-color-border-subtle));
-}
-
-[data-pw-composition="attention"] .pw-today-truth {
-  border-color: var(--pw-color-text-muted);
-  background: color-mix(in srgb, var(--pw-color-accent-secondary) 4%, var(--pw-color-surface-panel));
-}
-
-.pw-today-truth-text {
-  margin: 0;
-  font-size: 1rem;
-  color: var(--pw-color-text-primary);
-  line-height: 1.4;
-  flex: 1;
-}
-
-.pw-today-truth-stars {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
+  gap: 6px;
 }
 
 .pw-today-star {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   background: var(--pw-color-border-subtle);
   clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
 }
@@ -116,185 +107,152 @@
   background: var(--pw-color-accent-primary);
 }
 
-/* ── Card grid ────────────────────────────────────────────────── */
-
-.pw-today-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--pw-spacing-normal);
+.pw-today-stars-label {
+  font-size: 0.72rem;
+  color: var(--pw-color-text-muted);
+  margin-left: 4px;
 }
 
-.pw-today-card {
+/* ── Summary: 2-3 meaningful things ───────────────────────────── */
+
+.pw-today-summary {
   display: flex;
   flex-direction: column;
-  background: var(--pw-color-surface-panel);
-  border: 1px solid var(--pw-color-border-subtle);
-  border-radius: 12px;
-  overflow: hidden;
+  gap: 6px;
 }
 
-.pw-today-card--wide {
-  grid-column: 1 / -1;
-}
-
-.pw-today-card--quiet {
-  opacity: 0.7;
-}
-
-.pw-today-card--quiet:hover {
-  opacity: 1;
-}
-
-.pw-today-card-header {
+.pw-today-summary-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 18px 8px;
+  padding: 12px 16px;
+  background: var(--pw-color-surface-panel);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: var(--pw-color-text-primary);
 }
 
-.pw-today-card-icon {
+.pw-today-summary-item--quiet {
+  color: var(--pw-color-text-secondary);
+  border-color: color-mix(in srgb, var(--pw-color-border-subtle) 60%, transparent);
+}
+
+.pw-today-summary-icon {
   flex: none;
   opacity: 0.5;
 }
 
-.pw-today-card-title {
+.pw-today-summary-link {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--pw-color-accent-primary);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.pw-today-summary-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Section head ─────────────────────────────────────────────── */
+
+.pw-today-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.pw-today-section-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--pw-color-text-muted);
+  margin: 0;
+  /* Sentence case per answer #18 */
+}
+
+.pw-today-section-link {
   font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--pw-color-text-muted);
-  margin: 0;
-  flex: 1;
-}
-
-.pw-today-card-count {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--pw-color-accent-primary);
-  background: color-mix(in srgb, var(--pw-color-accent-primary) 10%, transparent);
-  padding: 1px 7px;
-  border-radius: 999px;
-}
-
-.pw-today-card-body {
-  padding: 4px 18px 16px;
-}
-
-/* ── Health stats ─────────────────────────────────────────────── */
-
-.pw-today-health-stats {
-  display: flex;
-  gap: 20px;
-}
-
-.pw-today-health-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.pw-today-health-number {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--pw-color-accent-primary);
-  line-height: 1;
-}
-
-.pw-today-health-stat--dim .pw-today-health-number {
-  color: var(--pw-color-text-muted);
-}
-
-.pw-today-health-label {
-  font-size: 0.68rem;
-  color: var(--pw-color-text-muted);
-}
-
-/* ── Card lists ───────────────────────────────────────────────── */
-
-.pw-today-card-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.pw-today-card-list-item {
-  font-size: 0.84rem;
-  color: var(--pw-color-text-primary);
-  line-height: 1.4;
-}
-
-.pw-today-card-list-item strong {
-  font-weight: 500;
-}
-
-.pw-today-card-list-more {
-  font-size: 0.78rem;
-  color: var(--pw-color-text-muted);
-}
-
-.pw-today-card-link {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 0.78rem;
   color: var(--pw-color-accent-primary);
   text-decoration: none;
 }
 
-.pw-today-card-link:hover {
+.pw-today-section-link:hover {
   text-decoration: underline;
 }
 
 /* ── Journal entries ──────────────────────────────────────────── */
 
-.pw-today-journal-entries {
+.pw-today-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pw-today-entries {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.pw-today-journal-entry {
-  padding: 12px 14px;
-  background: color-mix(in srgb, var(--pw-color-text-primary) 2%, transparent);
-  border-radius: 8px;
+.pw-today-entry {
+  padding: 16px 18px;
+  background: var(--pw-color-surface-panel);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 10px;
 }
 
-.pw-today-journal-text {
-  font-size: 0.88rem;
+.pw-today-entry-text {
+  font-size: 0.9rem;
   color: var(--pw-color-text-primary);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
-.pw-today-journal-time {
-  font-size: 0.7rem;
+.pw-today-entry-time {
+  font-size: 0.72rem;
   color: var(--pw-color-accent-secondary);
-  margin: 4px 0 0;
+  margin: 6px 0 0;
+  display: block;
 }
 
-/* ── Section titles ───────────────────────────────────────────── */
+/* ── Quick actions ────────────────────────────────────────────── */
 
-.pw-today-section-title {
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--pw-color-text-muted);
-  margin: 0 0 var(--pw-spacing-compact);
+.pw-today-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-/* ── Attention items ──────────────────────────────────────────── */
+.pw-today-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 8px;
+  background: var(--pw-color-surface-panel);
+  color: var(--pw-color-text-secondary);
+  font-size: 0.82rem;
+  text-decoration: none;
+  min-height: var(--pw-target-minimum);
+  transition: border-color 100ms, color 100ms;
+}
+
+.pw-today-action-btn:hover {
+  border-color: var(--pw-color-accent-primary);
+  color: var(--pw-color-text-primary);
+}
+
+/* ── Attention ────────────────────────────────────────────────── */
 
 .pw-today-attention {
   display: flex;
   flex-direction: column;
-  gap: var(--pw-spacing-compact);
+  gap: 8px;
 }
 
-.pw-today-attention-items {
+.pw-today-attention-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -308,48 +266,47 @@
   background: var(--pw-color-surface-panel);
   border: 1px solid var(--pw-color-border-subtle);
   border-radius: 8px;
+}
+
+.pw-today-attention-text {
   font-size: 0.84rem;
   color: var(--pw-color-text-primary);
 }
 
-/* ── Footer / daily loop ──────────────────────────────────────── */
+/* ── Footer / daily ───────────────────────────────────────────── */
 
 .pw-today-footer {
   margin-top: auto;
-  padding-top: var(--pw-spacing-loose);
+  padding-top: 16px;
 }
 
 .pw-today-daily {
-  opacity: 0.4;
-  transition: opacity 150ms ease;
+  opacity: 0.35;
+  transition: opacity 200ms;
 }
 
-.pw-today-daily:hover,
-.pw-today-daily[open] {
-  opacity: 1;
-}
+.pw-today-daily:hover, .pw-today-daily[open] { opacity: 1; }
 
 .pw-today-daily-trigger {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--pw-color-text-muted);
   cursor: pointer;
-  padding: 4px 0;
 }
 
 .pw-today-daily-body {
   display: flex;
   align-items: center;
-  gap: var(--pw-spacing-normal);
-  padding-top: var(--pw-spacing-compact);
+  gap: 10px;
+  padding-top: 8px;
 }
 
 .pw-today-daily-btn {
-  padding: var(--pw-spacing-compact) var(--pw-spacing-normal);
+  padding: 6px 12px;
   border: 1px solid var(--pw-color-border-subtle);
   border-radius: 8px;
   background: var(--pw-color-surface-elevated);
   color: var(--pw-color-text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   cursor: pointer;
   min-height: var(--pw-target-minimum);
 }
@@ -359,18 +316,10 @@
   color: var(--pw-color-text-primary);
 }
 
-.pw-today-daily-btn:focus-visible {
-  outline: var(--pw-focus-ring);
-  outline-offset: 2px;
-}
-
-.pw-today-daily-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.pw-today-daily-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .pw-today-daily-result {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--pw-color-text-muted);
   margin: 0;
 }
@@ -379,41 +328,49 @@
 
 @media (max-width: 767px) {
   .pw-today {
-    padding: var(--pw-spacing-section) var(--pw-spacing-loose);
-    gap: var(--pw-spacing-loose);
+    padding: 20px 16px 32px;
+    gap: 20px;
   }
 
-  .pw-today-greeting {
-    font-size: 1.5rem;
-  }
+  .pw-today-header { gap: 16px; }
 
-  .pw-today-companion-art {
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
+  .pw-today-greeting { font-size: 1.65rem; }
+
+  .pw-today-truth { font-size: 0.95rem; }
+
+  .pw-today-companion-surface {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
   }
 
   .pw-today-companion-img {
-    width: 36px;
-    height: 36px;
-  }
-
-  .pw-today-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .pw-today-card--wide {
-    grid-column: auto;
+    width: 52px;
+    height: 52px;
   }
 }
 
 @media (max-width: 599px) {
   .pw-today {
-    padding-bottom: calc(var(--pw-spacing-section) + 3.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(32px + 3.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .pw-today-header {
     flex-direction: row-reverse;
     align-items: center;
   }
+
+  .pw-today-companion-surface {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+  }
+
+  .pw-today-companion-img {
+    width: 42px;
+    height: 42px;
+  }
+
+  .pw-today-actions { gap: 6px; }
+  .pw-today-action-btn { font-size: 0.78rem; padding: 6px 10px; }
 }

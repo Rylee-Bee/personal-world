@@ -14,7 +14,7 @@ import type { SectionData } from "../lib/api";
  */
 
 const ANCHOR_ORDER = ["today", "world", "journal", "chat"] as const;
-const ANCHOR_IDS = new Set(ANCHOR_ORDER);
+const ANCHOR_IDS: Set<string> = new Set(ANCHOR_ORDER);
 
 const FALLBACKS: Record<string, { label: string; icon: string }> = {
   today: { label: "Today", icon: "navigation--today" },
@@ -43,7 +43,7 @@ export function AnchorNav({ items, compact = false, className }: AnchorNavProps)
     if (s) {
       anchors.push(s);
     } else if (!apiKnows.has(id)) {
-      const fb = FALLBACKS[id];
+      const fb = FALLBACKS[id as keyof typeof FALLBACKS];
       if (fb) {
         anchors.push({
           id, label: fb.label, icon: fb.icon, order: 0,

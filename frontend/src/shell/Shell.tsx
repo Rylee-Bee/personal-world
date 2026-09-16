@@ -108,7 +108,7 @@ export function Shell({ children }: ShellProps) {
 
       {/* Four anchors */}
       <nav aria-label="Main">
-        <AnchorNav sections={visibleSections} compact={vp === "phone"} />
+        <AnchorNav items={visibleSections} compact={vp === "phone"} />
       </nav>
 
       {/* Places */}
@@ -153,7 +153,7 @@ export function Shell({ children }: ShellProps) {
       {/* Bottom bar: phone only — anchors only */}
       {vp === "phone" && (
         <nav aria-label="Main" className="pw-bottom-bar">
-          <AnchorNav sections={visibleSections} compact />
+          <AnchorNav items={visibleSections} compact />
         </nav>
       )}
 
