@@ -78,6 +78,46 @@ contains filesystem or environment values. There is no fallback UI
 behind the 503 — a missing frontend is an honest error, never a
 silently served retired interface.
 
+## Sign-in with your own SSO (OIDC)
+
+Local token auth is the built-in default and keeps working unchanged when
+OIDC is absent. To sign in through **your own** identity provider
+(Authelia, Keycloak, Authentik, Zitadel, …), write `oidc.json` into your
+private config directory (`PW_CONFIG_DIR`):
+
+```bash
+cp config/oidc.example.json "$PW_CONFIG_DIR/oidc.json"   # then edit it
+export OIDC_CLIENT_SECRET='…'                            # never in the file
+```
+
+The file holds only non-secret wiring — `issuer`, `client_id`,
+`client_secret_env`, `scopes`, `display_name`. The client secret is read
+exclusively from the environment variable that `client_secret_env` names,
+at request time; it is never stored, logged, or returned by an endpoint.
+Register `https://<your-host>/api/auth/oidc/callback` with the provider
+(and run uvicorn with `--proxy-headers` behind a reverse proxy, so the
+redirect URI matches).
+
+`GET /api/auth/oidc/status` reports the honest state —
+`not_configured`, `configured`, `unreachable`, or `misconfigured` — plus
+provider discovery metadata and the *name* of the secret variable with a
+boolean saying whether it is set. It never returns a secret value, and it
+caches discovery (success and failure) so an anonymous caller cannot use
+it to probe your IdP. Sign-in is authorization-code + PKCE (S256) with a
+signed, expiring state cookie; the `id_token` signature is verified
+against the provider's JWKS and its `iss`/`aud`/`exp`/`nonce` claims are
+validated before the subject is mapped onto a local principal. Tokens are
+verified and discarded, never stored.
+
+RS256/384/512 verify with the standard library alone; other algorithms
+need the `cryptography` extra (`uv sync --extra crypto`, already present
+in the container image). An algorithm this install cannot verify is
+refused, not accepted unverified.
+
+Step-up is unchanged by SSO: an OIDC sign-in does not mint a step-up
+grant. Full field reference, error codes, provider examples, limits and
+troubleshooting: [docs/oidc.md](oidc.md).
+
 ## Containers
 
 The provided Compose file is the portable appliance: it pulls the published

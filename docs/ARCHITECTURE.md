@@ -116,9 +116,14 @@ optional `multi` uses local hashed user/agent token records. OIDC maps a
 verified subject through the same seam: single mode → the bootstrap
 primary person; multi mode requires an existing enabled local record, and
 an unmapped IdP identity never mints an account. Provisioning routes and
-selected per-user world/journal/preference paths exist. Apps, Vault,
-reminders, and current Chat still use instance-level state; the
-foundation is not a complete household isolation or SSO product.
+selected per-user paths exist and resolve through one seam
+(`identity.principal_scoped_path`): world/journal/preferences/sections,
+reminders, proposals, chat history, and interests are scoped to the
+calling principal in multi mode, while the single-user default keeps
+the legacy instance paths (see `docs/IDENTITY-BOUNDARY.md`). Apps,
+Vault, the memory FTS index, and the instance status/daily surfaces
+still use instance-level state; the foundation is not a complete
+household isolation or SSO product.
 
 `require_step_up` is one seam with three ordered mechanisms:
 a canonical, time-bounded, principal-bound session grant minted by
@@ -163,7 +168,7 @@ The following inventory reflects implemented routes, not deployment acceptance:
 | POST /api/journal | User note append |
 | GET /api/journal/audit | audit-log rendering |
 | GET /api/actors | staff-directory view |
-| GET /api/manifest | Core capability and provider manifest |
+| GET /api/manifest | Core capability/provider manifest (`data`) + the machine-readable endpoint manifest (`endpoints`: id, method, path, capability, kind, gate, auth, present — curated in `api_manifest.py`, verified against the live route table) |
 | GET /api/memory/search | semantic recall via the memory provider |
 | POST /api/chat; GET /api/chat/providers | Read-only world-snapshot conversation and reasoning-provider status |
 | POST /api/chat/test | Provider probe; currently has no require_auth dependency |
@@ -188,8 +193,16 @@ The following inventory reflects implemented routes, not deployment acceptance:
 
 Unless explicitly labeled public above, API routes use bearer auth directly or
 through `require_step_up`; individual routes may add further restrictions.
-`/setup-wizard`, `/setup`, `/login`, `/`, and packaged fonts/icons/companions
-are browser entry/assets. The five-step wizard collects welcome/name/companion/
+`/setup-wizard`, `/setup`, `/login`, `/`, `/station/*`, and packaged
+fonts/icons/companions are browser entry/assets. `/station` serves the
+Station map UI same-origin (`station_ui.py`): first-run redirects to
+`/setup`, an unauthenticated browser redirects to `/login`, and a valid
+`pw_session` cookie is sufficient — which is why its API calls need no
+CORS and no browser-side token. Only web assets from an allowlist built
+at boot are served; internal `.md` notes and `_legacy/` never are. The
+packaged image does not ship `design/`, so a deployment without the
+Station answers an honest 503 rather than echoing a path.
+The five-step wizard collects welcome/name/companion/
 access-token choices and finishes bootstrap; it is not the finish-line SSO or
 capability/accessibility interview. `POST /api/setup` can initialize Vault too.
 Review first-run exposure separately from normal protected API access.

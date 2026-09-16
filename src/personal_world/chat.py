@@ -1,8 +1,16 @@
-"""Chat capability: provider-neutral local-AI conversation.
+"""Chat capability: the chat-loop machinery over the live providers.
 
 Architecture target (docs/DESIGN-HANDOFF.md, ROADMAP "Now"):
 Personal World UI -> Chat API -> small context builder ->
 provider-neutral ChatContract -> local model endpoint.
+
+This module owns the provider-neutral loop pieces: message building
+(system prompt + persona/templates + context), the ONE tool-calling
+loop (``chat_with_tools_loop``), assistant-drafted proposal extraction,
+and ``chat_once``. The provider classes themselves live in
+``chat_registry`` (single implementation — the former orphan copies in
+this module were removed, ORPH-03) and are re-exported here for
+compatibility.
 
 The local AI is optional and replaceable. With no provider configured
 the capability reports ``not_configured`` and the core still boots;
@@ -16,284 +24,172 @@ the world but never mutates privileged state.
 """
 
 import json
-import os
-import urllib.request
 from typing import Any
 
 from .envelope import Result, fail, ok
 
-CHAT_TIMEOUT_SECONDS = 120
-"""Local models on modest hardware can take a while; cold start of a
-quantized 8B model is commonly tens of seconds. Generous but bounded."""
+# ONE set of live provider classes (ORPH-03 de-duplication): the
+# provider implementations, the builder, and the lenient small-model
+# tool-call parser all live in ``chat_registry``. This module keeps the
+# chat-loop machinery (message building, proposal extraction, the single
+# tool-calling loop) and re-exports the provider names so historical
+# ``from personal_world.chat import OllamaChat`` keeps working against
+# the same classes the registry builds.
+from .chat_registry import (  # noqa: F401
+    CHAT_TIMEOUT_SECONDS,
+    ChatContract,
+    OllamaChat,
+    OpenAICompatChat,
+    build_chat_provider,
+    lenient_tool_calls,
+)
 
 MAX_CONTEXT_CHARS = 8000
 """Upper bound on the injected world-context block so a bloated world
 state cannot silently exceed a small local model's context window."""
 
 
-class ChatContract:
-    """Provider-neutral conversation contract.
+def _repair_tool_arguments(raw: Any) -> tuple[dict[str, Any] | None, bool]:
+    """Parse a tool-call ``arguments`` payload into a dict.
 
-    Implementations accept an OpenAI-style message list
-    (``[{"role": ..., "content": ...}]``) and return a Result whose
-    data carries ``reply`` plus provider-specific diagnostics.
+    Returns ``(args, repaired)``. ``args is None`` means the arguments
+    are unrecoverable — the loop reports an honest invalid_args tool
+    result instead of invoking with invented defaults. ``repaired``
+    marks lenient recoveries (trailing commas, truncation, python-ish
+    literals) so the loop can journal what happened.
     """
-
-    def chat(self, messages: list[dict[str, str]]) -> Result:
-        raise NotImplementedError
-
-
-class OllamaChat(ChatContract):
-    """Chat over Ollama's native /api/chat (OpenAI-style messages in).
-
-    Thinking-model diagnostics (qwen3 et al.) are returned separately
-    in ``thinking`` and never concatenated into the visible reply.
-    """
-
-    def __init__(self, base_url: str, model: str, timeout: int = CHAT_TIMEOUT_SECONDS) -> None:
-        self.base_url = base_url.rstrip("/")
-        self.model = model
-        self.timeout = timeout
-
-    def observe(self) -> Result:
+    if isinstance(raw, dict):
+        return raw, False
+    if raw is None:
+        return {}, False
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return {}, False
         try:
-            with urllib.request.urlopen(
-                f"{self.base_url}/api/tags", timeout=5
-            ) as resp:
-                payload = json.loads(resp.read().decode())
-            models = [m.get("name", "") for m in payload.get("models", [])]
-            present = any(m == self.model or m.split(":")[0] == self.model
-                          for m in models)
-            if not present:
-                return fail(
-                    "unhealthy",
-                    data={"base_url": self.base_url, "model": self.model},
-                    warnings=[f"model '{self.model}' not in local library"],
+            parsed = json.loads(text)
+            if isinstance(parsed, dict):
+                return parsed, False
+            return None, False
+        except (json.JSONDecodeError, TypeError):
+            pass
+    from .chat_registry import _lenient_json_loads
+
+    parsed = _lenient_json_loads(raw)
+    if isinstance(parsed, dict):
+        return parsed, True
+    return None, True
+
+
+def chat_with_tools_loop(
+    provider: Any,
+    messages: list[dict[str, Any]],
+    tool_reg: Any,
+    tool_schemas: list[dict[str, Any]],
+    max_rounds: int = 3,
+) -> Result:
+    """THE single chat tool loop (shared by /api/chat and tests).
+
+    The model selects read + proposal tools, the loop executes them
+    through the ToolRegistry, and the model explains the results.
+    Write-safety is structural: the registry exposes only read and
+    proposal tools (``list_ollama_schemas``) and ``invoke`` refuses
+    execution tools, so even a hallucinated ``execute_*`` call cannot
+    mutate anything.
+
+    Lenient by design (small local brains, ADR 0002): malformed
+    ``arguments`` JSON is repaired when unambiguous; when it is not, the
+    tool is NOT invoked and an honest ``invalid_args`` result goes back
+    to the model. Tool results are never invented. ``max_rounds`` bounds
+    the loop; a provider crash becomes an ``unavailable`` Result.
+    """
+    current_messages = list(messages)
+    tool_calls_made: list[dict[str, Any]] = []
+    last_model = "unknown"
+
+    for _round in range(max_rounds):
+        try:
+            result = provider.chat_with_tools(current_messages, tool_schemas)
+        except Exception as e:
+            return Result(
+                ok=False, status="unavailable", warnings=[f"chat provider failed: {e}"]
+            )
+        if not result.ok:
+            return result
+
+        data = result.data or {}
+        last_model = data.get("model") or last_model
+        tool_calls = data.get("tool_calls")
+        if not tool_calls:
+            # Final text response. Surface loop provenance when tools ran.
+            if tool_calls_made and isinstance(data, dict):
+                return ok(
+                    result.status, data={**data, "tool_calls_made": tool_calls_made}
                 )
-            return ok("healthy", data={
-                "base_url": self.base_url,
-                "model": self.model,
-                "models": models,
-            })
-        except Exception as e:
-            return Result(
-                ok=False,
-                status="unavailable",
-                warnings=[f"ollama: {e}"],
-            )
+            return result
 
-    def chat(self, messages: list[dict[str, str]]) -> Result:
-        body = json.dumps({
-            "model": self.model,
-            "messages": messages,
-            "stream": False,
-        }).encode()
-        req = urllib.request.Request(
-            f"{self.base_url}/api/chat",
-            data=body,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                payload = json.loads(resp.read().decode())
-        except Exception as e:
-            return Result(
-                ok=False,
-                status="unavailable",
-                warnings=[f"ollama chat: {e}"],
-            )
-        message = payload.get("message") or {}
-        content = (message.get("content") or "").strip()
-        if not content:
-            return Result(
-                ok=False,
-                status="unavailable",
-                warnings=["ollama returned an empty reply"],
-            )
-        return ok("healthy", data={
-            "reply": content,
-            "thinking": message.get("thinking"),
-            "model": payload.get("model", self.model),
-            "eval_count": payload.get("eval_count"),
-            "prompt_eval_count": payload.get("prompt_eval_count"),
-        })
-
-    def chat_with_tools(
-        self,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]] | None = None,
-    ) -> Result:
-        """Chat with optional tool-calling support.
-
-        Returns either:
-        - data.reply (final text response)
-        - data.tool_calls (list of tool calls the model wants to make)
-        """
-        body: dict[str, Any] = {
-            "model": self.model,
-            "messages": messages,
-            "stream": False,
+        # Echo the assistant turn (content + calls) so providers that
+        # require the pairing (OpenAI-compat, Anthropic) stay happy.
+        assistant_msg: dict[str, Any] = {
+            "role": "assistant",
+            "content": data.get("reply") or "",
+            "tool_calls": tool_calls,
         }
-        if tools:
-            body["tools"] = tools
-        data = json.dumps(body).encode()
-        req = urllib.request.Request(
-            f"{self.base_url}/api/chat",
-            data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                payload = json.loads(resp.read().decode())
-        except Exception as e:
-            return Result(
-                ok=False,
-                status="unavailable",
-                warnings=[f"ollama chat: {e}"],
+        current_messages.append(assistant_msg)
+
+        for tc in tool_calls:
+            if not isinstance(tc, dict):
+                continue
+            func = tc.get("function") or {}
+            tool_name = str(func.get("name") or tc.get("name") or "")
+            tool_args, repaired = _repair_tool_arguments(
+                func.get("arguments", tc.get("arguments"))
             )
-        message = payload.get("message") or {}
+            tool_call_id = tc.get("id", "")
 
-        # Check for tool calls
-        tool_calls = message.get("tool_calls")
-        if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
-            return ok("healthy", data={
-                "tool_calls": tool_calls,
-                "model": payload.get("model", self.model),
-            })
-
-        # Plain text response
-        content = (message.get("content") or "").strip()
-        if not content:
-            return Result(
-                ok=False,
-                status="unavailable",
-                warnings=["ollama returned an empty reply"],
-            )
-        return ok("healthy", data={
-            "reply": content,
-            "thinking": message.get("thinking"),
-            "model": payload.get("model", self.model),
-        })
-
-
-class OpenAICompatChat(ChatContract):
-    """Chat over any OpenAI-compatible /v1/chat/completions endpoint
-    (llama.cpp server, LiteLLM, vLLM, OpenWebUI's API bridge)."""
-
-    def __init__(
-        self,
-        base_url: str,
-        model: str,
-        api_key_env: str | None = None,
-        timeout: int = CHAT_TIMEOUT_SECONDS,
-    ) -> None:
-        self.base_url = base_url.rstrip("/")
-        self.model = model
-        self.api_key_env = api_key_env
-        self.timeout = timeout
-
-    def _headers(self) -> dict:
-        h = {"Content-Type": "application/json"}
-        if self.api_key_env and os.environ.get(self.api_key_env):
-            h["Authorization"] = f"Bearer {os.environ[self.api_key_env]}"
-        return h
-
-    def observe(self) -> Result:
-        try:
-            req = urllib.request.Request(
-                f"{self.base_url}/v1/models", headers=self._headers()
-            )
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                payload = json.loads(resp.read().decode())
-            ids = [m.get("id", "") for m in payload.get("data", [])]
-            present = self.model in ids if ids else True
-            if not present:
-                return fail(
-                    "unhealthy",
-                    data={"base_url": self.base_url, "model": self.model},
-                    warnings=[f"model '{self.model}' not offered by endpoint"],
+            if tool_args is None:
+                # Unrecoverable arguments: honest failure back to the
+                # model, the tool is never invoked with invented args.
+                tool_result: Result = fail(
+                    "invalid_args",
+                    warnings=[
+                        f"tool '{tool_name}' was called with malformed "
+                        "arguments that could not be recovered; retry "
+                        "with valid JSON arguments"
+                    ],
                 )
-            return ok("healthy", data={
-                "base_url": self.base_url,
-                "model": self.model,
-                "models": ids,
-            })
-        except Exception as e:
-            return Result(
-                ok=False,
-                status="unavailable",
-                warnings=[f"openai-compat: {e}"],
+            else:
+                tool_result = tool_reg.invoke(tool_name, tool_args)
+            tool_calls_made.append(
+                {
+                    "tool": tool_name,
+                    "args": tool_args if tool_args is not None else None,
+                    "args_repaired": repaired,
+                    "ok": tool_result.ok,
+                    "status": tool_result.status,
+                }
             )
 
-    def chat(self, messages: list[dict[str, str]]) -> Result:
-        body = json.dumps({
-            "model": self.model,
-            "messages": messages,
-            "stream": False,
-        }).encode()
-        req = urllib.request.Request(
-            f"{self.base_url}/v1/chat/completions",
-            data=body,
-            headers=self._headers(),
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                payload = json.loads(resp.read().decode())
-        except Exception as e:
-            return Result(
-                ok=False,
-                status="unavailable",
-                warnings=[f"openai-compat chat: {e}"],
-            )
-        choices = payload.get("choices") or []
-        content = ""
-        if choices:
-            content = ((choices[0].get("message") or {}).get("content") or "").strip()
-        if not content:
-            return Result(
-                ok=False,
-                status="unavailable",
-                warnings=["endpoint returned an empty reply"],
-            )
-        return ok("healthy", data={
-            "reply": content,
-            "thinking": None,
-            "model": payload.get("model", self.model),
-            "eval_count": payload.get("usage", {}).get("completion_tokens"),
-            "prompt_eval_count": payload.get("usage", {}).get("prompt_tokens"),
-        })
+            tool_msg: dict[str, Any] = {
+                "role": "tool",
+                "content": json.dumps(tool_result.model_dump(mode="json")),
+            }
+            if tool_call_id:
+                tool_msg["tool_call_id"] = tool_call_id
+            current_messages.append(tool_msg)
 
+        # Continue the loop — the model now sees the real tool results.
 
-def build_chat_provider(connection: dict[str, Any]) -> tuple[str, ChatContract] | None:
-    """Construct a chat provider from one connections.json entry.
-
-    Returns (name, impl) or None for unknown/under-specified entries.
-    Supported shapes::
-
-        {"type": "ollama", "name": "local-qwen",
-         "base_url": "http://127.0.0.1:11434", "model": "qwen3:8b"}
-        {"type": "openai_compat", "name": "llamacpp",
-         "base_url": "http://127.0.0.1:8080", "model": "...",
-         "api_key_env": "MY_KEY_ENV"}
-    """
-    ptype = connection.get("type")
-    name = connection.get("name")
-    base = connection.get("base_url")
-    model = connection.get("model")
-    if not base or not model:
-        return None
-    if ptype == "ollama":
-        timeout = int(connection.get("timeout") or CHAT_TIMEOUT_SECONDS)
-        return name or "ollama", OllamaChat(base, model, timeout=timeout)
-    if ptype == "openai_compat":
-        timeout = int(connection.get("timeout") or CHAT_TIMEOUT_SECONDS)
-        impl = OpenAICompatChat(base, model, connection.get("api_key_env"),
-                                timeout=timeout)
-        return name or "openai-compat", impl
-    return None
+    # Max rounds reached: report honestly what was gathered.
+    return ok(
+        "healthy",
+        data={
+            "reply": "I gathered some information but reached the tool call "
+            "limit. Let me share what I found.",
+            "tool_calls_made": tool_calls_made,
+            "model": last_model,
+        },
+    )
 
 
 def trim_context(context: str, limit: int = MAX_CONTEXT_CHARS) -> str:
@@ -310,6 +206,7 @@ def build_chat_messages(
     world_context: str,
     history: list[dict[str, str]] | None = None,
     tool_descriptions: str | None = None,
+    persona: str | None = None,
 ) -> list[dict[str, str]]:
     """System prompt + optional short history + the new user message.
 
@@ -317,6 +214,14 @@ def build_chat_messages(
     the trimmed world-context block, and forbids the model from
     inventing state it was not shown. History is capped to the last six
     turns to stay inside small local-model context windows.
+
+    ``persona`` carries first-class brain templates (TemplateRegistry
+    compose output: core instructions, companion personality, surface
+    focus). Templates LEAD the system prompt — a small model weighs the
+    first lines heaviest — and the built-in identity below stays as the
+    guaranteed floor (truth rules, status vocabulary, proposal
+    contract) so an empty or malformed template tree can never remove
+    the safety text.
 
     SUGGESTIONS, not authority: the prompt teaches ONE tiny fenced
     proposal block the assistant MAY use when it notices a Journal
@@ -335,8 +240,12 @@ def build_chat_messages(
             "the context block. If the context doesn't have the answer, say so.\n\n"
             f"{tool_descriptions}\n"
         )
+    persona_block = ""
+    if persona and persona.strip():
+        persona_block = persona.strip() + "\n\n"
     system = (
-        "You are the Project Worlds assistant: a calm, factual companion "
+        persona_block
+        + "You are the Project Worlds assistant: a calm, factual companion "
         "embedded in a personal control plane. You answer questions "
         "about the state of the world using ONLY the context block below. "
         "If the context does not contain the answer, say so plainly "
@@ -401,7 +310,7 @@ def extract_proposal(reply: str) -> tuple[str | None, str]:
         fence_end = reply.find("```", fence_start + 3)
         if fence_end == -1:
             break
-        block = reply[fence_start + 3:fence_end].strip("\n")
+        block = reply[fence_start + 3 : fence_end].strip("\n")
         lines = [ln.rstrip() for ln in block.split("\n") if ln.strip()]
         if lines and lines[0].strip() == PROPOSAL_HEADER:
             fields: dict[str, str] = {}
@@ -430,8 +339,8 @@ def extract_proposal(reply: str) -> tuple[str | None, str]:
                 # suggestion sentence stays.
                 visible = (
                     reply[:fence_start].rstrip()
-                    + ("\n\n" if reply[fence_end + 3:].lstrip() else "")
-                    + reply[fence_end + 3:].lstrip()
+                    + ("\n\n" if reply[fence_end + 3 :].lstrip() else "")
+                    + reply[fence_end + 3 :].lstrip()
                 ).strip()
                 return _json.dumps(proposal), visible
             # Malformed proposal block: degrade to ordinary text (the
@@ -449,5 +358,6 @@ def chat_once(
     try:
         return provider.chat(messages)
     except Exception as e:  # provider crash must never reach the API surface
-        return Result(ok=False, status="unavailable",
-                      warnings=[f"chat provider failed: {e}"])
+        return Result(
+            ok=False, status="unavailable", warnings=[f"chat provider failed: {e}"]
+        )

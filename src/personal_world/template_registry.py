@@ -10,10 +10,18 @@ from typing import Any
 
 class Template:
     """A single template with metadata."""
-    
-    def __init__(self, id: str, version: int, kind: str, content: str,
-                 surface: str | None = None, max_tokens: int = 400,
-                 source: str = "shipped"):
+
+    def __init__(
+        self,
+        id: str,
+        version: int,
+        kind: str,
+        content: str,
+        surface: str | None = None,
+        max_tokens: int = 400,
+        source: str = "shipped",
+        description: str | None = None,
+    ):
         self.id = id
         self.version = version
         self.kind = kind
@@ -21,7 +29,19 @@ class Template:
         self.surface = surface
         self.max_tokens = max_tokens
         self.source = source
-    
+        self.description = description or self._derive_description(content)
+
+    @staticmethod
+    def _derive_description(content: str) -> str:
+        """First meaningful line of the body, bounded — a template
+        without an explicit ``description:`` front-matter field still
+        gets an honest one-line summary for listings."""
+        for line in (content or "").splitlines():
+            line = line.strip()
+            if line:
+                return line[:200]
+        return ""
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
@@ -30,13 +50,23 @@ class Template:
             "surface": self.surface,
             "max_tokens": self.max_tokens,
             "source": self.source,
+            "description": self.description,
             "content_length": len(self.content),
+        }
+
+    def to_public_dict(self) -> dict[str, Any]:
+        """Read-only public shape served by GET /api/templates."""
+        return {
+            "id": self.id,
+            "surface": self.surface,
+            "role": self.kind,
+            "description": self.description,
         }
 
 
 class TemplateRegistry:
     """Loads and composes templates for the reasoning brain."""
-    
+
     def __init__(self, config_dir: Path, data_dir: Path | None = None):
         self._config_dir = config_dir
         self._data_dir = data_dir or Path("./data")
@@ -45,7 +75,7 @@ class TemplateRegistry:
         self._packs: dict[str, dict[str, Any]] = {}  # pack_id -> metadata
         self._load_shipped()
         self._load_overrides()
-    
+
     def _load_shipped(self):
         """Load shipped templates from config/prompts/."""
         prompts_dir = self._config_dir / "prompts"
@@ -55,7 +85,7 @@ class TemplateRegistry:
             template = self._parse_template(md_file, source="shipped")
             if template:
                 self._templates[template.id] = template
-    
+
     def _load_overrides(self):
         """Load private overrides from config.local/prompts/."""
         local_dir = self._config_dir / "prompts.local"
@@ -65,7 +95,7 @@ class TemplateRegistry:
             template = self._parse_template(md_file, source="private")
             if template:
                 self._overrides[template.id] = template.content
-    
+
     def _parse_template(self, path: Path, source: str = "shipped") -> Template | None:
         """Parse a template file with YAML front matter."""
         try:
@@ -90,10 +120,11 @@ class TemplateRegistry:
                 surface=meta.get("surface"),
                 max_tokens=int(meta.get("max_tokens", 400)),
                 source=source,
+                description=meta.get("description") or None,
             )
         except Exception:
             return None
-    
+
     def get(self, template_id: str) -> Template | None:
         """Get a template, with private override applied."""
         template = self._templates.get(template_id)
@@ -111,7 +142,7 @@ class TemplateRegistry:
                 source="private",
             )
         return template
-    
+
     def list_templates(self) -> list[dict[str, Any]]:
         """List all templates with metadata."""
         result = []
@@ -120,45 +151,73 @@ class TemplateRegistry:
             d["has_override"] = tid in self._overrides
             result.append(d)
         return result
-    
-    def compose(self, surface: str | None = None, task: str | None = None,
-                format: str | None = None, packs: list[str] | None = None) -> str:
-        """Compose runtime instructions from templates."""
+
+    def list_public(self) -> list[dict[str, Any]]:
+        """Read-only listing for GET /api/templates:
+        ``{id, surface, role, description}`` per template (overrides
+        applied — the listing describes what the brain will actually
+        use). Sorted by id for a stable response."""
+        return [
+            self.get(tid).to_public_dict() for tid in sorted(self._templates.keys())
+        ]
+
+    def compose(
+        self,
+        surface: str | None = None,
+        task: str | None = None,
+        format: str | None = None,
+        packs: list[str] | None = None,
+        persona: str | None = None,
+    ) -> str:
+        """Compose runtime instructions from templates.
+
+        Order matters for small models: core identity/truth rules first,
+        then the companion persona (``persona.<name>``, e.g. the
+        configured companion pref), then packs, surface focus, task,
+        and format.
+        """
         parts = []
-        
+
         # Core templates (always included)
         for tid in sorted(self._templates.keys()):
             if tid.startswith("core."):
                 t = self.get(tid)
                 if t:
                     parts.append(t.content)
-        
+
+        # Companion persona (optional; an absent persona template is a
+        # no-op, never an error)
+        if persona:
+            t = self.get(f"persona.{persona}")
+            if t:
+                parts.append(t.content)
+
         # Selected packs
         if packs:
             for pack_id in packs:
                 pack_templates = self._load_pack(pack_id)
                 parts.extend(pack_templates)
-        
+
         # Surface template
         if surface:
             t = self.get(f"surface.{surface}")
             if t:
                 parts.append(t.content)
-        
+
         # Task template
         if task:
             t = self.get(f"task.{task}")
             if t:
                 parts.append(t.content)
-        
+
         # Format template
         if format:
             t = self.get(f"format.{format}")
             if t:
                 parts.append(t.content)
-        
+
         return "\n\n".join(parts)
-    
+
     def _load_pack(self, pack_id: str) -> list[str]:
         """Load templates from a template pack."""
         pack_dir = self._data_dir / "template-sources" / pack_id
@@ -170,9 +229,13 @@ class TemplateRegistry:
             if template:
                 parts.append(template.content)
         return parts
-    
-    def provenance(self, surface: str | None = None, task: str | None = None,
-                   packs: list[str] | None = None) -> dict[str, Any]:
+
+    def provenance(
+        self,
+        surface: str | None = None,
+        task: str | None = None,
+        packs: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Report template provenance for Nerd Mode."""
         result = {
             "core": [],
@@ -185,11 +248,17 @@ class TemplateRegistry:
             if tid.startswith("core."):
                 t = self.get(tid)
                 if t:
-                    result["core"].append({"id": t.id, "version": t.version, "source": t.source})
+                    result["core"].append(
+                        {"id": t.id, "version": t.version, "source": t.source}
+                    )
         if surface:
             t = self.get(f"surface.{surface}")
             if t:
-                result["surface"] = {"id": t.id, "version": t.version, "source": t.source}
+                result["surface"] = {
+                    "id": t.id,
+                    "version": t.version,
+                    "source": t.source,
+                }
         if task:
             t = self.get(f"task.{task}")
             if t:

@@ -14,6 +14,7 @@ API. Preferences persist per-user.
 
 import json
 import os
+import re
 import subprocess
 import urllib.request
 from typing import Any
@@ -21,6 +22,291 @@ from typing import Any
 from .envelope import Result, fail, ok
 
 CHAT_TIMEOUT_SECONDS = 120
+
+
+# ── Lenient small-model tool-call parsing ────────────────────────────
+#
+# A tiny local brain (Qwen3 1.7B et al., ADR 0002) often cannot produce
+# clean native function-calls. Observed failure modes: stray chat-template
+# wrappers leaking into content (``<|tool_call_start|>…``), JSON objects
+# with trailing commas / single quotes / python-style literals, or
+# half-formed calls. The rules here:
+#   - never crash on any input
+#   - never invent a tool call or a tool RESULT from noise: a call is
+#     recovered only when a tool name is unambiguously present
+#   - whatever cannot be recovered stays (or becomes) ordinary reply text,
+#     with wrapper tokens stripped so model plumbing never reaches a human.
+
+_TOOL_CALL_MARKERS = (
+    "<|tool_call_start|>",
+    "<|tool_call_end|>",
+    "<|tool_calls|>",
+    "<|tool_call|>",
+    "<tool_response>",
+    "<|fim_middle|>",
+    "<|end|>",
+)
+
+
+def _strip_markers(text: str) -> str:
+    for marker in _TOOL_CALL_MARKERS:
+        text = text.replace(marker, " ")
+    return text
+
+
+def _balance_json(text: str) -> str:
+    """Close unbalanced braces/brackets left by a truncated generation.
+
+    String-aware, so a '{' inside a quoted value does not confuse the
+    balance. Best effort: if quoting is itself broken we fall back to a
+    naive count — the downstream json.loads still gets the final word.
+    """
+    open_stack: list[str] = []
+    in_string = False
+    escaped = False
+    naive = 0
+    for ch in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch in "{[":
+            open_stack.append(ch)
+        elif ch in "}]":
+            if open_stack:
+                open_stack.pop()
+            else:
+                naive += 1
+    repaired = text
+    if in_string:
+        repaired += '"'
+    for opener in reversed(open_stack):
+        repaired += "}" if opener == "{" else "]"
+    return repaired
+
+
+def _lenient_json_loads(raw: Any) -> Any:
+    """json.loads with a small, bounded repair ladder for model output.
+
+    Returns None when nothing parses — callers must treat None as
+    "no recoverable call", never as an empty-argument call.
+    """
+    if isinstance(raw, (dict, list)):
+        return raw
+    if not isinstance(raw, str):
+        return None
+    text = raw.strip()
+    if not text:
+        return None
+    # Keep only the first balanced JSON object when prose surrounds it.
+    start = text.find("{")
+    if start > 0:
+        text = text[start:]
+    attempts = [
+        text,
+        re.sub(r",\s*([}\]])", r"\1", text),  # trailing commas
+        _balance_json(re.sub(r",\s*([}\]])", r"\1", text)),  # + truncation
+    ]
+    for candidate in attempts:
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            continue
+    # Last resort: python-ish literals (single quotes, True/None). ast is
+    # safe here — it evaluates literals only, never expressions.
+    import ast
+
+    try:
+        parsed = ast.literal_eval(_balance_json(text))
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+    return None
+
+
+def _coerce_tool_call(obj: Any) -> dict[str, Any] | None:
+    """Normalize one recovered JSON object into an OpenAI-style tool call.
+
+    Accepts the shapes small models actually emit::
+
+        {"name": "...", "arguments": {...} | "..."}
+        {"function": {"name": "...", "arguments": ...}}
+        {"tool": "...", "args": {...}}
+
+    Returns None unless a non-empty string tool name is present. No name,
+    no call — we never guess one.
+    """
+    if not isinstance(obj, dict):
+        return None
+    name = None
+    args: Any = {}
+    if isinstance(obj.get("function"), dict):
+        name = obj["function"].get("name")
+        args = obj["function"].get("arguments", {})
+    if not isinstance(name, str) or not name.strip():
+        for key in ("name", "tool", "tool_name"):
+            candidate = obj.get(key)
+            if isinstance(candidate, str) and candidate.strip():
+                name = candidate
+                break
+    if not isinstance(name, str) or not name.strip():
+        return None
+    for key in ("arguments", "args", "parameters", "inputs"):
+        if key in obj:
+            args = obj[key]
+            break
+    if args is None:
+        args = {}
+    if not isinstance(args, str):
+        try:
+            args = json.dumps(args)
+        except (TypeError, ValueError):
+            args = json.dumps({})
+    return {
+        "id": "",  # assigned by the caller (stable per response)
+        "type": "function",
+        "function": {"name": name.strip(), "arguments": args},
+    }
+
+
+def _split_objects(text: str) -> list[str]:
+    """Split raw text into candidate top-level {...} chunks (string-aware)."""
+    chunks: list[str] = []
+    depth = 0
+    start = -1
+    in_string = False
+    escaped = False
+    for i, ch in enumerate(text):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and start >= 0:
+                    chunks.append(text[start : i + 1])
+    if depth > 0 and start >= 0:
+        chunks.append(text[start:])  # truncated tail; balancer handles it
+    return chunks
+
+
+def lenient_tool_calls(content: str) -> tuple[list[dict[str, Any]], str]:
+    """Recover tool calls from raw model text.
+
+    Returns ``(tool_calls, remaining_text)`` where tool_calls are
+    OpenAI-style (``function.arguments`` is always a JSON string) and
+    remaining_text is the visible reply with call syntax and wrapper
+    tokens removed. Plain prose passes through untouched; unrecoverable
+    call attempts degrade to text. Never raises.
+    """
+    if not isinstance(content, str) or not content:
+        return [], content if isinstance(content, str) else ""
+    has_marker = any(m in content for m in _TOOL_CALL_MARKERS)
+    looks_like_call = '"name"' in content or '"function"' in content or '"tool"' in content
+    if not has_marker and not looks_like_call:
+        return [], content  # fast path: ordinary prose, byte-identical
+
+    calls: list[dict[str, Any]] = []
+    remaining = content
+    if has_marker:
+        # Prefer explicit wrapper segments when the model used them.
+        segments = re.split(
+            r"<\|tool_call_start\|>|<\|tool_call\|>|<tool_response>", remaining
+        )
+        kept: list[str] = [segments[0]]
+        for seg in segments[1:]:
+            for end_marker in (
+                "<|tool_call_end|>",
+                "<|fim_middle|>",
+                "<|end|>",
+                "</tool_response>",
+            ):
+                if end_marker in seg:
+                    inner, _, after = seg.partition(end_marker)
+                    kept.append(after)
+                    seg = inner
+                    break
+            else:
+                kept.append("")
+            for chunk in _split_objects(seg):
+                call = _coerce_tool_call(_lenient_json_loads(chunk))
+                if call:
+                    calls.append(call)
+                    seg = seg.replace(chunk, " ", 1)
+            # Whatever did not parse inside a call segment is noise from
+            # the model plumbing, not prose for the human: drop it, but
+            # keep any recovered call.
+        remaining = "\n".join(part for part in kept if part and part.strip())
+    if not calls:
+        # Marker-free but call-shaped text (or nothing recovered above):
+        # try each balanced JSON chunk in the remaining text.
+        for chunk in _split_objects(remaining):
+            call = _coerce_tool_call(_lenient_json_loads(chunk))
+            if call:
+                calls.append(call)
+                remaining = remaining.replace(chunk, " ", 1)
+    for i, call in enumerate(calls):
+        if not call.get("id"):
+            call["id"] = f"lenient-{i}"
+    remaining = _strip_markers(remaining)
+    remaining = re.sub(r"[ \t]{2,}", " ", remaining)
+    remaining = re.sub(r"\n{3,}", "\n\n", remaining).strip()
+    if not remaining and not calls:
+        remaining = _strip_markers(content).strip()
+    return calls, remaining
+
+
+def _tool_response(
+    message: dict[str, Any],
+    model: str,
+    extra: dict[str, Any] | None = None,
+) -> Result:
+    """Shared finalizer for chat_with_tools implementations.
+
+    Native tool_calls win. Otherwise the content goes through lenient
+    small-model parsing: recovered calls are returned as tool_calls,
+    plain (or cleaned) text is returned as the reply. An empty response
+    with nothing recoverable stays an honest failure.
+    """
+    tool_calls = message.get("tool_calls")
+    if isinstance(tool_calls, list) and tool_calls:
+        return ok(
+            "healthy",
+            data={"tool_calls": tool_calls, "model": model, **(extra or {})},
+        )
+    content = (message.get("content") or "").strip()
+    recovered, remaining = lenient_tool_calls(content)
+    if recovered:
+        data: dict[str, Any] = {"tool_calls": recovered, "model": model}
+        if remaining:
+            data["reply"] = remaining
+        data.update(extra or {})
+        return ok("healthy", data=data)
+    if not remaining:
+        return Result(ok=False, status="unavailable", warnings=["empty reply"])
+    return ok(
+        "healthy", data={"reply": remaining, "model": model, **(extra or {})}
+    )
 
 
 class ChatContract:
@@ -37,6 +323,44 @@ class ChatContract:
 
     def observe(self) -> Result:
         raise NotImplementedError
+
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> Result:
+        """Tool-calling round-trip. ONE contract shape for every provider:
+        ``data.reply`` (final text) or ``data.tool_calls`` (OpenAI-style
+        calls the loop executes through the ToolRegistry).
+
+        Default implementation for providers without a native tools
+        parameter (e.g. the OpenCode CLI, which runs its own internal
+        loop): fall back to ``chat()`` and recover any tool-call syntax
+        the model leaked into text with the lenient parser. Providers
+        with native function-calling override this.
+        """
+        try:
+            result = self.chat(messages)
+        except Exception as e:  # never let a provider crash reach the API
+            return Result(
+                ok=False, status="unavailable",
+                warnings=[f"chat provider failed: {e}"],
+            )
+        if not result.ok:
+            return result
+        data = result.data or {}
+        if data.get("tool_calls"):
+            return result
+        reply = data.get("reply") or ""
+        calls, remaining = lenient_tool_calls(reply)
+        if not calls:
+            return result
+        updated = {**data, "tool_calls": calls}
+        if remaining:
+            updated["reply"] = remaining
+        else:
+            updated.pop("reply", None)
+        return ok("healthy", data=updated)
 
 
 class OllamaChat(ChatContract):
@@ -76,6 +400,34 @@ class OllamaChat(ChatContract):
             return Result(ok=False, status="unavailable", warnings=["ollama returned an empty reply"])
         return ok("healthy", data={"reply": content, "thinking": message.get("thinking"),
                                     "model": payload.get("model", self.model)})
+
+    def chat_with_tools(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> Result:
+        """Native Ollama function-calling (``tools`` on /api/chat).
+
+        Small local models frequently emit call syntax as text instead
+        of native tool_calls, so the response also goes through the
+        lenient parser in ``_tool_response`` — stray
+        ``<|tool_call_start|>`` wrappers and malformed JSON are
+        recovered or degraded to honest text, never a crash and never
+        an invented result.
+        """
+        body: dict[str, Any] = {"model": self.model, "messages": messages, "stream": False}
+        if tools:
+            body["tools"] = tools
+        data = json.dumps(body).encode()
+        req = urllib.request.Request(f"{self.base_url}/api/chat", data=data,
+                                     headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                payload = json.loads(resp.read().decode())
+        except Exception as e:
+            return Result(ok=False, status="unavailable", warnings=[f"ollama chat: {e}"])
+        message = payload.get("message") or {}
+        return _tool_response(
+            message,
+            payload.get("model", self.model),
+            extra={"thinking": message.get("thinking")},
+        )
 
 
 class OpenAICompatChat(ChatContract):
@@ -159,13 +511,7 @@ class OpenAICompatChat(ChatContract):
         if not choices:
             return Result(ok=False, status="unavailable", warnings=["no choices returned"])
         message = choices[0].get("message") or {}
-        tool_calls = message.get("tool_calls")
-        if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
-            return ok("healthy", data={"tool_calls": tool_calls, "model": payload.get("model", self.model)})
-        content = (message.get("content") or "").strip()
-        if not content:
-            return Result(ok=False, status="unavailable", warnings=["empty reply"])
-        return ok("healthy", data={"reply": content, "model": payload.get("model", self.model)})
+        return _tool_response(message, payload.get("model", self.model))
 
 
 class OpenAIChat(ChatContract):
@@ -361,6 +707,11 @@ class OpenCodeChat(ChatContract):
     Uses the opencode CLI to send messages to any model available
     through OpenCode Go's provider system. This is the simplest
     integration — no API server needed, just the CLI binary.
+
+    Tool-calling: the CLI runs its own internal agent loop and accepts
+    no tools parameter, so ``chat_with_tools`` is the ChatContract
+    default — ``chat()`` plus lenient recovery of any tool-call syntax
+    the model leaks into its text.
     """
 
     def __init__(self, model: str = "opencode-go/mimo-v2.5",
