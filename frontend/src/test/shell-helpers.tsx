@@ -59,9 +59,19 @@ export function section(overrides: Partial<SectionData> = {}): SectionData {
   };
 }
 
-/** The default registry payload (server defaults, spec §2.1/§2.3). */
+/** The default registry payload (server defaults, spec §2.1/§2.3).
+ *  §14: "world" is a frontend anchor (the route exists at /world)
+ *  but the backend sections API doesn't include it — tests include it
+ *  so the four-anchors model renders completely. */
 export const DEFAULT_SECTIONS: SectionData[] = [
   section(),
+  section({
+    id: "world",
+    label: "World",
+    icon: "world-content--world",
+    order: 0.5,
+    kind: "core",
+  }),
   section({
     id: "interests",
     label: "Interests",

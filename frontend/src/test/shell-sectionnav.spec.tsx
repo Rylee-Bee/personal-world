@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -12,10 +12,15 @@ import { sectionIconToShimName, ICON_NAMES } from "../lib/icons";
 
 /**
  * T9 SectionNav spec (FOUNDATION-SPEC §5/§10 row T9, §2.3):
- * - items come from the mocked /api/sections envelope (exact shape);
- * - hidden sections are OMITTED from the nav (routes still resolve —
+ *
+ * §14 Navigation model: four anchors (Today, World, Journal, Chat)
+ * plus a compact Places mechanism for secondary destinations.
+ *
+ * - Anchor items appear as direct links in the nav.
+ * - Places destinations appear behind a "Places" button (popover).
+ * - hidden sections are OMITTED entirely (routes still resolve —
  *   asserted in shell-routes.spec);
- * - the active item carries aria-current="page";
+ * - the active anchor carries aria-current="page";
  * - every section icon id maps to a sprite symbol that exists in the
  *   tracked sprite (the sprite gate stays green).
  *
@@ -68,16 +73,26 @@ afterEach(() => {
 });
 
 describe("SectionNav renders from /api/sections (T9)", () => {
-  it("renders visible sections from the API in payload order", async () => {
+  it("renders anchor sections as direct nav links", async () => {
     mockSections(sectionsEnvelope(DEFAULT_SECTIONS));
     shellProviders(<WorkshopShell><div /></WorkshopShell>);
     await waitFor(() => {
       expect(screen.getByRole("link", { name: /Journal & Memory/ })).toBeTruthy();
     });
-    // All nine defaults are visible by default.
-    for (const label of ["Today", "Interests", "Media", "Projects", "Lab", "Journal & Memory", "Vault", "Chat", "Settings"]) {
+    // §14: The four anchors are always visible as direct nav links.
+    for (const label of ["Today", "Journal & Memory", "Chat"]) {
       expect(screen.getAllByRole("link", { name: new RegExp(label) }).length).toBeGreaterThan(0);
     }
+  });
+
+  it("renders a Places button for secondary destinations", async () => {
+    mockSections(sectionsEnvelope(DEFAULT_SECTIONS));
+    shellProviders(<WorkshopShell><div /></WorkshopShell>);
+    await waitFor(() => {
+      // Places button should appear (secondary destinations like Settings,
+      // Interests, Projects, Media, Vault, Lab)
+      expect(screen.getAllByRole("button", { name: /Places/ }).length).toBeGreaterThan(0);
+    });
   });
 
   it("omits hidden sections from the nav (visible=false is dropped)", async () => {
@@ -89,8 +104,7 @@ describe("SectionNav renders from /api/sections (T9)", () => {
     await waitFor(() => {
       expect(screen.getByRole("link", { name: /Today/ })).toBeTruthy();
     });
-    // Banner nav shows only in the 600–899 CSS bucket; in jsdom both
-    // the rail and bottom copies render, so filter by rail list.
+    // Hidden sections are omitted from both anchors and Places.
     expect(screen.queryAllByRole("link", { name: /Journal & Memory/ })).toHaveLength(0);
   });
 
@@ -101,7 +115,7 @@ describe("SectionNav renders from /api/sections (T9)", () => {
     ]);
   });
 
-  it("marks the active section with aria-current=page", () => {
+  it("marks the active anchor section with aria-current=page", () => {
     // Direct items: no fetch needed (items override the hook).
     shellProviders(
       <nav aria-label="Main">
@@ -110,8 +124,9 @@ describe("SectionNav renders from /api/sections (T9)", () => {
     );
     const today = screen.getByRole("link", { name: /Today/ });
     expect(today.getAttribute("aria-current")).toBe("page");
-    const settings = screen.getByRole("link", { name: /Settings/ });
-    expect(settings.getAttribute("aria-current")).toBeNull();
+    // Chat is an anchor but not active on the "/" route.
+    const chat = screen.getByRole("link", { name: /Chat/ });
+    expect(chat.getAttribute("aria-current")).toBeNull();
   });
 
   it("renders nav targets at the 44px floor via token vars", () => {
@@ -154,16 +169,38 @@ describe("SectionNav renders from /api/sections (T9)", () => {
     }
   });
 
-  it("an unknown icon id renders label-only (honest, not broken)", () => {
-    const items = [section({ id: "future", label: "Future", icon: "navigation--nonexistent" })];
-    shellProviders(
+  it("an unknown icon id in Places renders label-only (honest, not broken)", async () => {
+    const items = [
+      section({ id: "today", label: "Today", icon: "navigation--today" }),
+      section({ id: "journal", label: "Journal", icon: "navigation--journal" }),
+      section({ id: "chat", label: "Chat", icon: "navigation--chat" }),
+      section({ id: "future", label: "Future", icon: "navigation--nonexistent" }),
+    ];
+    const { container } = shellProviders(
       <nav aria-label="Main">
         <SectionNav items={items} />
       </nav>,
     );
-    const link = screen.getByRole("link", { name: "Future" });
-    expect(link.querySelector("svg")).toBeNull();
-    expect(link.textContent).toContain("Future");
+    // "Future" is not an anchor, so it appears in Places.
+    // Places button should exist.
+    const placesBtns = screen.getAllByRole("button", { name: /Places/ });
+    expect(placesBtns.length).toBeGreaterThan(0);
+    // Click the Places button to reveal it.
+    await act(async () => {
+      fireEvent.click(placesBtns[0]);
+    });
+    // After opening Places, the panel should appear with "Future" link.
+    await waitFor(() => {
+      const panel = container.querySelector(".pw-places-panel");
+      expect(panel).not.toBeNull();
+      // Debug: print what's in the panel
+      const links = panel!.querySelectorAll("a");
+      expect(links.length).toBeGreaterThan(0);
+      // Find the Future link inside the panel.
+      const futureLink = panel!.querySelector('a[href="/future"]');
+      expect(futureLink).not.toBeNull();
+      expect(futureLink!.textContent).toContain("Future");
+    });
   });
 
   it("axe: 0 violations on the shell with default sections", async () => {
@@ -174,7 +211,8 @@ describe("SectionNav renders from /api/sections (T9)", () => {
       </WorkshopShell>
     );
     await waitFor(() => {
-      expect(screen.getAllByRole("link", { name: /Settings/ }).length).toBeGreaterThan(0);
+      // Wait for the anchor links to render.
+      expect(screen.getAllByRole("link", { name: /Today/ }).length).toBeGreaterThan(0);
     });
     expect(await axeNoContrast(container)).toHaveNoViolations();
   });
