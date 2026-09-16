@@ -12,6 +12,7 @@ import InterestsScreen from "./screens/InterestsScreen";
 import MediaScreen from "./screens/MediaScreen";
 import ProjectsScreen from "./screens/ProjectsScreen";
 import LabScreen from "./screens/LabScreen";
+import { ConnectionsPanel } from "./screens/ConnectionsPanel";
 import { CompanionProvider } from "./lib/companion-context";
 import {
   PrefsProvider,
@@ -82,6 +83,7 @@ function AppRoutes() {
       <Route path="/vault" element={<VaultScreen />} />
       <Route path="/world" element={<WorldScreen />} />
       <Route path="/settings" element={<SettingsScreen />} />
+      <Route path="/connections" element={<ConnectionsPanel />} />
       {/* Legacy server-era path kept as an alias: the old wizard URL
           now lands on the same first-run flow (T15 cutover). */}
       <Route path="/setup-wizard" element={<Navigate to="/setup" replace />} />
