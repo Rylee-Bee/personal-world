@@ -57,7 +57,35 @@ export function PlacesMenu({ sections, compact = false, className }: PlacesMenuP
   const panelRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  const placesSections = sections.filter((s) => !ANCHOR_IDS.has(s.id));
+  // §10: Synthesize missing grouped sections (e.g. "connections"
+  // not yet in backend registry). Only for sections in PLACES_GROUPS
+  // that the API doesn't provide at all (not just hidden).
+  const rawData = sections; // This is already filtered by visible in SectionNav
+  const apiKnows = new Set(rawData.map((s) => s.id));
+  const SYNTHESIZED: Record<string, { label: string; icon: string }> = {
+    connections: { label: "Connections", icon: "world-content--link" },
+    notifications: { label: "Notifications", icon: "status-feedback--notification" },
+  };
+
+  let placesSections = sections.filter((s) => !ANCHOR_IDS.has(s.id));
+  for (const [id, def] of Object.entries(SYNTHESIZED)) {
+    if (!apiKnows.has(id) && !placesSections.some((s) => s.id === id)) {
+      placesSections = [
+        ...placesSections,
+        {
+          id,
+          label: def.label,
+          icon: def.icon,
+          order: 99,
+          visible: true,
+          pinned: false,
+          kind: "extension" as const,
+          configured: false,
+          status: null,
+        },
+      ];
+    }
+  }
 
   // Close on route change
   useEffect(() => {
