@@ -18,6 +18,7 @@
 <!-- live API client + real-data providers (same-origin session auth) -->
 <script src="api.js" defer></script>
 <script src="real-data.js" defer></script>
+<script src="backup-ui.js" defer></script>
 <style>
   .set-wrap { max-width: 720px; }
   .set-group {
@@ -340,6 +341,12 @@
     </details>
 
   </div>
+
+  <!-- Encrypted SOS backup/restore (worlds_backup routes; step-up gated) -->
+  <section aria-labelledby="h-backup" style="max-width:640px;margin-top:var(--s6)">
+    <h2 class="sec-label" id="h-backup">Back up your world</h2>
+    <div id="settings-backup"></div>
+  </section>
 
   <nav class="deck-exit" aria-label="Leave settings">
     <a class="beam" href="index.html">&larr; Back to your map</a>
