@@ -36,11 +36,19 @@ LOGIN_PATH = "/login"
 
 
 def _set_session_cookie(response, session_id: str) -> None:
+    # Secure by default. The ONLY opt-down is an explicit development pair:
+    # PW_DEV_AUTH_BYPASS=1 (true-loopback) AND PW_COOKIE_SECURE=false, so a
+    # plain-HTTP loopback/e2e run can hold a session. Production can never
+    # reach the insecure branch because the bypass itself is dev-only.
+    insecure_dev = (
+        os.environ.get("PW_DEV_AUTH_BYPASS") == "1"
+        and os.environ.get("PW_COOKIE_SECURE", "true").lower() == "false"
+    )
     response.set_cookie(
         SESSION_COOKIE,
         session_id,
         httponly=True,
-        secure=True,
+        secure=not insecure_dev,
         samesite="lax",
         max_age=SESSION_MAX_AGE,
     )
