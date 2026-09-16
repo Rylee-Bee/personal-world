@@ -1,11 +1,18 @@
 # Project Worlds
 
 A personal operating environment. One core process with native
-capabilities, a React frontend, and an AI assistant that proposes but
-does not act without approval.
+capabilities, a gentle star-map frontend (the **Station**), and an AI
+assistant that proposes but does not act without approval.
 
 **Stable truth. Replaceable machinery.** Your data stays on your own
 hardware, portable and exportable.
+
+> **New here?** Run `./install.sh` and read
+> **[docs/QUICKSTART.md](docs/QUICKSTART.md)** — one command, no config,
+> written for tired and disabled people first.
+> Roadmap/status: [docs/ROADMAP-AND-TODO.md](docs/ROADMAP-AND-TODO.md).
+> (The older React shell is superseded by the Station; see
+> [docs/PORTING.md](docs/PORTING.md).)
 
 ## What ships by default
 
