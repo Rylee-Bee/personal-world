@@ -379,6 +379,18 @@ describe("Journal assistant-drafted correction handoff (drafting is not acting)"
     });
   }
 
+  /** The `?correct=` auto-open runs in an effect after entries load. Wait
+   *  for it before a click so the click cannot race that effect on a slow
+   *  CI machine (the pending auto-open would otherwise steal the mode back
+   *  from the writing form). Only valid when a matching draft is stashed. */
+  async function waitForCorrectionPanel() {
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-pw-correction="proposed"]')
+      ).toBeTruthy();
+    });
+  }
+
   it("page renders with the write form and entries", async () => {
     stashDraft();
     await bootWithDraft();
@@ -391,6 +403,7 @@ describe("Journal assistant-drafted correction handoff (drafting is not acting)"
   it("editing the textarea updates its value and enables the button", async () => {
     stashDraft();
     await bootWithDraft();
+    await waitForCorrectionPanel();
     fireEvent.click(screen.getByRole("button", { name: /Write something new/ }));
     const textarea = screen.getByLabelText(
       "Journal note"
@@ -409,6 +422,7 @@ describe("Journal assistant-drafted correction handoff (drafting is not acting)"
   it("clearing the textarea resets the write button to disabled", async () => {
     stashDraft();
     await bootWithDraft();
+    await waitForCorrectionPanel();
     fireEvent.click(screen.getByRole("button", { name: /Write something new/ }));
     const textarea = screen.getByLabelText(
       "Journal note"
