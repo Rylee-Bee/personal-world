@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Your semantic systems map. Seven constellations at rest — move toward anything and it opens.">
+<meta name="theme-color" content="#D4A057">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<title>The Observation Deck — Personal Worlds</title>
+<link rel="stylesheet" href="station.css">
+<link rel="stylesheet" href="search.css">
+<link rel="stylesheet" href="onboarding.css">
+<link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="real-data.css">
+<script src="station.js" defer></script>
+<script src="chat.js" defer></script>
+<script src="starmap.js" defer></script>
+<script src="shapemap.js" defer></script>
+<script src="deeplink.js" defer></script>
+<script src="onboarding.js" defer></script>
+<script src="search.js" defer></script>
+<!-- live API client + real-data providers (same-origin session auth) -->
+<script src="api.js" defer></script>
+<script src="real-data.js" defer></script>
+
+<style>
+  .od-head { margin-bottom: var(--gap-block); }
+  .od-head .lede { color: var(--text-soft); font-size: var(--fs-lead); max-width: 62ch; margin-top: var(--s2); }
+  .block { margin-bottom: var(--s6); }
+  .map-note { font-size: var(--fs-small); color: var(--text-faint); margin-top: var(--s3); max-width: 62ch; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<!-- the world behind the glass: starfield + hull + warm light. No tree. -->
+<div class="station-bg" aria-hidden="true">
+  <div class="bg-stars"></div>
+  <div class="bg-ribs"></div>
+  <div class="bg-spill"></div>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="orb" aria-hidden="true"></span>Personal Worlds</a>
+  <nav class="topnav" aria-label="Primary">
+    <a href="index.html" aria-current="page">World</a>
+    <a href="interests.html">Interests</a>
+    <a href="journal.html">Journal</a>
+    <a href="projects.html">Projects</a>
+    <a href="chat.html">Chat</a>
+    <a href="settings.html">Settings</a>
+  </nav>
+  <span class="region" id="topbar-region"></span>
+</header>
+
+<main class="shell-main" id="main">
+
+  <header class="od-head">
+    <div class="station-sign">
+      <span class="fn">Observation Deck</span>
+      <h1 class="cn">The systems map</h1>
+    </div>
+    <p class="lede">
+      Seven little worlds, quietly orbiting. Drift toward anything and it opens up for you. ✦
+    </p>
+  </header>
+
+  <!-- ══ LOW-DEMAND VIEW: only what needs you, nothing else ══ -->
+  <section class="quiet-only block" aria-label="Only what needs you">
+    <!-- REAL DATA: proposals (PROP-list GET /api/proposals) + reminders
+         (API-067-get GET /api/reminders), rendered by real-data.js. It can
+         only say "nothing needs you" after both sources actually answered;
+         if one is unreachable it says that instead of guessing. -->
+    <div data-rd-needs-you data-rd-variant="quiet"></div>
+    <p style="font-size:var(--fs-small);color:var(--text-faint);margin-top:var(--s3);max-width:48ch;line-height:1.6">
+      Your world is all still here, exactly where you left it.
+      Whenever you are ready, the map is waiting.
+    </p>
+    <button type="button" class="beam" data-demand-set="normal" style="margin-top:var(--s4)">
+      Show me my world ✦
+    </button>
+  </section>
+
+  <!-- ══ NEEDS YOU — the only thing that may interrupt ══ -->
+  <section class="block" aria-labelledby="h-needs">
+    <h2 class="sec-label" id="h-needs">Needs you</h2>
+    <!-- REAL DATA: same two sources as above, one shared fetch. The
+         heading above is the panel's heading (data-rd-labelledby), so the
+         page keeps one h2 and no duplicate ids. -->
+    <div data-rd-needs-you data-rd-labelledby="h-needs"></div>
+
+  </section>
+
+  <!-- ══ THE MAP — the semantic centre; nothing between you and it ══ -->
+  <section class="block" id="map-section" aria-label="Map of your world">
+    <div class="sky-crumb" id="sky-crumb" aria-label="Where you are in the map"></div>
+    <div class="sky" id="sky" role="group" aria-label="Systems map. Use the buttons to move toward a region."></div>
+    <div class="sky-info" id="sky-info"></div>
+    <div class="dive" id="sky-dive" tabindex="-1" hidden></div>
+
+    <p class="map-note">
+      A world that has grown a little and wears a soft ring has things inside asking for you —
+      the same number is always written in words, so nothing relies on size or colour alone.
+      Hover or focus a world and a little companion might peek out. That is just for fun. ✦
+    </p>
+  </section>
+
+
+  <details class="more-settings">
+    <summary>Shape this map</summary>
+    <div class="ms-body">
+      <div id="shape-map" data-region="world" class="shape" style="margin-top:0;border:none;padding:0;background:none"></div>
+    </div>
+  </details>
+
+  <!-- spacer for fixed-position help button -->
+  <div style="height:120px"></div>
+
+  <!-- one technical disclosure, at the very bottom, out of the way -->
+  <details class="tech">
+    <summary>technical · status vocabulary &amp; sources</summary>
+    <div class="tech-body">
+      canonical: healthy · needs_attention · unavailable · stale · unknown · not_configured · disabled<br>
+      shown as:  all good · needs you · can't reach it · a while old · not sure yet · not set up yet · off<br>
+      sources: API-067 reminders · /api/proposals · API-020 capability health ·
+      interests API-051 · projects API-079/033 · journal API-005 · media API-054 · systems API-020<br>
+      every write goes: observe → diff → propose → approve → act → re-observe
+    </div>
+  </details>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Library — Personal Worlds Station</title>
+<link rel="stylesheet" href="station.css">
+<script src="station.js" defer></script>
+<script src="chat.js" defer></script>
+<style>
+  .lib{ --glow: var(--lavender-soft); }
+  .spines{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin:var(--s6) 0; }
+  .spine{
+    writing-mode:vertical-rl; text-orientation:mixed;
+    padding:16px 8px; border-radius:4px; font-size:11px; letter-spacing:1px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .nook{ max-width:460px; margin:var(--s6) auto 0; text-align:center;
+    padding:var(--s6); border-radius:var(--r-lg);
+    background:var(--lavender-soft); border:1px solid rgba(155,142,196,0.2); }
+  .journal-list{ max-width:640px; margin:0 auto; }
+  .entry{ padding:var(--s4); border-bottom:1px dashed var(--border); }
+  .entry .when{ font-family:var(--font-mono); font-size:11px; color:var(--text-faint); }
+  .entry .txt{ font-family:var(--font-serif); font-size:16px; color:var(--text); margin-top:var(--s1); line-height:1.6; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<!-- the world, behind the glass: alive and busy, never the foreground -->
+<div class="station-bg" aria-hidden="true">
+  <div class="bg-stars"></div><div class="bg-ribs"></div><div class="bg-spill"></div>
+  <svg class="bg-tree" viewBox="0 0 200 200" focusable="false">
+    <path d="M95 200 Q97 140 99 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M105 200 Q103 140 101 100 Q100 70 100 50" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <g stroke="currentColor" fill="none" stroke-linecap="round">
+      <path d="M100 90 Q70 70 45 62" stroke-width="4"/>
+      <path d="M100 80 Q130 60 155 55" stroke-width="4"/>
+      <path d="M100 65 Q80 45 60 40" stroke-width="3"/>
+      <path d="M100 58 Q120 40 140 36" stroke-width="3"/>
+    </g>
+    <g fill="currentColor" opacity="0.4">
+      <circle cx="45" cy="60" r="20"/><circle cx="80" cy="42" r="18"/>
+      <circle cx="120" cy="38" r="18"/><circle cx="155" cy="53" r="20"/>
+      <circle cx="100" cy="34" r="22"/>
+    </g>
+  </svg>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="orb" aria-hidden="true"></span>Personal Worlds</a>
+  <nav class="topnav" aria-label="Primary">
+    <a href="index.html">World</a>
+    <a href="interests.html">Interests</a>
+    <a href="journal.html">Journal</a>
+    <a href="projects.html">Projects</a>
+    <a href="chat.html">Chat</a>
+    <a href="settings.html">Settings</a>
+  </nav>
+  <span class="region" id="topbar-region"></span>
+</header>
+
+<main class="shell-main lib" id="main">
+  <div class="station-sign"><span class="fn">Records &amp; Memory Archive</span><h1 class="cn">The Library</h1></div>
+  <p style="max-width:620px;color:var(--text-soft);margin-bottom:var(--s5)">
+    Originally the station's records archive — logs, charts, histories, provenance.
+    Then people kept leaving other things here. Books. Journals. Maps. Clippings.
+    Eventually nobody could say where the archive stopped and the library began.
+  </p>
+
+  <!-- book spines: objects as themselves -->
+  <div class="spines" role="img" aria-label="A shelf of book spines: Curiosity, Oceans, Far Places, Good Company, Wonder, Home">
+    <span class="spine" style="height:140px;background:var(--lavender-soft);color:var(--lavender)">CURIOSITY</span>
+    <span class="spine" style="height:160px;background:var(--teal-soft);color:var(--teal)">OCEANS</span>
+    <span class="spine" style="height:130px;background:var(--gold-soft);color:var(--gold)">FAR PLACES</span>
+    <span class="spine" style="height:150px;background:var(--coral-soft);color:var(--coral)">GOOD COMPANY</span>
+    <span class="spine" style="height:145px;background:var(--green-soft);color:var(--green)">WONDER</span>
+    <span class="spine" style="height:135px;background:var(--amber-soft);color:var(--amber)">HOME</span>
+  </div>
+
+  <!-- Journal: API-005..009. Personal writing, literary, honest. -->
+  <section class="journal-list" aria-label="Recent journal">
+    <h2 style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-bottom:var(--s3);text-align:center">Recent pages</h2>
+    <div class="loading" data-api="API-005">Opening the journal…</div>
+    <!-- structure for real entries once loaded (no fake content): -->
+    <div class="entry" hidden>
+      <span class="when">2026-09-16 · evening</span>
+      <p class="txt">[your words appear here, exactly as you wrote them]</p>
+    </div>
+    <p style="font-size:12px;color:var(--text-faint);margin-top:var(--s4);text-align:center">
+      Personal writing is not machine history. System events live elsewhere.
+    </p>
+  </section>
+
+  <div class="nook">
+    <span class="char char--lg" style="color:var(--lavender)"><svg aria-hidden="true"><use href="chars.svg#char-ratatoskr"/></svg></span>
+    <p style="font-size:15px;color:var(--text);line-height:1.7;margin:var(--s4) 0 var(--s3)">
+      There's a reading nook under the World Tree's roots. A lamp. A cushion.
+      A mug that's always warm. Ratatoskr left three books and won't explain how she found them.
+    </p>
+    <p style="font-size:13px;color:var(--text-faint);font-style:italic">
+      "Worlds aren't only made from facts. They're made from relationships between facts."
+    </p>
+  </div>
+
+  <div style="display:flex;gap:var(--s3);justify-content:center;margin-top:var(--s6)">
+    <details class="trace"><summary>an <span class="who">Engineering</span> maintenance manual, forgotten</summary>
+      <p style="margin-top:var(--s2);font-style:normal">It's been here a while. Someone keeps meaning to return it.</p></details>
+    <details class="trace"><summary><span class="who">Burrito's</span> clippings used as bookmarks</summary>
+      <p style="margin-top:var(--s2);font-style:normal">A recipe stuck between pages of a news article about zero-gravity farming.</p></details>
+  </div>
+
+  <!-- a deck is somewhere you DUCK INTO, not somewhere you must patrol -->
+  <nav class="deck-exit" aria-label="Leave the Library">
+    <a class="beam" href="index.html">&larr; Back to your map</a>
+    <p>You do not have to check this deck. It will send a signal to
+       your map when it genuinely needs you, and stay quiet when it does not.</p>
+  </nav>
+</main>
+</body>
+</html>

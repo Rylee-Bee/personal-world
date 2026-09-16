@@ -1,0 +1,248 @@
+/* ═══════════════════════════════════════════════════════
+   REAL-DATA PANELS — styles for the surfaces that are wired
+   to live endpoints (real-data.js).
+
+   Accessibility floor, same as everywhere else in the Station:
+   • status is carried by TEXT, never by colour alone;
+   • every interactive target is at least 44×44px;
+   • visible focus ring, never removed for looks;
+   • no ambient motion, and nothing here animates at all;
+   • tokens only — no hardcoded colours, so themes keep working.
+   ═══════════════════════════════════════════════════════ */
+
+.rd {
+  margin-top: var(--s3);
+}
+
+/* ── headline: what the state is, in words ── */
+.rd-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s3);
+}
+
+.rd-head h2,
+.rd-head h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--fs-lead);
+  color: var(--text);
+}
+
+.rd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 2px var(--s3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--cream-soft);
+  font-size: var(--fs-micro);
+  /* the label is the carrier; colour only reinforces it */
+  color: var(--text-soft);
+}
+
+.rd-chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.rd-chip[data-status="healthy"] { color: var(--green); border-color: var(--green-soft); }
+.rd-chip[data-status="needs_attention"] { color: var(--amber); border-color: var(--amber-soft); }
+.rd-chip[data-status="warning"] { color: var(--gold); border-color: var(--gold-soft); }
+.rd-chip[data-status="unavailable"] { color: var(--coral); border-color: var(--coral-soft); }
+.rd-chip[data-status="stale"] { color: var(--wood); border-color: var(--wood-soft); }
+.rd-chip[data-status="not_configured"] { color: var(--teal); border-color: var(--teal-soft); }
+.rd-chip[data-status="unknown"],
+.rd-chip[data-status="disabled"] { color: var(--text-faint); }
+
+/* keep the chip's text legible whatever the accent: the dot takes the
+   colour, the words stay cream */
+.rd-chip .rd-chip-text { color: var(--text-soft); }
+
+.rd-lede {
+  color: var(--text-soft);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  max-width: 62ch;
+  margin: 0 0 var(--s4);
+}
+
+/* ── lists ── */
+.rd-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s3);
+}
+
+.rd-item {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  padding: var(--s4);
+}
+
+.rd-item-kind {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 0 0 var(--s2);
+}
+
+.rd-item-title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-body);
+  color: var(--text);
+  margin: 0 0 var(--s2);
+  line-height: 1.45;
+}
+
+.rd-item-detail {
+  color: var(--text-soft);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.rd-item-meta {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  margin: var(--s3) 0 0;
+}
+
+/* ── honest empty / error / loading boxes ── */
+.rd-state {
+  border: 1px dashed var(--border-warm);
+  border-radius: var(--r-md);
+  background: var(--hull);
+  padding: var(--s5);
+}
+
+.rd-state h3 {
+  font-family: var(--font-serif);
+  font-size: var(--fs-lead);
+  color: var(--text);
+  margin: 0 0 var(--s2);
+}
+
+.rd-state p {
+  color: var(--text-soft);
+  font-size: var(--fs-small);
+  line-height: 1.65;
+  margin: 0 0 var(--s3);
+  max-width: 62ch;
+}
+
+.rd-state p:last-child { margin-bottom: 0; }
+
+.rd-state-label {
+  display: inline-block;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: 2px var(--s3);
+  margin-bottom: var(--s3);
+}
+
+/* 44px minimum target, visible focus */
+.rd-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--s3) var(--s5);
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-warm);
+  background: var(--amber-soft);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+
+.rd-btn:hover { border-color: var(--amber); }
+
+.rd :focus-visible,
+.rd-btn:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+
+/* ── provenance / technical disclosure ── */
+.rd-prov {
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+  line-height: 1.7;
+  margin: var(--s4) 0 0;
+  max-width: 74ch;
+}
+
+.rd-prov code {
+  font-family: var(--font-mono);
+  color: var(--text-soft);
+}
+
+/* ── preference mapping table ── */
+.rd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+  margin: var(--s3) 0 0;
+}
+
+.rd-table caption {
+  text-align: left;
+  color: var(--text-soft);
+  font-size: var(--fs-small);
+  padding-bottom: var(--s3);
+  line-height: 1.6;
+}
+
+.rd-table th,
+.rd-table td {
+  text-align: left;
+  padding: var(--s3);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.rd-table th {
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rd-table td code {
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.rd-table .rd-none { color: var(--text-faint); font-style: italic; }
+
+/* loading: text, not a spinner alone */
+.rd-loading {
+  color: var(--text-soft);
+  font-size: var(--fs-small);
+  padding: var(--s4) 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rd *, .rd *::before, .rd *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
