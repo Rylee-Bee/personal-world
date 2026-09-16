@@ -1,10 +1,7 @@
 @import "./tokens.css";
 @import "tailwindcss";
 
-/* ── Tailwind theme: aliases only ──
-   Every value is a var() reference into the generated --pw-* token
-   layer (src/tokens.css, generated from design/tokens.json). No
-   literal color may appear here; the hex-literal test enforces it. */
+/* ── Tailwind theme: token aliases only ── */
 @theme {
   --color-surface: var(--pw-color-surface-canvas);
   --color-panel: var(--pw-color-surface-panel);
@@ -15,18 +12,13 @@
   --color-text-muted: var(--pw-color-text-muted);
   --color-accent: var(--pw-color-accent-primary);
   --color-accent-secondary: var(--pw-color-accent-secondary);
+  --color-accent-gold: var(--pw-color-accent-gold);
 }
 
-/* ── Base Styles ── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+/* ── Base ── */
+*, *::before, *::after { box-sizing: border-box; }
 
-html {
-  color-scheme: dark;
-}
+html { color-scheme: dark; }
 
 body {
   margin: 0;
@@ -34,18 +26,17 @@ body {
   color: var(--pw-color-text-primary);
   font-family: var(--pw-typography-font-interface);
   font-size: var(--pw-typography-text-scale-base);
-  line-height: var(--pw-typography-line-height-body);
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Self-hosted fonts via the existing backend /fonts/* route ── */
+/* ── Self-hosted fonts ── */
 @font-face {
   font-family: "Young Serif";
   src: url("/fonts/young-serif-latin.woff2") format("woff2");
   font-display: swap;
   font-weight: 400;
-  font-style: normal;
 }
 
 @font-face {
@@ -53,16 +44,17 @@ body {
   src: url("/fonts/instrument-sans-var-latin.woff2") format("woff2");
   font-display: swap;
   font-weight: 100 900;
-  font-style: normal;
 }
 
-/* ── Headings ── */
+/* ── Typography hierarchy ── */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--pw-typography-font-expressive);
+  font-family: var(--pw-typography-font-interface);
   color: var(--pw-color-text-primary);
+  font-weight: 600;
+  margin: 0;
 }
 
-/* ── Focus Styles ── */
+/* ── Focus ── */
 :focus-visible {
   outline: var(--pw-focus-ring);
   outline-offset: 2px;
@@ -72,156 +64,79 @@ h1, h2, h3, h4, h5, h6 {
   --pw-focus-ring: var(--pw-focus-ring-high-contrast);
 }
 
-/* ── Skip Link ── */
+/* ── Skip link ── */
 .skip-link {
   position: absolute;
   top: -100%;
-  left: var(--pw-spacing-loose);
+  left: 1rem;
   z-index: 9999;
-  padding: var(--pw-spacing-normal) var(--pw-spacing-loose);
+  padding: 0.75rem 1rem;
   background: var(--pw-color-accent-primary);
   color: var(--pw-color-surface-canvas);
   font-weight: 600;
   text-decoration: none;
   border-radius: 0 0 8px 8px;
 }
-
-.skip-link:focus {
-  top: 0;
-}
+.skip-link:focus { top: 0; }
 
 /* ── Scrollbar ── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: var(--pw-color-border-subtle);
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--pw-color-text-muted);
-}
-
-/* ── Selection ── */
 ::selection {
   background: var(--pw-color-accent-primary);
   color: var(--pw-color-surface-canvas);
 }
 
-/* ── Density: server-pref-driven override of Tailwind spacing ── */
-[data-pw-density="compact"] {
-  --spacing: 0.1875rem;
-}
-
-[data-pw-density="spacious"] {
-  --spacing: 0.4375rem;
-}
-
-/* ── Target Size: 44px floor, server pref may enlarge ── */
-[data-pw-target-size="48"] {
-  --pw-target-minimum: 48px;
-}
-[data-pw-target-size="56"] {
-  --pw-target-minimum: 56px;
-}
-
+/* ── Interactive floor: 44px ── */
 button, a, input, select, textarea, [role="button"], [role="link"] {
   min-height: var(--pw-target-minimum);
 }
 
-/* ── Motion preference (server prefs own the runtime tier via the
-   data-pw-motion attribute + --pw-motion-duration; see prefs.py) ── */
+/* ── Motion ── */
 [data-pw-motion="subtle"] * {
   transition-duration: var(--pw-motion-duration) !important;
 }
 
-/* ── Smooth scrolling (subtle only, and only when the OS allows it) ── */
 @media (prefers-reduced-motion: no-preference) {
-  [data-pw-motion="subtle"] html {
-    scroll-behavior: smooth;
-  }
+  [data-pw-motion="subtle"] html { scroll-behavior: smooth; }
 }
 
-/* ── Icon visibility on dark background ── */
-nav img[src*="/icons/"] {
-  filter: brightness(0) invert(1);
-  opacity: 0.7;
-}
+/* ── Icon treatment (dark bg) ── */
+nav svg { opacity: 0.65; }
+nav a:hover svg, nav a[aria-current="page"] svg { opacity: 1; }
 
-nav img[src*="/icons/"] + span {
-  color: var(--pw-color-text-secondary);
-}
+/* ── Loading: static per A11y §1.5 ── */
+.loader-static { animation: none; transition: none; }
 
-nav a:hover img[src*="/icons/"] {
-  opacity: 1;
-}
-
-nav a[class*="accent"] img[src*="/icons/"] {
-  opacity: 1;
-  filter: brightness(0) invert(1) drop-shadow(0 0 1px var(--pw-color-accent-primary));
-}
-
-/* ── Settings icon grid visibility ── */
-img[src*="/icons/"][class*="h-5"] {
-  filter: brightness(0) invert(1);
-  opacity: 0.8;
-}
-
-/* ── Loading indicator: static per A11y §1.5 ── */
-.loader-static {
-  animation: none;
-  transition: none;
-}
-
-/* ── Fix scrollbar on main content ── */
-#main-content {
-  scrollbar-width: thin;
-  scrollbar-color: var(--pw-color-border-subtle) transparent;
-}
-
-/* ── Status chips (T8): luminance + structure only, never hue-only.
-   The status WORD is the content (A11y §1.3); rank is expressed by
-   border luminance/structure over the panel surface. Colors come from
-   the generated token layer only. ── */
+/* ── Status chips (§1.3: word is content, luminance encodes rank) ── */
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.6rem;
   border: 1px solid var(--pw-color-border-subtle);
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 500;
   background: var(--pw-color-surface-panel);
   color: var(--pw-color-text-primary);
   white-space: nowrap;
 }
-.chip-sm {
-  padding: 0.125rem 0.5rem;
-  font-size: 0.8rem;
-}
-.chip-label {
-  color: var(--pw-color-text-secondary);
-}
-.chip[data-status="healthy"] {
-  border-color: var(--pw-color-accent-primary);
-}
-.chip[data-status="warning"],
-.chip[data-status="needs_attention"] {
+.chip-sm { padding: 0.1rem 0.45rem; font-size: 0.68rem; }
+.chip-label { color: var(--pw-color-text-muted); }
+.chip[data-status="healthy"] { border-color: var(--pw-color-accent-primary); }
+.chip[data-status="warning"], .chip[data-status="needs_attention"] {
   border-color: var(--pw-color-text-secondary);
 }
-.chip[data-status="unknown"],
-.chip[data-status="stale"] {
+.chip[data-status="unknown"], .chip[data-status="stale"] {
   border-color: var(--pw-color-text-muted);
 }
-.chip[data-status="unavailable"],
-.chip[data-status="not_configured"] {
+.chip[data-status="unavailable"], .chip[data-status="not_configured"] {
   border-style: dashed;
   border-color: var(--pw-color-text-muted);
 }
@@ -231,353 +146,209 @@ img[src*="/icons/"][class*="h-5"] {
   color: var(--pw-color-text-secondary);
 }
 
-/* ── WorldShell (Workshop v3 mode-based architecture) ─────────────
-   Shell mode is a canonical screen/state property: rail | sidebar.
-   Sidebar mode is a structural mode, not a fixed composition.
-   Identity, companion, divider are per-screen, not mandatory. ── */
+/* ══════════════════════════════════════════════════════════════════
+   SHELL — "Calm Linear in a warm personal world"
+   
+   Layout: sidebar + content on desktop, header + content + bottom
+   bar on mobile. The sidebar is compact and warm, not an admin
+   panel rail.
+   ══════════════════════════════════════════════════════════════════ */
 
+:root {
+  --pw-shell-sidebar-w: 220px;
+  --pw-shell-header-h: 3.25rem;
+}
+
+/* ── Shell root ── */
 .pw-shell {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-:root {
-  --pw-header-height: 3.5rem;
-  --pw-edge-rail-width: 112px;
-  --pw-edge-sidebar-width: var(--pw-layout-sidebar-width, 248px);
-}
-
-/* Header: visible on tablet/mobile, hidden on desktop ≥900px. */
+/* ── Header (tablet/mobile) ── */
 .pw-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--pw-spacing-normal);
-  flex-wrap: wrap;
-  height: var(--pw-header-height);
-  padding: 0 var(--pw-spacing-loose);
-  border-bottom: 1px solid var(--pw-color-border-subtle);
+  gap: 0.5rem;
+  height: var(--pw-shell-header-h);
+  padding: 0 1rem;
   background: var(--pw-color-surface-panel);
-}
-
-.pw-brand-lockup {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pw-spacing-normal);
-  min-width: 0;
+  border-bottom: 1px solid var(--pw-color-border-subtle);
 }
 
 .pw-brand {
   font-family: var(--pw-typography-font-expressive);
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--pw-color-accent-primary);
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .pw-header-end {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--pw-spacing-compact);
+  gap: 0.25rem;
   margin-left: auto;
 }
 
-.pw-banner-nav {
+/* ── Sidebar (desktop ≥900px) ── */
+.pw-sidebar {
   display: none;
 }
 
-@media (min-width: 600px) and (max-width: 899px) {
-  .pw-header {
-    height: auto;
-    min-height: var(--pw-header-height);
-    padding: var(--pw-spacing-compact) var(--pw-spacing-loose);
-  }
-  .pw-banner-nav {
-    display: block;
-    flex: 1 1 100%;
-    overflow: hidden;
-  }
-  .pw-banner-nav .pw-nav-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: var(--pw-spacing-compact);
-    justify-content: flex-end;
-  }
-}
-
-/* Edge: hidden by default, shown on desktop ≥900px. */
-.pw-edge {
-  display: none;
-  align-self: stretch;
-}
-
-/* World identity: mark + label + name */
-.pw-world-identity {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pw-world-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--pw-color-accent-primary) 10%, transparent);
-  box-shadow: 0 0 32px color-mix(in srgb, var(--pw-color-accent-primary) 24%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.pw-world-mark img {
-  width: 24px;
-  height: 24px;
-}
-
-.pw-world-name-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pw-world-label {
-  font-size: 0.7rem;
-  color: var(--pw-color-text-secondary);
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.pw-world-name {
-  font-size: 0.85rem;
-  color: var(--pw-color-text-primary);
-  margin: 0;
-  font-weight: 500;
-}
-
-/* Companion presence: at sidebar bottom */
-.pw-companion-presence {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 0;
-}
-
-.pw-companion-portrait {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--pw-color-accent-primary) 13%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.pw-companion-portrait img {
-  width: 36px;
-  height: 36px;
-}
-
-.pw-companion-label {
-  font-size: 0.7rem;
-  color: var(--pw-color-text-muted);
-  margin: 0;
-}
-
-/* Edge assistant trigger: pushed to the bottom of the sidebar edge.
-   On desktop (≥900px) the header is hidden, so the trigger lives
-   in the edge for desktop access. */
-.pw-edge-assistant-trigger {
-  margin-top: auto;
-  padding: var(--pw-spacing-normal) 0;
-}
-
-/* Bottom bar: mobile only. */
+/* ── Bottom bar (phone ≤599px) ── */
 .pw-bottom-bar {
   display: none;
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 0; right: 0; bottom: 0;
   z-index: 40;
-  border-top: 1px solid var(--pw-color-border-subtle);
   background: var(--pw-color-surface-panel);
+  border-top: 1px solid var(--pw-color-border-subtle);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Main content: fills remaining width. No global max-width. */
+/* ── Main content ── */
 .pw-main {
   flex: 1 1 auto;
   min-width: 0;
   width: 100%;
-  padding: var(--pw-spacing-section) var(--pw-spacing-loose);
-  overflow-x: hidden;
 }
 
-/* ── Desktop ≥900px: edge + content ── */
+/* ── Desktop ≥900px ── */
 @media (min-width: 900px) {
-  .pw-shell {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-content: flex-start;
-  }
+  .pw-shell { flex-direction: row; }
+  .pw-shell > .pw-header { display: none; }
 
-  .pw-shell > .pw-header {
-    display: none;
-  }
-
-  .pw-edge {
+  .pw-sidebar {
     display: flex;
     flex-direction: column;
+    flex: 0 0 var(--pw-shell-sidebar-w);
     align-self: stretch;
+    background: var(--pw-color-surface-panel);
+    border-right: 1px solid var(--pw-color-border-subtle);
+    padding: 1.25rem 0.75rem;
+    gap: 0.5rem;
+    overflow-y: auto;
   }
 
-  /* Rail mode: 112px, brand mark + icon-over-label nav + world assistant */
-  .pw-edge[data-pw-mode="rail"] {
-    flex: 0 0 var(--pw-edge-rail-width);
-    background: var(--pw-color-shell-sidebar-bg);
-    padding: var(--pw-spacing-loose) var(--pw-spacing-compact);
-    gap: var(--pw-spacing-normal);
-  }
-
-  /* Sidebar mode: 236–272px, horizontal nav + optional identity/companion */
-  .pw-edge[data-pw-mode="sidebar"] {
-    flex: 0 0 var(--pw-edge-sidebar-width);
-    background: var(--pw-color-shell-sidebar-bg);
-    padding: var(--pw-spacing-loose) var(--pw-spacing-normal);
-    gap: var(--pw-spacing-normal);
-  }
-
-  .pw-shell > main {
+  .pw-shell > .pw-main {
     flex: 1 1 0;
     min-width: 0;
   }
 }
 
+/* ── Phone ≤599px ── */
 @media (max-width: 599px) {
-  .pw-bottom-bar {
-    display: block;
-  }
+  .pw-bottom-bar { display: block; }
 }
 
-/* ── Navigation: §14 four anchors + Places ──────────────────────
-   .pw-nav wraps anchors + Places.
-   .pw-nav-list holds the anchor links.
-   .pw-places holds the compact secondary destinations. ── */
+/* ── Sidebar components ── */
 
-.pw-nav {
+.pw-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.5rem 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.pw-sidebar-brand-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pw-color-accent-primary) 10%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pw-sidebar-brand-icon img {
+  width: 18px;
+  height: 18px;
+}
+
+.pw-sidebar-brand-name {
+  font-family: var(--pw-typography-font-expressive);
+  font-size: 0.85rem;
+  color: var(--pw-color-text-primary);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* ── Nav: four anchors ── */
+.pw-nav-anchors {
   display: flex;
   flex-direction: column;
-  gap: var(--pw-spacing-normal);
-}
-
-.pw-nav-list {
-  display: flex;
+  gap: 2px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.pw-edge .pw-nav-list,
-.pw-rail .pw-nav-list {
-  flex-direction: column;
-  gap: var(--pw-spacing-compact);
-  padding: 0;
-}
-
-.pw-bottom-bar .pw-nav-list {
+.pw-bottom-bar .pw-nav-anchors {
   flex-direction: row;
   width: 100%;
 }
 
-.pw-bottom-bar .pw-nav-list > li {
-  flex: 1 1 0;
-}
-
-/* Nav list compact variant (rail icon+label horizontal) */
-.pw-nav-list--compact {
-  gap: var(--pw-spacing-compact);
-}
+.pw-bottom-bar .pw-nav-anchors > li { flex: 1 1 0; }
 
 .pw-nav-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: var(--pw-target-minimum);
-  min-width: var(--pw-target-minimum);
-  padding: 0 12px;
+  gap: 0.6rem;
+  padding: 0 0.65rem;
   border-radius: 8px;
-  color: var(--pw-color-text-secondary);
+  color: var(--pw-color-text-muted);
   text-decoration: none;
-  font-weight: 400;
-  font-size: 13px;
-}
-
-/* Rail (≥900px): icon + label horizontal — room-like items,
-   not an icon-over-label admin rail. */
-.pw-nav-link--rail {
-  flex-direction: row;
-  gap: 12px;
-  justify-content: flex-start;
-  text-align: left;
-  font-size: 13px;
-  padding: 0 12px;
-  width: 100%;
-}
-
-.pw-bottom-bar .pw-nav-link {
-  flex-direction: column;
-  gap: 0.15rem;
-  justify-content: center;
-  font-size: 0.7rem;
-  padding: var(--pw-spacing-compact) 0.25rem;
+  font-weight: 450;
+  font-size: 0.82rem;
+  transition: background 100ms, color 100ms;
 }
 
 .pw-nav-link:hover {
   background: var(--pw-color-surface-elevated);
-  color: var(--pw-color-text-primary);
+  color: var(--pw-color-text-secondary);
 }
 
 .pw-nav-link--active {
-  background: var(--pw-color-shell-nav-active-bg);
+  background: color-mix(in srgb, var(--pw-color-accent-primary) 8%, transparent);
   color: var(--pw-color-accent-primary);
-  font-weight: 600;
+  font-weight: 550;
 }
 
-.pw-nav-icon {
-  flex: none;
+.pw-bottom-bar .pw-nav-link {
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.65rem;
+  padding: 0.4rem 0.2rem;
+  justify-content: center;
+  text-align: center;
 }
 
-/* ── Places: compact secondary destinations ───────────────────── */
+.pw-nav-icon { flex: none; }
 
-.pw-places {
-  position: relative;
-}
-
+/* ── Places trigger ── */
 .pw-places-trigger {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: var(--pw-target-minimum);
-  min-width: var(--pw-target-minimum);
-  padding: 0 12px;
+  gap: 0.6rem;
+  padding: 0 0.65rem;
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: var(--pw-color-text-secondary);
-  font-size: 13px;
-  font-weight: 400;
+  color: var(--pw-color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 450;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition: background 100ms, color 100ms;
 }
 
 .pw-places-trigger:hover {
   background: var(--pw-color-surface-elevated);
-  color: var(--pw-color-text-primary);
+  color: var(--pw-color-text-secondary);
 }
 
 .pw-places-trigger:focus-visible {
@@ -589,55 +360,35 @@ img[src*="/icons/"][class*="h-5"] {
   color: var(--pw-color-accent-primary);
 }
 
-.pw-places-trigger--compact {
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: var(--pw-spacing-compact) 0.5rem;
-  font-size: 0.7rem;
-}
+.pw-places { position: relative; }
 
-.pw-places-trigger-label {
-  line-height: 1;
-}
-
-.pw-places-trigger-icon {
-  flex: none;
-}
-
-/* Places panel: positioned below the trigger on desktop/sidebar,
-   above on mobile (bottom bar context not used there — Places is
-   in the header on phone). */
 .pw-places-panel {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   z-index: 50;
-  min-width: 200px;
+  min-width: 190px;
   background: var(--pw-color-surface-elevated);
   border: 1px solid var(--pw-color-border-subtle);
   border-radius: 12px;
-  box-shadow: var(--pw-color-warmth-panel-shadow);
-  padding: var(--pw-spacing-compact) 0;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  padding: 0.35rem 0;
   display: flex;
   flex-direction: column;
 }
 
-.pw-places-group {
-  display: flex;
-  flex-direction: column;
-}
-
+.pw-places-group { display: flex; flex-direction: column; }
 .pw-places-group + .pw-places-group {
   border-top: 1px solid var(--pw-color-border-subtle);
-  margin-top: var(--pw-spacing-compact);
-  padding-top: var(--pw-spacing-compact);
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
 }
 
 .pw-places-group-label {
   margin: 0;
-  padding: var(--pw-spacing-compact) 14px;
-  font-size: 10px;
-  font-weight: 600;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.6rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--pw-color-text-muted);
@@ -646,14 +397,12 @@ img[src*="/icons/"][class*="h-5"] {
 .pw-places-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: var(--pw-target-minimum);
-  padding: 0 14px;
-  color: var(--pw-color-text-secondary);
+  gap: 0.55rem;
+  padding: 0.45rem 0.85rem;
+  color: var(--pw-color-text-muted);
   text-decoration: none;
-  font-size: 13px;
-  font-weight: 400;
-  transition: background 100ms ease, color 100ms ease;
+  font-size: 0.8rem;
+  transition: background 80ms, color 80ms;
 }
 
 .pw-places-item:hover {
@@ -667,92 +416,78 @@ img[src*="/icons/"][class*="h-5"] {
 }
 
 .pw-places-item--active {
-  background: var(--pw-color-shell-nav-active-bg);
   color: var(--pw-color-accent-primary);
-  font-weight: 600;
 }
 
-.pw-places-item-icon {
-  flex: none;
-  opacity: 0.75;
+.pw-places-item-icon { flex: none; opacity: 0.6; }
+.pw-places-item--active .pw-places-item-icon { opacity: 1; }
+
+/* ── Sidebar bottom: companion ── */
+.pw-sidebar-companion {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.75rem 0 0.25rem;
+  opacity: 0.5;
+  transition: opacity 150ms;
 }
 
-.pw-places-item--active .pw-places-item-icon {
-  opacity: 1;
+.pw-sidebar-companion:hover { opacity: 0.8; }
+
+.pw-sidebar-companion-art {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pw-color-accent-primary) 8%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-/* State surfaces (EmptyState / ErrorState). Proportion (finding E):
-   a readable card constrained to 34rem inside the shell's 64rem
-   measure — not a full-measure banner — with the What/Why/Next copy
-   (chip → capability → knob) leading the attention order. */
+.pw-sidebar-companion-art img {
+  width: 26px;
+  height: 26px;
+}
+
+.pw-sidebar-companion-label {
+  font-size: 0.6rem;
+  color: var(--pw-color-text-muted);
+}
+
+/* ── State surfaces ── */
 .pw-state {
   display: flex;
   flex-direction: column;
-  gap: var(--pw-spacing-normal);
+  gap: 0.5rem;
   max-width: 34rem;
-  padding: var(--pw-spacing-loose) var(--pw-spacing-loose);
+  padding: 1rem;
 }
 
-/* The state heading keeps its proportion at either level: h2 beside
-   a page h1, or h1 when the state is the page's only heading
-   (headingLevel prop). Same geometry, only the tag changes. */
-.pw-state h1,
-.pw-state h2 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-/* Route h1: expressive type is the identity (T14 human gate 6). The
-   rule lives on the shell so every route h1 gets it without each
-   screen re-asserting a style prop; section headings keep the
-   interface font. */
-.pw-main h1 {
-  margin: 0;
-  font-family: var(--pw-typography-font-expressive);
-  color: var(--pw-color-text-primary);
-}
-
-.pw-state-summary {
-  margin: 0;
-  color: var(--pw-color-text-primary);
-}
-
-.pw-state-detail {
-  margin: 0;
-  color: var(--pw-color-text-secondary);
-}
-
-/* Empty-state companion (T14 human gate 4): comfort presence at the
-   COMPANION_INTEGRATION Empty-State scale (48-64px; the slot renders
-   64px). Decorative artwork only — aria-hidden, never animated. */
-.pw-state-companion {
-  display: inline-flex;
-}
-
-.pw-state-detail-inline {
-  color: var(--pw-color-text-secondary);
-}
+.pw-state h1, .pw-state h2 { font-size: 1.15rem; }
+.pw-state-summary { color: var(--pw-color-text-primary); }
+.pw-state-detail { color: var(--pw-color-text-secondary); }
 
 .pw-state-retry {
   align-self: flex-start;
-  padding: var(--pw-spacing-compact) var(--pw-spacing-loose);
+  padding: 0.4rem 1rem;
   border: 1px solid var(--pw-color-border-subtle);
   border-radius: 0.5rem;
   background: var(--pw-color-surface-elevated);
   color: var(--pw-color-text-primary);
 }
 
-.pw-state-retry:hover {
-  border-color: var(--pw-color-accent-primary);
+.pw-state-retry:hover { border-color: var(--pw-color-accent-primary); }
+
+/* ── Route h1 ── */
+.pw-main h1 {
+  font-family: var(--pw-typography-font-expressive);
+  color: var(--pw-color-accent-primary);
 }
 
-/* ── AuthLayout (T14): standalone /login + /setup frame. No app
-   navigation; centered card surface; token vars only. The auth shell
-   OWNS the page when its route matches: the authenticated AppShell
-   still mounts beside it (App renders both route groups), but on
-   /login + /setup it matches no route — so it is pushed out of the
-   viewport here (never rendered as a visible second shell, never a
-   duplicate landmark experience). ── */
+/* ── Auth layout ── */
 .pw-auth {
   min-height: 100vh;
   display: flex;
@@ -764,274 +499,18 @@ img[src*="/icons/"][class*="h-5"] {
 .pw-auth-main {
   width: 100%;
   max-width: 72rem;
-  padding: var(--pw-spacing-section) var(--pw-spacing-loose);
+  padding: 1.5rem 1rem;
 }
 
-/* Auth pages (T14): the ShellGate keeps the authenticated shell
-   structurally ABSENT on /login + /setup — no CSS hide is needed or
-   wanted (a display:none shell would still fire its data hooks).
-   This rule is belt-and-braces only: if a .pw-shell ever mounts
-   beside an auth frame, remove it from view while the structural
-   bug is fixed. */
-#root:has(> .pw-auth) > .pw-shell {
-  display: none;
-}
+#root:has(> .pw-auth) > .pw-shell { display: none; }
 
-/* ── sr-only helper (T8 primitives; visually hidden, screen-reader
-   visible) ── */
+/* ── sr-only ── */
 .sr-only {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip: rect(0,0,0,0);
   white-space: nowrap;
   border: 0;
-}
-
-/* ── Today phone greeting band (Workshop v3 frame 17:1929): the warm
-   fade — rose top edge through teal into the canvas — behind the
-   greeting + health chip, PHONE BUCKET ONLY (≤599px). Desktop keeps
-   17:481's flat canvas. Token-component rgba stops (no new hexes;
-   D0 gate). Negative margins reach the .pw-main edges; padding
-   restores the content measure. ── */
-@media (max-width: 599px) {
-  .pw-today-greeting-band {
-    margin: calc(-1 * var(--pw-spacing-section)) calc(-1 * var(--pw-spacing-loose)) 0;
-    padding: var(--pw-spacing-section) var(--pw-spacing-loose) var(--pw-spacing-loose);
-    background-image: var(--pw-color-warmth-mobile-band-gradient);
-  }
-}
-
-/* ── World identity (Workshop v3 sidebar top) ──
-   The world's name and mark at the top of the world edge.
-   Derived from canonical frames (17:1515, 17:2117, 17:2268, etc.):
-   icon/moon-star (38px) + "Project world" (11px uppercase) + world name (18px serif). */
-
-.pw-world-identity {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 4px;
-}
-
-.pw-world-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
-  background: var(--pw-color-surface-elevated);
-  box-shadow: var(--pw-color-warmth-vault-glow);
-  flex-shrink: 0;
-}
-
-.pw-world-mark img {
-  width: 21px;
-  height: 21px;
-}
-
-.pw-world-name-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.pw-world-label {
-  margin: 0;
-  font-family: var(--pw-typography-font-interface);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--pw-color-shell-world-identity-label);
-  line-height: 1.2;
-}
-
-.pw-world-name {
-  margin: 0;
-  font-family: var(--pw-typography-font-expressive);
-  font-size: 18px;
-  color: var(--pw-color-text-primary);
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── Organic sidebar edge ──
-   Workshop v3 uses an environmental edge, not a rigid admin border.
-   The gradient creates a soft fade at the sidebar boundary. */
-
-.pw-sidebar-edge {
-  width: 1px;
-  align-self: stretch;
-  background: var(--pw-color-shell-sidebar-organic-edge);
-  flex-shrink: 0;
-}
-
-/* ── Companion progressive disclosure (Workshop v3 frame 17:4565) ──
-   Three states: rest (quietly here), focus (popover), open (drawer).
-   The rail companion sits at the bottom of the sidebar rail. ── */
-
-.pw-rail-companion {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: auto;
-  padding: var(--pw-spacing-normal) 0;
-  position: relative;
-}
-
-/* Rest state: "✦ quietly here" — minimal sidebar presence.
-   48px artwork, muted label, opacity 0.62 (17:4581-4585). */
-.pw-companion-rest {
-  display: inline-flex;
-  align-items: center;
-}
-
-.pw-companion-rest-trigger {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--pw-spacing-compact);
-  padding: var(--pw-spacing-compact);
-  border-radius: 14px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  opacity: 0.62;
-  min-height: var(--pw-target-minimum);
-  min-width: var(--pw-target-minimum);
-  transition: opacity 150ms ease;
-  color: var(--pw-color-text-muted);
-}
-
-.pw-companion-rest-trigger:hover {
-  opacity: 1;
-  background: var(--pw-color-warmth-teal-reassure);
-}
-
-.pw-companion-rest-trigger:focus-visible {
-  opacity: 1;
-  outline: var(--pw-focus-ring);
-  outline-offset: 2px;
-}
-
-.pw-companion-rest-label {
-  font-size: 10px;
-  line-height: 1.2;
-  white-space: nowrap;
-  color: var(--pw-color-text-muted);
-}
-
-/* Focus state popover (17:4606): non-modal, anchored to rail companion.
-   Uses surface-elevated background and accent-secondary border per
-   design tokens. Shadow from warmth-panel-shadow token family. */
-
-.pw-companion-popover {
-  position: absolute;
-  bottom: 12px;
-  left: calc(100% + 4px);
-  z-index: 50;
-  width: 286px;
-  background: var(--pw-color-surface-elevated);
-  border: 1px solid var(--pw-color-accent-secondary);
-  border-radius: 18px 22px 18px 12px;
-  box-shadow: var(--pw-color-warmth-panel-shadow);
-  padding: var(--pw-spacing-loose);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.pw-companion-popover-pointer {
-  position: absolute;
-  left: -10px;
-  bottom: 23px;
-  width: 18px;
-  height: 18px;
-  transform: rotate(90deg);
-  /* CSS triangle pointer — teal accent */
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  background: var(--pw-color-accent-secondary);
-}
-
-.pw-companion-popover-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.pw-companion-popover-intro {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.pw-companion-popover-artwork {
-  flex: none;
-  display: inline-flex;
-}
-
-.pw-companion-popover-status {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.pw-companion-popover-greeting {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--pw-color-text-primary);
-}
-
-.pw-companion-popover-spark {
-  color: var(--pw-color-accent-secondary);
-}
-
-.pw-companion-popover-voice {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--pw-color-text-secondary);
-}
-
-.pw-companion-popover-action {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 46px;
-  width: 100%;
-  border: none;
-  border-radius: 14px;
-  background: var(--pw-color-accent-primary);
-  color: var(--pw-color-surface-canvas);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  min-height: var(--pw-target-minimum);
-}
-
-.pw-companion-popover-action:hover {
-  opacity: 0.9;
-}
-
-.pw-companion-popover-action:focus-visible {
-  outline: var(--pw-focus-ring);
-  outline-offset: 2px;
-}
-
-.pw-companion-popover-hint {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--pw-color-text-muted);
 }
