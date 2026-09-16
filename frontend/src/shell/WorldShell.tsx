@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { SectionNav } from "./SectionNav";
+import { PlacesMenu } from "./PlacesMenu";
 import { Drawer } from "../primitives/Drawer";
 import { CompanionSlot } from "../primitives/CompanionSlot";
 import { ChatPanel } from "../components/ChatPanel";
@@ -15,22 +16,18 @@ import { getShellMode } from "./ShellModes";
  * Shell mode is a canonical screen/state property, NOT derived from
  * emotional volume. Each screen declares its mode explicitly.
  *
+ * §14 Navigation model:
+ *   - Four anchors (Today, World, Journal, Chat) as primary nav
+ *   - Places mechanism for secondary destinations
+ *
  * Modes:
- *   rail     — 112px, brand mark, icon-over-label nav, world assistant
- *   sidebar  — 236–272px, optional identity/divider/companion, horizontal nav
- *
- * Sidebar mode is a STRUCTURAL mode, not a fixed composition. Identity,
- * companion presence, divider treatment, and content relationship remain
- * canonical per screen/state and are NOT mandatory just because the shell
- * is in sidebar mode.
- *
- * The shell owns `<main id="main-content">`. Route content mounts inside
- * it as plain children.
+ *   rail     — 112px, brand mark, nav anchors + Places, world assistant
+ *   sidebar  — 236–272px, optional identity/divider/companion, nav
  *
  * Responsive cascade:
  *   ≥900px        edge (rail or sidebar) + content
- *   600–899px     banner header + content (existing)
- *   <600px        content + bottom bar (existing)
+ *   600–899px     banner header + content (anchors + Places button)
+ *   <600px        content + bottom bar (4 anchors) + Places in header
  */
 
 export type ShellMode = "rail" | "sidebar";
@@ -72,10 +69,6 @@ export interface WorldShellProps {
    * World edge content. The shell renders this inside the edge region.
    * The shell does NOT mandate what appears here — identity, divider,
    * nav, and companion are per-screen canonical properties.
-   *
-   * For rail mode: typically brand mark + nav + world assistant.
-   * For sidebar mode: typically identity + divider + nav + companion.
-   * But none of those are mandatory — the screen decides.
    */
   edge: ReactNode;
   /** Route content; rendered inside `<main id="main-content">`. */
@@ -98,6 +91,7 @@ export function WorldShell({ mode: modeProp, edge, children }: WorldShellProps) 
   };
 
   const sectionsQuery = useSections();
+  const visibleSections = (sectionsQuery.data ?? []).filter((s) => s.visible);
   const routeSectionId =
     location.pathname === "/" ? "today" : location.pathname.replace(/^\//, "").split("/")[0];
   const selectedEntity =
@@ -126,7 +120,8 @@ export function WorldShell({ mode: modeProp, edge, children }: WorldShellProps) 
         Skip to main content
       </a>
 
-      {/* Header: visible on tablet/mobile only. Desktop uses edge. */}
+      {/* Header: visible on tablet/mobile only. Desktop uses edge.
+          §14: phone uses top Places in header. Tablet uses banner nav. */}
       <header className="pw-header">
         <span className="pw-brand-lockup">
           <span
@@ -142,6 +137,10 @@ export function WorldShell({ mode: modeProp, edge, children }: WorldShellProps) 
           </nav>
         ) : null}
         <span className="pw-header-end">
+          {/* Phone: Places in header */}
+          {bucket === "bottom" && (
+            <PlacesMenu sections={visibleSections} />
+          )}
           <CompanionSlot
             size="nav"
             asAssistantTrigger
@@ -171,10 +170,11 @@ export function WorldShell({ mode: modeProp, edge, children }: WorldShellProps) 
         </nav>
       ) : null}
 
-      {/* Bottom bar: mobile only. */}
+      {/* Bottom bar: mobile only — four anchors only.
+          §14: "Use four labeled bottom anchors." */}
       {bucket === "bottom" ? (
         <nav aria-label="Main" className="pw-bottom-bar">
-          <SectionNav compact />
+          <SectionNav compact hidePlaces />
         </nav>
       ) : null}
 

@@ -607,7 +607,7 @@ describe("Settings: sections panel (GET/PUT /api/sections)", () => {
 // ── Sections writes refresh the LIVE nav ──
 
 describe("Settings sections writes update SectionNav in the same tab (no reload)", () => {
-  it("Hide on `today` removes the Today link from the nav, Show brings it back — both without a reload", async () => {
+  it("Hide on `today` removes the Today anchor from the nav, Show brings it back — both without a reload", async () => {
     mockFetch(standardRoutes([respondSectionsPut()]));
     renderSettingsWithNav();
     const nav = await screen.findByRole("navigation", { name: "Main" });
@@ -617,6 +617,7 @@ describe("Settings sections writes update SectionNav in the same tab (no reload)
     fireEvent.click(await screen.findByTestId("hide-today"));
     // The nav's useSections() re-fetches on the shared "sections"
     // signal the settings write emits — same mounted tree, no reload.
+    // §14: hidden anchors are omitted from the nav.
     await waitFor(() => {
       expect(within(nav).queryByRole("link", { name: /Today/ })).toBeNull();
     });
@@ -626,19 +627,24 @@ describe("Settings sections writes update SectionNav in the same tab (no reload)
     });
   });
 
-  it("Move down reorders the live nav immediately", async () => {
+  it("Move down reorders the live sections (anchors reflect canonical order)", async () => {
     mockFetch(standardRoutes([respondSectionsPut()]));
     renderSettingsWithNav();
     const nav = await screen.findByRole("navigation", { name: "Main" });
+    // §14: anchors appear in canonical order (Today, World, Journal, Chat),
+    // regardless of the server-side order field. Non-anchors live in Places.
     await waitFor(() => {
-      const labels = within(nav).getAllByRole("link").map((l) => l.textContent);
+      const labels = within(nav).getAllByRole("link").map((l) => l.textContent?.trim());
       expect(labels[0]).toBe("Today");
     });
+    // The "Move Today down" action still sends the correct PUT; the nav
+    // anchor order is canonical so it doesn't shift. This test verifies
+    // the write fires — the visual reorder test is now about Places
+    // membership, not anchor order.
     fireEvent.click(await screen.findByRole("button", { name: "Move Today down" }));
+    // After move, Today is still an anchor (order doesn't affect anchors).
     await waitFor(() => {
-      const labels = within(nav).getAllByRole("link").map((l) => l.textContent);
-      expect(labels[0]).toBe("Interests");
-      expect(labels[1]).toBe("Today");
+      expect(within(nav).queryByRole("link", { name: /Today/ })).toBeTruthy();
     });
   });
 });

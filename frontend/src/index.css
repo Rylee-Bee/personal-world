@@ -464,7 +464,17 @@ img[src*="/icons/"][class*="h-5"] {
   }
 }
 
-/* Nav list + links: one structure, three placements */
+/* ── Navigation: §14 four anchors + Places ──────────────────────
+   .pw-nav wraps anchors + Places.
+   .pw-nav-list holds the anchor links.
+   .pw-places holds the compact secondary destinations. ── */
+
+.pw-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pw-spacing-normal);
+}
+
 .pw-nav-list {
   display: flex;
   list-style: none;
@@ -486,6 +496,11 @@ img[src*="/icons/"][class*="h-5"] {
 
 .pw-bottom-bar .pw-nav-list > li {
   flex: 1 1 0;
+}
+
+/* Nav list compact variant (rail icon+label horizontal) */
+.pw-nav-list--compact {
+  gap: var(--pw-spacing-compact);
 }
 
 .pw-nav-link {
@@ -535,6 +550,135 @@ img[src*="/icons/"][class*="h-5"] {
 
 .pw-nav-icon {
   flex: none;
+}
+
+/* ── Places: compact secondary destinations ───────────────────── */
+
+.pw-places {
+  position: relative;
+}
+
+.pw-places-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--pw-target-minimum);
+  min-width: var(--pw-target-minimum);
+  padding: 0 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--pw-color-text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.pw-places-trigger:hover {
+  background: var(--pw-color-surface-elevated);
+  color: var(--pw-color-text-primary);
+}
+
+.pw-places-trigger:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: 2px;
+}
+
+.pw-places-trigger--active {
+  color: var(--pw-color-accent-primary);
+}
+
+.pw-places-trigger--compact {
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--pw-spacing-compact) 0.5rem;
+  font-size: 0.7rem;
+}
+
+.pw-places-trigger-label {
+  line-height: 1;
+}
+
+.pw-places-trigger-icon {
+  flex: none;
+}
+
+/* Places panel: positioned below the trigger on desktop/sidebar,
+   above on mobile (bottom bar context not used there — Places is
+   in the header on phone). */
+.pw-places-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  min-width: 200px;
+  background: var(--pw-color-surface-elevated);
+  border: 1px solid var(--pw-color-border-subtle);
+  border-radius: 12px;
+  box-shadow: var(--pw-color-warmth-panel-shadow);
+  padding: var(--pw-spacing-compact) 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pw-places-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.pw-places-group + .pw-places-group {
+  border-top: 1px solid var(--pw-color-border-subtle);
+  margin-top: var(--pw-spacing-compact);
+  padding-top: var(--pw-spacing-compact);
+}
+
+.pw-places-group-label {
+  margin: 0;
+  padding: var(--pw-spacing-compact) 14px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pw-color-text-muted);
+}
+
+.pw-places-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--pw-target-minimum);
+  padding: 0 14px;
+  color: var(--pw-color-text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 400;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.pw-places-item:hover {
+  background: var(--pw-color-surface-raised);
+  color: var(--pw-color-text-primary);
+}
+
+.pw-places-item:focus-visible {
+  outline: var(--pw-focus-ring);
+  outline-offset: -2px;
+}
+
+.pw-places-item--active {
+  background: var(--pw-color-shell-nav-active-bg);
+  color: var(--pw-color-accent-primary);
+  font-weight: 600;
+}
+
+.pw-places-item-icon {
+  flex: none;
+  opacity: 0.75;
+}
+
+.pw-places-item--active .pw-places-item-icon {
+  opacity: 1;
 }
 
 /* State surfaces (EmptyState / ErrorState). Proportion (finding E):
