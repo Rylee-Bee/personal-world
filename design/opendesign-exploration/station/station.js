@@ -10,7 +10,7 @@
 
    Injected chrome (same place on every page, always reachable):
      - companion chip  (bottom-right) — a themed chat companion that travels with you
-     - "I need help"   (bottom-left)  — the lowest-bandwidth escape hatch
+     - "Hail Assistant" (topbar)     — the lowest-bandwidth escape hatch
 
    Compact density / low demand never drop a hit area below 44px, never drop
    contrast below WCAG AA, never remove a status text label, never reorder IA.
@@ -172,7 +172,7 @@
       var kind = b.getAttribute('data-help');
       if (kind === 'needs') { write('demand', 'low'); apply(); close(); }
       if (kind === 'quiet') { write('demand', 'low'); write('motion', 'off'); apply(); close(); }
-      if (kind === 'restore') { write('demand', ''); write('motion', ''); apply(); close(); }
+      if (kind === 'restore') { write('demand', ''); apply(); close(); }   /* demand only — motion preference is never silently flipped back on */
       if (kind === 'nothing') { close(); }
       if (kind === 'talk') { close(); }
     });

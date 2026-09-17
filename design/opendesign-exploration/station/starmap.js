@@ -24,89 +24,89 @@
 
   var DEFAULT_TREE = {
     id: 'world', name: 'Systems Map', kind: 'galaxy',
-    activity: 'specimen: nothing needs you; routine work is batched behind the glass',
+    activity: 'nothing needs you; routine work is batched behind the glass',
     provenance: 'personal-world status',
-    rec: 'specimen: start anywhere, or nowhere. Both are valid.',
+    rec: 'start anywhere, or nowhere. Both are valid.',
     children: [
       { id: 'interests', name: 'Interests', color: 'ai', egg: 'ratatoskr', links: ['media', 'projects'],
-        activity: 'specimen: last new thread 3 days ago', provenance: 'API-051 · API-016',
-        rec: 'specimen: the World thinks "local-first" is a value, not a phase',
+        activity: 'last new thread 3 days ago', provenance: 'API-051 · API-016',
+        rec: 'the World thinks "local-first" is a value, not a phase',
         children: [
           { id: 'ai', name: 'AI & local-first', color: 'ai', links: ['reading'],
-            activity: 'specimen: 4 new items this month', provenance: 'API-051',
-            rec: 'specimen: two unread sources match this closely',
-            objects: [ O('[ an item ]', 'source · API-052', 'when'), O('[ an item ]', 'source · API-052', 'when') ] },
+            activity: '4 new items this month', provenance: 'API-051',
+            rec: 'two unread sources match this closely',
+            objects: [ O('Nothing here yet', 'real items arrive when a discovery source is connected', '') ] },
           { id: 'music', name: 'Music', color: 'music', links: ['media'],
-            activity: 'specimen: an album you returned to 4x', provenance: 'API-051 · API-054',
-            rec: 'specimen: adjacent artists you have not heard',
-            objects: [ O('[ an album ]', 'listening history', 'when') ] },
+            activity: 'an album you returned to 4x', provenance: 'API-051 · API-054',
+            rec: 'adjacent artists you have not heard',
+            objects: [ O('Nothing here yet', 'your listening history arrives when a music source is connected', '') ] },
           { id: 'reading', name: 'Reading', color: 'reading', links: ['ai'],
-            activity: 'specimen: the seed of most of your projects', provenance: 'API-051',
-            rec: 'specimen: one long-read held for you',
-            objects: [ O('[ an article ]', 'source', 'when') ] }
+            activity: 'the seed of most of your projects', provenance: 'API-051',
+            rec: 'one long-read held for you',
+            objects: [ O('Nothing here yet', 'saved reads arrive when a reading source is connected', '') ] }
         ]},
       { id: 'projects', name: 'Projects', color: 'build', egg: 'robot', links: ['systems', 'journal'],
-        activity: 'specimen: one repo with local work', provenance: 'API-079 · API-033',
-        rec: 'specimen: nothing urgent; a dirty tree is information',
+        activity: 'one repo with local work', provenance: 'API-079 · API-033',
+        rec: 'nothing urgent; a dirty tree is information',
         children: [
           { id: 'pw', name: 'personal-world', color: 'build', links: ['systems'],
-            activity: 'specimen: ahead of origin', provenance: 'API-033',
-            rec: 'specimen: review diff, then approve a refresh',
-            objects: [ O('[ a commit / branch ]', 'source control', 'when') ] },
+            activity: 'ahead of origin', provenance: 'API-033',
+            rec: 'review diff, then approve a refresh',
+            objects: [ O('Nothing charted yet', 'commits and branches arrive from source-control status', '') ] },
           { id: 'tools', name: 'Tools & models', color: 'build', links: [],
-            activity: 'specimen: quiet', provenance: 'API-079', rec: '',
-            objects: [ O('[ a tool ]', 'estate', 'when') ] }
+            activity: 'quiet', provenance: 'API-079', rec: '',
+            objects: [ O('Nothing charted yet', 'tools arrive from the estate inventory', '') ] }
         ]},
       { id: 'journal', name: 'Journal', color: 'reading', links: ['people'],
-        activity: 'specimen: you stopped mid-thought 4 days ago', provenance: 'API-005',
-        rec: 'specimen: pick it up, or leave it; both are fine',
+        activity: 'you stopped mid-thought 4 days ago', provenance: 'API-005',
+        rec: 'pick it up, or leave it; both are fine',
         children: [
           { id: 'entries', name: 'Entries', color: 'reading', links: [],
-            activity: 'specimen: your words, as you wrote them', provenance: 'API-005', rec: '',
-            objects: [ O('[ an entry ]', 'journal', 'when') ] },
+            activity: 'your words, as you wrote them', provenance: 'API-005', rec: '',
+            objects: [ O('Nothing charted yet', 'your written entries arrive from the journal', '') ] },
           { id: 'running', name: 'Running threads', color: 'reading', links: ['interests'],
-            activity: 'specimen: where you left off', provenance: 'API-005 · API-016', rec: '',
-            objects: [ O('[ a thread ]', 'journal + memory', 'when') ] }
+            activity: 'where you left off', provenance: 'API-005 · API-016', rec: '',
+            objects: [ O('Nothing charted yet', 'running threads arrive from journal and memory', '') ] }
         ]},
       { id: 'people', name: 'People', color: 'creative', egg: 'mermaid', links: ['journal'],
-        activity: 'specimen: companions present; humans as you add them', provenance: 'companion registry',
-        rec: 'specimen: nobody needs you right now',
+        activity: 'companions present; humans as you add them', provenance: 'companion registry',
+        rec: 'nobody needs you right now',
         children: [
           { id: 'companions', name: 'Companions', color: 'creative', links: [],
-            activity: 'specimen: your chosen companion travels with you', provenance: 'companion registry', rec: '',
+            activity: 'your chosen companion travels with you', provenance: 'companion registry', rec: '',
             objects: [ O('Mermaid', 'chat companion', 'now'), O('Ratatoskr', 'chat companion', 'recent'),
                        O('Robot', 'chat companion', 'recent'), O('Burrito Journalism', 'chat companion', 'sometimes') ] },
           { id: 'humans', name: 'Humans', color: 'creative', links: [],
-            activity: 'specimen: empty until you say otherwise', provenance: 'API-014', rec: '',
+            activity: 'empty until you say otherwise', provenance: 'API-014', rec: '',
             objects: [] }
         ]},
       { id: 'media', name: 'Media', color: 'music', egg: 'burrito', links: ['interests'],
-        activity: 'specimen: no adapters connected — unknown, not broken', provenance: 'API-053..057',
-        rec: 'specimen: connect a source and this fills with your library',
+        activity: 'no adapters connected — unknown, not broken', provenance: 'API-053..057',
+        rec: 'connect a source and this fills with your library',
         children: [
           { id: 'albums', name: 'Albums', color: 'music', links: ['music'],
-            activity: 'specimen: —', provenance: 'API-054', rec: '', objects: [] },
+            activity: '—', provenance: 'API-054', rec: '', objects: [] },
           { id: 'watching', name: 'Watching', color: 'music', links: [],
-            activity: 'specimen: —', provenance: 'API-054', rec: '', objects: [] }
+            activity: '—', provenance: 'API-054', rec: '', objects: [] }
         ]},
       { id: 'systems', name: 'Systems', color: 'world', links: ['projects'],
-        activity: 'specimen: routine work batched, nothing needs you', provenance: 'API-020 · API-058',
-        rec: 'specimen: health on demand, never loud',
+        activity: 'routine work batched, nothing needs you', provenance: 'API-020 · API-058',
+        rec: 'health on demand, never loud',
         children: [
           { id: 'capabilities', name: 'Capabilities', color: 'world', links: ['providers'],
-            activity: 'specimen: mixed states, all honest', provenance: 'API-020', rec: '',
+            activity: 'mixed states, all honest', provenance: 'API-020', rec: '',
             objects: [ O('source_control', 'healthy', 'now'), O('discovery', 'not set up yet', 'now'),
                        O('media', 'not sure yet', 'now') ] },
           { id: 'providers', name: 'Providers', color: 'world', links: [],
-            activity: 'specimen: machinery; replaceable', provenance: 'API-037..048', rec: '',
-            objects: [ O('[ a provider ]', 'lab', 'when') ] }
+            activity: 'machinery; replaceable', provenance: 'API-037..048', rec: '',
+            objects: [ O('Nothing charted yet', 'providers arrive from the lab inventory', '') ] }
         ]},
       { id: 'places', name: 'Places', color: 'reading', links: [],
-        activity: 'specimen: this Station, and anywhere you add', provenance: 'this Station',
-        rec: 'specimen: places are presences; they speak up when needed',
+        activity: 'this Station, and anywhere you add', provenance: 'this Station',
+        rec: 'places are presences; they speak up when needed',
         children: [
           { id: 'decks', name: 'Decks', color: 'reading', links: [],
-            activity: 'specimen: quiet rooms you can duck into', provenance: 'this Station', rec: '',
+            activity: 'quiet rooms you can duck into', provenance: 'this Station', rec: '',
             objects: [ O('Observation Deck', 'you are here', 'now'), O('Making', 'workshop.html', ''),
                        O('Under the hood', 'engine.html', ''), O('Care', 'medbay.html', '') ] }
         ]}
@@ -328,6 +328,7 @@
       .map(function (k) { return esc(k.name) + ' (' + ATTN[k.id] + ')'; }).join(', ');
     if (info) {
       info.innerHTML =
+        '<div><span class="il">Map note</span> illustrative specimen data — real sources fill this in as they connect</div>' +
         '<div><span class="il">Recently</span> ' + esc(current.activity || 'quiet') + '</div>' +
         '<div><span class="il">From</span> ' + esc(current.provenance || '—') + '</div>' +
         (current.rec ? '<div><span class="il">Suggests</span> ' + esc(current.rec) + '</div>' : '') +

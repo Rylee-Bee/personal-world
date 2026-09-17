@@ -256,7 +256,7 @@
           <button type="button" data-demand-set="normal" aria-pressed="true">Normal</button>
           <button type="button" data-demand-set="low" aria-pressed="false">Low</button>
         </div>
-        <span class="ph">keeps your world intact, lowers what it asks · also under "I need help"</span>
+        <span class="ph">keeps your world intact, lowers what it asks · also under "Hail Assistant"</span>
       </div>
 
       <div class="section-chat" style="--cc:var(--cream)">
@@ -291,10 +291,12 @@
       <h2 id="h-data">Your data</h2>
       <p class="set-desc">
         Everything is stored on this device. Nothing leaves unless you say so.
-        Clear individual sections or start fresh.
+        Clear individual sections or start fresh. These clear what is saved in
+        your browser; the journal kept on the server is managed in the journal
+        itself, not here.
       </p>
       <div class="data-actions">
-        <button class="btn-danger" data-clear="journal">Clear journal entries</button>
+        <button class="btn-danger" data-clear="journal">Clear device journal (local notes only)</button>
         <button class="btn-danger" data-clear="interests">Clear interests</button>
         <button class="btn-danger" data-clear="chat">Clear chat log</button>
         <button class="btn-danger" data-clear="positions">Reset planet positions</button>
@@ -394,7 +396,7 @@
     btn.addEventListener('click', function() {
       var target = btn.getAttribute('data-clear');
       var labels = {
-        journal: 'journal entries',
+        journal: 'your device-side journal notes (server journal is not touched)',
         interests: 'interests',
         chat: 'chat log',
         positions: 'planet positions',
