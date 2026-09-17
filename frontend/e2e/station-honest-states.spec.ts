@@ -100,9 +100,11 @@ test.describe("quiet AND verified (no data ≠ unknown ≠ fake)", () => {
     await expect(quiet.locator(".rd-chip")).toHaveAttribute("data-status", "healthy");
     await expect(quiet).toContainText("Nothing needs you right now");
     await expect(quiet).toContainText("verified, not assumed");
-    // asking less hides nothing operational: the way back is right there
+    // asking less hides nothing operational: the way back is right there,
+    // and the FULL needs-you section is the duplicate — hidden (UX-09)
     await expect(page.locator(".quiet-only .beam")).toBeVisible();
     await expect(page.locator("#h-needs")).toBeAttached();
+    await expect(page.locator("section.needs-full")).toBeHidden();
   });
 });
 
