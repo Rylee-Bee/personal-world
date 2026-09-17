@@ -108,7 +108,7 @@
       '<span class="cv-state-label">empty</span>' +
       '<h3>Nothing new right now</h3>' +
       '<p>' + (allDismissed
-        ? 'You dismissed every sample on this page. In the real product, dismissed items stay away — the feed never nags or refills with manufactured urgency. Quiet is a valid state.'
+        ? 'You dismissed every sample on this page. This removes the sample from this page only. It will return after a reload. Quiet is a valid state.'
         : 'No discoveries are waiting. The feed stays quiet until something genuinely matches what you follow — it never refills just to have something to show.') +
       '</p>' +
     '</div>';
