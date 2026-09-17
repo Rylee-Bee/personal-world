@@ -8,6 +8,23 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
+## 2026-09-16 — Station is the product UI; the repo is single-branch `main`
+
+The current direction is the **Station** UI (served same-origin at
+`/station/` from `design/opendesign-exploration/station/`). The React app
+is migration-only at `/legacy-react`.
+
+The repository is now a single branch, `main` (`28a948c` == `origin/main`).
+Every other branch was retired and archived as an annotated tag
+`archive/2026-09-16/<branch>` on origin, and its linked worktree removed:
+`feat/fleet-ferrier`, `feat/worlds-next-ui`, `redesign/prototype-v1`,
+`feat/workshop-v3-final-convergence`, `wip/today-workshop-v3-frames`.
+Superseded prototype/exploration files that existed only in the working
+tree were archived out of the repo (a local backup was kept).
+
+Sections below are historical. Where one disagrees with this section, this
+section and the live code win.
+
 > **2026-09-12, UAT round 1 PASSED — T15 cutover landed.** The React
 > frontend is the only product UI (legacy deleted, no fallback), the
 > no-immutable revalidation contract is deployed, and the standing
@@ -43,9 +60,10 @@ rendered** by the current screen (tracked in
 first Figma-faithful build (`5837c99`, a 1535-line Today with Bad Day +
 Question + Mobile) was replaced during the integration pass (`4b7ec55` /
 `565dcd1`, "wire all screens to real API") because it was not driven by
-real data. An unfinished attempt to re-add Bad Day + Question is preserved
-on branch `wip/today-workshop-v3-frames` (unmerged; it counts
-dirty/ahead/behind local git work as "attention"). This is why
+real data. An unfinished attempt to re-add Bad Day + Question is archived
+as annotated tag `archive/2026-09-16/wip/today-workshop-v3-frames` (the
+branch was retired on 2026-09-16; the repo is single-branch `main` now, so
+it no longer counts as dirty/ahead/behind local git work). This is why
 `ROADMAP.md` no longer says "16/16 implemented".
 
 **Capability health:** Today classifies capabilities by the canonical

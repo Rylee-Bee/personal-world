@@ -49,8 +49,9 @@ by the current finish line:
   (17:5763) — no frame reference in the frontend (UNKNOWN whether the
   existing Journal screen covers it).
   An unfinished attempt at Bad Day/Question plus screen-level shell-mode
-  switching is preserved on branch `wip/today-workshop-v3-frames`
-  (not merged; it counts dirty/ahead/behind local git work as attention).
+  switching is archived as annotated tag
+  `archive/2026-09-16/wip/today-workshop-v3-frames` (branch retired
+  2026-09-16; the repo is single-branch `main`).
   [issue #37](https://github.com/Rylee-Bee/personal-world/issues/37) was
   CLOSED at the 16/16 engineering-gate reading and does not track the
   current gap. Owner reservations remain open: companion presence scale,
