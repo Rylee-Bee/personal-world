@@ -62,7 +62,7 @@ Phase 5  shareable & lasting        ░░░░░░░░░░  ⏸️ (late
 - [x] stopped the stale dev servers cluttering your box (5173 / 5180 / 9123)
 - [x] dev auth bypass exists and is **loopback-only** (never trusts the LAN)
 - [🛠] rebuild + verify `/station/` served by the backend on your Bazzite box
-- [ ] retire the old `:8090` static server once `/station/` is verified
+- [x] retired the old `:8090` static server; `/station/` is served same-origin by the backend (`scripts/dev.sh up`)
 - [ ] commit everyone's verified work (play-nice; waiting for the last agent to land)
 - [ ] clean first-run test on a fresh box (compose up → wizard → signed in → map)
 
