@@ -263,6 +263,7 @@
     var out = [];
     for (var i = 0; i < all.length; i++) {
       var el = all[i];
+      if (el.getAttribute('tabindex') === '-1') { continue; }   // skip programmatic-only (parity with onboarding.js)
       if (el.offsetWidth || el.offsetHeight || el.getClientRects().length) { out.push(el); }
     }
     return out;

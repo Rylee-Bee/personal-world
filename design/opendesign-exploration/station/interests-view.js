@@ -177,7 +177,7 @@
           '(provenance), keep/dismiss<br>' +
           'real bindings: <strong>API-051</strong> (interests — the graph of what you follow, ' +
           'drives matching) · <strong>API-052</strong> (discovery — the feed items themselves); ' +
-          'keep writes back through API-051/052, dismiss records a durable negative signal<br>' +
+          'the target design writes keep/dismiss back through API-051/052 — not in this specimen<br>' +
           'states: populated · empty · <code>not_configured</code> (no sources connected — quiet, ' +
           'never faked)<br>' +
           'current data: SPECIMEN — frontend-only, no backend exists; keep/dismiss mutate this ' +

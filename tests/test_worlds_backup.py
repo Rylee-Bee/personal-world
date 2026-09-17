@@ -374,7 +374,9 @@ def test_restore_refuses_traversal_and_ephemeral_members(tmp_path):
     assert not (data2 / "sessions.json").exists()
 
 
-# ── API registration seam (routes are NOT wired into api.py yet) ─────
+# ── API registration seam (the /api/worlds/* routes ARE wired into
+# api.py, gated with require_step_up — the tests below prove it against
+# the real create_app) ─────────────────────────────────────────────────
 
 
 def test_register_refuses_without_step_up_gate():
@@ -451,3 +453,44 @@ def test_registered_routes_roundtrip_behind_stub_gate(instance, tmp_path):
         },
     )
     assert bad.status_code == 403
+
+
+def test_real_app_refuses_and_serves_backup(tmp_path, monkeypatch):
+    """Against the REAL create_app (not the stub-gate copy): the route
+    is wired, refuses unauthenticated calls, and answers an honest
+    envelope once the token credential is presented."""
+    from fastapi.testclient import TestClient
+
+    from personal_world.api import create_app
+    from personal_world.init import init_world
+
+    token = "instancetoken-do-not-leak-1c2d"  # pw-safety: synthetic
+    monkeypatch.setenv("PW_API_TOKEN", token)
+    monkeypatch.setenv("PW_IDENTITY_MODE", "single")
+    monkeypatch.setenv("PW_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("PW_CONFIG_DIR", str(tmp_path))
+    init_world(tmp_path, tmp_path)
+    (tmp_path / "setup-complete").write_text("ok")
+    client = TestClient(create_app(tmp_path, tmp_path))
+    auth = {"Authorization": f"Bearer {token}"}
+
+    # No credential → refused (401), never a silent success.
+    refused = client.post(
+        "/api/worlds/backup",
+        json={"passphrase": PASSPHRASE, "include_vault": False},
+    )
+    assert refused.status_code == 401, refused.text
+
+    # With the instance token the loopback test peer satisfies the
+    # step-up gate (true-loopback local-owner exception) and the route
+    # answers an honest non-500 envelope.
+    resp = client.post(
+        "/api/worlds/backup",
+        headers=auth,
+        json={"passphrase": PASSPHRASE, "include_vault": False},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["download"].startswith("/api/worlds/backup/download/")
+    assert body["one_time"] is True
+    assert body["included"] is not None

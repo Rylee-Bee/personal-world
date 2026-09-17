@@ -41,8 +41,12 @@ The core rejects protected requests with no configured token and compares suppli
 tokens in constant time. Forwarded identity headers do not bypass this check.
 
 The browser also has `/setup-wizard`, `/setup`, and `/login` entry points.
-First-run setup and `/api/chat/test` are currently public routes; protected-route
-authentication does not cover them. See [Architecture](ARCHITECTURE.md) for the
+First-run setup (`POST /api/setup`) is unauthenticated only until the
+setup-complete marker exists — it is also loopback-only (a non-loopback
+peer gets 403) and rejects repeats with 409 once the marker exists.
+`POST /api/chat/test` requires authentication (bearer, browser session,
+or the opt-in loopback dev bypass); it has no elevation gate.
+See [Architecture](ARCHITECTURE.md) for the
 route inventory and the limits of the current extra write check called step-up.
 It is not verified SSO/MFA re-authentication.
 

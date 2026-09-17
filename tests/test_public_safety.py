@@ -108,8 +108,7 @@ def test_example_config_stays_documentation_safe():
     blob = json.dumps(payload)
     for marker in PRIVATE_IP_PARTS + FORBIDDEN_HOSTS:
         assert marker not in blob, (
-            f"connections.example.json must use example.invalid hosts, "
-            f"found '{marker}'"
+            f"connections.example.json must use example.invalid hosts, found '{marker}'"
         )
 
 
@@ -132,6 +131,63 @@ def test_shipped_files_carry_no_private_endpoints(path):
         assert marker not in text, (
             f"{path.name} carries private deployment marker '{marker}'"
         )
+
+
+# Concrete RFC1918 literal IPs only (private halves, all four octets);
+# public RFC5737 documentation ranges and loopback are untouched. This
+# regex covers the deployment-topology scan of tracked .project notes
+# below; it is deliberately narrower than PRIVATE_IP_PARTS so it never
+# fires on prose like "10." or a redacted fragment.
+
+
+def test_project_notes_carry_no_private_endpoints():
+    """The tracked .project notes are planning/history documents a
+    stranger's clone ships, so they carry the same topology rule as
+    the bootstrap files above. Checks ONLY concrete RFC1918 literal
+    IPs and the FORBIDDEN_HOSTS regression list; findings are named
+    but never echo surrounding text."""
+    names = []
+    import re as _re
+
+    rfc1918 = _re.compile(
+        r"\b(?:"
+        r"192\.168\.\d{1,3}\.\d{1,3}|"
+        r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+        r"172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
+        r")\b"
+    )
+    try:
+        out = subprocess.run(
+            ["git", "ls-files", "-z", ".project"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout
+        names = [n for n in out.decode().split("\0") if n.endswith(".md")]
+    except Exception:  # no git: the whole tracked-text scan already fell back
+        names = []
+    findings: list[str] = []
+    for name in names:
+        try:
+            text = (REPO_ROOT / name).read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            if ALLOW_MARKER in line:
+                continue
+            for marker in FORBIDDEN_HOSTS:
+                if marker.lower() in line.lower():
+                    findings.append(f"{name}:{lineno} [host '{marker}'] redacted")
+            m = rfc1918.search(line)
+            if m:
+                findings.append(
+                    f"{name}:{lineno} [RFC1918 literal] {_redact(m.group(0))}"
+                )
+    assert not findings, (
+        "private deployment topology in tracked .project notes (values "
+        "redacted):\n  " + "\n  ".join(findings)
+    )
+
 
 # ---------------------------------------------------------------------------
 # Secret-shape scan over every tracked text file (P0.7).
@@ -160,20 +216,48 @@ SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
         re.IGNORECASE,
     ),
     "client-side token env (VITE_*TOKEN|SECRET|KEY)": re.compile(
-        r"\bVITE_[A-Z0-9_]*(TOKEN|SECRET|KEY|PASSWORD)\b"),
+        r"\bVITE_[A-Z0-9_]*(TOKEN|SECRET|KEY|PASSWORD)\b"
+    ),
 }
 
 # Source/config/test/script/frontend code must not bake in a personal
 # home directory. Docs may mention the pattern when describing it.
 HOME_PATH = re.compile(r"(/home/[a-z][a-z0-9_\-]*/|/Users/[A-Za-z][A-Za-z0-9_\-]*/)")
-HOME_PATH_SCOPES = ("src/", "config/", "tests/", "scripts/", "frontend/", "frontend-v2/")
+HOME_PATH_SCOPES = (
+    "src/",
+    "config/",
+    "tests/",
+    "scripts/",
+    "frontend/",
+    "frontend-v2/",
+)
 
-TEXT_SUFFIXES = {".py", ".json", ".yaml", ".yml", ".toml", ".md", ".sh",
-                 ".ts", ".tsx", ".js", ".html", ".css", ".txt", ".example",
-                 ".cfg", ".ini", ".env"}
+TEXT_SUFFIXES = {
+    ".py",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".md",
+    ".sh",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".html",
+    ".css",
+    ".txt",
+    ".example",
+    ".cfg",
+    ".ini",
+    ".env",
+}
 # Generated/asset files: hashes and base64 art, never credentials.
-SKIP_PREFIXES = ("design/assets/", "design/screens/", "design/exports/",
-                 "design/handoff/")
+SKIP_PREFIXES = (
+    "design/assets/",
+    "design/screens/",
+    "design/exports/",
+    "design/handoff/",
+)
 SKIP_NAMES = {"uv.lock", "package-lock.json"}
 # A synthetic canary a test deliberately plants (to prove it cannot leak)
 # is allowed only with this exact marker on the same line, so the
@@ -183,13 +267,19 @@ ALLOW_MARKER = "pw-safety: synthetic"
 
 def _tracked_text_files() -> list[Path]:
     try:
-        out = subprocess.run(["git", "ls-files", "-z"], cwd=REPO_ROOT,
-                             capture_output=True, check=True).stdout
+        out = subprocess.run(
+            ["git", "ls-files", "-z"], cwd=REPO_ROOT, capture_output=True, check=True
+        ).stdout
         names = [n for n in out.decode().split("\0") if n]
     except Exception:  # no git (e.g. a tarball checkout): walk instead
-        names = [str(p.relative_to(REPO_ROOT)) for p in REPO_ROOT.rglob("*")
-                 if p.is_file() and ".git" not in p.parts
-                 and "node_modules" not in p.parts and ".venv" not in p.parts]
+        names = [
+            str(p.relative_to(REPO_ROOT))
+            for p in REPO_ROOT.rglob("*")
+            if p.is_file()
+            and ".git" not in p.parts
+            and "node_modules" not in p.parts
+            and ".venv" not in p.parts
+        ]
     files = []
     for n in names:
         if n.startswith(SKIP_PREFIXES) or Path(n).name in SKIP_NAMES:
@@ -239,13 +329,18 @@ def test_code_and_config_carry_no_personal_home_paths():
     findings: list[str] = []
     for rel in _tracked_text_files():
         posix = rel.as_posix()
-        if not posix.startswith(HOME_PATH_SCOPES) or posix == "tests/test_public_safety.py":
+        if (
+            not posix.startswith(HOME_PATH_SCOPES)
+            or posix == "tests/test_public_safety.py"
+        ):
             continue
         text = (REPO_ROOT / rel).read_text(encoding="utf-8", errors="ignore")
         for lineno, line in enumerate(text.splitlines(), start=1):
             if HOME_PATH.search(line):
                 findings.append(f"{posix}:{lineno}")
-    assert not findings, "personal home paths in code/config:\n  " + "\n  ".join(findings)
+    assert not findings, "personal home paths in code/config:\n  " + "\n  ".join(
+        findings
+    )
 
 
 def test_tracked_connections_report_never_echoes_values():
@@ -253,24 +348,29 @@ def test_tracked_connections_report_never_echoes_values():
     tracked file ever gains a non-ollama provider, the failure message
     names the entry, never dumps it (a dump would print the key)."""
     payload = json.loads(TRACKED_CONFIG.read_text())
-    names = [f"{c.get('type', '?')}:{c.get('name') or c.get('id') or '?'}"
-             for c in payload.get("connections", [])
-             if not _is_safe_ollama_entry(c)]
+    names = [
+        f"{c.get('type', '?')}:{c.get('name') or c.get('id') or '?'}"
+        for c in payload.get("connections", [])
+        if not _is_safe_ollama_entry(c)
+    ]
     assert names == [], (
         "tracked config/connections.json ships non-ollama providers "
         "(names only shown): " + ", ".join(names)
     )
 
 
-@pytest.mark.parametrize("sample,label", [
-    ('"api_key": "' + "A" * 40 + '"', "inline api_key/token/password/secret value"),
-    ("sk-" + "x" * 40, "openai-style key (sk-…)"),
-    ("tp-" + "a1" * 12, "token-plan key (tp-…)"),
-    ("ghp_" + "Z" * 36, "github token (ghp_/gho_/ghs_/ghr_)"),
-    ("-----BEGIN OPENSSH PRIVATE KEY-----", "private key block"),
-    ("VITE_AUTH_TOKEN=whatever", "client-side token env (VITE_*TOKEN|SECRET|KEY)"),
-    ("AKIA" + "Q" * 16, "aws access key"),
-])
+@pytest.mark.parametrize(
+    "sample,label",
+    [
+        ('"api_key": "' + "A" * 40 + '"', "inline api_key/token/password/secret value"),
+        ("sk-" + "x" * 40, "openai-style key (sk-…)"),
+        ("tp-" + "a1" * 12, "token-plan key (tp-…)"),
+        ("ghp_" + "Z" * 36, "github token (ghp_/gho_/ghs_/ghr_)"),
+        ("-----BEGIN OPENSSH PRIVATE KEY-----", "private key block"),
+        ("VITE_AUTH_TOKEN=whatever", "client-side token env (VITE_*TOKEN|SECRET|KEY)"),
+        ("AKIA" + "Q" * 16, "aws access key"),
+    ],
+)
 def test_secret_scanner_detects_shapes(sample, label):
     """The scanner must actually fire on the shapes it claims to catch.
     Samples are built by concatenation so this file never contains a
@@ -278,14 +378,17 @@ def test_secret_scanner_detects_shapes(sample, label):
     assert SECRET_PATTERNS[label].search(sample), label
 
 
-@pytest.mark.parametrize("sample", [
-    '"api_key_env": "MY_PROVIDER_KEY"',
-    '"token_env": "GITEA_TOKEN"',
-    '"secret_ref": "vault://gitea-token"',
-    'sha256:' + "f" * 64,
-    '"password": "short"',
-    "VITE_API_URL=/",
-])
+@pytest.mark.parametrize(
+    "sample",
+    [
+        '"api_key_env": "MY_PROVIDER_KEY"',
+        '"token_env": "GITEA_TOKEN"',
+        '"secret_ref": "vault://gitea-token"',
+        "sha256:" + "f" * 64,
+        '"password": "short"',
+        "VITE_API_URL=/",
+    ],
+)
 def test_secret_scanner_allows_indirection_and_hashes(sample):
     assert not any(p.search(sample) for p in SECRET_PATTERNS.values()), sample
 
@@ -300,14 +403,28 @@ def _walk_keys(obj, path=""):
             yield from _walk_keys(v, f"{path}[{i}]")
 
 
-INLINE_SECRET_KEYS = {"api_key", "apikey", "token", "password", "secret",
-                      "client_secret", "access_token", "refresh_token"}
+INLINE_SECRET_KEYS = {
+    "api_key",
+    "apikey",
+    "token",
+    "password",
+    "secret",
+    "client_secret",
+    "access_token",
+    "refresh_token",
+}
 
 
-@pytest.mark.parametrize("rel", sorted(
-    p.as_posix() for p in _tracked_text_files()
-    if p.as_posix().startswith("config/") and p.suffix == ".json"
-    and not p.name.endswith(".example.json")))
+@pytest.mark.parametrize(
+    "rel",
+    sorted(
+        p.as_posix()
+        for p in _tracked_text_files()
+        if p.as_posix().startswith("config/")
+        and p.suffix == ".json"
+        and not p.name.endswith(".example.json")
+    ),
+)
 def test_tracked_non_example_config_is_zero_provider_and_secret_free(rel):
     """Ownership rule (completion plan C-1): tracked config/ holds only
     schemas, examples and safe defaults.  A single local-ollama entry
@@ -317,6 +434,7 @@ def test_tracked_non_example_config_is_zero_provider_and_secret_free(rel):
     conns = payload.get("connections") or []
     bad_conns = [c for c in conns if not _is_safe_ollama_entry(c)]
     assert not bad_conns, f"{rel} ships non-ollama providers"
-    bad = [path for path, key in _walk_keys(payload)
-           if key.lower() in INLINE_SECRET_KEYS]
+    bad = [
+        path for path, key in _walk_keys(payload) if key.lower() in INLINE_SECRET_KEYS
+    ]
     assert not bad, f"{rel} has inline secret keys at: {bad} (use *_env / *_ref)"
