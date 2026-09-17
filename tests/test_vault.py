@@ -66,7 +66,9 @@ def test_remote_client_403(tmp_path, monkeypatch):
     monkeypatch.setenv("PW_API_TOKEN", "tttttttt")
     from personal_world.api import create_app
 
-    c = TestClient(create_app(tmp_path, tmp_path), client=("172.20.0.5", 5555))
+    c = TestClient(
+        create_app(tmp_path, tmp_path), client=("172.20.0.5", 5555)  # pw-safety: synthetic
+    )  # pw-safety: synthetic
     r = c.get("/api/vault/k", headers=_headers())
     assert r.status_code == 403
     assert "loopback-only" in r.json()["detail"]
@@ -88,8 +90,8 @@ def test_true_loopback_predicate_matches_api_helper():
     assert _is_true_loopback(_Req("127.0.0.1")) is True
     assert _is_true_loopback(_Req("::1")) is True
     assert _is_true_loopback(_Req("testclient")) is True
-    assert _is_true_loopback(_Req("172.20.0.5")) is False
-    assert _is_true_loopback(_Req("192.168.1.5")) is False
+    assert _is_true_loopback(_Req("172.20.0.5")) is False  # pw-safety: synthetic
+    assert _is_true_loopback(_Req("192.168.1.5")) is False  # pw-safety: synthetic
 
 
 @pytest.mark.skipif(not _HAS_CRYPTO, reason="cryptography not installed")
