@@ -44,7 +44,7 @@ Phase 5  shareable & lasting        ░░░░░░░░░░  ⏸️ (late
 - [x] **sign-in with your own SSO** (generic OIDC, Authelia-ready; 96 tests, stub-verified)
 - [x] **first-run setup wizard** — invisible provisioning, no token pasting (23 tests)
 - [x] **API = Lego box**: every capability exposed, reads open, writes gated, `/api/manifest`
-- [] test OIDC against your *real* Authelia (needs your Authelia URL; wizard will walk you)
+- [x] OIDC proven against your *real* Authelia (live harness + the production `project-worlds` client; passkey-first)
 - [ ] streaming chat + saved chat history (known gap, deliberately later)
 
 ## Phase 2 — A gentle, beautiful frontend ✅ (wiring finishing)
@@ -52,8 +52,8 @@ Phase 5  shareable & lasting        ░░░░░░░░░░  ⏸️ (late
 - [x] content views: Journal entries · Discoveries · GitHub-like Projects (all honest states)
 - [x] onboarding · search (Ctrl/Cmd+K) · deep-links · mobile
 - [x] chat dock + templates-as-personality · settings · "Hail Assistant" · low-demand
-- [🛠] map shows **real data** instead of samples (api.js + live layer; agent finishing)
-- [ ] automatic accessibility tests (axe/e2e) for the Station, so kindness can't regress
+- [🛠] map shows **real data** instead of samples (api.js + live layer; honest-state e2e green)
+- [x] automatic accessibility tests (axe/e2e) for the Station (`frontend/e2e/station-*.spec.ts`; 24 green)
 
 ## Phase 3 — Anyone-can-install runtime 🛠️
 - [x] Docker image now **includes the Station** (so `/station/` works in a container)
@@ -61,13 +61,13 @@ Phase 5  shareable & lasting        ░░░░░░░░░░  ⏸️ (late
 - [x] `scripts/dev.sh` — `up` (newest build) · `newest` · `wipe` (safe) · `status` · `logs`
 - [x] stopped the stale dev servers cluttering your box (5173 / 5180 / 9123)
 - [x] dev auth bypass exists and is **loopback-only** (never trusts the LAN)
-- [🛠] rebuild + verify `/station/` served by the backend on your Bazzite box
+- [x] rebuilt + verified `/station/` served by the backend (Bazzite dev mirror + production)
 - [x] retired the old `:8090` static server; `/station/` is served same-origin by the backend (`scripts/dev.sh up`)
 - [x] committed + pushed everyone's verified work; repo consolidated to a single `main` (older branches archived as annotated tags)
-- [ ] clean first-run test on a fresh box (compose up → wizard → signed in → map)
+- [x] clean first-run on a fresh box (production: compose up → wizard → signed in → map)
 
 ## Phase 4 — Make it YOURS ⏳ (only on your good days)
-- [ ] point OIDC at your Authelia (the wizard asks in plain words; secret stays in an env var)
+- [x] OIDC pointed at Authelia; sign-in is **passkey-first** (no password to remember)
 - [ ] taste-pass: open it and ask "does this feel like mine?" (~30 min)
 - [ ] optional add-on secrets (media / GitHub / ntfy) via Vault — only if/when you want them
 

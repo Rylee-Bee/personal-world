@@ -83,8 +83,8 @@ Register this redirect URI with your IdP:
 https://<your-worlds-host>/api/auth/oidc/callback
 ```
 
-Authelia example (client policy `one_factor` or `two_factor` as you
-prefer):
+Authelia example (validated against Authelia 4.39; client policy
+`one_factor` or `two_factor` as you prefer):
 
 ```yaml
 identity_providers:
@@ -92,18 +92,33 @@ identity_providers:
     clients:
       - client_id: project-worlds
         client_name: Project Worlds
-        # Authelia reads the secret from its own storage/env; this is
-        # Authelia-side config, not Project Worlds config.
-        client_secret: 'authelia-manages-this'
+        # Store only a PBKDF2 hash here; the plaintext lives in Project
+        # Worlds' env. Generate it with:
+        #   authelia crypto hash generate pbkdf2 --variant sha512 --password '<secret>'
+        client_secret: "$pbkdf2-sha512$310000$…$…"
+        authorization_policy: one_factor        # a passkey satisfies this
+        require_pkce: true
+        pkce_challenge_method: "S256"
+        authorization_signed_response_alg: "RS256"
+        id_token_signed_response_alg: "RS256"
         redirect_uris:
-          - https://worlds.example.com/api/auth/oidc/callback
-        post_logout_redirect_uris:
-          - https://worlds.example.com/login
-        scopes: [openid, profile, email, groups]
-        grant_types: [authorization_code]
-        response_types: [code]
-        token_endpoint_auth_method: client_secret_post
+          - "https://<your-worlds-host>/api/auth/oidc/callback"
+        scopes: ["openid", "profile", "email", "groups", "offline_access"]
+        grant_types: ["authorization_code", "refresh_token"]
+        response_types: ["code"]
+        token_endpoint_auth_method: "client_secret_post"
+        consent_mode: "implicit"
 ```
+
+> **Passkey-first.** With Authelia's `webauthn.enable_passkey_login: true`,
+> a registered passkey is the primary credential, so this client turns into
+> a one-tap sign-in and the password is only the break-glass path. Project
+> Worlds offers OIDC as the primary action on `/login` whenever
+> `/api/auth/oidc/status` reports `configured`.
+>
+> `token_endpoint_auth_method` must match what Project Worlds negotiates
+> from the provider's discovery document — it uses `client_secret_post`
+> whenever the provider advertises it (Authelia does).
 
 Behind a reverse proxy, the callback URI is derived from the request's
 own base URL, so run uvicorn with `--proxy-headers` (or set the external

@@ -117,9 +117,15 @@ durable decisions at [`.project/DECISIONS.md`](.project/DECISIONS.md).
 
 The product UI is the **Station**, served same-origin at `/station/` by
 the backend (source: `design/opendesign-exploration/station/`).
-`/login` and `/setup` are server-rendered. The superseded React frontend
-was removed on 2026-09-16 (single-branch cutover); its screenshot gallery
-was removed with it.
+`/login` and `/setup` are server-rendered.
+
+Sign-in is **provider-neutral OIDC** — point it at your own IdP
+([docs/oidc.md](docs/oidc.md)). With an IdP configured the login page is
+**passkey-first**: one "Sign in with …" button, and the access code folds
+away as a fallback. The superseded React frontend was removed on
+2026-09-16 (single-branch cutover); its screenshot gallery was removed
+with it (a Station capture is a follow-up — the Station is not yet
+covered by a deterministic screenshot pipeline).
 
 ## Quick start
 
