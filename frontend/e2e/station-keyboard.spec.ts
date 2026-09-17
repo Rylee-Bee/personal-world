@@ -5,7 +5,7 @@
  * Station surface: skip-link first (§2.6), visible focus at every stop
  * (§2.4), keyboard-only operation of the whole map journey
  * (§2.2 — map → drill → dive → zoom-out), and the dialog contracts
- * (§3.3) for the first-visit onboarding and the "Hail Assistant"
+ * (§3.3) for the first-visit onboarding and the "Help & quiet mode"
  * escape hatch.
  *
  * Auth: `POST /api/auth/login` mints the `pw_session` cookie the
@@ -174,13 +174,13 @@ test.describe("dialog contracts (A11y §3.3)", () => {
     expect(errors).toEqual([]);
   });
 
-  test("Hail Assistant: opens by keyboard, focus moves in, Esc closes, focus returns", async ({
+  test("Help & quiet mode: opens by keyboard, focus moves in, Esc closes, focus returns", async ({
     page,
   }) => {
     const errors = collectErrors(page);
     await loginStation(page);
     await gotoStation(page);
-    await tabUntil(page, (a) => a.id === "help-btn", "the Hail Assistant button");
+    await tabUntil(page, (a) => a.id === "help-btn", "the Help & quiet mode button");
     await expectVisibleFocus(page, "help button");
     await page.keyboard.press("Enter");
     const dialog = page.locator("#help-dialog");
