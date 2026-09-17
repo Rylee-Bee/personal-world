@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Playwright + axe browser gate for the Station UI (/station/).",
   "scripts": {
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "docs:screenshots": "playwright test e2e/station-screenshots.spec.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
