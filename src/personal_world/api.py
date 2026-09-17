@@ -11,6 +11,9 @@ import secrets
 import os
 import threading
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +54,56 @@ from .world import MutationDenied, World
 
 
 _logger = logging.getLogger("personal_world.api")
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Redirects are never followed during adapter tests: the test must
+    report the server it was pointed AT, never wherever a redirect
+    chain leads (open-redirect / SSRF hardening)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+def _valid_http_url(url: str) -> bool:
+    """Absolute http(s) URL only — non-http schemes and relative
+    URLs are refused (fail closed)."""
+    try:
+        parts = urllib.parse.urlparse(url)
+    except ValueError:
+        return False
+    return parts.scheme in ("http", "https") and bool(parts.netloc)
+
+
+def _probe_url(
+    url: str,
+    *,
+    method: str = "GET",
+    headers: dict | None = None,
+) -> dict:
+    """Shared adapter probe: URL-validated, redirects never followed.
+
+    2xx/3xx count as reachable — a refused redirect surfaces the 3xx
+    status itself (honest), instead of silently chasing it.
+    """
+    if not _valid_http_url(url):
+        return {
+            "status": "invalid_configuration",
+            "detail": "URL must be an absolute http(s) address",
+        }
+    req = urllib.request.Request(url, method=method, headers=headers or {})
+    try:
+        with _OPENER.open(req, timeout=10) as resp:
+            return {"status": "healthy", "code": resp.status}
+    except urllib.error.HTTPError as e:
+        if 300 <= e.code < 400:
+            return {"status": "healthy", "code": e.code, "redirected": True}
+        return {"status": "unavailable", "code": e.code}
+    except urllib.error.URLError as e:
+        return {"status": "unavailable", "reason": getattr(e, "reason", e)}
 
 
 def _cached_file(
@@ -169,9 +222,15 @@ def _step_up_authorized(request: Request, principal: Any = None) -> bool:
        network trust rule (RFC1918 LAN addresses do not qualify).
 
     3. **Delegated proxy header** — ``X-PW-StepUp: 1`` from a consumer
-       behind a reverse proxy that performs its own authentication. This
-       is explicit trust delegation and remains for the transitional
-       browser client; it is not proof of fresh authentication.
+       behind a reverse proxy that performs its own authentication.
+       The header grant is only honored when the request ALSO carries
+       ``X-PW-Proxy-StepUp-Secret`` matching ``PW_PROXY_STEPUP_SECRET``
+       (timing-safe compare) — something only the trusted proxy knows,
+       never the browser client. When that env is unset or the secret
+       is missing/wrong, the grant is DENIED (fail closed).
+
+       Deliberately NOT proof of fresh authentication either: the proxy
+       vouches for its own authentication.
     """
     if principal is None:
         principal = getattr(request.state, "principal", None)
@@ -185,8 +244,16 @@ def _step_up_authorized(request: Request, principal: Any = None) -> bool:
         return True
 
     if request.headers.get("X-PW-StepUp") == "1":
-        return True
-
+        proxy_secret = os.environ.get("PW_PROXY_STEPUP_SECRET")
+        presented = request.headers.get("X-PW-Proxy-StepUp-Secret", "")
+        if (
+            proxy_secret
+            and presented
+            and secrets.compare_digest(presented, proxy_secret)
+        ):
+            return True
+        # Fail closed: unset operator env, missing header, or a wrong
+        # secret all deny the delegated grant.
     return False
 
 
@@ -454,17 +521,40 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.post("/api/setup")
     async def setup(request: Request) -> dict:
-        """First-run setup: create API token and vault passphrase."""
+        """First-run setup: create API token and vault passphrase.
+
+        Loopback-only (fail closed): this endpoint mints the instance
+        credential, so a remote peer must never be able to take over a
+        fresh, unauthenticated instance. GET state routes stay readable.
+        """
+        if not _is_true_loopback(request):
+            raise HTTPException(
+                status_code=403,
+                detail="setup is only available from the local machine",
+            )
         if (data_dir / "setup-complete").exists():
             raise HTTPException(status_code=409, detail="setup already complete")
         body = await request.json()
         token = body.get("token", "").strip()
         if not token or len(token) < 8:
             raise HTTPException(status_code=400, detail="token must be >= 8 chars")
-        # Write token to env file for the container to pick up
+        # Write token to env file for the container to pick up.
+        # Mirrors setup_wizard._write_env_token: O_CREAT|O_EXCL|0600 on
+        # create; a pre-existing file is never world-readable either
+        # (chmod after write covers a file created earlier with loose
+        # perms). Never truncate other operators' content.
         env_path = data_dir / ".env"
-        env_path.write_text(f"PW_API_TOKEN={token}\n")
-        # Also set in current process so it works immediately
+        if env_path.exists():
+            with env_path.open("a", encoding="utf-8") as fh:
+                fh.write(f"PW_API_TOKEN={token}\n")
+        else:
+            fd = os.open(env_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(f"PW_API_TOKEN={token}\n")
+        try:
+            os.chmod(env_path, 0o600)
+        except OSError:
+            pass  # best-effort hardening; never fail setup over umask policy
         os.environ["PW_API_TOKEN"] = token
         # Mark setup complete
         (data_dir / "setup-complete").write_text("ok")
@@ -1307,202 +1397,224 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "data": result}
 
     def _test_adapter(capability: str, adapter_type: str, config: dict) -> dict:
-        """Test an adapter connection. Returns structured state."""
-        import urllib.request
-        import urllib.error
+        """Test an adapter connection. Returns structured state.
 
-        try:
-            if adapter_type == "plex":
-                url = config.get("base_url", "").rstrip("/")
-                token = config.get("token", "")
-                if not url:
-                    return {
-                        "status": "invalid_configuration",
-                        "detail": "Server URL is required",
-                    }
-                req_url = f"{url}/?X-Plex-Token={token}" if token else f"{url}/"
-                try:
-                    req = urllib.request.Request(req_url, method="GET")
-                    with urllib.request.urlopen(req, timeout=10) as resp:
-                        return {
-                            "status": "healthy",
-                            "detail": f"Plex responded ({resp.status})",
-                        }
-                except urllib.error.URLError as e:
-                    return {
-                        "status": "unavailable",
-                        "detail": f"Cannot reach Plex: {e.reason}",
-                    }
-            elif adapter_type in ("sonarr", "radarr", "lidarr"):
-                url = config.get("base_url", "").rstrip("/")
-                api_key = config.get("api_key", "")
-                if not url:
-                    return {
-                        "status": "invalid_configuration",
-                        "detail": "Server URL is required",
-                    }
-                try:
-                    req = urllib.request.Request(
-                        f"{url}/api/v3/system/status",
-                        headers={"X-Api-Key": api_key} if api_key else {},
-                    )
-                    with urllib.request.urlopen(req, timeout=10) as resp:
-                        return {
-                            "status": "healthy",
-                            "detail": f"{adapter_type.title()} responded ({resp.status})",
-                        }
-                except urllib.error.URLError as e:
-                    return {
-                        "status": "unavailable",
-                        "detail": f"Cannot reach {adapter_type.title()}: {e.reason}",
-                    }
-            elif adapter_type == "ics":
-                url = config.get("url", "")
-                if not url:
-                    return {
-                        "status": "invalid_configuration",
-                        "detail": "URL is required",
-                    }
-                try:
-                    req = urllib.request.Request(url, method="HEAD")
-                    with urllib.request.urlopen(req, timeout=10) as resp:
-                        return {
-                            "status": "healthy",
-                            "detail": f"ICS feed reachable ({resp.status})",
-                        }
-                except urllib.error.URLError as e:
-                    return {
-                        "status": "unavailable",
-                        "detail": f"Cannot reach ICS feed: {e.reason}",
-                    }
-            elif adapter_type == "ntfy":
-                server = config.get("server", "https://ntfy.sh").rstrip("/")
-                topic = config.get("topic", "")
-                if not topic:
-                    return {
-                        "status": "invalid_configuration",
-                        "detail": "Topic is required",
-                    }
-                try:
-                    req = urllib.request.Request(f"{server}/v1/health", method="GET")
-                    with urllib.request.urlopen(req, timeout=10) as resp:
-                        return {
-                            "status": "healthy",
-                            "detail": f"ntfy server reachable ({resp.status})",
-                        }
-                except urllib.error.URLError as e:
-                    return {
-                        "status": "unavailable",
-                        "detail": f"Cannot reach ntfy: {e.reason}",
-                    }
-            elif adapter_type == "webhook":
-                url = config.get("url", "")
-                if not url:
-                    return {
-                        "status": "invalid_configuration",
-                        "detail": "URL is required",
-                    }
+        Fetching branches share _probe_url: absolute http(s) URLs only,
+        redirects never followed."""
+        if adapter_type == "plex":
+            url = config.get("base_url", "").rstrip("/")
+            token = config.get("token", "")
+            if not url:
                 return {
-                    "status": "validated",
-                    "detail": "Webhook URL accepted (not tested with a real request)",
+                    "status": "invalid_configuration",
+                    "detail": "Server URL is required",
                 }
-            elif adapter_type == "github_release":
-                repo = config.get("repository", "")
-                if not repo:
-                    return {
-                        "status": "invalid_configuration",
-                        "detail": "Repository is required",
-                    }
-                try:
-                    req = urllib.request.Request(
-                        f"https://api.github.com/repos/{repo}/releases/latest",
-                        headers={"Accept": "application/vnd.github.v3+json"},
-                    )
-                    with urllib.request.urlopen(req, timeout=10) as resp:
-                        data = json.loads(resp.read())
-                        tag = data.get("tag_name", "unknown")
-                        return {"status": "healthy", "detail": f"Latest release: {tag}"}
-                except urllib.error.URLError as e:
-                    return {
-                        "status": "unavailable",
-                        "detail": f"Cannot reach GitHub: {e.reason}",
-                    }
-            elif adapter_type == "ollama":
-                url = config.get("base_url", "").rstrip("/")
-                if not url:
-                    return {
-                        "status": "invalid_configuration",
-                        "detail": "Server URL is required",
-                    }
-                try:
-                    req = urllib.request.Request(f"{url}/api/tags", method="GET")
-                    with urllib.request.urlopen(req, timeout=10) as resp:
-                        data = json.loads(resp.read())
-                        models = [m.get("name", "") for m in data.get("models", [])]
-                        return {
-                            "status": "healthy",
-                            "detail": f"Ollama has {len(models)} model(s)",
-                        }
-                except urllib.error.URLError as e:
-                    return {
-                        "status": "unavailable",
-                        "detail": f"Cannot reach Ollama: {e.reason}",
-                    }
-            elif adapter_type == "oidc":
-                issuer = config.get("issuer_url", "")
-                if not issuer:
-                    return {
-                        "status": "invalid_configuration",
-                        "detail": "Issuer URL is required",
-                    }
-                well_known = f"{issuer.rstrip('/')}/.well-known/openid-configuration"
-                try:
-                    req = urllib.request.Request(well_known, method="GET")
-                    with urllib.request.urlopen(req, timeout=10) as resp:
-                        return {
-                            "status": "healthy",
-                            "detail": "OIDC discovery endpoint reachable",
-                        }
-                except urllib.error.URLError as e:
-                    return {
-                        "status": "unavailable",
-                        "detail": f"Cannot reach OIDC issuer: {e.reason}",
-                    }
-            elif adapter_type == "compose":
-                path = config.get("compose_path", "")
-                if not path:
-                    return {
-                        "status": "invalid_configuration",
-                        "detail": "Compose file path is required",
-                    }
-                p = Path(path)
-                if p.exists():
-                    return {
-                        "status": "validated",
-                        "detail": f"Compose file found at {path}",
-                    }
+            r = _probe_url(url, headers={"X-Plex-Token": token} if token else None)
+            if r["status"] == "invalid_configuration":
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Server URL must be an absolute http(s) address",
+                }
+            if r["status"] == "healthy":
+                note = " (redirect not followed)" if r.get("redirected") else ""
+                return {
+                    "status": "healthy",
+                    "detail": f"Plex responded ({r.get('code')}){note}",
+                }
+            reason = r.get("reason") or f"HTTP {r.get('code')}"
+            return {"status": "unavailable", "detail": f"Cannot reach Plex: {reason}"}
+        elif adapter_type in ("sonarr", "radarr", "lidarr"):
+            url = config.get("base_url", "").rstrip("/")
+            api_key = config.get("api_key", "")
+            if not url:
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Server URL is required",
+                }
+            r = _probe_url(
+                f"{url}/api/v3/system/status",
+                headers={"X-Api-Key": api_key} if api_key else {},
+            )
+            if r["status"] == "invalid_configuration":
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Server URL must be an absolute http(s) address",
+                }
+            if r["status"] == "healthy":
+                note = " (redirect not followed)" if r.get("redirected") else ""
+                return {
+                    "status": "healthy",
+                    "detail": (
+                        f"{adapter_type.title()} responded ({r.get('code')}){note}"
+                    ),
+                }
+            reason = r["reason"] if "reason" in r else f"HTTP {r.get('code')}"
+            return {
+                "status": "unavailable",
+                "detail": f"Cannot reach {adapter_type.title()}: {reason}",
+            }
+        elif adapter_type == "ics":
+            url = config.get("url", "")
+            if not url:
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "URL is required",
+                }
+            r = _probe_url(url, method="HEAD")
+            if r["status"] == "invalid_configuration":
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "URL must be an absolute http(s) address",
+                }
+            if r["status"] == "healthy":
+                note = " (redirect not followed)" if r.get("redirected") else ""
+                return {
+                    "status": "healthy",
+                    "detail": f"ICS feed reachable ({r.get('code')}){note}",
+                }
+            reason = r["reason"] if "reason" in r else f"HTTP {r.get('code')}"
+            return {
+                "status": "unavailable",
+                "detail": f"Cannot reach ICS feed: {reason}",
+            }
+        elif adapter_type == "ntfy":
+            server = config.get("server", "https://ntfy.sh").rstrip("/")
+            topic = config.get("topic", "")
+            if not topic:
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Topic is required",
+                }
+            r = _probe_url(f"{server}/v1/health")
+            if r["status"] == "invalid_configuration":
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Server URL must be an absolute http(s) address",
+                }
+            if r["status"] == "healthy":
+                note = " (redirect not followed)" if r.get("redirected") else ""
+                return {
+                    "status": "healthy",
+                    "detail": f"ntfy server reachable ({r.get('code')}){note}",
+                }
+            reason = r["reason"] if "reason" in r else f"HTTP {r.get('code')}"
+            return {"status": "unavailable", "detail": f"Cannot reach ntfy: {reason}"}
+        elif adapter_type == "webhook":
+            url = config.get("url", "")
+            if not url:
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "URL is required",
+                }
+            return {
+                "status": "validated",
+                "detail": "Webhook URL accepted (not tested with a real request)",
+            }
+        elif adapter_type == "github_release":
+            repo = config.get("repository", "")
+            if not repo:
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Repository is required",
+                }
+            try:
+                req = urllib.request.Request(
+                    f"https://api.github.com/repos/{repo}/releases/latest",
+                    headers={"Accept": "application/vnd.github.v3+json"},
+                )
+                with _OPENER.open(req, timeout=10) as resp:
+                    data = json.loads(resp.read())
+                    tag = data.get("tag_name", "unknown")
+                    return {"status": "healthy", "detail": f"Latest release: {tag}"}
+            except urllib.error.URLError as e:
                 return {
                     "status": "unavailable",
-                    "detail": f"Compose file not found at {path}",
+                    "detail": f"Cannot reach GitHub: {e.reason}",
                 }
-            elif adapter_type == "systemd":
-                service = config.get("service_name", "")
-                if not service:
+        elif adapter_type == "ollama":
+            url = config.get("base_url", "").rstrip("/")
+            if not url:
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Server URL is required",
+                }
+            if not _valid_http_url(url):
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Server URL must be an absolute http(s) address",
+                }
+            try:
+                req = urllib.request.Request(f"{url}/api/tags", method="GET")
+                with _OPENER.open(req, timeout=10) as resp:
+                    data = json.loads(resp.read())
+                    models = [m.get("name", "") for m in data.get("models", [])]
                     return {
-                        "status": "invalid_configuration",
-                        "detail": "Service name is required",
+                        "status": "healthy",
+                        "detail": f"Ollama has {len(models)} model(s)",
                     }
+            except urllib.error.URLError as e:
+                return {
+                    "status": "unavailable",
+                    "detail": f"Cannot reach Ollama: {e.reason}",
+                }
+        elif adapter_type == "oidc":
+            issuer = config.get("issuer_url", "")
+            if not issuer:
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Issuer URL is required",
+                }
+            r = _probe_url(f"{issuer.rstrip('/')}/.well-known/openid-configuration")
+            if r["status"] == "invalid_configuration":
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Issuer URL must be an absolute http(s) address",
+                }
+            if r["status"] == "healthy":
+                note = " (redirect not followed)" if r.get("redirected") else ""
+                return {
+                    "status": "healthy",
+                    "detail": f"OIDC discovery endpoint reachable ({r.get('code')})"
+                    + note,
+                }
+            reason = r["reason"] if "reason" in r else f"HTTP {r.get('code')}"
+            return {
+                "status": "unavailable",
+                "detail": f"Cannot reach OIDC issuer: {reason}",
+            }
+        elif adapter_type == "compose":
+            path = config.get("compose_path", "")
+            if not path:
+                return {
+                    "status": "invalid_configuration",
+                    "detail": "Compose file path is required",
+                }
+            p = Path(path)
+            if p.exists():
                 return {
                     "status": "validated",
-                    "detail": f"Service '{service}' accepted — no live check performed",
+                    "detail": f"Compose file found at {path}",
                 }
-            else:
+            return {
+                "status": "unavailable",
+                "detail": f"Compose file not found at {path}",
+            }
+        elif adapter_type == "systemd":
+            service = config.get("service_name", "")
+            if not service:
                 return {
-                    "status": "unknown",
-                    "detail": f"Test not implemented for {adapter_type}",
+                    "status": "invalid_configuration",
+                    "detail": "Service name is required",
                 }
-        except Exception as e:
-            return {"status": "unavailable", "detail": str(e)}
+            return {
+                "status": "validated",
+                "detail": f"Service '{service}' accepted — no live check performed",
+            }
+        else:
+            return {
+                "status": "unknown",
+                "detail": f"Test not implemented for {adapter_type}",
+            }
 
     @app.get("/api/exports/settings", dependencies=[Depends(require_auth)])
     async def settings_export() -> dict:

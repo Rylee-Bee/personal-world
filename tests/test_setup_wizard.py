@@ -358,3 +358,59 @@ class TestComfortAndFinish:
         assert state["provisioned"]["env_file"] is True
         assert state["choices"]["auth_choice"] == "local"
         assert _read_token(data_dir) not in client.get("/api/setup-wizard/state").text
+
+
+class TestFirstRunWritesAreLoopbackOnly:
+    """A REMOTE peer must never be able to claim a fresh instance
+    through the setup write endpoints (fail closed). The TestClient's
+    default ASGI peer is loopback; here we use a deliberately remote
+    client address. GET state routes stay readable."""
+
+    def _remote_client(self, tmp_path, monkeypatch):
+        from personal_world.api import create_app
+
+        monkeypatch.delenv("PW_API_TOKEN", raising=False)
+        monkeypatch.setenv("PW_IDENTITY_MODE", "single")
+        data_dir = tmp_path / "data"
+        config_dir = tmp_path / "config"
+        c = TestClient(create_app(data_dir, config_dir), client=("203.0.113.9", 5555))
+        return c, data_dir, config_dir
+
+    def test_remote_post_setup_refused(self, tmp_path, monkeypatch):
+        c, data_dir, _ = self._remote_client(tmp_path, monkeypatch)
+        r = c.post("/api/setup", json={"token": "longenough1"})
+        assert r.status_code == 403, r.text
+        # Nothing was claimed: no marker, no env file.
+        assert not (data_dir / "setup-complete").exists()
+        assert not (data_dir / ".env").exists()
+        assert os.environ.get("PW_API_TOKEN") is None
+
+    def test_remote_wizard_provision_refused_state_readable(
+        self, tmp_path, monkeypatch
+    ):
+        c, data_dir, _ = self._remote_client(tmp_path, monkeypatch)
+        r = c.post("/api/setup-wizard/provision")
+        assert r.status_code == 403
+        assert not (data_dir / ".env").exists()
+        # State reads never gate on the peer.
+        assert c.get("/api/setup-wizard/state").status_code == 200
+        assert c.get("/api/setup/status").status_code == 200
+
+    def test_loopback_provision_still_works(self, tmp_path, monkeypatch):
+        """Sanity: the default TestClient peer keeps provisioning working."""
+        client, data_dir, _ = _client(tmp_path, monkeypatch)
+        r = client.post("/api/setup-wizard/provision")
+        assert r.status_code == 200, r.text
+
+    def test_setup_env_file_mode_0600(self, tmp_path, monkeypatch):
+        from personal_world.api import create_app
+
+        monkeypatch.delenv("PW_API_TOKEN", raising=False)
+        monkeypatch.setenv("PW_IDENTITY_MODE", "single")
+        data_dir = tmp_path / "data"
+        config_dir = tmp_path / "config"
+        c = TestClient(create_app(data_dir, config_dir))
+        r = c.post("/api/setup", json={"token": "longenough1"})
+        assert r.status_code == 200, r.text
+        # The credential file is never world-readable.
+        assert (data_dir / ".env").stat().st_mode & 0o777 == 0o600

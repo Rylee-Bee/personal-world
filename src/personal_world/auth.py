@@ -6,6 +6,7 @@ step-up requirements, and session expiry. External OIDC providers
 """
 
 import json
+import logging
 import os
 import secrets
 import time
@@ -13,10 +14,13 @@ from pathlib import Path
 from typing import Any
 from dataclasses import dataclass, field
 
+_logger = logging.getLogger("personal_world.auth")
+
 
 @dataclass
 class Session:
     """A browser session."""
+
     id: str
     principal_id: str
     created_at: float
@@ -48,6 +52,7 @@ class Session:
 @dataclass
 class OIDCConfig:
     """OIDC provider configuration."""
+
     issuer: str
     client_id: str
     client_secret_env: str  # env var name, not the value
@@ -101,8 +106,9 @@ class SessionStore:
         self._sessions.pop(session_id, None)
         self._save()
 
-    def grant_step_up(self, session_id: str, principal_id: str | None = None,
-                      duration: int = 300) -> Session | None:
+    def grant_step_up(
+        self, session_id: str, principal_id: str | None = None, duration: int = 300
+    ) -> Session | None:
         """Mint a time-bounded elevation for a session.
 
         The elevation is bound to the session's own principal. If a
@@ -126,20 +132,43 @@ class SessionStore:
                 data = json.loads(path.read_text())
                 for sid, s in data.items():
                     self._sessions[sid] = Session(**s)
-            except Exception:
-                pass
+            except Exception as exc:
+                # Never silent: sessions.json being unreadable must be
+                # visible in logs (everyone is logged out, which is a
+                # real event the owner may need to diagnose).
+                _logger.warning(
+                    "sessions file unreadable; starting with no sessions: %s", exc
+                )
 
     def _save(self):
+        """Atomic 0600 write: tmp file + os.replace — a crash or a
+        concurrent reader never observes a half-written session file,
+        and the credential store is never world-readable."""
         path = self._data_dir / "sessions.json"
         path.parent.mkdir(parents=True, exist_ok=True)
-        data = {sid: {
-            "id": s.id, "principal_id": s.principal_id,
-            "created_at": s.created_at, "last_active": s.last_active,
-            "step_up_until": s.step_up_until,
-            "step_up_principal": s.step_up_principal,
-            "auth_method": s.auth_method,
-        } for sid, s in self._sessions.items()}
-        path.write_text(json.dumps(data, indent=2))
+        data = {
+            sid: {
+                "id": s.id,
+                "principal_id": s.principal_id,
+                "created_at": s.created_at,
+                "last_active": s.last_active,
+                "step_up_until": s.step_up_until,
+                "step_up_principal": s.step_up_principal,
+                "auth_method": s.auth_method,
+            }
+            for sid, s in self._sessions.items()
+        }
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        try:
+            os.chmod(tmp, 0o600)
+        except OSError:
+            pass  # best-effort hardening under restrictive umask policy
+        os.replace(tmp, path)
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
 
 
 class AuthManager:
@@ -151,8 +180,7 @@ class AuthManager:
     seam as a bearer token rather than a parallel credential system.
     """
 
-    def __init__(self, data_dir: Path, config_dir: Path,
-                 identity: dict | None = None):
+    def __init__(self, data_dir: Path, config_dir: Path, identity: dict | None = None):
         self.sessions = SessionStore(data_dir)
         self._config_dir = config_dir
         self._oidc_config: OIDCConfig | None = None
@@ -179,10 +207,8 @@ class AuthManager:
         # The app captured the instance token at boot; if that was None
         # (first-run setup creates the token in-process) fall back to the
         # live env so login never lags behind boot-token reconciliation.
-        instance_token = ident.get("instance_token") or os.environ.get(
-            "PW_API_TOKEN")
-        return (ident.get("store"), ident.get("mode", "single"),
-                instance_token)
+        instance_token = ident.get("instance_token") or os.environ.get("PW_API_TOKEN")
+        return (ident.get("store"), ident.get("mode", "single"), instance_token)
 
     def login_local(self, token: str) -> Session | None:
         """Login with the instance/bootstrap credential.
@@ -192,6 +218,7 @@ class AuthManager:
         the user that owns the token, not a fixed string).
         """
         from .identity import resolve_principal, NoPrincipalError
+
         if self._identity is not None:
             store, mode, instance_token = self._seam()
             try:
@@ -201,7 +228,8 @@ class AuthManager:
             return self.sessions.create(principal.id, "local")
         # No seam wired (direct construction): legacy bootstrap compare.
         if self._bootstrap_token and secrets.compare_digest(
-                token, self._bootstrap_token):
+            token, self._bootstrap_token
+        ):
             return self.sessions.create("primary", "local")
         return None
 
@@ -218,9 +246,9 @@ class AuthManager:
         silently creates an account).
         """
         from .identity import resolve_oidc_principal
+
         store, mode, _ = self._seam()
-        principal = resolve_oidc_principal(sub, store, mode,
-                                           display_name=display_name)
+        principal = resolve_oidc_principal(sub, store, mode, display_name=display_name)
         return self.sessions.create(principal.id, "oidc")
 
     def validate_session(self, session_id: str) -> Session | None:
@@ -229,8 +257,7 @@ class AuthManager:
     def logout(self, session_id: str) -> None:
         self.sessions.invalidate(session_id)
 
-    def verify_step_up_credential(self, session: Session,
-                                  token: str | None) -> bool:
+    def verify_step_up_credential(self, session: Session, token: str | None) -> bool:
         """Verify a credential presented for step-up.
 
         The presented credential is resolved through the canonical seam
@@ -241,21 +268,23 @@ class AuthManager:
         if not token:
             return False
         from .identity import resolve_principal, NoPrincipalError
+
         if self._identity is not None:
             store, mode, instance_token = self._seam()
             try:
-                principal = resolve_principal(token, store, mode,
-                                              instance_token)
+                principal = resolve_principal(token, store, mode, instance_token)
             except NoPrincipalError:
                 return False
             return principal.id == session.principal_id
         if self._bootstrap_token and secrets.compare_digest(
-                token, self._bootstrap_token):
+            token, self._bootstrap_token
+        ):
             return session.principal_id == "primary"
         return False
 
-    def request_step_up(self, session_id: str,
-                        credential: str | None = None) -> Session | None:
+    def request_step_up(
+        self, session_id: str, credential: str | None = None
+    ) -> Session | None:
         """Elevate a session for a bounded window after re-authentication.
 
         Returns None when the session is unknown or when the credential
@@ -268,4 +297,5 @@ class AuthManager:
         if not self.verify_step_up_credential(session, credential):
             return None
         return self.sessions.grant_step_up(
-            session_id, principal_id=session.principal_id, duration=300)
+            session_id, principal_id=session.principal_id, duration=300
+        )

@@ -21,15 +21,26 @@ class TestConnectionManager:
 
     def test_save_connection(self, tmp_path: Path) -> None:
         mgr = ConnectionManager(tmp_path)
-        mgr.save_connection({"type": "plex", "name": "my-plex", "capability": "media", "base_url": "http://plex"})
+        mgr.save_connection(
+            {
+                "type": "plex",
+                "name": "my-plex",
+                "capability": "media",
+                "base_url": "http://plex",
+            }
+        )
         conns = mgr.get_connections()
         assert len(conns) == 1
         assert conns[0]["name"] == "my-plex"
 
     def test_save_connection_replaces_by_name(self, tmp_path: Path) -> None:
         mgr = ConnectionManager(tmp_path)
-        mgr.save_connection({"type": "plex", "name": "my-plex", "base_url": "http://old"})
-        mgr.save_connection({"type": "plex", "name": "my-plex", "base_url": "http://new"})
+        mgr.save_connection(
+            {"type": "plex", "name": "my-plex", "base_url": "http://old"}
+        )
+        mgr.save_connection(
+            {"type": "plex", "name": "my-plex", "base_url": "http://new"}
+        )
         conns = mgr.get_connections()
         assert len(conns) == 1
         assert conns[0]["base_url"] == "http://new"
@@ -43,16 +54,24 @@ class TestConnectionManager:
 
     def test_save_native_config(self, tmp_path: Path) -> None:
         mgr = ConnectionManager(tmp_path)
-        mgr.save_native_config("calendar", {"sources": [{"type": "ics", "url": "http://cal"}]})
+        mgr.save_native_config(
+            "calendar", {"sources": [{"type": "ics", "url": "http://cal"}]}
+        )
         cal = mgr.get_native_config("calendar")
         assert cal["sources"][0]["url"] == "http://cal"
 
     def test_local_overrides_tracked(self, tmp_path: Path) -> None:
         # Write tracked config
-        tracked = {"connections": [{"type": "ollama", "name": "brain", "capability": "reasoning"}]}
+        tracked = {
+            "connections": [
+                {"type": "ollama", "name": "brain", "capability": "reasoning"}
+            ]
+        }
         (tmp_path / "connections.json").write_text(json.dumps(tracked))
         # Write local config
-        local = {"connections": [{"type": "plex", "name": "my-plex", "capability": "media"}]}
+        local = {
+            "connections": [{"type": "plex", "name": "my-plex", "capability": "media"}]
+        }
         (tmp_path / "connections.local.json").write_text(json.dumps(local))
         mgr = ConnectionManager(tmp_path)
         conns = mgr.get_connections()
@@ -71,7 +90,9 @@ class TestConnectionManager:
 
     def test_get_connection(self, tmp_path: Path) -> None:
         mgr = ConnectionManager(tmp_path)
-        mgr.save_connection({"type": "plex", "name": "my-plex", "base_url": "http://plex"})
+        mgr.save_connection(
+            {"type": "plex", "name": "my-plex", "base_url": "http://plex"}
+        )
         conn = mgr.get_connection("my-plex")
         assert conn is not None
         assert conn["base_url"] == "http://plex"
@@ -147,8 +168,15 @@ class TestProviderSchemas:
         can_test=False."""
         # Providers with live test handlers in _test_adapter:
         live_testable = {
-            "plex", "sonarr", "radarr", "lidarr",
-            "ics", "ntfy", "github_release", "ollama", "oidc",
+            "plex",
+            "sonarr",
+            "radarr",
+            "lidarr",
+            "ics",
+            "ntfy",
+            "github_release",
+            "ollama",
+            "oidc",
         }
         # Providers with local-only validation (not live):
         local_validators = {"compose", "systemd", "webhook"}
@@ -156,11 +184,145 @@ class TestProviderSchemas:
         for cap_schema in CAPABILITY_SCHEMAS.values():
             for p in cap_schema.providers:
                 if p.adapter_type in live_testable:
-                    assert p.can_test is True, f"{p.adapter_type} should be can_test=True"
+                    assert p.can_test is True, (
+                        f"{p.adapter_type} should be can_test=True"
+                    )
                 elif p.adapter_type in local_validators:
-                    assert p.can_test is True, f"{p.adapter_type} should be can_test=True (local validation)"
+                    assert p.can_test is True, (
+                        f"{p.adapter_type} should be can_test=True (local validation)"
+                    )
                 else:
                     assert p.can_test is False, (
                         f"{p.adapter_type} has can_test=True but no handler — "
                         "set can_test=False or add a handler"
                     )
+
+
+class TestAdapterProbeHardening:
+    """URL validation + no-redirect fetching for _test_adapter's
+    shared probe (self-contained: no real network is touched)."""
+
+    def test_non_http_scheme_refused(self):
+        from personal_world.api import _probe_url, _valid_http_url
+
+        assert _valid_http_url("ftp://example.com/x") is False
+        assert _valid_http_url("file:///etc/passwd") is False
+        assert _valid_http_url("example.com/x") is False  # not absolute
+        # refused before any fetch attempt
+        assert _probe_url("ftp://example.com/x")["status"] == ("invalid_configuration")
+        assert _probe_url("example.com/no-scheme")["status"] == (
+            "invalid_configuration"
+        )
+
+    def test_http_https_absolute_accepted(self):
+        from personal_world.api import _valid_http_url
+
+        assert _valid_http_url("http://127.0.0.1:8080/") is True
+        assert _valid_http_url("https://example.com/x") is True
+
+    def test_redirect_to_another_host_not_followed(self, monkeypatch):
+        """A 3xx is reported honestly (redirect NOT chased): exactly one
+        request is made, no follow-up to the redirect target."""
+        import io
+        import urllib.error
+
+        import personal_world.api as api
+
+        calls = []
+
+        class _FakeResponse:
+            status = 302
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        def fake_open(req, timeout=None):
+            calls.append(req.full_url)
+            raise urllib.error.HTTPError(
+                req.full_url,
+                302,
+                "Found",
+                {"Location": "https://evil.example.com/steal"},
+                io.BytesIO(b""),
+            )
+
+        monkeypatch.setattr(api._OPENER, "open", fake_open)
+        r = api._probe_url("http://adapter.local/ping")
+        assert r["status"] == "healthy"
+        assert r.get("redirected") is True
+        assert r.get("code") == 302
+        assert len(calls) == 1  # the redirect was never followed
+
+    def test_success_path_reports_status(self, monkeypatch):
+        import personal_world.api as api
+
+        class _FakeResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        def fake_open(req, timeout=None):
+            return _FakeResponse()
+
+        monkeypatch.setattr(api._OPENER, "open", fake_open)
+        r = api._probe_url("https://adapter.local/ok")
+        assert r == {"status": "healthy", "code": 200}
+
+    def test_unreachable_reported(self, monkeypatch):
+        import urllib.error
+
+        import personal_world.api as api
+
+        def fake_open(req, timeout=None):
+            raise urllib.error.URLError("connection refused")
+
+        monkeypatch.setattr(api._OPENER, "open", fake_open)
+        r = api._probe_url("https://adapter.local/down")
+        assert r["status"] == "unavailable"
+        assert "refused" in r["reason"]
+
+    def test_plex_token_travels_in_header_not_query(self, monkeypatch, tmp_path):
+        """The Plex access token must never appear in the fetched URL."""
+        from fastapi.testclient import TestClient
+
+        import personal_world.api as api
+        from personal_world.api import create_app
+
+        captured = {}
+
+        def fake_probe(url, *, method="GET", headers=None):
+            captured["url"] = url
+            captured["headers"] = headers
+            return {"status": "healthy", "code": 200}
+
+        monkeypatch.setattr(api, "_probe_url", fake_probe)
+        monkeypatch.setenv("PW_API_TOKEN", "instancetoken")
+        monkeypatch.setenv("PW_IDENTITY_MODE", "single")
+        monkeypatch.setenv("PW_DATA_DIR", str(tmp_path))
+        from personal_world.init import init_world
+
+        init_world(tmp_path, tmp_path)
+        (tmp_path / "setup-complete").write_text("ok")
+        c = TestClient(create_app(tmp_path, tmp_path))
+        r = c.post(
+            "/api/connections/test",
+            json={
+                "capability": "media",
+                "adapter_type": "plex",
+                "config": {
+                    "base_url": "http://plex.local:32400",
+                    "token": "sekrit-token",
+                },
+            },
+            headers={"Authorization": "Bearer instancetoken"},
+        )
+        assert r.status_code == 200, r.text
+        assert captured["headers"].get("X-Plex-Token") == "sekrit-token"
+        assert "sekrit-token" not in captured["url"]

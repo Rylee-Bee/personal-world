@@ -25,7 +25,8 @@ UI-011 login (token) → AUTH-009 POST /api/auth/login → AUTH-002 login_local 
    (single: bootstrap primary; multi: STORE-005 hashed tokens + local records)
 → request.state.principal → protected route
 Step-up: require_step_up consumes the persisted, principal-bound session grant
-   (AUTH-008, POST /api/auth/step-up), then true-loopback, then X-PW-StepUp.
+   (AUTH-008, POST /api/auth/step-up), then true-loopback, then X-PW-StepUp
+   (honored only with X-PW-Proxy-StepUp-Secret matching PW_PROXY_STEPUP_SECRET).
 ```
 
 ## World read

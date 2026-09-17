@@ -798,7 +798,9 @@ def endpoint_manifest(routes: Iterable[Any]) -> dict[str, Any]:
                 "none": "no elevation beyond authentication (see 'auth')",
                 "step-up": "requires a require_step_up elevation: a "
                 "time-bounded session grant, true loopback, or "
-                "the delegated X-PW-StepUp header",
+                "the delegated X-PW-StepUp header (only with "
+                "X-PW-Proxy-StepUp-Secret matching "
+                "PW_PROXY_STEPUP_SECRET)",
                 "proposal": "requires an approved proposal from the "
                 "propose → approve → act lifecycle",
             },

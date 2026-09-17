@@ -131,8 +131,10 @@ a canonical, time-bounded, principal-bound session grant minted by
 (the instance token as a bearer header or in the body);
 true loopback (127.0.0.1/::1 — a documented local-owner exception;
 RFC1918 LAN addresses do not qualify); and `X-PW-StepUp: 1` (explicit
-delegated proxy/transitional-client trust). Step-up is a human
-elevation: an agent principal is refused (`step-up is person-only`).
+delegated proxy/transitional-client trust — honored only when the
+request also carries `X-PW-Proxy-StepUp-Secret` matching
+`PW_PROXY_STEPUP_SECRET`; fail closed when unset or wrong). Step-up
+is a human elevation: an agent principal is refused (`step-up is person-only`).
 It gates preference, Apps registry, identity provisioning, and
 world-write routes. This is an implemented extra write check, **not
 verified fresh authentication/MFA**; the OIDC-session step-up path

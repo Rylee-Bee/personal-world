@@ -423,6 +423,24 @@ def finish(data_dir: Path, journal=None) -> None:
 # ── routes ───────────────────────────────────────────────────────────
 
 
+def _require_local_peer(request: Request) -> None:
+    """First-run setup WRITES are loopback-only (fail closed).
+
+    The wizard provisions the instance credential and stores, so a
+    remote peer must never be able to claim a fresh, unauthenticated
+    instance. GET state routes stay readable; the TestClient's ASGI
+    peer ("testclient") is loopback by construction, so tests that
+    exercise the wizard keep working.
+    """
+    from .api import _is_true_loopback
+
+    if not _is_true_loopback(request):
+        raise HTTPException(
+            status_code=403,
+            detail="setup is only available from the local machine",
+        )
+
+
 def register_setup_wizard(
     app: FastAPI, *, data_dir: Path, config_dir: Path, journal=None
 ) -> None:
@@ -492,7 +510,8 @@ def register_setup_wizard(
         }
 
     @app.post("/api/setup-wizard/provision")
-    async def wizard_provision() -> dict:
+    async def wizard_provision(request: Request) -> dict:
+        _require_local_peer(request)
         _require_first_run()
         try:
             result = await run_in_threadpool(provision, data_dir, config_dir, journal)
@@ -514,6 +533,7 @@ def register_setup_wizard(
 
     @app.post("/api/setup-wizard/test-oidc")
     async def wizard_test_oidc(request: Request) -> dict:
+        _require_local_peer(request)
         _require_first_run()
         try:
             body = await request.json()
@@ -525,6 +545,7 @@ def register_setup_wizard(
 
     @app.post("/api/setup-wizard/auth-choice")
     async def wizard_auth_choice(request: Request) -> dict:
+        _require_local_peer(request)
         _require_first_run()
         try:
             body = await request.json()
@@ -547,6 +568,7 @@ def register_setup_wizard(
 
     @app.post("/api/setup-wizard/comfort")
     async def wizard_comfort(request: Request) -> dict:
+        _require_local_peer(request)
         _require_first_run()
         try:
             body = await request.json()
@@ -565,6 +587,7 @@ def register_setup_wizard(
 
     @app.post("/api/setup-wizard/finish")
     async def wizard_finish(request: Request) -> Any:
+        _require_local_peer(request)
         _require_first_run()
         await run_in_threadpool(finish, data_dir, journal)
         response = JSONResponse({"ok": True, "data": {"redirect": "/"}})
