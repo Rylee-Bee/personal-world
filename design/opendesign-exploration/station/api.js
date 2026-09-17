@@ -404,19 +404,39 @@
     return 'request failed (' + res.status + ')';
   }
 
+  /* Presentation mappings for known server detail values. The API
+     keeps its original machine-facing strings; only what a person is
+     shown through this client is mapped here. (LANG-046/047/058) */
+  var DETAIL_PRESENTATION = {
+    "no session": 'Your sign-in expired. Sign in again.',
+    "step-up credential invalid": 'That access code did not match. Nothing was changed.',
+    "auth not configured": 'Sign-in is not set up.',
+    "no source_control search paths configured": 'Source control is not set up.'
+  };
+
+  function presentDetail(body, res) {
+    var raw = detailOf(body, res);
+    return (raw && Object.prototype.hasOwnProperty.call(DETAIL_PRESENTATION, raw))
+      ? DETAIL_PRESENTATION[raw] : raw;
+  }
+
   function httpFailure(ep, res, body) {
     /* 401/403: the caller is not allowed to know — say so, and never
        dress it up as an empty list. */
     if (res.status === 401 || res.status === 403) {
       return failEnvelope(ep, 'unauthenticated', 'unavailable',
         res.status === 403
-          ? 'That needs an elevation this session does not have.'
-          : 'Sign in to see this.', 'http_' + res.status, res.status);
+          ? ((body && body.detail === 'step-up credential invalid')
+            ? DETAIL_PRESENTATION['step-up credential invalid']
+            : 'That needs an elevation this session does not have.')
+          : ((body && body.detail === 'no session')
+            ? DETAIL_PRESENTATION['no session']
+            : 'Sign in to see this.'), 'http_' + res.status, res.status);
     }
     /* 503 is the server's own "not configured yet" answer. */
     if (res.status === 503) {
       return failEnvelope(ep, 'not_configured', 'not_configured',
-        detailOf(body, res), 'http_503', 503);
+        presentDetail(body, res), 'http_503', 503);
     }
     if (res.status === 404) {
       return failEnvelope(ep, 'error', 'unknown', detailOf(body, res),
@@ -465,7 +485,7 @@
             warnings: warnings,
             error: {
               code: 'not_ok',
-              message: detailOf(body, res),
+              message: presentDetail(body, res),
               httpStatus: res.status
             },
             source: sourceOf(ep)
