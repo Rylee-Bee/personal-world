@@ -12,6 +12,16 @@ below). **This file routes; canonical files govern.** When this file and a
 canonical file disagree, the canonical file wins. `UNKNOWN` is an honest
 answer, not a gap to fill.
 
+> **2026-09-16 era note.** The React-SPA implementation described in
+> "IMPLEMENTATION FRAMEWORK" below was the implementation truth of the
+> T15 era only. That SPA, its `PW_FRONTEND` mode switch and its dist
+> build pipeline were removed on 2026-09-16 (single-branch cutover).
+> The current product UI is the **Station** (`/station/`, sources in
+> `design/opendesign-exploration/station/`); `/login` and `/setup`
+> are server-rendered. The implementation sections below are kept for
+> design provenance; the Workshop v3 frame inventory remains design
+> evidence, not the current frontend.
+
 Evidence basis: git history at `8963dda`, README "What works today",
 CHANGELOG (Unreleased + 2026-09-07..09), docs/DESIGN-HANDOFF.md
 (V0.1 baseline note), docs/accessibility/* (canonical),
