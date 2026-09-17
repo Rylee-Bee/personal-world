@@ -8,6 +8,23 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
+## 2026-09-17 — production is live with passkey-first SSO
+
+- **Production**: `world.hulganfamily.duckdns.org` → transcode host
+  (`192.168.2.141:8700`), running the published image
+  (`ghcr.io/rylee-bee/personal-world:latest`) with persistent `data` + `config`.
+  The stale in-stack `personal-world` container (VM 101) was retired; its
+  Traefik labels are replaced by a file-provider route.
+- **Sign-in is OIDC against the operator's Authelia, passkey-first.** The
+  `project-worlds` client uses `client_secret_post` (what the app
+  negotiates from discovery) and `authorization_policy: one_factor`. The
+  login page is SSO-primary; the access code is a collapsed fallback. See
+  `docs/oidc.md`.
+- **Dev mirror**: `worlds.hulganfamily.duckdns.org` on the Bazzite box, same
+  wiring.
+- Homelab side (private repo): PR #14 — Authelia client + the `world.`
+  route (hash committed; plaintext only in the app env).
+
 ## 2026-09-16 — Station is the product UI; the repo is single-branch `main`
 
 The current direction is the **Station** UI (served same-origin at
