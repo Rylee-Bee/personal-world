@@ -34,6 +34,8 @@ This document supersedes the earlier Mermaid-centric integration pass.
 
 They are siblings in art direction — shared pastel palette, aubergine outlines, friendly rounded forms, rosy cheeks, sparkle decorations — but each has a completely distinct silhouette.
 
+**Naming canon:** display names and the station-id ↔ server-key mapping are canonical in [docs/COMPANION-CANON.md](../docs/COMPANION-CANON.md); the row labels above are repo descriptors, not the display names.
+
 ## Companion Architecture
 
 ```
