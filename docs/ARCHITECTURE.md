@@ -93,7 +93,8 @@ All HTTP Vault routes require bearer authentication. Unlock requires a passphras
 list/get require an unlocked vault. `GET /api/vault/{name}` returns a value only
 after a peer-address check and records its name in the journal. Despite its
 "loopback-only" error text, the check also accepts addresses Python classifies
-as private. Set/delete/lock use bearer auth, not `require_step_up`. These are
+as private. `lock` and `unlock` use bearer auth only; `set` and `delete` also require
+`require_step_up` on top of bearer auth. These are
 current restrictions, not proof of finish-line re-authentication or per-user
 Vault isolation. Never route retrieved values into model context or ordinary
 exports/logs; secure retrieval is an explicit exceptional workflow.
@@ -173,10 +174,10 @@ The following inventory reflects implemented routes, not deployment acceptance:
 | GET /api/manifest | Core capability/provider manifest (`data`) + the machine-readable endpoint manifest (`endpoints`: id, method, path, capability, kind, gate, auth, present — curated in `api_manifest.py`, verified against the live route table) |
 | GET /api/memory/search | semantic recall via the memory provider |
 | POST /api/chat; GET /api/chat/providers | Read-only world-snapshot conversation and reasoning-provider status |
-| POST /api/chat/test | Provider probe; currently has no require_auth dependency |
+| POST /api/chat/test | Provider probe (changes no local state); requires authentication, no elevation |
 | GET /api/prefs; PUT /api/prefs | Read/save validated presentation preferences; writes use require_step_up |
 | GET /api/apps; PUT /api/apps | Optional services launcher registry in data/apps.json; replacement is step-up gated and journaled |
-| GET /api/source-control/status, /api/source-control/history, /api/source-control/rollups | Native repository status/history and optional forge rollups |
+| GET /api/source-control/status, /api/source-control/history, /api/source-control/enrichment | Native repository status/history and optional forge enrichment |
 | GET /api/ingress/rollups | Optional ingress summary |
 | GET /api/updates | Read-only update state, not a deploy action |
 | GET /api/lab/state, /api/lab/settings, /api/lab/settings/inspect/{service}, /api/lab/settings/diff/{service} | Optional Lab state and configuration inspection |
@@ -222,10 +223,12 @@ Review first-run exposure separately from normal protected API access.
   uniform across all read surfaces. Configure privately and verify each surface.
 - The tracked Compose has host-specific bind mounts despite its standalone
   description. Parsing/framework success does not establish portable deployment.
-- The brain-write proposal store is durable (`data/proposals.json`) but
-  instance-global: proposals created through a model loop in one profile are
-  not yet namespaced per user in multi mode. The approval evidence is
-  server-held and persisted, but per-user proposal ownership is deferred.
+- The brain-write proposal store is durable (`data/proposals.json`). In
+  multi-principal mode it is stored per principal
+  (`_scoped_path(principal, "proposals")` in `api.py` — verified by
+  `tests/test_identity_boundary.py`); in single mode (and background
+  seams with no principal) it remains instance-global. The approval
+  evidence is server-held and persisted.
 - Session step-up re-presents an application credential. An OIDC-only browser
   session cannot mint a grant without the instance token; a fresh OIDC
   round-trip as step-up is not implemented.

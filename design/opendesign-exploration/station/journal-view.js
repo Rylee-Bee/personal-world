@@ -126,8 +126,8 @@
         '<summary>technical · journal entries view</summary>' +
         '<div class="tech-body">' +
           'surface: journal entries list (read) + write affordance<br>' +
-          'real binding: GET/POST /api/journal/entries — <strong>API-005</strong> (journal); ' +
-          'vault flag + resume point per the journal model<br>' +
+          'real binding: GET/POST /api/journal — <strong>API-005</strong> (read) / ' +
+          '<strong>API-006</strong> (write); vault flag + resume point per the journal model<br>' +
           'states: populated · empty ("No entries yet — your words will appear here")<br>' +
           'current data: SPECIMEN — frontend-only, no backend exists; the sample list is static ' +
           'and nothing persists from it<br>' +

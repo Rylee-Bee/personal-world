@@ -1,7 +1,11 @@
 # Security policy
 
-Project Worlds is an early, single-user application. Security fixes target the
-current `main` branch; there is no supported stable release series yet.
+Project Worlds supports both a single-user identity mode and a
+multi-principal mode (`PW_IDENTITY_MODE=multi`, per-person data
+scoping); security fixes target the current `main` branch; there is no
+supported stable release series yet. The browser front-end is the
+server-served Station UI at `/station/` (the Vite/SPA browser build was
+removed on 2026-09-16); entry points are server-rendered.
 
 ## Report privately
 
@@ -47,5 +51,7 @@ referenced by indirection (`api_key_env`, `token_env`, `secret_ref`); a
 deliberate synthetic canary in a test must carry the marker
 `pw-safety: synthetic` on the same line so the exception stays visible.
 
-Nothing reachable by the browser build (Vite `import.meta.env`, public
-assets) may ever hold a credential: it is inlined into the public bundle.
+Nothing served to the browser may ever hold a credential: Station
+static assets are served same-origin by the server, and the former
+Vite bundle inlining (`import.meta.env`) was removed with the SPA
+cutover.

@@ -49,9 +49,12 @@ This was built for you first. Here's what's true:
 - **Honesty:** it never fakes data, never hides errors, and always tells you
   what's real vs. not-set-up-yet.
 
-*Still being hardened:* automated axe/e2e gates for the star-map UI are on the
-todo list, so a few edges may still need polish. If something fights you, that's
-a bug we want — not your fault.
+*Standing gate, not a todo:* the Station UI is covered by the automated
+Playwright gate (`cd frontend && npm run test:e2e`), which boots the real
+app with a seeded world and runs the accessibility, honest-state, keyboard,
+motion, and reflow suite — including axe with color-contrast enabled (see
+`frontend/e2e/station-a11y.spec.ts`). If something fights you, that's
+still a bug we want — not your fault.
 
 ---
 

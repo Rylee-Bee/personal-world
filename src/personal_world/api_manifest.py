@@ -284,6 +284,16 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     _e("API-011", "GET", "/api/chat/providers", "chat", "read", "none"),
     _e(
+        "API-010-history",
+        "GET",
+        "/api/chat/history",
+        "chat",
+        "read",
+        "none",
+        note="the caller's own persisted transcript, oldest first "
+        "(per-user, decision #13)",
+    ),
+    _e(
         "API-012",
         "POST",
         "/api/chat/test",

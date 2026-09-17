@@ -19,7 +19,7 @@
   'use strict';
 
   var root = document.documentElement;
-  var PREFS = ['density', 'theme', 'motion', 'companions', 'demand'];
+  var PREFS = ['density', 'theme', 'motion', 'companions', 'mood', 'demand'];
   var KEY = function (n) { return 'pw-station-' + n; };
 
   function read(n) { try { return localStorage.getItem(KEY(n)); } catch (e) { return null; } }

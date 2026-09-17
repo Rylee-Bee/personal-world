@@ -254,7 +254,11 @@ only**. All other stores, and all per-user trees, are unbacked.
 ## 10. Config / environment inventory
 
 Documented canonical: `PW_API_TOKEN`, `PW_DATA_DIR`, `PW_CONFIG_DIR`,
-`PW_FRONTEND_DIST`, `PW_IDENTITY_MODE`, `PW_LAB_CLI`.
+`PW_IDENTITY_MODE`, `PW_LAB_CLI`.
+
+Deleted by the 2026-09-16 Station cutover (no longer canonical; kept
+here only as history): `PW_FRONTEND_DIST` (removed with the SPA dist
+build), `PW_FRONTEND` (deleted mode switch; a stray value is inert).
 
 Undocumented in canonical docs: `PW_DEV_AUTH_BYPASS`,
 `PW_TRAEFIK_BASE_URL`, `PW_SOURCE_CONTROL_ROOT`, `PW_PORT`,
@@ -264,7 +268,7 @@ Undocumented in canonical docs: `PW_DEV_AUTH_BYPASS`,
 
 | Flag | Detail |
 |---|---|
-| Unused / inert | `PW_FRONTEND` (deleted switch; tests assert absence) |
+| Unused / inert | `PW_FRONTEND_DIST`, `PW_FRONTEND` — deleted by the 2026-09-16 Station cutover (SPA/removed dist build; a stray value is inert) |
 | Stale name | `PW_CONFIG_LOCAL_DIR` (docs only, no code) |
 | Fallback aliases | `PLEX_TOKEN`; `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` defaults; `<data>/.env` outranks `PW_API_TOKEN` |
 | Unsafe trust edges | `PW_DEV_AUTH_BYPASS` (default off, true-loopback only); step-up `X-PW-StepUp: 1` proxy trust; single-mode OIDC maps any verified subject to owner `primary` |

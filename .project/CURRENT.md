@@ -346,7 +346,11 @@ Resolved since this survey (recorded so the survey is not mistaken for
 current): the T15 cutover is done — the legacy server-rendered pages and
 the `PW_FRONTEND` mode switch were deleted; `PW_FRONTEND_DIST` is the
 only frontend environment variable and a stray `PW_FRONTEND` value is
-inert (`tests/test_frontend_serving.py` guards this). The runtime
+inert (`tests/test_frontend_serving.py` guards this). *(This whole
+block is superseded by the 2026-09-16 Station cutover: the React SPA
+and its dist build were deleted, `PW_FRONTEND_DIST` was removed with
+them, and the product UI is the server-served Station — kept as
+history, not current truth.)* The runtime
 product-brand pass is complete: product strings say "Project Worlds",
 while companion identity intentionally keeps "Personal World".
 
