@@ -835,6 +835,13 @@ def main(argv: list[str] | None = None) -> int:
         help="replace existing files (default: keep them, report skipped)",
     )
 
+    # Decision #19 CLI-parity surface (additive; clobbers nothing cli.py
+    # already owns): `api-manifest`, `api <METHOD> <path>`, and the
+    # `do <noun> <verb>` wrappers. See src/personal_world/cli_dispatch.py.
+    from .cli_dispatch import register_cli_dispatch
+
+    register_cli_dispatch(sub)
+
     args = p.parse_args(argv)
     data_dir = Path(args.data_dir)
     config_dir = Path(args.config_dir)
