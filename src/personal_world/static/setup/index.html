@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Set up Project Worlds</title>
+<link rel="stylesheet" href="/setup/styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="site-header">
+  <p class="brand">Project Worlds</p>
+  <p class="brand-note">first-time setup</p>
+</header>
+
+<main id="main">
+  <h1>Set up Project Worlds</h1>
+  <p id="progress" class="progress">Step 1 of 5: Welcome</p>
+  <p id="live" class="visually-hidden" role="status" aria-live="polite"></p>
+
+  <!-- Step 1: welcome -->
+  <section class="step" id="step-welcome" aria-labelledby="h-welcome">
+    <h2 id="h-welcome">Welcome</h2>
+    <p>Project Worlds is your own private dashboard. It keeps track of
+      your projects, journals what happens, and can connect to the
+      services you already run — all on <strong>your</strong> server.
+      Nothing is sent to anyone else's computer.</p>
+    <p>This setup takes about five minutes. You will:</p>
+    <ol class="plain-list">
+      <li>let the app prepare itself (automatic — you just watch),</li>
+      <li>choose how you want to sign in,</li>
+      <li>pick a couple of comfort settings,</li>
+      <li>finish, and the app opens.</li>
+    </ol>
+    <p>You do not need any technical knowledge. If something goes
+      wrong, this page tells you what happened and what to try.</p>
+    <div class="actions">
+      <button type="button" class="btn primary" id="btn-start">Get started</button>
+    </div>
+  </section>
+
+  <!-- Step 2: invisible provisioning -->
+  <section class="step" id="step-preparing" hidden aria-labelledby="h-preparing">
+    <h2 id="h-preparing">Getting things ready</h2>
+    <p id="prepare-status" class="calm" role="status">
+      <span class="busy" aria-hidden="true"></span>
+      Preparing your world. This usually takes a few seconds — you do
+      not need to do anything.
+    </p>
+    <div id="prepare-error" class="alert problem" hidden>
+      <p class="alert-heading"><span aria-hidden="true">⚠</span> Something needs your attention</p>
+      <p id="prepare-error-detail"></p>
+      <button type="button" class="btn" id="btn-retry-prepare">Retry</button>
+    </div>
+  </section>
+
+  <!-- Step 3: auth choice -->
+  <section class="step" id="step-auth" hidden aria-labelledby="h-auth">
+    <h2 id="h-auth">How will you sign in?</h2>
+    <p>Pick one. You can change this later.</p>
+    <fieldset class="choice-set">
+      <legend class="visually-hidden">Sign-in method</legend>
+      <label class="choice" for="auth-local">
+        <input type="radio" id="auth-local" name="auth-choice" value="local" checked>
+        <span class="choice-body">
+          <span class="choice-title">Just me on this device
+            <span class="badge">Recommended</span></span>
+          <span class="choice-desc">No extra accounts or settings. The
+            app signs you in automatically on this server. Best if you
+            are the only person using it.</span>
+        </span>
+      </label>
+      <label class="choice" for="auth-oidc">
+        <input type="radio" id="auth-oidc" name="auth-choice" value="oidc">
+        <span class="choice-body">
+          <span class="choice-title">Sign in with my own SSO</span>
+          <span class="choice-desc">Use a sign-in server you already
+            run (OpenID Connect — for example Authelia, Keycloak, or
+            Authentik). You will need its address and the “client ID”
+            from that server.</span>
+        </span>
+      </label>
+    </fieldset>
+
+    <div id="oidc-fields" class="oidc-fields" hidden>
+      <h3>Your SSO details</h3>
+      <div class="field">
+        <label for="oidc-issuer">Sign-in server address (issuer URL)</label>
+        <input type="url" id="oidc-issuer" name="oidc-issuer"
+               autocomplete="url" placeholder="https://sso.example.com"
+               aria-describedby="oidc-issuer-help">
+        <p class="help" id="oidc-issuer-help">The base address of your
+          sign-in server, starting with https://</p>
+      </div>
+      <div class="field">
+        <label for="oidc-client-id">Client ID</label>
+        <input type="text" id="oidc-client-id" name="oidc-client-id"
+               autocomplete="off" aria-describedby="oidc-client-id-help">
+        <p class="help" id="oidc-client-id-help">The identifier your
+          sign-in server gave to Project Worlds when you registered
+          it.</p>
+      </div>
+      <div class="field">
+        <label for="oidc-secret-env">Name of the environment variable that holds the client secret</label>
+        <input type="text" id="oidc-secret-env" name="oidc-secret-env"
+               autocomplete="off" placeholder="PW_OIDC_CLIENT_SECRET"
+               aria-describedby="oidc-secret-env-help">
+        <p class="help" id="oidc-secret-env-help">Only the
+          <strong>name</strong> of the variable — never type the secret
+          itself into this page. For example:
+          <code>PW_OIDC_CLIENT_SECRET</code>.</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn" id="btn-test-oidc">Test connection</button>
+      </div>
+      <div id="oidc-test-result" class="test-result" role="status" hidden></div>
+    </div>
+
+    <div id="auth-warnings" class="alert note" hidden>
+      <p class="alert-heading"><span aria-hidden="true">ℹ</span> Good to know</p>
+      <ul id="auth-warnings-list"></ul>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn" id="btn-auth-back">Back</button>
+      <button type="button" class="btn primary" id="btn-auth-next">Continue</button>
+    </div>
+  </section>
+
+  <!-- Step 4: comfort defaults -->
+  <section class="step" id="step-comfort" hidden aria-labelledby="h-comfort">
+    <h2 id="h-comfort">Make yourself comfortable</h2>
+    <p>Two quick choices. Both can be changed later in Settings, and
+      both start at the calmest, most readable defaults.</p>
+    <div class="field toggle-field">
+      <label class="toggle" for="comfort-larger-text">
+        <input type="checkbox" id="comfort-larger-text">
+        <span class="toggle-body">
+          <span class="choice-title">Larger text</span>
+          <span class="choice-desc">Bumps the text size up one step
+            across the whole app.</span>
+        </span>
+      </label>
+    </div>
+    <div class="field toggle-field">
+      <label class="toggle" for="comfort-gentle-motion">
+        <input type="checkbox" id="comfort-gentle-motion">
+        <span class="toggle-body">
+          <span class="choice-title">Gentle animation</span>
+          <span class="choice-desc">Allows short, subtle transitions.
+            Off by default — the app is calm and still without
+            it.</span>
+        </span>
+      </label>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" id="btn-comfort-back">Back</button>
+      <button type="button" class="btn primary" id="btn-comfort-next">Continue</button>
+    </div>
+  </section>
+
+  <!-- Step 5: finish -->
+  <section class="step" id="step-finish" hidden aria-labelledby="h-finish">
+    <h2 id="h-finish">All done — ready to open your world</h2>
+    <p>Here is what you chose:</p>
+    <dl class="summary" id="finish-summary">
+      <dt>Sign-in</dt><dd id="summary-auth">Just me on this device</dd>
+      <dt>Text size</dt><dd id="summary-text">Normal</dd>
+      <dt>Animation</dt><dd id="summary-motion">Calm (no animation)</dd>
+    </dl>
+    <p id="finish-status" class="calm" role="status" hidden>
+      <span class="busy" aria-hidden="true"></span> Finishing setup…
+    </p>
+    <div id="finish-error" class="alert problem" hidden>
+      <p class="alert-heading"><span aria-hidden="true">⚠</span> Setup could not finish</p>
+      <p id="finish-error-detail"></p>
+      <button type="button" class="btn" id="btn-retry-finish">Try again</button>
+    </div>
+    <div class="actions" id="finish-actions">
+      <button type="button" class="btn" id="btn-finish-back">Back</button>
+      <button type="button" class="btn primary" id="btn-finish">Finish and enter Project Worlds</button>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>Everything you enter here stays on your own server. This page
+    never asks for a password or a secret value.</p>
+</footer>
+
+<script src="/setup/wizard.js"></script>
+</body>
+</html>
