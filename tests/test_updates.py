@@ -51,11 +51,15 @@ def compose_fixture(tmp_path: Path, image="old:1.0") -> Path:
     is changing the web service's image tag."""
     proj = tmp_path / "proj"
     proj.mkdir()
-    (proj / "compose.yaml").write_text(yaml.safe_dump({
-        "services": {
-            "web": {"image": image, "ports": ["8000:8000"]},
-        },
-    }))
+    (proj / "compose.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "services": {
+                    "web": {"image": image, "ports": ["8000:8000"]},
+                },
+            }
+        )
+    )
     # desired-version config the provider reads (same wiring as a real
     # install: config/updates-desired.json next to connections.json)
     config = tmp_path / "config"
@@ -71,7 +75,8 @@ def make_pair(kind: str, tmp_path: Path, project_dir: Path | None = None):
     provider-neutral."""
     if kind == "fake":
         provider = FakeUpdateProvider(
-            state={"web": {"image": "old:1.0"}}, desired={"web": "new:2.0"})
+            state={"web": {"image": "old:1.0"}}, desired={"web": "new:2.0"}
+        )
         probe = lambda: provider.state["web"]["image"]  # noqa: E731
         return provider, UpdateManager(provider, _journal(tmp_path)), probe
     if kind == "compose":
@@ -95,6 +100,37 @@ def rig(request, tmp_path):
     return make_pair("fake", tmp_path)
 
 
+def _docker_compose_ok() -> bool:
+    """True when a *usable* ``docker compose`` (or ``docker-compose``) exists.
+
+    ``ComposeUpdateProvider.verify`` shells out to ``docker compose config``
+    whenever the docker client is present; a docker CLI without the compose
+    subcommand means an apply can never verify and rolls back. Tests that
+    assert a verified apply therefore skip honestly in that environment.
+    """
+    for binary in (shutil.which("docker"), shutil.which("docker-compose")):
+        if not binary:
+            continue
+        try:
+            if (
+                subprocess.run(
+                    [binary, "compose", "version"]
+                    if binary.endswith("docker")
+                    else [binary, "version"],
+                    capture_output=True,
+                    timeout=20,
+                ).returncode
+                == 0
+            ):
+                return True
+        except (OSError, subprocess.SubprocessError):
+            continue
+    return False
+
+
+COMPOSE_OK = _docker_compose_ok()
+
+
 # ---------------------------------------------------------------------------
 # The demonstrated reference path (both providers)
 # ---------------------------------------------------------------------------
@@ -105,6 +141,8 @@ class TestReferencePath:
         """check -> preview -> apply -> verify ok -> journal trail.
         The one flow this lane exists to demonstrate."""
         provider, mgr, probe = rig
+        if isinstance(provider, ComposeUpdateProvider) and not COMPOSE_OK:
+            pytest.skip("no usable `docker compose`; verify would roll back")
         before = probe()
 
         c = mgr.check("web")
@@ -113,8 +151,10 @@ class TestReferencePath:
         assert c.provider == provider.name
 
         p = mgr.preview("web")
-        assert p.mutations == ["compose.yaml: services.web.image "
-                               "old:1.0 -> new:2.0"] or p.mutations, p.mutations
+        assert (
+            p.mutations == ["compose.yaml: services.web.image old:1.0 -> new:2.0"]
+            or p.mutations
+        ), p.mutations
         assert p.reversible is True
 
         result = mgr.apply("web", confirm=True)
@@ -181,7 +221,8 @@ class TestReferencePath:
         """verify fails -> automatic rollback -> state returns to
         known-good; result is NEVER a false success."""
         provider = FakeUpdateProvider(
-            state={"web": {"image": "old:1.0"}}, desired={"web": "new:2.0"})
+            state={"web": {"image": "old:1.0"}}, desired={"web": "new:2.0"}
+        )
         provider.fail_verify = True
         mgr = UpdateManager(provider, _journal(tmp_path))
         mgr.preview("web")
@@ -199,7 +240,8 @@ class TestReferencePath:
         """Both fail -> loud structured error, journal records it,
         success is never declared."""
         provider = FakeUpdateProvider(
-            state={"web": {"image": "old:1.0"}}, desired={"web": "new:2.0"})
+            state={"web": {"image": "old:1.0"}}, desired={"web": "new:2.0"}
+        )
         provider.fail_verify = True
         provider.fail_rollback = True
         mgr = UpdateManager(provider, _journal(tmp_path))
@@ -214,6 +256,8 @@ class TestReferencePath:
 
     def test_manual_rollback_restores_known_good(self, rig, tmp_path):
         provider, mgr, probe = rig
+        if isinstance(provider, ComposeUpdateProvider) and not COMPOSE_OK:
+            pytest.skip("no usable `docker compose`; verify would roll back")
         mgr.preview("web")
         mgr.apply("web", confirm=True)
         assert probe() == "new:2.0"
@@ -275,8 +319,10 @@ class TestContract:
     def test_second_provider_passes_same_suite(self, tmp_path):
         """Parametrized rig already proves two providers satisfy the
         same contract; this pins the contract shape itself."""
-        for p in (FakeUpdateProvider(), ComposeUpdateProvider(
-                compose_fixture(tmp_path), {"web": "new:2.0"})):
+        for p in (
+            FakeUpdateProvider(),
+            ComposeUpdateProvider(compose_fixture(tmp_path), {"web": "new:2.0"}),
+        ):
             assert hasattr(p, "targets") and callable(p.targets)
             assert hasattr(p, "check") and callable(p.check)
             assert hasattr(p, "preview") and callable(p.preview)
@@ -289,7 +335,8 @@ class TestContract:
         """CLI invocations are separate processes; the session file must
         carry the preview + known-good across them."""
         provider = FakeUpdateProvider(
-            state={"web": {"image": "old:1.0"}}, desired={"web": "new:2.0"})
+            state={"web": {"image": "old:1.0"}}, desired={"web": "new:2.0"}
+        )
         spath = tmp_path / "session.json"
         m1 = UpdateManager(provider, _journal(tmp_path), session_path=spath)
         m1.preview("web")
@@ -313,7 +360,8 @@ class TestContract:
 
     def test_nothing_to_apply_refused(self, tmp_path):
         provider = FakeUpdateProvider(
-            state={"web": {"image": "old:1.0"}}, desired={"web": "old:1.0"})
+            state={"web": {"image": "old:1.0"}}, desired={"web": "old:1.0"}
+        )
         mgr = UpdateManager(provider, _journal(tmp_path))
         mgr.preview("web")
         with pytest.raises(UpdateRefused, match="nothing to apply"):
@@ -343,12 +391,16 @@ class TestComposeProvider:
     def test_targets_intersect_desired(self, tmp_path):
         proj = tmp_path / "proj"
         proj.mkdir()
-        (proj / "compose.yaml").write_text(yaml.safe_dump({
-            "services": {
-                "web": {"image": "old:1.0"},
-                "unwanted": {"image": "old:1.0"},
-            },
-        }))
+        (proj / "compose.yaml").write_text(
+            yaml.safe_dump(
+                {
+                    "services": {
+                        "web": {"image": "old:1.0"},
+                        "unwanted": {"image": "old:1.0"},
+                    },
+                }
+            )
+        )
         p = ComposeUpdateProvider(proj, {"web": "new:2.0"})
         assert p.targets() == ["web"]
 
@@ -380,8 +432,7 @@ class TestComposeProvider:
     def test_build_provider_compose_with_desired_file(self, tmp_path, monkeypatch):
         proj = compose_fixture(tmp_path)
         config = tmp_path / "config"
-        (config / "updates-desired.json").write_text(
-            json.dumps({"web": "new:2.0"}))
+        (config / "updates-desired.json").write_text(json.dumps({"web": "new:2.0"}))
         monkeypatch.setenv("PW_UPDATES_PROJECT_DIR", str(proj))
         p = build_provider(config_dir=config, provider="compose")
         assert isinstance(p, ComposeUpdateProvider)
@@ -391,9 +442,8 @@ class TestComposeProvider:
         """Optional integration: exercises the real `docker compose
         config` verify path. Skipped when the docker client is absent;
         the parse-fallback path is covered by the rig tests above."""
-        docker = shutil.which("docker")
-        if not docker:
-            pytest.skip("docker client not installed")
+        if not COMPOSE_OK:
+            pytest.skip("no usable `docker compose` on this host")
         proj = compose_fixture(tmp_path)
         p = ComposeUpdateProvider(proj, {"web": "new:2.0"})
         kg = p.known_good("web")
@@ -430,10 +480,13 @@ class TestCli:
         monkeypatch.setenv("PW_UPDATES_PROJECT_DIR", str(tmp_path / "proj"))
         monkeypatch.setenv("PW_CONFIG_DIR", str(tmp_path / "config"))
         argv = ["--config-dir", str(tmp_path / "config"), *argv]
-        return cli_main([
-            "--data-dir", str(tmp_path / "data"),
-            *argv,
-        ])
+        return cli_main(
+            [
+                "--data-dir",
+                str(tmp_path / "data"),
+                *argv,
+            ]
+        )
 
     def _capped(self, capsys):
         return json.loads(capsys.readouterr().out)
@@ -441,26 +494,32 @@ class TestCli:
     def test_cli_full_flow(self, tmp_path, monkeypatch, capsys):
         """The CLI demonstrates the same state machine end-to-end,
         including the persisted session across process invocations."""
+        if not COMPOSE_OK:
+            pytest.skip("no usable `docker compose`; verify would roll back")
         proj = compose_fixture(tmp_path)
         rc = self._cli(tmp_path, monkeypatch, ["updates", "check", "web", "--json"])
         assert rc == EXIT_OK
         check = self._capped(capsys)
         assert check["data"]["available"] == "new:2.0"
 
-        rc = self._cli(tmp_path, monkeypatch,
-                       ["updates", "preview", "web", "--json"])
+        rc = self._cli(tmp_path, monkeypatch, ["updates", "preview", "web", "--json"])
         assert rc == EXIT_OK
         preview = self._capped(capsys)
         assert preview["data"]["mutations"], preview
 
-        rc = self._cli(tmp_path, monkeypatch,
-                       ["updates", "apply", "web", "--yes", "--json"])
+        rc = self._cli(
+            tmp_path, monkeypatch, ["updates", "apply", "web", "--yes", "--json"]
+        )
         assert rc == EXIT_OK
         applied = self._capped(capsys)
         assert applied["status"] == "verified"
         assert applied["data"]["applied"] is True
-        assert yaml.safe_load((proj / "compose.yaml").read_text())[
-            "services"]["web"]["image"] == "new:2.0"
+        assert (
+            yaml.safe_load((proj / "compose.yaml").read_text())["services"]["web"][
+                "image"
+            ]
+            == "new:2.0"
+        )
 
         rc = self._cli(tmp_path, monkeypatch, ["updates", "status", "--json"])
         assert rc == EXIT_OK
@@ -471,28 +530,44 @@ class TestCli:
         assert rc == EXIT_OK
         rb = self._capped(capsys)
         assert rb["data"]["rolled_back"] is True
-        assert yaml.safe_load((proj / "compose.yaml").read_text())[
-            "services"]["web"]["image"] == "old:1.0"
+        assert (
+            yaml.safe_load((proj / "compose.yaml").read_text())["services"]["web"][
+                "image"
+            ]
+            == "old:1.0"
+        )
 
         # journal trail via the standard journal command
-        rc = cli_main([
-            "--data-dir", str(tmp_path / "data"),
-            "--config-dir", str(tmp_path / "config"),
-            "journal", "--json", "-n", "50",
-        ])
+        rc = cli_main(
+            [
+                "--data-dir",
+                str(tmp_path / "data"),
+                "--config-dir",
+                str(tmp_path / "config"),
+                "journal",
+                "--json",
+                "-n",
+                "50",
+            ]
+        )
         assert rc == EXIT_OK
         events = self._capped(capsys)["data"]
         text = "\n".join(e["summary"] for e in events)
-        for needle in ("check target=web", "preview target=web",
-                       "known-good recorded", "applied target=web",
-                       "verify target=web after apply: ok",
-                       "manual rollback target=web"):
+        for needle in (
+            "check target=web",
+            "preview target=web",
+            "known-good recorded",
+            "applied target=web",
+            "verify target=web after apply: ok",
+            "manual rollback target=web",
+        ):
             assert needle in text, needle
 
     def test_cli_apply_without_preview_refused(self, tmp_path, monkeypatch, capsys):
         compose_fixture(tmp_path)
-        rc = self._cli(tmp_path, monkeypatch,
-                       ["updates", "apply", "web", "--yes", "--json"])
+        rc = self._cli(
+            tmp_path, monkeypatch, ["updates", "apply", "web", "--yes", "--json"]
+        )
         assert rc == EXIT_DENIED
         out = self._capped(capsys)
         assert out["status"] == "refused"
@@ -509,11 +584,17 @@ class TestCli:
 
     def test_cli_not_configured(self, tmp_path, monkeypatch, capsys):
         monkeypatch.delenv("PW_UPDATES_PROJECT_DIR", raising=False)
-        rc = cli_main([
-            "--data-dir", str(tmp_path / "data"),
-            "--config-dir", str(tmp_path / "config"),
-            "updates", "check", "--json",
-        ])
+        rc = cli_main(
+            [
+                "--data-dir",
+                str(tmp_path / "data"),
+                "--config-dir",
+                str(tmp_path / "config"),
+                "updates",
+                "check",
+                "--json",
+            ]
+        )
         assert rc == EXIT_ERROR
         out = self._capped(capsys)
         assert out["status"] == "not_configured"
@@ -523,8 +604,12 @@ class TestCli:
         self._cli(tmp_path, monkeypatch, ["updates", "preview", "web", "--json"])
         rc = self._cli(tmp_path, monkeypatch, ["updates", "status", "--live", "--json"])
         assert rc == EXIT_OK
-        assert yaml.safe_load((proj / "compose.yaml").read_text())[
-            "services"]["web"]["image"] == "old:1.0"
+        assert (
+            yaml.safe_load((proj / "compose.yaml").read_text())["services"]["web"][
+                "image"
+            ]
+            == "old:1.0"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -537,6 +622,7 @@ class TestApi:
         from fastapi.testclient import TestClient
 
         from personal_world.api import create_app
+
         compose_fixture(tmp_path)
         monkeypatch.setenv("PW_API_TOKEN", "t")
         monkeypatch.setenv("PW_UPDATES_PROJECT_DIR", str(tmp_path / "proj"))
@@ -547,13 +633,18 @@ class TestApi:
         assert body["ok"] is True
         assert body["data"]["checks"]["web"]["available"] == "new:2.0"
         # read-only: compose file untouched
-        assert yaml.safe_load((tmp_path / "proj" / "compose.yaml").read_text())[
-            "services"]["web"]["image"] == "old:1.0"
+        assert (
+            yaml.safe_load((tmp_path / "proj" / "compose.yaml").read_text())[
+                "services"
+            ]["web"]["image"]
+            == "old:1.0"
+        )
 
     def test_api_updates_not_configured(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
 
         from personal_world.api import create_app
+
         monkeypatch.setenv("PW_API_TOKEN", "t")
         monkeypatch.delenv("PW_UPDATES_PROJECT_DIR", raising=False)
         c = TestClient(create_app(tmp_path, tmp_path))
@@ -565,6 +656,7 @@ class TestApi:
         from fastapi.testclient import TestClient
 
         from personal_world.api import create_app
+
         monkeypatch.setenv("PW_API_TOKEN", "t")
         monkeypatch.setenv("PW_UPDATES_PROJECT_DIR", str(tmp_path / "proj"))
         c = TestClient(create_app(tmp_path, tmp_path))
