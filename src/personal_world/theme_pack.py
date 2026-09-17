@@ -94,6 +94,11 @@ class ThemePackRegistry:
         self._ensure_loaded()
         return self._packs.get(name, DEFAULT_PACK)
 
+    def get_or_none(self, name: str) -> ThemePack | None:
+        """Get a pack by name, or None when unknown (honest lookup)."""
+        self._ensure_loaded()
+        return self._packs.get(name)
+
     def list_packs(self) -> list[ThemePack]:
         """List all available packs."""
         self._ensure_loaded()

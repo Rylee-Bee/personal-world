@@ -23,6 +23,8 @@ Schema (from ROADMAP.md): the schema exists; this is the runner.
 """
 
 import json
+import logging
+import os
 import time
 import threading
 from datetime import UTC, datetime
@@ -39,6 +41,8 @@ from .model import JournalKind, Provenance
 # Result (or None when no transport is available). The scheduler never
 # learns what transport that is.
 Notifier = Callable[[str, str], Result | None]
+
+logger = logging.getLogger(__name__)
 
 
 class Reminder(BaseModel):
@@ -67,57 +71,85 @@ class Scheduler:
         self.journal = journal
         self.notifier = notifier
         self._reminders: dict[str, Reminder] = {}
+        self._lock = threading.RLock()
         self._loaded = False
         self._thread: threading.Thread | None = None
         self._last_error: str | None = None  # visible state, not a silent death
         self._stop = threading.Event()
 
     def _ensure_loaded(self) -> None:
-        if self._loaded:
-            return
-        if self.path.exists():
-            try:
-                data = json.loads(self.path.read_text())
-                for item in data.get("reminders", []):
-                    r = Reminder.model_validate(item)
-                    self._reminders[r.id] = r
-            except Exception:
-                pass
-        self._loaded = True
+        with self._lock:
+            if self._loaded:
+                return
+            if self.path.exists():
+                try:
+                    data = json.loads(self.path.read_text())
+                    for item in data.get("reminders", []):
+                        r = Reminder.model_validate(item)
+                        self._reminders[r.id] = r
+                except Exception as exc:
+                    # Corrupt store: keep in-memory state empty, but the
+                    # failure must be visible — especially because the
+                    # next save would overwrite the damaged file.
+                    logger.warning(
+                        "scheduler: could not load %s (%s: %s) — starting "
+                        "from an empty reminder set; the file will be "
+                        "overwritten on the next save",
+                        self.path,
+                        type(exc).__name__,
+                        exc,
+                    )
+                    self._last_error = (
+                        f"reminders file unreadable: {type(exc).__name__}"
+                    )
+            self._loaded = True
 
     def _save(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        data = {
-            "reminders": [r.model_dump(mode="json") for r in self._reminders.values()]
-        }
-        self.path.write_text(json.dumps(data, indent=2))
+        with self._lock:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            data = {
+                "reminders": [
+                    r.model_dump(mode="json") for r in self._reminders.values()
+                ]
+            }
+            tmp = self.path.with_suffix(self.path.suffix + ".tmp")
+            tmp.write_text(json.dumps(data, indent=2))
+            os.replace(tmp, self.path)
 
     def add(self, reminder: Reminder) -> Result:
-        self._ensure_loaded()
-        self._reminders[reminder.id] = reminder
-        self._save()
-        return ok("healthy", data={"id": reminder.id})
+        with self._lock:
+            self._ensure_loaded()
+            self._reminders[reminder.id] = reminder
+            self._save()
+            return ok("healthy", data={"id": reminder.id})
 
     def remove(self, reminder_id: str) -> Result:
-        self._ensure_loaded()
-        if reminder_id not in self._reminders:
-            return fail("not_found", warnings=[f"reminder '{reminder_id}' not found"])
-        del self._reminders[reminder_id]
-        self._save()
-        return ok("healthy", data={"id": reminder_id})
+        with self._lock:
+            self._ensure_loaded()
+            if reminder_id not in self._reminders:
+                return fail(
+                    "not_found", warnings=[f"reminder '{reminder_id}' not found"]
+                )
+            del self._reminders[reminder_id]
+            self._save()
+            return ok("healthy", data={"id": reminder_id})
 
     def list_reminders(self) -> list[Reminder]:
-        self._ensure_loaded()
-        return list(self._reminders.values())
+        with self._lock:
+            self._ensure_loaded()
+            return list(self._reminders.values())
 
     def toggle(self, reminder_id: str, enabled: bool) -> Result:
-        self._ensure_loaded()
-        r = self._reminders.get(reminder_id)
-        if r is None:
-            return fail("not_found", warnings=[f"reminder '{reminder_id}' not found"])
-        r.enabled = enabled
-        self._save()
-        return ok("healthy", data={"id": reminder_id, "enabled": enabled})
+        with self._lock:
+            self._ensure_loaded()
+            r = self._reminders.get(reminder_id)
+            if r is None:
+                return fail(
+                    "not_found", warnings=[f"reminder '{reminder_id}' not found"]
+                )
+            r.enabled = enabled
+            self._save()
+            return ok("healthy", data={"id": reminder_id, "enabled": enabled})
 
     def _deliver(self, text: str) -> str | None:
         """Attempt delivery through the injected notifier.
@@ -147,37 +179,38 @@ class Scheduler:
         An occurrence the process was not running for is skipped, not
         replayed on a later tick (see the module docstring).
         """
-        self._ensure_loaded()
-        now = datetime.now(UTC)
-        fired = []
-        for r in self._reminders.values():
-            if not r.enabled:
-                continue
-            if r.cron_hour is not None and now.hour != r.cron_hour:
-                continue
-            if r.cron_minute is not None and now.minute != r.cron_minute:
-                continue
-            if r.cron_day is not None:
-                day_names = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-                if day_names[now.weekday()] != r.cron_day:
+        with self._lock:
+            self._ensure_loaded()
+            now = datetime.now(UTC)
+            fired = []
+            for r in self._reminders.values():
+                if not r.enabled:
                     continue
-            # Don't fire twice in the same minute
-            if r.last_fired and (time.time() - r.last_fired) < 60:
-                continue
-            r.last_fired = time.time()
-            fired.append(r.text)
-            outcome = self._deliver(r.text)
-            if self.journal:
-                summary = f"Reminder: {r.text}"
-                if outcome is not None:
-                    summary = f"{summary} — {outcome}"
-                self.journal.record(
-                    JournalKind.OBSERVATION,
-                    summary,
-                    source="scheduler",
-                )
-        if fired:
-            self._save()
+                if r.cron_hour is not None and now.hour != r.cron_hour:
+                    continue
+                if r.cron_minute is not None and now.minute != r.cron_minute:
+                    continue
+                if r.cron_day is not None:
+                    day_names = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+                    if day_names[now.weekday()] != r.cron_day:
+                        continue
+                # Don't fire twice in the same minute
+                if r.last_fired and (time.time() - r.last_fired) < 60:
+                    continue
+                r.last_fired = time.time()
+                fired.append(r.text)
+                outcome = self._deliver(r.text)
+                if self.journal:
+                    summary = f"Reminder: {r.text}"
+                    if outcome is not None:
+                        summary = f"{summary} — {outcome}"
+                    self.journal.record(
+                        JournalKind.OBSERVATION,
+                        summary,
+                        source="scheduler",
+                    )
+            if fired:
+                self._save()
         return fired
 
     def start(self) -> None:

@@ -361,31 +361,6 @@ async def require_auth(request: Request) -> None:
     raise HTTPException(status_code=401, detail="unauthorized")
 
 
-def _capability_description(cap: str) -> str:
-    """Human-readable description for a capability."""
-    descriptions = {
-        "source_control": "Read repositories, branches, commits, and sync state",
-        "deployment": "Deploy or schedule services",
-        "secrets": "Broker secret material to consumers",
-        "calendar": "Observe calendar events",
-        "discovery": "Discover content matching interests",
-        "settings_validation": "Validate settings against intent",
-        "service_validation": "Validate service health",
-        "update_discovery": "Discover available updates",
-        "memory": "Search long-term memory",
-        "journal": "Read and write structured history",
-        "reasoning": "AI interpretation and conversation",
-        "notifications": "Send notifications",
-        "scheduler": "Run tasks on a schedule",
-        "homelab_settings": "Homelab settings reconciliation",
-        "homelab_health": "Homelab service health monitoring",
-        "homelab_deploy": "Homelab deployment status",
-        "homelab_secrets": "Homelab secret management",
-        "homelab_resources": "Homelab VM resource monitoring",
-    }
-    return descriptions.get(cap, cap.replace("_", " "))
-
-
 def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> FastAPI:
     data_dir = Path(data_dir or os.environ.get("PW_DATA_DIR", "./data"))
     config_dir = Path(config_dir or os.environ.get("PW_CONFIG_DIR", "./config"))
@@ -515,8 +490,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/setup/status")
     async def setup_status() -> dict:
-        """Check if first-run setup is needed."""
-        complete = (data_dir / "setup-complete").exists()
+        """Check if first-run setup is needed (missing marker, or a
+        deliberate FORCE_SETUP=1 re-open)."""
+        complete = not setup_needed(data_dir)
         return {"ok": True, "data": {"complete": complete}}
 
     @app.post("/api/setup")
@@ -662,7 +638,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         world, registry = _state()
         s = world.summary()
         # `capabilities` here is the provider capability-STATUS map (the
-        # product contract the React frontend reads). The world's own
+        # product contract the Station reads). The world's own
         # declared-capability COUNT travels as `declared_capabilities`
         # from world.summary() — one key, one meaning.
         s["capabilities"] = registry.status_map()
@@ -693,8 +669,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         target = journal if uj == journal.path else Journal(uj)
         # Calm view: each chain's CURRENT version only (superseded
         # originals stay in history + audit; the correction workflow
-        # links them).
-        events = target.current_events(n)
+        # links them). n is clamped 1..500 like chat history.
+        events = target.current_events(min(max(n, 1), 500))
         return {"ok": True, "data": [e.model_dump(mode="json") for e in events]}
 
     @app.post("/api/journal", dependencies=[Depends(require_auth)])
@@ -832,8 +808,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     async def memory_search(q: str, top_k: int = 5) -> dict:
         """Semantic recall through the memory provider. Private data
         class: results are personal context, never settings-exportable."""
-        from .model import Capability  # noqa: F401  (capability exists)
-
         _, registry = _state()
         provider = registry.provider_for("memory")
         if provider is None:
@@ -1175,8 +1149,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             actor,
             journal=_journal_target(_scoped_path(principal, "journal")),
         )
-        if not r.ok:
-            return r.model_dump(mode="json")
         return r.model_dump(mode="json")
 
     @app.post(
@@ -1192,8 +1164,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             actor,
             journal=_journal_target(_scoped_path(principal, "journal")),
         )
-        if not r.ok:
-            return r.model_dump(mode="json")
         return r.model_dump(mode="json")
 
     @app.post(
@@ -2103,36 +2073,37 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # --- Native Reconciler endpoints ---
 
     # --- Media endpoints ---
-    from .providers.native_media import NativeMediaEngine, build_adapter
+    from .providers.native_media import (
+        MEDIA_CONNECTION_TYPES,
+        build_media_engine_from_connections,
+    )
     from .connection_manager import resolve_media_connections
 
     def _build_media_engine():
-        """Build media engine from MERGED connection config.
+        """Build media engine from MERGED connection config through the
+        canonical construction helper (connection dicts, not adapters).
 
         Resolves both:
         - connections[] entries (tracked config, provider shape)
         - flat UI config (connections.local.json, schema-driven shape)
         """
         config = conn_mgr.get_all_config()
-        adapters = []
+        connections = [
+            conn
+            for conn in config.get("connections", [])
+            if isinstance(conn, dict) and conn.get("type") in MEDIA_CONNECTION_TYPES
+        ]
 
-        # 1. connections[] entries (provider shape — has "type" key)
-        for conn in config.get("connections", []):
-            if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
-                adapter = build_adapter(conn)
-                if adapter:
-                    adapters.append(adapter)
-
-        # 2. Flat UI config saved under "media" key
+        # Flat UI config saved under "media" key
         media_raw = config.get("media", {})
         if media_raw and media_raw.get("_adapter"):
-            for conn in resolve_media_connections(media_raw):
-                if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
-                    adapter = build_adapter(conn)
-                    if adapter:
-                        adapters.append(adapter)
+            connections.extend(
+                conn
+                for conn in resolve_media_connections(media_raw)
+                if isinstance(conn, dict) and conn.get("type") in MEDIA_CONNECTION_TYPES
+            )
 
-        return NativeMediaEngine(adapters)
+        return build_media_engine_from_connections(connections)
 
     @app.get("/api/media/status", dependencies=[Depends(require_auth)])
     async def media_status():
@@ -2173,13 +2144,22 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         r = reconciler.observe()
         return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
 
+    async def _observed_from_request(request: Request) -> dict:
+        """Best-effort applied-state body: absent/invalid JSON is an
+        EMPTY observed state, not a 500."""
+        try:
+            body = await request.json()
+        except ValueError:
+            return {}
+        return body if isinstance(body, dict) else {}
+
     @app.get("/api/reconciler/diff/{service}", dependencies=[Depends(require_auth)])
     async def reconciler_diff(service: str, request: Request) -> dict:
         """Compute drift between desired and observed state."""
         from .providers.native_reconciler import NativeSettingsReconciler
 
         reconciler = NativeSettingsReconciler()
-        observed = await request.json()
+        observed = await _observed_from_request(request)
         r = reconciler.diff(service, observed)
         return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
 
@@ -2189,7 +2169,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         from .providers.native_reconciler import NativeSettingsReconciler
 
         reconciler = NativeSettingsReconciler()
-        observed = await request.json()
+        observed = await _observed_from_request(request)
         r = reconciler.propose(service, observed)
         return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
 
@@ -2317,7 +2297,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         from .theme_pack import ThemePackRegistry
 
         registry = ThemePackRegistry(data_dir / "theme-packs")
-        pack = registry.get(name)
+        pack = registry.get_or_none(name)
+        if pack is None:
+            raise HTTPException(status_code=404, detail=f"no theme pack named {name}")
         return {"ok": True, "data": pack.model_dump(mode="json")}
 
     # --- Brain Template System ---
@@ -2607,7 +2589,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         Each entry: {id, name, url, icon?, category?}. User-editable,
         optional; absent file = empty list.
         """
-        _, _, _uj = _state_for(request)
         path = data_dir / "apps.json"
         if not path.exists():
             return {"ok": True, "data": []}
@@ -2620,7 +2601,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     @app.put("/api/apps", dependencies=[Depends(require_step_up)])
     async def apps_put(request: Request) -> dict:
         """Replace the services registry (step-up gated, like prefs)."""
-        _, _, _uj = _state_for(request)
         body = await request.json()
         items = body.get("apps") if isinstance(body, dict) else None
         if not isinstance(items, list):

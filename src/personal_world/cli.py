@@ -31,7 +31,7 @@ from .source_control import (
     repository_status,
     status_all,
 )
-from .world import MutationDenied, UserAction, World, status
+from .world import MutationDenied, World, status
 
 
 def _search_paths(config_dir: Path) -> list[str]:
@@ -188,8 +188,6 @@ def cmd_cement(world, registry, journal, args) -> int:
 
 
 def cmd_init(world, registry, journal, args) -> int:
-    from .init import init_world
-
     return _emit(init_world(Path(args.data_dir), Path(args.config_dir)), args.json)
 
 
@@ -674,7 +672,6 @@ def main(argv: list[str] | None = None) -> int:
 
     add("status", cmd_status, help="world summary (read-only)")
     add("daily", cmd_daily, help="run the daily loop")
-    sub.choice_map = None
     d = sub.choices["daily"]
     d.add_argument(
         "--apply", action="store_true", help="persist observed facts (default: dry-run)"

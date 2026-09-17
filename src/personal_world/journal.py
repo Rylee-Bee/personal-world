@@ -53,7 +53,14 @@ class Journal:
     def by_ts(self, ts) -> JournalEvent | None:
         """One entry by its UTC timestamp key, or None."""
         from datetime import datetime
-        key = ts if isinstance(ts, datetime) else datetime.fromisoformat(str(ts))
+
+        if isinstance(ts, datetime):
+            key = ts
+        else:
+            try:
+                key = datetime.fromisoformat(str(ts))
+            except ValueError:
+                return None
         for e in self.events():
             if e.ts == key:
                 return e
@@ -78,6 +85,7 @@ class Journal:
         are not supported — correct the current entry instead).
         """
         from datetime import datetime, timezone
+
         old = self.by_ts(target_ts)
         if old is None:
             raise KeyError(f"no journal entry at {target_ts}")
@@ -92,8 +100,7 @@ class Journal:
         current = JournalEvent(
             kind=old.kind,
             summary=corrected_text,
-            provenance=Provenance(source=old.provenance.source,
-                                  authority="reported"),
+            provenance=Provenance(source=old.provenance.source, authority="reported"),
             classification=old.classification,
             supersedes=old.ts,
             supersede_reason=(reason or None),
@@ -109,8 +116,7 @@ class Journal:
                 f"journal correction approved: entry at {old.ts.isoformat()} "
                 f"superseded by {current.ts.isoformat()} — proposed by "
                 f"{proposed_by}, approved by the owner via the Journal "
-                f"screen"
-                + (f", reason: {reason}" if reason else "")
+                f"screen" + (f", reason: {reason}" if reason else "")
             ),
             provenance=Provenance(source="journal"),
             classification=old.classification,
@@ -123,8 +129,9 @@ class Journal:
         where each chain's CURRENT version only is shown. Superseded
         entries are filtered out; a corrected entry renders in its
         place with its own (later) timestamp."""
-        superseded_keys = {e.supersedes for e in self.events()
-                           if e.supersedes is not None}
+        superseded_keys = {
+            e.supersedes for e in self.events() if e.supersedes is not None
+        }
         out = []
         for e in self.events():
             if e.ts in superseded_keys:

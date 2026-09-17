@@ -157,3 +157,37 @@ def test_missed_fire_is_skipped_not_replayed(tmp_path):
     assert s.check_and_fire() == []  # still not replayed on a later tick
     assert list(journal.events()) == []
     assert s.list_reminders()[0].last_fired is None
+
+
+# ── Durable store integrity: corrupt file visible, atomic save ──
+
+
+def test_corrupt_file_is_logged_and_add_still_works(tmp_path, caplog):
+    """A corrupt reminders.json must be VISIBLE (warning log), the
+    scheduler must keep working in memory, and the next save must
+    produce a valid file again — never a silent overwrite."""
+    import logging
+
+    (tmp_path / "reminders.json").write_text("{not json")
+    s = Scheduler(tmp_path / "reminders.json", journal=Journal(tmp_path / "j.ndjson"))
+    with caplog.at_level(logging.WARNING, logger="personal_world.scheduler"):
+        s.add(Reminder(id="r1", text="still works"))
+    assert any(
+        "could not load" in rec.message and "reminders.json" in rec.message
+        for rec in caplog.records
+    )
+    import json
+
+    data = json.loads((tmp_path / "reminders.json").read_text())
+    assert [r["id"] for r in data["reminders"]] == ["r1"]
+    assert s._last_error and "unreadable" in s._last_error
+
+
+def test_save_is_atomic_and_valid_json(tmp_path):
+    import json
+
+    s = Scheduler(tmp_path / "reminders.json")
+    s.add(Reminder(id="r1", text="ok"))
+    data = json.loads((tmp_path / "reminders.json").read_text())
+    assert data["reminders"][0]["text"] == "ok"
+    assert not (tmp_path / "reminders.json.tmp").exists()
