@@ -721,9 +721,17 @@ def register_worlds_backup(
     def worlds_backup_download(token: str) -> FileResponse:
         entry = _PENDING_DOWNLOADS.pop(token, None)
         if entry is None:
+            # LANG-050 presentation mapping: the human message leads; the
+            # operator code stays in the same body as machine-facing data.
             raise HTTPException(
                 status_code=404,
-                detail="download token unknown, already used, or expired",
+                detail={
+                    "message": (
+                        "This one-time download link is no longer "
+                        "available. Create a new backup to get another link."
+                    ),
+                    "error_code": "download_token_unknown_or_expired",
+                },
             )
         path, _ = entry
         from starlette.background import BackgroundTask

@@ -369,13 +369,23 @@
     };
   }
 
-  function failEnvelope(ep, state, status, message, code, httpStatus) {
+  /* `message` is what a person is shown by default. `detail` keeps the
+     raw/technical string (server detail, exception text, API vocabulary)
+     so a surface can still disclose it — the user-default copy is
+     human-first, the technical string stays available. (LANG-014–017,
+     LANG-051) */
+  function failEnvelope(ep, state, status, message, code, httpStatus, detail) {
     return envelope({
       state: state,
       ok: false,
       status: status,
       data: null,
-      error: { code: code || state, message: message, httpStatus: httpStatus || null },
+      error: {
+        code: code || state,
+        message: message,
+        detail: detail || null,
+        httpStatus: httpStatus || null
+      },
       source: sourceOf(ep)
     });
   }
@@ -406,44 +416,71 @@
 
   /* Presentation mappings for known server detail values. The API
      keeps its original machine-facing strings; only what a person is
-     shown through this client is mapped here. (LANG-046/047/058) */
+     shown through this client is mapped here. `message` is the default
+     human copy; `detail` retains the raw server string. (LANG-046/047/
+     058) */
   var DETAIL_PRESENTATION = {
-    "no session": 'Your sign-in expired. Sign in again.',
-    "step-up credential invalid": 'That access code did not match. Nothing was changed.',
-    "auth not configured": 'Sign-in is not set up.',
-    "no source_control search paths configured": 'Source control is not set up.'
+    "no session": {
+      message: 'Your sign-in expired. Sign in again.',
+      detail: 'no session'
+    },
+    "step-up credential invalid": {
+      message: 'That access code did not match. Nothing was changed.',
+      detail: 'step-up credential invalid'
+    },
+    "auth not configured": {
+      message: 'Sign-in is not set up.',
+      detail: 'auth not configured'
+    },
+    "no source_control search paths configured": {
+      message: 'Source control is not set up.',
+      detail: 'no source_control search paths configured'
+    },
+    /* LANG-058 remainder — only entries with real consumers right now
+       (API-033 source-control status backs Projects; chat/update
+       capabilities have no wired Station surface yet, so those absence
+       strings are deliberately unmapped until they do). */
+    "no git repositories found in configured search paths": {
+      message: 'No repositories were found in the configured search paths yet.',
+      detail: 'no git repositories found in configured search paths'
+    }
   };
 
   function presentDetail(body, res) {
     var raw = detailOf(body, res);
-    return (raw && Object.prototype.hasOwnProperty.call(DETAIL_PRESENTATION, raw))
-      ? DETAIL_PRESENTATION[raw] : raw;
+    var mapped = raw && Object.prototype.hasOwnProperty.call(DETAIL_PRESENTATION, raw)
+      ? DETAIL_PRESENTATION[raw] : null;
+    return { message: mapped ? mapped.message : raw, detail: raw };
   }
 
   function httpFailure(ep, res, body) {
+    var presented = presentDetail(body, res);
     /* 401/403: the caller is not allowed to know — say so, and never
        dress it up as an empty list. */
     if (res.status === 401 || res.status === 403) {
       return failEnvelope(ep, 'unauthenticated', 'unavailable',
         res.status === 403
           ? ((body && body.detail === 'step-up credential invalid')
-            ? DETAIL_PRESENTATION['step-up credential invalid']
+            ? DETAIL_PRESENTATION['step-up credential invalid'].message
             : 'That needs an elevation this session does not have.')
           : ((body && body.detail === 'no session')
-            ? DETAIL_PRESENTATION['no session']
-            : 'Sign in to see this.'), 'http_' + res.status, res.status);
+            ? DETAIL_PRESENTATION['no session'].message
+            : 'Sign in to see this.'), 'http_' + res.status, res.status,
+        res.status === 403
+          ? (body && typeof body.detail === 'string' ? body.detail : null)
+          : (body && body.detail === 'no session' ? 'no session' : null));
     }
     /* 503 is the server's own "not configured yet" answer. */
     if (res.status === 503) {
       return failEnvelope(ep, 'not_configured', 'not_configured',
-        presentDetail(body, res), 'http_503', 503);
+        presented.message, 'http_503', 503, presented.detail);
     }
     if (res.status === 404) {
-      return failEnvelope(ep, 'error', 'unknown', detailOf(body, res),
-        'http_404', 404);
+      return failEnvelope(ep, 'error', 'unknown', presented.message,
+        'http_404', 404, presented.detail);
     }
-    return failEnvelope(ep, 'error', 'unavailable', detailOf(body, res),
-      'http_' + res.status, res.status);
+    return failEnvelope(ep, 'error', 'unavailable', presented.message,
+      'http_' + res.status, res.status, presented.detail);
   }
 
   /* ── The one request path ─────────────────────────────────────── */
@@ -477,6 +514,7 @@
         if (!explicitOk) {
           /* The server said "not ok" with its own status word. Keep it. */
           var toldStatus = (body && isStatus(body.status)) ? body.status : 'needs_attention';
+          var toldCopy = presentDetail(body, res);
           return envelope({
             state: 'error',
             ok: false,
@@ -485,7 +523,8 @@
             warnings: warnings,
             error: {
               code: 'not_ok',
-              message: presentDetail(body, res),
+              message: toldCopy.message,
+              detail: toldCopy.detail,
               httpStatus: res.status
             },
             source: sourceOf(ep)
@@ -512,8 +551,13 @@
       });
     }).catch(function (err) {
       if (err && err.state) { return err; }   /* already an envelope */
+      /* Transport failure (LANG-013/051): human-first default, raw
+         exception text kept in technical detail. The wire format and
+         codes are unchanged. */
       return failEnvelope(ep, 'error', 'unavailable',
-        'Could not reach the server.', 'network');
+        'Can’t connect to Project Worlds right now. Nothing on this screen was changed. Check the connection and try again.',
+        'network', null,
+        String(err && err.message ? err.message : err));
     });
   }
 
@@ -534,13 +578,15 @@
       var ep = describe(key);
       if (!ep) {
         return failEnvelope(null, 'error', 'unknown',
-          'No endpoint called “' + key + '” is in the API manifest.',
-          'unknown_endpoint');
+          'This feature is not available in this build.',
+          'unknown_endpoint', null,
+          'No endpoint called “' + key + '” is registered.');
       }
       if (ep.kind !== 'read') {
         return failEnvelope(ep, 'blocked', 'unknown',
-          ep.method + ' ' + ep.path + ' is a write. Use PW_API.write() so the ' +
-          'gate is checked.', 'read_of_write');
+          'This action was blocked before anything changed.', 'read_of_write',
+          null, ep.method + ' ' + ep.path + ' is a write. Use PW_API.write()' +
+          ' so the gate is checked.');
       }
       if (ep.present === false) {
         return failEnvelope(ep, 'error', 'unavailable',
@@ -557,8 +603,9 @@
       var ep = describe(key);
       if (!ep) {
         return failEnvelope(null, 'error', 'unknown',
-          'No endpoint called “' + key + '” is in the API manifest.',
-          'unknown_endpoint');
+          'This feature is not available in this build.',
+          'unknown_endpoint', null,
+          'No endpoint called “' + key + '” is registered.');
       }
       if (ep.present === false) {
         return failEnvelope(ep, 'error', 'unavailable',
@@ -567,16 +614,19 @@
       }
       if (ep.gate === 'proposal') {
         return failEnvelope(ep, 'blocked', 'unknown',
+          'Approve this draft before running it. Nothing has changed.',
+          'proposal_required', null,
           'This write only runs an already-approved proposal. Approve it ' +
-          'first (PROP-approve); it cannot be called directly.',
-          'proposal_required');
+          'first (PROP-approve); it cannot be called directly.');
       }
       if (ep.gate === 'step-up' && !opts.assumeElevated) {
         if (!opts.credential) {
           return failEnvelope(ep, 'blocked', 'unknown',
+            'Confirm it’s you before making this change. Nothing has changed.',
+            'step_up_required', null,
             'This write needs an elevation (step-up). PW_API.elevate(token) ' +
             'performs the real credential event first — this client will not ' +
-            'fake one.', 'step_up_required');
+            'fake one.');
         }
         return elevate(opts.credential).then(function (grant) {
           if (!grant.ok) { return grant; }
