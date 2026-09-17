@@ -220,4 +220,4 @@ Licensed under [Apache-2.0](LICENSE). The project is experimental; see
 the [security policy](SECURITY.md) for the current support and
 deployment boundary.
 
-![Project Worlds companion artwork: robot, book-tree squirrel and taco news truck](design/assets/companions/companion-trio-preview.png)
+![Project Worlds companion artwork: Mermaid, Personal World, Little Helper robot, world-tree squirrel and the taco news truck, gathered under the world-tree](design/screens/worlds.png)
