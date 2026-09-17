@@ -63,7 +63,11 @@ test.describe("projects view — real source-control reads", () => {
     for (const fake of ["lantern-notes", "pickle", "agent-sketches", "old-notebooks"]) {
       expect(text).not.toContain(fake);
     }
-    expect(text).not.toMatch(/specimen/i);
+    expect(text).not.toContain("specimen · sample");
+    // commit messages are the repository's real history and may use any
+    // word (a commit titled "replacing the specimen feed" is truth) —
+    // the no-specimen gate applies to the rendered estate, asserted above
+    expect(page.locator(".specimen-note, .cv-specimen")).toHaveCount(0);
     expect(text).not.toContain("/home/"); // no filesystem path leakage
     // the write gate explains; it does not promise a proposal that does not exist
     const gate = page.locator("#pv-gate-btn");

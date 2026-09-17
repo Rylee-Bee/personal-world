@@ -28,7 +28,7 @@
 <script src="api.js" defer></script>
 <script src="real-data.js" defer></script>
 
-<script src="journal-view.js" defer></script>
+<script src="journal-view.js" data-unused defer></script>
 <style>
   /* ── Journal entry styles ── */
   .journal-area { max-width: 720px; }
@@ -192,6 +192,11 @@
     content: ''; flex: 1; height: 1px;
     background: linear-gradient(90deg, var(--border), transparent);
   }
+  .save-status {
+    margin: var(--s3) 0 0; font-size: var(--fs-small);
+    color: var(--text-soft); min-height: 1.4em;
+  }
+  .save-status[data-kind="error"] { color: var(--coral, #e07a5f); }
 </style>
 </head>
 <body>
@@ -241,14 +246,11 @@
     <div data-rd-journal="12" data-rd-labelledby="h-real-journal"></div>
   </section>
 
-  <!-- ══ JOURNAL: entries content view ══
-       Rendered by journal-view.js. SPECIMEN — a design sample, labelled on
-       the surface; it is not your journal. The real entries (API-005) are
-       rendered above. Its intro copy still says "no journal is connected
-       yet", which is now out of date; journal-view.js owns that line. -->
-  <div id="journal-view" class="cv-view"></div>
-
-  <!-- ══ JOURNAL: entry creation + browsing ══ -->
+  <!-- ══ JOURNAL: entry creation + browsing ══
+       The server journal (API-005) is rendered above by real-data.js,
+       with an honest unavailable state pointing to these browser-local
+       notes. This section ("Your words") is browser localStorage only:
+       plain text, not encrypted, not synced, never sent anywhere. -->
   <div class="journal-area">
     <div class="section-divider">Your words</div>
 
@@ -258,7 +260,7 @@
         Entries
       </button>
       <button class="journal-tab" role="tab" id="tab-vault" aria-selected="false" aria-controls="panel-vault" data-tab="vault">
-        Vault ✦
+        Notes on this device
       </button>
       <button class="journal-tab" role="tab" id="tab-write" aria-selected="false" aria-controls="panel-write" data-tab="write">
         Write
@@ -275,13 +277,14 @@
         <textarea id="entry-body-input" placeholder="Start anywhere. Nothing is too small or too unfinished."></textarea>
         <div class="vault-toggle">
           <input type="checkbox" id="entry-vault-check">
-          <label for="entry-vault-check">Keep this in the vault (private, not surfaced by the map)</label>
+          <label for="entry-vault-check">Save only in this browser (not encrypted or synced)</label>
         </div>
         <div class="form-actions">
           <button type="button" class="btn-primary" id="entry-save-btn">Save entry ✦</button>
           <button type="button" class="btn-secondary" id="entry-clear-btn">Clear</button>
           <span class="hint">Saved in this browser only. This note is not encrypted or synced.</span>
         </div>
+        <p class="save-status" id="save-status" role="status" aria-live="polite" hidden></p>
       </div>
     </div>
 
@@ -323,7 +326,18 @@
     try { return JSON.parse(localStorage.getItem(ENTRIES_KEY) || '[]'); } catch(e) { return []; }
   }
   function writeEntries(entries) {
-    try { localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries)); } catch(e) {}
+    /* Truthful persistence: return whether the write actually happened.
+       Browser storage can be full or blocked; the caller must not claim
+       success when nothing was saved. */
+    try { localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries)); return true; }
+    catch (e) { return false; }
+  }
+  function showSaveStatus(message, kind) {
+    var el = document.getElementById('save-status');
+    if (!el) { return; }
+    el.textContent = message;
+    el.dataset.kind = kind || '';
+    el.hidden = false;
   }
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function(c) {
@@ -358,14 +372,14 @@
         '<div class="journal-empty">' +
           '<span class="empty-icon">✦</span>' +
           '<h3>No entries yet</h3>' +
-          '<p>Your journal is waiting. Write something — it does not have to be finished or important.</p>' +
+          '<p>These are saved in this browser only. Write something — it does not have to be finished or important.</p>' +
         '</div>';
     }
 
     if (vaultEntries.length) {
       vaultList.innerHTML = vaultEntries.slice().reverse().map(function(e) {
         return '<div class="entry-card vault">' +
-          '<span class="entry-tag">✦ vault</span>' +
+          '<span class="entry-tag">browser-only</span>' +
           '<div class="entry-date">' + esc(fmtDate(e.ts)) + '</div>' +
           (e.title ? '<div class="entry-title">' + esc(e.title) + '</div>' : '') +
           '<div class="entry-body">' + esc(e.body) + '</div>' +
@@ -374,9 +388,9 @@
     } else {
       vaultList.innerHTML =
         '<div class="journal-empty">' +
-          '<span class="empty-icon">🔒</span>' +
-          '<h3>The vault is empty</h3>' +
-          '<p>Vault entries stay private and are not surfaced by the map. ' +
+          '<span class="empty-icon">✦</span>' +
+          '<h3>No notes yet</h3>' +
+          '<p>These notes are hidden from the map but they are not encrypted. ' +
           'Write something just for yourself.</p>' +
         '</div>';
     }
@@ -409,7 +423,18 @@
       vault: vault,
       ts: Date.now()
     });
-    writeEntries(entries);
+    var saved = writeEntries(entries);
+    if (!saved) {
+      showSaveStatus(
+        'Couldn’t save this in your browser. Nothing was saved. ' +
+        'Check browser storage settings and try again.',
+        'error');
+      return; /* the note is still in the form; nothing was lost */
+    }
+    showSaveStatus(
+      vault ? 'Saved in this browser only. It is not encrypted or synced.'
+            : 'Saved in this browser.',
+      'ok');
     document.getElementById('entry-title-input').value = '';
     document.getElementById('entry-body-input').value = '';
     document.getElementById('entry-vault-check').checked = false;

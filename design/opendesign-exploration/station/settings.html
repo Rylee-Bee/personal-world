@@ -118,6 +118,39 @@
     transition: all 0.2s ease;
   }
   .btn-danger:hover { background: var(--coral); color: var(--space); }
+  .data-status {
+    margin-top: var(--s3); font-size: var(--fs-small);
+    color: var(--text-soft); line-height: 1.6;
+  }
+  dialog#delete-dialog {
+    background: var(--panel, #141a28); color: var(--text, #e8e4d8);
+    border: 1.5px solid var(--border); border-radius: var(--r-lg);
+    padding: var(--s5); max-width: 46ch; box-shadow: var(--shadow, none);
+  }
+  dialog#delete-dialog::backdrop { background: rgba(10, 14, 22, 0.7); }
+  dialog#delete-dialog h3 {
+    font-family: var(--font-serif, serif); font-style: italic;
+    font-size: var(--fs-lead, 1.2rem); color: var(--cream, #f2ead6);
+    margin: 0 0 var(--s2);
+  }
+  dialog#delete-dialog p {
+    font-size: var(--fs-small); color: var(--text-soft, #c9c4b4);
+    line-height: 1.6; margin: 0 0 var(--s4);
+  }
+  dialog#delete-dialog .dialog-actions {
+    display: flex; gap: var(--s2); justify-content: flex-end; flex-wrap: wrap;
+  }
+  dialog#delete-dialog .btn-secondary {
+    min-height: 44px; padding: 0 var(--s4); border-radius: var(--r-full);
+    border: 1.5px solid var(--border); background: rgba(255,255,255,0.03);
+    color: var(--text-soft, #c9c4b4); font-size: var(--fs-small); cursor: pointer;
+  }
+  dialog#delete-dialog .btn-secondary:focus-visible,
+  dialog#delete-dialog .btn-danger:focus-visible { outline: 2px solid #72b1b1; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    dialog#delete-dialog .btn-secondary,
+    dialog#delete-dialog .btn-danger { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -291,28 +324,25 @@
       <h2 id="h-data">Your data</h2>
       <p class="set-desc">
         This section manages data saved by this browser. Server data and connected services are separate and are not cleared here.
-        Clear individual sections or start fresh. These clear what is saved in
-        your browser; the journal kept on the server is managed in the journal
-        itself, not here.
       </p>
       <div class="data-actions">
-        <button class="btn-danger" data-clear="journal">Clear device journal (local notes only)</button>
-        <button class="btn-danger" data-clear="interests">Clear interests</button>
-        <button class="btn-danger" data-clear="chat">Clear chat log</button>
-        <button class="btn-danger" data-clear="positions">Reset planet positions</button>
-        <button class="btn-danger" data-clear="all">Clear everything</button>
+        <button class="btn-danger" data-clear="journal">Delete browser notes</button>
+        <button class="btn-danger" data-clear="interests">Delete browser interests</button>
+        <button class="btn-danger" data-clear="chat">Delete local chat history</button>
+        <button class="btn-danger" data-clear="positions">Reset saved map positions</button>
+        <button class="btn-danger" data-clear="all">Delete everything saved in this browser</button>
       </div>
+      <p class="data-status" id="data-status" role="status" aria-live="polite" hidden></p>
 
-      <div class="section-chat" style="--cc:var(--coral)">
-        <div class="chat-prompt">
-          <div class="chat-avatar" aria-hidden="true"><svg><use href="chars.svg#char-burrito"/></svg></div>
-          <span class="chat-label">Burrito Journalism says:</span>
+      <!-- Destructive-confirmation dialog: scoped, Cancel first, no undo -->
+      <dialog id="delete-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-desc">
+        <h3 id="delete-dialog-title"></h3>
+        <p id="delete-dialog-desc"></p>
+        <div class="dialog-actions">
+          <button type="button" class="btn-secondary" id="delete-cancel">Cancel</button>
+          <button type="button" class="btn-danger" id="delete-confirm"></button>
         </div>
-        <div class="chat-suggestion">
-          "Clearing data is permanent — there is no undo. But your world is yours to reset
-          whenever you want. Sometimes a fresh start is exactly what you need."
-        </div>
-      </div>
+      </dialog>
     </section>
 
     <!-- ══ COMPANION ══ -->
@@ -391,37 +421,95 @@
     });
   });
 
-  // Data clearing
-  document.querySelectorAll('[data-clear]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var target = btn.getAttribute('data-clear');
-      var labels = {
-        journal: 'your device-side journal notes (server journal is not touched)',
-        interests: 'interests',
-        chat: 'chat log',
-        positions: 'planet positions',
-        all: 'everything'
-      };
-      if (!confirm('Clear ' + (labels[target] || target) + '? This cannot be undone.')) return;
-
-      if (target === 'all') {
-        Object.keys(localStorage).forEach(function(k) {
-          if (k.startsWith('pw-')) localStorage.removeItem(k);
-        });
-      } else if (target === 'journal') {
-        localStorage.removeItem('pw-journal-entries');
-      } else if (target === 'interests') {
-        localStorage.removeItem('pw-interests');
-      } else if (target === 'chat') {
-        localStorage.removeItem('pw-chat-log');
-      } else if (target === 'positions') {
+  // Data deletion — scope-accurate labels, scoped confirmation dialog.
+  // Every Project Worlds key in this browser starts with "pw-", so the
+  // "all" target provably covers every browser-local surface and touches
+  // no server data.
+  var DELETES = {
+    journal: {
+      title: 'Delete browser notes?',
+      body: 'This removes the notes this browser saved on the Journal page. It does not change the journal kept on the server. This cannot be undone.',
+      button: 'Delete browser notes',
+      success: 'Browser notes were deleted from this browser. The journal on the server was not changed.',
+      run: function () { localStorage.removeItem('pw-journal-entries'); }
+    },
+    interests: {
+      title: 'Delete browser interests?',
+      body: 'This removes the interests this browser saved on this device. It does not change server data. This cannot be undone.',
+      button: 'Delete browser interests',
+      success: 'Browser interests were deleted from this browser. Server data was not changed.',
+      run: function () { localStorage.removeItem('pw-interests'); }
+    },
+    chat: {
+      title: 'Delete local chat history?',
+      body: 'This deletes messages saved by this browser. It does not delete server journal entries or provider history. This cannot be undone.',
+      button: 'Delete local chat history',
+      success: 'Local chat history was deleted from this browser. Server data was not changed.',
+      run: function () { localStorage.removeItem('pw-chat-log'); }
+    },
+    positions: {
+      title: 'Reset saved map positions?',
+      body: 'This removes the map positions this browser saved for every region, so the map returns to its default arrangement. Nothing else saved in this browser is touched, and server data is not changed. This cannot be undone.',
+      button: 'Reset map positions',
+      success: 'Saved map positions were reset in this browser. Nothing else was changed.',
+      run: function () {
         Object.keys(localStorage).forEach(function(k) {
           if (k.startsWith('pw-positions-')) localStorage.removeItem(k);
         });
       }
-      btn.textContent = '✓ Cleared';
-      btn.disabled = true;
+    },
+    all: {
+      title: 'Delete everything saved in this browser?',
+      body: 'This removes: browser notes, browser interests, local chat history, saved map positions and map layout, Station preferences (density, motion, companions, colours, mood, ask less, who travels with you), and the onboarding flag. It does not change anything on the server or any connected service. This cannot be undone.',
+      button: 'Delete everything in this browser',
+      success: 'Everything saved in this browser was deleted. Server data and connected services were not changed.',
+      run: function () {
+        Object.keys(localStorage).forEach(function(k) {
+          if (k.startsWith('pw-')) localStorage.removeItem(k);
+        });
+      }
+    }
+  };
+
+  var dialog = document.getElementById('delete-dialog');
+  var dialogTitle = document.getElementById('delete-dialog-title');
+  var dialogDesc = document.getElementById('delete-dialog-desc');
+  var dialogConfirm = document.getElementById('delete-confirm');
+  var dialogCancel = document.getElementById('delete-cancel');
+  var dataStatus = document.getElementById('data-status');
+  var pending = null; // the DELETES entry awaiting confirmation
+
+  function showDataStatus(message) {
+    dataStatus.textContent = message;
+    dataStatus.hidden = false;
+  }
+
+  Object.keys(DELETES).forEach(function(target) {
+    var btn = document.querySelector('[data-clear="' + target + '"]');
+    if (!btn) { return; }
+    btn.addEventListener('click', function() {
+      pending = DELETES[target];
+      dialogTitle.textContent = pending.title;
+      dialogDesc.textContent = pending.body;
+      dialogConfirm.textContent = pending.button;
+      dataStatus.hidden = true;
+      dialog.showModal();
+      dialogCancel.focus(); /* safe action gets focus first */
     });
+  });
+
+  dialogCancel.addEventListener('click', function() { dialog.close(); });
+  dialogConfirm.addEventListener('click', function() {
+    var action = pending;
+    pending = null;
+    dialog.close();
+    if (!action) { return; }
+    try {
+      action.run();
+      showDataStatus(action.success);
+    } catch (e) {
+      showDataStatus('Couldn’t finish deleting in this browser. Some data may remain. Check browser storage settings and try again.');
+    }
   });
 })();
 </script>
