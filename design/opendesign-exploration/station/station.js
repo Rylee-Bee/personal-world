@@ -10,7 +10,7 @@
 
    Injected chrome (same place on every page, always reachable):
      - companion chip  (bottom-right) — a themed chat companion that travels with you
-     - "Hail Assistant" (topbar)     — the lowest-bandwidth escape hatch
+     - "Help & quiet mode" (topbar)     — the lowest-bandwidth escape hatch
 
    Compact density / low demand never drop a hit area below 44px, never drop
    contrast below WCAG AA, never remove a status text label, never reorder IA.
@@ -115,8 +115,8 @@
     help.id = 'help-btn';
     help.setAttribute('aria-haspopup', 'dialog');
     help.setAttribute('aria-expanded', 'false');
-    help.setAttribute('aria-label', 'Hail Assistant');
-    help.innerHTML = '<svg style="width:16px;height:16px;margin-right:6px;vertical-align:middle"><use href="icons.svg#ic-compass"/></svg>Hail Assistant';
+    help.setAttribute('aria-label', 'Help & quiet mode');
+    help.innerHTML = '<svg style="width:16px;height:16px;margin-right:6px;vertical-align:middle"><use href="icons.svg#ic-compass"/></svg>Help & quiet mode';
 
     var dialog = document.createElement('div');
     dialog.className = 'help-dialog';
@@ -126,13 +126,12 @@
     dialog.setAttribute('aria-labelledby', 'help-title');
     dialog.hidden = true;
     dialog.innerHTML =
-      '<h2 id="help-title">Okay. Less, for now. ✦</h2>' +
-      '<p>Nothing is wrong and nothing is lost. Pick whichever of these feels smallest ' +
-      'for you right this second. The rest of your world stays exactly where it is.</p>' +
+      '<h2 id="help-title">Choose a quieter view</h2>' +
+      '<p>Choose the smallest view that helps right now. This changes what the Station shows; it does not delete your world.</p>' +
       '<div class="help-actions">' +
         '<button type="button" data-help="needs">Show me only what needs me</button>' +
         '<button type="button" data-help="quiet">Make everything quieter</button>' +
-        '<button type="button" data-help="restore">Bring my world back</button>' +
+        '<button type="button" data-help="restore">Restore the normal view</button>' +
         '<a href="settings.html" data-help="settings">How this looks &amp; feels</a>' +
         '<a href="chat.html" data-help="talk">Talk it out with a companion</a>' +
         '<button type="button" data-help="nothing">Nothing for now ✦</button>' +
