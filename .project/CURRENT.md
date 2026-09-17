@@ -10,8 +10,8 @@ disagree, the canonical file wins.
 
 ## 2026-09-17 — production is live with passkey-first SSO
 
-- **Production**: `world.hulganfamily.duckdns.org` → transcode host
-  (`192.168.2.141:8700`), running the published image
+- **Production**: a duckdns-managed public hostname → transcode host
+  (a private LAN address; `:8700`), running the published image
   (`ghcr.io/rylee-bee/personal-world:latest`) with persistent `data` + `config`.
   The stale in-stack `personal-world` container (VM 101) was retired; its
   Traefik labels are replaced by a file-provider route.
@@ -20,7 +20,7 @@ disagree, the canonical file wins.
   negotiates from discovery) and `authorization_policy: one_factor`. The
   login page is SSO-primary; the access code is a collapsed fallback. See
   `docs/oidc.md`.
-- **Dev mirror**: `worlds.hulganfamily.duckdns.org` on the Bazzite box, same
+- **Dev mirror**: a second duckdns-managed public hostname, same
   wiring.
 - Homelab side (private repo): PR #14 — Authelia client + the `world.`
   route (hash committed; plaintext only in the app env).
@@ -120,9 +120,7 @@ Completed in [`ROADMAP.md`](../ROADMAP.md)).
 **Known drift the next agent should resolve explicitly, not silently:**
 
 - A personal-world container already runs on this host at `:8000`
-  (the owner's instance); the repo's Playwright server uses `:8731`.
-
-## Identity
+  (the owner's instance); the repo's Playwright server uses `:8731`.## Identity
 
 - **Product name:** Project Worlds (renamed from "Personal World"
   2026-09-12 — a product re-anchoring, not a new codebase; see

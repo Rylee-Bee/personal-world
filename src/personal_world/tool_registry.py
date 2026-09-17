@@ -263,7 +263,7 @@ def build_default_tools(
                 "required": ["repo"],
             },
             handler=lambda repo, limit=10: _source_control_history(
-                source_control, repo, limit
+                source_control, config_dir, repo, limit
             ),
         )
     )
@@ -1340,12 +1340,28 @@ def _source_control_status(source_control: Any, config_dir: Any = None) -> Resul
         return fail("unavailable", warnings=[f"source control: {e}"])
 
 
-def _source_control_history(source_control: Any, repo: str, limit: int) -> Result:
-    """Get commit history."""
+def _source_control_history(
+    source_control: Any, config_dir: Any, repo: str, limit: int
+) -> Result:
+    """Get commit history for a repository name or path."""
     try:
-        from .source_control import history as sc_history
+        from .source_control import discover_repositories, repository_history
+        from pathlib import Path
 
-        commits = sc_history(repo, limit)
+        path: str | None = repo
+        if config_dir is not None:
+            from .source_control import configured_search_paths
+
+            paths = configured_search_paths(Path(config_dir))
+            if paths:
+                matches = [
+                    e["path"]
+                    for e in discover_repositories(paths)
+                    if e["is_repository"] and e["name"] == repo
+                ]
+                if matches:
+                    path = matches[0]
+        commits = repository_history(path, limit)
         return ok(
             "healthy", data={"repo": repo, "commits": commits, "count": len(commits)}
         )

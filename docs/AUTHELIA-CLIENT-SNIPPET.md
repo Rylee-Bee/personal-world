@@ -27,7 +27,7 @@ Then, on the Project Worlds side:
 1. `config/oidc.json` (the setup wizard can write this for you):
    ```json
    {
-     "issuer": "https://auth.hulganfamily.duckdns.org",
+     "issuer": "https://<your-authelia-issuer>",
      "client_id": "project-worlds",
      "client_secret_env": "OIDC_CLIENT_SECRET",
      "scopes": ["openid", "profile", "email"],

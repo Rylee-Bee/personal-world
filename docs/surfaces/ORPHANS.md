@@ -33,6 +33,26 @@
 | A11Y-003 | Design preference schema (motion beyond reduced) | PARTIAL | Schema richer than prefs.py accepts; default agrees (ARCHITECTURE.md recorded boundary) | HIGH |
 | API-012 | /api/chat/test | ACTIVE | Was unauthenticated per older docs; current code has require_auth | HIGH (code) |
 
+Entries from the 2026-09-16 full surface audit
+(`.project/HANDOFF-SURFACE-AUDIT-2026-09-16.md`). State vocabulary here
+distinguishes **bugs** from **intentional headless surfaces** and
+**archived material**; nothing below reclassifies deliberate CLI
+duplication, admin APIs, archived Station material, or protected
+artwork as dead.
+
+| ID | Surface | State | Evidence | Confidence |
+|---|---|---|---|---|
+| TOOL-030 | inspect_source_control_history (tool_registry.py:1346) | **BUG — FIXED 2026-09-17** | Imported nonexistent `from .source_control import history`; tool raised at every invocation. Fixed to reuse `repository_history` with repo-name→path resolution (same shape as `/api/source-control/history`, api.py:1680). Regression tests: `tests/test_source_control.py::TestHistoryToolRegression` | HIGH |
+| NEW-001 (bug) | Public-safety: private topology in tracked files | **BUG — FIXED 2026-09-17** | `.project/CURRENT.md` and `docs/AUTHELIA-CLIENT-SNIPPET.md` carried a duckdns hostname + RFC1918 IP (violates SECURITY.md; exact values not restated here). Redacted preserving meaning; `tests/test_public_safety.py` markers now pass over tracked files | HIGH |
+| STATION-001 | Companion chat is localStorage-only (`station/chat.js`) | UNWIRED PRODUCT SURFACE (acknowledged in code, chat.js:9-11) | Backend `/api/chat*` + `/api/brain/templates` are live, tested, UI never calls them. From Station UI the backend exposes ~110 routes; Station calls 15. Deliberate target for a separate wiring lane | HIGH |
+| STATION-002 | Station write flows absent (prefs save, sections, reminders CRUD, journal write/supersede, proposal actions) | UNWIRED PRODUCT SURFACE | Endpoints exist + step-up gated; Station is read-only/local. `chat.js` warning captions describe the intended binding | HIGH |
+| STATION-003 | localStorage prefs not synced to API-065 | UNWIRED PRODUCT SURFACE (documented mapping at station.js:4-9) | Deliberate prototype seam, not dead | HIGH |
+| ASSET-008 | Station shipped webfonts (`static/fonts/`: instrument-sans, young-serif) | ORPHAN (station UI) | No `@font-face` user anywhere in served Station CSS; `station.css:52-54` uses system stacks | HIGH |
+| API-000a | `/api/setup` legacy vs `/api/setup-wizard/*` | DUP (deliberate coexistence) | Two first-run paths; legacy kept for older clients | HIGH |
+| API-000b | `/api/connections/validate` = alias of `/test` | DUP | Pure alias (api.py:1299-1307); consolidation candidate | HIGH |
+| API-000c | `/api/chat/history` missing from curated manifest table | GAP (truth) | Route live (api.py:944) but not in curated rows of api_manifest.py | HIGH |
+| ~~STORE-020~~ | executions.json / ExecutionViewer | ORPHAN (as listed) | Also recorded in `.project/HANDOFF-SURFACE-AUDIT-2026-09-16.md` | HIGH |
+
 Not listed as dead merely for lacking a frontend consumer: identity
 admin APIs (API-068..074), themes API (API-065), updates API
 (API-029), memory search (API-016) — these have API consumers,

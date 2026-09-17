@@ -52,8 +52,12 @@ GIT_ENV = {
 
 def git(cwd: Path, *args: str) -> None:
     subprocess.run(
-        ["git", *args], cwd=str(cwd), check=True, capture_output=True,
-        text=True, env={**GIT_ENV},
+        ["git", *args],
+        cwd=str(cwd),
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**GIT_ENV},
     )
 
 
@@ -73,11 +77,15 @@ def make_repo(path: Path, commits: int = 2) -> Path:
 def write_config(tmp_path: Path, search_paths: list[str]) -> Path:
     config_dir = tmp_path / "config"
     config_dir.mkdir(parents=True, exist_ok=True)
-    (config_dir / "connections.json").write_text(json.dumps({
-        "$schema": "personal-world/connections/1",
-        "connections": [],
-        "source_control": {"search_paths": search_paths},
-    }))
+    (config_dir / "connections.json").write_text(
+        json.dumps(
+            {
+                "$schema": "personal-world/connections/1",
+                "connections": [],
+                "source_control": {"search_paths": search_paths},
+            }
+        )
+    )
     return config_dir
 
 
@@ -97,11 +105,13 @@ class TestDiscovery:
     def test_missing_path_never_raises(self, tmp_path):
         ghost = tmp_path / "does-not-exist"
         found = discover_repositories([str(ghost)])
-        assert found == [{
-            "path": str(ghost),
-            "name": "does-not-exist",
-            "is_repository": False,
-        }]
+        assert found == [
+            {
+                "path": str(ghost),
+                "name": "does-not-exist",
+                "is_repository": False,
+            }
+        ]
 
 
 class TestRepositoryStatus:
@@ -184,7 +194,8 @@ class TestRepositoryHistory:
         repo = make_repo(tmp_path / "limited", commits=5)
         assert len(repository_history(str(repo), limit=2)) == 2
         assert [e["subject"] for e in repository_history(str(repo), limit=2)] == [
-            "commit 4", "commit 3",
+            "commit 4",
+            "commit 3",
         ]
 
     def test_empty_repo_history_is_empty_list(self, tmp_path):
@@ -207,9 +218,16 @@ class TestZeroProviderBoot:
         repo = make_repo(tmp_path / "proof")
         init_world(tmp_path / "data", tmp_path / "config")
         write_config(tmp_path, [str(repo)])
-        rc = cli_main(["--data-dir", str(tmp_path / "data"),
-                       "--config-dir", str(tmp_path / "config"),
-                       "changes", "--json"])
+        rc = cli_main(
+            [
+                "--data-dir",
+                str(tmp_path / "data"),
+                "--config-dir",
+                str(tmp_path / "config"),
+                "changes",
+                "--json",
+            ]
+        )
         assert rc == 0
         out = json.loads(capsys.readouterr().out)
         assert out["ok"] is True
@@ -224,9 +242,16 @@ class TestZeroProviderBoot:
         repo = make_repo(tmp_path / "proof")
         write_config(tmp_path, [str(repo)])
         for cmd in ("history", "sync-status"):
-            rc = cli_main(["--data-dir", str(tmp_path / "data"),
-                           "--config-dir", str(tmp_path / "config"),
-                           cmd, "--json"])
+            rc = cli_main(
+                [
+                    "--data-dir",
+                    str(tmp_path / "data"),
+                    "--config-dir",
+                    str(tmp_path / "config"),
+                    cmd,
+                    "--json",
+                ]
+            )
             assert rc == 0
             out = json.loads(capsys.readouterr().out)
             assert out["ok"] is True, (cmd, out)
@@ -235,23 +260,42 @@ class TestZeroProviderBoot:
     def test_cli_history_json_newest_first(self, tmp_path, capsys):
         repo = make_repo(tmp_path / "proof")
         write_config(tmp_path, [str(repo)])
-        rc = cli_main(["--data-dir", str(tmp_path / "data"),
-                       "--config-dir", str(tmp_path / "config"),
-                       "history", "--json", "--limit", "1"])
+        rc = cli_main(
+            [
+                "--data-dir",
+                str(tmp_path / "data"),
+                "--config-dir",
+                str(tmp_path / "config"),
+                "history",
+                "--json",
+                "--limit",
+                "1",
+            ]
+        )
         assert rc == 0
         out = json.loads(capsys.readouterr().out)
         assert out["data"]["commits"] == [
-            {"revision": out["data"]["commits"][0]["revision"],
-             "date": out["data"]["commits"][0]["date"],
-             "author": "t", "subject": "commit 1"}
+            {
+                "revision": out["data"]["commits"][0]["revision"],
+                "date": out["data"]["commits"][0]["date"],
+                "author": "t",
+                "subject": "commit 1",
+            }
         ]
 
     def test_sync_status_no_remote_is_valid_local_only(self, tmp_path, capsys):
         repo = make_repo(tmp_path / "solo")
         write_config(tmp_path, [str(repo)])
-        rc = cli_main(["--data-dir", str(tmp_path / "data"),
-                       "--config-dir", str(tmp_path / "config"),
-                       "sync-status", "--json"])
+        rc = cli_main(
+            [
+                "--data-dir",
+                str(tmp_path / "data"),
+                "--config-dir",
+                str(tmp_path / "config"),
+                "sync-status",
+                "--json",
+            ]
+        )
         assert rc == 0
         out = json.loads(capsys.readouterr().out)
         entry = out["data"]["repos"][0]
@@ -262,9 +306,16 @@ class TestZeroProviderBoot:
     def test_unconfigured_paths_is_not_configured(self, tmp_path, capsys):
         init_world(tmp_path / "data", tmp_path / "config")
         for cmd in ("changes", "history", "sync-status"):
-            rc = cli_main(["--data-dir", str(tmp_path / "data"),
-                           "--config-dir", str(tmp_path / "config"),
-                           cmd, "--json"])
+            rc = cli_main(
+                [
+                    "--data-dir",
+                    str(tmp_path / "data"),
+                    "--config-dir",
+                    str(tmp_path / "config"),
+                    cmd,
+                    "--json",
+                ]
+            )
             assert rc == 1  # EXIT_ERROR per envelope convention
             out = json.loads(capsys.readouterr().out)
             assert out["ok"] is False
@@ -273,9 +324,11 @@ class TestZeroProviderBoot:
     def test_registry_boots_with_native_baseline_zero_providers(self, tmp_path):
         repo = make_repo(tmp_path / "wired")
         config_dir = write_config(tmp_path, [str(repo)])
-        reg = build_registry(__import__("personal_world.world",
-                                        fromlist=["World"]).World(),
-                             Registry(), config_dir)
+        reg = build_registry(
+            __import__("personal_world.world", fromlist=["World"]).World(),
+            Registry(),
+            config_dir,
+        )
         m = reg.manifest()["source_control"]
         assert m["native_baseline"] is True
         names = {p["name"] for p in m["providers"]}
@@ -296,17 +349,27 @@ class TestEnrichmentSeam:
         function shapes (discovery/status/history dict keys)."""
         repo = make_repo(tmp_path / "shape")
         config_dir = write_config(tmp_path, [str(repo)])
-        (config_dir / "connections.json").write_text(json.dumps({
-            "$schema": "personal-world/connections/1",
-            "connections": [
-                {"type": "fake_source_control", "name": "fake",
-                 "capability": "source_control", "mode": "enrichment"},
-            ],
-            "source_control": {"search_paths": [str(repo)]},
-        }))
-        reg = build_registry(__import__("personal_world.world",
-                                        fromlist=["World"]).World(),
-                             Registry(), config_dir)
+        (config_dir / "connections.json").write_text(
+            json.dumps(
+                {
+                    "$schema": "personal-world/connections/1",
+                    "connections": [
+                        {
+                            "type": "fake_source_control",
+                            "name": "fake",
+                            "capability": "source_control",
+                            "mode": "enrichment",
+                        },
+                    ],
+                    "source_control": {"search_paths": [str(repo)]},
+                }
+            )
+        )
+        reg = build_registry(
+            __import__("personal_world.world", fromlist=["World"]).World(),
+            Registry(),
+            config_dir,
+        )
         m = reg.manifest()["source_control"]
         # enrichment provider is configured, so it takes the active
         # slot; the native baseline remains as the degradation target
@@ -316,9 +379,11 @@ class TestEnrichmentSeam:
 
         # degradation proof: remove the enrichment provider -> the
         # native baseline takes over, capability concept unchanged
-        bare = build_registry(__import__("personal_world.world",
-                                         fromlist=["World"]).World(),
-                              Registry(), write_config(tmp_path, [str(repo)]))
+        bare = build_registry(
+            __import__("personal_world.world", fromlist=["World"]).World(),
+            Registry(),
+            write_config(tmp_path, [str(repo)]),
+        )
         m2 = bare.manifest()["source_control"]
         assert m2["active_provider"] == "native-git"
         assert m2["capability"] == m["capability"]
@@ -326,9 +391,17 @@ class TestEnrichmentSeam:
         # native canonical shapes are identical with/without a provider
         base_keys = set(repository_status(str(repo)))
         assert base_keys == {
-            "path", "name", "branch", "revision", "dirty",
-            "ahead", "behind", "remote",
-            "last_commit_date", "last_commit_subject", "error",
+            "path",
+            "name",
+            "branch",
+            "revision",
+            "dirty",
+            "ahead",
+            "behind",
+            "remote",
+            "last_commit_date",
+            "last_commit_subject",
+            "error",
         }
         hist = repository_history(str(repo), limit=1)
         assert set(hist[0]) == {"revision", "date", "author", "subject"}
@@ -338,9 +411,11 @@ class TestEnrichmentSeam:
 
 class TestManifest:
     def test_manifest_lists_source_control_as_native_baseline(self, tmp_path):
-        reg = build_registry(__import__("personal_world.world",
-                                        fromlist=["World"]).World(),
-                             Registry(), write_config(tmp_path, []))
+        reg = build_registry(
+            __import__("personal_world.world", fromlist=["World"]).World(),
+            Registry(),
+            write_config(tmp_path, []),
+        )
         m = reg.manifest()["source_control"]
         assert m["native_baseline"] is True
         assert m["on_last_provider_removed"] == "degrades to native baseline"
@@ -351,10 +426,14 @@ class TestManifest:
         config_dir.mkdir()
         (config_dir / "connections.json").write_text("{not json")
         assert configured_search_paths(config_dir) == []  # malformed: soft
-        (config_dir / "connections.json").write_text(json.dumps({
-            "connections": [],
-            "source_control": {"search_paths": ["/a", "/b", 3, ""]},
-        }))
+        (config_dir / "connections.json").write_text(
+            json.dumps(
+                {
+                    "connections": [],
+                    "source_control": {"search_paths": ["/a", "/b", 3, ""]},
+                }
+            )
+        )
         assert configured_search_paths(config_dir) == ["/a", "/b"]
 
 
@@ -371,14 +450,19 @@ class TestNativeGitProvider:
         r = nothing.observe()
         assert not r.ok and r.status == "needs_attention"
 
+
 class TestRecursiveDiscovery:
     """Issue #17: search_paths with recursion, depth-limited."""
 
     def _git(self, cwd, *args):
         import subprocess
+
         proc = subprocess.run(
             ["git", "--no-pager", "-C", str(cwd), *args],
-            capture_output=True, text=True, timeout=10)
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
         assert proc.returncode == 0, proc.stderr
         return proc.stdout
 
@@ -419,15 +503,22 @@ class TestRefreshWorkflow:
             repo = tmp_path / "demo"
             repo.mkdir(exist_ok=True)
             import subprocess
-            subprocess.run(["git", "-C", str(repo), "init", "-q"],
-                           check=True, capture_output=True)
+
             subprocess.run(
-                ["git", "-C", str(repo), "commit", "--allow-empty",
-                 "-q", "-m", "seed"],
-                check=True, capture_output=True,
-                env={**__import__("os").environ,
-                     "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
-                     "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"})
+                ["git", "-C", str(repo), "init", "-q"], check=True, capture_output=True
+            )
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "--allow-empty", "-q", "-m", "seed"],
+                check=True,
+                capture_output=True,
+                env={
+                    **__import__("os").environ,
+                    "GIT_AUTHOR_NAME": "t",
+                    "GIT_AUTHOR_EMAIL": "t@t",
+                    "GIT_COMMITTER_NAME": "t",
+                    "GIT_COMMITTER_EMAIL": "t@t",
+                },
+            )
             # Documented config shape (config/README.local.md): point
             # search_paths at the repo directory itself, not its parent.
             (config / "connections.json").write_text(
@@ -442,8 +533,11 @@ class TestRefreshWorkflow:
 
     def test_refresh_journals_the_audit_answer(self, tmp_path, monkeypatch):
         c, data = self._client(tmp_path, monkeypatch)
-        r = c.post("/api/source-control/refresh", json={"repo": "demo"},
-                    headers=self._headers())
+        r = c.post(
+            "/api/source-control/refresh",
+            json={"repo": "demo"},
+            headers=self._headers(),
+        )
         assert r.status_code == 200
         body = r.json()
         assert body["ok"] is True
@@ -453,6 +547,7 @@ class TestRefreshWorkflow:
         # The audit answer exists: who proposed, what was approved,
         # which tool, what came back.
         from personal_world.journal import Journal
+
         events = Journal(data / "journal.ndjson").recent(5)
         match = [e for e in events if "repository status refresh" in e.summary]
         assert match, "no audit event recorded"
@@ -463,15 +558,21 @@ class TestRefreshWorkflow:
         assert "demo" in s
         assert match[-1].kind.value == "provider_action"
 
-    def test_refresh_unknown_repo_journals_failure_honestly(self, tmp_path, monkeypatch):
+    def test_refresh_unknown_repo_journals_failure_honestly(
+        self, tmp_path, monkeypatch
+    ):
         c, data = self._client(tmp_path, monkeypatch)
-        r = c.post("/api/source-control/refresh", json={"repo": "nope"},
-                    headers=self._headers())
+        r = c.post(
+            "/api/source-control/refresh",
+            json={"repo": "nope"},
+            headers=self._headers(),
+        )
         assert r.status_code == 200
         body = r.json()
         assert body["ok"] is False
         assert body["status"] == "not_configured"
         from personal_world.journal import Journal
+
         events = Journal(data / "journal.ndjson").recent(5)
         match = [e for e in events if "rejected" in e.summary and "nope" in e.summary]
         assert match
@@ -484,17 +585,69 @@ class TestRefreshWorkflow:
 
     def test_refresh_requires_repo(self, tmp_path, monkeypatch):
         c, _ = self._client(tmp_path, monkeypatch)
-        r = c.post("/api/source-control/refresh", json={"repo": "  "},
-                    headers=self._headers())
+        r = c.post(
+            "/api/source-control/refresh", json={"repo": "  "}, headers=self._headers()
+        )
         assert r.status_code == 400
 
     def test_refresh_repeated_use_behaves_sensibly(self, tmp_path, monkeypatch):
         c, _ = self._client(tmp_path, monkeypatch)
         for _ in range(3):
-            r = c.post("/api/source-control/refresh", json={"repo": "demo"},
-                        headers=self._headers())
+            r = c.post(
+                "/api/source-control/refresh",
+                json={"repo": "demo"},
+                headers=self._headers(),
+            )
             assert r.status_code == 200 and r.json()["ok"] is True
         from personal_world.journal import Journal
+
         events = Journal(tmp_path / "journal.ndjson").recent(10)
         match = [e for e in events if "repository status refresh" in e.summary]
         assert len(match) == 3
+
+
+class TestHistoryToolRegression:
+    """Regression: the brain tool inspect_source_control_history must
+    actually resolve a repository (name or path) and read history.
+    It once imported a nonexistent `history` symbol and always failed
+    as `unavailable` at invocation."""
+
+    def _tools(self, tmp_path: Path):
+        repo = make_repo(tmp_path / "demo")
+        config_dir = write_config(tmp_path, [str(repo)])
+        import personal_world.tool_registry as tr
+
+        return tr.build_default_tools(
+            world=None,
+            registry=None,
+            journal=None,
+            source_control=None,
+            vault=None,
+            config_dir=config_dir,
+        ), repo
+
+    def test_invokes_by_repo_name(self, tmp_path):
+        tools, repo = self._tools(tmp_path)
+        result = tools.invoke("inspect_source_control_history", {"repo": "demo"})
+        assert result.ok, result.warnings
+        assert result.status == "healthy"
+        assert result.data["repo"] == "demo"
+        assert result.data["count"] == len(result.data["commits"]) >= 1
+        assert result.data["commits"][0]["subject"].startswith("commit ")
+
+    def test_invokes_by_direct_path(self, tmp_path):
+        tools, repo = self._tools(tmp_path)
+        result = tools.invoke("inspect_source_control_history", {"repo": str(repo)})
+        assert result.ok, result.warnings
+        assert result.data["count"] >= 1
+
+    def test_unknown_name_is_structured_empty_not_exception(self, tmp_path):
+        tools, _repo = self._tools(tmp_path)
+        result = tools.invoke(
+            "inspect_source_control_history", {"repo": "no-such-repo"}
+        )
+        # repository_history never raises; a non-repo path yields [] and
+        # the tool reports healthy with an empty history (honest, not an
+        # ImportError).
+        assert result.ok, result.warnings
+        assert result.data["count"] == 0
