@@ -119,6 +119,47 @@ def _auth(tok):
     return {"Authorization": f"Bearer {tok}"}
 
 
+def test_principal_id_validation_matches_identity_safe_pattern(tmp_path, monkeypatch):
+    """Create endpoints validate ids with the same pattern
+    identity.principal_scoped_path enforces: unicode ids ('héllo',
+    which would 500 every later scoped route) and whitespace are
+    rejected 4xx; dotted ids ('a.b') identity accepts stay valid."""
+    c = _mk(tmp_path, monkeypatch, mode="multi")
+
+    # unicode id → 4xx, and never provisioned
+    r = c.post(
+        "/api/identity/users", json={"user_id": "héllo"}, headers=_h("instancetoken")
+    )
+    assert r.status_code == 422
+    r = c.post(
+        "/api/identity/agents", json={"agent_id": "ro/bot"}, headers=_h("instancetoken")
+    )
+    assert r.status_code == 422
+
+    # whitespace id → 4xx
+    r = c.post(
+        "/api/identity/users", json={"user_id": " "}, headers=_h("instancetoken")
+    )
+    assert r.status_code == 422
+
+    # dotted id — accepted by the safe pattern — provisions cleanly
+    r = c.post(
+        "/api/identity/users", json={"user_id": "a.b"}, headers=_h("instancetoken")
+    )
+    assert r.status_code == 200, r.text
+    tok = r.json()["data"]["token"]
+    # the scoped route for the dotted id must resolve, not 500
+    r = c.get("/api/prefs", headers={"Authorization": f"Bearer {tok}"})
+    assert r.status_code == 200, r.text
+    # previously-valid simple ids keep working
+    r = c.post(
+        "/api/identity/users",
+        json={"user_id": "plain-id_2"},
+        headers=_h("instancetoken"),
+    )
+    assert r.status_code == 200, r.text
+
+
 def _provision(c, user_id="beta"):
     r = c.post(
         "/api/identity/users",

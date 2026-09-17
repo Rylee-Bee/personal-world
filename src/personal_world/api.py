@@ -2231,27 +2231,22 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/vault/{name}", dependencies=[Depends(require_auth)])
     async def vault_get(name: str, request: Request) -> dict:
-        """Read a single secret value. Loopback-host-only:
-        requests from non-loopback Remote-Addr are refused even with a
-        valid bearer, keeping secret-value extraction a local-only
-        operation (browser/keys never cross the wire).
-        Each retrieval audited to the journal with the NAME only."""
-        client = request.client.host if request.client else "?"
-        # Docker port-forward can show the container gateway (172.16-31.x)
-        # for the same host; accept either loopback or private bridge.
-        import ipaddress
-
-        try:
-            ip = ipaddress.ip_address(client)
-        except ValueError:
-            ip = None
-        loopback = client in ("127.0.0.1", "::1", "localhost", "testclient") or (
-            ip is not None and (ip.is_loopback or ip.is_private)
-        )
-        if not loopback:
+        """Read a single secret value. True-loopback-host-only AND
+        person-only: the requester must be a local person — requests
+        from a non-loopback Remote-Addr are refused (RFC1918/Docker
+        bridge addresses included), and agent principals are refused
+        even on loopback — keeping secret-value extraction a local,
+        human-owner operation (browser/keys never cross the wire to
+        another host or an agent). Each retrieval audited to the
+        journal with the NAME only."""
+        principal = getattr(request.state, "principal", None)
+        if not _is_true_loopback(request):
+            client = request.client.host if request.client else "?"
             raise HTTPException(
-                status_code=403, detail=f"vault GET is loopback-only (client={client})"
+                status_code=403,
+                detail=f"vault GET is loopback-only (client={client})",
             )
+        _require_person(principal)
         try:
             value = _vault.get(name)
         except RuntimeError:
@@ -2466,11 +2461,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             raise HTTPException(status_code=403, detail="admin only")
         body = await request.json()
         user_id = ((body or {}).get("user_id") or "").strip()
-        if (
-            not user_id
-            or len(user_id) > 64
-            or not user_id.replace("-", "").replace("_", "").isalnum()
-        ):
+        from .identity import _SAFE_PRINCIPAL_ID as _safe_pid  # mirrored, single owner
+
+        # Same pattern identity.principal_scoped_path enforces: rejecting
+        # unicode ids ('héllo') here prevents a 500 on every scoped route
+        # later, and ASCII '.'/ '-' ids stay valid.
+        if not user_id or not _safe_pid.fullmatch(user_id):
             raise HTTPException(status_code=422, detail="user_id invalid")
         display = (body or {}).get("display_name") or user_id
         plain = (body or {}).get("token") or secrets.token_urlsafe(24)
@@ -2536,11 +2532,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             raise HTTPException(status_code=403, detail="principal required")
         body = await request.json()
         agent_id = ((body or {}).get("agent_id") or "").strip()
-        if (
-            not agent_id
-            or len(agent_id) > 64
-            or not agent_id.replace("-", "").replace("_", "").isalnum()
-        ):
+        from .identity import _SAFE_PRINCIPAL_ID as _safe_pid  # mirrored, single owner
+
+        if not agent_id or not _safe_pid.fullmatch(agent_id):
             raise HTTPException(status_code=422, detail="agent_id invalid")
         scopes = [
             s for s in ((body or {}).get("scopes") or ["read"]) if s in ALLOWED
