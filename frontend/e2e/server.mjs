@@ -11,7 +11,7 @@
  * world.json so the nav-omission gate has a stable fixture.
  */
 import { spawn } from "node:child_process";
-import { mkdtempSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -22,14 +22,6 @@ const TOKEN = "ci-token";
 const dataDir = mkdtempSync(join(tmpdir(), "pw-e2e-"));
 const configDir = join(dataDir, "config");
 mkdirSync(configDir, { recursive: true });
-
-const dist = resolve(REPO, "frontend", "dist");
-if (!existsSync(join(dist, "index.html"))) {
-  console.error(
-    "[e2e] frontend/dist missing — run `npm run build` in frontend/ first."
-  );
-  process.exit(1);
-}
 
 // Seed a minimal world.json with interests hidden (nav-omission gate
 // fixture; schema mirrors personal_world init_world: facts map,
@@ -73,7 +65,6 @@ const env = {
   PW_IDENTITY_MODE: "single",
   PW_DATA_DIR: dataDir,
   PW_CONFIG_DIR: configDir,
-  PW_FRONTEND_DIST: dist,
   PW_LAB_CLI: "/nonexistent/lab-cli", // Lab stays honestly UNAVAILABLE
   // (a configured-but-unreachable CLI: the backend reports
   //  ok:false status:"unavailable" with its own warning — the

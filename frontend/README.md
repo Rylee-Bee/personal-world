@@ -1,30 +1,32 @@
-# Project Worlds frontend (React)
+# Project Worlds — browser gate (Playwright)
 
-(Formerly "Personal World" — product renamed 2026-09-12; npm package
-identifier unchanged.)
+The **Station** (`/station/`, served by the backend) is the product UI.
+This directory holds only the browser gate for it: Playwright + axe specs
+in `e2e/`, run against the real app booted by `e2e/server.mjs` with a
+seeded world.
 
-Tracked frontend for Project Worlds (P1 foundation). Built to `dist/` and
-served by the backend in react mode (`PW_FRONTEND=react`; the P1 default
-stays `legacy` until parity).
+The superseded React frontend was removed 2026-09-16 (single-branch
+cutover). `/login` and `/setup` are server-rendered; the old React SPA and
+its dist build are gone.
 
 ## Commands
 
 ```sh
-npm ci          # clean install from package-lock.json
-npm run dev     # vite dev server on :5173 (proxies /api, /healthz, /fonts, /companions, /icons to :8000)
-npm run build   # tsc -b && vite build -> dist/
-npm run test    # vitest run (jsdom)
-npm run lint    # oxlint
+npm ci                  # install playwright + @axe-core/playwright
+npx playwright install  # first run only: fetch the browser
+npm run test:e2e        # or: npx playwright test
 ```
+
+## Specs
+
+- `station-a11y.spec.ts` — axe with color-contrast ENABLED, 44px floor, console gate
+- `station-honest-states.spec.ts` — no fake data: verified-quiet vs unavailable sources
+- `station-keyboard.spec.ts` — skip-link, nav, dialogs, the full map journey
+- `station-motion-reflow.spec.ts` — reduced motion by default, 360px reflow, 200% zoom
 
 ## Notes
 
-- Design truth lives in `design/tokens.json` (repo root); `src/tokens.css`
-  is generated from it in T5 and is the only file where hex literals may
-  appear.
-- Icons are the tracked sprite (`/icons/sprite.svg`, served by the
-  backend); no icon package is used.
-- Fonts are self-hosted via the backend `/fonts/*` route; no external
-  font requests are permitted (asserted by `src/test/deps.spec.ts`).
-- `import.meta.env` may only ever carry `VITE_API_URL` — never a
-  credential (public-repository boundary, `SECURITY.md`).
+- Accessibility truth lives in `docs/accessibility/ACCESSIBILITY_CONTRACT.md`.
+- `e2e/server.mjs` boots the real FastAPI app under uvicorn with a fresh
+  seeded world; no build step is required (the Station is static and
+  shipped in the repo).

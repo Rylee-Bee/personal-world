@@ -327,28 +327,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .vault import Vault
 
     _vault = Vault(data_dir / "vault.enc")
-    # Serving boundary (T15 cutover, superseded 2026-09-16 by owner decision
-    # #11/#12): the **Station** is the product frontend. `/` redirects to
-    # `/station/` post-setup; the React SPA remains ONLY at `/legacy-react`
-    # for migration and as the login shell until a Station login exists.
-    # A missing dist answers the honest 503 page. Dist is never echoed into
-    # a browser response — private paths stay private.
-    frontend_dist = Path(
-        os.environ.get("PW_FRONTEND_DIST")
-        or (Path(__file__).resolve().parents[2] / "frontend" / "dist")
-    )
-
-    def _spa_index() -> HTMLResponse:
-        index = frontend_dist / "index.html"
-        if index.is_file():
-            return HTMLResponse(
-                index.read_text(encoding="utf-8"), headers={"Cache-Control": "no-cache"}
-            )
-        return HTMLResponse(
-            SPA_NOT_BUILT_HTML,
-            status_code=503,
-            headers={"Cache-Control": "no-store"},
-        )
+    # Serving boundary: the **Station** is the product frontend (owner
+    # decisions #11/#12). `/` redirects to `/station/` post-setup; `/login`
+    # and `/setup` are server-rendered (login_page.py / setup_wizard.py).
+    # The superseded React SPA and its dist pipeline were removed
+    # 2026-09-16 in the single-branch cutover.
 
     # Identity seam state (issue #8 phase 0/1, per multi-user review
     # 2026-09-09): local users as trust root, PW_IDENTITY_MODE picks
@@ -392,7 +375,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         "store": _identity_store,
         "instance_token": _app_instance_token,
     }
-    app.state.frontend_dist = frontend_dist
 
     # --- Native auth (session-cookie + OIDC) ---
     from .auth import AuthManager
@@ -411,6 +393,14 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     register_setup_wizard(
         app, data_dir=data_dir, config_dir=config_dir, journal=journal
     )
+
+    # --- Sign-in page (server-rendered, dependency-free) ---
+    # The Station has no sign-in view of its own, and the superseded React
+    # SPA no longer serves one; login_page.py replaces it. Registered before
+    # the Station so an unauthenticated /station/ redirect lands here.
+    from .login_page import register_login_page
+
+    register_login_page(app, data_dir=data_dir)
 
     # --- Station map UI (product decision #12): served same-origin so the
     # browser session authenticates its API calls with no CORS anywhere.
@@ -2790,26 +2780,19 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         save_world(world, world_path)
         return {"ok": True, "data": {"key": key, "effect": effect}}
 
-    # --- Setup page ---
-    # First-run, /setup-wizard, /setup and /login are React SPA
-    # routes (App.tsx); there is no server-rendered HTML anymore.
+    # --- Entry point ---
+    # /setup and /login are server-rendered (setup_wizard.py / login_page.py).
 
     @app.get("/", response_class=HTMLResponse)
     async def spa_root() -> HTMLResponse:
         """Entry point. Post-setup the **Station** is the product frontend
-        (owner decisions #11/#12); the superseded React shell stays reachable
-        for migration at /legacy-react only. During first-run the setup wizard
-        owns the entry."""
+        (owner decisions #11/#12). During first-run the setup wizard owns the
+        entry."""
         from .setup_wizard import setup_needed as _setup_needed
 
         if _setup_needed(data_dir):
             return RedirectResponse("/setup", status_code=303)
         return RedirectResponse("/station/", status_code=302)
-
-    @app.get("/legacy-react", response_class=HTMLResponse)
-    async def legacy_react() -> HTMLResponse:
-        """Migration-only: the superseded React shell. NOT the product UI."""
-        return _spa_index()
 
     companion_dir = Path(__file__).parent / "static" / "companions"
     _COMPANION_FILES = {
@@ -2880,47 +2863,4 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             raise HTTPException(status_code=404, detail="font missing")
         return _cached_file(request, path, ctype)
 
-    # SPA fallback: registered LAST so /api/*, /healthz, /companions/*,
-    # /icons/* and /fonts/* keep winning by registration order.
-    # Allowlist built once at app start: every file actually in the
-    # dist, keyed by relative POSIX path → resolved absolute Path.
-    # No user-controlled value ever constructs a filesystem path, so
-    # traversal simply misses the dict (CodeQL path-injection fix).
-    _spa_files: dict[str, Path] = {}
-    if frontend_dist.is_dir():
-        for candidate in frontend_dist.rglob("*"):
-            if candidate.is_file():
-                _spa_files[candidate.relative_to(frontend_dist).as_posix()] = (
-                    candidate.resolve()
-                )
-
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def spa_fallback(full_path: str, request: Request):
-        if full_path == "healthz" or full_path.startswith("api/") or full_path == "api":
-            raise HTTPException(status_code=404, detail="not found")
-        allowed = _spa_files.get(full_path)
-        if allowed is not None and allowed.is_file():
-            ctype = "text/css" if full_path.endswith(".css") else None
-            return _cached_file(
-                request, allowed, ctype, cache_private=full_path.startswith("assets/")
-            )
-        return _spa_index()
-
     return app
-
-
-# 503 body when the dist directory has no index.html. There is no
-# legacy fallback UI behind it — this page IS the missing-frontend
-# state. Static by design: no environment values, no filesystem paths —
-# a private dist path must never be echoed to a browser.
-SPA_NOT_BUILT_HTML = """<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Project Worlds — interface not built</title></head>
-<body>
-<main id="main-content">
-<h1>Project Worlds' interface is not built</h1>
-<p>The web interface files were not found. Build the frontend (<code>npm run build</code> in <code>frontend/</code>) or point <code>PW_FRONTEND_DIST</code> at a built <code>dist/</code> directory, then restart.</p>
-<p>The API is still available; nothing else is affected.</p>
-</main>
-</body>
-</html>"""
