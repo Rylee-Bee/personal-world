@@ -203,6 +203,7 @@
       <input type="text" id="music-note" placeholder="A note (optional)" aria-label="Note" style="max-width:200px">
       <button type="button" class="btn-add" data-add="music">Add ✦</button>
     </div>
+    <p id="music-storage-status" role="status" aria-live="polite" hidden class="storage-status"></p>
   </div>
 
   <!-- AI & local-first -->
@@ -216,6 +217,7 @@
       <input type="text" id="ai-note" placeholder="A note (optional)" aria-label="Note" style="max-width:200px">
       <button type="button" class="btn-add" data-add="ai">Add ✦</button>
     </div>
+    <p id="ai-storage-status" role="status" aria-live="polite" hidden class="storage-status"></p>
   </div>
 
   <!-- Reading -->
@@ -235,6 +237,7 @@
       <input type="text" id="reading-note" placeholder="A note (optional)" aria-label="Note" style="max-width:200px">
       <button type="button" class="btn-add" data-add="reading">Add ✦</button>
     </div>
+    <p id="reading-storage-status" role="status" aria-live="polite" hidden class="storage-status"></p>
   </div>
 
   <p class="map-note" style="font-size:var(--fs-small);color:var(--text-faint);margin-top:var(--s5);max-width:62ch;line-height:1.6">
@@ -260,7 +263,24 @@
     try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch(e) { return {}; }
   }
   function write(data) {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch(e) {}
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); return true; }
+    catch (e) { return false; }
+  }
+  /* LANG-060: never claim success when browser storage refused the
+     write — the grid still shows the in-memory change, so the failure
+     must be announced where the person is looking. */
+  function storageStatus(section, ok) {
+    var line = document.getElementById(section + '-storage-status');
+    if (!line) return;
+    if (ok) {
+      line.textContent = '';
+      line.hidden = true;
+    } else {
+      line.textContent = 'Couldn’t save this in your browser. Nothing was saved. ' +
+        'Check browser storage settings and try again. This list here shows the ' +
+        'unsaved change only until the page reloads.';
+      line.hidden = false;
+    }
   }
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function(c) {
@@ -323,10 +343,11 @@
         note: note ? note.value.trim() : '',
         ts: Date.now()
       });
-      write(data);
+      var ok = write(data);
       document.getElementById(section + '-name').value = '';
       if (note) note.value = '';
       renderSection(section);
+      storageStatus(section, ok);
     });
   });
 
@@ -339,8 +360,9 @@
     var data = read();
     if (data[section]) {
       data[section].splice(index, 1);
-      write(data);
+      var ok = write(data);
       renderSection(section);
+      storageStatus(section, ok);
     }
   });
 

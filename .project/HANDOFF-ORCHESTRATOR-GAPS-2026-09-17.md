@@ -45,6 +45,25 @@ decisions are liking/taste, not mechanical:
   prune; retention must be configured in GitHub package settings (one-time UI
   action, not code).
 
+## 5. Resolution note — 2026-09-17 language pass (appended; §1–§4 above are historical)
+
+§2's five owner items resolved as follows (verify against the manifest
+`design/handoff/owner/language/LANGUAGE-IMPLEMENTATION-MANIFEST.md`):
+**UX-01** chat wired to real `POST /api/chat` with honest states;
+**UX-02/03** the journal's specimen panel is unmounted (`data-unused`)
+— the normal route shows the real API-005 journal, and the localStorage
+panel survived as the clearly-labelled "Notes on this device" surface;
+**UX-04** resolved as "honest label": the Settings preferences table
+names the two scopes per row ("This browser · Your Project Worlds
+account", not synchronized) instead of silently binding;
+**UX-10** projects/page wired to real source-control read with honest
+states; **UX-09** fixed (single Needs-you panel under low demand).
+§1's identity-lane WIP was committed in `5a11c6d` (fail-closed corrupt
+users.json). §3's step-up proxy-secret documentation gap (`PW_PROXY_STEPUP_SECRET`
+env var + proxy expectation + fail-closed behavior) is **still open** —
+not in `env.example` nor `docs/oidc.md`; owner/ops to document before
+relying on header delegation.
+
 ## 4. Standing operating notes
 - Fixture for any live walkthrough: `node frontend/e2e/server.mjs` → :8731,
   seeded world, token `ci-token` (kill after; don't test against :8000 — its

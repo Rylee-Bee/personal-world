@@ -27,8 +27,9 @@ Boundaries this module keeps:
   not part of the served UI, and ``_``-prefixed directories (``_legacy/``)
   stay out of the primary navigation.
 * **Honest absence.** The packaged container image ships ``src/`` and the
-  built SPA dist, not ``design/``. When the Station is not installed the
-  route says so plainly (503) and never echoes a filesystem path.
+  Station files (``design/opendesign-exploration/station`` is COPY'd in).
+  When the Station is not installed the route says so plainly (503) and
+  never echoes a filesystem path.
 """
 
 from __future__ import annotations
@@ -132,13 +133,13 @@ STATION_NOT_INSTALLED_HTML = """<!doctype html>
 <body>
 <main id="main-content">
 <h1>The Station is not installed here</h1>
-<p>This deployment does not include the Station interface files. The packaged
-container image ships the API and the built SPA; the Station lives in the
-source tree's design directory.</p>
-<p>To serve it, run from a source checkout, or point
-<code>PW_STATION_DIST</code> at a directory containing the Station files and
-restart.</p>
-<p>The API is still available; nothing else is affected.</p>
+<p>This Project Worlds installation does not include the Station
+interface. The API is still available; nothing else is affected.</p>
+<p>Operator details: point <code>PW_STATION_DIST</code> at a directory
+containing the Station files and restart. (The standard container image
+already ships the Station files, so this page normally means the files
+were removed or the override points nowhere.)</p>
+
 </main>
 </body>
 </html>"""
