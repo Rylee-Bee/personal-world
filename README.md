@@ -123,9 +123,21 @@ Sign-in is **provider-neutral OIDC** — point it at your own IdP
 ([docs/oidc.md](docs/oidc.md)). With an IdP configured the login page is
 **passkey-first**: one "Sign in with …" button, and the access code folds
 away as a fallback. The superseded React frontend was removed on
-2026-09-16 (single-branch cutover); its screenshot gallery was removed
-with it (a Station capture is a follow-up — the Station is not yet
-covered by a deterministic screenshot pipeline).
+2026-09-16 (single-branch cutover).
+
+### Screenshots
+
+| | |
+|---|---|
+| ![The Station systems map: seven little worlds with honest status](docs/screenshots/station-map.png) | The systems map — seven little worlds, honest status |
+| ![Journal view](docs/screenshots/station-journal.png) | Journal |
+| ![Interests view](docs/screenshots/station-interests.png) | Interests |
+| ![Projects view](docs/screenshots/station-projects.png) | Projects |
+| ![Settings view](docs/screenshots/station-settings.png) | Settings |
+| ![Chat view](docs/screenshots/station-chat.png) | Chat |
+
+Regenerate deterministically with `cd frontend && npm run docs:screenshots`
+(a run leaves `git status` clean).
 
 ## Quick start
 
