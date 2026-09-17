@@ -1,239 +1,155 @@
-/* ═══════════════════════════════════════════════════════
-   DISCOVERIES — content view for Interests (frontend-only)
+/* ═════════════════════════════════════════════════════
+   INTERESTS — real discovery read, honest states.
 
-   Renders a Discoveries surface below the map on
-   interests.html. Each card shows:
-     - a headline
-     - WHY it is here (the matched interest, in plain words)
-     - source + timestamp (provenance)
-     - keep / dismiss actions (page-local only)
+   Rendered into #interests-view, below the systems map, on
+   interests.html. Reads the real interests list from the server:
 
-   HONESTY: no discovery backend exists in this prototype.
-   Every card is SPECIMEN — labelled on the surface and in
-   the technical disclosure. Real bindings: interests API-051
-   (the graph that drives matching) and discovery API-052
-   (the feed itself). Honest empty and not_configured states
-   are first-class and previewable.
+      API-051 GET /api/discovery/interests
 
-   ACCESSIBILITY: semantic list/articles, real <time>
-   elements, 44px controls, visible focus
-   (content-views.css), aria-live feedback for keep/dismiss,
-   no ambient motion, status never colour-alone.
-   ═══════════════════════════════════════════════════════ */
+   HONESTY CONTRACT:
+   · There is NO specimen feed on this surface. The former sample
+     cards and the state-preview switcher were removed from the
+     product route (LANG-022): a normal reader can never mistake a
+     sample for their own data, because no sample is shown.
+   · Real states only: the server's interests list, an honest empty
+     state, and an honest not set up / couldn't-check state.
+   · This view performs READS ONLY. Adding an interest is a
+     step-up write (API-051-add) and is never called here.
+
+   ACCESSIBILITY: semantic list, real <time> elements, visible
+   states in words, 44px retry control (content guide + A11y §2.1).
+   ═════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
   var MOUNT_ID = 'interests-view';
 
-  /* ── SPECIMEN data. Illustrative only — not a real feed.
-     Fixed dates (no manufactured freshness or urgency). ── */
-  var SPECIMEN_DISCOVERIES = [
-    {
-      id: 'd1',
-      headline: 'The case for local-first software, five years on',
-      match: 'local-first software',
-      why: 'an essay arguing that ownership of your data outlives any service — a thread you keep returning to.',
-      source: 'specimen feed · long-read essay',
-      iso: '2026-09-12T14:02',
-      when: 'Sat 12 Sep 2026 · 14:02'
-    },
-    {
-      id: 'd2',
-      headline: 'A generative ambient set recorded with tape loops',
-      match: 'ambient music',
-      why: 'new work from a corner of ambient you follow — slow, textured, no drops.',
-      source: 'specimen feed · album premiere',
-      iso: '2026-09-11T09:15',
-      when: 'Fri 11 Sep 2026 · 09:15'
-    },
-    {
-      id: 'd3',
-      headline: 'Tiny tools: composable CLIs for personal systems',
-      match: 'personal tooling',
-      why: 'small single-purpose utilities in the spirit of the ones you build for yourself.',
-      source: 'specimen feed · repository collection',
-      iso: '2026-09-09T18:47',
-      when: 'Wed 9 Sep 2026 · 18:47'
-    }
-  ];
+  function API() { return window.PW_API; }
 
   function esc(s) {
-    return String(s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
 
-  /* ── Renderers ── */
-
-  function renderCard(item) {
-    var actions = item.kept
-      ? '<div class="cv-card-actions">' +
-          '<span class="cv-kept-chip" tabindex="-1" data-cv-kept="' + esc(item.id) + '">' +
-            'Kept ✦ — marked as yours (specimen; this page only)' +
-          '</span>' +
-        '</div>'
-      : '<div class="cv-card-actions">' +
-          '<button type="button" class="cv-btn cv-btn-keep" data-cv-keep="' + esc(item.id) + '" ' +
-            'aria-label="Keep: ' + esc(item.headline) + '">Keep ✦</button>' +
-          '<button type="button" class="cv-btn cv-btn-quiet" data-cv-dismiss="' + esc(item.id) + '" ' +
-            'aria-label="Dismiss: ' + esc(item.headline) + '">Dismiss</button>' +
-        '</div>';
-
-    return '<li data-cv-item="' + esc(item.id) + '">' +
-      '<article class="cv-card">' +
-        '<p class="cv-card-flag">specimen · sample discovery</p>' +
-        '<h3 class="cv-disc-headline">' + esc(item.headline) + '</h3>' +
-        '<p class="cv-why">' +
-          '<strong>Why this is here:</strong> it matches ' +
-          '<span class="cv-match">' + esc(item.match) + '</span> — ' + esc(item.why) +
-        '</p>' +
-        '<p class="cv-prov">' +
-          'source: ' + esc(item.source) + ' · ' +
-          '<time datetime="' + esc(item.iso) + '">' + esc(item.when) + '</time>' +
-        '</p>' +
-        actions +
-      '</article>' +
-    '</li>';
+  function whenText(iso) {
+    if (!iso) { return null; }
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) { return null; }
+    return d.toLocaleString([], {
+      weekday: 'short', day: 'numeric', month: 'short',
+      hour: 'numeric', minute: '2-digit'
+    });
+  }
+  function timeEl(iso) {
+    if (!iso) { return esc('undated'); }
+    return '<time datetime="' + esc(iso) + '">' + esc(whenText(iso) || iso) + '</time>';
   }
 
-  function renderFeed(items) {
-    if (!items.length) { return renderEmpty(true); }
-    return '<ul class="cv-list" aria-label="Discoveries (specimen samples)">' +
-      items.map(renderCard).join('') + '</ul>';
-  }
-
-  /* allDismissed: distinguishes "quiet feed" from "you cleared the samples" */
-  function renderEmpty(allDismissed) {
-    return '<div class="cv-state-box">' +
-      '<span class="cv-state-label">empty</span>' +
-      '<h3>Nothing new right now</h3>' +
-      '<p>' + (allDismissed
-        ? 'You dismissed every sample on this page. This removes the sample from this page only. It will return after a reload. Quiet is a valid state.'
-        : 'No discoveries are waiting. The feed stays quiet until something genuinely matches what you follow — it never refills just to have something to show.') +
-      '</p>' +
-    '</div>';
-  }
-
-  function renderNotConfigured() {
-    return '<div class="cv-state-box">' +
-      '<span class="cv-state-label">not set up yet</span>' +
-      '<h3>Discoveries are not set up yet</h3>' +
-      '<p>No sources are connected, so there is nothing to match against what you follow. ' +
-      'This view stays quiet and says so, instead of guessing or padding with filler.</p>' +
-      '<p>When you are ready, connecting a source is a Settings decision — never a surprise.</p>' +
-    '</div>';
-  }
-
-  function renderBody(state, items) {
-    if (state === 'not_configured') { return renderNotConfigured(); }
-    if (state === 'empty') { return renderEmpty(false); }
-    return renderFeed(items);
-  }
-
-  /* ── The view ── */
-
+  /* ── the view ── */
   function build(mount) {
-    var state = 'feed';
-    /* working copy — keep/dismiss act on this page load only */
-    var items = SPECIMEN_DISCOVERIES.slice();
-
     mount.innerHTML =
       '<div class="cv-head">' +
-        '<h2>Discoveries</h2>' +
-        '<span class="specimen-note">specimen view</span>' +
+        '<h2>Your interests</h2>' +
       '</div>' +
+      '<p class="rd-loading cv-intro" role="status">Checking your interests…</p>' +
+      '<p class="cv-status-line" role="status" aria-live="polite" tabindex="-1" data-cv-status></p>';
+    var API_ = API();
+    if (!API_) {
+      paintUnavailable(mount,
+        'The page could not talk to the server just now, so your interests could not be read. ' +
+        'Nothing was changed. Try again below.');
+      return;
+    }
+    API_.read('API-051-get').then(function (env) { paint(mount, env); });
+  }
 
-      '<p class="cv-intro">' +
-        'No discovery sources are connected, so this view is <strong>specimen</strong> — sample ' +
-        'cards that show how surfaced things will explain themselves: what it is, <strong>why it ' +
-        'is here</strong>, and where it came from. Keep / dismiss work on this page only; nothing ' +
-        'is stored or sent.' +
-      '</p>' +
+  function paint(mount, env) {
+    var head =
+      '<div class="cv-head">' +
+        '<h2>Your interests</h2>' +
+      '</div>';
 
-      '<fieldset class="cv-states">' +
-        '<legend>Preview state · prototype control</legend>' +
-        '<label class="cv-state-opt">' +
-          '<input type="radio" name="cv-discoveries-state" value="feed" checked> ' +
-          'With sample discoveries' +
-        '</label>' +
-        '<label class="cv-state-opt">' +
-          '<input type="radio" name="cv-discoveries-state" value="empty"> ' +
-          'Empty (nothing new)' +
-        '</label>' +
-        '<label class="cv-state-opt">' +
-          '<input type="radio" name="cv-discoveries-state" value="not_configured"> ' +
-          'Not set up yet' +
-        '</label>' +
-      '</fieldset>' +
-
-      '<div data-cv-body>' + renderBody(state, items) + '</div>' +
-
-      '<p class="cv-status-line" role="status" aria-live="polite" tabindex="-1" data-cv-status></p>' +
-
-      '<details class="tech">' +
-        '<summary>technical · discoveries view</summary>' +
-        '<div class="tech-body">' +
-          'surface: discovery feed cards — headline, matched interest (why), source + timestamp ' +
-          '(provenance), keep/dismiss<br>' +
-          'real bindings: <strong>API-051</strong> (interests — the graph of what you follow, ' +
-          'drives matching) · <strong>API-052</strong> (discovery — the feed items themselves); ' +
-          'the target design writes keep/dismiss back through API-051/052 — not in this specimen<br>' +
-          'states: populated · empty · <code>not_configured</code> (no sources connected — quiet, ' +
-          'never faked)<br>' +
-          'current data: SPECIMEN — frontend-only, no backend exists; keep/dismiss mutate this ' +
-          'page load only and nothing persists<br>' +
-          'preview switcher: prototype control demonstrating the honest empty and ' +
-          '<code>not_configured</code> states; not a product feature' +
-        '</div>' +
-      '</details>';
-
-    var body = mount.querySelector('[data-cv-body]');
-    var statusLine = mount.querySelector('[data-cv-status]');
-
-    function rerender() {
-      body.innerHTML = renderBody(state, items);
+    if (env && env.ok === false) {
+      var message = env.error && env.error.message;
+      var isNotSetup = env.status === 'not_configured';
+      if (isNotSetup) {
+        mount.innerHTML = head +
+          '<div class="cv-state-box">' +
+            '<span class="cv-state-label">not set up yet</span>' +
+            '<h3>Interests are not set up yet</h3>' +
+            '<p>Interests are stored in this server’s own discovery settings. ' +
+            'Nothing was found there, so there is nothing to show — and nothing ' +
+            'is substituted with sample content.</p>' +
+            '<p>Interests can be added through the server’s discovery settings.</p>' +
+          '</div>' +
+          technical(env);
+        return;
+      }
+      paintUnavailable(mount, (message ||
+        'Your interests could not be read. Nothing was changed. Try again below.'));
+      return;
     }
 
-    /* State switcher */
-    mount.querySelectorAll('input[name="cv-discoveries-state"]').forEach(function (radio) {
-      radio.addEventListener('change', function () {
-        state = radio.value;
-        rerender();
-        statusLine.textContent = state === 'feed'
-          ? 'Showing the specimen sample discoveries.'
-          : state === 'empty'
-            ? 'Showing the empty state preview.'
-            : 'Showing the not-set-up state preview.';
-      });
-    });
+    var interests = (env && env.ok && env.data && Array.isArray(env.data.interests))
+      ? env.data.interests : [];
 
-    /* Keep / dismiss — delegated, survive re-renders */
-    body.addEventListener('click', function (ev) {
-      var keepBtn = ev.target.closest('[data-cv-keep]');
-      var dismissBtn = ev.target.closest('[data-cv-dismiss]');
-      if (!keepBtn && !dismissBtn) { return; }
+    if (!interests.length) {
+      mount.innerHTML = head +
+        '<div class="cv-state-box">' +
+          '<span class="cv-state-label">empty</span>' +
+          '<h3>No interests yet</h3>' +
+          '<p>This is your real interests list, read from the server — it is ' +
+          'genuinely empty, not sample content. Add an interest through the ' +
+          'server’s discovery settings and it will appear here on the next check.</p>' +
+        '</div>' +
+        technical(env);
+      return;
+    }
 
-      var id = keepBtn ? keepBtn.getAttribute('data-cv-keep') : dismissBtn.getAttribute('data-cv-dismiss');
-      var idx = items.findIndex(function (it) { return it.id === id; });
-      if (idx === -1) { return; }
-      var item = items[idx];
+    var rows = interests.map(function (i) {
+      var bits = [];
+      if (i && i.category) { bits.push('category: ' + i.category); }
+      if (i && i.created_at) { bits.push('followed since ' + timeEl(i.created_at)); }
+      return '<li class="rd-item">' +
+        '<h3 class="rd-item-title">' + esc(i && i.name ? i.name : '(unnamed)') + '</h3>' +
+        (bits.length ? '<p class="rd-item-meta">' + esc(bits.join(' · ')) + '</p>' : '') +
+        '</li>';
+    }).join('');
 
-      if (keepBtn) {
-        /* Keep: card stays visible with an explicit text status chip */
-        item.kept = true;
-        rerender();
-        var chip = body.querySelector('[data-cv-kept="' + id + '"]');
-        if (chip) { chip.focus(); }
-        statusLine.textContent = 'Kept: ' + item.headline + '. Nothing was sent anywhere — prototype only.';
-      } else {
-        items.splice(idx, 1);
-        rerender();
-        statusLine.textContent = items.length
-          ? 'Dismissed: ' + item.headline + '. It will not come back on this page.'
-          : 'Dismissed: ' + item.headline + '. That is everything — the feed is quiet now.';
-        statusLine.focus();
-      }
-    });
+    mount.innerHTML = head +
+      '<p class="cv-intro">' + esc(interests.length + (interests.length === 1 ? ' interest' : ' interests')) +
+      ' — read from the server just now.</p>' +
+      '<ul class="rd-list" aria-label="Your interests">' + rows + '</ul>' +
+      technical(env);
+  }
+
+  function paintUnavailable(mount, message) {
+    mount.innerHTML =
+      '<div class="cv-head"><h2>Your interests</h2></div>' +
+      '<div class="cv-state-box">' +
+        '<span class="cv-state-label">can’t connect right now</span>' +
+        '<h3>Couldn’t check your interests</h3>' +
+        '<p>' + esc(message || '') + '</p>' +
+        '<button type="button" class="cv-btn cv-btn-keep" data-cv-retry>Try again</button>' +
+      '</div>';
+    var retry = mount.querySelector('[data-cv-retry]');
+    if (retry) { retry.addEventListener('click', function () { build(mount); }); }
+  }
+
+  function technical(env) {
+    var n = env && env.data && env.data.interests ? env.data.interests.length : 0;
+    return '<details class="tech">' +
+      '<summary>technical · interests view</summary>' +
+      '<div class="tech-body">' +
+        'source: <strong>API-051</strong> GET /api/discovery/interests — the server’s ' +
+        'real interests list (' + esc(String(n)) + ' returned)<br>' +
+        'this view is read-only; adding an interest is <strong>API-051-add</strong> ' +
+        '(POST /api/discovery/interests, gate: step-up) and is a deliberate action, not a side effect of opening this page<br>' +
+        'the discovery feed itself (API-052) is not consumed on this surface yet<br>' +
+        'checked just now — no sample content is shown on this page' +
+      '</div>' +
+    '</details>';
   }
 
   function init() {
