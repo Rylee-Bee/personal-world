@@ -12,6 +12,7 @@
 <title>Interests — Project Worlds</title>
 <link rel="stylesheet" href="station.css">
 <link rel="stylesheet" href="content-views.css">
+<link rel="stylesheet" href="real-data.css">
 <link rel="stylesheet" href="search.css">
 <link rel="stylesheet" href="onboarding.css">
 <link rel="stylesheet" href="mobile.css">
@@ -23,6 +24,9 @@
 <script src="onboarding.js" defer></script>
 <script src="search.js" defer></script>
 
+<!-- live API client (same-origin session auth): the view reads the REAL
+     interests list (API-051) through it; no specimen feed on this page -->
+<script src="api.js" defer></script>
 <script src="interests-view.js" defer></script>
 <style>
   /* ── Interest cards ── */
@@ -176,9 +180,9 @@
   <div class="sky-info" id="sky-info"></div>
   <div class="dive" id="sky-dive" tabindex="-1" hidden></div>
 
-  <!-- ══ INTERESTS: discoveries content view ══
-       Rendered by interests-view.js. SPECIMEN — no discovery backend exists;
-       see the technical disclosure inside the view (API-051 / API-052). -->
+  <!-- ══ INTERESTS: real interests read, rendered by interests-view.js ══
+       Real data from API-051 (the server's interests list), with honest
+       empty / not-set-up / unavailable states. No specimen feed. -->
   <div id="interests-view" class="cv-view"></div>
 
   <!-- ══ INTERESTS: content views ══ -->
