@@ -72,8 +72,7 @@
     if (orb) {
       var use = orb.querySelector('use');
       if (use) { use.setAttribute('href', 'chars.svg#char-' + value('companion')); }
-      orb.setAttribute('aria-label', 'Talk to ' + (COMPANIONS[value('companion')] || {}).label +
-                       ', your companion — press to open chat');
+      orb.setAttribute('aria-label', 'Open World assistant');
     }
 
     // companions off → drop any ambient egg currently showing
@@ -96,7 +95,7 @@
     companion.className = 'companion';
     companion.id = 'companion-orb';
     companion.href = 'chat.html';   /* upgraded to a dock toggle when chat.js loads */
-    companion.setAttribute('aria-label', 'Talk to your companion — press to open chat');
+    companion.setAttribute('aria-label', 'Open World assistant');
     companion.title = 'Talk to your companion';
     companion.innerHTML =
       '<span class="c-sil" aria-hidden="true"><svg><use href="chars.svg#char-' + who + '"/></svg></span>' +

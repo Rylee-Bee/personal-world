@@ -1208,6 +1208,22 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
   background:rgba(255,255,255,0.03); color:var(--text-faint);
   font-size:var(--fs-micro); border:1px dashed var(--border);
 }
+/* The assistant's real reply (wired to POST /api/chat) */
+.msg.ai {
+  align-self:flex-start;
+  background:rgba(255,255,255,0.05); color:var(--text);
+  border:1px solid var(--border);
+  white-space:pre-line;
+}
+.msg.ai .chat-findings {
+  margin-top:var(--s2); font-size:var(--fs-micro); color:var(--text-faint);
+}
+.msg.ai .chat-findings summary {
+  min-height:44px; display:flex; align-items:center; cursor:pointer;
+  color:var(--text-soft);
+}
+.msg.ai .findings-list { margin:var(--s2) 0 0 var(--s4); display:grid; gap:var(--s1, 4px); }
+.msg.ai .findings-list code { color:var(--text-soft); }
 .msg.empty {
   align-self:center; background:none; color:var(--text-faint);
   text-align:center; padding:var(--s5);
@@ -1375,6 +1391,10 @@ details.tech .tech-body {
 [data-demand="low"] body { font-size: calc(var(--fs-body) + 1px); }
 .quiet-only { display:none; }
 [data-demand="low"] .quiet-only { display:block; }
+/* UX-09: low demand already renders the quiet Needs-you block; the
+   FULL Needs-you section below it is the duplicate — hide it, so the
+   page carries one Needs-you panel and one truth. */
+[data-demand="low"] .needs-full { display:none; }
 
 /* ═══ LOW-MOTION DRILL ZOOM ═══
    Feedback for an action YOU took: ~180ms, tiny scale, no travel.
