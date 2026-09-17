@@ -10,20 +10,25 @@ disagree, the canonical file wins.
 
 ## 2026-09-17 — production is live with passkey-first SSO
 
-- **Production**: a duckdns-managed public hostname → transcode host
-  (a private LAN address; `:8700`), running the published image
-  (`ghcr.io/rylee-bee/personal-world:latest`) with persistent `data` + `config`.
-  The stale in-stack `personal-world` container (VM 101) was retired; its
-  Traefik labels are replaced by a file-provider route.
-- **Sign-in is OIDC against the operator's Authelia, passkey-first.** The
-  `project-worlds` client uses `client_secret_post` (what the app
-  negotiates from discovery) and `authorization_policy: one_factor`. The
-  login page is SSO-primary; the access code is a collapsed fallback. See
-  `docs/oidc.md`.
-- **Dev mirror**: a second duckdns-managed public hostname, same
-  wiring.
-- Homelab side (private repo): PR #14 — Authelia client + the `world.`
-  route (hash committed; plaintext only in the app env).
+Historical section, sanitized 2026-09-16: the original text carried
+operator deployment topology (hostnames, LAN address, host port, VM and
+proxy details) in this public doc. That topology is retired and lives
+only in private operator documentation; **this repository does not
+contain the deployment's topology.** What remains below are the generic
+architecture truths that are public by design:
+
+- **Production and a development mirror are both live**, running the
+  published image (`ghcr.io/rylee-bee/personal-world:latest`) with
+  persistent `data` + `config` volumes, behind a reverse proxy
+  terminating TLS. (Endpoint details: private operator documentation.)
+- **Sign-in is OIDC, passkey-first SSO is the primary path.** The
+  `project-worlds` OIDC client negotiates its endpoints from provider
+  discovery and authenticates as a confidential client from env-
+  indirected secrets; the login page is SSO-primary and the local access
+  code is a collapsed fallback. This is a capability of the app, not
+  a statement about any single provider — see `docs/oidc.md`.
+- Homelab side (private repo): PR #14 records the identity-provider
+  client wiring. Details are in the private repo by design.
 
 ## 2026-09-16 — Station is the product UI; the repo is single-branch `main`
 
