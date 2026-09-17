@@ -264,8 +264,9 @@ def test_oidc_discovery(issuer_url: str) -> dict:
     return {
         "status": "reachable",
         "detail": (
-            "Success: that address is an OpenID Connect sign-in service "
-            "and this server can talk to it."
+            "Connection successful. This server can reach your "
+            "sign-in provider. (Technical detail: OpenID Connect "
+            "discovery succeeded.)"
         ),
         "discovered_issuer": str(doc.get("issuer", ""))[:255],
         "has_userinfo_endpoint": bool(doc.get("userinfo_endpoint")),
