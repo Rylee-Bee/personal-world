@@ -1,5 +1,7 @@
 # Project Worlds
 
+![The Project Worlds crew — Mermaid, Burrito Journalism, Ratataskor, Robot, and Personal World](design/screens/crew.png)
+
 A personal operating environment. One core process with native
 capabilities, a gentle star-map frontend (the **Station**), and an AI
 assistant that proposes but does not act without approval.

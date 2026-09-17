@@ -271,6 +271,11 @@ Today/Journal/Vault). Legacy server UI coexists (`PW_FRONTEND` selects).
 - Runtime: companion selection + standalone Chat page exist; contextual
   identities/tool workflows from the exported chat screens are target
   work (Finish Line), not implemented.
+- **Crew poster (curated):** `design/screens/crew.png` — the five-resident
+  character reference (front / ¾ / side / back, expressions, uniform
+  details) plus the "Same Crew. Bigger Horizons." scene. Curated
+  2026-09-17 from the owner's untracked drop (`design/owner/crew/crew.png`);
+  the drop directory stays gitignored. Featured in the README.
 - Deliberate artwork — do not casually regenerate: Mermaid master Lottie
   (byte-identical by decision), companion source rigs, icon library,
   screen SVGs.
