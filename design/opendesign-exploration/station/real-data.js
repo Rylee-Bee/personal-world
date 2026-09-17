@@ -78,57 +78,77 @@
       station: 'Space between things', stationKey: 'density',
       stationValues: 'comfortable · compact', serverKey: 'density',
       binding: 'exact',
+      scope: 'This browser · Your Project Worlds account',
+      scopeNote: 'The station control saves in this browser. The server keeps the same setting in your Project Worlds account; the two are not synchronized — changing one does not change the other.',
       note: 'Same vocabulary on both sides — bindable today.'
     },
     {
       station: 'Gentle motion', stationKey: 'motion',
       stationValues: 'off · on', serverKey: 'motion',
       binding: 'partial',
+      scope: 'This browser · Your Project Worlds account',
+      scopeNote: 'The station control saves in this browser. The server keeps its own value in your Project Worlds account; the two are not synchronized.',
       note: 'Server vocabulary is off · reduced · subtle. “off” maps exactly; the Station’s “on” has no server value (server “subtle” is the closest opt-in). Your OS reduced-motion setting always outranks both.'
     },
     {
       station: 'Your companion', stationKey: 'companion',
       stationValues: 'mermaid · ratatoskr · robot · burrito', serverKey: 'companion',
       binding: 'partial',
+      scope: 'This browser · Your Project Worlds account',
+      scopeNote: 'The station control saves in this browser. The server keeps its own companion value in your Project Worlds account; the two are not synchronized.',
       note: 'Server values are personal-world · mermaid · robot · world-tree-squirrel · taco-news-truck. Mermaid and Robot match; Ratatoskr and Burrito Journalism are Station names for world-tree-squirrel and taco-news-truck.'
     },
     {
       station: 'Colours', stationKey: 'theme',
       stationValues: 'Station · ember · tide · moss', serverKey: 'accent',
       binding: 'none',
+      scope: 'This browser',
+      scopeNote: 'This control saves in this browser only; the server has no matching setting.',
       note: 'Different concepts: server `accent` is world-keeper · rylee. Station atmosphere themes have no server key yet.'
     },
     {
       station: 'Companions around', stationKey: 'companions',
       stationValues: 'on · off', serverKey: null,
       binding: 'none',
+      scope: 'This browser',
+      scopeNote: 'This control saves in this browser only.',
       note: 'No server key. `companion` chooses who appears, not whether they do. Turning companions off removes no functionality.'
     },
     {
       station: 'Let the map set the mood', stationKey: 'mood',
       stationValues: 'on · off', serverKey: null,
       binding: 'none',
+      scope: 'This browser',
+      scopeNote: 'This control saves in this browser only.',
       note: 'No server key; device-only today.'
     },
     {
       station: 'Ask less of me', stationKey: 'demand',
       stationValues: 'normal · low', serverKey: null,
       binding: 'none',
+      scope: 'This browser',
+      scopeNote: 'This control saves in this browser only.',
       note: 'No server key. The Bad Day posture (decision #16) lives on this device for now.'
     },
     {
       station: null, stationKey: null, stationValues: null,
       serverKey: 'contrast', binding: 'server-only',
+      scope: 'Your Project Worlds account',
+      scopeNote: 'Saved on the server in your Project Worlds account — the authoritative setting, even though no Station control exists yet.',
       note: 'comfortable · high. No Station control yet.'
     },
     {
       station: null, stationKey: null, stationValues: null,
       serverKey: 'text_scale', binding: 'server-only',
+      scope: 'Your Project Worlds account',
+      scopeNote: 'Saved on the server in your Project Worlds account — the authoritative value for this setting.',
       note: '1 · 1.25 · 1.5. No Station control yet.'
     },
     {
       station: null, stationKey: null, stationValues: null,
       serverKey: 'target_size', binding: 'server-only',
+      scope: 'Your Project Worlds account',
+      scopeNote: 'Saved on the server in your Project Worlds account. The accessibility floor is authoritative here: 44 px minimum, and the Station already meets it in CSS.',
       note: '44 · 56 px. The accessibility floor is 44 and the Station already meets it in CSS.'
     }
   ];
@@ -546,13 +566,14 @@
 
       if (quiet) {
         /* Low-demand mode should ask for LESS, not more. The full list is
-           already on this page below, so this block says what needs you in
-           words and does not repeat every item — a second copy would put
-           each entry in the reading order twice. */
+           not repeated here (UX-09: in low demand only this quiet block
+           shows; the full section is hidden), so the copy says what is
+           on offer and what restoring does — it does not pretend the
+           full list is on this page right now. */
         mount.innerHTML = head +
           '<p class="rd-lede">' + esc(lede) + '</p>' +
-          '<p class="rd-lede">The details are just below, on this same page. ' +
-          'Asking for less hides nothing.</p>';
+          '<p class="rd-lede">Asking for less hides nothing: nothing was deleted, and ' +
+          'under “Show me my world” below this block the full detail comes back.</p>';
         return;
       }
 
@@ -646,7 +667,7 @@
           'kinds use the server’s journal vocabulary (observation, health, drift, ' +
           'recommendation, approval, reconciliation, provider_action, failure, ' +
           'pack_change, settings_change, security, discovery); the plain word above ' +
-          'is a label, the canonical kind stays in the payload.' + +
+          'is a label, the canonical kind stays in the payload.<br>' +
           specimenRegisterHtml());
     }
 
@@ -692,20 +713,24 @@
             ? '<br>set to <code>' + esc(value) + '</code>'
             : (serverKey ? '<br><span class="rd-none">not set</span>' : '')) +
           (allowed ? '<br>allowed: ' + esc(allowed) : '') + '</td>' +
+          '<td><strong>' + esc(row.scope || 'Not known yet') + '</strong><br>' +
+          esc(row.scopeNote || row.note) + '</td>' +
           '<td>' + esc(bindingWord(row.binding)) + '<br>' + esc(row.note) + '</td>' +
           '</tr>';
       }).join('');
 
       mount.innerHTML = head +
         '<p class="rd-lede">These are your real stored preferences, read from the server. ' +
-        'The controls above still write to this device only — the table says exactly how ' +
-        'far each one reaches, and nothing is claimed that is not true.</p>' +
+        'Each row names where its setting is saved — this browser, your Project Worlds ' +
+        'account, or both — and each control above still saves exactly what its row says: ' +
+        'nothing is claimed that is not true, and the two scopes are not synchronized.</p>' +
         '<table class="rd-table">' +
         '<caption>Station control → server preference (API-030). ' +
         'Vocabulary from the server’s own schema (API-031), so this table cannot ' +
         'offer a value the server would reject.</caption>' +
         '<thead><tr><th scope="col">Station control</th><th scope="col">Its values here</th>' +
-        '<th scope="col">Server key and value</th><th scope="col">How far it reaches</th></tr></thead>' +
+        '<th scope="col">Server key and value</th><th scope="col">Where it is saved</th>' +
+        '<th scope="col">How far it reaches</th></tr></thead>' +
         '<tbody>' + rows + '</tbody>' +
         '</table>' +
         disclosure('technical · preferences',
