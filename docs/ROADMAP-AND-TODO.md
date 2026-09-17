@@ -1,97 +1,53 @@
-# PROJECT WORLDS — THE EASY ROADMAP & TODO
-*The whole journey on one page. ✅ done · 🛠️ happening now · ⏳ waiting (mostly on nothing) · ⏸️ later on purpose.*
-*Updated 2026-09-16. If you only read one thing today, read "Where we are" and "Needs you."*
+# Alpha status — Project Worlds
+
+*Where the alpha actually stands, for the owner. The canonical gap list
+lives in [`ROADMAP.md`](../ROADMAP.md) — this page is a status snapshot,
+not a second truth. Snapshot verified 2026-09-17 against the code; it
+will age, the roadmap should not.*
 
 ---
 
-## Where we are (the short version)
+## Where we are
 
-**Phases 0–2 are DONE. Phase 3 is nearly done. Phase 4 waits on you only if you want.
-Phase 5 is later on purpose.** You are not at the beginning. You are at the
-"finish the packaging and taste it" stage.
+The backend is daily-use capable and the Station is the product UI.
 
-```
-Phase 0  the dream & the rules      ██████████  ✅
-Phase 1  a real backend             ██████████  ✅
-Phase 2  a gentle, beautiful front  █████████░  ✅ (real-data wiring finishing)
-Phase 3  anyone-can-install runtime ████████░░  🛠️
-Phase 4  make it YOURS              ██░░░░░░░░  ⏳ (optional, on your good days)
-Phase 5  shareable & lasting        ░░░░░░░░░░  ⏸️ (later, by choice)
-```
+- **Backend — solid.** Auth/session/step-up, multi-user per-principal
+  data, journal (+search), reminders, preferences, proposals
+  write-safety (propose → approve → act), fail-closed vault, Git
+  reads, one chat loop with provider-neutral adapters, generic OIDC,
+  first-run setup wizard, `/api/manifest` (the Lego box).
+- **Deployment — working.** Single compose appliance: core service +
+  bundled Ollama + a one-shot `ollama-pull` (no API key needed);
+  container daily-use proven.
+- **Frontend — Station, honestly partial.** The Station
+  (`/station/`, same-origin from `design/opendesign-exploration/station/`)
+  is the product UI; `/login` and `/setup` are server-rendered. The
+  real-data layer wires needs-you, journal, and preferences; the
+  chat surface is still a local-only prototype (no model behind
+  send); some panels are clearly-labelled specimen and stay honest
+  until real data exists.
 
----
+## Honest gaps today
 
-## Phase 0 — The dream & the rules ✅
-*What you wanted, in your words:*
-- [x] "a place to keep my thoughts and life organized" that is **gentle**
-- [x] "quiet when healthy" — it never nags; silence means verified-ok
-- [x] "low-demand mode" for bad days; never tells you how to feel
-- [x] accessible for **everyone at any level** (44px targets, contrast, keyboard, reduced-motion)
-- [x] a **star-map** you drift into, not a dashboard or a wall of screens
-- [x] companions as soft presences (Mermaid, Ratatoskr, Robot, Burrito), never bosses
-- [x] your **Play Nice contracts** as the law every builder must follow
-- [x] the **DNA** written down: smallest-reliable-first · depth on demand · soft by default · everyone included
-- [x] all 21 decisions recorded so nobody (including you) has to re-decide them
+These are the verified ones; see [`ROADMAP.md`](../ROADMAP.md) for
+detail and grounding:
 
-## Phase 1 — A real backend ✅
-- [x] login / sessions / step-up approval (auth that fails closed)
-- [x] your world, journal (+search), reminders, preferences — durable stores
-- [x] safe changes: propose → approve → act (nothing writes itself)
-- [x] encrypted vault that refuses to run unsafe
-- [x] git/source-control reads; homelab **lab** providers (your ported CLI)
-- [x] **multi-user**: each person's stuff stays theirs (379 tests)
-- [x] **small brain on-task**: one chat loop + lenient tool-calling + templates (ORPH-03 fixed; 42+172 tests)
-- [x] **sign-in with your own SSO** (generic OIDC, Authelia-ready; 96 tests, stub-verified)
-- [x] **first-run setup wizard** — invisible provisioning, no token pasting (23 tests)
-- [x] **API = Lego box**: every capability exposed, reads open, writes gated, `/api/manifest`
-- [x] OIDC proven against your *real* Authelia (live harness + the production `project-worlds` client; passkey-first)
-- [ ] streaming chat + saved chat history (known gap, deliberately later)
-
-## Phase 2 — A gentle, beautiful frontend ✅ (wiring finishing)
-- [x] the systems map: seven little worlds, drill-in, icon planets, orbit rings
-- [x] content views: Journal entries · Discoveries · GitHub-like Projects (all honest states)
-- [x] onboarding · search (Ctrl/Cmd+K) · deep-links · mobile
-- [x] chat dock + templates-as-personality · settings · "Hail Assistant" · low-demand
-- [🛠] map shows **real data** instead of samples (api.js + live layer; honest-state e2e green)
-- [x] automatic accessibility tests (axe/e2e) for the Station (`frontend/e2e/station-*.spec.ts`; 24 green)
-
-## Phase 3 — Anyone-can-install runtime 🛠️
-- [x] Docker image now **includes the Station** (so `/station/` works in a container)
-- [x] dev compose builds **only from current source** (a stale published image can't win)
-- [x] `scripts/dev.sh` — `up` (newest build) · `newest` · `wipe` (safe) · `status` · `logs`
-- [x] stopped the stale dev servers cluttering your box (5173 / 5180 / 9123)
-- [x] dev auth bypass exists and is **loopback-only** (never trusts the LAN)
-- [x] rebuilt + verified `/station/` served by the backend (Bazzite dev mirror + production)
-- [x] retired the old `:8090` static server; `/station/` is served same-origin by the backend (`scripts/dev.sh up`)
-- [x] committed + pushed everyone's verified work; repo consolidated to a single `main` (older branches archived as annotated tags)
-- [x] clean first-run on a fresh box (production: compose up → wizard → signed in → map)
-
-## Phase 4 — Make it YOURS ⏳ (only on your good days)
-- [x] OIDC pointed at Authelia; sign-in is **passkey-first** (no password to remember)
-- [ ] taste-pass: open it and ask "does this feel like mine?" (~30 min)
-- [ ] optional add-on secrets (media / GitHub / ntfy) via Vault — only if/when you want them
-
-## Phase 5 — Shareable & lasting ⏸️ (later, by choice)
-- [ ] multi-device sync (research first; keep it easy)
-- [ ] built-in updates for theme packs / templates / companions / interests (vision #21)
-- [ ] homelab lab expansion (only when you care)
-- [ ] notifications (ntfy/webhook)
-- [ ] public deployment — **only if you explicitly choose it**
-
----
+- Station chat needs its send button wired to the real chat endpoints
+  (plus streaming).
+- Specimen panels (interests/media/projects cards, map region detail)
+  need real data or remain honest empty states.
+- Step-up authentication is a trust window, not re-authentication.
+- Theme packs: registry exists, full front-of-house integration
+  remains.
+- Ingress rollups: implemented, not operationally verified.
 
 ## Needs you
-**Right now: nothing.** Later, optionally: Authelia details · the taste-pass · optional secrets.
-Everything else is assembly + verification that runs without you.
 
-## What "done" looks like
-```
-scripts/dev.sh up          # or: podman compose -f compose.yaml -f compose.dev.yaml up -d --build
-→  http://127.0.0.1:8000/station/     cute Station, real data, your login
-→  /api/...  /setup  /auth            one backend, one source of truth
-```
-No mystery old backend. No old React page winning. No `:8090` needed. Boring, on purpose.
+Right now: nothing is blocked on you. Owner-scoped calls that sit
+ahead of further work are collected in [`ROADMAP.md`](../ROADMAP.md)
+— nothing there is guessable from repository truth alone.
 
 ---
 
-*If your head hurts: read only "Where we are" and "Needs you." That's the whole truth today.*
+*If your head hurts: skip this page and read
+[`ROADMAP.md`](../ROADMAP.md) "Now" instead.*

@@ -8,29 +8,62 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
-## 2026-09-17 — production is live with passkey-first SSO
+## 2026-09-17 — current state
 
-Historical section, sanitized 2026-09-16: the original text carried
-operator deployment topology (hostnames, LAN address, host port, VM and
-proxy details) in this public doc. That topology is retired and lives
-only in private operator documentation; **this repository does not
-contain the deployment's topology.** What remains below are the generic
-architecture truths that are public by design:
+Single source of truth for NOW; everything below this section is
+historical. Verified against the repo and running code:
 
-- **Production and a development mirror are both live**, running the
-  published image (`ghcr.io/rylee-bee/personal-world:latest`) with
-  persistent `data` + `config` volumes, behind a reverse proxy
-  terminating TLS. (Endpoint details: private operator documentation.)
-- **Sign-in is OIDC, passkey-first SSO is the primary path.** The
-  `project-worlds` OIDC client negotiates its endpoints from provider
-  discovery and authenticates as a confidential client from env-
-  indirected secrets; the login page is SSO-primary and the local access
-  code is a collapsed fallback. This is a capability of the app, not
-  a statement about any single provider — see `docs/oidc.md`.
-- Homelab side (private repo): PR #14 records the identity-provider
-  client wiring. Details are in the private repo by design.
+- **Repository:** single branch, `main` is the trunk
+  (`origin/main`). Older branches were retired 2026-09-16 as
+  annotated `archive/2026-09-16/*` tags; the superseded React SPA, its
+  `/legacy-react` route, catch-all SPA fallback, and dist build
+  pipeline were removed the same day.
+- **Product UI:** the **Station**, served same-origin at `/station/`
+  from `design/opendesign-exploration/station/`; `/login` and
+  `/setup` are server-rendered. Honest partial states: chat is
+  local-only, some panels are labelled specimen, until real data
+  exists (see `ROADMAP.md`).
+- **Deployment shape:** one compose appliance — core service + bundled
+  `ollama` + a one-shot `ollama-pull` init (local qwen3:1.7b, no API
+  key), persistent `data` + `config` + model volumes.
+- **Authentication:** OIDC-capable, passkey-first SSO is the primary
+  path; local access code is the collapsed fallback. App capability,
+  not a statement about any single provider — see `docs/oidc.md`.
+- **Production exists** as a private deployment; its topology
+  (hostnames, addresses) lives in private operator documentation and
+  deliberately not in this repository. The homelab side records the
+  identity-provider client wiring in that private estate's PR #14 —
+  details there by design, not here.
 
-## 2026-09-16 — Station is the product UI; the repo is single-branch `main`
+Canonicity pointers: architecture → `docs/ARCHITECTURE.md`; target
+experience → `docs/PERSONAL-WORLD-FINISH-LINE.md`; verified direction
+→ `ROADMAP.md`; design truth → `design/tokens.json` +
+`docs/DESIGN-HANDOFF.md` (V0.1 baseline) + `docs/accessibility/`;
+companion/chat architecture → `design/COMPANION_INTEGRATION.md`;
+decisions → `.project/DECISIONS.md` + `docs/adr/`.
+
+---
+
+## Historical — earlier epochs
+
+**Everything below this line describes superseded states.** It is
+preserved for provenance (dated narratives, world-model decisions, the
+2026-09-12 identity pass, sanitization history) and was already being
+ended here, in sanitized and labelled form, before the 2026-09-17
+router above existed. Where it disagrees with the 2026-09-17 section
+or the live code, they win. Identifiers below (`PW_FRONTEND`,
+React-era test counts) appear only as historical terminology or
+point-in-time measurements.
+
+- The superseded React-era state of this file (2026-09-16 and earlier
+  sections) was consolidated into
+  [`docs/history/CONSTRUCTION-AND-EPOCH-NARRATIVE.md`](../docs/history/CONSTRUCTION-AND-EPOCH-NARRATIVE.md)
+  as per the pre-router route; that narrative remains the detailed
+  provenance record.
+
+---
+
+## 2026-09-16 — Station is the product UI; the repo is single-branch `main` (historical snapshot, 2026-09-16)
 
 The current direction is the **Station** UI (served same-origin at
 `/station/` from `design/opendesign-exploration/station/`). `/login` and
