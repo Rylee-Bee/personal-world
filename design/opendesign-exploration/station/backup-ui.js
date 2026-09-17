@@ -183,7 +183,7 @@
       }
       dlRow.hidden = true;
       busy(bBtn, true, '⏳ Encrypting your world…');
-      status(bStatus, 'na', 'Working: collecting the restore boundary and encrypting it. This may take a few seconds.');
+      status(bStatus, 'na', 'Working: Collecting your world data and encrypting the backup. This may take a few seconds.');
       call('/api/worlds/backup', { passphrase: pass, include_vault: bVault.checked })
         .then(function (r) {
           busy(bBtn, false, '⬇ Create encrypted backup');
@@ -203,7 +203,7 @@
             download: 'personal-worlds-backup.pwbackup'
           }));
           dlRow.appendChild(el('span', {
-            text: ' Copy it somewhere safe OFF this machine, and remember the passphrase.',
+            text: ' Save a copy on another device and keep the passphrase somewhere you can recover it.',
             style: 'font-size:14px;color:var(--text-soft,#CDC6B8)'
           }));
         });
@@ -250,7 +250,7 @@
         return;
       }
       busy(rBtn, true, '⏳ Verifying and decrypting…');
-      status(rStatus, 'na', 'Working: the archive is authenticated BEFORE anything is written. A wrong passphrase changes nothing.');
+      status(rStatus, 'na', 'Working: Checking the archive before changing anything. A wrong passphrase will not change your world.');
       file.arrayBuffer().then(function (buf) {
         var bytes = new Uint8Array(buf);
         var bin = '';
