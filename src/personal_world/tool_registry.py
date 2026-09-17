@@ -8,6 +8,7 @@ Write tools go through propose → approval → execution → evidence.
 """
 
 import json
+import logging
 import os
 import threading
 import time
@@ -16,6 +17,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .envelope import Result, fail, ok
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -123,8 +126,12 @@ class ToolRegistry:
         try:
             return tool.handler(**args)
         except TypeError as e:
+            logger.debug("tool %s rejected args: %s: %s", tool_id, type(e).__name__, e)
             return fail("invalid_args", warnings=[f"tool '{tool_id}': {e}"])
         except Exception as e:
+            # The envelope stays honest for the caller; the server log
+            # keeps the trace for the human.
+            logger.exception("tool %s failed: %s: %s", tool_id, type(e).__name__, e)
             return fail("unavailable", warnings=[f"tool '{tool_id}' failed: {e}"])
 
 
@@ -875,21 +882,28 @@ class ProposalStore:
         writes save through the authoritative path and report what they
         changed; a scheduler-less environment leaves a reminder pending
         rather than reporting success.
-        """
-        proposal = self.proposals.get(proposal_id)
-        if not proposal:
-            return fail("not_found", warnings=[f"proposal '{proposal_id}' not found"])
-        if proposal["status"] != "approved":
-            return fail(
-                "invalid_state",
-                warnings=[
-                    f"proposal is {proposal['status']}, not approved. "
-                    "Only proposals approved through the trusted owner "
-                    "path can be executed."
-                ],
-            )
 
-        proposal["status"] = "executing"
+        Read/write of the proposal state (status check + transition to
+        "executing") happens under the store lock so concurrent or
+        retried executions cannot both pass the approved-status check.
+        """
+        with self.lock:
+            proposal = self.proposals.get(proposal_id)
+            if not proposal:
+                return fail(
+                    "not_found", warnings=[f"proposal '{proposal_id}' not found"]
+                )
+            if proposal["status"] != "approved":
+                return fail(
+                    "invalid_state",
+                    warnings=[
+                        f"proposal is {proposal['status']}, not approved. "
+                        "Only proposals approved through the trusted owner "
+                        "path can be executed."
+                    ],
+                )
+
+            proposal["status"] = "executing"
         ptype = proposal["type"]
 
         try:
@@ -1566,7 +1580,10 @@ def _build_media_engine(connection_manager: Any = None, config_dir: Any = None):
     - connections[] entries (tracked config, provider shape)
     - flat UI config (connections.local.json, schema-driven shape)
     """
-    from .providers.native_media import NativeMediaEngine, build_adapter
+    from .providers.native_media import (
+        MEDIA_CONNECTION_TYPES,
+        build_media_engine_from_connections,
+    )
     from .connection_manager import resolve_media_connections
 
     if connection_manager is not None:
@@ -1579,28 +1596,25 @@ def _build_media_engine(connection_manager: Any = None, config_dir: Any = None):
         cfg_dir = Path(config_dir or os.environ.get("PW_CONFIG_DIR", "./config"))
         connections_path = cfg_dir / "connections.json"
         if not connections_path.exists():
-            return NativeMediaEngine([])
+            return build_media_engine_from_connections([])
         config = _json.loads(connections_path.read_text())
 
-    adapters = []
+    connections = [
+        conn
+        for conn in config.get("connections", [])
+        if isinstance(conn, dict) and conn.get("type") in MEDIA_CONNECTION_TYPES
+    ]
 
-    # 1. connections[] entries (provider shape — has "type" key)
-    for conn in config.get("connections", []):
-        if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
-            adapter = build_adapter(conn)
-            if adapter:
-                adapters.append(adapter)
-
-    # 2. Flat UI config saved under "media" key
+    # Flat UI config saved under "media" key
     media_raw = config.get("media", {})
     if media_raw and media_raw.get("_adapter"):
-        for conn in resolve_media_connections(media_raw):
-            if conn.get("type") in ("plex", "sonarr", "radarr", "lidarr"):
-                adapter = build_adapter(conn)
-                if adapter:
-                    adapters.append(adapter)
+        connections.extend(
+            conn
+            for conn in resolve_media_connections(media_raw)
+            if isinstance(conn, dict) and conn.get("type") in MEDIA_CONNECTION_TYPES
+        )
 
-    return NativeMediaEngine(adapters)
+    return build_media_engine_from_connections(connections)
 
 
 def _media_status(connection_manager: Any = None) -> Result:

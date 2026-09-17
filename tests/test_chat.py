@@ -6,6 +6,7 @@ Chat is optional machinery: every test proves the fail-honest path
 provider. No test touches a real model endpoint.
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -37,9 +38,11 @@ class FakeChat(ChatContract):
 
     def chat(self, messages):
         self.seen.append(messages)
-        return Result(ok=True, status="healthy",
-                      data={"reply": self.reply, "thinking": None,
-                            "model": "fake"})
+        return Result(
+            ok=True,
+            status="healthy",
+            data={"reply": self.reply, "thinking": None, "model": "fake"},
+        )
 
 
 class TestTrimContext:
@@ -92,34 +95,55 @@ class TestChatOnce:
 
 class TestProviderBuilders:
     def test_ollama_shape(self):
-        built = build_chat_provider({
-            "type": "ollama", "name": "local-qwen",
-            "base_url": "http://127.0.0.1:11434", "model": "qwen3:8b",
-        })
+        built = build_chat_provider(
+            {
+                "type": "ollama",
+                "name": "local-qwen",
+                "base_url": "http://127.0.0.1:11434",
+                "model": "qwen3:8b",
+            }
+        )
         assert built is not None
         name, impl = built
         assert name == "local-qwen"
         assert isinstance(impl, OllamaChat)
 
     def test_openai_compat_shape(self):
-        built = build_chat_provider({
-            "type": "openai_compat", "name": "llamacpp",
-            "base_url": "http://127.0.0.1:8080", "model": "x",
-            "api_key_env": "SOME_ENV",
-        })
+        built = build_chat_provider(
+            {
+                "type": "openai_compat",
+                "name": "llamacpp",
+                "base_url": "http://127.0.0.1:8080",
+                "model": "x",
+                "api_key_env": "SOME_ENV",
+            }
+        )
         assert built is not None
         name, impl = built
         assert isinstance(impl, OpenAICompatChat)
 
     def test_missing_model_rejected(self):
-        assert build_chat_provider({
-            "type": "ollama", "base_url": "http://127.0.0.1:11434",
-        }) is None
+        assert (
+            build_chat_provider(
+                {
+                    "type": "ollama",
+                    "base_url": "http://127.0.0.1:11434",
+                }
+            )
+            is None
+        )
 
     def test_unknown_type_rejected(self):
-        assert build_chat_provider({
-            "type": "wat", "base_url": "http://x", "model": "m",
-        }) is None
+        assert (
+            build_chat_provider(
+                {
+                    "type": "wat",
+                    "base_url": "http://x",
+                    "model": "m",
+                }
+            )
+            is None
+        )
 
 
 class TestWorldContext:
@@ -128,12 +152,16 @@ class TestWorldContext:
 
         w = World()
         w.lore["secret-thing"] = Lore(
-            key="secret-thing", value="private detail", state="confirmed",
+            key="secret-thing",
+            value="private detail",
+            state="confirmed",
             provenance=Provenance(source="test"),
             classification=Classification.PRIVATE,
         )
         w.lore["public-thing"] = Lore(
-            key="public-thing", value="open detail", state="confirmed",
+            key="public-thing",
+            value="open detail",
+            state="confirmed",
             provenance=Provenance(source="test"),
             classification=Classification.WORLD,
         )
@@ -142,8 +170,7 @@ class TestWorldContext:
         assert "open detail" in ctx
 
     def test_context_lists_capability_statuses(self, tmp_path):
-        ctx = build_world_context(World(), _empty_registry(),
-                                  Journal(tmp_path / "j"))
+        ctx = build_world_context(World(), _empty_registry(), Journal(tmp_path / "j"))
         assert "## Capability status" in ctx
 
 
@@ -183,9 +210,11 @@ class TestChatEndpoint:
 
     def test_non_json_rejected(self, client):
         c, _ = client
-        r = c.post("/api/chat", content=b"nope",
-                   headers={**self._headers(),
-                            "Content-Type": "application/json"})
+        r = c.post(
+            "/api/chat",
+            content=b"nope",
+            headers={**self._headers(), "Content-Type": "application/json"},
+        )
         assert r.status_code == 400
 
     def test_auth_required(self, client):
@@ -206,19 +235,20 @@ class TestChatEndpoint:
 
         def patched_build_registry(world, registry, config_dir, **kwargs):
             reg = real_build_registry(world, registry, config_dir, **kwargs)
-            reg.register("reasoning", "fake-chat", fake,
-                         health_check=lambda: True, writes="none")
+            reg.register(
+                "reasoning", "fake-chat", fake, health_check=lambda: True, writes="none"
+            )
             return reg
 
-        monkeypatch.setattr(api_mod, "build_registry",
-                            patched_build_registry)
+        monkeypatch.setattr(api_mod, "build_registry", patched_build_registry)
         # Recreate the app so create_app's closures bind the patch
         from fastapi.testclient import TestClient
 
         app = api_mod.create_app(tmp_path, tmp_path)
         c2 = TestClient(app)
-        r = c2.post("/api/chat", json={"message": "how is my world?"},
-                    headers=self._headers())
+        r = c2.post(
+            "/api/chat", json={"message": "how is my world?"}, headers=self._headers()
+        )
         assert r.status_code == 200
         body = r.json()
         assert body["ok"] is True
@@ -229,6 +259,7 @@ class TestChatEndpoint:
         # The exchange is journaled
         events = Journal(tmp_path / "journal.ndjson").recent(5)
         assert any("chat exchange" in e.summary for e in events)
+
 
 class TestChatUiContext:
     """Contextual chat (Finish Line): the UI may describe where the
@@ -249,8 +280,9 @@ class TestChatUiContext:
 
         def patched_build_registry(world, registry, config_dir, **kwargs):
             reg = real_build_registry(world, registry, config_dir, **kwargs)
-            reg.register("reasoning", "fake-chat", fake,
-                         health_check=lambda: True, writes="none")
+            reg.register(
+                "reasoning", "fake-chat", fake, health_check=lambda: True, writes="none"
+            )
             return reg
 
         monkeypatch.setattr(api_mod, "build_registry", patched_build_registry)
@@ -295,17 +327,18 @@ class TestChatUiContext:
 
     def test_no_context_means_global_chat(self, client):
         c, fake = client
-        r = c.post("/api/chat", json={"message": "hi"},
-                    headers=self._headers())
+        r = c.post("/api/chat", json={"message": "hi"}, headers=self._headers())
         assert r.status_code == 200 and r.json()["ok"] is True
         system = fake.seen[-1][0]["content"]
         assert "Where the person is" not in system
 
     def test_malformed_context_never_rejected(self, client):
         c, fake = client
-        r = c.post("/api/chat",
-                    json={"message": "hi", "context": "nonsense"},
-                    headers=self._headers())
+        r = c.post(
+            "/api/chat",
+            json={"message": "hi", "context": "nonsense"},
+            headers=self._headers(),
+        )
         assert r.status_code == 200 and r.json()["ok"] is True
         system = fake.seen[-1][0]["content"]
         assert "Where the person is" not in system
@@ -314,8 +347,8 @@ class TestChatUiContext:
 class TestBuildUiContext:
     def test_full_shape(self):
         from personal_world.chat_context import build_ui_context
-        out = build_ui_context("/vault", "vault", "Vault", "healthy",
-                               ["secrets"])
+
+        out = build_ui_context("/vault", "vault", "Vault", "healthy", ["secrets"])
         assert "route: /vault" in out
         assert "section: vault (Vault)" in out
         assert "section status: healthy" in out
@@ -323,6 +356,7 @@ class TestBuildUiContext:
 
     def test_empty_is_none(self):
         from personal_world.chat_context import build_ui_context
+
         assert build_ui_context(None, None, None, None, None) is None
 
 
@@ -344,8 +378,9 @@ class TestChatUiEntity:
 
         def patched_build_registry(world, registry, config_dir, **kwargs):
             reg = real_build_registry(world, registry, config_dir, **kwargs)
-            reg.register("reasoning", "fake-chat", fake,
-                         health_check=lambda: True, writes="none")
+            reg.register(
+                "reasoning", "fake-chat", fake, health_check=lambda: True, writes="none"
+            )
             return reg
 
         monkeypatch.setattr(api_mod, "build_registry", patched_build_registry)
@@ -383,3 +418,87 @@ class TestChatUiEntity:
         assert r.status_code == 200 and r.json()["ok"] is True
         system = fake.seen[-1][0]["content"]
         assert "Where the person is" not in system
+
+
+# ── Anthropic tool loop replay (protocol correctness) ──
+
+
+class TestAnthropicToolLoopReplay:
+    """A replayed assistant turn WITH tool_calls must be rendered as
+    Anthropic tool_use blocks, before the matching tool_result."""
+
+    def _capture(self, monkeypatch):
+        from personal_world import chat_registry
+        from personal_world.chat_registry import AnthropicChat
+
+        captured = {}
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b'{"content": [{"type": "text", "text": "ok"}], "model": "claude-test"}'
+
+        def fake_urlopen(req, timeout=None):
+            body = json.loads(req.data.decode())
+            captured["messages"] = body["messages"]
+            return _Resp()
+
+        monkeypatch.setattr(chat_registry.urllib.request, "urlopen", fake_urlopen)
+        chat = AnthropicChat(model="claude-test", api_key_env="ANTHROPIC_API_KEY")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        return chat, captured
+
+    def test_assistant_tool_calls_replayed_as_tool_use_before_result(self, monkeypatch):
+        chat, captured = self._capture(monkeypatch)
+        r = chat.chat_with_tools(
+            [
+                {"role": "user", "content": "check the vault"},
+                {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "function": {
+                                "name": "vault_names",
+                                "arguments": '{"prefix": "srv"}',
+                            },
+                        }
+                    ],
+                },
+                {
+                    "role": "tool",
+                    "tool_call_id": "call_1",
+                    "content": '["srv-a", "srv-b"]',
+                },
+            ],
+            tools=[],
+        )
+        assert r.ok is True
+        msgs = captured["messages"]
+        assert [m["role"] for m in msgs] == ["user", "assistant", "user"]
+        assistant = msgs[1]["content"]
+        assert isinstance(assistant, list)
+        assert assistant[0]["type"] == "tool_use"
+        assert assistant[0]["id"] == "call_1"
+        assert assistant[0]["name"] == "vault_names"
+        assert assistant[0]["input"] == {"prefix": "srv"}
+        # The tool_result follows the tool_use it answers.
+        assert msgs[2]["content"][0]["type"] == "tool_result"
+        assert msgs[2]["content"][0]["tool_use_id"] == "call_1"
+
+    def test_orphan_tool_result_is_still_sent(self, monkeypatch):
+        # A tool result with NO matching tool_use is still sent, but the
+        # assistant turn itself is never silently flattened to text.
+        chat, captured = self._capture(monkeypatch)
+        chat.chat_with_tools(
+            [
+                {"role": "user", "content": "hi"},
+                {"role": "tool", "tool_call_id": "orphan", "content": "x"},
+            ],
+        )
+        assert captured["messages"][1]["content"][0]["type"] == "tool_result"

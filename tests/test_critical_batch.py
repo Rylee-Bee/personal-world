@@ -10,6 +10,7 @@ and portable source-control discovery.
   override > explicit config > dev fallback), with real temp git
   repositories and no machine-specific paths.
 """
+
 import json
 import os
 import subprocess
@@ -41,13 +42,18 @@ GIT_ENV = {
 
 def _git(cwd: Path, *args: str) -> None:
     subprocess.run(
-        ["git", *args], cwd=str(cwd), check=True, capture_output=True,
-        text=True, env={**GIT_ENV},
+        ["git", *args],
+        cwd=str(cwd),
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**GIT_ENV},
     )
 
 
 def _client(tmp_path, monkeypatch, *, token: str = "t-token-1"):
     from personal_world.api import create_app
+
     monkeypatch.delenv("PW_DEV_AUTH_BYPASS", raising=False)
     monkeypatch.setenv("PW_API_TOKEN", token)
     c = TestClient(create_app(tmp_path, tmp_path))
@@ -61,6 +67,7 @@ class TestInitSetupContract:
         init_world(tmp_path / "data", tmp_path / "config")
         assert (tmp_path / "data" / "setup-complete").exists()
         from personal_world.api import create_app
+
         c = TestClient(create_app(tmp_path / "data", tmp_path / "config"))
         health = c.get("/healthz").json()
         assert health["setup_needed"] is False
@@ -82,14 +89,47 @@ class TestInitSetupContract:
 
     def test_init_never_overwrites_existing_world(self, tmp_path):
         # a pre-existing world with content survives init
-        (tmp_path / "world.json").write_text(json.dumps({
-            "schema_version": 1, "facts": {}, "intents": {},
-            "policies": {}, "lore": {}, "capabilities": {},
-            "providers": {}, "packs": {},
-        }))
+        (tmp_path / "world.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "facts": {},
+                    "intents": {},
+                    "policies": {},
+                    "lore": {},
+                    "capabilities": {},
+                    "providers": {},
+                    "packs": {},
+                }
+            )
+        )
         init_world(tmp_path, tmp_path / "config")
-        assert "schema_version" in json.loads(
-            (tmp_path / "world.json").read_text())
+        assert "schema_version" in json.loads((tmp_path / "world.json").read_text())
+
+
+class TestMediaStatusHonesty:
+    def test_seeded_plex_no_500(self, tmp_path, monkeypatch):
+        """Seeded plex connection → /api/media/status is an honest
+        envelope (never a 500) even when the provider is unreachable."""
+        (tmp_path / "connections.local.json").write_text(
+            json.dumps(
+                {
+                    "connections": [
+                        {
+                            "name": "plex",
+                            "type": "plex",
+                            "base_url": "http://127.0.0.1:1",
+                            "token": "PlexTokenAb12Cd34Ef56",
+                        }
+                    ]
+                }
+            )
+        )
+        c = _client(tmp_path, monkeypatch)
+        r = c.get("/api/media/status")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["status"] in ("healthy", "unavailable", "not_configured")
 
 
 class TestIngressDegradation:
@@ -122,7 +162,8 @@ class TestSourceControlDiscovery:
         monkeypatch.setenv("PW_SOURCE_CONTROL_ROOT", str(tmp_path / "envroot"))
         (tmp_path / "envroot").mkdir()
         assert configured_search_paths(tmp_path / "no-such-cfg") == [
-            str(tmp_path / "envroot")]
+            str(tmp_path / "envroot")
+        ]
 
     def test_explicit_config_beats_env_override(self, tmp_path, monkeypatch):
         monkeypatch.setenv("PW_DEV_AUTH_BYPASS", "1")
@@ -130,20 +171,28 @@ class TestSourceControlDiscovery:
         (tmp_path / "envroot").mkdir()
         config = tmp_path / "cfg"
         config.mkdir()
-        (config / "connections.json").write_text(json.dumps({
-            "connections": [],
-            "source_control": {"search_paths": ["/data/repos/x"]},
-        }))
+        (config / "connections.json").write_text(
+            json.dumps(
+                {
+                    "connections": [],
+                    "source_control": {"search_paths": ["/data/repos/x"]},
+                }
+            )
+        )
         assert configured_search_paths(config) == ["/data/repos/x"]
 
     def test_explicit_config_wins_over_fallback(self, tmp_path, monkeypatch):
         monkeypatch.delenv("PW_SOURCE_CONTROL_ROOT", raising=False)
         config = tmp_path / "cfg"
         config.mkdir()
-        (config / "connections.json").write_text(json.dumps({
-            "connections": [],
-            "source_control": {"search_paths": ["/data/repos/x"]},
-        }))
+        (config / "connections.json").write_text(
+            json.dumps(
+                {
+                    "connections": [],
+                    "source_control": {"search_paths": ["/data/repos/x"]},
+                }
+            )
+        )
         assert configured_search_paths(config) == ["/data/repos/x"]
 
     def test_dev_bypass_off_unconfigured_is_empty(self, tmp_path, monkeypatch):
@@ -182,14 +231,19 @@ class TestSourceControlDiscovery:
         _git(repo, "commit", "-q", "-m", "c0")
         config = tmp_path / "cfg"
         config.mkdir()
-        (config / "connections.json").write_text(json.dumps({
-            "connections": [],
-            "source_control": {"search_paths": [str(repo)]},
-        }))
+        (config / "connections.json").write_text(
+            json.dumps(
+                {
+                    "connections": [],
+                    "source_control": {"search_paths": [str(repo)]},
+                }
+            )
+        )
         monkeypatch.delenv("PW_SOURCE_CONTROL_ROOT", raising=False)
         paths = configured_search_paths(config)
         assert paths == [str(repo)]
         from personal_world.source_control import status_all
+
         rows = status_all(paths)
         assert rows and rows[0]["name"] == "proj"
         assert rows[0]["dirty"] is False

@@ -20,6 +20,7 @@ top of that design:
 - TOOL-029 truthfulness: unwired paths fail honestly; proposals stay
   pending until server-held approval evidence exists.
 """
+
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 
@@ -32,9 +33,14 @@ from personal_world.providers.native_memory import (  # noqa: E402
 )
 from personal_world.scheduler import Scheduler  # noqa: E402
 from personal_world.tool_registry import (  # noqa: E402
-    _proposals, approve_proposal, _execute_approved_write,
-    _propose_world_intent, _propose_world_fact, _propose_reminder,
-    _propose_reconciler_apply, _search_journal,
+    _proposals,
+    approve_proposal,
+    _execute_approved_write,
+    _propose_world_intent,
+    _propose_world_fact,
+    _propose_reminder,
+    _propose_reconciler_apply,
+    _search_journal,
 )
 
 
@@ -54,15 +60,15 @@ def _approved(proposal_id: str) -> None:
 class TestJournalSearch:
     def test_search_via_memory_fts(self, tmp_path):
         world, world_path, journal, memory = _world_env(tmp_path)
-        journal.record("observation", "the lantern festival is on Friday",
-                       source="test")
+        journal.record(
+            "observation", "the lantern festival is on Friday", source="test"
+        )
         memory.index_journal()
         r = _search_journal(journal, "lantern", memory)
         assert r.ok, r.warnings
         entries = r.data["entries"]
         assert entries, "known phrase must be found"
-        assert any("lantern festival" in (e.get("summary") or "")
-                   for e in entries)
+        assert any("lantern festival" in (e.get("summary") or "") for e in entries)
 
     def test_no_memory_provider_is_honest(self, tmp_path):
         world, world_path, journal, _ = _world_env(tmp_path)
@@ -74,12 +80,13 @@ class TestJournalSearch:
 class TestWorldWrites:
     def test_intent_persists_across_fresh_load(self, tmp_path):
         world, world_path, journal, memory = _world_env(tmp_path)
-        r = _propose_world_intent(journal, world, "wishes/weather",
-                                  "sunny tomorrow")
+        r = _propose_world_intent(journal, world, "wishes/weather", "sunny tomorrow")
         assert r.ok and r.data["status"] == "pending"
         _approved(r.data["proposal_id"])
         ex = _execute_approved_write(
-            journal, world, r.data["proposal_id"],
+            journal,
+            world,
+            r.data["proposal_id"],
             world_path=world_path,
         )
         assert ex.ok and ex.data["status"] == "executed"
@@ -93,7 +100,9 @@ class TestWorldWrites:
         assert r.ok
         _approved(r.data["proposal_id"])
         ex = _execute_approved_write(
-            journal, world, r.data["proposal_id"],
+            journal,
+            world,
+            r.data["proposal_id"],
             world_path=world_path,
         )
         assert ex.ok and ex.data["status"] == "executed"
@@ -110,8 +119,11 @@ class TestReminderWrites:
         assert r.ok and r.data["status"] == "pending"
         _approved(r.data["proposal_id"])
         ex = _execute_approved_write(
-            journal, world, r.data["proposal_id"],
-            world_path=world_path, scheduler=sched,
+            journal,
+            world,
+            r.data["proposal_id"],
+            world_path=world_path,
+            scheduler=sched,
         )
         assert ex.ok and ex.data["status"] == "executed"
         assert ex.data["persisted"] == "reminders.json"
@@ -125,7 +137,9 @@ class TestReminderWrites:
         r = _propose_reminder(journal, "check the mail")
         _approved(r.data["proposal_id"])
         ex = _execute_approved_write(
-            journal, world, r.data["proposal_id"],
+            journal,
+            world,
+            r.data["proposal_id"],
             world_path=world_path,
         )
         assert not ex.ok
@@ -143,7 +157,9 @@ class TestReconcilerApply:
         assert r.status == "not_found"
 
     def test_execution_reports_unsupported_not_success(
-        self, tmp_path, monkeypatch,
+        self,
+        tmp_path,
+        monkeypatch,
     ):
         world, world_path, journal, memory = _world_env(tmp_path)
         # create desired state where the reconciler actually reads it
@@ -155,8 +171,7 @@ class TestReconcilerApply:
         assert r.ok and r.data["status"] == "pending"
         pid = r.data["proposal_id"]
         _approved(pid)
-        ex = _execute_approved_write(journal, world, pid,
-                                     world_path=world_path)
+        ex = _execute_approved_write(journal, world, pid, world_path=world_path)
         assert not ex.ok
         assert ex.status == "unsupported"
         assert _proposals[pid]["status"] == "pending"
@@ -170,9 +185,12 @@ class TestProposalAudit:
         # merged authority: the proposal store itself is the audit of
         # preparation — list/get expose id, type, and pending status
         from personal_world.tool_registry import list_proposals
+
         listed = list_proposals("pending")
-        assert any(p["proposal_id"] == r.data["proposal_id"] and
-                   p["type"] == "world_intent" for p in listed)
+        assert any(
+            p["proposal_id"] == r.data["proposal_id"] and p["type"] == "world_intent"
+            for p in listed
+        )
 
     def test_no_fake_approval_journaled(self, tmp_path):
         world, world_path, journal, memory = _world_env(tmp_path)
@@ -185,7 +203,7 @@ class TestProposalAudit:
         assert not ex.ok
         after = journal.recent(len(before) + 50)
         # no new journal event may claim an approval/execution
-        new_events = after[len(before):]
+        new_events = after[len(before) :]
         assert not any("approved" in e.summary.lower() for e in new_events)
 
     def test_preparing_does_not_mutate_target(self, tmp_path):
@@ -195,3 +213,68 @@ class TestProposalAudit:
         fresh = load_world(world_path)
         assert "pkey" not in fresh.facts
         assert "pkey" not in fresh.intents
+
+
+class TestExecuteUnderLock:
+    def test_double_execution_is_rejected(self, tmp_path):
+        """execute() takes the approved check + status transition under
+        the store lock: a second execution of the same proposal is
+        refused, never replayed."""
+        import json
+
+        from personal_world.tool_registry import ProposalStore
+
+        path = tmp_path / "proposals.json"
+        store = ProposalStore(path=path)
+        r = store.propose(
+            {"type": "journal_write", "text": "hi"}, journal=None, description="d"
+        )
+        pid = r.data["proposal_id"]
+        store.approve(pid, "owner")
+        from personal_world.journal import Journal
+
+        journal = Journal(tmp_path / "j.ndjson")
+        world = object()
+        result = store.execute(journal, world, pid)
+        assert result.ok is True
+        # Persisted status is terminal and non-replayable.
+        data = json.loads(path.read_text())
+        assert data[pid]["status"] == "executed"
+        second = store.execute(journal, world, pid)
+        assert second.ok is False
+        assert second.status == "invalid_state"
+
+
+class TestInvokeLogging:
+    def test_handler_failure_keeps_envelope_and_logs_exception(self, tmp_path, caplog):
+        """A failing tool handler still answers the honest envelope;
+        the server log keeps the exception trace (COR-09)."""
+        import logging
+
+        from personal_world.tool_registry import Tool, ToolRegistry
+
+        reg = ToolRegistry()
+
+        def boom():
+            raise RuntimeError("upstream exploded")
+
+        reg.register(
+            Tool(
+                id="boom",
+                capability="test",
+                operation="test",
+                description="x",
+                read_write="read",
+                handler=boom,
+            )
+        )
+        r = reg.invoke("boom", {})
+        assert r.ok is False and r.status == "unavailable"
+        assert "upstream exploded" in (r.warnings[0] if r.warnings else "")
+        with caplog.at_level(logging.ERROR, logger="personal_world.tool_registry"):
+            reg.invoke("boom", {})
+        assert any(
+            "RuntimeError" in rec.getMessage()
+            or "upstream exploded" in rec.getMessage()
+            for rec in caplog.records
+        )

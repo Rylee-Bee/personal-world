@@ -14,6 +14,7 @@ Users configure their own instances through connection config.
 
 import json
 import os
+import re
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -27,6 +28,7 @@ from .registry import Contract
 # ---------------------------------------------------------------------------
 # Domain models
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class MediaItem:
@@ -112,6 +114,7 @@ class MediaActivity:
 # Base adapter
 # ---------------------------------------------------------------------------
 
+
 class MediaAdapter(Contract):
     """Base class for media provider adapters."""
 
@@ -126,27 +129,45 @@ class MediaAdapter(Contract):
             return json.loads(resp.read().decode())
 
     def libraries(self) -> Result:
-        return fail("not_implemented", warnings=[f"{self.provider_name}: libraries not implemented"])
+        return fail(
+            "not_implemented",
+            warnings=[f"{self.provider_name}: libraries not implemented"],
+        )
 
     def recent(self, limit: int = 20) -> Result:
-        return fail("not_implemented", warnings=[f"{self.provider_name}: recent not implemented"])
+        return fail(
+            "not_implemented",
+            warnings=[f"{self.provider_name}: recent not implemented"],
+        )
 
     def activity(self) -> Result:
-        return fail("not_implemented", warnings=[f"{self.provider_name}: activity not implemented"])
+        return fail(
+            "not_implemented",
+            warnings=[f"{self.provider_name}: activity not implemented"],
+        )
 
     def search(self, query: str) -> Result:
-        return fail("not_implemented", warnings=[f"{self.provider_name}: search not implemented"])
+        return fail(
+            "not_implemented",
+            warnings=[f"{self.provider_name}: search not implemented"],
+        )
 
     def item(self, item_id: str) -> Result:
-        return fail("not_implemented", warnings=[f"{self.provider_name}: item not implemented"])
+        return fail(
+            "not_implemented", warnings=[f"{self.provider_name}: item not implemented"]
+        )
 
     def status(self) -> Result:
-        return fail("not_implemented", warnings=[f"{self.provider_name}: status not implemented"])
+        return fail(
+            "not_implemented",
+            warnings=[f"{self.provider_name}: status not implemented"],
+        )
 
 
 # ---------------------------------------------------------------------------
 # Plex adapter
 # ---------------------------------------------------------------------------
+
 
 class PlexAdapter(MediaAdapter):
     """Plex Media Server adapter.
@@ -189,20 +210,20 @@ class PlexAdapter(MediaAdapter):
 
     def libraries(self) -> Result:
         try:
-            data = self._get_json(
-                self._plex_url("/library/sections"), self._headers()
-            )
+            data = self._get_json(self._plex_url("/library/sections"), self._headers())
             directories = data.get("MediaContainer", {}).get("Directory", [])
             libs = []
             for d in directories:
                 kind_map = {"movie": "movie", "show": "series", "artist": "music"}
-                libs.append(MediaLibrary(
-                    id=str(d.get("key", "")),
-                    name=d.get("title", ""),
-                    kind=kind_map.get(d.get("type", ""), d.get("type", "unknown")),
-                    item_count=d.get("leafCount", 0),
-                    provider=self.provider_name,
-                ))
+                libs.append(
+                    MediaLibrary(
+                        id=str(d.get("key", "")),
+                        name=d.get("title", ""),
+                        kind=kind_map.get(d.get("type", ""), d.get("type", "unknown")),
+                        item_count=d.get("leafCount", 0),
+                        provider=self.provider_name,
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
                 data={"libraries": [l.to_dict() for l in libs], "count": len(libs)},
@@ -217,24 +238,33 @@ class PlexAdapter(MediaAdapter):
     def recent(self, limit: int = 20) -> Result:
         try:
             data = self._get_json(
-                self._plex_url("/library/recentlyAdded?X-Plex-Container-Start=0&X-Plex-Container-Size={limit}"),
+                self._plex_url(
+                    "/library/recentlyAdded?X-Plex-Container-Start=0&X-Plex-Container-Size={limit}"
+                ),
                 self._headers(),
             )
             items_raw = data.get("MediaContainer", {}).get("Metadata", [])
             items = []
             for m in items_raw[:limit]:
-                kind_map = {"movie": "movie", "show": "series", "artist": "album", "episode": "episode"}
-                items.append(MediaItem(
-                    id=f"plex:{m.get('ratingKey', '')}",
-                    title=m.get("title", ""),
-                    kind=kind_map.get(m.get("type", ""), "unknown"),
-                    year=m.get("year"),
-                    poster_url=m.get("thumb"),
-                    provider=self.provider_name,
-                    availability="available",
-                    added_at=m.get("addedAt"),
-                    provenance={"source": "plex", "key": m.get("ratingKey")},
-                ))
+                kind_map = {
+                    "movie": "movie",
+                    "show": "series",
+                    "artist": "album",
+                    "episode": "episode",
+                }
+                items.append(
+                    MediaItem(
+                        id=f"plex:{m.get('ratingKey', '')}",
+                        title=m.get("title", ""),
+                        kind=kind_map.get(m.get("type", ""), "unknown"),
+                        year=m.get("year"),
+                        poster_url=m.get("thumb"),
+                        provider=self.provider_name,
+                        availability="available",
+                        added_at=m.get("addedAt"),
+                        provenance={"source": "plex", "key": m.get("ratingKey")},
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
                 data={"items": [i.to_dict() for i in items], "count": len(items)},
@@ -248,25 +278,30 @@ class PlexAdapter(MediaAdapter):
 
     def activity(self) -> Result:
         try:
-            data = self._get_json(
-                self._plex_url("/status/sessions"), self._headers()
-            )
+            data = self._get_json(self._plex_url("/status/sessions"), self._headers())
             items_raw = data.get("MediaContainer", {}).get("Metadata", [])
             activities = []
             for m in items_raw:
                 media = (m.get("Media") or [{}])[0]
                 part = (media.get("Part") or [{}])[0]
-                activities.append(MediaActivity(
-                    id=f"plex:session:{m.get('ratingKey', '')}",
-                    title=m.get("title", ""),
-                    kind=m.get("type", "unknown"),
-                    status="downloading" if part.get("progress") is not None else "completed",
-                    progress=part.get("progress"),
-                    provider=self.provider_name,
-                ))
+                activities.append(
+                    MediaActivity(
+                        id=f"plex:session:{m.get('ratingKey', '')}",
+                        title=m.get("title", ""),
+                        kind=m.get("type", "unknown"),
+                        status="downloading"
+                        if part.get("progress") is not None
+                        else "completed",
+                        progress=part.get("progress"),
+                        provider=self.provider_name,
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
-                data={"activities": [a.to_dict() for a in activities], "count": len(activities)},
+                data={
+                    "activities": [a.to_dict() for a in activities],
+                    "count": len(activities),
+                },
             )
         except Exception as e:
             return Result(
@@ -279,6 +314,7 @@ class PlexAdapter(MediaAdapter):
 # ---------------------------------------------------------------------------
 # Sonarr adapter
 # ---------------------------------------------------------------------------
+
 
 class SonarrAdapter(MediaAdapter):
     """Sonarr (TV) adapter.
@@ -318,9 +354,7 @@ class SonarrAdapter(MediaAdapter):
 
     def libraries(self) -> Result:
         try:
-            data = self._get_json(
-                f"{self.base_url}/api/v3/series", self._headers()
-            )
+            data = self._get_json(f"{self.base_url}/api/v3/series", self._headers())
             libs_map: dict[str, MediaLibrary] = {}
             for s in data:
                 path = s.get("path", "/")
@@ -336,7 +370,10 @@ class SonarrAdapter(MediaAdapter):
                 libs_map[root].item_count += 1
             return ok(
                 Status.HEALTHY.value,
-                data={"libraries": [l.to_dict() for l in libs_map.values()], "count": len(libs_map)},
+                data={
+                    "libraries": [l.to_dict() for l in libs_map.values()],
+                    "count": len(libs_map),
+                },
             )
         except Exception as e:
             return Result(
@@ -347,23 +384,29 @@ class SonarrAdapter(MediaAdapter):
 
     def recent(self, limit: int = 20) -> Result:
         try:
-            data = self._get_json(
-                f"{self.base_url}/api/v3/series", self._headers()
-            )
+            data = self._get_json(f"{self.base_url}/api/v3/series", self._headers())
             items = []
-            for s in sorted(data, key=lambda x: x.get("added", ""), reverse=True)[:limit]:
-                items.append(MediaItem(
-                    id=f"sonarr:{s.get('id', '')}",
-                    title=s.get("title", ""),
-                    kind="series",
-                    year=s.get("year"),
-                    poster_url=s.get("images", [{}])[0].get("remoteUrl") if s.get("images") else None,
-                    provider=self.provider_name,
-                    availability="available" if s.get("statistics", {}).get("episodeFileCount", 0) > 0 else "missing",
-                    status="monitored" if s.get("monitored") else "unmonitored",
-                    added_at=s.get("added"),
-                    provenance={"source": "sonarr", "id": s.get("id")},
-                ))
+            for s in sorted(data, key=lambda x: x.get("added", ""), reverse=True)[
+                :limit
+            ]:
+                items.append(
+                    MediaItem(
+                        id=f"sonarr:{s.get('id', '')}",
+                        title=s.get("title", ""),
+                        kind="series",
+                        year=s.get("year"),
+                        poster_url=s.get("images", [{}])[0].get("remoteUrl")
+                        if s.get("images")
+                        else None,
+                        provider=self.provider_name,
+                        availability="available"
+                        if s.get("statistics", {}).get("episodeFileCount", 0) > 0
+                        else "missing",
+                        status="monitored" if s.get("monitored") else "unmonitored",
+                        added_at=s.get("added"),
+                        provenance={"source": "sonarr", "id": s.get("id")},
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
                 data={"items": [i.to_dict() for i in items], "count": len(items)},
@@ -377,9 +420,7 @@ class SonarrAdapter(MediaAdapter):
 
     def activity(self) -> Result:
         try:
-            data = self._get_json(
-                f"{self.base_url}/api/v3/queue", self._headers()
-            )
+            data = self._get_json(f"{self.base_url}/api/v3/queue", self._headers())
             records = data.get("records", [])
             activities = []
             for r in records:
@@ -387,20 +428,27 @@ class SonarrAdapter(MediaAdapter):
                 series = r.get("series", {})
                 if series:
                     title = f"{series.get('title', '')} - {title}"
-                activities.append(MediaActivity(
-                    id=f"sonarr:queue:{r.get('id', '')}",
-                    title=title,
-                    kind="episode",
-                    status=self._map_queue_status(r.get("status", "")),
-                    progress=r.get("sizeleft", 0) and round(
-                        (1 - r.get("sizeleft", 0) / max(r.get("size", 1), 1)) * 100, 1
-                    ),
-                    eta=r.get("timeleft"),
-                    provider=self.provider_name,
-                ))
+                activities.append(
+                    MediaActivity(
+                        id=f"sonarr:queue:{r.get('id', '')}",
+                        title=title,
+                        kind="episode",
+                        status=self._map_queue_status(r.get("status", "")),
+                        progress=r.get("sizeleft", 0)
+                        and round(
+                            (1 - r.get("sizeleft", 0) / max(r.get("size", 1), 1)) * 100,
+                            1,
+                        ),
+                        eta=r.get("timeleft"),
+                        provider=self.provider_name,
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
-                data={"activities": [a.to_dict() for a in activities], "count": len(activities)},
+                data={
+                    "activities": [a.to_dict() for a in activities],
+                    "count": len(activities),
+                },
             )
         except Exception as e:
             return Result(
@@ -417,17 +465,21 @@ class SonarrAdapter(MediaAdapter):
             )
             items = []
             for s in data:
-                items.append(MediaItem(
-                    id=f"sonarr:lookup:{s.get('tvdbId', s.get('title', ''))}",
-                    title=s.get("title", ""),
-                    kind="series",
-                    year=s.get("year"),
-                    poster_url=s.get("images", [{}])[0].get("remoteUrl") if s.get("images") else None,
-                    provider=self.provider_name,
-                    availability="unknown",
-                    status="unknown",
-                    provenance={"source": "sonarr", "tvdbId": s.get("tvdbId")},
-                ))
+                items.append(
+                    MediaItem(
+                        id=f"sonarr:lookup:{s.get('tvdbId', s.get('title', ''))}",
+                        title=s.get("title", ""),
+                        kind="series",
+                        year=s.get("year"),
+                        poster_url=s.get("images", [{}])[0].get("remoteUrl")
+                        if s.get("images")
+                        else None,
+                        provider=self.provider_name,
+                        availability="unknown",
+                        status="unknown",
+                        provenance={"source": "sonarr", "tvdbId": s.get("tvdbId")},
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
                 data={"items": [i.to_dict() for i in items], "count": len(items)},
@@ -454,9 +506,13 @@ class SonarrAdapter(MediaAdapter):
                 title=data.get("title", ""),
                 kind="series",
                 year=data.get("year"),
-                poster_url=data.get("images", [{}])[0].get("remoteUrl") if data.get("images") else None,
+                poster_url=data.get("images", [{}])[0].get("remoteUrl")
+                if data.get("images")
+                else None,
                 provider=self.provider_name,
-                availability="available" if has_file == total and total > 0 else "missing",
+                availability="available"
+                if has_file == total and total > 0
+                else "missing",
                 status="monitored" if data.get("monitored") else "unmonitored",
                 progress=progress,
                 added_at=data.get("added"),
@@ -485,6 +541,7 @@ class SonarrAdapter(MediaAdapter):
 # ---------------------------------------------------------------------------
 # Radarr adapter
 # ---------------------------------------------------------------------------
+
 
 class RadarrAdapter(MediaAdapter):
     """Radarr (movies) adapter.
@@ -524,9 +581,7 @@ class RadarrAdapter(MediaAdapter):
 
     def libraries(self) -> Result:
         try:
-            data = self._get_json(
-                f"{self.base_url}/api/v3/movie", self._headers()
-            )
+            data = self._get_json(f"{self.base_url}/api/v3/movie", self._headers())
             libs_map: dict[str, MediaLibrary] = {}
             for m in data:
                 path = m.get("path", "/")
@@ -542,7 +597,10 @@ class RadarrAdapter(MediaAdapter):
                 libs_map[root].item_count += 1
             return ok(
                 Status.HEALTHY.value,
-                data={"libraries": [l.to_dict() for l in libs_map.values()], "count": len(libs_map)},
+                data={
+                    "libraries": [l.to_dict() for l in libs_map.values()],
+                    "count": len(libs_map),
+                },
             )
         except Exception as e:
             return Result(
@@ -553,24 +611,28 @@ class RadarrAdapter(MediaAdapter):
 
     def recent(self, limit: int = 20) -> Result:
         try:
-            data = self._get_json(
-                f"{self.base_url}/api/v3/movie", self._headers()
-            )
+            data = self._get_json(f"{self.base_url}/api/v3/movie", self._headers())
             items = []
-            for m in sorted(data, key=lambda x: x.get("added", ""), reverse=True)[:limit]:
+            for m in sorted(data, key=lambda x: x.get("added", ""), reverse=True)[
+                :limit
+            ]:
                 has_file = m.get("hasFile", False)
-                items.append(MediaItem(
-                    id=f"radarr:{m.get('id', '')}",
-                    title=m.get("title", ""),
-                    kind="movie",
-                    year=m.get("year"),
-                    poster_url=m.get("images", [{}])[0].get("remoteUrl") if m.get("images") else None,
-                    provider=self.provider_name,
-                    availability="available" if has_file else "missing",
-                    status="monitored" if m.get("monitored") else "unmonitored",
-                    added_at=m.get("added"),
-                    provenance={"source": "radarr", "id": m.get("id")},
-                ))
+                items.append(
+                    MediaItem(
+                        id=f"radarr:{m.get('id', '')}",
+                        title=m.get("title", ""),
+                        kind="movie",
+                        year=m.get("year"),
+                        poster_url=m.get("images", [{}])[0].get("remoteUrl")
+                        if m.get("images")
+                        else None,
+                        provider=self.provider_name,
+                        availability="available" if has_file else "missing",
+                        status="monitored" if m.get("monitored") else "unmonitored",
+                        added_at=m.get("added"),
+                        provenance={"source": "radarr", "id": m.get("id")},
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
                 data={"items": [i.to_dict() for i in items], "count": len(items)},
@@ -584,26 +646,31 @@ class RadarrAdapter(MediaAdapter):
 
     def activity(self) -> Result:
         try:
-            data = self._get_json(
-                f"{self.base_url}/api/v3/queue", self._headers()
-            )
+            data = self._get_json(f"{self.base_url}/api/v3/queue", self._headers())
             records = data.get("records", [])
             activities = []
             for r in records:
-                activities.append(MediaActivity(
-                    id=f"radarr:queue:{r.get('id', '')}",
-                    title=r.get("title", ""),
-                    kind="movie",
-                    status=self._map_queue_status(r.get("status", "")),
-                    progress=r.get("sizeleft", 0) and round(
-                        (1 - r.get("sizeleft", 0) / max(r.get("size", 1), 1)) * 100, 1
-                    ),
-                    eta=r.get("timeleft"),
-                    provider=self.provider_name,
-                ))
+                activities.append(
+                    MediaActivity(
+                        id=f"radarr:queue:{r.get('id', '')}",
+                        title=r.get("title", ""),
+                        kind="movie",
+                        status=self._map_queue_status(r.get("status", "")),
+                        progress=r.get("sizeleft", 0)
+                        and round(
+                            (1 - r.get("sizeleft", 0) / max(r.get("size", 1), 1)) * 100,
+                            1,
+                        ),
+                        eta=r.get("timeleft"),
+                        provider=self.provider_name,
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
-                data={"activities": [a.to_dict() for a in activities], "count": len(activities)},
+                data={
+                    "activities": [a.to_dict() for a in activities],
+                    "count": len(activities),
+                },
             )
         except Exception as e:
             return Result(
@@ -620,17 +687,21 @@ class RadarrAdapter(MediaAdapter):
             )
             items = []
             for m in data:
-                items.append(MediaItem(
-                    id=f"radarr:lookup:{m.get('tmdbId', m.get('title', ''))}",
-                    title=m.get("title", ""),
-                    kind="movie",
-                    year=m.get("year"),
-                    poster_url=m.get("images", [{}])[0].get("remoteUrl") if m.get("images") else None,
-                    provider=self.provider_name,
-                    availability="unknown",
-                    status="unknown",
-                    provenance={"source": "radarr", "tmdbId": m.get("tmdbId")},
-                ))
+                items.append(
+                    MediaItem(
+                        id=f"radarr:lookup:{m.get('tmdbId', m.get('title', ''))}",
+                        title=m.get("title", ""),
+                        kind="movie",
+                        year=m.get("year"),
+                        poster_url=m.get("images", [{}])[0].get("remoteUrl")
+                        if m.get("images")
+                        else None,
+                        provider=self.provider_name,
+                        availability="unknown",
+                        status="unknown",
+                        provenance={"source": "radarr", "tmdbId": m.get("tmdbId")},
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
                 data={"items": [i.to_dict() for i in items], "count": len(items)},
@@ -653,7 +724,9 @@ class RadarrAdapter(MediaAdapter):
                 title=data.get("title", ""),
                 kind="movie",
                 year=data.get("year"),
-                poster_url=data.get("images", [{}])[0].get("remoteUrl") if data.get("images") else None,
+                poster_url=data.get("images", [{}])[0].get("remoteUrl")
+                if data.get("images")
+                else None,
                 provider=self.provider_name,
                 availability="available" if data.get("hasFile") else "missing",
                 status="monitored" if data.get("monitored") else "unmonitored",
@@ -683,6 +756,7 @@ class RadarrAdapter(MediaAdapter):
 # ---------------------------------------------------------------------------
 # Lidarr adapter
 # ---------------------------------------------------------------------------
+
 
 class LidarrAdapter(MediaAdapter):
     """Lidarr (music) adapter.
@@ -722,9 +796,7 @@ class LidarrAdapter(MediaAdapter):
 
     def libraries(self) -> Result:
         try:
-            artists = self._get_json(
-                f"{self.base_url}/api/v1/artist", self._headers()
-            )
+            artists = self._get_json(f"{self.base_url}/api/v1/artist", self._headers())
             album_count = 0
             for a in artists:
                 album_count += a.get("statistics", {}).get("albumCount", 0)
@@ -755,22 +827,28 @@ class LidarrAdapter(MediaAdapter):
 
     def recent(self, limit: int = 20) -> Result:
         try:
-            albums = self._get_json(
-                f"{self.base_url}/api/v1/album", self._headers()
-            )
+            albums = self._get_json(f"{self.base_url}/api/v1/album", self._headers())
             items = []
-            for a in sorted(albums, key=lambda x: x.get("added", ""), reverse=True)[:limit]:
-                items.append(MediaItem(
-                    id=f"lidarr:album:{a.get('id', '')}",
-                    title=a.get("title", ""),
-                    kind="album",
-                    year=a.get("releaseDate", "")[:4] if a.get("releaseDate") else None,
-                    provider=self.provider_name,
-                    availability="available" if a.get("statistics", {}).get("trackFileCount", 0) > 0 else "missing",
-                    status="monitored" if a.get("monitored") else "unmonitored",
-                    added_at=a.get("added"),
-                    provenance={"source": "lidarr", "id": a.get("id")},
-                ))
+            for a in sorted(albums, key=lambda x: x.get("added", ""), reverse=True)[
+                :limit
+            ]:
+                items.append(
+                    MediaItem(
+                        id=f"lidarr:album:{a.get('id', '')}",
+                        title=a.get("title", ""),
+                        kind="album",
+                        year=a.get("releaseDate", "")[:4]
+                        if a.get("releaseDate")
+                        else None,
+                        provider=self.provider_name,
+                        availability="available"
+                        if a.get("statistics", {}).get("trackFileCount", 0) > 0
+                        else "missing",
+                        status="monitored" if a.get("monitored") else "unmonitored",
+                        added_at=a.get("added"),
+                        provenance={"source": "lidarr", "id": a.get("id")},
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
                 data={"items": [i.to_dict() for i in items], "count": len(items)},
@@ -784,26 +862,31 @@ class LidarrAdapter(MediaAdapter):
 
     def activity(self) -> Result:
         try:
-            data = self._get_json(
-                f"{self.base_url}/api/v1/queue", self._headers()
-            )
+            data = self._get_json(f"{self.base_url}/api/v1/queue", self._headers())
             records = data.get("records", [])
             activities = []
             for r in records:
-                activities.append(MediaActivity(
-                    id=f"lidarr:queue:{r.get('id', '')}",
-                    title=r.get("title", ""),
-                    kind="album",
-                    status=self._map_queue_status(r.get("status", "")),
-                    progress=r.get("sizeleft", 0) and round(
-                        (1 - r.get("sizeleft", 0) / max(r.get("size", 1), 1)) * 100, 1
-                    ),
-                    eta=r.get("timeleft"),
-                    provider=self.provider_name,
-                ))
+                activities.append(
+                    MediaActivity(
+                        id=f"lidarr:queue:{r.get('id', '')}",
+                        title=r.get("title", ""),
+                        kind="album",
+                        status=self._map_queue_status(r.get("status", "")),
+                        progress=r.get("sizeleft", 0)
+                        and round(
+                            (1 - r.get("sizeleft", 0) / max(r.get("size", 1), 1)) * 100,
+                            1,
+                        ),
+                        eta=r.get("timeleft"),
+                        provider=self.provider_name,
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
-                data={"activities": [a.to_dict() for a in activities], "count": len(activities)},
+                data={
+                    "activities": [a.to_dict() for a in activities],
+                    "count": len(activities),
+                },
             )
         except Exception as e:
             return Result(
@@ -820,15 +903,20 @@ class LidarrAdapter(MediaAdapter):
             )
             items = []
             for a in data:
-                items.append(MediaItem(
-                    id=f"lidarr:lookup:{a.get('foreignId', a.get('artistName', ''))}",
-                    title=a.get("artistName", ""),
-                    kind="album",
-                    provider=self.provider_name,
-                    availability="unknown",
-                    status="unknown",
-                    provenance={"source": "lidarr", "foreignId": a.get("foreignId")},
-                ))
+                items.append(
+                    MediaItem(
+                        id=f"lidarr:lookup:{a.get('foreignId', a.get('artistName', ''))}",
+                        title=a.get("artistName", ""),
+                        kind="album",
+                        provider=self.provider_name,
+                        availability="unknown",
+                        status="unknown",
+                        provenance={
+                            "source": "lidarr",
+                            "foreignId": a.get("foreignId"),
+                        },
+                    )
+                )
             return ok(
                 Status.HEALTHY.value,
                 data={"items": [i.to_dict() for i in items], "count": len(items)},
@@ -854,9 +942,13 @@ class LidarrAdapter(MediaAdapter):
                 id=f"lidarr:album:{data.get('id', '')}",
                 title=data.get("title", ""),
                 kind="album",
-                year=data.get("releaseDate", "")[:4] if data.get("releaseDate") else None,
+                year=data.get("releaseDate", "")[:4]
+                if data.get("releaseDate")
+                else None,
                 provider=self.provider_name,
-                availability="available" if has_file == total and total > 0 else "missing",
+                availability="available"
+                if has_file == total and total > 0
+                else "missing",
                 status="monitored" if data.get("monitored") else "unmonitored",
                 progress=progress,
                 added_at=data.get("added"),
@@ -900,12 +992,12 @@ def build_adapter(config: dict[str, Any]) -> MediaAdapter | None:
     Credential resolution order:
         1. Env var indirection: token_env/api_key_env names an env var
         2. Default env var: PLEX_TOKEN, SONARR_API_KEY, etc.
+        3. Inline credential (token/api_key fields) when the value is
+           not a reference-shaped value.
 
-    Secret references (token/api_key fields from the UI schema) are
-    NOT direct credentials — they are vault references that require
-    a resolver. Until the vault resolver exists, an unresolved secret
-    reference causes the adapter to return None (not_configured).
-    Direct inline credentials (from connections.json, not the UI) are
+    Secret references (vault refs and placeholder-style names) are
+    NOT passed upstream as though they were credentials; inline
+    credentials (from connections.json, not the UI) are
     still accepted for backward compatibility with env-var-based
     configurations.
 
@@ -921,30 +1013,33 @@ def build_adapter(config: dict[str, Any]) -> MediaAdapter | None:
     if cls is None:
         return None
 
-    # Detect unresolved secret references. The UI schema marks
-    # token/api_key as secret_ref=True. If the config was saved
-    # through the UI, these fields contain vault reference names,
-    # not actual credentials. Without a vault resolver, we cannot
-    # use them. Return None rather than passing a reference as
-    # though it were a secret.
-    if _is_secret_ref(config, "token") or _is_secret_ref(config, "api_key"):
-        return None
-
     if provider_type == "plex":
-        # Accept env var indirection or default env var
-        token = os.environ.get(
-            config.get("token_env", ""), ""
-        ) or os.environ.get("PLEX_TOKEN", "")
+        # Env var indirection, default env var, then inline credential
+        # (only when the inline value is not a reference).
+        token = (
+            os.environ.get(config.get("token_env", ""), "")
+            or os.environ.get("PLEX_TOKEN", "")
+            or ("" if _is_secret_ref(config, "token") else config.get("token", ""))
+        )
         if not token:
             return None
         return cls(base_url=base_url, token=token)
 
-    api_key = os.environ.get(
-        config.get("api_key_env", ""), ""
-    ) or os.environ.get(f"{provider_type.upper()}_API_KEY", "")
+    api_key = (
+        os.environ.get(config.get("api_key_env", ""), "")
+        or os.environ.get(f"{provider_type.upper()}_API_KEY", "")
+        or ("" if _is_secret_ref(config, "api_key") else config.get("api_key", ""))
+    )
     if not api_key:
         return None
     return cls(base_url=base_url, api_key=api_key)
+
+
+# Values that are unambiguously references, never credentials.
+_SECRET_REF_URL_RE = re.compile(r"\b(?:vault|secret)://|\$\{")
+# Reference-style names: short lowercase identifiers with separators,
+# e.g. "my-plex-token". Real API keys/tokens are not name-shaped.
+_SECRET_REF_NAME_RE = re.compile(r"^[a-z0-9]+([-_][a-z0-9]+)+$")
 
 
 def _is_secret_ref(config: dict[str, Any], field: str) -> bool:
@@ -952,27 +1047,26 @@ def _is_secret_ref(config: dict[str, Any], field: str) -> bool:
 
     A field is a secret reference if:
     - It has a value AND
-    - There is no corresponding _env field AND
-    - The value does NOT look like a real credential
+    - There is no corresponding _env field (env indirection is the
+      declared credential path) AND
+    - The value looks like a reference rather than a credential:
+      a vault:// or secret:// URL, a ${VAR} placeholder, or a short
+      lowercase name such as "my-plex-token".
 
-    Real credentials tend to be long strings with mixed characters.
-    Secret references tend to be short names (like "my-plex-token").
-    But since we can't reliably distinguish, we err on the safe side:
-    if a token/api_key field is present without a corresponding _env
-    field, we treat it as an unresolved reference.
+    Real credentials (API keys, tokens) do not match that name shape,
+    so inline credentials stay accepted for backward compatibility.
+    Anything ambiguous is treated as a reference and refused honestly.
     """
     value = config.get(field)
-    if not value:
+    if not value or not isinstance(value, str):
         return False
     # If there's a corresponding _env field, the direct value field
     # is not the primary credential path — the env var is.
-    env_field = f"{field}_env"
-    if config.get(env_field):
+    if config.get(f"{field}_env"):
         return False
-    # The value exists but there's no env var indirection.
-    # Since the schema marks this as secret_ref=True, treat it as
-    # an unresolved reference.
-    return True
+    if _SECRET_REF_URL_RE.search(value):
+        return True
+    return bool(_SECRET_REF_NAME_RE.fullmatch(value))
 
 
 # ---------------------------------------------------------------------------
@@ -1006,7 +1100,26 @@ def build_media_engine_from_config(config_dir):
         for conn in config.get("connections", [])
         if isinstance(conn, dict) and conn.get("type") in MEDIA_CONNECTION_TYPES
     ]
-    return NativeMediaEngine(connections)
+    return build_media_engine_from_connections(connections)
+
+
+def build_media_engine_from_connections(
+    connections: list[dict[str, Any]] | None,
+) -> "NativeMediaEngine":
+    """Build a NativeMediaEngine from already-loaded connection dicts.
+
+    Companion to build_media_engine_from_config for callers whose
+    config is merged in memory (ConnectionManager). Filters to the
+    media connection types; the engine itself drops connections whose
+    credentials do not resolve (honest degradation).
+    """
+    return NativeMediaEngine(
+        [
+            conn
+            for conn in (connections or [])
+            if isinstance(conn, dict) and conn.get("type") in MEDIA_CONNECTION_TYPES
+        ]
+    )
 
 
 class NativeMediaEngine(Contract):
@@ -1036,13 +1149,15 @@ class NativeMediaEngine(Contract):
 
         for name, adapter in self._adapters.items():
             r = adapter.status()
-            provider_statuses.append({
-                "name": name,
-                "provider": adapter.provider_name,
-                "ok": r.ok,
-                "status": r.status,
-                "data": r.data,
-            })
+            provider_statuses.append(
+                {
+                    "name": name,
+                    "provider": adapter.provider_name,
+                    "ok": r.ok,
+                    "status": r.status,
+                    "data": r.data,
+                }
+            )
             if not r.ok:
                 warnings.extend(r.warnings)
 
@@ -1088,7 +1203,9 @@ class NativeMediaEngine(Contract):
                 warnings.extend(r.warnings)
 
         return ok(
-            Status.HEALTHY.value if all_libs or not self._adapters else Status.NEEDS_ATTENTION.value,
+            Status.HEALTHY.value
+            if all_libs or not self._adapters
+            else Status.NEEDS_ATTENTION.value,
             data={"libraries": all_libs, "count": len(all_libs)},
             warnings=warnings,
         )
