@@ -124,7 +124,7 @@ test.describe("unavailable sources are named, never papered over", () => {
 
     // status in words: unavailable, not a green wash
     await expect(mount.locator(".rd-chip")).toHaveAttribute("data-status", "unavailable");
-    await expect(mount.locator(".rd-chip")).toContainText("reach it");
+    await expect(mount.locator(".rd-chip")).toContainText("connect right now");
     // it NAMES what could not be checked and refuses to guess calm
     await expect(mount).toContainText("Some of this could not be checked");
     await expect(mount).toContainText("PROP-list");
