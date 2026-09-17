@@ -35,6 +35,7 @@ open an issue.
 | [adr/0002](adr/0002-default-brain-selection.md) | Accepted | Default brain selection (Qwen3 1.7B with an LFM2.5 fallback). |
 | [PROVIDERS.md](PROVIDERS.md) | Canonical | How to add a provider, step by step. |
 | [OPERATIONS.md](OPERATIONS.md) | Canonical | Running it locally: CLI, web API, containers, health. |
+| [ALPHA-ACCEPTANCE.md](ALPHA-ACCEPTANCE.md) | Runbook | Owner checklist for declaring private technical alpha; evidence stays outside the repo. |
 | [OPERATIONS-FIRST-RUN.md](OPERATIONS-FIRST-RUN.md) | Operational reference | First-run procedure and dated bring-up evidence; reverify in the actual deployment. |
 | [HUMAN_RELIABILITY_CONTRACT.md](HUMAN_RELIABILITY_CONTRACT.md) | Canonical | How the system stays safe and operable without demanding maximum operator attention. |
 | [DESIGN-HANDOFF.md](DESIGN-HANDOFF.md) | V0.1 design baseline | Dated design-stage reference, not a current feature inventory; see README/Architecture for implemented scope. |
