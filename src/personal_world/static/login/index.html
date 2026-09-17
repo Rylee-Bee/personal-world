@@ -45,8 +45,36 @@
     padding: 32px;
   }
   .brand { color: var(--accent); font-weight: 600; letter-spacing: 0.02em; margin: 0 0 4px; }
-  h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  .lede { color: var(--ink-soft); margin: 0 0 24px; }
+  h1 { font-size: 1.5rem; margin: 0 0 8px; }
+  .lede { color: var(--ink-soft); margin: 0 0 20px; }
+  .sso { width: 100%; }
+  #oidc-block { margin: 0 0 20px; }
+  button {
+    min-height: 48px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: var(--accent);
+    color: #1a1409;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.05); }
+  button[disabled] { opacity: 0.6; cursor: progress; }
+  details.code-block {
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    margin-top: 4px;
+  }
+  details.code-block > summary {
+    cursor: pointer;
+    color: var(--ink-soft);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  details.code-block[open] > summary { margin-bottom: 12px; }
   form { display: grid; gap: var(--gap); }
   label { font-weight: 600; }
   input[type="password"], input[type="text"] {
@@ -59,32 +87,16 @@
     border-radius: 10px;
     font: inherit;
   }
-  button {
-    min-height: 44px;
-    padding: 10px 18px;
-    border-radius: 10px;
-    border: 1px solid transparent;
-    background: var(--accent);
-    color: #1a1409;
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  button.secondary {
-    background: transparent;
-    color: var(--ink);
-    border-color: var(--line);
-    font-weight: 600;
-  }
   :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
   .error {
     border: 1px solid var(--danger);
     color: var(--danger);
     border-radius: 10px;
     padding: 10px 12px;
-    margin: 0;
+    margin: 0 0 16px;
   }
-  .alt { margin: 20px 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+  .alt { margin: 16px 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+  .hint { margin: 8px 0 0; color: var(--ink-soft); font-size: 0.9rem; }
   .visually-hidden {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap;
@@ -97,23 +109,30 @@
 <main id="main">
   <p class="brand">Project Worlds</p>
   <h1>Sign in</h1>
-  <p class="lede">Enter the access code for this world to continue.</p>
 
   <p id="error" class="error" role="alert" hidden></p>
 
-  <form id="login-form" novalidate>
-    <div>
-      <label for="token">Access code</label>
-      <input id="token" name="token" type="password" autocomplete="current-password"
-             autocapitalize="off" spellcheck="false" required>
-    </div>
-    <button type="submit" id="submit">Enter</button>
-  </form>
-
-  <div id="oidc" hidden>
-    <p class="alt">Or sign in through your own provider.</p>
-    <button type="button" class="secondary" id="oidc-btn">Sign in with your account</button>
+  <!-- Passkey-first: shown when this world has SSO configured. -->
+  <div id="oidc-block" hidden>
+    <p class="lede">Sign in with your account — no password to remember.</p>
+    <button type="button" id="oidc-btn" class="sso" aria-describedby="sso-hint">Sign in with your account</button>
+    <p class="hint" id="sso-hint">Uses your passkey where your provider supports one.</p>
   </div>
+
+  <!-- Access code: the primary path when there is no SSO, and the fallback
+       (collapsed) when there is. -->
+  <details class="code-block" id="code-block" open>
+    <summary id="code-summary">Use an access code instead</summary>
+    <p class="lede" id="code-lede">Enter the access code for this world to continue.</p>
+    <form id="login-form" novalidate>
+      <div>
+        <label for="token">Access code</label>
+        <input id="token" name="token" type="password" autocomplete="current-password"
+               autocapitalize="off" spellcheck="false" required>
+      </div>
+      <button type="submit" id="submit">Enter</button>
+    </form>
+  </details>
 
   <p class="alt" id="help">
     The access code belongs to this world and is set by whoever runs it.
@@ -129,6 +148,12 @@
   var button = document.getElementById("submit");
   var error = document.getElementById("error");
   var live = document.getElementById("live");
+  var codeBlock = document.getElementById("code-block");
+  var codeSummary = document.getElementById("code-summary");
+  var codeLede = document.getElementById("code-lede");
+  var help = document.getElementById("help");
+  var oidcBlock = document.getElementById("oidc-block");
+  var oidcBtn = document.getElementById("oidc-btn");
 
   function showError(message) {
     error.textContent = message;
@@ -144,12 +169,14 @@
     var friendly = {
       oidc_token_exchange_failed: "Your provider could not complete the sign-in. Try again.",
       oidc_identity_not_mapped: "That account is not linked to this world yet.",
-      oidc_state_mismatch: "The sign-in took too long or was interrupted. Try again."
+      oidc_state_mismatch: "The sign-in took too long or was interrupted. Try again.",
+      oidc_misconfigured: "Sign-in is not configured correctly on this instance."
     };
     showError(friendly[authError] || "Sign-in did not complete. Try again.");
+    codeBlock.open = true;
   }
 
-  form.addEventListener("submit", function (event) {
+  function localSubmit(event) {
     event.preventDefault();
     var token = input.value.trim();
     if (!token) {
@@ -188,23 +215,32 @@
         input.focus();
         input.select();
       });
-  });
+  }
+  form.addEventListener("submit", localSubmit);
 
-  // Offer OIDC only when the operator actually configured it.
+  // Passkey-first when the operator has configured a provider: the SSO
+  // button becomes the primary action and the access code folds away.
   fetch("/api/auth/oidc/status", { headers: { Accept: "application/json" } })
     .then(function (res) { return res.ok ? res.json() : null; })
     .then(function (body) {
       var data = body && body.data ? body.data : null;
-      if (data && data.status === "configured") {
-        document.getElementById("oidc").hidden = false;
-        document.getElementById("oidc-btn").addEventListener("click", function () {
-          window.location.assign("/api/auth/oidc/login");
-        });
-      }
+      if (!data || data.status !== "configured" || !data.login_available) return;
+      var label = data.display_name ? "Sign in with " + data.display_name
+                                    : "Sign in with your account";
+      oidcBtn.textContent = label;
+      oidcBlock.hidden = false;
+      codeBlock.open = false;
+      codeSummary.textContent = "Use an access code instead";
+      codeLede.hidden = true;
+      help.hidden = true;
+      oidcBtn.focus();
+      oidcBtn.addEventListener("click", function () {
+        window.location.assign(data.login_path || "/api/auth/oidc/login");
+      });
     })
     .catch(function () { /* local sign-in still works */ });
 
-  if (input) input.focus();
+  if (!authError) input.focus();
 })();
 </script>
 </body>
