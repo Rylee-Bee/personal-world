@@ -7,7 +7,10 @@ capabilities, a gentle star-map frontend (the **Station**), and an AI
 assistant that proposes but does not act without approval.
 
 **Stable truth. Replaceable machinery.** Your data stays on your own
-hardware, portable and exportable.
+hardware, portable and exportable. The durable core and the Station are
+usable today in a **private technical alpha** — this is not a public
+alpha, and not every visible room is backed by live personal data;
+several rooms are deliberately specimen/prototype surfaces.
 
 > **New here?** Run `./install.sh` and read
 > **[docs/QUICKSTART.md](docs/QUICKSTART.md)** — one command, no config,
@@ -18,10 +21,31 @@ hardware, portable and exportable.
 
 ## What ships by default
 
-One core process + Ollama (qwen3:1.7b). No other containers required.
+A portable appliance: the core process plus Ollama (qwen3:1.7b) and a
+one-shot model-bootstrap container, exactly what `compose.yaml` brings
+up on `docker compose up -d`. No other containers are required.
 
-**15 screens:** Today, Chat, Journal, Vault, World, Settings, Projects,
-Lab, Interests, Media, and more — all wired to real API data.
+**Station surfaces, honestly wired.** The Station is the product UI.
+Some rooms read live personal data, some read part real / part
+device-local, and some rooms are deliberate specimen/prototype panels
+labelled on the surface — they never pretend to be your data:
+
+- **API-wired today.** The map's *Needs you* panel reads live
+  proposals and reminders (`GET /api/proposals`, `GET /api/reminders`);
+  the Journal page lists your real journal entries (`API-005
+  GET /api/journal`); Settings renders your real stored preferences
+  (`API-030/031`). `/login` and `/setup` are server-rendered.
+- **Partially wired.** The Journal page keeps a clearly labelled
+  specimen content view beside the real list; several Settings
+  controls write to the device only while the preferences table is
+  live — `real-data.js` documents exactly how far each control
+  reaches.
+- **Specimen / prototype, on purpose.** Interests discovery cards
+  (`interests-view.js`: "SPECIMEN data … not a real feed"), the
+  Projects room (`projects-view.js`: "performs no reads and no
+  writes … every record above is specimen"), the map's per-region
+  copy (`starmap.js`), and the Chat presentation (`chat.js`: messages
+  stay on this device and companion replies are not invented yet).
 
 **11 native providers** (in-process, no extra containers):
 
@@ -44,15 +68,18 @@ Lab, Interests, Media, and more — all wired to real API data.
 tracking.
 
 **Connections & Providers:** 7 capabilities, 18 provider schemas.
-Configure providers from the UI without editing JSON files.
+Schema and config endpoints exist server-side
+(`/api/connections/...`); today providers are still configured in
+`config/connections.json` — the Station UI for it is not built yet.
 
 **29 brain tools:** 19 read tools + 4 media tools + 6 write tools
 (proposal-based, require approval).
 
 **Auth/SSO:** Native/local auth (`PW_API_TOKEN`), session-cookie support,
-provider-neutral OIDC seam (`config/oidc.json`), step-up auth (300s
-window), break-glass (`PW_API_TOKEN` fallback). Authelia-compatible /
-implementation-ready — no live Authelia instance observed.
+provider-neutral OIDC seam (`config/oidc.json` — point it at your own
+IdP), step-up auth (300s window), break-glass (`PW_API_TOKEN`
+fallback). OIDC-capable; deployed-provider status lives in private
+operator documentation.
 
 **Execution Viewer:** Bounded execution evidence with actor, target,
 command, timestamps, and exit codes.
@@ -153,7 +180,7 @@ uv run personal-world --config-dir config.local init
 uv run personal-world --config-dir config.local daily
 ```
 
-Then serve the dashboard with a token:
+Then serve the Station with a token:
 
 ```bash
 PW_API_TOKEN=$(python -c "import secrets; print(secrets.token_urlsafe(32))") \
@@ -174,7 +201,9 @@ docker compose up -d
 ```
 
 The portable base image (`compose.yaml`) carries no host paths; it
-boots with only the image, a `world-data` volume, and the token. See
+boots with only the images, a `world-data` volume and an `ollama-data`
+model volume, and the token — that is the core, Ollama, and the
+one-shot model bootstrap. See
 [Operations](docs/OPERATIONS.md#containers) for the full deployment
 guide.
 
