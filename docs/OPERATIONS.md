@@ -61,22 +61,18 @@ storage in a local install. The Dockerfile already installs the crypto extra.
 Without it the vault fails closed — `unlock` reports `unavailable`, no secret is
 stored, and status reports encryption unavailable. There is no base64 fallback.
 
-### Frontend serving (single UI since the T15 cutover)
+### Frontend serving (Station-only since 2026-09-16)
 
-The React interface built into the image at `/app/frontend/dist` is the
-only product frontend. The legacy server-rendered pages and the old
-`PW_FRONTEND` mode switch were deleted in the cutover commit; a stray
-`PW_FRONTEND` value in the environment is inert.
+The **Station** is the product frontend, served same-origin at `/station/`
+from `design/opendesign-exploration/station/`. `/login` and `/setup` are
+server-rendered (`login_page.py` / `setup_wizard.py`); `/` redirects to
+`/station/` once setup is complete.
 
-`PW_FRONTEND_DIST` points at a built `dist/` directory. It defaults to
-`frontend/dist` relative to the repository in a local install and
-`/app/frontend/dist` in the container image, where the image build
-produces it. When the dist directory has no `index.html`, page requests
-answer `503` with an HTML explanation ("Project Worlds' interface is
-not built") and the API remains fully available; the response never
-contains filesystem or environment values. There is no fallback UI
-behind the 503 — a missing frontend is an honest error, never a
-silently served retired interface.
+The superseded React SPA, its `/legacy-react` route, its catch-all SPA
+fallback, and the `PW_FRONTEND_DIST` build pipeline were removed in the
+single-branch cutover. A stray `PW_FRONTEND` value in the environment is
+inert, and an unknown document path is an honest `404` — never a silently
+served retired interface.
 
 ## Sign-in with your own SSO (OIDC)
 

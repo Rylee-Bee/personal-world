@@ -19,6 +19,13 @@ Findings that depend on branch/lane context are labelled explicitly:
 An unmerged lane fix does **not** make a BASE defect GREEN. The base
 remains broken until the fix is integrated.
 
+> **2026-09-16 update.** The React SPA (`frontend/`) described below was
+> removed in the single-branch Station-only cutover. `frontend/` is now
+> only the Playwright browser gate; the Station is the product UI and
+> `/login` + `/setup` are server-rendered. Rows mentioning
+> `frontend/src/**`, `PW_FRONTEND*`, or `docs/screenshots/*` describe the
+> pre-cutover state.
+
 Companion docs:
 
 - [`WIRING-READINESS.md`](WIRING-READINESS.md) — GREEN/YELLOW/RED/GRAY
