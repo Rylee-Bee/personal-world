@@ -50,8 +50,9 @@ decisions are liking/taste, not mechanical:
   seeded world, token `ci-token` (kill after; don't test against :8000 — its
   token is stale pre-identity-lane).
 - `tests/test_public_safety.py` now scans ALL tracked text for: dns/rug1918
-  octet regex, `duckdns`, personal abs paths (`/home/rylee`,
-  `/mnt/c/Users/ryleeb`). Synthetic literals in tests carry `pw-safety:
+  octet regex, `duckdns`, and the personal absolute path patterns defined in
+  the gate's `PERSONAL_PATH_EXEMPT` block (never quote them in docs — this
+  handoff itself tripped the scanner once). Synthetic literals in tests carry `pw-safety:
   synthetic` on the same line. Historical evidence files are deliberately
   exempted (3 dated 2026-09-12 attestation files + `compose.homelab.yaml`).
 - Never push from the dev box via hooks path without `git-lfs` installed and

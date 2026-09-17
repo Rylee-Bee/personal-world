@@ -125,17 +125,18 @@ class LangGraphMemory(MemoryContract):
 
     def health(self) -> bool:
         try:
-            with urllib.request.urlopen(
-                f"{self.base_url}/health", timeout=5
-            ) as resp:
+            with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as resp:
                 return resp.status == 200
         except Exception:
             return False
 
     def observe(self) -> Result:
         if not self.health():
-            return Result(ok=False, status="unhealthy",
-                           warnings=["langgraph: /health unreachable"])
+            return Result(
+                ok=False,
+                status="unhealthy",
+                warnings=["langgraph: /health unreachable"],
+            )
         return ok("healthy", data={"url": self.base_url})
 
     def search(self, query: str, top_k: int = 5) -> Result:
@@ -150,8 +151,9 @@ class LangGraphMemory(MemoryContract):
             with urllib.request.urlopen(req, timeout=15) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
-            return Result(ok=False, status="unavailable",
-                          warnings=[f"langgraph search: {e}"])
+            return Result(
+                ok=False, status="unavailable", warnings=[f"langgraph search: {e}"]
+            )
         hits = [
             {
                 "text": r.get("text", ""),
@@ -175,9 +177,7 @@ class CandyDispenser(StatusContract):
 
     def health(self) -> Result:
         try:
-            with urllib.request.urlopen(
-                f"{self.base_url}/health", timeout=5
-            ) as resp:
+            with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as resp:
                 if resp.status != 200:
                     return fail(
                         Status.NEEDS_ATTENTION.value,
@@ -198,9 +198,7 @@ class CandyDispenser(StatusContract):
 
     def observe(self) -> Result:
         try:
-            with urllib.request.urlopen(
-                f"{self.base_url}/health", timeout=5
-            ) as resp:
+            with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception:
             return fail(
@@ -242,15 +240,22 @@ class SopsBroker:
         """Key NAMES only -- never values."""
         if not self.available():
             return []
-        proc = subprocess.run(
-            ["sops", "-d", "--output-type", "json", str(self.bundle_path)],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
+        try:
+            proc = subprocess.run(
+                ["sops", "-d", "--output-type", "json", str(self.bundle_path)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            return []
         if proc.returncode != 0:
             return []
-        return sorted(json.loads(proc.stdout).keys())
+        try:
+            return sorted(json.loads(proc.stdout).keys())
+        except json.JSONDecodeError:
+            return []
 
     def use(self, consumer: list[str], timeout: int = 30) -> Result:
         """Pipe the decrypted bundle to a consumer command's stdin.
@@ -277,6 +282,7 @@ class SopsBroker:
         if rc == 0:
             return ok("used", changed=False)
         return Result(
-            ok=False, status="error",
+            ok=False,
+            status="error",
             warnings=[f"consumer exited {rc}"],
         )
