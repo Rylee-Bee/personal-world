@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
+import logging
 import os
 import re
 import secrets
@@ -26,6 +28,8 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
+
+_logger = logging.getLogger("personal_world.identity")
 
 Kind = Literal["person", "agent", "service"]
 
@@ -67,18 +71,31 @@ class IdentityStore:
 
     # -- load/save ------------------------------------------------------
     def _load(self) -> dict:
-        if self.path.exists():
-            import json
-
+        if not self.path.exists():
+            return {"users": []}
+        try:
+            return json.loads(self.path.read_text())
+        except (json.JSONDecodeError, OSError) as exc:
+            # Preserve the corrupt file for recovery instead of silently
+            # overwriting it on the next _save().  Auth fails closed
+            # (empty user list → no tokens match) and the operator gets
+            # a visible signal in the log and a .corrupt backup file.
+            corrupt_path = self.path.with_suffix(".json.corrupt")
+            _logger.warning(
+                "users.json corrupt or unreadable (%s); "
+                "preserving as %s and starting empty",
+                exc,
+                corrupt_path,
+            )
             try:
-                return json.loads(self.path.read_text())
-            except Exception:
+                os.replace(self.path, corrupt_path)
+            except OSError:
+                # If rename fails the corrupt file stays in place; we
+                # still return empty to fail closed.
                 pass
-        return {"users": []}
+            return {"users": []}
 
     def _save(self, payload: dict) -> None:
-        import json
-
         self.data_dir.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(self.path.suffix + ".tmp")
         tmp.write_text(json.dumps(payload, indent=2))
