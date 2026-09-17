@@ -56,6 +56,7 @@ open an issue.
 | [Exports (0.1)](../design/exports/0.1/) | Canonical visual source | The Figma export set the palette reconciliation targeted. |
 | [handoff/](../design/handoff/README.md) | Archived | The original 0.1 spec package, preserved verbatim. Canonical accessibility docs now live under [docs/accessibility/](accessibility/ACCESSIBILITY_CONTRACT.md). |
 | [FIGMA-HANDOFF-LESSONS.md](FIGMA-HANDOFF-LESSONS.md) | Canonical lessons | Composition drift is not caught by token gates; browser-side visual comparison is required before composition work merges. |
+| [STATION-ALIVE-RESEARCH.md](STATION-ALIVE-RESEARCH.md) | Research (not a commitment) | Direction for making the Station feel alive: licence reality check, semantic state vocabulary, companion contract, spatial/ambient rules, prototypes, anti-patterns. |
 
 ## Accessibility
 
@@ -73,6 +74,7 @@ open an issue.
 | [AGENTS.md](../AGENTS.md) | Working-tree rules for agents and humans (worktrees, staging discipline). |
 | [safe-commit.sh](../scripts/safe-commit.sh) | Stages named paths only; refuses unrelated-file sweeps. |
 | [Validation commands](../README.md#validation) | `pytest`, `framework validate` — the canonical checks. |
+| [DEV-ENVIRONMENT.md](DEV-ENVIRONMENT.md) | Setting up to run, test, or contribute: prerequisites, verification commands, and environment hygiene. |
 
 ## Surfaces, inventories & history
 
