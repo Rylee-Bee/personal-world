@@ -151,6 +151,7 @@ Use the existing Icon wrapper and canonical manifest; do not install Lucide,
 Heroicons, another icon library, or substitute emoji. Reuse CompanionSlot and
 the five canonical companion identities. Do not recreate, trace, regenerate,
 or overwrite companion artwork, rigs, master Lotties, icons, or screen SVGs.
+Canonical display names and the station-id ↔ server-key mapping: `docs/COMPANION-CANON.md`.
 Inspect the actual serving route before synchronizing runtime copies. Missing
 art needs an identified canonical export or owner resolution, not a placeholder
 passed off as finished. Keep fonts and assets self-hosted.

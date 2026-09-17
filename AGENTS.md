@@ -54,7 +54,8 @@ agent's WIP into its commit. The rules:
   completion experience. `design/handoff/` is an archived spec package —
   historical, never edit it to change design.
   `design/COMPANION_INTEGRATION.md` is the current companion/chat
-  architecture.
+  architecture. Companion display names and the station-id ↔ server-key
+  mapping are canonical in `docs/COMPANION-CANON.md`.
 - **Accessibility is non-negotiable and canonical at
   `docs/accessibility/ACCESSIBILITY_CONTRACT.md`.** Any UI change —
   screens, components, CSS, tokens — answers that contract first

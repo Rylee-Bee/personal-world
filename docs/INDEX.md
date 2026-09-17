@@ -47,6 +47,8 @@ open an issue.
 | [Workshop v3 design authority](../.project/design/CURRENT.md) | Canonical current | The current implementation design authority: 16 canonical frames in `.project/design/WORKSHOP-V3-MANIFEST.yaml` (file `Wbg1rdt9fVCjWAXEKI1pTc`), the "The world knows how loudly to exist" principle, approvals, and reservations. Implementation workflow: [personal-world-implement-figma](../.agents/skills/personal-world-implement-figma/SKILL.md). |
 | [tokens.json](../design/tokens.json) | Canonical | The repo-owned token file implementations consume. |
 | [COMPANION_INTEGRATION.md](../design/COMPANION_INTEGRATION.md) | Canonical design + baseline/target notes | Five residents and identity design; current standalone Chat versus target contextual/global chat. |
+| [CREW-AND-STATION-THESIS.md](CREW-AND-STATION-THESIS.md) | Canonical thesis | The one statement every design task obeys: the five residents are siblings in art direction with distinct silhouettes; family rules, personal-vs-contextual identity, and the Figma → tokens → local-reference authority chain. |
+| [COMPANION-CANON.md](COMPANION-CANON.md) | Canonical naming | Companion display names (Renai, Ratatoskr, Bolt, Burrito Journalism, Personal World), the station-id ↔ server-key mapping, per-surface naming rules, and the OPEN/UNKNOWN items. |
 | [THEME_PACK_FRAMEWORK.md](../design/THEME_PACK_FRAMEWORK.md) | Spec; partial implementation | Pack invariants; manifest registry exists, full frontend pack integration remains incomplete. |
 | [RYLEE_THEME_PACK.md](../design/RYLEE_THEME_PACK.md) | Spec | The personal Mermaid theme pack. |
 | [LOTTIEFILES_HANDOFF.md](../design/LOTTIEFILES_HANDOFF.md) | Canonical | Production lessons for Lottie Creator workflows. |
