@@ -19,7 +19,9 @@
        this build: 404/405/501 renders a plain "not
        available in this build" state — never a fake
        success, never a spinner that lies.
-     - Every failure shows the server's reason verbatim.
+     - Failure copy leads with what happened and what did
+       NOT change; the server's own reason stays behind a
+       "Technical details" disclosure (LANG-036/037).
      - The archive is encrypted server-side; this panel
        never sees, stores, or logs plaintext world data.
 
@@ -108,11 +110,32 @@
     '.pwbu .status.na { border-color: var(--border-warm, rgba(212,160,87,.22));',
     '  background: var(--cream-soft, rgba(232,220,200,.10)); }',
     '.pwbu ul.report { margin: var(--s2, 8px) 0 0; padding-left: 1.2em; }',
+    '.pwbu .pwbu-more summary { margin: var(--s2, 8px) 0 0; min-height: 44px;',
+    '  display: flex; align-items: center; cursor: pointer;',
+    '  color: var(--text-faint, #A29A8C); font-size: 13px; }',
+    '.pwbu .pwbu-more summary:hover { color: var(--text, #EDE7DB); }',
+    '.pwbu .pwbu-more pre { margin: 0 0 var(--s2, 8px); padding: var(--s2, 8px) var(--s3, 12px);',
+    '  border-radius: 8px; background: var(--space, #080B14); overflow-x: auto;',
+    '  color: var(--text-faint, #A29A8C); font-size: 13px; }',
     '.pwbu hr { border: 0; border-top: 1px solid var(--border, rgba(232,220,200,.10));',
     '  margin: var(--s5, 24px) 0; }',
     /* Motion is opt-in and always yields to prefers-reduced-motion. */
     '@media (prefers-reduced-motion: no-preference) {',
     '  .pwbu button, .pwbu a.pwbu-dl { transition: border-color 120ms ease; } }',
+    /* Modal: no animation at all — reduced-motion-safe by construction. */
+    '.pwbu-modal { position: fixed; inset: 0; z-index: 60;',
+    '  display: grid; place-items: center; padding: 24px;',
+    '  background: rgba(4,6,12,.7); }',
+    '.pwbu-modal[hidden] { display: none; }',
+    '.pwbu-modal-box { background: var(--panel, #1E2636);',
+    '  border: 1px solid var(--border-warm, rgba(212,160,87,.3));',
+    '  border-radius: 12px; padding: var(--s5, 24px); max-width: 34rem; }',
+    '.pwbu-modal-box h3 { margin: 0 0 var(--s2, 8px);',
+    '  font-family: var(--font-serif, Georgia, serif); font-size: 20px;',
+    '  color: var(--cream, #E8DCC8); }',
+    '.pwbu-modal-box p, .pwbu-note { margin: 0 0 var(--s3, 12px);',
+    '  font-size: var(--fs-small, 14px); line-height: 1.55;',
+    '  color: var(--text-soft, #CDC6B8); }',
     '@media (prefers-reduced-motion: reduce) {',
     '  .pwbu * { transition: none !important; animation: none !important; } }'
   ].join('\n');
@@ -133,20 +156,45 @@
     });
   }
 
-  function failureMessage(r) {
-    if (r.status === 0) { return 'Could not reach the app server. Nothing was saved.'; }
+  /* Presentation map. The server keeps its own machine-facing strings;
+     only what this panel shows a person is mapped. Raw detail stays
+     available behind a "Technical details" disclosure. (LANG-036/045/
+     049-cousin-restore-unauthorized) */
+  var CLI_BACKUP = 'personal-world worlds backup <file>';
+  var CLI_RESTORE = 'personal-world worlds restore <file> [--overwrite]';
+
+  function serverDetail(r) {
+    var d = r.data && r.data.detail;
+    if (Array.isArray(d)) { return d.join('; '); }
+    return typeof d === 'string' ? d : (d ? JSON.stringify(d) : null);
+  }
+
+  function failureCopy(r) {
+    if (r.status === 0) {
+      return { text: 'Can’t connect to Project Worlds right now. Nothing was saved or changed. Check the connection and try again.', kind: 'err' };
+    }
     if (r.status === 404 || r.status === 405 || r.status === 501) {
-      return 'Backup/restore is not available in this build (the API route is not wired). ' +
-        'Use the CLI instead: personal-world worlds backup <file>';
+      return { text: 'Backups are not available in this interface on this build.', kind: 'na' };
     }
     if (r.status === 401 || r.status === 403) {
-      var d = r.data && r.data.detail;
-      return 'Refused: ' + (Array.isArray(d) ? d.join('; ') : (d ||
-        'this action needs step-up authentication — sign in again, then retry.'));
+      var det0 = serverDetail(r);
+      /* Wrong passphrase on restore: the archive failed authentication
+         before anything was written. */
+      if (/decryption failed authentication|wrong passphrase/i.test(det0 || '')) {
+        return { text: 'The archive could not be unlocked. The passphrase may not match, or the file may be damaged. Your world was not changed.', kind: 'err' };
+      }
+      /* LANG-036 + LANG-045: the step-up this build supports is the
+         instance access code; signing in again with an OIDC provider
+         cannot confirm the action, so the limit is stated honestly. */
+      return { text: 'Confirm it’s you before creating or restoring a backup. Nothing was changed. ' +
+        'This action needs an access code — signing in again with your provider cannot confirm it yet.', kind: 'err' };
     }
-    var det = r.data && r.data.detail;
-    return 'Failed (' + r.status + '): ' + (Array.isArray(det) ? det.join('; ') :
-      (det || 'unknown error'));
+    var det = serverDetail(r);
+    if (r.status === 503 && /not installed|cryptography/i.test(det || '')) {
+      return { text: 'Backups are not available on this server: the encryption support is missing. ' +
+        'Whoever runs this instance can add it (see the technical details).', kind: 'na' };
+    }
+    return { text: 'That didn’t work. Nothing was changed.', kind: 'err', detail: det || ('status ' + r.status) };
   }
 
   function buildPanel(root) {
@@ -169,6 +217,24 @@
       node.textContent = msg;
       node.hidden = false;
     }
+    /* Failure rendering: human copy in the live region, the server's own
+       strings behind a disclosure (or the CLI path when the surface is
+       simply absent). (LANG-037) */
+    function showFailure(node, r, cli) {
+      var f = failureCopy(r);
+      status(node, f.kind, f.text);
+      if (f.kind === 'na') {
+        node.appendChild(el('details', { class: 'pwbu-more' }, [
+          el('summary', { text: 'Show command-line instructions' }),
+          el('pre', { text: cli.join('\n') })
+        ]));
+      } else if (serverDetail(r)) {
+        node.appendChild(el('details', { class: 'pwbu-more' }, [
+          el('summary', { text: 'Technical details' }),
+          el('pre', { text: serverDetail(r) })
+        ]));
+      }
+    }
     function busy(node, on, label) {
       node.disabled = on;
       if (on) { node.textContent = label; }
@@ -189,7 +255,7 @@
           busy(bBtn, false, '⬇ Create encrypted backup');
           bPass.value = ''; /* never linger in the DOM */
           if (r.status !== 200 || !r.data || !r.data.download) {
-            status(bStatus, r.status === 404 || r.status === 405 || r.status === 501 ? 'na' : 'err', failureMessage(r));
+            showFailure(bStatus, r, [CLI_BACKUP]);
             return;
           }
           status(bStatus, 'ok', 'Backup created — encrypted with your passphrase. ' +
@@ -236,7 +302,128 @@
     var rFile = el('input', { type: 'file', id: 'pwbu-restore-file', accept: '.pwbackup,application/octet-stream' });
     var rPass = el('input', { type: 'password', id: rPassId, autocomplete: 'current-password', required: 'required' });
     var rOver = el('input', { type: 'checkbox', id: 'pwbu-overwrite' });
-    var rBtn = el('button', { type: 'button', text: '⬆ Restore from archive…' });
+    var rBtn = el('button', { type: 'button', text: '⬆ Restore missing files' });
+
+    /* Truthful scope of restore, derived from what the restore path
+       actually archives/overwrites (worlds_backup.py restore boundary).
+       The archive itself cannot be enumerated before the server unlocks
+       it, so the preview states the categories — not a per-file count
+       that is not provable here. */
+    var REPLACE_SCOPE =
+      'Restore only ever touches these categories: instance data (world, ' +
+      'journal, users, per-person profiles, reminders, apps, proposals, chat ' +
+      'history), app and identity configuration, and discovery/reconciler ' +
+      'saved state. Nothing outside them changes, and no backup file is ' +
+      'edited. Replaced files are not kept and cannot be undone.';
+    var RESTORE_HELP =
+      'Import a backup archive into this instance. By default it only fills ' +
+      'in files that are missing — nothing you already have is touched. ' +
+      '"Replace existing files during restore" replaces what you already ' +
+      'have in the categories above and always asks you to confirm first.';
+
+    function updateRestoreLabel() {
+      rBtn.textContent = rOver.checked
+        ? '⬆ Review files to replace'
+        : '⬆ Restore missing files';
+    }
+    rOver.addEventListener('change', updateRestoreLabel);
+
+    /* LANG-042: a real destructive confirmation. Focus starts on
+       Cancel, Tab is trapped inside, Escape cancels, and nothing
+       animates (prefers-reduced-motion yields). */
+    var lastFocus = null;
+    var modal = el('div', {
+      role: 'dialog', 'aria-modal': 'true',
+      'aria-labelledby': 'pwbu-confirm-h', 'aria-describedby': 'pwbu-confirm-desc',
+      hidden: 'hidden',
+      class: 'pwbu-modal'
+    });
+
+    function closeModal() {
+      modal.hidden = true;
+      if (lastFocus) { lastFocus.focus(); }
+    }
+
+    function confirmModal(run) {
+      lastFocus = document.activeElement;
+      modal.textContent = '';
+      modal.appendChild(el('div', { class: 'pwbu-modal-box' }, [
+        el('h3', { id: 'pwbu-confirm-h', text: 'Replace existing files?' }),
+        el('p', { id: 'pwbu-confirm-desc', text: RESTORE_HELP }),
+        el('p', { text: REPLACE_SCOPE }),
+        el('p', {
+          class: 'pwbu-note',
+          text: 'A wrong passphrase changes nothing: the whole archive is checked before any file is written.'
+        }),
+        el('div', { class: 'row' }, [
+          el('button', { type: 'button', id: 'pwbu-confirm-cancel', text: 'Cancel' }),
+          el('button', { type: 'button', id: 'pwbu-confirm-go', text: 'Replace existing files and restore' })
+        ])
+      ]));
+      modal.hidden = false;
+      document.getElementById('pwbu-confirm-cancel').focus();
+      document.getElementById('pwbu-confirm-cancel').addEventListener('click', closeModal);
+      document.getElementById('pwbu-confirm-go').addEventListener('click', function () {
+        modal.hidden = true;
+        run();
+        if (lastFocus) { lastFocus.focus(); }
+      });
+      modal.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') { ev.preventDefault(); closeModal(); return; }
+        if (ev.key !== 'Tab') { return; }
+        var focusables = modal.querySelectorAll('button, summary');
+        var first = focusables[0];
+        var last = focusables[focusables.length - 1];
+        if (ev.shiftKey && document.activeElement === first) {
+          ev.preventDefault(); last.focus();
+        } else if (!ev.shiftKey && document.activeElement === last) {
+          ev.preventDefault(); first.focus();
+        }
+      });
+    }
+
+    function beginRestore() {
+      busy(rBtn, true, '⏳ Verifying and decrypting…');
+      status(rStatus, 'na', 'Working: Checking the archive before changing anything. A wrong passphrase will not change your world.');
+      (rFile.files && rFile.files[0] ? rFile.files[0].arrayBuffer() : Promise.reject(new Error('no file')))
+        .then(function (buf) {
+          var bytes = new Uint8Array(buf);
+          var bin = '';
+          var CHUNK = 0x8000;
+          for (var i = 0; i < bytes.length; i += CHUNK) {
+            bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+          }
+          return call('/api/worlds/restore', {
+            passphrase: rPass.value,
+            archive_b64: btoa(bin),
+            overwrite: rOver.checked
+          });
+        }).then(function (r) {
+          busy(rBtn, false, rOver.checked ? '⬆ Review files to replace' : '⬆ Restore missing files');
+          rPass.value = '';
+          if (r.status !== 200 || !r.data) {
+            showFailure(rStatus, r, [CLI_RESTORE]);
+            return;
+          }
+          var rep = r.data;
+          rStatus.className = 'status ok';
+          rStatus.textContent = '';
+          rStatus.appendChild(el('div', {
+            text: 'Restore finished: ' + (rep.restored || []).length + ' restored, ' +
+              (rep.skipped || []).length + ' skipped (already present), ' +
+              (rep.refused || []).length + ' refused.'
+          }));
+          [['Restored', rep.restored], ['Skipped', rep.skipped], ['Refused', rep.refused]].forEach(function (pair) {
+            if (pair[1] && pair[1].length) {
+              var list = el('ul', { class: 'report' });
+              pair[1].forEach(function (item) { list.appendChild(el('li', { text: String(item) })); });
+              rStatus.appendChild(el('div', { text: pair[0] + ':' }));
+              rStatus.appendChild(list);
+            }
+          });
+          rStatus.hidden = false;
+        });
+    }
 
     rBtn.addEventListener('click', function () {
       var file = rFile.files && rFile.files[0];
@@ -249,68 +436,28 @@
         rPass.focus();
         return;
       }
-      busy(rBtn, true, '⏳ Verifying and decrypting…');
-      status(rStatus, 'na', 'Working: Checking the archive before changing anything. A wrong passphrase will not change your world.');
-      file.arrayBuffer().then(function (buf) {
-        var bytes = new Uint8Array(buf);
-        var bin = '';
-        var CHUNK = 0x8000;
-        for (var i = 0; i < bytes.length; i += CHUNK) {
-          bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-        }
-        return call('/api/worlds/restore', {
-          passphrase: rPass.value,
-          archive_b64: btoa(bin),
-          overwrite: rOver.checked
-        });
-      }).then(function (r) {
-        busy(rBtn, false, '⬆ Restore from archive…');
-        rPass.value = '';
-        if (r.status !== 200 || !r.data) {
-          status(rStatus, r.status === 404 || r.status === 405 || r.status === 501 ? 'na' : 'err', failureMessage(r));
-          return;
-        }
-        var rep = r.data;
-        rStatus.className = 'status ok';
-        rStatus.textContent = '';
-        rStatus.appendChild(el('div', {
-          text: '✓ Restore finished: ' + (rep.restored || []).length + ' restored, ' +
-            (rep.skipped || []).length + ' skipped (already present), ' +
-            (rep.refused || []).length + ' refused.'
-        }));
-        [['Restored', rep.restored], ['Skipped', rep.skipped], ['Refused', rep.refused]].forEach(function (pair) {
-          if (pair[1] && pair[1].length) {
-            var list = el('ul', { class: 'report' });
-            pair[1].forEach(function (item) { list.appendChild(el('li', { text: String(item) })); });
-            rStatus.appendChild(el('div', { text: pair[0] + ':' }));
-            rStatus.appendChild(list);
-          }
-        });
-        rStatus.hidden = false;
-      });
+      if (rOver.checked) { confirmModal(beginRestore); return; }
+      beginRestore();
     });
 
     panel.appendChild(el('h2', { text: 'Restore my world' }));
-    panel.appendChild(el('p', {
-      class: 'lede',
-      text: 'Import a backup archive into this instance. By default it only fills ' +
-        'in files that are missing — nothing you already have is touched. ' +
-        'Overwrite replaces existing files and is refused-per-file, honestly reported.'
-    }));
+    panel.appendChild(el('p', { class: 'lede', text: RESTORE_HELP }));
     panel.appendChild(el('label', { for: 'pwbu-restore-file', text: 'Backup archive (.pwbackup)' }));
     panel.appendChild(rFile);
     panel.appendChild(el('label', { for: rPassId, text: 'Archive passphrase' }));
     panel.appendChild(rPass);
     panel.appendChild(el('div', { class: 'check' }, [
       rOver,
-      el('label', { for: 'pwbu-overwrite', style: 'margin:0;text-transform:none;letter-spacing:0;font-size:14px', text: 'Overwrite files that already exist here' })
+      el('label', { for: 'pwbu-overwrite', style: 'margin:0;text-transform:none;letter-spacing:0;font-size:14px', text: 'Replace existing files during restore' })
     ]));
+    panel.appendChild(el('p', { class: 'pwbu-note', text: REPLACE_SCOPE }));
     panel.appendChild(el('div', { class: 'row' }, [rBtn]));
     panel.appendChild(rStatus);
 
     root.textContent = '';
     root.appendChild(style);
     root.appendChild(panel);
+    root.appendChild(modal);
   }
 
   function init() {
@@ -322,9 +469,18 @@
       /* Honest degraded state — never a broken silent mount. */
       root.textContent = '';
       root.appendChild(el('p', {
-        text: 'Backup panel failed to load in this browser. The CLI path still works: ' +
-          'personal-world worlds backup <file> — ' + (err && err.message ? err.message : 'unknown error')
+        text: 'Backup panel failed to load in this browser. Nothing was changed — the command-line path still works.'
       }));
+      root.appendChild(el('details', null, [
+        el('summary', { text: 'Show command-line instructions' }),
+        el('pre', { text: CLI_BACKUP + '\n' + CLI_RESTORE })
+      ]));
+      if (err && err.message) {
+        root.appendChild(el('details', null, [
+          el('summary', { text: 'Technical details' }),
+          el('pre', { text: err.message })
+        ]));
+      }
     }
   }
 
