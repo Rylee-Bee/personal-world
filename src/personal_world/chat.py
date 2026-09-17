@@ -48,6 +48,36 @@ MAX_CONTEXT_CHARS = 8000
 """Upper bound on the injected world-context block so a bloated world
 state cannot silently exceed a small local model's context window."""
 
+PARTIAL_FINDINGS_MAX = 6
+"""How many tool results the loop-limit reply may carry (LANG-034):
+partial honesty, bounded."""
+
+PARTIAL_SUMMARY_CHARS = 240
+"""Per-finding summary cap, so a fat tool payload cannot bloat the
+response the UI renders."""
+
+
+def partial_finding(tool_name: str, tool_result: Result) -> dict[str, Any]:
+    """One bounded partial finding (LANG-034).
+
+    `summary` is a bounded plain-text excerpt of the tool result's own
+    data — the real content the model already saw, never a summary the
+    code invented. Malformed/non-JSON data degrades to the status only.
+    """
+    summary = ""
+    try:
+        summary = json.dumps(tool_result.data, default=str) if tool_result.data else ""
+    except (TypeError, ValueError):
+        summary = ""
+    if len(summary) > PARTIAL_SUMMARY_CHARS:
+        summary = summary[: PARTIAL_SUMMARY_CHARS - 1] + "…"
+    return {
+        "tool": tool_name,
+        "ok": tool_result.ok,
+        "status": tool_result.status,
+        "summary": summary,
+    }
+
 
 def _repair_tool_arguments(raw: Any) -> tuple[dict[str, Any] | None, bool]:
     """Parse a tool-call ``arguments`` payload into a dict.
@@ -105,6 +135,7 @@ def chat_with_tools_loop(
     """
     current_messages = list(messages)
     tool_calls_made: list[dict[str, Any]] = []
+    partial_results: list[dict[str, Any]] = []
     last_model = "unknown"
 
     for _round in range(max_rounds):
@@ -169,6 +200,10 @@ def chat_with_tools_loop(
                     "status": tool_result.status,
                 }
             )
+            # Real results the loop can already share if the round budget
+            # runs out before the model wraps up (LANG-034). Bounded:
+            # read-only payloads, capped count and summary length.
+            partial_results.append(partial_finding(tool_name, tool_result))
 
             tool_msg: dict[str, Any] = {
                 "role": "tool",
@@ -180,12 +215,17 @@ def chat_with_tools_loop(
 
         # Continue the loop — the model now sees the real tool results.
 
-    # Max rounds reached: report honestly what was gathered.
+    # Max rounds reached: report honestly what was gathered, and INCLUDE
+    # the partial tool results already in hand (LANG-034) instead of
+    # promising findings the visible reply never carried. An additive
+    # payload field, no contract break; `reply` is the canonical
+    # manifest copy.
     return ok(
         "healthy",
         data={
-            "reply": "I gathered some information but reached the tool call "
-            "limit. Let me share what I found.",
+            "reply": "I reached the lookup limit before I could finish. "
+            "I can share the partial results or try a narrower question.",
+            "partial_findings": partial_results[:PARTIAL_FINDINGS_MAX],
             "tool_calls_made": tool_calls_made,
             "model": last_model,
         },
