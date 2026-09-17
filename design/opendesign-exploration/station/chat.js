@@ -3,12 +3,17 @@
    full-size. Transcript is shared locally so both agree.
 
    Templates dictate PERSONALITY, and templates attach to companions:
-   picking a companion surfaces that companion's templates. More templates
-   per character get added here as they are made.
+   picking a companion surfaces that companion's templates.
 
-   HONESTY: this prototype keeps your messages locally and does NOT invent
-   companion replies. In the product, send binds to the real chat capability
-   (API-010..012); until then it says so instead of faking an answer.
+   WIRED TO THE REAL CHAT CAPABILITY (UX-01 / API-010–012): sending posts
+   the message to POST /api/chat and renders the provider's reply —
+   nothing is invented here. STREAMING NOT REQUIRED (providers post
+   `stream: False`). When no assistant provider is connected, the
+   endpoint answers not_configured and the room says so honestly
+   (LANG-058 word). Successful exchanges are persisted by the server in
+   the caller's own Project Worlds transcript (GET /api/chat/history —
+   user turn + assistant reply after every answered send); messages that
+   never got a reply stay in this browser only, in pw-chat-log.
 */
 (function () {
   'use strict';
@@ -52,6 +57,7 @@
   ];
 
   var LOG_KEY = 'pw-chat-log';
+  var CHAT_ENDPOINT = 'API-010';   /* POST /api/chat — gate: none */
 
   function readLog() {
     try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch (e) { return []; }
@@ -66,6 +72,82 @@
     return String(s).replace(/[&<>"]/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
+  }
+
+  /* LANG-034: bounded rendering of the partial tool findings the
+     assistant gathered before it reached the lookup limit. Read-only
+     results the tool loop already executed — never invented here. */
+  function findingsHtml(findings) {
+    if (!Array.isArray(findings) || !findings.length) { return ''; }
+    var rows = findings.slice(0, 10).map(function (f) {
+      var bits = [];
+      if (f && f.tool) { bits.push('<code>' + esc(f.tool) + '</code>'); }
+      bits.push(f && f.ok === false ? 'did not answer' : 'answered');
+      if (f && typeof f.summary === 'string' && f.summary) { bits.push(esc(f.summary)); }
+      return '<li>' + bits.join(' · ') + '</li>';
+    }).join('');
+    return '<details class="chat-findings">' +
+      '<summary>Partial results from the tools I ran</summary>' +
+      '<ul class="findings-list">' + rows + '</ul></details>';
+  }
+
+  function historyFor() {
+    return readLog()
+      .filter(function (m) {
+        if (m.role === 'you') { return true; }
+        if (m.role === 'ai') { return true; }
+        return false;   /* notes never become conversation history */
+      })
+      .map(function (m) {
+        return { role: m.role === 'you' ? 'user' : 'assistant', content: m.text };
+      })
+      .slice(-6);
+  }
+
+  function failureCopy(env) {
+    var status = env && env.status;
+    var raw = (env && env.error && env.error.message) ||
+              (env && env.warnings && env.warnings[0]) || '';
+    var detail = (env && env.error && env.error.detail) || raw;
+    if (status === 'not_configured' || /no chat provider configured/i.test(detail)) {
+      /* Manifest copy for a genuinely unconnected assistant; the raw
+         endpoint warning stays in the envelope, not the room. */
+      return 'No assistant is connected yet. Your message is saved in this browser.';
+    }
+    if (env && env.ok === false && typeof raw === 'string' && raw) {
+      return raw;
+    }
+    return 'Can’t connect right now. Your message is saved in this browser. Check the connection and try again.';
+  }
+
+  /* One real POST per send; `paint` repaints the mount with whatever
+     the server actually answered. */
+  function sendToAssistant(text, paint) {
+    var API = window.PW_API;
+    if (!API || typeof API.write !== 'function') {
+      writeLog(readLog().concat([{ role: 'note',
+        text: 'Can’t connect to Project Worlds right now. Your message is saved in this browser. Check the connection and try again.' }]));
+      paint();
+      return;
+    }
+    API.write(CHAT_ENDPOINT, { message: text, history: historyFor() })
+      .then(function (env) {
+        if (env && env.ok && env.data && typeof env.data.reply === 'string' && env.data.reply.trim()) {
+          writeLog(readLog().concat([{
+            role: 'ai',
+            text: env.data.reply,
+            findings: Array.isArray(env.data.partial_findings) ? env.data.partial_findings : null
+          }]));
+        } else {
+          writeLog(readLog().concat([{ role: 'note', text: failureCopy(env) }]));
+        }
+        paint();
+      })
+      .catch(function () {
+        writeLog(readLog().concat([{ role: 'note', text:
+          'Can’t connect right now. Your message is saved in this browser. Check the connection and try again.' }]));
+        paint();
+      });
   }
 
   function mount(root, opts) {
@@ -108,13 +190,20 @@
     var pers = root.querySelector('.chat-pers');
     var input = root.querySelector('.chat-in');
 
+    function msgHtml(m) {
+      if (m.role === 'note') {
+        return '<div class="msg sys"><span class="msg-t">' + esc(m.text) + '</span></div>';
+      }
+      if (m.role === 'ai') {
+        return '<div class="msg ai"><span class="msg-t">' + esc(m.text) + '</span>' +
+          findingsHtml(m.findings) + '</div>';
+      }
+      return '<div class="msg ' + esc(m.role) + '"><span class="msg-t">' + esc(m.text) + '</span></div>';
+    }
+
     function renderLog() {
       var items = readLog();
-      if (items.length) {
-        log.innerHTML = items.map(function (m) {
-          return '<div class="msg ' + esc(m.role) + '"><span class="msg-t">' + esc(m.text) + '</span></div>';
-        }).join('');
-      } else {
+      if (!items.length) {
         // Cute empty state — companion presence + starter chips
         var starterChips = templates.slice(0, 3).map(function (t) {
           return '<button type="button" class="empty-chip" data-tpl="' + esc(t.id) + '" ' +
@@ -126,11 +215,18 @@
             '<div class="empty-orb" aria-hidden="true"><svg><use href="chars.svg#char-' + esc(who) + '"/></svg></div>' +
             '<div class="empty-greeting">' + esc(meta.greeting) + '</div>' +
             '<div class="empty-sub">' +
-              'Messages on this preview are saved in this browser. They are not sent to the World assistant.' +
+              'Replies come from the Project Worlds assistant, and answered exchanges are saved in ' +
+              'your World transcript as well as this browser. Nothing has left here yet.' +
             '</div>' +
             (starterChips ? '<div class="empty-chips">' + starterChips + '</div>' : '') +
           '</div>';
+        return;
       }
+      log.innerHTML = items.map(msgHtml).join('');
+    }
+
+    function paint() {
+      renderLog();
       log.scrollTop = log.scrollHeight;
     }
 
@@ -165,10 +261,6 @@
       e.preventDefault();
       var text = input.value.trim();
       if (!text) { return; }
-      var items = readLog();
-      items.push({ role: 'you', text: text });
-      items.push({ role: 'sys', text: 'Message saved in this browser. No assistant reply was requested.' });
-      writeLog(items);
       input.value = '';
       pers.textContent = 'Pick a mood, or just talk.';
       // Clear template selection
@@ -177,7 +269,14 @@
         el.style.borderColor = '';
         el.style.background = '';
       });
-      renderLog();
+      // The user turn is real the moment it is typed; the reply is not
+      // invented while the assistant is working.
+      writeLog(readLog().concat([{ role: 'you', text: text }]));
+      log.innerHTML =
+        readLog().map(msgHtml).join('') +
+        '<div class="msg sys" role="status">Working…</div>';
+      log.scrollTop = log.scrollHeight;
+      sendToAssistant(text, paint);
     });
 
     renderLog();

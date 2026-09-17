@@ -27,6 +27,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from personal_world.chat import (  # noqa: E402
+    PARTIAL_FINDINGS_MAX,
+    PARTIAL_SUMMARY_CHARS,
     build_chat_messages,
     chat_with_tools_loop,
 )
@@ -157,13 +159,58 @@ class TestToolLoopRoundTrip:
         assert "tool_calls_made" not in (result.data or {})
 
     def test_max_rounds_terminates_honestly(self):
+        """LANG-034: the loop-limit reply does not promise findings it
+        does not include — the real, bounded tool payloads ship in
+        `partial_findings`."""
+        reg = _registry()
         stub = StubProvider(
             [{"tool_calls": [_tool_call("echo_tool", {"x": i})]} for i in range(10)]
         )
-        result = chat_with_tools_loop(stub, _MESSAGES, _registry(), [], max_rounds=2)
+        result = chat_with_tools_loop(stub, _MESSAGES, reg, [], max_rounds=2)
         assert result.ok
-        assert "tool call limit" in result.data["reply"]
-        assert len(result.data["tool_calls_made"]) == 2
+        assert result.data["reply"] == (
+            "I reached the lookup limit before I could finish. "
+            "I can share the partial results or try a narrower question."
+        )
+        made = result.data["tool_calls_made"]
+        assert len(made) == 2
+        findings = result.data["partial_findings"]
+        # the partial findings are the REAL tool results, bounded
+        assert len(made) == len(result.data["partial_findings"])
+        assert all(f["tool"] == "echo_tool" for f in result.data["partial_findings"])
+        assert any(f["summary"] for f in result.data["partial_findings"])
+
+    def test_partial_findings_bounded(self):
+        """The partial findings payload cannot exceed its caps
+        (count and per-finding summary length)."""
+        big = {"blob": "y" * 5000}
+        calls_reg = ToolRegistry()
+        calls_reg.register(
+            Tool(
+                id="echo_tool",
+                capability="test",
+                operation="read",
+                description="echo x",
+                read_write="read",
+                parameters={
+                    "type": "object",
+                    "properties": {"x": {"type": "integer"}},
+                    "required": ["x"],
+                },
+                handler=lambda x: ok("healthy", data=big),
+            )
+        )
+        stub = StubProvider(
+            [
+                {"tool_calls": [_tool_call("echo_tool", {"x": i}, call_id=f"call-{i}")]}
+                for i in range(10)
+            ]
+        )
+        result = chat_with_tools_loop(stub, _MESSAGES, calls_reg, [], max_rounds=8)
+        assert result.ok
+        findings = result.data["partial_findings"]
+        assert len(findings) <= PARTIAL_FINDINGS_MAX
+        assert all(len(f["summary"]) <= PARTIAL_SUMMARY_CHARS for f in findings)
 
     def test_provider_crash_never_propagates(self):
         stub = StubProvider([RuntimeError("socket exploded")])
