@@ -62,9 +62,9 @@
     healthy: 'all good',
     needs_attention: 'needs you',
     warning: 'worth a look',
-    unavailable: 'can’t reach it',
-    stale: 'a while old',
-    unknown: 'not sure yet',
+    unavailable: 'can’t connect right now',
+    stale: 'may be out of date',
+    unknown: 'not known yet',
     not_configured: 'not set up yet',
     disabled: 'off'
   };
