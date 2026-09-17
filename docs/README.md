@@ -28,6 +28,7 @@ source wins.
 | V0.1 design baseline | [`docs/DESIGN-HANDOFF.md`](DESIGN-HANDOFF.md) | Dated baseline, not a current feature inventory. |
 | Surfaces (UI/API/CLI/tool/storage/auth) | [`docs/surfaces/MASTER-SURFACE-REGISTRY.md`](surfaces/MASTER-SURFACE-REGISTRY.md) | Extraction index; all IDs resolve here. Verified map: [`docs/repo/WIRING-READINESS.md`](repo/WIRING-READINESS.md). |
 | Operations / deployment | [`docs/OPERATIONS.md`](OPERATIONS.md) | Local run, containers, health. |
+| Alpha acceptance | [`docs/ALPHA-ACCEPTANCE.md`](ALPHA-ACCEPTANCE.md) | Owner runbook for declaring private technical alpha; evidence recorded outside the repo. |
 | Product target | [`docs/PERSONAL-WORLD-FINISH-LINE.md`](PERSONAL-WORLD-FINISH-LINE.md) | What "finished enough to live in" means. |
 | Completion plan | [`docs/PERSONAL-WORLD-COMPLETION-PLAN.md`](PERSONAL-WORLD-COMPLETION-PLAN.md) | Dated (v1, 2026-09-10) execution plan: phases and acceptance toward the finish line. Not a current-state document. |
 | Decisions | [`.project/DECISIONS.md`](../.project/DECISIONS.md) + [`docs/adr/`](adr/) | Durable decisions and ADRs. |
