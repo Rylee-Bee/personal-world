@@ -11,8 +11,10 @@ disagree, the canonical file wins.
 ## 2026-09-16 — Station is the product UI; the repo is single-branch `main`
 
 The current direction is the **Station** UI (served same-origin at
-`/station/` from `design/opendesign-exploration/station/`). The React app
-is migration-only at `/legacy-react`.
+`/station/` from `design/opendesign-exploration/station/`). `/login` and
+`/setup` are server-rendered. The superseded React SPA, its `/legacy-react`
+route, its catch-all SPA fallback, and its dist build pipeline were removed
+on 2026-09-16.
 
 The repository is now a single branch, `main` (`28a948c` == `origin/main`).
 Every other branch was retired and archived as an annotated tag

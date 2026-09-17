@@ -90,7 +90,7 @@ open an issue.
 | [surfaces/CALL-CHAINS.md](surfaces/CALL-CHAINS.md) | Current reference | Compact call chains per major flow. |
 | [surfaces/COHERENCE-DECISION-PREP.md](surfaces/COHERENCE-DECISION-PREP.md) | Historical | Pre-wiring decision preparation; inputs absorbed into `repo/WIRING-READINESS.md`. |
 | [history/](history/README.md) | Archived | 2026-09-13 merge receipts and handoffs. Superseded; kept for provenance. |
-| [screenshots/INDEX.md](screenshots/INDEX.md) | Generated reference | App screenshots with synthetic data. |
+| [INDEX.md](INDEX.md) | This documentation index. |
 
 ## Status vocabulary used above
 

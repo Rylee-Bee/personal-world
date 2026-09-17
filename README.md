@@ -113,18 +113,13 @@ The canonical adoption lives at
 canonical current state at [`.project/CURRENT.md`](.project/CURRENT.md);
 durable decisions at [`.project/DECISIONS.md`](.project/DECISIONS.md).
 
-## Screenshots
+## The Station
 
-| | |
-|---|---|
-| ![Today screen: greeting, attention line, what changed, recent journal entries](docs/screenshots/project-worlds-today.png) | Today — the calm daily overview |
-| ![Settings Connections panel: provider configuration with test buttons](docs/screenshots/project-worlds-settings-connections.png) | Connections — configure providers from the UI |
-| ![Chat screen: conversation with the assistant, starter questions](docs/screenshots/project-worlds-assistant.png) | Assistant — contextual chat with tool-calling |
-| ![Lab screen: service inventory with health status](docs/screenshots/project-worlds-lab.png) | Lab — service inventory and health |
-| ![Media screen: empty state with setup link](docs/screenshots/project-worlds-media.png) | Media — Plex/Sonarr/Radarr/Lidarr integration |
-| ![Projects screen: repository table with commit history](docs/screenshots/project-worlds-projects.png) | Projects — local Git truth with optional GitHub enrichment |
-
-[Full screenshot gallery →](docs/screenshots/INDEX.md)
+The product UI is the **Station**, served same-origin at `/station/` by
+the backend (source: `design/opendesign-exploration/station/`).
+`/login` and `/setup` are server-rendered. The superseded React frontend
+was removed on 2026-09-16 (single-branch cutover); its screenshot gallery
+was removed with it.
 
 ## Quick start
 
