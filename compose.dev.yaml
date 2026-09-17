@@ -16,8 +16,10 @@ services:
     # Never reach GHCR for a local build — only the published tags do.
     pull_policy: never
     environment:
-      # Development ergonomics ONLY: loopback-true bypass so a developer on
-      # this host can hit /api and /station without minting a session first.
-      # identity.py enforces true-loopback; this must never ship in the
-      # portable base compose.yaml and must never be used for LAN access.
-      PW_DEV_AUTH_BYPASS: "1"
+      # Loopback-only development bypass, now OPT-IN. It used to default
+      # to "1", which silently authenticated a local caller without a
+      # session; the dev/mirror instance should behave like production, so
+      # request it explicitly when you want it:
+      #   PW_DEV_AUTH_BYPASS=1 docker compose -f compose.yaml -f compose.dev.yaml up
+      # identity.py enforces true-loopback; never for LAN access.
+      PW_DEV_AUTH_BYPASS: ${PW_DEV_AUTH_BYPASS:-}
