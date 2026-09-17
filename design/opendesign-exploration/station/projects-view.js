@@ -1,241 +1,48 @@
 /* ═══════════════════════════════════════════════════════════════
-   PROJECTS CONTENT VIEW — a simplified GitHub-like repository panel
-   for the Station prototype. Rendered into #projects-view, below the
-   systems map, on projects.html. Styling: projects-view.css.
+   PROJECTS CONTENT VIEW — real source-control reads, honest states.
 
-   HONESTY CONTRACT (HANDOFF-UI-FIX.md §2)
-   · Every record below is SPECIMEN and is labelled specimen in the
-     DOM. Nothing is fetched. None of it is your work.
-   · The shapes mirror the real READ envelopes, so wiring this later
-     is a swap, not a rewrite:
-       API-079 GET  /api/projects/status           project estate
-       API-033 GET  /api/source-control/status     branch/ahead/behind/dirty
-       API-034 GET  /api/source-control/history    newest-first commits
-       API-036 GET  /api/source-control/enrichment remote facts (gh session)
-   · The ONE write in this domain — API-035 POST
-     /api/source-control/refresh — is never called, simulated, faked,
-     or implied. "Propose refresh" is a GATE: it opens an explanation
-     of observe → diff → propose → approve → act → re-observe and says
-     plainly that nothing was written.
-   · Status is never colour-alone: healthy / needs_attention / dirty /
-     diverged / unknown each render as a word, with the canonical
-     vocabulary one disclosure down.
+   Rendered into #projects-view, below the systems map, on
+   projects.html. Styling: projects-view.css.
+
+   DATA TRUTH (this view performs real reads; every record shown is
+   yours, read from git on this server at the times shown):
+      API-033 GET  /api/source-control/status      repository list
+      API-034 GET  /api/source-control/history     newest-first commits
+   There is no file-tree endpoint, so NO tree is rendered — absence is
+   shown, never filled with invented files.
+   The estate read API-079 GET /api/projects/status (agent-sync
+   sensor) exists but is not consumed on this surface yet.
+
+   THE ONE WRITE — API-035 POST /api/source-control/refresh — is never
+   called. The "How project refresh would work" gate is an
+   explanation only: no proposal path is wired to it yet (LANG-019),
+   so the button explains the safe path instead of promising one.
+   Nothing runs a command.
+
+   HONEST STATES (content-guide vocabulary):
+      not_configured → "Source control is not set up."   (absence is
+        not failure; no fake repos are substituted for it)
+      unavailable/error → couldn't-check + Try again
+      healthy + repos → the real list, observed timestamps shown
+      Status is never colour-alone: healthy / work in progress /
+      diverged / unknown each render as a word, canonical vocabulary
+      one disclosure down.
    ═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
   var MOUNT = 'projects-view';
 
-  /* canonical status → the plain word shown on the surface */
+  /* canonical status → the plain word shown on the surface
+     (LABELS wording mirrors api.js; "unknown" says not known yet) */
   var WORD = {
-    healthy:         'all good',
-    needs_attention: 'needs you',
-    dirty:           'work in progress',
-    diverged:        'diverged',
-    unknown:         'not sure yet'
+    healthy: 'all good',
+    dirty: 'work in progress',
+    diverged: 'diverged',
+    unknown: 'not known yet'
   };
 
-  /* The safe write path. Steps 1-3 are what this prototype can show
-     (as specimen). Steps 4-6 need a live, signed-in world and a
-     step-up approval, and are honestly marked as not wired. */
-  var STEPS = [
-    {
-      name: 'Observe',
-      why: 'Look without touching. Read-only: which repositories exist, what branch each is on, how far ahead or behind it is, and which files are dirty.',
-      tech: 'API-033 GET /api/source-control/status · API-079 GET /api/projects/status (agent-sync observation; carries its own observed_at, so it stays a dated observation rather than timeless truth)',
-      shown: true
-    },
-    {
-      name: 'Diff',
-      why: 'Show exactly what would change — in plain words first, then the lines. No hidden scope, no surprises at the end.',
-      tech: 'API-034 GET /api/source-control/history?repo=&limit= for context; the diff itself is computed read-only, never applied',
-      shown: true
-    },
-    {
-      name: 'Propose',
-      why: 'Write down one named action with what it does, why, which tool it uses, what the risk is, and what to expect. Then it waits for you.',
-      tech: 'proposal rendered by UI-004 Projects; agreement anywhere else is never authorization',
-      shown: true
-    },
-    {
-      name: 'Approve',
-      why: 'You say yes explicitly, and the world re-checks who you are at the moment of action rather than trusting an earlier session.',
-      tech: 'API-035 POST /api/source-control/refresh — require_step_up, person-scoped',
-      shown: false
-    },
-    {
-      name: 'Act',
-      why: 'The single approved action runs. Here that is deliberately small: re-run the read-only git status for ONE repository. Then it is written down — who proposed, what was approved, what happened, which tool, what came back, and when.',
-      tech: 'API-035 → PROV-001 NativeGit → journaled as a provider action',
-      shown: false
-    },
-    {
-      name: 'Re-observe',
-      why: 'Look again and show you the new state, so you can see what actually happened instead of trusting the promise that something did.',
-      tech: 'API-033 again · API-036 GET /api/source-control/enrichment for remote facts (not_configured when there is no gh session)',
-      shown: false
-    }
-  ];
-
-  /* ── SPECIMEN DATA ─────────────────────────────────────────────
-     Five repositories, one per honest state, so the panel can show
-     every state the real domain has — including the calm one. */
-  var REPOS = [
-    {
-      id: 'personal-world',
-      name: 'personal-world',
-      status: 'dirty',
-      branch: 'main',
-      upstream: 'origin/main',
-      ahead: 0,
-      behind: 0,
-      work: '9 changes in the working tree — 7 modified, 2 untracked, 0 conflicted',
-      sentence: 'Published state is safe; your local work is still in progress. Nothing is lost and nothing is urgent — a dirty tree is information.',
-      observed: 'observed 2 hours ago · a dated observation, not timeless truth',
-      enrichment: 'remote facts available: 4 open pull requests · last remote push 2 hours ago',
-      tree: {
-        state: 'observed',
-        rows: [
-          {
-            kind: 'dir', name: 'src/', when: '2 days ago',
-            note: 'the world model, providers, and the API',
-            children: [
-              { kind: 'file', name: 'api.py', when: '2 days ago', note: 'routes, including the four source-control reads' },
-              { kind: 'file', name: 'source_control.py', when: '1 week ago', note: 'native git baseline — read-only by default' },
-              { kind: 'dir', name: 'providers/', when: '2 days ago', note: 'adapters; each one degrades honestly' }
-            ]
-          },
-          { kind: 'dir', name: 'frontend/', when: 'today', note: 'React surfaces, tokens, browser gates' },
-          { kind: 'dir', name: 'docs/', when: '2 days ago', note: 'architecture, accessibility contract, surface registry' },
-          { kind: 'dir', name: 'design/', when: 'today', note: 'tokens, companion art, this exploration', flag: 'modified' },
-          { kind: 'file', name: 'AGENTS.md', when: 'yesterday', note: 'truth-routing rules for agents' },
-          { kind: 'file', name: 'ROADMAP.md', when: '1 week ago', note: 'direction, not promises' },
-          { kind: 'file', name: 'pyproject.toml', when: '1 week ago', note: 'package and tool configuration' }
-        ]
-      },
-      commits: {
-        state: 'observed',
-        rows: [
-          { hash: '7c41a9e', subject: 'projects: a content view under the map — repo, tree, commits', when: '2 hours ago' },
-          { hash: 'a3f2e1c', subject: 'station: bigger planets, warmer glows, companion sparkles', when: '5 hours ago' },
-          { hash: 'b7d4a2f', subject: 'map: drag to rearrange planets, layout persists per region', when: 'yesterday' },
-          { hash: 'c9e1f3d', subject: 'chat: template cards replace the hidden dropdown', when: '2 days ago' },
-          { hash: 'd2a8b4e', subject: 'accessibility: 44px floor audit, focus rings, reduced-motion guards', when: '3 days ago' }
-        ]
-      }
-    },
-    {
-      id: 'lantern-notes',
-      name: 'lantern-notes',
-      status: 'needs_attention',
-      branch: 'main',
-      upstream: 'origin/main',
-      ahead: 0,
-      behind: 4,
-      work: 'working tree clean — no local changes',
-      sentence: 'The remote has newer history than this copy: 4 commits you do not have yet. Nothing is broken, this one just needs you.',
-      observed: 'observed 20 minutes ago',
-      enrichment: 'remote facts available: 4 new commits on origin/main · 1 open issue',
-      tree: {
-        state: 'observed',
-        rows: [
-          { kind: 'dir', name: 'notes/', when: '3 days ago', note: '412 markdown notes, newest first' },
-          { kind: 'dir', name: 'drafts/', when: '3 days ago', note: 'half-finished, on purpose' },
-          { kind: 'file', name: 'README.md', when: '1 week ago', note: 'what this notebook is for' },
-          { kind: 'file', name: 'index.md', when: '3 days ago', note: 'generated table of contents' }
-        ]
-      },
-      commits: {
-        state: 'observed',
-        rows: [
-          { hash: '4e8b0d1', subject: 'notes: evening page, plus two links back to older thinking', when: '3 days ago' },
-          { hash: '9a2c7f4', subject: 'index: regenerate after the weekend batch', when: '5 days ago' },
-          { hash: '1f6d3b8', subject: 'drafts: pick the tide metaphor back up', when: '1 week ago' }
-        ]
-      }
-    },
-    {
-      id: 'pickle',
-      name: 'pickle',
-      status: 'diverged',
-      branch: 'feature/tide',
-      upstream: 'origin/feature/tide',
-      ahead: 2,
-      behind: 5,
-      work: '3 changes in the working tree — 2 modified, 1 untracked, 0 conflicted',
-      sentence: 'Local and remote histories have diverged — both sides have work the other does not have. This is the one that needs a human decision, not a script.',
-      observed: 'observed 2 hours ago',
-      enrichment: 'remote facts unavailable: no gh session, so remote detail is unknown',
-      tree: {
-        state: 'observed',
-        rows: [
-          { kind: 'dir', name: 'pickle/', when: 'today', note: 'the adapter layer other projects borrow', flag: 'modified' },
-          { kind: 'dir', name: 'tests/', when: 'today', note: 'contract tests for the adapters' },
-          { kind: 'file', name: 'CHANGELOG.md', when: 'today', note: 'two entries not published yet', flag: 'local only' },
-          { kind: 'file', name: 'pyproject.toml', when: '4 days ago', note: 'package metadata' }
-        ]
-      },
-      commits: {
-        state: 'observed',
-        rows: [
-          { hash: '5b0f7a2', subject: 'adapters: keep the sensor read-only, log what it saw', when: 'today', flag: 'local only' },
-          { hash: 'e3d9c61', subject: 'tests: pin the record shape the other side expects', when: 'today', flag: 'local only' },
-          { hash: '2c7a4e9', subject: 'docs: explain why diverged is a decision, not an error', when: '4 days ago' },
-          { hash: '8f1b5d3', subject: 'chore: drop the unused retry helper', when: '6 days ago' }
-        ]
-      }
-    },
-    {
-      id: 'agent-sketches',
-      name: 'agent-sketches',
-      status: 'healthy',
-      branch: 'main',
-      upstream: 'origin/main',
-      ahead: 0,
-      behind: 0,
-      work: 'working tree clean — no local changes',
-      sentence: 'All good. Published, clean tree, nothing waiting on you. This is the quiet state, and it is a good thing to see.',
-      observed: 'observed 2 hours ago',
-      enrichment: 'remote facts available: 0 open pull requests · last remote push 6 days ago',
-      tree: {
-        state: 'observed',
-        rows: [
-          { kind: 'dir', name: 'sketches/', when: '6 days ago', note: 'small experiments, each one self-contained' },
-          { kind: 'file', name: 'README.md', when: '6 days ago', note: 'which sketches are still alive' },
-          { kind: 'file', name: 'LICENSE', when: '2 weeks ago', note: 'shared licence for the folder' }
-        ]
-      },
-      commits: {
-        state: 'observed',
-        rows: [
-          { hash: 'c19e4b7', subject: 'sketch: a map that only reveals what you walk toward', when: '6 days ago' },
-          { hash: '6d2f8a0', subject: 'readme: mark two sketches as finished thinking', when: '6 days ago' },
-          { hash: '0a5c3e2', subject: 'initial commit', when: '2 weeks ago' }
-        ]
-      }
-    },
-    {
-      id: 'old-notebooks',
-      name: 'old-notebooks',
-      status: 'unknown',
-      branch: null,
-      upstream: null,
-      ahead: null,
-      behind: null,
-      work: null,
-      sentence: 'Not sure yet. The last look at this repository did not finish, so there is nothing honest to say about its branch, its sync, or its files. Unknown is a real state — not an empty one, and not a broken one.',
-      observed: 'last observation failed 3 days ago · nothing newer is known',
-      enrichment: 'remote facts not configured: no gh session, so remote detail is unknown too',
-      tree: {
-        state: 'unobserved',
-        why: 'The observation ended in an error, so no tree is shown rather than an invented one. In the product this is API-033 returning an error for this path: the tree is unknown, not empty.'
-      },
-      commits: {
-        state: 'unobserved',
-        why: 'History was not read, so none is listed. API-034 would supply this newest-first once an observation succeeds.'
-      }
-    }
-  ];
+  function API() { return window.PW_API; }
 
   /* ── small helpers ── */
   function esc(s) {
@@ -244,96 +51,103 @@
     });
   }
   function mono(s) { return '<span class="pv-mono">' + esc(s) + '</span>'; }
-  function find(id) {
-    for (var i = 0; i < REPOS.length; i++) { if (REPOS[i].id === id) { return REPOS[i]; } }
-    return null;
+
+  function whenText(iso) {
+    if (!iso) { return null; }
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) { return null; }
+    return d.toLocaleString([], {
+      weekday: 'short', day: 'numeric', month: 'short',
+      hour: 'numeric', minute: '2-digit'
+    });
   }
-  function specimen() { return '<span class="pv-specimen">specimen</span>'; }
+  function timeEl(iso) {
+    if (!iso) { return esc('undated'); }
+    return '<time datetime="' + esc(iso) + '">' + esc(whenText(iso) || iso) + '</time>';
+  }
+
+  /* Map one repo record (source_control.repository_status shape) to a
+     canonical status + plain sentence. Never invents a field. */
+  function repoState(r) {
+    if (r && r.error && r.branch === null && r.dirty === null) {
+      return { status: 'unknown', why: 'Repository state could not be read. Nothing here is guessed — what is known is shown.' };
+    }
+    if (r && r.error && (r.dirty === null)) {
+      return { status: 'unknown', why: 'The working-tree check failed. The branch information above may still be current.' };
+    }
+    var dirty = !!(r && r.dirty);
+    var ahead = r && typeof r.ahead === 'number' ? r.ahead : null;
+    var behind = r && typeof r.behind === 'number' ? r.behind : null;
+    if (ahead && behind) { return { status: 'diverged', why: 'Local and remote histories have both moved — this one needs a human decision, not a script.' }; }
+    if (dirty || ahead || behind) { return { status: 'dirty', why: 'Some of the work is still local. A dirty or unpublished tree is information, not an emergency.' }; }
+    if (ahead === 0 && behind === 0 && !dirty) {
+      return { status: 'healthy', why: 'Clean tree, even with its remote. Nothing here is waiting on you.' };
+    }
+    return { status: 'unknown', why: 'Not every part of this repository could be read. What was observed is shown; the rest is not known yet.' };
+  }
 
   /* ── chips: every one carries a word, never colour alone ── */
   function branchChip(r) {
-    var body = r.branch === null
-      ? 'branch not observed'
-      : 'branch ' + mono(r.branch);
+    var body = (r && r.branch) ? 'branch ' + mono(r.branch) : 'branch not observed';
     return '<li><span class="pv-chip pv-chip-branch">' +
              '<span class="pv-cdot" aria-hidden="true"></span>' + body +
            '</span></li>';
   }
-
   function syncText(r) {
-    if (r.ahead === null || r.behind === null) { return 'ahead / behind unknown'; }
-    if (r.ahead === 0 && r.behind === 0) { return 'even with ' + r.upstream; }
+    var ahead = typeof r.ahead === 'number' ? r.ahead : null;
+    var behind = typeof r.behind === 'number' ? r.behind : null;
+    if (ahead === null || behind === null) { return 'ahead / behind not known'; }
+    if (ahead === 0 && behind === 0) { return 'even with ' + (r.remote ? 'its remote' : 'no remote tracking branch'); }
     var parts = [];
-    if (r.ahead > 0) { parts.push(r.ahead + ' ahead'); }
-    if (r.behind > 0) { parts.push(r.behind + ' behind'); }
-    return parts.join(' · ') + ' of ' + r.upstream;
+    if (ahead > 0) { parts.push(ahead + ' ahead'); }
+    if (behind > 0) { parts.push(behind + ' behind'); }
+    return parts.join(' · ') + (r.remote ? '' : ' (no remote tracking branch)');
   }
   function syncChip(r) {
     return '<li><span class="pv-chip pv-chip-sync">' +
              '<span class="pv-cdot" aria-hidden="true"></span>' + esc(syncText(r)) +
            '</span></li>';
   }
-
-  function statusChip(r) {
-    return '<li><span class="pv-chip pv-chip-status pv-st-' + esc(r.status) + '">' +
+  function statusChip(status) {
+    return '<li><span class="pv-chip pv-chip-status pv-st-' + esc(status) + '">' +
              '<span class="pv-cdot" aria-hidden="true"></span>' +
-             '<span class="pv-chip-k">status</span> ' + esc(WORD[r.status]) +
+             '<span class="pv-chip-k">status</span> ' + esc(WORD[status] || status) +
            '</span></li>';
   }
 
-  /* ── file tree: directories are real disclosures (native keyboard) ── */
-  function flag(f) {
-    return f ? '<span class="pv-flag">' + esc(f) + '</span>' : '';
-  }
-  function treeRow(n, depth) {
-    var kids = (n.children && n.children.length) ? n.children : null;
-    var expandable = n.kind === 'dir' && kids && depth === 0;
-    var ico = (expandable ? '<span class="pv-caret" aria-hidden="true">▸</span>' : '') +
-              '<span class="pv-ico" aria-hidden="true">' + (n.kind === 'dir' ? '📁' : '📄') + '</span>';
-    var body = ico + '<span class="pv-name">' + esc(n.name) + '</span>' +
-               (n.note ? '<span class="pv-note">' + esc(n.note) + '</span>' : '') +
-               flag(n.flag) +
-               (expandable ? '<span class="pv-count">' + kids.length + ' inside</span>' : '') +
-               '<span class="pv-when">' + esc(n.when) + '</span>';
-    if (expandable) {
-      return '<li><details class="pv-dir">' +
-               '<summary>' + body + '</summary>' +
-               '<ul class="pv-tree-sub">' + kids.map(function (c) { return treeRow(c, depth + 1); }).join('') + '</ul>' +
-             '</details></li>';
-    }
-    return '<li class="pv-row">' + body + '</li>';
+  /* ── honest states ─────────────────────────────────────────── */
+
+  function notSetupHTML(why) {
+    return '<div class="pv-state" role="status">' +
+      '<b>Your repositories are not set up.</b>' +
+      '<p>Project Worlds reads repository state through git on this server. ' +
+      esc(why || 'No folders to watch are configured, so there are no repositories to show.') +
+      ' Nothing here is filled in with sample content — absence is not failure.</p>' +
+      '<p>When folders are configured for source control on the server, ' +
+      'they appear here with their real state.</p>' +
+      '</div>';
   }
 
-  function treeBlock(r) {
-    var head = '<h4 class="pv-block-h" id="pv-tree-h">Files' +
-      (r.tree.state === 'observed' ? ' <span class="pv-count">' + r.tree.rows.length + ' top level</span>' : '') +
-      ' ' + specimen() + '</h4>';
+  /* ── commits ── */
+  function commitsBlockHTML(r, env) {
+    var head = '<h4 class="pv-block-h" id="pv-commits-h">Recent commits</h4>';
     var inner;
-    if (r.tree.state !== 'observed') {
-      inner = '<div class="pv-state"><b>No tree observed</b>' + esc(r.tree.why) + '</div>';
+    if (!env) {
+      inner = '<div class="pv-state"><b>Checking recent commits…</b></div>';
+    } else if (!env.ok) {
+      inner = '<div class="pv-state"><b>Couldn’t read the history.</b> ' +
+        esc((env.error && env.error.message) || '') +
+        ' <button type="button" class="pv-btn pv-btn-gate" data-pv-history-retry>Try again</button></div>';
+    } else if (!env.data || !env.data.commits || !env.data.commits.length) {
+      inner = '<div class="pv-state"><b>No commits observed.</b> An empty repository is a valid quiet state, not an error.</div>';
     } else {
-      inner = '<ul class="pv-tree">' + r.tree.rows.map(function (n) { return treeRow(n, 0); }).join('') + '</ul>';
-    }
-    return '<section class="pv-block" aria-labelledby="pv-tree-h">' + head + inner + '</section>';
-  }
-
-  /* ── recent commits: hash · message · when ── */
-  function commitsBlock(r) {
-    var head = '<h4 class="pv-block-h" id="pv-commits-h">Recent commits' +
-      (r.commits.state === 'observed' ? ' <span class="pv-count">' + r.commits.rows.length + ' shown, newest first</span>' : '') +
-      ' ' + specimen() + '</h4>';
-    var inner;
-    if (r.commits.state !== 'observed') {
-      inner = '<div class="pv-state"><b>No history observed</b>' + esc(r.commits.why) + '</div>';
-    } else {
-      inner = '<ol class="pv-commits">' + r.commits.rows.map(function (c) {
+      inner = '<ol class="pv-commits">' + env.data.commits.map(function (c) {
         return '<li class="pv-commit">' +
                  '<span class="pv-rail" aria-hidden="true"></span>' +
                  '<span class="pv-subject">' + esc(c.subject) + '</span>' +
                  '<span class="pv-commit-meta">' +
-                   '<span class="pv-hash">' + esc(c.hash) + '</span>' +
-                   flag(c.flag) +
-                   '<span class="pv-when">' + esc(c.when) + '</span>' +
+                   '<span class="pv-hash">' + esc(String(c.revision || '').slice(0, 7)) + '</span>' +
+                   '<span class="pv-when">' + timeEl(c.date) + '</span>' +
                  '</span>' +
                '</li>';
       }).join('') + '</ol>';
@@ -341,7 +155,26 @@
     return '<section class="pv-block" aria-labelledby="pv-commits-h">' + head + inner + '</section>';
   }
 
-  /* ── the gate: explains the safe write flow, performs no write ── */
+  /* ── the gate: explains the safe write flow, performs no write.
+     Until a real proposal path is wired, the button is labelled for
+     what it actually does (LANG-019). ── */
+  function gatePanelHTML(r) {
+    return '<p class="pv-gate-head"><strong>This explanation did not run a ' +
+             'command or change this repository.</strong> It is what the ' +
+             'control shows instead of an action, until a refresh path is wired.</p>' +
+           '<ol class="pv-steps">' + STEPS.map(stepHTML).join('') + '</ol>' +
+           '<p class="pv-gate-stop">The later steps are not wired yet. When a ' +
+             'refresh is wired, the first action stays the smallest useful one: ' +
+             're-run the read-only status for ' + mono(r.name) + ' through ' +
+             mono('API-035 POST /api/source-control/refresh') +
+             ' with your explicit confirmation, then observe again and write ' +
+             'down what came back.</p>' +
+           '<div class="pv-gate-actions">' +
+             '<button type="button" class="pv-btn pv-btn-quiet" data-pv-gate-close>Close explanation</button>' +
+             '<span class="pv-gate-tag">Esc closes it too</span>' +
+           '</div>';
+  }
+
   function stepHTML(s) {
     return '<li class="pv-step">' +
              '<span class="pv-step-n" aria-hidden="true"></span>' +
@@ -350,42 +183,51 @@
                '<p class="pv-step-why">' + esc(s.why) + '</p>' +
                '<p class="pv-step-tech">' + esc(s.tech) + '</p>' +
                '<span class="pv-step-state ' + (s.shown ? 'pv-step-shown' : 'pv-step-unwired') + '">' +
-                 (s.shown ? 'shown here · specimen' : 'not wired in this prototype') +
+                 (s.shown ? 'read here · from the real repository' : 'not wired') +
                '</span>' +
              '</div>' +
            '</li>';
   }
 
-  function gatePanelHTML(r) {
-    return '<p class="pv-gate-head"><strong>Nothing was written.</strong> No command ran, no file ' +
-             'changed, no repository was touched — not here and not anywhere. This is the ' +
-             'explanation the gate shows instead of an action.</p>' +
-           '<ol class="pv-steps">' + STEPS.map(stepHTML).join('') + '</ol>' +
-           '<p class="pv-gate-stop">Steps 4 to 6 need a live, signed-in world and an explicit ' +
-             'step-up approval at the moment of action, so this prototype stops at the ' +
-             'explanation — deliberately, not accidentally. When they are wired, the first ' +
-             'action stays the smallest useful one: re-run the read-only status for ' +
-             mono(r.name) + ' through ' + mono('API-035 POST /api/source-control/refresh') +
-             ', then journal what came back.</p>' +
-           '<div class="pv-gate-actions">' +
-             '<button type="button" class="pv-btn pv-btn-quiet" data-pv-gate-close>Close explanation</button>' +
-             '<span class="pv-gate-tag">Esc closes it too</span>' +
-           '</div>';
-  }
+  var STEPS = [
+    {
+      name: 'Observe',
+      why: 'Look without touching. Read-only: which repositories exist, what branch each is on, how far ahead or behind it is, and whether files are changed.',
+      tech: 'API-033 GET /api/source-control/status · reads below are this view’s real reads',
+      shown: true
+    },
+    {
+      name: 'Diff',
+      why: 'Show exactly what would change — in plain words first, then the lines. No hidden scope, no surprises at the end.',
+      tech: 'API-034 GET /api/source-control/history for context; a diff is computed read-only, never applied',
+      shown: false
+    },
+    {
+      name: 'Propose',
+      why: 'Write down one named action with what it does, why, which tool it uses, what the risk is, and what to expect. Then it waits for you.',
+      tech: 'a proposal waits for an explicit approval — agreement anywhere else is never authorization',
+      shown: false
+    },
+    {
+      name: 'Approve, act, observe again',
+      why: 'You say yes explicitly; the one approved action runs; the view is checked again so you can see what actually happened.',
+      tech: 'API-035 POST /api/source-control/refresh · require_step_up · journaled',
+      shown: false
+    }
+  ];
 
   function gateHTML(r) {
     return '<section class="pv-gate" aria-labelledby="pv-gate-h">' +
-             '<h4 class="pv-block-h" id="pv-gate-h">Refresh ' + mono(r.name) + '</h4>' +
-             '<p class="pv-gate-lede">A refresh is a <strong>write</strong>, so it is gated. ' +
-               'Pressing this button shows you the safe path instead of taking it: what would ' +
-               'be observed, what would change, and what your approval would be required for.</p>' +
+             '<h4 class="pv-block-h" id="pv-gate-h">Refreshing ' + mono(r.name) + '</h4>' +
+             '<p class="pv-gate-lede">A refresh is a <strong>write</strong>, so it would be ' +
+               'gated. This control explains the safe path instead of taking it: what would ' +
+               'be observed, what would change, and what your confirmation would be required for.</p>' +
              '<div class="pv-gate-row">' +
                '<button type="button" class="pv-btn pv-btn-gate" id="pv-gate-btn" ' +
                        'aria-expanded="false" aria-controls="pv-gate-panel">' +
-                 '<span class="pv-btn-main">Propose refresh</span>' +
-                 '<span class="pv-btn-sub">gated · explains only</span>' +
+                 '<span class="pv-btn-main">How project refresh would work</span>' +
+                 '<span class="pv-btn-sub">explains the safe path · writes nothing</span>' +
                '</button>' +
-               '<span class="pv-gate-tag">writes nothing</span>' +
              '</div>' +
              '<div class="pv-gate-panel" id="pv-gate-panel" tabindex="-1" hidden>' +
                gatePanelHTML(r) +
@@ -395,21 +237,18 @@
 
   /* ── the panel for the chosen repository ── */
   function panelHTML(r) {
+    var state = repoState(r);
     return '<article class="pv-panel" aria-labelledby="pv-panel-title">' +
              '<header class="pv-panel-head">' +
                '<div class="pv-panel-id">' +
                  '<span class="pv-glyph" aria-hidden="true">✦</span>' +
                  '<h3 class="pv-repo-title" id="pv-panel-title">' + esc(r.name) + '</h3>' +
                '</div>' +
-               '<ul class="pv-chips">' + branchChip(r) + syncChip(r) + statusChip(r) + '</ul>' +
-               '<p class="pv-sentence">' + esc(r.sentence) + '</p>' +
-               '<p class="pv-observed">' +
-                 esc(r.observed) + '<br>' +
-                 (r.work ? esc(r.work) + '<br>' : '') +
-                 esc(r.enrichment) + ' · ' + specimen() +
-               '</p>' +
+               '<ul class="pv-chips">' + branchChip(r) + syncChip(r) + statusChip(state.status) + '</ul>' +
+               '<p class="pv-sentence">' + esc(state.why) + '</p>' +
+               '<p class="pv-observed">read from git on this server · checked just now</p>' +
              '</header>' +
-             '<div class="pv-body">' + treeBlock(r) + commitsBlock(r) + '</div>' +
+             '<div class="pv-body">' + commitsBlockHTML(r, null) + '</div>' +
              gateHTML(r) +
            '</article>';
   }
@@ -419,43 +258,41 @@
     return '<details class="tech pv-tech">' +
              '<summary>technical · status vocabulary, real bindings, and the write gate</summary>' +
              '<div class="tech-body">' +
-               'canonical status: healthy · needs_attention · dirty · diverged · unknown<br>' +
-               'shown on screen:  all good · needs you · work in progress · diverged · not sure yet<br>' +
+               'canonical statuses: healthy · dirty · diverged · unknown<br>' +
+               'shown on screen: all good · work in progress · diverged · not known yet<br>' +
                '<br>' +
-               'API-079 GET  /api/projects/status            project estate (agent-sync sensor; honest "unavailable" envelope when absent)<br>' +
-               'API-033 GET  /api/source-control/status      per repo: branch, revision, dirty, ahead, behind, remote, error<br>' +
-               'API-034 GET  /api/source-control/history     newest-first commits for one repository (the list above)<br>' +
-               'API-035 POST /api/source-control/refresh     the ONLY write here: propose → approve → act, require_step_up, journaled. Never called by this prototype.<br>' +
-               'API-036 GET  /api/source-control/enrichment  remote facts via the gh session; not_configured when there is none<br>' +
+               'API-033 GET  /api/source-control/status     the repository list above (real read; not_configured when no folders are configured)<br>' +
+               'API-034 GET  /api/source-control/history    the commits for a chosen repository, newest first<br>' +
+               'API-035 POST /api/source-control/refresh    the only write here: confirm-first, journaled. Not wired to this page.<br>' +
+               'API-036 GET  /api/source-control/enrichment  remote facts via the gh session — not consumed on this surface.<br>' +
+               'API-079 GET  /api/projects/status           project estate via the agent-sync sensor — not consumed on this surface.<br>' +
                '<br>' +
-               'every write in this world goes: observe → diff → propose → approve → act → re-observe<br>' +
-               'this view performs no reads and no writes. every record above is specimen.' +
+               'no file tree is shown because no read provides one; unknown paths are left out, never invented.<br>' +
+               'this view performs reads only. it never calls the write.' +
              '</div>' +
            '</details>';
   }
 
   function repoButtonHTML(r) {
-    return '<li><button type="button" class="pv-repo-btn" data-repo="' + esc(r.id) + '" aria-pressed="false">' +
+    var state = repoState(r);
+    return '<li><button type="button" class="pv-repo-btn" data-repo="' + esc(r.name) + '" aria-pressed="false">' +
              '<span class="pv-pick" aria-hidden="true">✓</span>' +
              '<span class="pv-repo-name">' + esc(r.name) + '</span>' +
-             '<span class="pv-chip pv-chip-status pv-st-' + esc(r.status) + '">' +
+             '<span class="pv-chip pv-chip-status pv-st-' + esc(state.status) + '">' +
                '<span class="pv-cdot" aria-hidden="true"></span>' +
-               '<span class="pv-chip-k">status</span> ' + esc(WORD[r.status]) +
+               '<span class="pv-chip-k">status</span> ' + esc(WORD[state.status] || state.status) +
              '</span>' +
            '</button></li>';
   }
 
-  function shellHTML() {
+  function shellHTML(env) {
+    var repos = (env && env.data && Array.isArray(env.data.repos)) ? env.data.repos : [];
     return '<h2 class="pv-title" id="pv-title">Your repositories</h2>' +
-      '<p class="pv-lede">What you are making, as it actually is — including the messy parts. ' +
-        'A dirty tree is information, not an emergency. ✦</p>' +
-      '<p class="pv-specimen-line">' + specimen() + ' Every repository, branch, file and commit ' +
-        'below is illustrative. It is shaped like the real read APIs so that wiring it later is a ' +
-        'swap rather than a rewrite — but none of it is your work, and this page reads nothing and ' +
-        'writes nothing.</p>' +
+      '<p class="pv-lede">What you are making, as it actually is — read from git on this ' +
+        'server just now. A dirty tree is information, not an emergency. ✦</p>' +
       '<div class="pv-choose" role="group" aria-labelledby="pv-choose-label">' +
-        '<span class="pv-sublabel" id="pv-choose-label">Choose a repository · five honest states</span>' +
-        '<ul class="pv-repolist">' + REPOS.map(repoButtonHTML).join('') + '</ul>' +
+        '<span class="pv-sublabel" id="pv-choose-label">Choose a repository</span>' +
+        '<ul class="pv-repolist">' + repos.map(repoButtonHTML).join('') + '</ul>' +
       '</div>' +
       '<div id="pv-panel-slot"></div>' +
       '<p class="sr-only" role="status" aria-live="polite" id="pv-live"></p>' +
@@ -484,41 +321,167 @@
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) {
       panel.focus();
-      say('Explanation open. Nothing was written: no command ran and no file changed.');
+      say('Explanation open. Nothing was written: this explanation did not run a command or change a repository.');
     } else {
       btn.focus();
       say('Explanation closed. Nothing was written.');
     }
   }
 
-  function select(id, quiet) {
-    var r = find(id);
+  function find(name) {
+    if (!latest || !latest.ok || !latest.data) { return null; }
+    var repos = latest.data.repos || [];
+    for (var i = 0; i < repos.length; i++) { if (repos[i].name === name) { return repos[i]; } }
+    return null;
+  }
+
+  function select(name, quiet) {
+    var r = find(name);
     if (!r || !mount) { return; }
     var slot = document.getElementById('pv-panel-slot');
     if (!slot) { return; }
     var focusWasInside = slot.contains(document.activeElement);
 
-    current = r;
+    current = name;
     Array.prototype.forEach.call(mount.querySelectorAll('[data-repo]'), function (b) {
-      b.setAttribute('aria-pressed', b.getAttribute('data-repo') === id ? 'true' : 'false');
+      b.setAttribute('aria-pressed', b.getAttribute('data-repo') === name ? 'true' : 'false');
     });
     slot.innerHTML = panelHTML(r);
+    /* wrap the commits block in a stable repaint target */
+    var body = slot.querySelector('.pv-body');
+    if (body) {
+      var block = body.querySelector('.pv-block');
+      var slotDiv = document.createElement('div');
+      slotDiv.id = 'pv-history-slot';
+      block.parentNode.replaceChild(slotDiv, block);
+      slotDiv.appendChild(block);
+    }
+    loadHistoryRows(name);
 
     if (focusWasInside) {
       var title = document.getElementById('pv-panel-title');
       if (title) { title.setAttribute('tabindex', '-1'); title.focus(); }
     }
     if (!quiet) {
-      say(r.name + ' — ' + WORD[r.status] + '. ' + r.sentence + ' Specimen data; nothing was read or written.');
+      var state = repoState(r);
+      say(r.name + ' — ' + (WORD[state.status] || state.status) + '. ' + state.why);
     }
   }
 
+  /* fetch the real history for the selected repository (API-034) */
+  function loadHistoryRows(name) {
+    function fetchRows() {
+      API().read('API-034', { query: { repo: name, limit: 10 } }).then(function (env) {
+        var active = document.getElementById('pv-history-slot');
+        if (!active || current !== name) { return; }
+        var block = active.querySelector('.pv-block');
+        if (!block) { return; }
+        var fresh = document.createElement('div');
+        fresh.innerHTML = commitsBlockHTML({ name: name }, env);
+        block.parentNode.replaceChild(fresh.firstChild, block);
+      });
+    }
+    fetchRows();
+  }
+
+  /* ── the whole boot: one real read drives the surface ── */
+  var latest = null;
+  var listenersOn = null;
+
+  function paint(env) {
+    latest = env;
+    if (!mount) { return; }
+
+    if (!env || env.ok === undefined) {
+      mount.innerHTML = loadingHTML();
+      wire();
+      return;
+    }
+
+    /* not_configured outranks ok: an empty payload from an unconfigured
+       source is an honest not-set-up state, never a quiet empty list */
+    if (env.status === 'not_configured') {
+      mount.innerHTML = notSetupShell(env);
+      wire();
+      return;
+    }
+
+    if (!env.ok) {
+      if (env.status === 'not_configured') {
+        mount.innerHTML = notSetupShell(env);
+      } else {
+        mount.innerHTML = failureShell(env);
+      }
+      wire();
+      return;
+    }
+
+    mount.innerHTML = shellHTML(env);
+    wire();
+    var repos = env.data && env.data.repos ? env.data.repos : [];
+    if (repos.length) { select(repos[0].name, true); }
+    else { /* a successful read that found nothing: the same honest not-set-up state */
+      mount.innerHTML = notSetupShell(env);
+      wire();
+    }
+  }
+
+  function loadingHTML() {
+    return '<h2 class="pv-title" id="pv-title">Your repositories</h2>' +
+      '<p class="pv-lede">What you are making, as it actually is.</p>' +
+      '<p class="pv-boot" role="status">Checking your repositories…</p>' +
+      techHTML();
+  }
+
+  function notSetupShell(env) {
+    var why = (env && env.warnings && env.warnings[0]) || null;
+    var text;
+    if (why === 'no source_control search paths configured') {
+      text = 'No folders to watch are configured yet.';
+    } else if (why === 'no git repositories found in configured search paths') {
+      text = 'The configured folders contain no git repositories yet.';
+    } else {
+      text = 'No repositories are reachable from the configured folders yet.';
+    }
+    return '<h2 class="pv-title" id="pv-title">Your repositories</h2>' +
+      '<p class="pv-lede">What you are making, as it actually is.</p>' +
+      notSetupHTML(text) +
+      '<p class="pv-observed">checked just now</p>' +
+      techHTML();
+  }
+
+  function failureShell(env) {
+    return '<h2 class="pv-title" id="pv-title">Your repositories</h2>' +
+      '<p class="pv-lede">What you are making, as it actually is.</p>' +
+      '<div class="pv-state" role="status">' +
+        '<b>Couldn’t check your repositories.</b>' +
+        '<p>' + esc((env && env.error && env.error.message) || '') + '</p>' +
+        '<p>Nothing was changed by this failed check. Try again below.</p>' +
+        '<button type="button" class="pv-btn pv-btn-gate" data-pv-retry>Try again</button>' +
+      '</div>' +
+      techHTML();
+  }
+
+  function shellLoading() {
+    /* kept for the debug surface above; loading painting also goes
+       through paint() with its shellLoading replacement removed */
+    return loadingHTML();
+  }
+
+  /* Delegated listeners live on the mount itself: every repaint keeps
+     them working, so wiring happens once per mount (the guard keeps a
+     repeated boot from stacking handlers). */
   function wire() {
+    if (listenersOn === mount) { return; }
+    listenersOn = mount;
     mount.addEventListener('click', function (e) {
       var t = e.target;
       if (!t || !t.closest) { return; }
+      if (t.closest('[data-pv-retry]')) { boot(); return; }
       var repoBtn = t.closest('[data-repo]');
       if (repoBtn) { select(repoBtn.getAttribute('data-repo')); return; }
+      var retry = t.closest('[data-pv-history-retry]');
+      if (retry && current) { loadHistoryRows(current); return; }
       if (t.closest('#pv-gate-btn')) {
         var panel = document.getElementById('pv-gate-panel');
         setGate(!!panel && panel.hidden);
@@ -540,9 +503,13 @@
     mount = document.getElementById(MOUNT);
     if (!mount) { return; }
     mount.classList.add('pv');
-    mount.innerHTML = shellHTML();
-    wire();
-    select(REPOS[0].id, true);
+    mount.innerHTML = loadingHTML();
+    if (!API()) {
+      paint({ ok: false, status: 'unavailable',
+              error: { message: 'The page could not talk to the server just now.' } });
+      return;
+    }
+    API().read('API-033').then(paint);
   }
 
   if (document.readyState === 'loading') {
@@ -551,9 +518,8 @@
 
   /* small surface for review/debugging in the console; performs no writes */
   window.PW_PROJECTS_VIEW = {
-    specimen: REPOS,
-    steps: STEPS,
     current: function () { return current; },
-    select: function (id) { select(id); }
+    latest: function () { return latest; },
+    refresh: function () { boot(); }
   };
 })();

@@ -20,10 +20,13 @@
      Preferences    ← API-030-get GET /api/prefs
                       API-031     GET /api/prefs/schema
 
-   STILL SPECIMEN (no endpoint exists — see SPECIMEN_REMAINING below,
-   which is rendered in the technical disclosure rather than hidden)
-     Interests/discovery cards, projects repositories, media, the map's
-     per-region activity/provenance/suggestion copy.
+   ALSO REAL THROUGH THEIR OWN VIEWS (wired there, not here)
+     Projects       ← API-033/034 (projects-view.js)
+     Interests      ← API-051     (interests-view.js)
+
+   STILL SPECIMEN (see SPECIMEN_REMAINING below, rendered in the
+   technical disclosure rather than hidden)
+     Media, the map's per-region activity/provenance/suggestion copy.
 
    WRITE SAFETY
      Every provider here is read-only. Nothing in this file mutates the
@@ -46,8 +49,6 @@
      Rendered into every real-data disclosure so a reader can never
      mistake a sample for their own data. ── */
   var SPECIMEN_REMAINING = [
-    { surface: 'Interests — discovery cards', reason: 'no discovery content is rendered from API-052 here yet', view: 'interests-view.js' },
-    { surface: 'Projects — repositories, branches, commits', reason: 'API-033/034/079 exist; this panel is not wired yet', view: 'projects-view.js' },
     { surface: 'Media — library and recent activity', reason: 'API-054/055 exist; no Station surface consumes them yet', view: '—' },
     { surface: 'Map region copy (Recently / From / Suggests)', reason: 'no per-region endpoint exists', view: 'starmap.js' }
   ];

@@ -24,6 +24,9 @@
 <script src="onboarding.js" defer></script>
 <script src="search.js" defer></script>
 
+<!-- live API client (same-origin session auth): the content view
+     reads the REAL source-control endpoints through it -->
+<script src="api.js" defer></script>
 <script src="projects-view.js" defer></script>
 </head>
 <body>
@@ -65,14 +68,14 @@
   <div class="dive" id="sky-dive" tabindex="-1" hidden></div>
 
   <!-- ══ PROJECTS: content view — rendered by projects-view.js ══
-       A simplified GitHub-like repository panel below the map: repo header
-       (name, branch chip, ahead/behind chip), a compact file tree, recent
-       commits, and a GATED "Propose refresh" that explains the safe write
-       flow (observe → diff → propose → approve → act → re-observe) instead of
-       performing any write. Every record is specimen. Styles: projects-view.css. -->
+       Real repository state, read through the API client from the
+       source-control endpoints (API-033 list, API-034 history). Honest
+       not-set-up / unavailable / empty states; a GATED "How project
+       refresh would work" that explains the safe write flow instead of
+       performing any write. Styles: projects-view.css. -->
   <section id="projects-view" class="pv" aria-labelledby="pv-title">
     <h2 class="pv-title" id="pv-title">Your repositories</h2>
-    <p class="pv-boot">Working out what to show you… <span class="pv-specimen">specimen</span></p>
+    <p class="pv-boot">Working out what to show you…</p>
   </section>
 
   <p class="map-note" style="font-size:var(--fs-small);color:var(--text-faint);margin-top:var(--s5);max-width:62ch;line-height:1.6">
