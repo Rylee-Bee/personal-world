@@ -221,15 +221,16 @@ uv run personal-world serve            # or the compose path
 uv run pytest --timeout=30             # backend tests
 uv run personal-world framework validate --json   # governance gate (0 violations)
 
-# station UI (static dev server)
-open http://<host>:8090/station/index.html
+# station UI — served same-origin by the backend (no separate static server)
+scripts/dev.sh up
+open http://127.0.0.1:8000/station/
 
 # wipe dev back to first-run (DRY-RUN unless you confirm)
 scripts/reset-dev.sh                   # shows what would go
 scripts/reset-dev.sh --yes-i-wipe      # actually wipes
 
 # browser verification (owner's browser; run sequentially, cache-bust, downscale)
-opencli browser chrome open  "http://<host>:8090/station/index.html?v=N"
+opencli browser chrome open  "http://<host>:8000/station/index.html?v=N"
 opencli browser chrome screenshot /tmp/s.png && convert /tmp/s.png -resize 880x /tmp/s.jpg
 ```
 

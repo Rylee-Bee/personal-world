@@ -1,7 +1,7 @@
 # HANDOFF — Personal Worlds "Station" UI: complete-fix brief for an agent team
 
 **Date:** 2026-09-16
-**Scope:** the design prototype at `design/opendesign-exploration/station/` (served live at `http://<host>:8090/station/`).
+**Scope:** the Station UI at `design/opendesign-exploration/station/`, served same-origin by the backend at `/station/` (run `scripts/dev.sh up`; there is no separate static server any more).
 **Goal:** make this deployment **whimsical, easy to use for everyone, and modern**, with **all product ideals intact**. This is a one-time handoff; the receiving team owns the UI to completion.
 
 Read this whole file before touching anything. It is the single source of truth for this task.
@@ -120,7 +120,7 @@ station/
   *.html (legacy)   superseded deck pages — archive/delete (P3)
 ```
 
-Served by a pre-existing static server at `http://<host>:8090/station/`. **Do not** start a second server on 8090 (address in use).
+Served same-origin by the backend at `http://<host>:8000/station/` (`scripts/dev.sh up`). There is no separate static server any more.
 
 ---
 
@@ -129,7 +129,7 @@ Served by a pre-existing static server at `http://<host>:8090/station/`. **Do no
 1. **Edit** the file(s).
 2. **Drive the real browser** to verify (this is the owner's browser; it reflects the live deployment):
    ```
-   opencli browser chrome open "http://<host>:8090/station/<page>.html?v=<cachebust>"
+   opencli browser chrome open "http://<host>:8000/station/<page>.html?v=<cachebust>"
    opencli browser chrome screenshot /tmp/shot.png
    convert /tmp/shot.png -resize 880x -quality 58 /tmp/shot.jpg   # downscale before reading
    ```
