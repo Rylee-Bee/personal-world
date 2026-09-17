@@ -65,7 +65,9 @@ Key observations (D1/D2 convergence, 2026-09-15):
   `POST /api/auth/step-up` after re-presenting a credential
   (canonical); true loopback (documented local-owner exception, RFC1918
   LAN addresses do NOT qualify); and `X-PW-StepUp: 1` (delegated
-  proxy/transitional client). Step-up is person-only: an agent
+  proxy/transitional client — honored only when the request also
+  carries `X-PW-Proxy-StepUp-Secret` matching `PW_PROXY_STEPUP_SECRET`;
+  fail closed when unset or wrong). Step-up is person-only: an agent
   principal is refused with `step-up is person-only`.
 - The session grant (AUTH-008) is now consumed by `require_step_up` and
   bound to the authenticated principal; it cannot be spent across
