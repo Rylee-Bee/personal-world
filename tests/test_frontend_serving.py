@@ -94,6 +94,13 @@ class TestLoginPage:
         assert TOKEN not in r.text
         assert "Bearer" not in r.text
 
+    def test_no_dead_setup_link_post_setup(self, tmp_path, monkeypatch):
+        # Setup is already complete, so /setup redirects away; the login
+        # page must not offer a "build your world" link that just loops
+        # back through / to the Station and then here again.
+        client = _app(tmp_path, monkeypatch)
+        assert 'href="/setup"' not in client.get("/login").text
+
 
 class TestApiRoutesNeverSwallowed:
     def test_unknown_api_route_is_json_404(self, tmp_path, monkeypatch):
