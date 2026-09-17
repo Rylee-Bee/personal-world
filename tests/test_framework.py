@@ -39,11 +39,24 @@ from personal_world.providers.registry import Registry  # noqa: E402
 from personal_world.world import World  # noqa: E402
 
 STANDARD_CAPS = {
-    "source_control", "deployment", "secrets", "calendar", "discovery",
-    "settings_validation", "service_validation", "update_discovery",
-    "memory", "journal", "reasoning", "notifications", "scheduler",
-    "homelab_settings", "homelab_health", "homelab_deploy",
-    "homelab_secrets", "homelab_resources",
+    "source_control",
+    "deployment",
+    "secrets",
+    "calendar",
+    "discovery",
+    "settings_validation",
+    "service_validation",
+    "update_discovery",
+    "memory",
+    "journal",
+    "reasoning",
+    "notifications",
+    "scheduler",
+    "homelab_settings",
+    "homelab_health",
+    "homelab_deploy",
+    "homelab_secrets",
+    "homelab_resources",
 }
 
 
@@ -64,7 +77,7 @@ class TestCoreOnly:
         """Framework Rule 1: fresh install, no optional integrations,
         `daily` succeeds and every capability reports an explicit
         not-configured state (never a crash, never a silent lie).
-        
+
         Native providers that always ship (memory, vault, calendar, etc.)
         may report healthy since they provide baseline value without
         external configuration."""
@@ -77,16 +90,33 @@ class TestCoreOnly:
         assert set(result.keys()) == STANDARD_CAPS
         # Native providers that always ship may be healthy or not_configured
         # (some need external config to report healthy)
-        always_native = {"memory", "secrets", "calendar", "notifications", "update_discovery", "deployment"}
+        always_native = {
+            "memory",
+            "secrets",
+            "calendar",
+            "notifications",
+            "update_discovery",
+            "deployment",
+        }
         for cap, s in result.items():
             if cap in always_native:
-                assert s["status"] in ("healthy", "not_configured", "unavailable"), f"{cap}: {s['status']}"
+                assert s["status"] in ("healthy", "not_configured", "unavailable"), (
+                    f"{cap}: {s['status']}"
+                )
             else:
                 assert s["status"] == "not_configured", cap
 
     def test_core_only_cli_status_and_manifest(self, tmp_path, capsys):
-        rc = cli_main(["--data-dir", str(tmp_path), "--config-dir", str(tmp_path),
-                       "manifest", "--json"])
+        rc = cli_main(
+            [
+                "--data-dir",
+                str(tmp_path),
+                "--config-dir",
+                str(tmp_path),
+                "manifest",
+                "--json",
+            ]
+        )
         assert rc == 0
         out = json.loads(capsys.readouterr().out)
         m = out["data"]
@@ -103,6 +133,7 @@ class TestCoreOnly:
     def test_api_works_with_zero_providers(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
         from personal_world.api import create_app
+
         monkeypatch.setenv("PW_API_TOKEN", "t")
         c = TestClient(create_app(tmp_path, tmp_path))
         r = c.get("/api/status", headers={"Authorization": "Bearer t"})
@@ -120,17 +151,27 @@ class TestProviderLifecycle:
     def _world_with_source_control(self):
         w = World()
         w.register_capability(Capability(key="source_control"))
-        w.map_provider(Provider(
-            capability="source_control", name="gitea",
-            mode=ProviderMode.ENRICHMENT, writes="none",
-        ))
+        w.map_provider(
+            Provider(
+                capability="source_control",
+                name="gitea",
+                mode=ProviderMode.ENRICHMENT,
+                writes="none",
+            )
+        )
         return w
 
     def test_provider_added_capability_richer_concept_unchanged(self, tmp_path):
-        conns = {"connections": [
-            {"type": "gitea", "name": "gitea", "capability": "source_control",
-             "base_url": "http://service.example.invalid:3000"},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "gitea",
+                    "capability": "source_control",
+                    "base_url": "http://service.example.invalid:3000",
+                },
+            ]
+        }
         config_dir = _write_conns(tmp_path, conns)
         reg = build_registry(World(), Registry(), config_dir)
         m = reg.manifest()["source_control"]
@@ -145,12 +186,18 @@ class TestProviderLifecycle:
         """Framework Rule 5: an enrichment provider failing degrades only
         its own capability's fidelity; the core and unrelated capabilities
         stay healthy."""
-        conns = {"connections": [
-            # unreachable port on localhost: connection refused in any
-            # environment, never dependent on a live LAN service
-            {"type": "gitea", "name": "gitea", "capability": "source_control",
-             "base_url": "http://127.0.0.1:1"},
-        ]}
+        conns = {
+            "connections": [
+                # unreachable port on localhost: connection refused in any
+                # environment, never dependent on a live LAN service
+                {
+                    "type": "gitea",
+                    "name": "gitea",
+                    "capability": "source_control",
+                    "base_url": "http://127.0.0.1:1",
+                },
+            ]
+        }
         config_dir = _write_conns(tmp_path, conns)
         data_dir = tmp_path / "data"
         data_dir.mkdir()
@@ -159,7 +206,11 @@ class TestProviderLifecycle:
         sm = reg.status_map()
         # Native providers that always ship may be healthy/not_configured
         assert sm["memory"]["status"] in ("healthy", "not_configured")
-        assert sm["deployment"]["status"] in ("healthy", "not_configured", "unavailable")
+        assert sm["deployment"]["status"] in (
+            "healthy",
+            "not_configured",
+            "unavailable",
+        )
         # gitea unreachable: fail-closed, not a crash
         assert sm["source_control"]["status"] in ("unavailable", "unhealthy")
         # core summary itself is still computable
@@ -168,10 +219,16 @@ class TestProviderLifecycle:
     def test_provider_removed_no_corruption(self, tmp_path):
         """Framework Rule 4: removing provider config leaves a valid,
         consistent world; capability concept remains."""
-        conns = {"connections": [
-            {"type": "gitea", "name": "gitea", "capability": "source_control",
-             "base_url": "http://service.example.invalid:3000"},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "gitea",
+                    "capability": "source_control",
+                    "base_url": "http://service.example.invalid:3000",
+                },
+            ]
+        }
         config_dir = _write_conns(tmp_path, conns)
         data_dir = tmp_path / "data"
         data_dir.mkdir()
@@ -190,26 +247,36 @@ class TestProviderLifecycle:
         assert m_after["active_provider"] == "native-git"
         assert m_after["native_baseline"] is True
         assert m_after["capability"] == "source_control"  # concept remains
-        assert m_after["on_last_provider_removed"] == (
-            "degrades to native baseline"
-        )
+        assert m_after["on_last_provider_removed"] == ("degrades to native baseline")
 
     def test_fake_provider_substitution_preserves_capability(self, tmp_path):
         """Framework E: provider A -> provider B without changing the
         user-facing capability model."""
-        conns_a = {"connections": [
-            {"type": "gitea", "name": "gitea", "capability": "source_control",
-             "base_url": "http://127.0.0.1:1"},
-        ]}
+        conns_a = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "gitea",
+                    "capability": "source_control",
+                    "base_url": "http://127.0.0.1:1",
+                },
+            ]
+        }
         config_a = _write_conns(tmp_path, conns_a)
         reg_a = build_registry(World(), Registry(), config_a)
         shape_a = reg_a.manifest()["source_control"]
         canonical_keys = ("capability", "contract", "native_baseline")
 
-        conns_b = {"connections": [
-            {"type": "fake_source_control", "name": "fake",
-             "capability": "source_control", "version": "fake-1.0"},
-        ]}
+        conns_b = {
+            "connections": [
+                {
+                    "type": "fake_source_control",
+                    "name": "fake",
+                    "capability": "source_control",
+                    "version": "fake-1.0",
+                },
+            ]
+        }
         config_b = _write_conns(tmp_path / "alt", conns_b)
         reg_b = build_registry(World(), Registry(), config_b)
         shape_b = reg_b.manifest()["source_control"]
@@ -257,18 +324,32 @@ class TestInit:
         """The files init creates are themselves a valid zero-provider
         install: `daily` succeeds against them directly."""
         init_world(tmp_path, tmp_path)
-        rc = cli_main(["--data-dir", str(tmp_path), "--config-dir", str(tmp_path),
-                       "daily", "--json"])
+        rc = cli_main(
+            [
+                "--data-dir",
+                str(tmp_path),
+                "--config-dir",
+                str(tmp_path),
+                "daily",
+                "--json",
+            ]
+        )
         assert rc == 0
         out = json.loads(capsys.readouterr().out)
         assert out["ok"] is True
 
     def test_provider_config_can_be_added_after_init(self, tmp_path):
         init_world(tmp_path, tmp_path)
-        conns = {"connections": [
-            {"type": "gitea", "name": "gitea", "capability": "source_control",
-             "base_url": "http://127.0.0.1:1"},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "gitea",
+                    "capability": "source_control",
+                    "base_url": "http://127.0.0.1:1",
+                },
+            ]
+        }
         # init wrote connections.json directly in config_dir=tmp_path;
         # keep using the same path so this test proves add-after-init
         (tmp_path / "connections.json").write_text(json.dumps(conns))
@@ -277,18 +358,29 @@ class TestInit:
 
     def test_removing_provider_config_keeps_core_state(self, tmp_path):
         init_world(tmp_path, tmp_path)
-        conns = {"connections": [
-            {"type": "gitea", "name": "gitea", "capability": "source_control",
-             "base_url": "http://service.example.invalid:3000"},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "gitea",
+                    "capability": "source_control",
+                    "base_url": "http://service.example.invalid:3000",
+                },
+            ]
+        }
         _write_conns(tmp_path, conns)
         w = load_world(tmp_path / "world.json")
-        w.set_policy(__import__("personal_world.model", fromlist=["Policy"]).Policy(
-            key="content.test", effect=__import__("personal_world.model",
-            fromlist=["PolicyEffect"]).PolicyEffect.DENY,
-            provenance=__import__("personal_world.model",
-            fromlist=["Provenance"]).Provenance(source="user"),
-        ))
+        w.set_policy(
+            __import__("personal_world.model", fromlist=["Policy"]).Policy(
+                key="content.test",
+                effect=__import__(
+                    "personal_world.model", fromlist=["PolicyEffect"]
+                ).PolicyEffect.DENY,
+                provenance=__import__(
+                    "personal_world.model", fromlist=["Provenance"]
+                ).Provenance(source="user"),
+            )
+        )
         save_world(w, tmp_path / "world.json")
 
         _write_conns(tmp_path, {"connections": []})
@@ -311,61 +403,105 @@ class TestInit:
 
 class TestValidator:
     def test_valid_connections_pass(self):
-        conns = {"connections": [
-            {"type": "gitea", "name": "gitea", "capability": "source_control",
-             "base_url": "http://x", "token_env": "GITEA_TOKEN"},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "gitea",
+                    "capability": "source_control",
+                    "base_url": "http://x",
+                    "token_env": "GITEA_TOKEN",
+                },
+            ]
+        }
         r = validate_connections(conns, STANDARD_CAPS)
         assert r.ok, [str(v) for v in r.violations]
 
     def test_unknown_capability_rejected(self):
-        conns = {"connections": [
-            {"type": "gitea", "name": "g", "capability": "made_up_cap"},
-        ]}
+        conns = {
+            "connections": [
+                {"type": "gitea", "name": "g", "capability": "made_up_cap"},
+            ]
+        }
         r = validate_connections(conns, STANDARD_CAPS)
         assert not r.ok
         assert any(v.rule == "capability-ownership" for v in r.violations)
 
     def test_inline_secret_rejected_env_indirection_allowed(self):
-        bad = {"connections": [
-            {"type": "gitea", "name": "g", "capability": "source_control",
-             "base_url": "http://x", "token": "abc123"},
-        ]}
+        bad = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "g",
+                    "capability": "source_control",
+                    "base_url": "http://x",
+                    "token": "abc123",
+                },
+            ]
+        }
         r = validate_connections(bad, STANDARD_CAPS)
         assert any(v.rule == "secret-rule" for v in r.violations)
 
     def test_duplicate_provider_ids_rejected(self):
-        conns = {"connections": [
-            {"type": "gitea", "name": "dupe", "capability": "source_control",
-             "base_url": "http://x"},
-            {"type": "gitea", "name": "dupe", "capability": "source_control",
-             "base_url": "http://y"},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "dupe",
+                    "capability": "source_control",
+                    "base_url": "http://x",
+                },
+                {
+                    "type": "gitea",
+                    "name": "dupe",
+                    "capability": "source_control",
+                    "base_url": "http://y",
+                },
+            ]
+        }
         r = validate_connections(conns, STANDARD_CAPS)
         assert any("duplicate" in str(v) for v in r.violations)
 
     def test_bad_mode_rejected(self):
-        conns = {"connections": [
-            {"type": "gitea", "name": "g", "capability": "source_control",
-             "mode": "magical"},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "g",
+                    "capability": "source_control",
+                    "mode": "magical",
+                },
+            ]
+        }
         r = validate_connections(conns, STANDARD_CAPS)
         assert any(v.rule == "provider-mode" for v in r.violations)
 
     def test_required_without_reason_rejected(self):
-        conns = {"connections": [
-            {"type": "gitea", "name": "g", "capability": "source_control",
-             "required": True},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "g",
+                    "capability": "source_control",
+                    "required": True,
+                },
+            ]
+        }
         r = validate_connections(conns, STANDARD_CAPS)
         assert any(v.rule == "optional-default" for v in r.violations)
 
     def test_required_with_reason_is_explicit_exception(self):
-        conns = {"connections": [
-            {"type": "gitea", "name": "g", "capability": "source_control",
-             "required": True, "required_reason":
-             "custom deployment: this world IS the gitea mirror"},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "g",
+                    "capability": "source_control",
+                    "required": True,
+                    "required_reason": "custom deployment: this world IS the gitea mirror",
+                },
+            ]
+        }
         r = validate_connections(conns, STANDARD_CAPS)
         assert r.ok, [str(v) for v in r.violations]
 
@@ -383,10 +519,20 @@ class TestValidator:
         assert any(v.rule == "compose-additive" for v in r.violations)
 
     def test_settings_export_forbidden_fields_rejected(self):
-        sx = {"capabilities": [{"key": "source_control", "providers": [
-            {"capability": "source_control", "name": "gitea",
-             "config": {"token": "x"}},
-        ]}]}
+        sx = {
+            "capabilities": [
+                {
+                    "key": "source_control",
+                    "providers": [
+                        {
+                            "capability": "source_control",
+                            "name": "gitea",
+                            "config": {"token": "x"},
+                        },
+                    ],
+                }
+            ]
+        }
         r = validate_settings_export(sx)
         assert any(v.rule == "export-portability" for v in r.violations)
 
@@ -395,9 +541,17 @@ class TestValidator:
         shipped config/connections.json must pass (the repo conforms to
         its own framework)."""
         repo_root = Path(__file__).parent.parent
-        rc = cli_main(["--data-dir", str(tmp_path),
-                       "--config-dir", str(repo_root / "config"),
-                       "framework", "validate", "--json"])
+        rc = cli_main(
+            [
+                "--data-dir",
+                str(tmp_path),
+                "--config-dir",
+                str(repo_root / "config"),
+                "framework",
+                "validate",
+                "--json",
+            ]
+        )
         out = json.loads(capsys.readouterr().out)
         assert rc == 0, out.get("warnings", [])
         assert out["ok"] is True
@@ -411,12 +565,21 @@ class TestValidator:
 
 class TestManifest:
     def test_manifest_answers_all_four_questions(self, tmp_path):
-        conns = {"connections": [
-            {"type": "gitea", "name": "gitea", "capability": "source_control",
-             "base_url": "http://x"},
-            {"type": "fake_source_control", "name": "fake",
-             "capability": "source_control"},
-        ]}
+        conns = {
+            "connections": [
+                {
+                    "type": "gitea",
+                    "name": "gitea",
+                    "capability": "source_control",
+                    "base_url": "http://x",
+                },
+                {
+                    "type": "fake_source_control",
+                    "name": "fake",
+                    "capability": "source_control",
+                },
+            ]
+        }
         reg = build_registry(World(), Registry(), _write_conns(tmp_path, conns))
         m = reg.manifest()["source_control"]
         # Q1: what capabilities exist / contract
@@ -433,8 +596,9 @@ class TestManifest:
     def test_manifest_is_provider_neutral_vocabulary(self, tmp_path):
         """Rule 7: the manifest keys are semantic concepts, never
         vendor-shaped (no gitea/traefik/komodo keys at the top level)."""
-        reg = build_registry(World(), Registry(), _write_conns(
-            tmp_path, {"connections": []}))
+        reg = build_registry(
+            World(), Registry(), _write_conns(tmp_path, {"connections": []})
+        )
         blob = json.dumps(reg.manifest())
         # vendor names may appear in provider entries, but never as
         # canonical capability keys
@@ -455,16 +619,19 @@ class TestProviderClassificationGuard:
         provider payload itself."""
         from personal_world.model import Fact, Provenance
         from personal_world.classification import Classification
+
         provider_data = {"classification": "secret", "token": "leak"}
         # The core decides classification when recording a fact from
         # provider output; the payload's self-declared class is ignored.
         w = World()
-        w.record_fact(Fact(
-            key="service.gitea.version",
-            value=provider_data.get("version", "1.0"),
-            provenance=Provenance(source="provider:gitea", provider="gitea"),
-            classification=Classification.WORLD,
-        ))
+        w.record_fact(
+            Fact(
+                key="service.gitea.version",
+                value=provider_data.get("version", "1.0"),
+                provenance=Provenance(source="provider:gitea", provider="gitea"),
+                classification=Classification.WORLD,
+            )
+        )
         f = w.facts["service.gitea.version"]
         assert f.classification == Classification.WORLD
         assert "token" not in f.value
@@ -478,12 +645,15 @@ class TestProviderClassificationGuard:
 class TestDesignToolIndependence:
     def test_canonical_tokens_exist_and_parse(self):
         repo_root = Path(__file__).parent.parent
-        tokens = json.loads(
-            (repo_root / "design" / "tokens.json").read_text()
-        )
+        tokens = json.loads((repo_root / "design" / "tokens.json").read_text())
         for required in (
-            "color", "status_vocabulary", "spacing", "targets",
-            "motion", "focus", "typography",
+            "color",
+            "status_vocabulary",
+            "spacing",
+            "targets",
+            "motion",
+            "focus",
+            "typography",
         ):
             assert required in tokens, f"tokens.json missing {required}"
 
@@ -492,9 +662,7 @@ class TestDesignToolIndependence:
         status.healthy) — never design-application internal structure.
         Comments may mention tools for context; names/values may not."""
         repo_root = Path(__file__).parent.parent
-        tokens = json.loads(
-            (repo_root / "design" / "tokens.json").read_text()
-        )
+        tokens = json.loads((repo_root / "design" / "tokens.json").read_text())
 
         def names_and_values(node):
             if isinstance(node, dict):
@@ -508,22 +676,34 @@ class TestDesignToolIndependence:
                     yield from names_and_values(v)
 
         blob = " ".join(names_and_values(tokens)).lower()
-        for tool_marker in ("figma", "penpot", "sketch", "framer",
-                            "componentid", "nodeid", "filekey"):
+        for tool_marker in (
+            "figma",
+            "penpot",
+            "sketch",
+            "framer",
+            "componentid",
+            "nodeid",
+            "filekey",
+        ):
             assert tool_marker not in blob, f"tool marker {tool_marker} in tokens"
 
     def test_accessibility_model_lives_in_core_not_design_files(self):
         from personal_world.model import Accessibility
+
         a = Accessibility()
         assert a.motion == "reduced"  # core-owned default, tool-independent
         assert Accessibility.model_fields["motion"] is not None
 
-    def test_dashboard_is_repo_native(self):
-        """The executable design reference is the React frontend, built
-        from repo sources — no design tool needed (addendum, updated at
-        the T15 cutover: the legacy HTML constants are gone)."""
+    def test_frontend_is_repo_native(self):
+        """The executable design reference is the Station, served from
+        repo design sources — no design tool needed (updated at the
+        Station-only cutover: the React SPA and the legacy HTML constants
+        are gone)."""
         repo_root = Path(__file__).parent.parent
-        assert (repo_root / "frontend" / "src" / "App.tsx").is_file()
+        station = (
+            repo_root / "design" / "opendesign-exploration" / "station" / "index.html"
+        )
+        assert station.is_file()
         html = (repo_root / "src" / "personal_world" / "api.py").read_text()
         assert "DASHBOARD_HTML" not in html
         assert ".fig" not in html
@@ -576,9 +756,9 @@ class TestParticipantPackValidation:
         (tmp_path / "broken").mkdir()
         bad = tmp_path / "broken" / "participant.yaml"
         # Tab indent + dangling colon: a real YAML parse failure.
-        bad.write_text("schema: play-nice/participant-v1\n"
-                       "id: broken\n"
-                       "\tmixed: [unclosed\n")
+        bad.write_text(
+            "schema: play-nice/participant-v1\nid: broken\n\tmixed: [unclosed\n"
+        )
         result = validate_participant_packs(tmp_path)
         assert not result.ok
         rules = {v.rule for v in result.violations}
@@ -595,8 +775,7 @@ class TestParticipantPackValidation:
     def test_schema_namespace_must_start_with_play_nice(self, tmp_path: Path):
         (tmp_path / "x").mkdir()
         (tmp_path / "x" / "participant.yaml").write_text(
-            "schema: some-other-namespace/v1\n"
-            "id: x\n"
+            "schema: some-other-namespace/v1\nid: x\n"
         )
         result = validate_participant_packs(tmp_path)
         assert not result.ok
@@ -606,8 +785,7 @@ class TestParticipantPackValidation:
         for name in ("a", "b"):
             (tmp_path / name).mkdir()
             (tmp_path / name / "participant.yaml").write_text(
-                "schema: play-nice/participant-v1\n"
-                "id: duplicate\n"
+                "schema: play-nice/participant-v1\nid: duplicate\n"
             )
         result = validate_participant_packs(tmp_path)
         assert not result.ok
@@ -624,9 +802,7 @@ class TestParticipantPackValidation:
         for name in ("alpha", "beta"):
             (tmp_path / name).mkdir()
             (tmp_path / name / "participant.yaml").write_text(
-                "schema: play-nice/participant-v1\n"
-                f"id: {name}\n"
-                "name: t\n"
+                f"schema: play-nice/participant-v1\nid: {name}\nname: t\n"
             )
         result = validate_participant_packs(tmp_path)
         assert result.ok, [str(v) for v in result.violations]

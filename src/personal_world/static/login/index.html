@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Sign in — Project Worlds</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #12100e;
+    --panel: #1c1814;
+    --ink: #f4efe6;
+    --ink-soft: #c9c0b2;
+    --accent: #d4a057;
+    --line: #3a332b;
+    --danger: #ff9b8a;
+    --focus: #8fd0ff;
+    --radius: 14px;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(1200px 600px at 50% -10%, #241d15 0%, var(--bg) 60%);
+    color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    padding: 24px;
+  }
+  .skip-link {
+    position: absolute; left: -9999px; top: 8px;
+    background: var(--panel); color: var(--ink);
+    padding: 10px 16px; border-radius: 8px; z-index: 10;
+  }
+  .skip-link:focus { left: 8px; }
+  main {
+    width: 100%;
+    max-width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 32px;
+  }
+  .brand { color: var(--accent); font-weight: 600; letter-spacing: 0.02em; margin: 0 0 4px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .lede { color: var(--ink-soft); margin: 0 0 24px; }
+  form { display: grid; gap: var(--gap); }
+  label { font-weight: 600; }
+  input[type="password"], input[type="text"] {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    background: #14110e;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font: inherit;
+  }
+  button {
+    min-height: 44px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: var(--accent);
+    color: #1a1409;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--line);
+    font-weight: 600;
+  }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .error {
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 0;
+  }
+  .alt { margin: 20px 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<main id="main">
+  <p class="brand">Project Worlds</p>
+  <h1>Sign in</h1>
+  <p class="lede">Enter your access code to open your world.</p>
+
+  <p id="error" class="error" role="alert" hidden></p>
+
+  <form id="login-form" novalidate>
+    <div>
+      <label for="token">Access code</label>
+      <input id="token" name="token" type="password" autocomplete="current-password"
+             autocapitalize="off" spellcheck="false" required>
+    </div>
+    <button type="submit" id="submit">Enter</button>
+  </form>
+
+  <div id="oidc" hidden>
+    <p class="alt">Or sign in through your own provider.</p>
+    <button type="button" class="secondary" id="oidc-btn">Sign in with your account</button>
+  </div>
+
+  <p class="alt">First time here? <a href="/setup">Build your world</a>.</p>
+  <p id="live" class="visually-hidden" role="status" aria-live="polite"></p>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var form = document.getElementById("login-form");
+  var input = document.getElementById("token");
+  var button = document.getElementById("submit");
+  var error = document.getElementById("error");
+  var live = document.getElementById("live");
+
+  function showError(message) {
+    error.textContent = message;
+    error.hidden = false;
+    live.textContent = message;
+  }
+
+  // Honest messages for a returning OIDC failure (redirected here by the
+  // backend) — never a generic "something went wrong".
+  var params = new URLSearchParams(window.location.search);
+  var authError = params.get("pw_auth_error");
+  if (authError) {
+    var friendly = {
+      oidc_token_exchange_failed: "Your provider could not complete the sign-in. Try again.",
+      oidc_identity_not_mapped: "That account is not linked to this world yet.",
+      oidc_state_mismatch: "The sign-in took too long or was interrupted. Try again."
+    };
+    showError(friendly[authError] || "Sign-in did not complete. Try again.");
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var token = input.value.trim();
+    if (!token) {
+      showError("Enter your access code to continue.");
+      input.focus();
+      return;
+    }
+    error.hidden = true;
+    button.disabled = true;
+    button.textContent = "Checking…";
+    fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token })
+    })
+      .then(function (res) {
+        if (res.ok) {
+          window.location.assign("/");
+          return null;
+        }
+        if (res.status === 401) {
+          showError("That code did not match. Check it and try again.");
+        } else if (res.status === 503) {
+          showError("Sign-in is not set up on this instance yet.");
+        } else {
+          showError("The server could not sign you in right now. Try again in a moment.");
+        }
+        return null;
+      })
+      .catch(function () {
+        showError("Could not reach the server. Check your connection and try again.");
+      })
+      .finally(function () {
+        button.disabled = false;
+        button.textContent = "Enter";
+        input.focus();
+        input.select();
+      });
+  });
+
+  // Offer OIDC only when the operator actually configured it.
+  fetch("/api/auth/oidc/status", { headers: { Accept: "application/json" } })
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (body) {
+      var data = body && body.data ? body.data : null;
+      if (data && data.status === "configured") {
+        document.getElementById("oidc").hidden = false;
+        document.getElementById("oidc-btn").addEventListener("click", function () {
+          window.location.assign("/api/auth/oidc/login");
+        });
+      }
+    })
+    .catch(function () { /* local sign-in still works */ });
+
+  if (input) input.focus();
+})();
+</script>
+</body>
+</html>
