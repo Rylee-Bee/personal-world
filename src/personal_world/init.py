@@ -23,8 +23,14 @@ from .journal import Journal
 from .model import SCHEMA_VERSION
 
 
-def init_world(data_dir: Path, config_dir: Path) -> Result:
-    """Initialize a fresh Personal World. Idempotent, secret-free."""
+def init_stores(data_dir: Path, config_dir: Path) -> tuple[list[str], list[str]]:
+    """Create-if-absent world/journal/connections stores. NO marker.
+
+    Extracted from ``init_world`` so the first-run setup wizard can
+    provision the exact same stores without completing setup: only
+    ``init_world`` (the CLI contract) writes the setup-complete marker.
+    Never overwrites anything; returns ``(changed, skipped)``.
+    """
     data_dir = Path(data_dir)
     config_dir = Path(config_dir)
     world_path = data_dir / "world.json"
@@ -38,23 +44,28 @@ def init_world(data_dir: Path, config_dir: Path) -> Result:
         skipped.append("world.json exists")
     else:
         world_path.parent.mkdir(parents=True, exist_ok=True)
-        world_path.write_text(json.dumps({
-            "schema_version": SCHEMA_VERSION,
-            "facts": {},
-            "intents": {},
-            "policies": {},
-            "lore": {},
-            "capabilities": {},
-            "providers": {},
-            "packs": {},
-            "accessibility": {
-                "motion": "reduced",
-                "contrast": "normal",
-                "text_scale": 1.0,
-                "density": "normal",
-                "targets": "normal",
-            },
-        }, indent=2))
+        world_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "facts": {},
+                    "intents": {},
+                    "policies": {},
+                    "lore": {},
+                    "capabilities": {},
+                    "providers": {},
+                    "packs": {},
+                    "accessibility": {
+                        "motion": "reduced",
+                        "contrast": "normal",
+                        "text_scale": 1.0,
+                        "density": "normal",
+                        "targets": "normal",
+                    },
+                },
+                indent=2,
+            )
+        )
         changed.append("created world.json")
 
     # 2. Journal: touching the file is enough; Journal appends lazily.
@@ -71,11 +82,26 @@ def init_world(data_dir: Path, config_dir: Path) -> Result:
         skipped.append("connections.json exists")
     else:
         conn_path.parent.mkdir(parents=True, exist_ok=True)
-        conn_path.write_text(json.dumps({
-            "$schema": "personal-world/connections/1",
-            "connections": [],
-        }, indent=2))
+        conn_path.write_text(
+            json.dumps(
+                {
+                    "$schema": "personal-world/connections/1",
+                    "connections": [],
+                },
+                indent=2,
+            )
+        )
         changed.append("created connections.json (zero providers: valid)")
+
+    return changed, skipped
+
+
+def init_world(data_dir: Path, config_dir: Path) -> Result:
+    """Initialize a fresh Personal World. Idempotent, secret-free."""
+    data_dir = Path(data_dir)
+    config_dir = Path(config_dir)
+
+    changed, skipped = init_stores(data_dir, config_dir)
 
     # 4. First-run contract: the SPA's setup gate reads the
     # setup-complete marker (api.py healthz/setup-status). A CLI

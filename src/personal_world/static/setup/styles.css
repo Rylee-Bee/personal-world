@@ -1,0 +1,260 @@
+/* Project Worlds — first-run setup wizard.
+   Dependency-free, dark by default, WCAG AA contrast, 44px targets,
+   visible focus, motion reduced by default (and off entirely under
+   prefers-reduced-motion). Status is always text + symbol, never
+   colour alone. */
+
+:root {
+  --bg: #10131a;
+  --surface: #1b2130;
+  --surface-2: #232b3d;
+  --text: #f1f4fa;          /* 15.4:1 on --bg */
+  --muted: #b9c2d4;         /* 8.3:1 on --bg */
+  --accent: #9cc0ff;        /* 8.9:1 on --bg */
+  --accent-ink: #10131a;    /* 8.9:1 on --accent */
+  --ok: #8ce0a3;            /* 9.6:1 on --bg */
+  --warn: #ffcf7a;          /* 11.6:1 on --bg */
+  --problem: #ff9d94;       /* 7.7:1 on --bg */
+  --focus: #ffd88a;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+html { color-scheme: dark; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/* Skip link: visible on focus, 44px tall. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 10;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  background: var(--focus);
+  color: var(--accent-ink);
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 0 0 var(--radius) 0;
+}
+.skip-link:focus { left: 0; }
+
+/* Visible focus everywhere. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.site-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--surface-2);
+}
+.brand { margin: 0; font-weight: 700; letter-spacing: 0.02em; }
+.brand-note { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 0.25rem; }
+h2 { font-size: 1.375rem; margin: 0 0 0.75rem; }
+h3 { font-size: 1.1rem; margin: 1.25rem 0 0.5rem; }
+
+.progress {
+  margin: 0 0 1.75rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.step { animation: none; }
+
+.plain-list { padding-left: 1.4rem; }
+.plain-list li { margin: 0.25rem 0; }
+
+/* Buttons: >= 44px tall, obvious affordance. */
+.btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.6rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--muted);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn.primary:hover { filter: brightness(1.1); color: var(--accent-ink); }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Choice cards (radio group) — whole card is the 44px+ target. */
+.choice-set { border: 0; margin: 0; padding: 0; }
+.choice, .toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  min-height: 44px;
+  padding: 1rem;
+  margin: 0 0 0.75rem;
+  background: var(--surface);
+  border: 2px solid var(--surface-2);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.choice:hover, .toggle:hover { border-color: var(--accent); }
+.choice:has(input:checked), .toggle:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.choice input, .toggle input {
+  width: 24px; height: 24px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+  flex: none;
+}
+.choice-body, .toggle-body { display: block; }
+.choice-title { display: block; font-weight: 700; }
+.choice-desc { display: block; color: var(--muted); font-size: 0.95rem; }
+
+.badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--accent-ink);
+  background: var(--ok);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+/* Form fields. */
+.field { margin: 0 0 1.1rem; }
+.field label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+.field input[type="url"],
+.field input[type="text"] {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 2px solid var(--muted);
+  border-radius: var(--radius);
+}
+.field input:hover { border-color: var(--accent); }
+.help { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.9rem; }
+code {
+  background: var(--surface-2);
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+
+/* Alerts: symbol + words, never colour alone. */
+.alert {
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius);
+  border: 2px solid;
+  margin: 1rem 0;
+}
+.alert-heading { font-weight: 700; margin: 0 0 0.35rem; }
+.alert p { margin: 0.35rem 0; }
+.alert ul { margin: 0.35rem 0; padding-left: 1.3rem; }
+.alert.problem { border-color: var(--problem); background: var(--surface); }
+.alert.problem .alert-heading { color: var(--problem); }
+.alert.note { border-color: var(--accent); background: var(--surface); }
+.alert.note .alert-heading { color: var(--accent); }
+
+.test-result { margin: 0.75rem 0; }
+.test-result p { margin: 0.35rem 0; }
+.test-result .verdict { font-weight: 700; }
+.test-result.reachable .verdict { color: var(--ok); }
+.test-result.unreachable .verdict,
+.test-result.bad_config .verdict { color: var(--problem); }
+.test-result.testing .verdict { color: var(--muted); }
+
+/* Calm busy state: text carries the meaning; the dot spinner is
+   decorative and disappears under reduced motion. */
+.calm { color: var(--muted); }
+.busy {
+  display: inline-block;
+  width: 0.9em; height: 0.9em;
+  margin-right: 0.5em;
+  border: 3px solid var(--surface-2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  vertical-align: -0.1em;
+  animation: spin 1.2s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.summary {
+  background: var(--surface);
+  border: 2px solid var(--surface-2);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin: 0.75rem 0;
+}
+.summary dt { font-weight: 700; margin-top: 0.5rem; }
+.summary dt:first-child { margin-top: 0; }
+.summary dd { margin: 0 0 0 0; color: var(--muted); }
+
+.site-footer {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  border-top: 1px solid var(--surface-2);
+}
+
+/* OS-level reduced motion always wins. */
+@media (prefers-reduced-motion: reduce) {
+  .busy { animation: none; border-top-color: var(--accent); }
+  * { transition: none !important; animation: none !important; }
+}
