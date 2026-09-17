@@ -17,7 +17,7 @@
     mermaid:   { label: 'Mermaid',            color: 'var(--teal)',
       greeting: "I've been floating here, thinking about nothing in particular. What's on your mind?" },
     ratatoskr: { label: 'Ratatoskr',          color: 'var(--green)',
-      greeting: "Psst — I noticed some threads connecting lately. Want me to show you?" },
+      greeting: "Want to look for connections between a few ideas?" },
     robot:     { label: 'Robot',              color: 'var(--cream)',
       greeting: "Systems nominal. Ready when you are." },
     burrito:   { label: 'Burrito Journalism', color: 'var(--coral)',
@@ -35,7 +35,7 @@
       personality: 'Quick and a little mischievous; carries messages between your ideas.',
       prompt: 'What two things of mine are secretly related?' },
     { id: 'remind',   companion: 'ratatoskr', label: 'Remind me',
-      personality: 'Brisk and faithful; writes things down so you do not have to.',
+      personality: 'Helps draft reminder wording for you to review.',
       prompt: 'What did I leave unfinished?' },
     { id: 'fix',      companion: 'robot',     label: 'Fix it properly',
       personality: 'Plain and careful; allergic to shortcuts.',
@@ -126,7 +126,7 @@
             '<div class="empty-orb" aria-hidden="true"><svg><use href="chars.svg#char-' + esc(who) + '"/></svg></div>' +
             '<div class="empty-greeting">' + esc(meta.greeting) + '</div>' +
             '<div class="empty-sub">' +
-              'Everything you say stays on this device. ' + esc(meta.label) + ' hears you, but replies come from the real capability — nothing invented here.' +
+              'Messages on this preview are saved in this browser. They are not sent to the World assistant.' +
             '</div>' +
             (starterChips ? '<div class="empty-chips">' + starterChips + '</div>' : '') +
           '</div>';
@@ -167,8 +167,7 @@
       if (!text) { return; }
       var items = readLog();
       items.push({ role: 'you', text: text });
-      items.push({ role: 'sys', text: meta.label + ' heard you. Replies bind to the real ' +
-                   'chat capability (API-010) — nothing is invented here.' });
+      items.push({ role: 'sys', text: 'Message saved in this browser. No assistant reply was requested.' });
       writeLog(items);
       input.value = '';
       pers.textContent = 'Pick a mood, or just talk.';
