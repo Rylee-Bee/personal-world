@@ -602,7 +602,9 @@
         '</div>';
 
       if (!result.ok) {
-        mount.innerHTML = head + failureBox(result, 'Your journal', 'Try again');
+        mount.innerHTML = head + failureBox(result, 'Your journal', 'Try again') +
+          '<p class="rd-lede">Couldn’t load your journal. ' +
+          'Your browser-only notes are still available below.</p>';
         wireRetry(mount, function (m) { renderJournal(m, options); });
         return;
       }
@@ -644,9 +646,7 @@
           'kinds use the server’s journal vocabulary (observation, health, drift, ' +
           'recommendation, approval, reconciliation, provider_action, failure, ' +
           'pack_change, settings_change, security, discovery); the plain word above ' +
-          'is a label, the canonical kind stays in the payload.<br>' +
-          'the specimen panel on this page is a design sample and is labelled as such — ' +
-          'this list is your data.<br>' +
+          'is a label, the canonical kind stays in the payload.' + +
           specimenRegisterHtml());
     }
 
