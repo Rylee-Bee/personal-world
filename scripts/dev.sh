@@ -13,7 +13,8 @@
 #   * Always builds from THIS checkout (compose.dev.yaml sets pull_policy: never,
 #     so a stale GHCR `latest` can never silently win).
 #   * wipe is loud and scoped: containers + dev image only. Your data survives.
-#   * PW_DEV_AUTH_BYPASS comes from compose.dev.yaml and is true-loopback only.
+#   * PW_DEV_AUTH_BYPASS is opt-in (set it in your shell to enable the
+#     true-loopback bypass); the dev/mirror default is OFF so it matches prod.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
