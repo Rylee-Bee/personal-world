@@ -188,7 +188,13 @@
         "Your sign-in provider declined the sign-in. " + ACCESS,
       oidc_state_mismatch:
         "This sign-in took too long or was interrupted. Try again, or " + ACCESS.toLowerCase(),
+      oidc_state_invalid:
+        "This sign-in took too long or was interrupted. Try again, or " + ACCESS.toLowerCase(),
+      oidc_missing_state:
+        "This sign-in took too long or was interrupted. Try again, or " + ACCESS.toLowerCase(),
       oidc_attempt_expired:
+        "This sign-in attempt expired. Try again, or " + ACCESS.toLowerCase(),
+      oidc_token_expired:
         "This sign-in attempt expired. Try again, or " + ACCESS.toLowerCase(),
       // The provider could not be reached or could not finish.
       oidc_unreachable:
@@ -212,6 +218,8 @@
       // Verified provider response but the sign-in could not be trusted
       // or completed (token/key/claim failures).
       oidc_alg_unsupported:
+        "Your provider's sign-in response uses a format this server cannot verify. " + ACCESS,
+      oidc_bad_signature:
         "Your provider's sign-in response uses a format this server cannot verify. " + ACCESS,
       oidc_key_unsupported:
         "Your provider's sign-in response uses a format this server cannot verify. " + ACCESS,

@@ -69,7 +69,7 @@ still a bug we want — not your fault.
 ---
 
 ## Getting help
-- In-app: **"Hail Assistant"** (top-right) is always there; it lowers the
+- In-app: **"Help & quiet mode"** (top-right) is always there; it lowers the
   demands, never judges.
 - Docs: `docs/ROADMAP-AND-TODO.md` (what's done/next) ·
   `docs/WORLDS-BACKUP.md` (SOS procedure) ·

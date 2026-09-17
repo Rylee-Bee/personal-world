@@ -22,20 +22,20 @@ The backend is daily-use capable and the Station is the product UI.
 - **Frontend — Station, honestly partial.** The Station
   (`/station/`, same-origin from `design/opendesign-exploration/station/`)
   is the product UI; `/login` and `/setup` are server-rendered. The
-  real-data layer wires needs-you, journal, and preferences; the
-  chat surface is still a local-only prototype (no model behind
-  send); some panels are clearly-labelled specimen and stay honest
-  until real data exists.
+  real-data layer wires needs-you, journal, preferences, projects
+  (source-control reads), and interests; chat send posts to the real
+  /api/chat route (no streaming yet); the browser-local journal is
+  labelled "Notes on this device" and remaining specimen blocks are
+  clearly labelled and stay honest until real data exists.
 
 ## Honest gaps today
 
 These are the verified ones; see [`ROADMAP.md`](../ROADMAP.md) for
 detail and grounding:
 
-- Station chat needs its send button wired to the real chat endpoints
-  (plus streaming).
-- Specimen panels (interests/media/projects cards, map region detail)
-  need real data or remain honest empty states.
+- Chat streaming (the send path is real; responses still arrive whole).
+- Remaining specimen panels (media cards, map region detail) need real
+  data or honest empty states.
 - Step-up authentication is a trust window, not re-authentication.
 - Theme packs: registry exists, full front-of-house integration
   remains.

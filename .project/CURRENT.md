@@ -20,9 +20,13 @@ historical. Verified against the repo and running code:
   pipeline were removed the same day.
 - **Product UI:** the **Station**, served same-origin at `/station/`
   from `design/opendesign-exploration/station/`; `/login` and
-  `/setup` are server-rendered. Honest partial states: chat is
-  local-only, some panels are labelled specimen, until real data
-  exists (see `ROADMAP.md`).
+  `/setup` are server-rendered. Honest partial states (verified
+  2026-09-17 language pass): chat send is wired to the real `POST
+  /api/chat` (no streaming yet), projects and interests read real
+  APIs with honest empty/not-set-up states, the journal's specimen
+  panel is unmounted (real API-005 read + browser-local "Notes on
+  this device"); remaining specimen blocks (media, map region
+  detail) stay labelled until real data exists (see `ROADMAP.md`).
 - **Deployment shape:** one compose appliance — core service + bundled
   `ollama` + a one-shot `ollama-pull` init (local qwen3:1.7b, no API
   key), persistent `data` + `config` + model volumes.
