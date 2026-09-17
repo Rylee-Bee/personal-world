@@ -276,6 +276,11 @@ Today/Journal/Vault). Legacy server UI coexists (`PW_FRONTEND` selects).
   details) plus the "Same Crew. Bigger Horizons." scene. Curated
   2026-09-17 from the owner's untracked drop (`design/owner/crew/crew.png`);
   the drop directory stays gitignored. Featured in the README.
+- **Crew portrait (curated):** `design/screens/worlds.png` — the whole crew
+  (Mermaid, Personal World, Little Helper, world-tree squirrel, taco news
+  truck) under the world-tree. Curated 2026-09-17 from
+  `design/owner/crew/worlds.png`; used as the closing README image in place
+  of the older companion-trio preview.
 - Deliberate artwork — do not casually regenerate: Mermaid master Lottie
   (byte-identical by decision), companion source rigs, icon library,
   screen SVGs.
