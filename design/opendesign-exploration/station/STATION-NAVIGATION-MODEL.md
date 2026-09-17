@@ -103,7 +103,7 @@ Companions are **presences that travel with you**, not protagonists:
 
 ## Escape hatch
 
-"I need help" is fixed bottom-left on every page. It never says "you're okay."
+"Hail Assistant" is the topbar escape hatch on every page. It never says "you're okay."
 It offers the smallest possible next step and can drop the world to
 **low demand** (keep everything, ask less). See `PLAY-NICE-CONFORMANCE.md`.
 

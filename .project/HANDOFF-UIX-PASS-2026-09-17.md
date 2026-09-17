@@ -103,4 +103,37 @@ Dev-bypass note: `PW_DEV_AUTH_BYPASS` is opt-in and OFF here by default; the log
 
 ---
 
+## Verification — live walkthrough, 2026-09-17 (this lane)
+
+Environment: `node frontend/e2e/server.mjs` on `127.0.0.1:8731`, fresh seeded
+world, login `ci-token`, real Chromium via the repo's Playwright deps.
+Screenshots in /tmp (not committed). No page errors observed on any page.
+
+| ID | Verdict | Evidence |
+|---|---|---|
+| UX-06 | **verified, partially already-better** | Server-rendered `src/personal_world/static/login/index.html`: the 503 path already says "Sign-in is not set up on this instance yet." (matches the suggested copy). Remaining gap: the `oidc_misconfigured` mapping still says "Sign-in is not configured correctly on this instance." with no "who to ask". Suggested: "Sign-in is not set up on this instance yet. Whoever runs it can finish setting it up." — NOT committed (outside the small batch). |
+| UX-09 | **verified** | Low demand (help → "Show me only what needs me"): BOTH needs-you mounts visible — `data-rd-variant="quiet"` AND the full mount — rendering duplicate "Needs you"/"NEEDS YOU" headings, duplicate chips, duplicate copy, and the tech disclosure (screenshot, fullPage). The fix from the handoff's table (demand-aware treatment of the Needs-you section) is still needed. UNFIXED — it is mechanical but was outside this lane's named commit batch. |
+| UX-11 | **superseded (mostly)** | The 6-step essay (gate panel) is NOT on the primary surface; `.pv-gate-panel` starts `hidden` and opens only on deliberate "Propose refresh" click. Primary surface shows a 1-paragraph lede + a labelled button. Progressive disclosure already satisfied; no change made. |
+| UX-12 | **verified (mitigated)** | Interests page (reachable directly; nav entry hidden in seeded world) shows "Discoveries / SPECIMEN VIEW" — the preview header IS permanently displayed outside the technical disclosure and honestly explained. Wiring to API-051 remains owner-decision. |
+| UX-14 | **verified (less severe on index; worse on interests)** | Observation Deck galaxy view: only 2 "specimen" occurrences in main text. Interests dive region: 10 occurrences (info strip + Discoveries) — fatigue confirmed. |
+| UX-13 surface | **verified** | `'[ an item ] · source · API-052 · when'` literal placeholders rendered verbatim in dive lists. FIXED this lane. |
+
+**Committed this lane (small, clearly-correct batch, all verified above and via
+`npx playwright test` regreen):**
+
+- UX-08 — `station.js`: help "restore" resets demand only; motion preference never silently re-enabled.
+- UX-07 — one name, "Hail Assistant": settings.html "I need help" reference, station.js bottom-left comment, STATION-NAVIGATION-MODEL.md location line (component lives in the topbar).
+- UX-14 — `starmap.js`: per-line "specimen: " prefixes removed; one "Map note" honesty line in the info strip keeps the specimen labelling (e2e honest-states gate stays green).
+- UX-13 — `starmap.js`: placeholder objects ("[ an item ]/album/article/…, 'source · API-052', 'when'") replaced with honest "Nothing here yet/Nothing charted yet — arrives when X is connected" lines.
+- UX-16 — `settings.html`: "Clear journal entries" → "Clear device journal (local notes only)", confirm copy updated, and the data section now states that the server-side journal is managed in the journal itself.
+
+**Owner-decision items (leave for Rylee, unchanged by this lane):**
+UX-01 chat wiring (API-010), UX-02/03 journal consolidation (API-006), UX-04 settings
+binding to API-030, UX-10 projects wiring (API-079/033/034 — gate essay copy outside
+the gate panel already mitigated), UX-12 interests wiring (API-051). Also UX-05/20
+companion-says duplication and UX-09 (mechanical, but was outside this batch).
+
+---
+
 *Read companion docs before working: repo `AGENTS.md` → `AGENT_POLICY.md` → `AGENT_CONTRACTS.md` → `docs/accessibility/ACCESSIBILITY_CONTRACT.md`. The Station is the product UI; the ideals are the floor; the whimsy is the ceiling.*
+
