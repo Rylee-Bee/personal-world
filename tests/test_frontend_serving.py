@@ -101,6 +101,16 @@ class TestLoginPage:
         client = _app(tmp_path, monkeypatch)
         assert 'href="/setup"' not in client.get("/login").text
 
+    def test_login_is_passkey_first_with_code_fallback(self, tmp_path, monkeypatch):
+        # The page ships both paths; the client reveals the SSO button and
+        # folds the access code away when /api/auth/oidc/status says
+        # configured (no password to remember for passkey users).
+        text = _app(tmp_path, monkeypatch).get("/login").text
+        assert 'id="oidc-btn"' in text
+        assert 'id="code-block"' in text
+        assert "/api/auth/oidc/status" in text
+        assert "/api/auth/oidc/login" in text
+
 
 class TestApiRoutesNeverSwallowed:
     def test_unknown_api_route_is_json_404(self, tmp_path, monkeypatch):
