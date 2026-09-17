@@ -814,3 +814,52 @@ class TestParticipantPackValidation:
         out = capsys.readouterr().out
         assert rc == 0, out
         assert "healthy" in out
+
+
+# ---------------------------------------------------------------------------
+# Provider health-check binding (regression)
+# ---------------------------------------------------------------------------
+
+
+class TestProviderHealthCheckBinding:
+    """build_registry wires one health check per configured provider. Each
+    check must observe its own provider implementation; a late-binding
+    closure would make every provider of a given branch report the health
+    of the loop's last instance."""
+
+    def test_each_health_check_binds_its_own_provider(self, tmp_path, monkeypatch):
+        from personal_world.envelope import Result
+        from personal_world.providers.adapters import CandyDispenser
+        from personal_world.status import Status
+
+        seen: list[str] = []
+
+        def fake_health(self):
+            seen.append(self.base_url)
+            if self.base_url.endswith("/a"):
+                return Result(ok=True, status=Status.HEALTHY.value)
+            return Result(ok=False, status=Status.UNAVAILABLE.value)
+
+        monkeypatch.setattr(CandyDispenser, "health", fake_health)
+        conns = {
+            "connections": [
+                {
+                    "type": "candy",
+                    "name": "candy-a",
+                    "capability": "discovery",
+                    "base_url": "http://example.invalid/a",
+                },
+                {
+                    "type": "candy",
+                    "name": "candy-b",
+                    "capability": "discovery",
+                    "base_url": "http://example.invalid/b",
+                },
+            ]
+        }
+        reg = build_registry(World(), Registry(), _write_conns(tmp_path, conns))
+
+        statuses = {a.name: a.status for a in reg.actors()}
+        assert seen == ["http://example.invalid/a", "http://example.invalid/b"]
+        assert statuses["candy-a"] == Status.HEALTHY.value
+        assert statuses["candy-b"] == Status.NEEDS_ATTENTION.value

@@ -241,7 +241,7 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
                 impl = Gitea(base, conn.get("token_env", ""))
                 registry.register(
                     capability, name, impl,
-                    health_check=lambda: impl.observe().ok,
+                    health_check=lambda impl=impl: impl.observe().ok,
                     writes="none",
                     mode=mode,
                     required=required,
@@ -294,7 +294,7 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
                 impl = CandyDispenser(base)
                 registry.register(
                     capability, name, impl,
-                    health_check=lambda: impl.health().ok,
+                    health_check=lambda impl=impl: impl.health().ok,
                     writes="none",
                     mode=mode,
                     required=required,
@@ -310,35 +310,35 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
                 settings_impl = LabSettings(lab_path)
                 registry.register(
                     "homelab_settings", f"{name}-settings", settings_impl,
-                    health_check=lambda: settings_impl.observe().ok,
+                    health_check=lambda settings_impl=settings_impl: settings_impl.observe().ok,
                     writes="none", mode=mode, required=required,
                 )
                 # Health
                 health_impl = LabHealth(lab_path)
                 registry.register(
                     "homelab_health", f"{name}-health", health_impl,
-                    health_check=lambda: health_impl.observe().ok,
+                    health_check=lambda health_impl=health_impl: health_impl.observe().ok,
                     writes="none", mode=mode, required=required,
                 )
                 # Deploy
                 deploy_impl = LabDeploy(lab_path)
                 registry.register(
                     "homelab_deploy", f"{name}-deploy", deploy_impl,
-                    health_check=lambda: deploy_impl.observe().ok,
+                    health_check=lambda deploy_impl=deploy_impl: deploy_impl.observe().ok,
                     writes="none", mode=mode, required=required,
                 )
                 # Secrets
                 secrets_impl = LabSecrets(lab_path)
                 registry.register(
                     "homelab_secrets", f"{name}-secrets", secrets_impl,
-                    health_check=lambda: secrets_impl.observe().ok,
+                    health_check=lambda secrets_impl=secrets_impl: secrets_impl.observe().ok,
                     writes="none", mode=mode, required=required,
                 )
                 # Resources
                 resources_impl = LabResources(lab_path)
                 registry.register(
                     "homelab_resources", f"{name}-resources", resources_impl,
-                    health_check=lambda: resources_impl.observe().ok,
+                    health_check=lambda resources_impl=resources_impl: resources_impl.observe().ok,
                     writes="none", mode=mode, required=required,
                 )
         elif ptype == "native_lab":
@@ -357,22 +357,22 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
 
             registry.register(
                 "service_inventory", f"{name}-inventory", inventory,
-                health_check=lambda: inventory.observe().ok,
+                health_check=lambda inventory=inventory: inventory.observe().ok,
                 writes="none", mode=ProviderMode.NATIVE, required=False,
             )
             registry.register(
                 "service_health", f"{name}-health", health,
-                health_check=lambda: health.observe().ok,
+                health_check=lambda health=health: health.observe().ok,
                 writes="none", mode=ProviderMode.NATIVE, required=False,
             )
             registry.register(
                 "settings_validation", f"{name}-settings", settings,
-                health_check=lambda: settings.observe().ok,
+                health_check=lambda settings=settings: settings.observe().ok,
                 writes="none", mode=ProviderMode.NATIVE, required=False,
             )
             registry.register(
                 "resource_monitoring", f"{name}-resources", resources,
-                health_check=lambda: resources.observe().ok,
+                health_check=lambda resources=resources: resources.observe().ok,
                 writes="none", mode=ProviderMode.NATIVE, required=False,
             )
         elif ptype == "native_discovery":
@@ -382,7 +382,7 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
             discovery = NativeDiscovery()
             registry.register(
                 "discovery", f"{name}-discovery", discovery,
-                health_check=lambda: discovery.observe().ok,
+                health_check=lambda discovery=discovery: discovery.observe().ok,
                 writes="none", mode=ProviderMode.NATIVE, required=False,
             )
         # unknown types: skipped, not fatal -- standalone deployments
