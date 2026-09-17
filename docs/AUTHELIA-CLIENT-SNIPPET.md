@@ -27,7 +27,7 @@ Then, on the Project Worlds side:
 1. `config/oidc.json` (the setup wizard can write this for you):
    ```json
    {
-     "issuer": "https://<your-authelia-issuer>",
+     "issuer": "https://auth.example.invalid",
      "client_id": "project-worlds",
      "client_secret_env": "OIDC_CLIENT_SECRET",
      "scopes": ["openid", "profile", "email"],

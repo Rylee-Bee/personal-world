@@ -13,6 +13,7 @@ Pins the critical-batch contract:
   authentication only; the step-up header rule on writes is untouched
 - /healthz exposes dev_bypass truthfully (visible state)
 """
+
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 
@@ -24,12 +25,14 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from personal_world.api import _is_true_loopback  # noqa: E402
 from personal_world.identity import (  # noqa: E402
-    dev_bypass_enabled, dev_bypass_principal,
+    dev_bypass_enabled,
+    dev_bypass_principal,
 )
 
 
 def _client(tmp_path, monkeypatch, *, bypass: bool, token: str | None):
     from personal_world.api import create_app
+
     monkeypatch.delenv("PW_DEV_AUTH_BYPASS", raising=False)
     monkeypatch.delenv("PW_API_TOKEN", raising=False)
     if token:
@@ -64,17 +67,20 @@ class TestLoopbackDetection:
     """_is_true_loopback must accept ONLY loopback — not RFC1918,
     not hostnames that merely look local, not empty peers."""
 
-    @pytest.mark.parametrize("host,expected", [
-        ("127.0.0.1", True),
-        ("::1", True),
-        ("testclient", True),  # ASGI test peer == the test process
-        ("192.168.1.5", False),
-        ("10.0.0.2", False),
-        ("172.17.0.1", False),
-        ("fe80::1", False),
-        ("example.com", False),
-        ("", False),
-    ])
+    @pytest.mark.parametrize(
+        "host,expected",
+        [
+            ("127.0.0.1", True),
+            ("::1", True),
+            ("testclient", True),  # ASGI test peer == the test process
+            ("192.168.1.5", False),  # pw-safety: synthetic
+            ("10.0.0.2", False),  # pw-safety: synthetic
+            ("172.17.0.1", False),  # pw-safety: synthetic (docker bridge)
+            ("fe80::1", False),
+            ("example.com", False),
+            ("", False),
+        ],
+    )
     def test_hosts(self, host, expected):
         class _Peer:
             def __init__(self, h):

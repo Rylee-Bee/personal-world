@@ -269,7 +269,12 @@ class TestRepositoryStation:
         """The design directory holds handoff notes with a real LAN
         address. Notes are excluded above; this proves nothing servable
         carries private topology either."""
-        markers = ("192.168.", "hulganfamily", "10.0.", "172.16.")
+        markers = (
+            "192.168.",  # pw-safety: synthetic
+            "hulganfamily",  # pw-safety: synthetic
+            "10.0.",  # pw-safety: synthetic
+            "172.16.",  # pw-safety: synthetic
+        )  # pw-safety: synthetic
         allow = build_allowlist(repo_station)
         findings = []
         for key, path in allow.items():

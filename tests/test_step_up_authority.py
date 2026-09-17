@@ -99,7 +99,7 @@ class TestStepUpSeam:
             assert _step_up_authorized(req, PRIMARY) is True, host
 
     def test_private_lan_is_not_loopback(self, auth):
-        for host in ("192.168.1.10", "10.0.0.5", "172.17.0.1"):
+        for host in ("192.168.1.10", "10.0.0.5", "172.17.0.1"):  # pw-safety: synthetic
             req = _FakeRequest(auth, host=host)
             assert _step_up_authorized(req, PRIMARY) is False, host
 

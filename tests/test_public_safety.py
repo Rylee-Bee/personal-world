@@ -133,62 +133,6 @@ def test_shipped_files_carry_no_private_endpoints(path):
         )
 
 
-# Concrete RFC1918 literal IPs only (private halves, all four octets);
-# public RFC5737 documentation ranges and loopback are untouched. This
-# regex covers the deployment-topology scan of tracked .project notes
-# below; it is deliberately narrower than PRIVATE_IP_PARTS so it never
-# fires on prose like "10." or a redacted fragment.
-
-
-def test_project_notes_carry_no_private_endpoints():
-    """The tracked .project notes are planning/history documents a
-    stranger's clone ships, so they carry the same topology rule as
-    the bootstrap files above. Checks ONLY concrete RFC1918 literal
-    IPs and the FORBIDDEN_HOSTS regression list; findings are named
-    but never echo surrounding text."""
-    names = []
-    import re as _re
-
-    rfc1918 = _re.compile(
-        r"\b(?:"
-        r"192\.168\.\d{1,3}\.\d{1,3}|"
-        r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
-        r"172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
-        r")\b"
-    )
-    try:
-        out = subprocess.run(
-            ["git", "ls-files", "-z", ".project"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            check=True,
-        ).stdout
-        names = [n for n in out.decode().split("\0") if n.endswith(".md")]
-    except Exception:  # no git: the whole tracked-text scan already fell back
-        names = []
-    findings: list[str] = []
-    for name in names:
-        try:
-            text = (REPO_ROOT / name).read_text(encoding="utf-8", errors="ignore")
-        except OSError:
-            continue
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            if ALLOW_MARKER in line:
-                continue
-            for marker in FORBIDDEN_HOSTS:
-                if marker.lower() in line.lower():
-                    findings.append(f"{name}:{lineno} [host '{marker}'] redacted")
-            m = rfc1918.search(line)
-            if m:
-                findings.append(
-                    f"{name}:{lineno} [RFC1918 literal] {_redact(m.group(0))}"
-                )
-    assert not findings, (
-        "private deployment topology in tracked .project notes (values "
-        "redacted):\n  " + "\n  ".join(findings)
-    )
-
-
 # ---------------------------------------------------------------------------
 # Secret-shape scan over every tracked text file (P0.7).
 #
@@ -340,6 +284,137 @@ def test_code_and_config_carry_no_personal_home_paths():
                 findings.append(f"{posix}:{lineno}")
     assert not findings, "personal home paths in code/config:\n  " + "\n  ".join(
         findings
+    )
+
+
+# ---------------------------------------------------------------------------
+# Repo-wide topology scan (extends the endpoint checks above to EVERY
+# tracked text file, not just the shipped bootstrap files).
+#
+# Markers mirror PRIVATE_IP_PARTS + FORBIDDEN_HOSTS with two deliberate
+# refinements, both consistent with the loopback rule documented at the
+# top of this file:
+#   * loopback/`localhost` is never flagged globally — it is the
+#     documented local-dev binding, not operator topology;
+#   * IP matches are octet-boundary regexes, not raw substrings like
+#     "10.", so version strings ("3.10.1") never false-positive, and
+#     RFC 5737 documentation ranges (192.0.2.x, 198.51.100.x,
+#     203.0.113.x) and example.invalid hosts are valid everywhere.
+# Exclusions for this scan are ONLY: this file's own pattern tables,
+# binary/generated artifacts (handled by the TEXT_SUFFIXES filter in
+# _tracked_text_files: images, .lottie, .svg, lockfiles are never
+# scanned), and lines carrying the visible `pw-safety: synthetic`
+# marker (synthetic test values).
+# ---------------------------------------------------------------------------
+
+TOPOLOGY_PATTERNS: dict[str, re.Pattern[str]] = {
+    "private IPv4 (RFC1918/link-local)": re.compile(
+        r"(?<![\d.])(?:192\.168|10|172\.(?:1[6-9]|2\d|3[01])|169\.254)"
+        r"\.\d{1,3}(?:\.\d{1,3}){1,2}(?![\d.])"
+    ),
+    "operator hostname (hulganfamily)": re.compile(r"hulganfamily"),
+    "dynamic-DNS operator host": re.compile(r"[\w.-]*duckdns\.org"),
+}
+
+# Personal absolute paths that must not appear in current-facing tracked
+# text. Historical, dated record files may keep them (checksummed-style
+# evidence; editing would falsify the record), so they carry named
+# exclusions below with a justification each.
+PERSONAL_PATH_PATTERN = re.compile(r"/(?:var/)?home/rylee\b|/mnt/c/Users/ryleeb\b")
+PERSONAL_PATH_EXEMPT = {
+    # Dated 2026-09-12 evidence/attestation records: preserving what was
+    # actually observed on that date is the point of the file; scrubbing
+    # the operator path would rewrite a historical attestation.
+    ".project/HANDOFF-FRESHNESS-EVIDENCE-2026-09-12.md",
+    ".project/attestations/2026-09-12-auto-free-onboarding.json",
+    ".project/attestations/2026-09-12-glm-next-phase-orchestration.json",
+    # Deliberate single-user "Rylee-only enrichment" overlay whose local
+    # mount paths (a Windows-mounted homelab and a Kilo auth file) are
+    # its documented purpose; converting to env indirection is the
+    # recommended follow-up, tracked in the remediation handoff.
+    "compose.homelab.yaml",
+}
+
+TOPOLOGY_SELF_FILE = "tests/test_public_safety.py"
+
+
+def _scan_tracked_text(patterns, label_flag: bool = False):
+    """Yield (rel, lineno, label, snippet) for each match. Reports are
+    short: one truncated context snippet, never a value dump."""
+    for rel in _tracked_text_files():
+        posix = rel.as_posix()
+        if posix == TOPOLOGY_SELF_FILE:
+            continue
+        try:
+            text = (REPO_ROOT / rel).read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            if ALLOW_MARKER in line:
+                continue
+            for label, pat in patterns.items():
+                m = pat.search(line)
+                if m:
+                    snippet = line.strip()
+                    if len(snippet) > 80:
+                        snippet = snippet[:77] + "…"
+                    yield posix, lineno, label, snippet
+
+
+def test_tracked_text_files_carry_no_operator_topology():
+    """Every tracked text file must be free of private deployment
+    endpoints (docs-config markers). Failure names the marker with at
+    most one short context snippet, never a dump."""
+    findings = [
+        f"{rel}:{lineno} [{label}] {snippet}"
+        for rel, lineno, label, snippet in _scan_tracked_text(TOPOLOGY_PATTERNS)
+    ]
+    assert not findings, (
+        "operator deployment topology in tracked files — move it to "
+        "private runtime documentation (see SECURITY.md / "
+        "docs/OPERATIONS.md):\n  " + "\n  ".join(findings)
+    )
+
+
+def test_tracked_text_files_carry_no_personal_absolute_paths():
+    """`/home/rylee`, `/var/home/rylee`, and `/mnt/c/Users/ryleeb` must
+    not appear in current-facing tracked text. Only the named historical
+    records and the deliberate single-user overlay are exempt, each with
+    a written justification in PERSONAL_PATH_EXEMPT."""
+    findings = []
+    for rel, lineno, _, snippet in _scan_tracked_text(
+        {"personal absolute path": PERSONAL_PATH_PATTERN}
+    ):
+        if rel in PERSONAL_PATH_EXEMPT:
+            continue
+        findings.append(f"{rel}:{lineno} {snippet}")
+    assert not findings, (
+        "personal absolute paths in current-facing tracked files:\n  "
+        + "\n  ".join(findings)
+    )
+
+
+def test_topology_scanner_detection():
+    """The topology scanner must actually fire (canary samples; none of
+    these literals appear in this file)."""
+    sample_private_ipv4 = ".".join(["192", "168", "2", "141"])
+    assert TOPOLOGY_PATTERNS["private IPv4 (RFC1918/link-local)"].search(
+        sample_private_ipv4
+    )
+    assert TOPOLOGY_PATTERNS["operator hostname (hulganfamily)"].search(
+        "world.hulgan" + "family.duckdns.org"
+    )
+    assert not any(
+        p.search(s)
+        for s in (
+            "version 3.10.1",
+            "192.0.2.15",
+            "198.51.100.7",
+            "203.0.113.9",
+            "auth.example.invalid",
+            "127.0.0.1",
+        )
+        for p in TOPOLOGY_PATTERNS.values()
     )
 
 
