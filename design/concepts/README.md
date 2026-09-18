@@ -40,6 +40,17 @@ Only concept-specific files live under `assets/` here: the index thumbnails
 (`assets/packets/`), the display face (`assets/fraunces-*.woff2`), and a few skies
 and room photos used by the exploration pages.
 
+## The device card (shared surface)
+
+Rooms are built from one shared "portable display" card: a bezel with an inset
+**screen**, a faint scanline + holo texture, HUD corner brackets, a channel **LED**
+beside the panel heading, and a luminous top edge. It **wakes** on hover (the edge
+brightens); the LED **breathes only when the OS allows motion** (`prefers-reduced-motion:
+no-preference`) and is perfectly still otherwise.
+
+It is defined once, in `today-room.html`, as the `.panel, .assist, details.depth`
+block. Reuse that block in the next rooms — do not invent a new surface.
+
 ## Rules these pages follow
 
 The accessibility floor and the room conventions are canonical elsewhere and are

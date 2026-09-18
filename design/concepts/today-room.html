@@ -54,10 +54,48 @@
   .say .good{color:var(--accent)}
   /* --- panels --- */
   .cols{display:grid;grid-template-columns:1.32fr 1fr;gap:16px;align-items:start}
-  .panel{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:15px 17px 16px;position:relative}
+  /* --- the device card: a portable display, reused across every room --- */
+  .panel,.assist,details.depth{
+    position:relative;border:1px solid var(--line);border-radius:15px;
+    background:linear-gradient(180deg,rgba(150,220,214,.05),transparent 34%),linear-gradient(180deg,#0a1119,#060b11);
+    box-shadow:0 18px 44px rgba(0,0,0,.55),inset 0 1px 0 rgba(233,242,243,.05);
+    transition:border-color .2s ease}
+  .panel{padding:20px 20px 18px}
+  /* the screen, inset into the bezel */
+  .panel::before,.assist::before{
+    --brk:color-mix(in srgb,var(--accent) 55%,transparent);
+    content:"";position:absolute;inset:8px;border-radius:10px;pointer-events:none;z-index:0;
+    border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
+    background:
+      linear-gradient(var(--brk),var(--brk)) left 5px top 5px/11px 2px no-repeat,
+      linear-gradient(var(--brk),var(--brk)) left 5px top 5px/2px 11px no-repeat,
+      linear-gradient(var(--brk),var(--brk)) right 5px top 5px/11px 2px no-repeat,
+      linear-gradient(var(--brk),var(--brk)) right 5px top 5px/2px 11px no-repeat,
+      linear-gradient(var(--brk),var(--brk)) left 5px bottom 5px/11px 2px no-repeat,
+      linear-gradient(var(--brk),var(--brk)) left 5px bottom 5px/2px 11px no-repeat,
+      linear-gradient(var(--brk),var(--brk)) right 5px bottom 5px/11px 2px no-repeat,
+      linear-gradient(var(--brk),var(--brk)) right 5px bottom 5px/2px 11px no-repeat,
+      linear-gradient(118deg,rgba(233,242,243,.055),transparent 36%),
+      radial-gradient(130% 90% at 50% -12%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 62%),
+      repeating-linear-gradient(0deg,rgba(150,220,214,.055) 0 1px,transparent 1px 3px),
+      rgba(6,11,16,.8);
+    box-shadow:inset 0 0 22px rgba(0,0,0,.55);transition:border-color .2s ease}
+  /* the device's light bar */
+  .panel::after,.assist::after{
+    content:"";position:absolute;left:18px;right:18px;top:1px;height:1px;pointer-events:none;z-index:2;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.65}
+  .panel > *,.assist > *{position:relative;z-index:1}
+  /* wake on hover */
+  .panel:hover,.assist:hover{border-color:color-mix(in srgb,var(--accent) 34%,var(--line))}
+  .panel:hover::before,.assist:hover::before{border-color:color-mix(in srgb,var(--accent) 42%,transparent)}
   .panel h2{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
     color:var(--gold);margin:0 0 10px;font-weight:500;display:flex;align-items:center;gap:8px}
   .panel h2 span{margin-left:auto;color:var(--faint);letter-spacing:.1em}
+  /* the channel LED */
+  .panel h2::before,.assist h2::before{content:"";display:inline-block;vertical-align:middle;
+    width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;
+    box-shadow:0 0 9px color-mix(in srgb,var(--accent) 85%,transparent)}
+  .panel h2::before{margin-right:0}
   /* needs you — Level 1, big and plain */
   .need{list-style:none;margin:0;padding:0}
   .need li{display:grid;grid-template-columns:1fr auto;gap:4px 14px;padding:12px 0;border-top:1px solid var(--line)}
@@ -85,7 +123,11 @@
   .crew .ago{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin:6px 0 0}
   .crew img{width:auto;height:104px;object-fit:contain;align-self:end;filter:drop-shadow(0 10px 18px rgba(0,0,0,.7))}
   /* depth — the guts, one step in (native disclosure) */
-  details.depth{margin-top:16px;border:1px solid var(--line);border-radius:13px;background:var(--panel);overflow:hidden}
+  details.depth{margin-top:16px;overflow:hidden;padding:0;
+    background:
+      repeating-linear-gradient(0deg,rgba(150,220,214,.05) 0 1px,transparent 1px 3px),
+      radial-gradient(130% 90% at 50% -12%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 62%),
+      linear-gradient(180deg,#0a1119,#060b11)}
   details.depth summary{display:flex;align-items:center;gap:10px;min-height:48px;padding:12px 17px;cursor:pointer;
     font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);list-style:none}
   details.depth summary::-webkit-details-marker{display:none}
@@ -97,8 +139,8 @@
   .guts dt{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
   .guts dd{margin:3px 0 0;font-family:var(--mono);font-size:12.5px;color:var(--ink);word-break:break-word}
   /* the assistant — always at hand */
-  .assist{margin-top:16px;border:1px solid color-mix(in srgb,var(--teal) 34%,transparent);border-radius:13px;
-    background:linear-gradient(180deg,color-mix(in srgb,var(--teal) 8%,var(--panel)),var(--panel));padding:14px 17px}
+  .assist{margin-top:16px;padding:18px 20px 16px;border-color:color-mix(in srgb,var(--teal) 34%,transparent);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--teal) 7%,transparent),transparent 42%),linear-gradient(180deg,#0a1119,#060b11)}
   .assist h2{margin:0 0 4px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);font-weight:500}
   .assist p{margin:0;color:var(--dim);font-size:14.5px}
   .assist .eg{color:var(--faint);font-style:italic}
@@ -120,6 +162,8 @@
   @media (prefers-reduced-motion: no-preference){
     .rings{animation:drift 46s ease-in-out infinite}
     @keyframes drift{0%,100%{opacity:.42}50%{opacity:.6}}
+    .panel h2::before,.assist h2::before{animation:led 6s ease-in-out infinite}
+    @keyframes led{0%,100%{opacity:.5}50%{opacity:1}}
   }
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
