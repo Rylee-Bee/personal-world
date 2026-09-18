@@ -47,10 +47,10 @@ used by the exploration pages.
 **Derived avatars:** `assets/faces/` holds 240px circular face crops made from the
 canonical cutouts in `../assets/station/characters/` (for the room's alert avatars).
 They are derived, not new art — regenerate from the cutouts if those change.
-Burrito Journalism's avatar is the **news-truck windshield**, cropped from
-`design/assets/companions/taco-news-truck/taco-news-truck-source-rig.svg`
-(the rig's `cab-window`, viewBox x310–363 y212–258) — the truck is the character,
-not the food.
+Burrito Journalism's avatar is the truck's own face — **the windshield, with the
+eyes and smile** — cropped from `../assets/station/characters/burrito.png`
+(the cutout is the news truck itself, not the food; an earlier crop accidentally
+framed the burrito on the roof).
 
 ## The scroll card (shared surface)
 
