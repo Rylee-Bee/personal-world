@@ -42,6 +42,10 @@ Only concept-specific files live under `assets/` here: the index thumbnails
 (`assets/packets/`), the fonts (`assets/fonts/`), and a few skies and room photos
 used by the exploration pages.
 
+**Derived avatars:** `assets/faces/` holds 240px circular face crops made from the
+canonical cutouts in `../assets/station/characters/` (for the room's alert avatars).
+They are derived, not new art — regenerate from the cutouts if those change.
+
 ## The scroll card (shared surface)
 
 Rooms are built from one shared **scroll** card: a sheet of night-vellum with
