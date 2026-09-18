@@ -6,6 +6,7 @@ character named "Personal World" keeps its name. Technical identifiers unchanged
 **Date:** 2026-09-07
 **Status:** Companion design reference with current implementation and target distinctions
 **Source:** Figma file `VATVojyJZT9HKx0CrDS0yr`
+**Character/voice truth:** who each resident is (and the two voices) is canonical in [`docs/CHARACTER-HANDBOOK.md`](../docs/CHARACTER-HANDBOOK.md); this file owns design and art.
 
 ## Overview
 
