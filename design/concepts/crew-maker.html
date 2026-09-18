@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crew your Station — concept</title>
+<style>
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-italic-latin.woff2") format("woff2");font-style:italic;font-weight:400}
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-normal-latin.woff2") format("woff2");font-style:normal;font-weight:400}
+  :root{--ink:#eef3f2;--dim:#a9b6b4;--faint:#869492;--line:rgba(150,220,214,.22);
+        --teal:#7fd0c8;--teal-dim:#3f7c77;--gold:#d9bb79;--canvas:#04070c;
+        --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+        --ringr:min(37vmin,232px)}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--canvas);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .bg{position:fixed;inset:0;background:url('assets/worlds/sky2.jpg') center/cover;z-index:-3}
+  .veil{position:fixed;inset:0;z-index:-2;background:radial-gradient(120% 100% at 50% 30%,rgba(4,7,12,.30),rgba(4,7,12,.92) 70%,#04070c)}
+  .chrome{position:fixed;left:0;right:0;z-index:6;display:flex;gap:12px;align-items:center;justify-content:space-between;
+    padding:10px 18px;background:rgba(4,7,12,.8);backdrop-filter:blur(8px);font-family:var(--mono);font-size:12px;letter-spacing:.1em}
+  .top{top:0;border-bottom:1px solid var(--line)} .bot{bottom:0;border-top:1px solid var(--line);color:var(--dim)}
+  .brand{color:var(--teal)} .where{color:var(--dim);text-align:right}
+  header{max-width:820px;margin:0 auto;padding:64px 20px 0;text-align:center}
+  h1{font-family:"Fraunces",Georgia,serif;font-style:italic;font-weight:400;font-size:clamp(28px,6vw,44px);margin:0 0 4px}
+  .tag{color:var(--dim);margin:0;max-width:44ch;margin-inline:auto}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin:10px 0 0}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* ring */
+  .stage{position:relative;width:min(94vw,660px);aspect-ratio:1;margin:10px auto 8px}
+  .hull{position:absolute;inset:7%;border-radius:50%;border:1px dashed var(--line)}
+  .hull2{position:absolute;inset:24%;border-radius:50%;border:1px solid var(--teal-dim);opacity:.5}
+  .orbit{position:absolute;inset:13%;border-radius:50%;border:2px solid transparent;border-top-color:var(--teal);border-right-color:var(--teal-dim)}
+  @media (prefers-reduced-motion:no-preference){.orbit{animation:spin 48s linear infinite}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:42%}
+  .core img{width:min(28vw,120px);height:auto;filter:drop-shadow(0 0 30px rgba(127,208,200,.26))}
+  .core .say{font-family:"Fraunces",Georgia,serif;font-style:italic;color:#d6e2e0;margin:4px 0 0}
+  .core .read{font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:.14em;text-transform:uppercase;margin:3px 0 0}
+  .pods{position:absolute;inset:0}
+  .pod{position:absolute;left:calc(50% + cos(var(--a)) * var(--ringr));top:calc(50% + sin(var(--a)) * var(--ringr));
+    transform:translate(-50%,-50%);width:172px;display:flex;gap:10px;align-items:center;text-align:left;
+    background:linear-gradient(180deg,rgba(12,22,26,.9),rgba(8,12,18,.9));border:1px solid var(--line);border-radius:9px;
+    padding:8px 9px;color:inherit;font:inherit;cursor:pointer;min-height:56px}
+  .pod[aria-pressed="true"]{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal) inset}
+  .pod:hover{border-color:var(--teal)}
+  .pod .t{min-width:0}
+  .pod .n{display:block;font-family:var(--mono);font-weight:500;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pod .w{display:block;font-size:11.5px;color:var(--dim);margin:3px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pod .w em{color:var(--faint);font-style:normal}
+  /* avatars */
+  .ava{width:38px;height:38px;flex:0 0 38px;object-fit:contain;object-position:center bottom}
+  .ava.round{object-fit:cover;object-position:center 22%;border-radius:50%;border:1px solid var(--line)}
+  .token{width:38px;height:38px;flex:0 0 38px;display:inline-grid;place-items:center;background:var(--tint,#2f5d6e);
+    color:#fff;font-family:var(--mono);font-size:15px;font-weight:600;border-radius:50%;border:1px solid rgba(255,255,255,.25)}
+  .token.tall{border-radius:9px;height:44px;flex-basis:32px;width:32px}
+  .token.broad{border-radius:10px;height:28px;flex-basis:46px;width:46px}
+  /* panel */
+  .panel{max-width:660px;margin:26px auto 120px;padding:0 20px}
+  .panel h2{font-family:"Fraunces",Georgia,serif;font-style:italic;font-weight:400;font-size:24px;margin:0 0 2px}
+  .panel .sub{color:var(--dim);margin:0 0 14px}
+  .status{font-family:var(--mono);font-size:12.5px;color:var(--teal);letter-spacing:.06em;min-height:18px;margin:0 0 10px}
+  .note{font-size:13px;color:var(--faint);border-left:2px solid var(--line);padding:2px 0 2px 10px;margin:0 0 16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:0 0 6px;padding:0;list-style:none}
+  .pick{display:flex;gap:9px;align-items:center;min-height:56px;width:100%;text-align:left;background:rgba(10,18,22,.7);
+    border:1px solid var(--line);border-radius:9px;color:inherit;font:inherit;cursor:pointer;padding:8px 9px}
+  .pick:hover{border-color:var(--teal)}
+  .pick[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  .pick .t{min-width:0}
+  .pick .n{display:block;font-size:13.5px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pick .r{display:block;font-size:11.5px;color:var(--faint);margin:3px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rowbtns{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+  button.act{min-height:44px;background:none;border:1px solid var(--line);border-radius:9px;color:var(--ink);font:inherit;
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;cursor:pointer;padding:0 14px}
+  button.act:hover{border-color:var(--teal)} button.act:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  details.create{border:1px solid var(--line);border-radius:10px;margin:18px 0 0;padding:0 14px;background:rgba(10,18,22,.55)}
+  details.create summary{cursor:pointer;min-height:52px;display:flex;align-items:center;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;color:var(--teal)}
+  form{margin:0 0 16px}
+  label{display:block;margin:0 0 12px;font-size:13px;color:var(--dim)}
+  input[type=text]{display:block;width:100%;margin-top:5px;min-height:44px;padding:8px 10px;border-radius:9px;
+    border:1px solid var(--line);background:rgba(4,7,12,.8);color:var(--ink);font:inherit}
+  fieldset{border:0;padding:0;margin:0 0 12px}
+  legend{font-size:13px;color:var(--dim);margin-bottom:6px}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap}
+  .sw{width:44px;height:44px;border-radius:50%;border:2px solid transparent;cursor:pointer;background:var(--tint)}
+  .sw[aria-pressed="true"]{border-color:#fff}
+  .shapes{display:flex;gap:8px;flex-wrap:wrap}
+  .sh{min-height:44px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--ink);
+    font:inherit;font-family:var(--mono);font-size:12px;cursor:pointer}
+  .sh[aria-pressed="true"]{border-color:var(--gold)}
+  /* list view */
+  .listview table{width:100%;border-collapse:collapse}
+  .listview th,.listview td{text-align:left;padding:12px 6px;border-top:1px solid var(--line);vertical-align:middle}
+  .listview th{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:500}
+  .listview .deck{font-family:var(--mono);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
+  .listview .who{color:var(--dim)}
+  .listview .actcell{text-align:right}
+  @media (max-width:600px){
+    .stage{width:100%;aspect-ratio:auto;display:flex;flex-direction:column;gap:12px;margin:8px auto}
+    .hull,.hull2,.orbit{display:none}
+    .core{position:static;transform:none;width:auto;display:flex;flex-direction:column;align-items:center}
+    .core img{width:72px}
+    .pods{position:static;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .pod{position:static;transform:none;width:auto}
+    .pod .n{font-size:11.5px}
+    .pod .w{font-size:11px}
+  }
+</style>
+</head>
+<body>
+  <div class="bg"></div><div class="veil"></div>
+
+  <div class="chrome top">
+    <span class="brand">PROJECT WORLDS ✦</span>
+    <span class="where">CONCEPT · KEPT IN THIS BROWSER</span>
+  </div>
+
+  <header>
+    <h1>Crew your Station</h1>
+    <p class="tag">The crew is the default. Put anyone anywhere — including someone you just made up.</p>
+    <p class="meta">8 decks · residents are assignable · nothing is sent to a server</p>
+  </header>
+
+  <main>
+    <section aria-labelledby="ringh">
+      <h2 id="ringh" class="sr">The Station decks</h2>
+      <div class="stage">
+        <div class="hull" aria-hidden="true"></div><div class="hull2" aria-hidden="true"></div><div class="orbit" aria-hidden="true"></div>
+        <div class="core">
+          <img src="../assets/crew/cutouts/personal-world.png" alt="">
+          <p class="say">Personal World</p>
+          <p class="read">the core</p>
+        </div>
+        <div class="pods" id="pods"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel" aria-labelledby="panelh">
+      <h2 id="panelh">The Bridge</h2>
+      <p class="sub" id="panelsub">Renai is here.</p>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+
+      <p class="note" id="honest">A concept: who lives on a deck is a setting. Changes stay in this browser — nothing is saved to the server.</p>
+
+      <h3 class="sr" id="chooseh">Choose a resident for this deck</h3>
+      <ul class="grid" id="choices" aria-labelledby="chooseh"></ul>
+
+      <div class="rowbtns">
+        <button class="act" id="empty">Leave this deck empty</button>
+        <button class="act" id="reset">Reset to the default crew</button>
+      </div>
+
+      <details class="create" id="createwrap">
+        <summary>＋ Make up a new resident</summary>
+        <form id="createf" novalidate>
+          <label>Name
+            <input type="text" id="nname" maxlength="24" autocomplete="off" required>
+          </label>
+          <label>Their line of work (optional)
+            <input type="text" id="nrole" maxlength="40" autocomplete="off" placeholder="e.g. keeper of small things">
+          </label>
+          <fieldset>
+            <legend>Colour</legend>
+            <div class="swatches" id="swatches"></div>
+          </fieldset>
+          <fieldset>
+            <legend>Silhouette</legend>
+            <div class="shapes" id="shapes"></div>
+          </fieldset>
+          <button class="act" type="submit" id="addbtn">Add them to The Bridge</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="panel listview" id="listview" hidden aria-labelledby="listh">
+      <h2 id="listh">The Station — list</h2>
+      <p class="sub">The same decks, as a list.</p>
+      <table>
+        <caption class="sr">Decks and the resident assigned to each</caption>
+        <thead><tr><th scope="col">Deck</th><th scope="col">Resident</th><th scope="col"></th></tr></thead>
+        <tbody id="listbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <div class="chrome bot">
+    <span id="hint">Tap a deck to change who lives there · press L for the list</span>
+    <button class="act" id="toggle" aria-pressed="false">List view</button>
+  </div>
+
+<script>
+const DECKS=[
+ {id:'bridge',name:'The Bridge',job:'what needs you'},
+ {id:'engineering',name:'Engineering',job:'systems & capabilities'},
+ {id:'workshop',name:'The Workshop',job:'making things'},
+ {id:'archives',name:'The Archives',job:'memory & lore'},
+ {id:'galley',name:'The Galley',job:'stories & news'},
+ {id:'observatory',name:'The Observatory',job:'the map of your world'},
+ {id:'vault',name:'The Vault',job:'secrets & backups'},
+ {id:'quarters',name:'Your Quarters',job:'rest & profile'}
+];
+const BASE={
+ renai:{name:'Renai',role:'personal companion',art:'../assets/station/characters/renai.png'},
+ hekek:{name:'Hekek',role:'builder · maintainer',art:'../assets/station/characters/hekek.png'},
+ bolt:{name:'Bolt',role:'making things',art:'../assets/station/characters/bolt.png'},
+ ratatoskr:{name:'Ratatoskr',role:'paths & memory',art:'../assets/station/characters/ratatoskr.png'},
+ burrito:{name:'Burrito Journalism',role:'stories & news',art:'../assets/station/characters/burrito.png'},
+ mira:{name:'Mira',role:'observer · note-taker',art:'../assets/station/characters/mira.png'},
+ bruma:{name:'Bruma',role:'archivist · keeper',art:'../assets/station/characters/bruma.png'}
+};
+const DEFAULTS={bridge:'renai',engineering:'hekek',workshop:'bolt',archives:'ratatoskr',galley:'burrito',observatory:'mira',vault:'bruma',quarters:null};
+const TINTS=['#2f5d6e','#5a4a2e','#4a3f6b','#2f5a45','#6b3a4a'];
+const SHAPES=[['circle','Round'],['tall','Tall'],['broad','Broad']];
+const KEY='pw-crew-concept-v1';
+const BED='<svg class="ava" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19v-9"/><path d="M4 15h16a1 1 0 0 1 1 1v3"/><path d="M6 11h4a1.5 1.5 0 0 1 1.5 1.5V13H6z" fill="currentColor" stroke="none" opacity=".7"/></svg>';
+
+let state={crew:Object.assign({},DEFAULTS),created:{}};
+let selected='bridge';
+
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.crew)state={crew:Object.assign({},DEFAULTS,s.crew),created:s.created||{}};}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function all(){const o=Object.assign({},BASE);for(const k in state.created)o[k]=state.created[k];return o;}
+function who(id){return id?all()[id]:null;}
+function initial(n){return (n.trim()[0]||'?').toUpperCase();}
+function ava(id){
+  const r=who(id);
+  if(!r)return BED;
+  if(r.art)return '<img class="ava" src="'+r.art+'" alt="">';
+  if(r.face)return '<img class="ava round" src="'+r.face+'" alt="">';
+  return '<span class="token '+r.shape+'" style="--tint:'+r.tint+'" aria-hidden="true">'+initial(r.name)+'</span>';
+}
+function label(id){const r=who(id);return r?r.name:'empty';}
+function deck(k){return DECKS.find(d=>d.id===k);}
+
+function renderPods(){
+  const box=document.getElementById('pods');box.innerHTML='';
+  DECKS.forEach((d,i)=>{
+    const a=(i*45-90)+'deg';
+    const b=document.createElement('button');
+    b.type='button';b.className='pod';
+    b.style.setProperty('--a',a);
+    b.setAttribute('aria-pressed',String(d.id===selected));
+    b.setAttribute('aria-label',d.name+', '+d.job+'. '+(state.crew[d.id]?('Resident: '+label(state.crew[d.id])+'.'):'No resident.'));
+    b.innerHTML=ava(state.crew[d.id])+'<span class="t"><span class="n">'+d.name+'</span><span class="w">'+
+      (state.crew[d.id]?label(state.crew[d.id]):'<em>no resident</em>')+'</span></span>';
+    b.addEventListener('click',()=>select(d.id));
+    box.appendChild(b);
+  });
+}
+
+function renderPanel(){
+  const d=deck(selected);
+  document.getElementById('panelh').textContent=d.name;
+  document.getElementById('panelsub').textContent=state.crew[selected]?label(state.crew[selected])+' is here.':'Nobody is here yet.';
+  document.getElementById('addbtn').textContent='Add them to '+d.name;
+  const list=document.getElementById('choices');list.innerHTML='';
+  const ids=Object.keys(all());
+  ids.forEach(id=>{
+    const r=all()[id];
+    const li=document.createElement('li');
+    const b=document.createElement('button');
+    b.type='button';b.className='pick';b.setAttribute('aria-pressed',String(state.crew[selected]===id));
+    b.setAttribute('aria-label','Put '+r.name+' on '+d.name);
+    b.innerHTML=ava(id)+'<span class="t"><span class="n">'+r.name+'</span><span class="r">'+r.role+
+      (r.pending?' · cutout pending':'')+'</span></span>';
+    b.addEventListener('click',()=>assign(id));
+    li.appendChild(b);
+    if(state.created[id]){
+      const del=document.createElement('button');
+      del.type='button';del.className='act';del.textContent='Remove '+r.name;
+      del.style.marginTop='4px';del.style.width='100%';
+      del.addEventListener('click',()=>remove(id));
+      li.appendChild(del);
+    }
+    list.appendChild(li);
+  });
+}
+
+function renderList(){
+  const tb=document.getElementById('listbody');tb.innerHTML='';
+  DECKS.forEach(d=>{
+    const tr=document.createElement('tr');
+    const td1=document.createElement('th');td1.scope='row';td1.className='deck';td1.textContent=d.name;
+    const td2=document.createElement('td');td2.className='who';
+    td2.innerHTML=ava(state.crew[d.id])+' <span>'+label(state.crew[d.id])+'</span>';
+    const td3=document.createElement('td');td3.className='actcell';
+    const b=document.createElement('button');b.type='button';b.className='act';b.textContent='Change';
+    b.setAttribute('aria-label','Change who lives on '+d.name);
+    b.addEventListener('click',()=>{select(d.id,true);});
+    td3.appendChild(b);
+    tr.append(td1,td2,td3);tb.appendChild(tr);
+  });
+}
+
+function render(){renderPods();renderPanel();renderList();}
+
+function say(msg){document.getElementById('status').textContent=msg;}
+
+function select(id,fromList){
+  selected=id;
+  if(fromList){document.getElementById('listview').hidden=true;document.getElementById('toggle').setAttribute('aria-pressed','false');
+    document.getElementById('toggle').textContent='List view';}
+  render();
+  const d=deck(id);
+  document.getElementById('panelh').scrollIntoView({block:'nearest'});
+  document.getElementById('panelh').focus&&document.getElementById('panelh').setAttribute('tabindex','-1');
+  say(d.name+' selected.');
+}
+
+function assign(rid){
+  state.crew[selected]=rid;save();render();
+  say('Assigned '+label(rid)+' to '+deck(selected).name+'.');
+}
+
+function remove(rid){
+  for(const k in state.crew)if(state.crew[k]===rid)state.crew[k]=null;
+  delete state.created[rid];save();render();
+  say('Removed '+label(rid)+'.');
+}
+
+function emptyDeck(){state.crew[selected]=null;save();render();say(deck(selected).name+' left empty.');}
+
+/* create form */
+let tint=TINTS[0],shape='circle';
+function renderSwatches(){
+  const box=document.getElementById('swatches');box.innerHTML='';
+  TINTS.forEach(c=>{
+    const b=document.createElement('button');b.type='button';b.className='sw';b.style.setProperty('--tint',c);
+    b.setAttribute('aria-pressed',String(c===tint));b.setAttribute('aria-label','Colour '+c);
+    b.addEventListener('click',()=>{tint=c;renderSwatches();});
+    box.appendChild(b);
+  });
+}
+function renderShapes(){
+  const box=document.getElementById('shapes');box.innerHTML='';
+  SHAPES.forEach(([v,t])=>{
+    const b=document.createElement('button');b.type='button';b.className='sh';b.textContent=t;
+    b.setAttribute('aria-pressed',String(v===shape));
+    b.addEventListener('click',()=>{shape=v;renderShapes();});
+    box.appendChild(b);
+  });
+}
+document.getElementById('createf').addEventListener('submit',e=>{
+  e.preventDefault();
+  const n=document.getElementById('nname').value.trim();
+  if(!n){say('A resident needs a name.');document.getElementById('nname').focus();return;}
+  const id='made-'+n.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,20)+'-'+Math.random().toString(36).slice(2,6);
+  state.created[id]={name:n,role:document.getElementById('nrole').value.trim()||'no fixed line of work',tint:tint,shape:shape};
+  state.crew[selected]=id;save();
+  document.getElementById('nname').value='';document.getElementById('nrole').value='';
+  render();say(n+' now lives on '+deck(selected).name+'.');
+});
+
+document.getElementById('empty').addEventListener('click',emptyDeck);
+document.getElementById('reset').addEventListener('click',()=>{
+  state={crew:Object.assign({},DEFAULTS),created:{}};save();render();say('Back to the default crew.');
+});
+
+/* list toggle */
+function toggleList(){
+  const lv=document.getElementById('listview'),ring=document.querySelector('section[aria-labelledby="ringh"]'),
+        pn=document.getElementById('panel'),b=document.getElementById('toggle');
+  const toList=lv.hidden;
+  lv.hidden=!toList;ring.hidden=toList;pn.hidden=toList;
+  b.setAttribute('aria-pressed',String(toList));b.textContent=toList?'Ring view':'List view';
+  document.getElementById('hint').textContent=toList?'The same decks, as a list · press L for the ring':'Tap a deck to change who lives there · press L for the list';
+  if(!toList)say('Back to the ring — '+deck(selected).name+' is selected.');
+}
+document.getElementById('toggle').addEventListener('click',toggleList);
+document.addEventListener('keydown',e=>{
+  const t=e.target.tagName;
+  if(t==='INPUT'||t==='TEXTAREA')return;
+  if(e.key==='l'||e.key==='L')toggleList();
+});
+
+load();renderSwatches();renderShapes();render();
+</script>
+</body>
+</html>

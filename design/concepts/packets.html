@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Station — 8 design packets</title>
+<style>
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-italic-latin.woff2") format("woff2");font-style:italic;font-weight:400}
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-normal-latin.woff2") format("woff2");font-style:normal;font-weight:400}
+  :root{--ink:#eef3f2;--dim:#a9b6b4;--faint:#72807f;--line:rgba(150,220,214,.18);
+        --teal:#7fd0c8;--gold:#d3b06a;--canvas:#04070c;
+        --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--canvas);color:var(--ink);
+    font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .bg{position:fixed;inset:0;background:url('assets/worlds/sky2.jpg') center/cover;z-index:-2;opacity:.5}
+  .veil{position:fixed;inset:0;z-index:-1;background:radial-gradient(120% 90% at 50% 20%,rgba(4,7,12,.4),rgba(4,7,12,.94) 62%,#04070c)}
+  .chrome{position:fixed;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:space-between;
+    padding:10px 18px;background:rgba(4,7,12,.82);backdrop-filter:blur(8px);font-family:var(--mono);
+    font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+  .top{top:0;border-bottom:1px solid var(--line)} .bot{bottom:0;border-top:1px solid var(--line);color:var(--faint)}
+  .brand{color:var(--teal)}
+  header{max-width:900px;margin:0 auto;padding:76px 22px 8px;text-align:center}
+  h1{font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:clamp(30px,6vw,50px);margin:0}
+  h1 em{font-style:italic}
+  .tag{color:var(--dim);margin:8px auto 0;max-width:56ch}
+  .meta{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:12px 0 0}
+  main{max-width:1160px;margin:0 auto;padding:28px 22px 120px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:18px}
+  .pkt{display:block;text-decoration:none;color:inherit;border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;background:rgba(8,14,18,.62);transition:border-color .18s,transform .18s}
+  .pkt:hover,.pkt:focus-visible{border-color:var(--teal);transform:translateY(-3px)}
+  .pkt:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .skip{position:absolute;left:8px;top:8px;z-index:30;transform:translateY(-240%);
+    display:inline-flex;align-items:center;min-height:44px;background:var(--canvas);color:var(--ink);
+    border:1px solid var(--teal);border-radius:8px;padding:10px 16px;font-family:var(--mono);
+    font-size:12px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+  .skip:focus{transform:none}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){.pkt{transition:none}.pkt:hover{transform:none}}
+  .pkt img{display:block;width:100%;height:auto;aspect-ratio:128/82;object-fit:cover;object-position:top center;
+    border-bottom:1px solid var(--line);background:#0a0f14}
+  .pkt .body{padding:14px 16px 18px}
+  .pkt .no{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+  .pkt h2{font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:23px;margin:3px 0 6px}
+  .pkt p{margin:0;color:var(--dim);font-size:14.5px}
+  .pkt .open{display:inline-block;margin-top:10px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--teal)}
+  .same{margin:34px 0 0;border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:rgba(8,14,18,.5)}
+  .same h2{font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:21px;margin:0 0 8px}
+  .same p{margin:0 0 8px;color:var(--dim);font-size:14.5px}
+  .same ul{margin:0;padding-left:20px;color:var(--dim);font-size:14.5px}
+  .same li{margin:3px 0}
+  .same b{color:var(--ink);font-weight:500}
+  .room{display:grid;grid-template-columns:1.15fr 1fr;text-decoration:none;color:inherit;
+    border:1px solid var(--line);border-radius:13px;overflow:hidden;background:rgba(8,14,18,.66);
+    margin:0 0 22px;transition:border-color .18s}
+  .room:hover,.room:focus-visible{border-color:var(--teal)}
+  .room:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .room img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center;border-right:1px solid var(--line)}
+  .room .body{padding:20px 22px}
+  .room .no{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin:0}
+  .room h2{font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:27px;margin:5px 0 8px}
+  .room h2 .d{color:var(--teal);font-size:20px}
+  .room p{margin:0;color:var(--dim);font-size:15px}
+  .room .open{display:inline-block;margin-top:12px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal)}
+  @media (prefers-reduced-motion:reduce){.room{transition:none}}
+  @media (max-width:700px){.room{grid-template-columns:1fr}.room img{border-right:0;border-bottom:1px solid var(--line);max-height:230px}}
+  @media (max-width:640px){.chrome{font-size:10px;letter-spacing:.08em;gap:10px}
+    .brand{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50vw}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="bg" aria-hidden="true"></div><div class="veil" aria-hidden="true"></div>
+
+<header>
+  <div class="chrome top"><span class="brand">✦ Project Worlds</span><span>10 pages · one set of assets</span></div>
+  <h1>The Station — <em>ways to live in it</em></h1>
+  <p class="tag">The same eight decks, the same crew, the same new art set — arranged eight completely different ways. Only the layout and the idea change, so they can be compared honestly.</p>
+  <p class="meta">Click a packet to open it · each one is a working page</p>
+</header>
+
+<main id="main" tabindex="-1">
+  <a class="room" href="today-room.html">
+    <img src="assets/packets/today-room.jpg" alt="The Today room: what's coming in to you, at a glance">
+    <div class="body">
+      <p class="no">The first room · built to the new rules</p>
+      <h2>Today <span class="d">— the Transmission</span></h2>
+      <p>What's coming in to you: the essentials first (meds, a failing system), what arrived while you were away, the crew on shift, and the depths a step further in — plain label, invented dialect, accessible floor.</p>
+      <span class="open">Open the room →</span>
+    </div>
+  </a>
+
+  <div class="grid">
+    <a class="pkt" href="p1-ledger.html">
+      <img src="assets/packets/p1-ledger.jpg" alt="The Ledger: a newspaper front page for the station">
+      <div class="body"><p class="no">Packet 1</p><h2>The Ledger</h2>
+        <p>A newspaper. The Bridge is the front page; every other deck is an article with a dateline and a rule above it.</p>
+        <span class="open">Open packet →</span></div>
+    </a>
+    <a class="pkt" href="p2-compass.html">
+      <img src="assets/packets/p2-compass.jpg" alt="The Compass: a dial of ticks with one room shown at a time">
+      <div class="body"><p class="no">Packet 2</p><h2>The Compass</h2>
+        <p>One room at a time, on a dial. No scrolling, no lists — the whole screen belongs to whoever is home.</p>
+        <span class="open">Open packet →</span></div>
+    </a>
+    <a class="pkt" href="p3-shelves.html">
+      <img src="assets/packets/p3-shelves.jpg" alt="The Shelves: vertical book spines for each deck">
+      <div class="body"><p class="no">Packet 3</p><h2>The Shelves</h2>
+        <p>A record crate. Each deck is a spine on the shelf; pull one and the room slides out beside it.</p>
+        <span class="open">Open packet →</span></div>
+    </a>
+    <a class="pkt" href="p4-transit.html">
+      <img src="assets/packets/p4-transit.jpg" alt="The Transit Map: a loop line with stops for each deck">
+      <div class="body"><p class="no">Packet 4</p><h2>The Transit Map</h2>
+        <p>A tube map. The eight decks are stops on a loop line; the core is the interchange.</p>
+        <span class="open">Open packet →</span></div>
+    </a>
+    <a class="pkt" href="p5-constellation.html">
+      <img src="assets/packets/p5-constellation.jpg" alt="The Constellation: stars placed as a night-sky chart">
+      <div class="body"><p class="no">Packet 5</p><h2>The Constellation</h2>
+        <p>A star chart. Every star is a room; click one and an observation window opens over the sky.</p>
+        <span class="open">Open packet →</span></div>
+    </a>
+    <a class="pkt" href="p6-blueprint.html">
+      <img src="assets/packets/p6-blueprint.jpg" alt="The Blueprint: a drafting sheet with eight modules">
+      <div class="body"><p class="no">Packet 6</p><h2>The Blueprint</h2>
+        <p>A drafting sheet. Eight modules, leader lines, a dimension, a title block, and three notes.</p>
+        <span class="open">Open packet →</span></div>
+    </a>
+    <a class="pkt" href="p7-deck.html">
+      <img src="assets/packets/p7-deck.jpg" alt="The Deck: cards fanned out along the bottom">
+      <div class="body"><p class="no">Packet 7</p><h2>The Deck</h2>
+        <p>A hand of cards, fanned at the bottom. Pick a card; the room fills the screen behind it.</p>
+        <span class="open">Open packet →</span></div>
+    </a>
+    <a class="pkt" href="p8-postcard.html">
+      <img src="assets/packets/p8-postcard.jpg" alt="The Postcard: a single postcard with a note on it">
+      <div class="body"><p class="no">Packet 8</p><h2>The Postcard</h2>
+        <p>One quiet thing at a time. A photo on the left, a note from whoever is home on the right.</p>
+        <span class="open">Open packet →</span></div>
+    </a>
+    <a class="pkt" href="p10-transmission.html">
+      <img src="assets/packets/p10-transmission.jpg" alt="The Transmission: the deck fused with the postcard, sent as a modern sci-fi transmission">
+      <div class="body"><p class="no">Fusion · 10</p><h2>The Transmission</h2>
+        <p>The deck × the postcard, modern sci-fi. A hand of cards with clear role glyphs; each card opens a transmission sent to you.</p>
+        <span class="open">Open page →</span></div>
+    </a>
+    <a class="pkt" href="dialects.html">
+      <img src="assets/packets/dialects.jpg" alt="The dialect sheet: eight rooms, eight visual dialects, one shared palette">
+      <div class="body"><p class="no">The Dialect Sheet</p><h2>One world, eight dialects</h2>
+        <p>Each room keeps its familiar job but speaks its own visual language — a constellation here, a blueprint there — over one palette.</p>
+        <span class="open">Open page →</span></div>
+    </a>
+  </div>
+
+  <section class="same">
+    <h2>What is the same in all eight</h2>
+    <p>So the comparison is about design, not content:</p>
+    <ul>
+      <li>The <b>same eight decks</b>, each with its fixed job (the Bridge, Engineering, the Workshop, the Archives, the Galley, the Observatory, the Vault, Your Quarters).</li>
+      <li>The <b>same residents</b> — Renai, Hekek, Bolt, Ratatoskr, Burrito Journalism, Mira, Bruma, and the bed icon for Quarters. The crew is the default; who sits on a deck is a setting.</li>
+      <li>The <b>same new art set</b> — the room backgrounds, the transparent cutouts, the bed icon, the starfields.</li>
+      <li>The <b>same accessibility floor</b> — dark by default, 44&nbsp;px targets, real labels on every control, keyboard arrow keys, and motion only if your system allows it.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="chrome bot"><span>The Station · design packets · 17 Sep 2026</span><span>pick one to walk through</span></footer>
+</body>
+</html>

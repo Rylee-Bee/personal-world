@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Station — the Ring</title>
+<style>
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-italic-latin.woff2") format("woff2");font-style:italic;font-weight:400}
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-normal-latin.woff2") format("woff2");font-style:normal;font-weight:400}
+  :root{--ink:#eef3f2;--dim:#a9b6b4;--faint:#72807f;--line:rgba(150,220,214,.18);
+        --teal:#7fd0c8;--teal-dim:#3f7c77;--amber:#e0a060;--gold:#c9ad6b;
+        --canvas:#04070c;--mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace}
+  *{box-sizing:border-box} body{margin:0;min-height:100vh;background:var(--canvas);color:var(--ink);
+    font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .bg{position:fixed;inset:0;background:url('assets/worlds/sky2.jpg') center/cover;z-index:-3}
+  .veil{position:fixed;inset:0;z-index:-2;background:radial-gradient(120% 100% at 50% 34%,rgba(4,7,12,.25),rgba(4,7,12,.9) 68%,#04070c)}
+  .scan{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;
+    background:repeating-linear-gradient(0deg,#9fe9e0 0 1px,transparent 1px 3px)}
+  .chrome{position:fixed;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:space-between;
+    padding:10px 18px;background:rgba(4,7,12,.74);backdrop-filter:blur(8px);font-family:var(--mono);font-size:12.5px;letter-spacing:.10em}
+  .top{top:0;border-bottom:1px solid var(--line)} .bot{bottom:0;border-top:1px solid var(--line);color:var(--faint);text-transform:uppercase}
+  .brand{font-family:var(--mono);color:var(--teal)} .brand .em{color:var(--ink)}
+  .where{color:var(--dim);text-transform:uppercase}
+  header{max-width:900px;margin:0 auto;padding:70px 22px 2px;text-align:center}
+  h1{font-family:"Fraunces",Georgia,serif;font-style:italic;font-weight:400;font-size:clamp(30px,6vw,46px);margin:0 0 2px}
+  .tag{color:var(--dim);margin:0}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin:8px 0 0}
+  /* stage / viewscreen */
+  .stage{position:relative;width:min(94vw,680px);aspect-ratio:1;margin:12px auto 120px}
+  .bracket{position:absolute;width:26px;height:26px;border:1px solid var(--teal-dim)}
+  .bracket.tl{top:6%;left:3%;border-right:0;border-bottom:0}
+  .bracket.tr{top:6%;right:3%;border-left:0;border-bottom:0}
+  .bracket.bl{bottom:8%;left:3%;border-right:0;border-top:0}
+  .bracket.br{bottom:8%;right:3%;border-left:0;border-top:0}
+  .hull{position:absolute;inset:7%;border-radius:50%;border:1px dashed var(--line)}
+  .hull2{position:absolute;inset:24%;border-radius:50%;border:1px solid var(--teal-dim);opacity:.5}
+  .orbit{position:absolute;inset:13%;border-radius:50%;border:2px solid transparent;border-top-color:var(--teal);border-right-color:var(--teal-dim);opacity:.9}
+  @media (prefers-reduced-motion:no-preference){ .orbit{animation:spin 48s linear infinite} .breath{animation:breath 6s ease-in-out infinite} }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes breath{0%,100%{opacity:.9}50%{opacity:1}}
+  .core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:46%}
+  .core img{width:min(32vw,140px);height:auto;filter:drop-shadow(0 0 34px rgba(127,208,200,.28))}
+  .core .say{font-family:"Fraunces",Georgia,serif;font-style:italic;color:#d6e2e0;margin:4px 0 0}
+  .core .read{font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:.16em;text-transform:uppercase;margin:4px 0 0}
+  /* deck pods */
+  .pod{position:absolute;left:calc(50% + cos(var(--a)) * var(--r));top:calc(50% + sin(var(--a)) * var(--r));
+       transform:translate(-50%,-50%);width:140px;background:linear-gradient(180deg,rgba(12,22,26,.86),rgba(8,12,18,.86));
+       border:1px solid var(--line);border-radius:8px;padding:9px 10px 8px;color:inherit;font:inherit;cursor:pointer;text-align:left;min-height:44px}
+  .pod::before{content:"";position:absolute;left:10px;right:10px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--teal),transparent);opacity:.5}
+  .pod:hover,.pod:focus-visible{border-color:var(--teal);outline:0;box-shadow:0 0 0 1px var(--teal) inset}
+  .pod h2{font-family:var(--mono);font-weight:500;font-size:13px;letter-spacing:.06em;margin:0;text-transform:uppercase}
+  .pod .does{color:var(--faint);font-size:11px;line-height:1.3;margin:3px 0 0}
+  .pod .stat{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--teal);margin:5px 0 0;text-transform:uppercase}
+  .pod.locked{opacity:.66} .pod.locked .stat{color:var(--faint)}
+  .crew{position:absolute;left:calc(50% + cos(var(--a)) * var(--r2));top:calc(50% + sin(var(--a)) * var(--r2));
+        transform:translate(-50%,-50%);width:56px;height:66px;object-fit:contain;pointer-events:none;
+        filter:drop-shadow(0 6px 18px rgba(0,0,0,.7))}
+  .crew.face{border-radius:50%;width:54px;height:54px;object-fit:cover;object-position:center 25%;
+             border:1px solid rgba(255,255,255,.15)}
+  /* list view */
+  .listbox{max-width:660px;margin:0 auto 130px;padding:0 22px;display:none}
+  .listbox.on{display:block}
+  .listbox ul{list-style:none;margin:0;padding:0}
+  .listbox li{border-top:1px solid var(--line);padding:13px 2px;display:flex;gap:12px;align-items:baseline}
+  .listbox .n{font-family:var(--mono);font-size:13px;letter-spacing:.06em;min-width:160px;text-transform:uppercase}
+  .listbox .d{color:var(--dim)} .listbox .s{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--faint);white-space:nowrap;text-transform:uppercase}
+  button.toggle{min-height:44px;background:none;border:1px solid var(--line);border-radius:8px;color:var(--ink);
+       font:inherit;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:0 14px}
+  button.toggle:hover,button.toggle:focus-visible{border-color:var(--teal)}
+  @media (prefers-reduced-motion:no-preference){.pod{transition:box-shadow .15s,border-color .15s}}
+</style>
+</head>
+<body>
+  <div class="bg"></div><div class="veil"></div><div class="scan" aria-hidden="true"></div>
+
+  <div class="chrome top">
+    <span class="brand">PROJECT WORLDS <span class="em">✦</span></span>
+    <span class="where">STATION · ORBIT · QUIET</span>
+  </div>
+
+  <header>
+    <h1>The Station</h1>
+    <p class="tag">Every place has a job. Your crew is already here.</p>
+    <p class="meta">DECK RING · 8 DECKS · ALL CREWED · <a href="crew-maker.html" style="color:var(--teal)">CREW YOUR STATION ↗</a></p>
+  </header>
+
+  <div class="stage" id="stage" role="group" aria-label="The Station decks">
+    <span class="bracket tl" aria-hidden="true"></span><span class="bracket tr" aria-hidden="true"></span>
+    <span class="bracket bl" aria-hidden="true"></span><span class="bracket br" aria-hidden="true"></span>
+    <div class="hull"></div><div class="hull2"></div><div class="orbit" aria-hidden="true"></div>
+
+    <div class="core breath">
+      <img src="../assets/crew/cutouts/personal-world.png" alt="Personal World">
+      <p class="say">All quiet.</p>
+      <p class="read">systems nominal</p>
+    </div>
+
+    <button class="pod" style="--a:-90deg;--r:min(37vmin,236px)" onclick="go('bridge')" aria-label="The Bridge, deck one: what needs you. Status quiet.">
+      <h2>The Bridge</h2><p class="does">what needs you</p><p class="stat">◍ quiet</p></button>
+
+    <button class="pod" style="--a:-45deg;--r:min(37vmin,236px)" onclick="go('engineering')" aria-label="Engineering, deck two: systems and capabilities. Status healthy.">
+      <h2>Engineering</h2><p class="does">systems &amp; capabilities</p><p class="stat">◍ healthy</p></button>
+
+    <button class="pod" style="--a:0deg;--r:min(37vmin,236px)" onclick="go('workshop')" aria-label="The Workshop, deck three: making things. Two active.">
+      <h2>The Workshop</h2><p class="does">making things</p><p class="stat">◍ 2 active</p></button>
+
+    <button class="pod" style="--a:45deg;--r:min(37vmin,236px)" onclick="go('archives')" aria-label="The Archives, deck four: memory and lore. Current.">
+      <h2>The Archives</h2><p class="does">memory &amp; lore</p><p class="stat">◍ current</p></button>
+
+    <button class="pod" style="--a:90deg;--r:min(37vmin,236px)" onclick="go('galley')" aria-label="The Galley, deck five: stories and news. Two stories.">
+      <h2>The Galley</h2><p class="does">stories &amp; news</p><p class="stat">◍ 2 stories</p></button>
+
+    <button class="pod" style="--a:135deg;--r:min(37vmin,236px)" aria-label="The Observatory, deck six: the map of your world. Resident: Mira.">
+      <h2>The Observatory</h2><p class="does">the map of your world</p><p class="stat">◍ Mira</p></button>
+
+    <button class="pod" style="--a:180deg;--r:min(37vmin,236px)" aria-label="The Vault, deck seven: secrets and backups. Resident: Bruma.">
+      <h2>The Vault</h2><p class="does">secrets &amp; backups</p><p class="stat">◍ Bruma</p></button>
+
+    <button class="pod" style="--a:-135deg;--r:min(37vmin,236px)" aria-label="Your Quarters, deck eight: you, profile and accessibility. No resident — it is an icon.">
+      <h2>Your Quarters</h2><p class="does">you · profile</p><p class="stat">· bed icon, no resident</p></button>
+
+    <img class="crew" style="--a:-78deg;--r2:min(27vmin,172px)" src="../assets/station/characters/renai.png" alt="Renai, at the Bridge">
+    <img class="crew" style="--a:-33deg;--r2:min(27vmin,172px)" src="../assets/station/characters/hekek.png" alt="Hekek, in Engineering">
+    <img class="crew" style="--a:22deg;--r2:min(27vmin,172px)" src="../assets/station/characters/bolt.png" alt="Bolt, in the Workshop">
+    <img class="crew" style="--a:60deg;--r2:min(27vmin,172px)" src="../assets/station/characters/ratatoskr.png" alt="Ratatoskr, in the Archives">
+    <img class="crew" style="--a:104deg;--r2:min(27vmin,172px)" src="../assets/station/characters/burrito.png" alt="The truck, at the Galley">
+    <img class="crew" style="--a:147deg;--r2:min(27vmin,172px)" src="../assets/station/characters/mira.png" alt="Mira, in the Observatory">
+    <img class="crew" style="--a:-168deg;--r2:min(27vmin,172px)" src="../assets/station/characters/bruma.png" alt="Bruma, in the Vault">
+  </div>
+
+  <div class="listbox" id="listbox" aria-label="The Station decks, list view">
+    <ul>
+      <li><span class="n">The Bridge</span><span class="d">what needs you</span><span class="s">quiet</span></li>
+      <li><span class="n">Engineering</span><span class="d">systems &amp; capabilities</span><span class="s">healthy</span></li>
+      <li><span class="n">The Workshop</span><span class="d">making things</span><span class="s">2 active</span></li>
+      <li><span class="n">The Archives</span><span class="d">memory &amp; lore</span><span class="s">current</span></li>
+      <li><span class="n">The Galley</span><span class="d">stories &amp; news</span><span class="s">2 stories</span></li>
+      <li><span class="n">The Observatory</span><span class="d">the map of your world</span><span class="s">Mira</span></li>
+      <li><span class="n">The Vault</span><span class="d">secrets &amp; backups</span><span class="s">Bruma</span></li>
+      <li><span class="n">Your Quarters</span><span class="d">profile &amp; accessibility</span><span class="s">bed icon · no resident</span></li>
+    </ul>
+  </div>
+
+  <div class="chrome bot">
+    <span>Choose a deck · press L for list</span>
+    <button class="toggle" onclick="toggleList()" id="tbtn">List view</button>
+  </div>
+
+<script>
+  function toggleList(){
+    var s=document.getElementById('stage'), l=document.getElementById('listbox'), b=document.getElementById('tbtn');
+    var spatial=s.style.display!=='none';
+    s.style.display=spatial?'none':'block'; l.classList.toggle('on',spatial);
+    b.textContent=spatial?'Ring view':'List view';
+  }
+  function go(id){ location.href='station.html#'+id; }
+  document.addEventListener('keydown',function(e){ if(e.key==='l'||e.key==='L') toggleList(); });
+</script>
+</body>
+</html>

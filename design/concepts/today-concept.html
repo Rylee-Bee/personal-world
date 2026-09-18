@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today — concept (matches the owner frame)</title>
+<style>
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-italic-latin.woff2") format("woff2");font-style:italic;font-weight:400}
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-normal-latin.woff2") format("woff2");font-style:normal;font-weight:400}
+  :root{
+    --canvas:#0a0a0c;--ink:#f2f2ef;--dim:#9a9a98;--line:#1f1f23;
+    --accent:#7fd0c8;--accent-dim:#4e8f89;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+        radial-gradient(700px 300px at 50% -60px, rgba(127,208,200,.10), transparent 70%),
+        var(--canvas);
+      color:var(--ink);font:17px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+      max-width:430px;margin:0 auto;padding:22px 20px 96px;min-height:100vh}
+  .top{display:flex;align-items:center;justify-content:space-between}
+  .brand{font-family:"Fraunces",Georgia,serif;font-size:21px;letter-spacing:.01em}
+  .brand .sp{color:var(--accent)}
+  .avatar{width:40px;height:40px;border-radius:50%;background:#15151a;border:1px solid var(--line);
+          display:grid;place-items:center;overflow:hidden}
+  .avatar img{width:30px;height:34px;object-fit:contain}
+  h1{font-family:"Fraunces",Georgia,serif;font-style:italic;font-weight:400;
+     font-size:clamp(28px,8vw,38px);color:var(--accent);margin:30px 0 2px}
+  .companion{display:flex;align-items:center;gap:12px;margin:8px 0 18px}
+  .companion .mini{width:30px;height:30px;border-radius:50%;background:#15151a;border:1px solid var(--line);
+                   display:grid;place-items:center;overflow:hidden;flex:none}
+  .companion .mini img{width:22px;height:26px;object-fit:contain}
+  .companion p{font-family:"Fraunces",Georgia,serif;font-style:italic;color:#c9c9c4;margin:0}
+  .pill{display:flex;align-items:center;justify-content:space-between;
+        border:1px solid var(--line);border-radius:12px;padding:11px 14px;color:#d6d6d2;background:#0f0f13}
+  .pill .sp{color:var(--accent);letter-spacing:2px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:22px;
+     display:flex;align-items:center;gap:10px;margin:40px 0 6px}
+  h2 svg{width:22px;height:22px;stroke:var(--accent);fill:none;stroke-width:1.7}
+  ul{list-style:none;margin:0;padding:0}
+  .change{display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+  .ico{width:34px;height:34px;border-radius:9px;background:#15151a;border:1px solid var(--line);flex:none;
+       display:grid;place-items:center}
+  .ico svg{width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:1.7}
+  .change .txt{flex:1}
+  .change .when{color:var(--dim);font-size:14px;flex:none}
+  .journal{padding:16px 0 2px;border-top:1px solid var(--line)}
+  .journal .jt{font-family:"Fraunces",Georgia,serif;font-style:italic;font-size:19px;margin:0 0 2px}
+  .journal .jd{color:var(--dim);font-size:14px;float:right}
+  .journal .jx{font-family:"Fraunces",Georgia,serif;font-style:italic;color:#a9a9a4;margin:2px 0 0}
+  nav{position:fixed;left:0;right:0;bottom:0;background:rgba(10,10,12,.96);
+      border-top:1px solid var(--line);display:flex;justify-content:space-around;
+      padding:10px 8px 14px;max-width:430px;margin:0 auto}
+  nav a{color:var(--dim);text-decoration:none;font-size:12px;display:grid;justify-items:center;gap:4px;min-width:64px}
+  nav a.active{color:var(--accent)}
+  nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+  .note{color:#6f6f6d;font-size:12px;margin-top:26px}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand">Project Worlds <span class="sp">✦</span></div>
+    <div class="avatar"><img src="../assets/crew/vector/renai.svg" alt="Renai"></div>
+  </div>
+
+  <h1>Good evening, Rylee.</h1>
+  <div class="companion">
+    <span class="mini"><img src="../assets/crew/vector/renai.svg" alt=""></span>
+    <p>Nothing needs you right now.</p>
+  </div>
+
+  <div class="pill"><span>Your world is healthy.</span><span class="sp">✦✦✦✦</span></div>
+
+  <h2><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Recent Changes</h2>
+  <ul>
+    <li class="change">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 10l7-7 7 7"/></svg></span>
+      <span class="txt">Garden Atlas · Mara linked the spring planting notes</span>
+      <span class="when">9:42</span>
+    </li>
+    <li class="change">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 20V8l8-5 8 5v12"/><path d="M9 20v-6h6v6"/></svg></span>
+      <span class="txt">Moonhouse · You connected the kitchen moodboard</span>
+      <span class="when">Tue</span>
+    </li>
+  </ul>
+
+  <h2><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 5v14"/></svg> Recent Journal</h2>
+  <div class="journal">
+    <p class="jt">The first warm morning <span class="jd">Today</span></p>
+    <p class="jx">The windows were open, and everything felt possible again…</p>
+  </div>
+  <div class="journal">
+    <p class="jt">A small constellation <span class="jd">Mon</span></p>
+    <p class="jx">Three good things found each other before supper.</p>
+  </div>
+
+  <p class="note">A concept built to match the owner Today frame (design/owner/Today.png) — warm, editorial, no cards. Not the shipped screen.</p>
+
+  <nav>
+    <a class="active" href="#"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8z"/></svg>Today</a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>Projects</a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M4 5h7v14H4zM13 5h7v14h-7z"/></svg>Journal &amp; Memory</a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>Settings</a>
+  </nav>
+</body>
+</html>
