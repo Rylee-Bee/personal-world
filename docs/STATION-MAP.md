@@ -126,7 +126,74 @@ dialect is wired into `src/` yet.
 
 ---
 
-## 6. Open / UNKNOWN
+## 6. Rooms announce themselves — and open up (owner direction, 2026-09-18)
+
+Owner direction (2026-09-18): the station should read the way good set design
+reads — you know **where** you are, and **whose** room it is, *before anyone tells
+you*: the way a vault reads as a vault, and a room's colours and lines announce
+its purpose. And it should always hold one more thing to look at, without ever
+nagging. The owner's words: *"easy to move between things, the assistant always
+available… a more interesting, calmer, more useful place… I almost want to hate to
+put it down."*
+
+**The feeling is the requirement; consistency is how it survives.** Everything
+below exists to produce one felt quality — and to keep it identical from room to
+room:
+
+> **Calm, cared-for, curious, unhurried. A well-kept place where someone is home —
+> competent without being cold, alive without being loud, deep without being
+> heavy.** You should want to stay a while, and never feel behind.
+
+The target is **one** feeling: the room changes, the *feel* never does — same
+warmth of light, same restraint, same quiet rhythm, same voice, same density.
+Moving between rooms must never cause whiplash. If a room seems to need a
+different *feel* to work, the design is wrong, not the feel.
+
+Four mechanisms, and one rule that holds them together. Each is a **rule**, not a
+decoration.
+
+1. **Signature — identify before reading.** Every room carries the *same four*
+   channels, always **together**, never any one alone (colour-blind safe —
+   [contract §1.3](accessibility/ACCESSIBILITY_CONTRACT.md)):
+   - **colour** — the room's one accent (§5);
+   - **line** — the room's geometry (rings, a loop, a drafting grid, stacks, a
+     board, a chart, a door, near-nothing);
+   - **light** — the room's lighting habit (where its lamp sits, how warm);
+   - **silhouette** — the room's outline at a glance.
+
+   **Cover the name and you should still know the room.** If you cannot, the room
+   is unfinished.
+2. **Depth you can descend into.** Every room has a Level 1 (a glance) that is
+   complete on its own, down to a Level 4 (the technical guts) that is always
+   reachable *from inside the room* — a place you walk into, never a separate
+   settings mode. "Opening the panel" is spatial, not a toggle. (The product
+   contracts are `complexity-on-demand` and `progressive-disclosure`; this makes
+   them a *place*.)
+3. **Always one more thing — calmly.** Each room keeps a small, changing set worth
+   a look: what is new, what is mending, the one thread that was found. Discovery
+   is **bounded and opt-in**: no infinite feeds, no streaks, no red badges, no
+   urgency, no guilt. The pull is depth and care, never a dopamine loop.
+   *Quiet-when-healthy still wins* — "nothing needs you" is a good room.
+4. **The assistant is always at hand; movement is free.** From anywhere, ask. From
+   anywhere, move to any room in one step, with no dead ends and no lost place.
+   Wayfinding and the assistant are one promise: *you are never lost, and never
+   alone in it.*
+5. **Same hand, every room.** The consistency rule that holds the other four
+   together. One voice, one rhythm, one temperature, one level of restraint — in
+   every room and under every theme. This is **not** "same tokens" (that is §5.2);
+   it is *same feel*. A room that is louder, colder, busier, or chattier than its
+   neighbours is a **bug**, even if every token is legal.
+
+**Copy guard.** Reference the *feeling* freely, but keep franchise lexicon out of
+the product: name our own things in our own words (no borrowed ship, deck or
+corridor vocabulary in the UI).
+
+> This section is the *experience* thesis; §1–§5 are the map and the dialects.
+> Nothing here is wired into `src/` yet.
+
+---
+
+## 7. Open / UNKNOWN
 
 - **Deck names are owner canon; the implementation is not.** No deck plan exists
   in the Station or the server today. Whether the Station exposes decks as
