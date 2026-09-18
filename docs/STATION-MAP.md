@@ -78,7 +78,7 @@ first.* It extends it: nobody has to keep the shipped crew first, either.
 
 ---
 
-## 5. One world, eight dialects (owner direction, 2026-09-18)
+## 4. One world, eight dialects (owner direction, 2026-09-18)
 
 Owner direction (2026-09-18): the rooms should feel **distinct and purposeful** —
 each room may speak its own visual dialect — while **colours and theming stay
@@ -126,7 +126,7 @@ dialect is wired into `src/` yet.
 
 ---
 
-## 6. Rooms announce themselves — and open up (owner direction, 2026-09-18)
+## 5. Rooms announce themselves — and open up (owner direction, 2026-09-18)
 
 Owner direction (2026-09-18): the station should read the way good set design
 reads — you know **where** you are, and **whose** room it is, *before anyone tells
@@ -155,7 +155,7 @@ decoration.
 1. **Signature — identify before reading.** Every room carries the *same four*
    channels, always **together**, never any one alone (colour-blind safe —
    [contract §1.3](accessibility/ACCESSIBILITY_CONTRACT.md)):
-   - **colour** — the room's one accent (§5);
+   - **colour** — the room's one accent (§4);
    - **line** — the room's geometry (rings, a loop, a drafting grid, stacks, a
      board, a chart, a door, near-nothing);
    - **light** — the room's lighting habit (where its lamp sits, how warm);
@@ -180,7 +180,7 @@ decoration.
    alone in it.*
 5. **Same hand, every room.** The consistency rule that holds the other four
    together. One voice, one rhythm, one temperature, one level of restraint — in
-   every room and under every theme. This is **not** "same tokens" (that is §5.2);
+   every room and under every theme. This is **not** "same tokens" (that is §4.2);
    it is *same feel*. A room that is louder, colder, busier, or chattier than its
    neighbours is a **bug**, even if every token is legal.
 
@@ -188,12 +188,12 @@ decoration.
 the product: name our own things in our own words (no borrowed ship, deck or
 corridor vocabulary in the UI).
 
-> This section is the *experience* thesis; §1–§5 are the map and the dialects.
+> This section is the *experience* thesis; §1–§4 are the map and the dialects.
 > Nothing here is wired into `src/` yet.
 
 ---
 
-## 7. Open / UNKNOWN
+## 6. Open / UNKNOWN
 
 - **Deck names are owner canon; the implementation is not.** No deck plan exists
   in the Station or the server today. Whether the Station exposes decks as
