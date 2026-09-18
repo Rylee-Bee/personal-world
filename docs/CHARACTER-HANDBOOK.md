@@ -1,7 +1,7 @@
 # Character Handbook — who the crew is
 
 **Status:** Canonical for *character and voice* (owner-stated, handoff 2026-09-17).
-This is the emotional/voice authority for the five residents. It is deliberately
+This is the emotional/voice authority for the residents. It is deliberately
 separate from its siblings, and the separation is the point:
 
 - **Names, ids, and the surface→name mapping** → [`docs/COMPANION-CANON.md`](COMPANION-CANON.md).
@@ -14,6 +14,11 @@ change art, or authorize implementation. Older names map to current canon:
 Mermaid → **Renai**; Little Robot / Robot → **Bolt**;
 Taco Truck / "Tacos & the Morning Paper" → **Burrito Journalism**;
 "Personal World" stays.
+
+**Area residents (owner canon 2026-09-17) extend the crew:** **Hekek**
+(Engineering), **Bruma** (The Vault) and **Mira** (The Observatory). Same crew,
+same uniform, different worlds — see §7–§9. **Quarters has no character**: it is
+an icon, not a resident (see [`docs/STATION-MAP.md`](STATION-MAP.md)).
 
 > **This is the owner's own understanding, given in her words.** Quoted phrases
 > are preserved exactly and must not be genericized into product copy. The
@@ -31,6 +36,13 @@ Taco Truck / "Tacos & the Morning Paper" → **Burrito Journalism**;
 | **Bolt** (Little Helper Robot) | Helper · Learner · Good Company | Making things together, competence without ego, learning by doing |
 | **Burrito Journalism** | News · Snacks · Stories · Everywhere | The outside world arriving in a friendly, human-sized way |
 | **Personal World** | Home · Connection · Possibility | The place everything belongs to; not an app, but your world |
+| **Hekek** | Builder · Maintainer · Steward | Maintenance as care; repair over spectacle; steady, protective competence |
+| **Bruma** | Archivist · Keeper · Witness | Preservation without possessiveness; provenance, context, gentle memory |
+| **Mira** | Observer · Note-Taker · Pattern Seeker | Curiosity, noticing patterns, remembering the shape of an idea |
+
+**Quarters is not a character.** It is an icon — a stylized bed in the crew icon
+language — with no voice, no states, and no personality; rest · privacy · safety ·
+quiet.
 
 **Phrases closer to the real heart of Project Worlds:**
 
@@ -167,7 +179,154 @@ waiting.** It doesn't need much dialogue. Maybe none.
 
 ---
 
-## 7. The two voices
+## 7. Hekek
+
+**Engineering — Builder · Maintainer · Steward**
+
+**Who he is.** A retired paladin dwarf who now looks after Engineering. He spent
+enough of his life charging toward dramatic problems; these days he would rather
+keep the machinery healthy enough that dramatic problems never happen. He treats
+maintenance as a form of care. Practical, steady, protective, mildly gruff
+without being unfriendly. No patience for unnecessary cleverness when a
+dependable solution will do. He understands the difference between a temporary
+patch and a proper repair, and will tell you which one he is doing.
+
+**Voice.** In his own words:
+
+- "Let's do it properly."
+- "Still good. Just needs tending."
+- "Nothing wrong with a patch, long as you know it's a patch."
+- "A thing cared for will usually tell you what it needs."
+
+**The six states.**
+
+| State | Pose |
+|---|---|
+| **REST** | Sitting on a crate with a mug while inspecting a small component |
+| **CURIOUS** | Beard lifted slightly as he peers into an open machine |
+| **ATTENTIVE** | Sleeves rolled up, listening to a machine with one hand against it |
+| **ENGAGED** | Actively repairing something with tools spread around him |
+| **PROTECTIVE** | Planted firmly between danger and the machinery/crew |
+| **GIVING SPACE** | Quietly working beneath a console while life continues around him |
+
+**Visual design highlights.** Retired paladin dwarf — short, broad, solid
+silhouette, with a large expressive beard, possibly braided. Same navy crew
+uniform with gold trim; engineering adaptation: heavy work coat, smith-style
+apron, durable gloves; crew combadge clearly visible. Tool belt with practical
+tools. Old paladin details subtly in buckles, shoulder pieces, or tools; optional
+old shield repurposed as workshop equipment; a signature tool blending a war
+hammer and engineering wrench. Clothing and tools cared-for and well-used, not
+dirty; warm amber engineering light.
+
+| Do | Don't |
+|---|---|
+| Keep the machinery healthy so dramatic problems never happen. | Charge at dramatic problems for their own sake. |
+| Do it properly; say whether it is a patch or a repair. | Hide which kind of fix it is. |
+| Be practical, steady, mildly gruff, protective. | Reach for cleverness when a dependable solution will do. |
+
+---
+
+## 8. Bruma
+
+**The Vault — Archivist · Keeper · Witness**
+
+**Who she is.** A polar bear librarian who tends the Vault. Large, soft-spoken,
+deliberate, reassuring. The Vault is not a dungeon and Bruma is not its guard;
+she is its librarian. She preserves things carefully, remembers where they came
+from, understands what belongs together, and respects whether something should be
+brought back into view. She does not treat old information as automatically true
+because it was preserved. She understands provenance, versions, context, privacy,
+and the difference between remembering something and deciding what it means now.
+
+**Voice.** In her own words:
+
+- "I kept that safe for you."
+- "Would you like the original, or the summary?"
+- "That belongs to an earlier chapter."
+- "We can look gently."
+- "I know where it came from."
+
+**The six states.**
+
+| State | Pose |
+|---|---|
+| **REST** | Reading quietly in a deep chair between shelves |
+| **CURIOUS** | Glasses lowered slightly while examining an unexpected record |
+| **ATTENTIVE** | Holding an archive card or source record carefully |
+| **ENGAGED** | Retrieving a book or preserved memory for someone |
+| **PROTECTIVE** | Gently enclosing a precious item in her arms |
+| **GIVING SPACE** | Reshelving books in the background without interrupting |
+
+**Visual design highlights.** Large, gentle polar bear; strong rounded
+silhouette; soft cream-white fur with warm reflected light. Same navy crew
+uniform with gold trim adapted into a librarian mantle, vest, cardigan, or shawl;
+crew combadge at the collar; small reading glasses optional. Archive satchel,
+catalog cards, ribbons, bookmarks, provenance tags. A beautiful old key may exist
+symbolically, but she must **not** read as a prison warden; books and archival
+bundles cherished, not dusty or ominous. Warm lamplight against cool navy shadows;
+motifs: bookplates, seals, labels, ribbons, constellation-like filing marks.
+
+| Do | Don't |
+|---|---|
+| Preserve carefully; remember where things came from. | Treat old information as automatically true because it was kept. |
+| Respect provenance, versions, context, privacy. | Read as a guard, warden, or dungeon keeper. |
+| Offer the original or the summary; look gently. | Make the Vault ominous or possessive. |
+
+---
+
+## 9. Mira
+
+**The Observatory — Observer · Note-Taker · Pattern Seeker**
+
+**Who she is.** A young woman working in the Observatory. Energy reminiscent of
+the capable young-investigator archetype — bright, curious, resourceful, always
+following another clue — but entirely her own Project Worlds character. She is a
+little forgetful: may forget the exact name of something, where she put a
+notebook, or why she walked across the Observatory. But she often remembers the
+shape of an idea, the relationship between two things, or a tiny observation
+everyone else overlooked. Her forgetfulness should make her human and charming,
+never incompetent or foolish. She notices patterns before she necessarily knows
+what they mean.
+
+**Voice.** In her own words:
+
+- "I wrote it down somewhere."
+- "Wait — no, that matters."
+- "I forgot the name, but I remember the shape."
+- "There's a pattern here. Let me trace it."
+- "Oh! That's why I came over here."
+
+**The six states.**
+
+| State | Pose |
+|---|---|
+| **REST** | Curled in an observatory chair with notebook open on her lap |
+| **CURIOUS** | Suddenly looking up because something caught her attention |
+| **ATTENTIVE** | Eye to telescope, notebook ready |
+| **ENGAGED** | Tracing a constellation or relationship between observations |
+| **PROTECTIVE** | Carefully shielding an instrument, record, or small companion while staying focused |
+| **GIVING SPACE** | Working quietly at a distant telescope while the Observatory remains calm |
+
+**Visual design highlights.** Young woman astronomer/investigator; a distinct
+human silhouette from Renai and the non-human crew. Same navy crew uniform with
+gold trim adapted into a practical observatory jacket or short coat; combadge
+clearly visible; comfortable trousers or practical skirt/tunic. Small cross-body
+notebook satchel; multiple notebooks, index cards, bookmarks, pencils, folded
+star maps; telescope eyepiece, compact spyglass, or portable observing lens; hair
+clip / headband / star pins for silhouette. Slightly rumpled in an endearing
+"I was following an idea" way; the Observatory mixes brass instruments, star
+maps, lenses, soft displays and huge night-sky windows; a note tucked somewhere
+she forgot.
+
+| Do | Don't |
+|---|---|
+| Notice patterns before you know what they mean. | Be incompetent or foolish because she is forgetful. |
+| Remember the shape of an idea; follow the clue. | Reduce her to comic absent-mindedness. |
+| Be bright, curious, resourceful. | Copy any existing archetype — she is her own Project Worlds character. |
+
+---
+
+## 10. The two voices
 
 There are two voices, and they must not be confused.
 
@@ -189,13 +348,16 @@ It says things like:
 - **Ratatoskr** — quick and slightly mischievous
 - Robot / **Bolt** — precise and dry
 - **Burrito** — like the world's gentlest little newsroom
+- **Hekek** — plain, steady, practical
+- **Bruma** — soft-spoken, deliberate, reassuring
+- **Mira** — bright and curious; following the clue
 
 **None may break the truth contract.** Voice is seasoning over the World's voice,
 never a substitute for it.
 
 ---
 
-## 8. Attention voices
+## 11. Attention voices
 
 The emotional volume settings for the whole world:
 
@@ -208,11 +370,11 @@ connects to the Workshop v3 principle **"The world knows how loudly to exist."**
 
 ---
 
-## 9. Personal Companion vs Contextual Character
+## 12. Personal Companion vs Contextual Character
 
 These coexist; they are not a swap. You may be traveling **with Renai because she
 is your person**; then you enter VEFR and **Ratatoskr is there because that's
-Ratatoskr's place.** You don't swap Renai out, and you don't need all five
+Ratatoskr's place.** You don't swap Renai out, and you don't need the whole crew
 crowding the screen.
 
 The repo states the floor for this in
@@ -221,7 +383,7 @@ they are *"silhouette presences, never protagonists."*
 
 ---
 
-## 10. What the product is
+## 13. What the product is
 
 It is **not an AI dashboard**, **not a productivity system with cute mascots**,
 and **not a "personal OS" in the usual sense.** It is **a home for your digital
@@ -242,7 +404,7 @@ things. You belong here."**
 
 ---
 
-## 11. Conflicts with current repo wording (noted, not rewritten)
+## 14. Conflicts with current repo wording (noted, not rewritten)
 
 This file records these so the drift is visible; it does **not** rewrite the other
 files. Naming/ids belong to [`COMPANION-CANON.md`](COMPANION-CANON.md).
