@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Today — the room · Project Worlds</title>
+<title>The Focus — Today, with the room tagged</title>
 <style>
   @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
   @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
@@ -229,6 +229,40 @@
   }
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
+<style>
+  /* --- the focus: a perception layer written on top of the world --- */
+  .stage{display:grid;grid-template-columns:1.3fr .92fr;gap:16px;align-items:start}
+  @media (max-width:900px){.stage{grid-template-columns:1fr}}
+  .world{position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--gold) 30%,transparent);
+    border-radius:20px 5px 20px 5px;min-height:min(72vh,600px);
+    box-shadow:0 18px 44px rgba(0,0,0,.6),inset 0 1px 0 rgba(216,185,120,.09)}
+  .world img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.92}
+  .world .wash{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,9,18,.18),rgba(10,9,18,.66))}
+  .world .ar{position:absolute;inset:0;pointer-events:none;opacity:.45;
+    background-image:linear-gradient(rgba(216,185,120,.07) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(216,185,120,.07) 1px,transparent 1px);
+    background-size:36px 36px}
+  .scanwrap{position:absolute;left:16px;top:16px;z-index:4}
+  .tag{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);z-index:3}
+  .tagb{display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:5px 14px 5px 9px;
+    border:1px solid color-mix(in srgb,var(--gold) 42%,transparent);border-radius:999px;
+    background:rgba(10,9,18,.86);color:var(--ink);font-family:var(--label);font-size:13.5px;
+    cursor:pointer;touch-action:manipulation;text-align:left}
+  .tagb:hover{border-color:var(--gold);background:rgba(20,17,30,.94)}
+  .tagb .dot{flex:0 0 auto;width:13px;height:13px;border:1px solid var(--gold);border-radius:50%;
+    background:radial-gradient(circle at 40% 38%,var(--gold),transparent 70%);
+    box-shadow:0 0 9px color-mix(in srgb,var(--gold) 55%,transparent)}
+  .tagb b{color:var(--gold);font-weight:600;margin-right:2px}
+  .tag.deep{opacity:0;visibility:hidden}
+  .world.scanned .tag.deep{opacity:1;visibility:visible}
+  .readout{position:absolute;left:16px;bottom:16px;right:16px;z-index:3;display:none;
+    border:1px solid color-mix(in srgb,var(--gold) 26%,transparent);border-radius:14px;
+    background:rgba(10,9,18,.82);padding:12px 14px}
+  .world.scanned .readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:6px 18px}
+  .readout dt{font-family:var(--label);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .readout dd{margin:2px 0 0;font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+  .taglink{margin:0 0 10px}
+</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -237,179 +271,140 @@
 <header>
   <div class="chrome top">
     <span class="brand">✦ Project Worlds</span>
-    <span class="here">Today — the Transmission</span>
-    <span class="onshift"><i></i><span>Renai on shift · 4 min</span></span>
+    <span class="here">Today — the focus</span>
+    <span class="onshift"><i></i><span>Renai on shift &middot; 4 min</span></span>
   </div>
 </header>
 
 <main id="main" tabindex="-1">
   <p id="room-status" role="status" class="sr"></p>
+
   <div class="head">
-    <span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M15.7 8.3l-2.1 4.3-4.3 2.1 2.1-4.3z" fill="currentColor" stroke="none"/></svg></span>
+    <span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.4"/><path d="M12 2.4v3.6M12 18v3.6M2.4 12h3.6M18 12h3.6"/></svg></span>
     <div>
       <h1>Today</h1>
-      <p class="role">What is coming in to you</p>
+      <p class="role">The room, with the focus on</p>
     </div>
-    <span class="dlt">the Transmission</span>
+    <span class="dlt">the perception layer</span>
   </div>
 
-  <p class="say"><b>Today, two things need you.</b> Nothing urgent — and three things came in while you were away.</p>
+  <p class="say"><b>The room is the room.</b> The focus only writes on top of it. Turn it off and nothing is lost — because nothing lives only here.</p>
 
-  <div class="modules">
+  <div class="stage">
+    <!-- the world, tagged -->
+    <div class="world" id="world">
+      <img src="../assets/station/backgrounds/bridgebg.png" alt="">
+      <div class="wash" aria-hidden="true"></div>
+      <div class="ar" aria-hidden="true"></div>
 
-    <section class="m m-needs panel" aria-labelledby="m-needs-b-h">
-      <div class="mhead">
-        <h2 id="m-needs-b-h"><span class="mi">01</span> Needs you <span class="mcount" id="need-count">2</span></h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-needs-b" aria-label="Collapse Needs you"><span aria-hidden="true">&ndash;</span></button>
+      <div class="scanwrap">
+        <button class="btn" id="scan" type="button" aria-pressed="false" aria-controls="world">Scan the room</button>
       </div>
-      <div class="mbody" id="m-needs-b">
-        <ul class="need" id="need-list">
-          <li>
-            <span class="what">Evening medicine</span>
-            <span class="when due">due 20:00</span>
-            <span class="why">From your own list. It stays here until you mark it done.</span>
-            <span class="rowact"><button type="button" class="btn" data-done aria-pressed="false">Mark done</button></span>
-          </li>
-          <li>
-            <span class="what">One connection is down</span>
-            <span class="when">12 min ago</span>
-            <span class="why">The other connection is fine, so nothing is lost.</span>
-            <span class="to">fix it in Systems</span>
-            <span class="rowact"><button type="button" class="btn ghost" data-why>Why?</button></span>
-          </li>
-        </ul>
-      </div>
-    </section>
 
-    <section class="m panel" aria-labelledby="m-arr-b-h">
-      <div class="mhead">
-        <h2 id="m-arr-b-h"><span class="mi">02</span> Arriving <span class="mcount">3 today</span></h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-arr-b" aria-label="Collapse Arriving"><span aria-hidden="true">&ndash;</span></button>
-      </div>
-      <div class="mbody" id="m-arr-b">
-        <ul class="arr" id="arrive-list">
-          <li><span class="from">Renai</span><span class="line">Quiet night. Nothing new needs you.</span><span class="ago">4 min</span></li>
-          <li><span class="from">Burrito J.</span><span class="line">The night market returns on Friday.</span><span class="ago">1 h</span><span class="meta">from News &middot; one story</span></li>
-          <li><span class="from">Mira</span><span class="line">Three signals in the same region.</span><span class="ago">3 h</span><span class="meta">from Interests &middot; nothing to decide yet</span></li>
-        </ul>
-        <p class="calm" style="border-top:1px solid var(--line)">That is all of them &mdash; <b>this list ends.</b></p>
-        <div class="actions"><button type="button" class="btn ghost" id="markread" aria-pressed="false">Mark all as read</button></div>
-      </div>
-    </section>
+      <ul style="list-style:none;margin:0;padding:0">
+        <li class="tag" style="--x:56%;--y:40%">
+          <button class="tagb" type="button" data-goto="need-h"><span class="dot" aria-hidden="true"></span><span><b>01</b> 2 things need you</span></button>
+        </li>
+        <li class="tag" style="--x:25%;--y:30%">
+          <button class="tagb" type="button" data-goto="arr-h"><span class="dot" aria-hidden="true"></span><span><b>02</b> 3 letters, waiting</span></button>
+        </li>
+        <li class="tag" style="--x:68%;--y:66%">
+          <button class="tagb" type="button" data-goto="crew-h"><span class="dot" aria-hidden="true"></span><span><b>03</b> Renai &mdash; on shift</span></button>
+        </li>
+        <li class="tag deep" style="--x:83%;--y:20%" hidden>
+          <button class="tagb" type="button"><span class="dot" aria-hidden="true"></span><span>the view &mdash; quiet</span></button>
+        </li>
+        <li class="tag deep" style="--x:13%;--y:72%" hidden>
+          <button class="tagb" type="button"><span class="dot" aria-hidden="true"></span><span>kept &middot; watered Tuesday</span></button>
+        </li>
+      </ul>
 
-    <section class="m panel" aria-labelledby="m-crew-b-h">
-      <div class="mhead">
-        <h2 id="m-crew-b-h"><span class="mi">03</span> On shift</h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-crew-b" aria-label="Collapse On shift"><span aria-hidden="true">&ndash;</span></button>
-      </div>
-      <div class="mbody" id="m-crew-b">
-        <div class="crew">
-          <div>
-            <p class="who">Renai</p>
-            <p class="task">Watching what comes in.</p>
-            <p class="ago">On shift &middot; last checked 4 min ago</p>
-          </div>
-          <img src="../assets/station/characters/renai.png" alt="">
-        </div>
-      </div>
-    </section>
-
-    <section class="m panel" aria-labelledby="m-calm-b-h">
-      <div class="mhead">
-        <h2 id="m-calm-b-h"><span class="mi">04</span> When nothing needs you</h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-calm-b" aria-label="Collapse When nothing needs you"><span aria-hidden="true">&ndash;</span></button>
-      </div>
-      <div class="mbody" id="m-calm-b">
-        <p class="calm"><b>Nothing needs you.</b> That is a good answer &mdash; the crew keeps working either way.</p>
-      </div>
-    </section>
-
-    <section class="m assist" id="assist" aria-labelledby="m-ask-b-h">
-      <div class="mhead">
-        <h2 id="m-ask-b-h"><span class="mi">05</span> Your assistant</h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-ask-b" aria-label="Collapse Your assistant"><span aria-hidden="true">&ndash;</span></button>
-      </div>
-      <div class="mbody" id="m-ask-b">
-        <p>Ask anything, any time. <span class="eg">Try: &ldquo;what&rsquo;s due today?&rdquo; or &ldquo;why is the connection down?&rdquo;</span></p>
-        <form class="askrow" id="askform">
-          <label class="sr" for="ask">Ask your assistant</label>
-          <input id="ask" type="text" placeholder="Ask anything&hellip;" autocomplete="off">
-          <button type="submit" class="btn">Ask</button>
-        </form>
-        <p class="askmsg" id="askmsg" hidden></p>
-      </div>
-    </section>
-
-    <details class="depth m m-wide" id="depth">
-      <summary><span class="mk">&rsaquo;</span> How this room works</summary>
-      <dl class="guts">
-        <div><dt>Connections checked</dt><dd>2 &middot; both fine</dd></div>
+      <dl class="readout" aria-label="What this room is made of">
+        <div><dt>Connections</dt><dd>2 &middot; both fine</dd></div>
+        <div><dt>Letters held</dt><dd>3</dd></div>
         <div><dt>Last checked</dt><dd>20:39:12</dd></div>
-        <div><dt>Where this comes from</dt><dd>/api/status &middot; /api/attention</dd></div>
-        <div><dt>Times come from</dt><dd>the server clock</dd></div>
-        <div><dt>Motion</dt><dd>reduced &mdash; yours to switch on</dd></div>
-        <div><dt>Came in today</dt><dd>3 &middot; grouped, not one by one</dd></div>
+        <div><dt>Sound</dt><dd>none &mdash; nothing pings</dd></div>
       </dl>
-    </details>
+    </div>
+
+    <!-- the cards, docked beside the world -->
+    <div class="modules">
+      <section class="m panel" aria-labelledby="need-h">
+        <div class="mhead">
+          <h2 id="need-h"><span class="mi">01</span> Needs you <span class="mcount" id="need-count">2</span></h2>
+          <button class="fold" type="button" aria-expanded="true" aria-controls="m-needs-b" aria-label="Collapse Needs you"><span aria-hidden="true">&ndash;</span></button>
+        </div>
+        <div class="mbody" id="m-needs-b">
+          <ul class="need" id="need-list">
+            <li>
+              <span class="what">Evening medicine</span>
+              <span class="when due">due 20:00</span>
+              <span class="why">From your own list. It stays here until you mark it done.</span>
+              <span class="rowact"><button type="button" class="btn" data-done aria-pressed="false">Mark done</button></span>
+            </li>
+            <li>
+              <span class="what">One connection is down</span>
+              <span class="when">12 min ago</span>
+              <span class="why">The other connection is fine, so nothing is lost.</span>
+              <span class="rowact"><button type="button" class="btn ghost" data-why>Why?</button></span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="m panel" aria-labelledby="arr-h">
+        <div class="mhead">
+          <h2 id="arr-h"><span class="mi">02</span> Arriving <span class="mcount">3 today</span></h2>
+          <button class="fold" type="button" aria-expanded="true" aria-controls="m-arr-b" aria-label="Collapse Arriving"><span aria-hidden="true">&ndash;</span></button>
+        </div>
+        <div class="mbody" id="m-arr-b">
+          <ul class="arr" id="arrive-list">
+            <li><span class="from">Mira</span><span class="line">Three signals, same region. Not named yet.</span><span class="ago">3 h</span></li>
+            <li><span class="from">Burrito J.</span><span class="line">The night market returns on Friday.</span><span class="ago">1 h</span></li>
+          </ul>
+          <p class="calm" style="border-top:1px solid var(--line)">That is all of them &mdash; <b>this list ends.</b></p>
+        </div>
+      </section>
+
+      <section class="m panel" aria-labelledby="crew-h">
+        <div class="mhead">
+          <h2 id="crew-h"><span class="mi">03</span> On shift</h2>
+          <button class="fold" type="button" aria-expanded="true" aria-controls="m-crew-b" aria-label="Collapse On shift"><span aria-hidden="true">&ndash;</span></button>
+        </div>
+        <div class="mbody" id="m-crew-b">
+          <div class="crew">
+            <div>
+              <p class="who">Renai</p>
+              <p class="task">Watching what comes in.</p>
+              <p class="ago">On shift &middot; last checked 4 min ago</p>
+            </div>
+            <img src="../assets/station/characters/renai.png" alt="">
+          </div>
+        </div>
+      </section>
+
+      <details class="depth m" id="depth">
+        <summary><span class="mk">&rsaquo;</span> How this room works</summary>
+        <dl class="guts">
+          <div><dt>Focus</dt><dd>a layer over the world, never the world</dd></div>
+          <div><dt>Scanning</dt><dd>reveals what is already there</dd></div>
+          <div><dt>If you turn it off</dt><dd>the room is still the room</dd></div>
+          <div><dt>Sound</dt><dd>none &mdash; nothing pings</dd></div>
+        </dl>
+      </details>
+    </div>
   </div>
 
-  <div class="actions" style="justify-content:flex-start;margin-top:16px">
-    <a class="btn ghost" href="today-renai.html"><span aria-hidden="true">&#9998;</span> See Today as Renai keeps it</a>
-    <a class="btn ghost" href="today-focus.html"><span aria-hidden="true">&#9906;</span> See it with the focus on</a>
-  </div>
-
-  <p class="sig"><b>signature</b>teal &middot; concentric rings &middot; a warm centre</p>
+  <p class="sig"><b>signature</b>gold ink over the world &middot; the map is not the place</p>
 </main>
-
-<button class="fab" id="fab" type="button" aria-controls="assist">
-  <span aria-hidden="true">&#10022;</span> Ask
-</button>
-
-<footer class="chrome bot">
-  <span>Nothing needs you is a good answer</span>
-  <span>concept · Today, the first room</span>
-</footer>
 
 <script>
 (function () {
   var status = document.getElementById('room-status');
   function say(m) { if (status) status.textContent = m; }
-  function recount() {
-    var n = document.querySelectorAll('#need-list li:not(.done)').length;
-    document.getElementById('need-count').textContent = n;
-    return n;
-  }
-  Array.prototype.forEach.call(document.querySelectorAll('[data-done]'), function (b) {
-    b.addEventListener('click', function () {
-      var li = b.closest('li');
-      var done = li.classList.toggle('done');
-      b.setAttribute('aria-pressed', done ? 'true' : 'false');
-      b.textContent = done ? 'Done ✓' : 'Mark done';
-      var n = recount();
-      say(done ? ('Marked done. ' + n + (n === 1 ? ' thing still needs' : ' things still need') + ' you.')
-               : ('Reopened. ' + n + ' need you.'));
-    });
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('[data-why]'), function (b) {
-    b.addEventListener('click', function () {
-      var d = document.getElementById('depth');
-      d.open = true;
-      d.querySelector('summary').focus();
-      say('Opened how this room works.');
-    });
-  });
-  var mr = document.getElementById('markread');
-  if (mr) mr.addEventListener('click', function () {
-    var on = mr.getAttribute('aria-pressed') === 'true';
-    mr.setAttribute('aria-pressed', on ? 'false' : 'true');
-    mr.textContent = on ? 'Mark all as read' : 'All read ✓';
-    document.getElementById('arrive-list').classList.toggle('read', !on);
-    say(on ? 'Marked unread.' : 'All marked read.');
-  });
   Array.prototype.forEach.call(document.querySelectorAll('.fold'), function (b) {
     b.addEventListener('click', function () {
-      var m = b.closest('.m');
-      var open = !m.classList.toggle('collapsed');
+      var m = b.closest('.m'); var open = !m.classList.toggle('collapsed');
       b.setAttribute('aria-expanded', open ? 'true' : 'false');
       b.querySelector('span').textContent = open ? '\u2013' : '+';
       var h = m.querySelector('h2').cloneNode(true);
@@ -417,23 +412,38 @@
       say((open ? 'Opened ' : 'Closed ') + (h.textContent || '').trim());
     });
   });
-  var fab = document.getElementById('fab');
-  if (fab) fab.addEventListener('click', function () {
-    var a = document.getElementById('assist');
-    a.classList.remove('collapsed');
-    var fd = a.querySelector('.fold');
-    if (fd) { fd.setAttribute('aria-expanded', 'true'); fd.querySelector('span').textContent = '\u2013'; }
-    document.getElementById('ask').focus();
-    a.scrollIntoView({ block: 'center' });
-    say('Assistant ready.');
+  var scan = document.getElementById('scan'), world = document.getElementById('world');
+  if (scan) scan.addEventListener('click', function () {
+    var on = world.classList.toggle('scanned');
+    scan.setAttribute('aria-pressed', on ? 'true' : 'false');
+    scan.textContent = on ? 'Hide the scan' : 'Scan the room';
+    Array.prototype.forEach.call(world.querySelectorAll('.tag.deep'), function (t) { t.hidden = !on; });
+    say(on ? 'Scanning. Two more things revealed.' : 'Scan hidden.');
   });
-  var f = document.getElementById('askform');
-  if (f) f.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var m = document.getElementById('askmsg');
-    m.hidden = false;
-    m.textContent = 'This concept is not connected to the assistant yet — in the real room, the answer appears here.';
-    say('The assistant is not connected in this concept.');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-goto]'), function (b) {
+    b.addEventListener('click', function () {
+      var id = b.getAttribute('data-goto');
+      var sec = document.getElementById(id).closest('.m');
+      sec.classList.remove('collapsed');
+      var fd = sec.querySelector('.fold');
+      if (fd) { fd.setAttribute('aria-expanded', 'true'); fd.querySelector('span').textContent = '\u2013'; }
+      sec.scrollIntoView({ block: 'center' });
+      document.getElementById(id).focus && document.getElementById(id).focus();
+      say('Opened the matching card.');
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-done]'), function (b) {
+    b.addEventListener('click', function () {
+      var li = b.closest('li'); var done = li.classList.toggle('done');
+      b.setAttribute('aria-pressed', done ? 'true' : 'false');
+      b.textContent = done ? 'Done \u2713' : 'Mark done';
+      var n = document.querySelectorAll('#need-list li:not(.done)').length;
+      document.getElementById('need-count').textContent = n;
+      say(done ? ('Marked done. ' + n + ' still need you.') : ('Reopened. ' + n + ' need you.'));
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-why]'), function (b) {
+    b.addEventListener('click', function () { var d = document.getElementById('depth'); d.open = true; d.querySelector('summary').focus(); say('Opened how this room works.'); });
   });
 })();
 </script>
