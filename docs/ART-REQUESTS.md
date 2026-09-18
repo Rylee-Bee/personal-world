@@ -308,3 +308,93 @@ A quiet background "sky" for the <AREA> area — a subtle constellation/star fie
 that feels like that area's night sky. Low-contrast, calm, no text. (Swap <AREA>
 for: Interests, Projects, Journal, People, Media, Systems, Places.)
 ```
+
+---
+
+## 9. New area crew — Hekek · Bruma · Mira (added 2026-09-17)
+
+Already delivered in `design/assets/crew/newchars.png`: turnarounds
+(front / ¾ / side / back), expression rows, the six labeled states, the combadge,
+and role detail insets — plus the **Quarters** bed-icon set with sizes.
+
+Still needed (one topic per request):
+
+| Need | Why |
+|---|---|
+| **Transparent cutouts** — one per character | The sheet is composite; the UI needs each isolated. |
+| **Vector SVGs** — Hekek, Bruma, Mira | Match `design/assets/crew/vector/` for crisp scaling. |
+| **Scale tests** (16→96 px) | Confirm each silhouette reads small. |
+| **New room art** — Engineering, Vault, Observatory, Quarters | The four new decks have no backdrop yet. |
+| **Quarters icon export** | 16/32/48 px PNGs + a vector SVG. |
+
+**19 · Transparent cutout — Hekek**
+
+```
+A transparent-background PNG of Hekek (the retired paladin dwarf engineer), full
+body, front view, isolated. Navy crew uniform with gold trim, combadge, apron,
+tool belt, hammer-wrench.
+```
+
+**20 · Transparent cutout — Bruma**
+
+```
+A transparent-background PNG of Bruma (the polar bear librarian), full body, front
+view, isolated. Librarian mantle, combadge, archive satchel and key.
+```
+
+**21 · Transparent cutout — Mira**
+
+```
+A transparent-background PNG of Mira (the young Observatory investigator), full
+body, front view, isolated. Astronomer's jacket, combadge, notebook satchel and
+observing tool.
+```
+
+**22 · Vector SVGs — Hekek · Bruma · Mira**
+
+```
+Clean SVG of Hekek, Bruma and Mira — one file each, same design and colours, no
+embedded raster. Match the existing crew vectors in design/assets/crew/vector/.
+```
+
+**23 · Scale tests**
+
+```
+A scale test of each new character (Hekek, Bruma, Mira) at 16, 32, 48, 64 and 96 px,
+labelled, so each silhouette reads small.
+```
+
+**24 · Room art — Engineering (Hekek)**
+
+```
+Wide (~16:9) room art for Engineering: heavy machinery, brass and pipes, a
+workbench, warm amber light. Deep navy, no text.
+```
+
+**25 · Room art — The Vault (Bruma)**
+
+```
+Wide (~16:9) room art for the Vault: a warm library of shelves, lamplight and
+archive drawers. Preserved and cherished, never ominous. No text.
+```
+
+**26 · Room art — The Observatory (Mira)**
+
+```
+Wide (~16:9) room art for the Observatory: brass instruments, star maps, a large
+telescope, huge night-sky windows. Deep navy, warm light, no text.
+```
+
+**27 · Room art — Your Quarters**
+
+```
+Wide (~16:9) room art for Quarters: a calm restful room — bed, lamplight, quiet and
+private. Deep navy and warm gold, no text.
+```
+
+**28 · Quarters bed icon export**
+
+```
+Export the Quarters bed icon as clean 16, 32 and 48 px PNGs plus a vector SVG, in
+the crew icon language (navy + warm gold, optional tiny crescent, no face).
+```
