@@ -269,6 +269,16 @@ wears projects a Horizon-style lens (reticles, tags, wireframe readouts, scannin
 over a written world. The other makers' technical layers are **deliberately
 undecided** — we find each one when we build the room.
 
+**Alerts are about the subject, not the sender (owner direction, 2026-09-18).** A
+notification names **what the user needs to know**, not who produced it: a **round
+icon from one icon pack** (medicine · a system · a note · a record · an event · a
+connection · an interest · news · rest) plus a **plain chip** with the detail. The
+name of whoever is involved belongs **in the sentence**, not on the button. A
+resident **may leave one signed line in their own voice** (*"I'll keep this safe for
+you!" — Bruma*); the voice is flavour, never the organising principle. The icon is
+**never the only signal** — the chip always says it in words. Concept:
+`design/concepts/icon-pack.html`.
+
 **Copy guard.** The vocabulary is ours (see §5): no borrowed ship, deck or corridor
 words, and no "beep".
 
