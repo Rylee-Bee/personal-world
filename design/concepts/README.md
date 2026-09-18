@@ -51,6 +51,14 @@ no-preference`) and is perfectly still otherwise.
 It is defined once, in `today-room.html`, as the `.panel, .assist, details.depth`
 block. Reuse that block in the next rooms — do not invent a new surface.
 
+**Type (readability first, sci-fi second):** reading text is **IBM Plex Sans**;
+room names are **Space Grotesk**; telemetry is **IBM Plex Mono**. All self-hosted —
+see [`assets/fonts/README.md`](assets/fonts/README.md).
+
+**Actions flow to one place.** Every card puts its controls at the end of the
+reading flow, right-aligned — `.rowact` per item, `.actions` per card — always
+≥44px, always **real** (no dead buttons), with a polite status region for changes.
+
 ## Rules these pages follow
 
 The accessibility floor and the room conventions are canonical elsewhere and are
