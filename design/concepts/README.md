@@ -59,6 +59,13 @@ see [`assets/fonts/README.md`](assets/fonts/README.md).
 reading flow, right-aligned — `.rowact` per item, `.actions` per card — always
 ≥44px, always **real** (no dead buttons), with a polite status region for changes.
 
+**Modules, and a device you can touch.** Each card is a `.m` module on a grid with
+a numbered header, a **fold** control (real, keyboard-operable), and touch
+affordances: 48px targets, `touch-action: manipulation`, `:active` press states,
+and a `:focus-within` "wake" so touch and keyboard get the same feedback as hover.
+A floating **Ask** button keeps the assistant within thumb reach — a real control
+that opens the assistant module and focuses its input.
+
 ## Rules these pages follow
 
 The accessibility floor and the room conventions are canonical elsewhere and are
