@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" role="img" aria-labelledby="title desc">
+<title id="title">Renai</title><desc id="desc">Clean Project Worlds vector artwork. Pure SVG geometry; no embedded raster.</desc>
+<defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0a9"/><stop offset=".48" stop-color="#f2bb52"/><stop offset="1" stop-color="#d28a2c"/></linearGradient>
+<linearGradient id="tailIri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b4efff"/><stop offset=".34" stop-color="#d8c5ff"/><stop offset=".66" stop-color="#ffd0e0"/><stop offset="1" stop-color="#fff0bd"/></linearGradient>
+<linearGradient id="hairIri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb0c6"/><stop offset=".28" stop-color="#ffd3b0"/><stop offset=".56" stop-color="#b9eaff"/><stop offset=".8" stop-color="#d6baff"/><stop offset="1" stop-color="#ffb8d0"/></linearGradient></defs>
+<g stroke="#0a1022" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+<!-- hair mass --> <path d="M160 157c12-85 180-103 204-4 15 62-20 118-51 145-20 18-42 27-59 29-52 5-111-79-94-170z" fill="url(#hairIri)"/>
+<!-- ear fins --><path d="M154 202l-43 23 34 18zM358 202l43 23-34 18z" fill="#a8e7f1"/>
+<!-- head --><ellipse cx="256" cy="190" rx="82" ry="88" fill="#b97855"/>
+<!-- bangs --><path d="M181 174c9-53 49-82 86-83 46-2 79 27 83 77-25-22-48-27-68-22-25-22-58-21-101 28z" fill="url(#hairIri)" stroke="none"/>
+<!-- eyes --> <ellipse cx="226" cy="194" rx="10" ry="15" fill="#f7c35b" stroke="none"/><ellipse cx="287" cy="194" rx="10" ry="15" fill="#f7c35b" stroke="none"/><circle cx="229" cy="189" r="3" fill="white" stroke="none"/><circle cx="290" cy="189" r="3" fill="white" stroke="none"/><path d="M235 226q21 16 42 0" fill="none" stroke="#6c2d2d" stroke-width="5"/>
+<!-- braid --> <g stroke-width="4"><ellipse cx="350" cy="234" rx="26" ry="34" fill="#ffb4c9"/><ellipse cx="369" cy="281" rx="25" ry="34" fill="#bcefff"/><ellipse cx="360" cy="330" rx="26" ry="34" fill="#ffd1aa"/><ellipse cx="379" cy="378" rx="25" ry="34" fill="#cdb5ff"/><ellipse cx="369" cy="425" rx="23" ry="31" fill="#ffb9d1"/></g>
+<!-- torso uniform --> <path d="M178 286q78-40 156 0l21 159q-98 54-198 0z" fill="#111a32"/><path d="M256 279v171" fill="none" stroke="url(#gold)" stroke-width="8"/><path d="M206 286l21 44h58l22-44" fill="none" stroke="url(#gold)" stroke-width="8"/><path d="M170 362q-53 34-64 101l35 12q21-58 58-81M342 362q53 34 64 101l-35 12q-21-58-58-81" fill="#111a32"/>
+<!-- cuffs --> <path d="M111 454l36 13-8 26-37-13zM401 454l-36 13 8 26 37-13z" fill="url(#gold)"/>
+<!-- badge --> <g transform="translate(300 315) scale(.28)"><ellipse cx="0" cy="0" rx="44" ry="44" fill="url(#gold)"/><ellipse cx="0" cy="0" rx="78" ry="22" transform="rotate(-18)" fill="none" stroke="url(#gold)" stroke-width="13"/></g>
+<!-- waist panels --> <path d="M165 431l46 8-34 112-57-30zM347 431l-46 8 34 112 57-30z" fill="#f4e8e2" stroke="url(#gold)"/>
+<!-- tail --> <path d="M192 436c18 93 8 149 18 201 8 42 28 56 46 57 20 1 41-17 50-60 11-51-4-106 14-198-38 22-90 22-128 0z" fill="url(#tailIri)"/>
+<!-- scale hints --> <path d="M219 488q18-12 36 0M257 488q18-12 36 0M226 520q18-12 36 0M264 520q18-12 36 0M235 552q18-12 36 0" fill="none" stroke="#e8cfe8" stroke-width="3"/>
+<!-- fin --> <path d="M256 682c-51-11-92 13-106 61 45 9 82 2 106-31 24 33 61 40 106 31-14-48-55-72-106-61z" fill="url(#tailIri)"/>
+<!-- hands --> <ellipse cx="107" cy="486" rx="18" ry="25" fill="#b97855"/><ellipse cx="405" cy="486" rx="18" ry="25" fill="#b97855"/>
+</g></svg>

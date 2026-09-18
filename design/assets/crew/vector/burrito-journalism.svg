@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 620" role="img" aria-labelledby="title desc">
+<title id="title">Burrito Journalism</title><desc id="desc">Clean Project Worlds vector artwork. Pure SVG geometry; no embedded raster.</desc>
+<defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0a9"/><stop offset=".48" stop-color="#f2bb52"/><stop offset="1" stop-color="#d28a2c"/></linearGradient>
+<linearGradient id="tailIri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b4efff"/><stop offset=".34" stop-color="#d8c5ff"/><stop offset=".66" stop-color="#ffd0e0"/><stop offset="1" stop-color="#fff0bd"/></linearGradient>
+<linearGradient id="hairIri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb0c6"/><stop offset=".28" stop-color="#ffd3b0"/><stop offset=".56" stop-color="#b9eaff"/><stop offset=".8" stop-color="#d6baff"/><stop offset="1" stop-color="#ffb8d0"/></linearGradient></defs>
+<g stroke="#0a1022" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+<!-- giant burrito roof --> <path d="M122 150q70-81 211-31l63 59H147z" fill="#ead5aa"/><path d="M136 151q70-49 121-20" fill="none" stroke="#c57a36" stroke-width="18"/><circle cx="194" cy="137" r="13" fill="#8d4c2f"/><circle cx="220" cy="128" r="11" fill="#eaa02f"/><circle cx="244" cy="136" r="12" fill="#70a95a"/>
+<!-- truck body --> <path d="M70 246q0-68 70-68h241q61 0 61 64v274H69z" fill="#f1e6d6"/><path d="M206 268h236v248H196z" fill="#182547"/>
+<!-- awning --> <path d="M191 247h255v54H191z" fill="#111a32"/><path d="M191 301q21 20 42 0 21 20 42 0 21 20 42 0 21 20 42 0 21 20 42 0 21 20 42 0" fill="none" stroke="url(#gold)" stroke-width="9"/>
+<!-- windshield face --> <rect x="90" y="270" width="104" height="125" rx="24" fill="#d9edf4"/><ellipse cx="124" cy="325" rx="9" ry="13" fill="#3b2d27" stroke="none"/><ellipse cx="161" cy="325" rx="9" ry="13" fill="#3b2d27" stroke="none"/><path d="M125 352q18 18 36 0" fill="none" stroke="#6d3328" stroke-width="5"/>
+<!-- serving window --> <rect x="229" y="326" width="170" height="112" rx="8" fill="#3a2a24"/><rect x="238" y="336" width="152" height="74" rx="4" fill="#f5c768" stroke="none"/><path d="M256 369h113" stroke="#7f4f2c" stroke-width="8"/>
+<!-- headline sign --> <rect x="174" y="179" width="235" height="69" rx="20" fill="#fff2d8"/><path d="M211 212h162" stroke="#111a32" stroke-width="14"/><path d="M230 232h126" stroke="#111a32" stroke-width="6"/>
+<!-- badge --> <g transform="translate(258 471) scale(.26)"><ellipse cx="0" cy="0" rx="44" ry="44" fill="url(#gold)"/><ellipse cx="0" cy="0" rx="78" ry="22" transform="rotate(-18)" fill="none" stroke="url(#gold)" stroke-width="13"/></g>
+<!-- bumper/lights --> <path d="M70 474h372v42H70z" fill="#d7ae70"/><circle cx="96" cy="456" r="16" fill="#ffd570"/><circle cx="172" cy="456" r="16" fill="#ffd570"/>
+<!-- wheels --> <circle cx="151" cy="526" r="62" fill="#171927"/><circle cx="151" cy="526" r="32" fill="#596071"/><circle cx="151" cy="526" r="12" fill="url(#gold)"/><circle cx="371" cy="526" r="62" fill="#171927"/><circle cx="371" cy="526" r="32" fill="#596071"/><circle cx="371" cy="526" r="12" fill="url(#gold)"/>
+</g></svg>

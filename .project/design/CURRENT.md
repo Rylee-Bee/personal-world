@@ -296,6 +296,12 @@ Today/Journal/Vault). Legacy server UI coexists (`PW_FRONTEND` selects).
   and Personal World in the shared uniform, among the book-leaf world-tree.
   Added 2026-09-17 from the owner's untracked drop
   (`design/owner/crew/crew-sept17.png`); the drop directory stays gitignored.
+- **Crew asset set (curated):** `design/assets/crew/` — the full companion asset
+  library, tracked 2026-09-17 from `design/owner/crew/newassets/` (gitignored):
+  transparent **cutouts**, true-vector **SVGs** (five residents + planet emblem),
+  the **app-icon/favicon set**, the three **attention-voice marks**, wide **room**
+  art for People/Media/Systems/Places, **skies**, and **pose sheets**. See
+  `design/assets/crew/README.md`.
 - Deliberate artwork — do not casually regenerate: Mermaid master Lottie
   (byte-identical by decision), companion source rigs, icon library,
   screen SVGs.
