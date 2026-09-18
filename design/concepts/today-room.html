@@ -45,7 +45,7 @@
   .onshift{display:inline-flex;align-items:center;gap:7px;color:var(--dim)}
   .onshift i{width:7px;height:7px;border-radius:50%;background:var(--accent);
     box-shadow:0 0 8px color-mix(in srgb,var(--accent) 70%,transparent)}
-  main{max-width:1080px;margin:0 auto;padding:82px 22px calc(104px + env(safe-area-inset-bottom))}
+  main{max-width:1080px;margin:0 auto;padding:82px 22px calc(156px + env(safe-area-inset-bottom))}
   /* --- the room header --- */
   .head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
   .head .badge{width:46px;height:46px;flex:0 0 46px;border-radius:50%;display:grid;place-items:center;
@@ -173,6 +173,42 @@
   .askrow input::placeholder{color:var(--faint)}
   .askrow input:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-color:var(--teal)}
   .askmsg{margin:10px 0 0;color:var(--dim);font-size:14.5px}
+  /* --- modules: the room is a grid of widgets, not a document --- */
+  .modules{display:grid;gap:14px;grid-template-columns:1fr}
+  .m{min-width:0}
+  @media (min-width:820px){
+    .modules{grid-template-columns:1fr 1fr}
+    .m-needs,.m-wide{grid-column:1 / -1}
+  }
+  .mhead{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+  .mhead h2{margin:0}
+  .mi{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint);
+    border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+  .mcount{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--accent)}
+  .fold{flex:0 0 auto;margin-left:auto;display:inline-grid;place-items:center;width:48px;height:48px;border-radius:10px;
+    border:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;font-size:15px;line-height:1;
+    touch-action:manipulation}
+  .fold:hover{border-color:var(--accent);color:var(--ink)}
+  .fold:active{background:color-mix(in srgb,var(--accent) 26%,transparent);border-color:var(--accent)}
+  .m.collapsed .mbody{display:none}
+  .m.collapsed .mhead{margin-bottom:0}
+  /* --- touch: treat the room as a device you hold --- */
+  html{-webkit-tap-highlight-color:rgba(143,201,194,.18)}
+  .btn,.fold,.askrow input,details.depth summary{touch-action:manipulation}
+  .btn,.fold,.askrow input{min-height:48px}
+  .btn:active,.fold:active{background:color-mix(in srgb,var(--accent) 26%,transparent);border-color:var(--accent)}
+  .panel:focus-within,.assist:focus-within{border-color:color-mix(in srgb,var(--accent) 34%,var(--line))}
+  .panel:focus-within::before,.assist:focus-within::before{border-color:color-mix(in srgb,var(--accent) 42%,transparent)}
+  /* --- the assistant, always within thumb reach --- */
+  .fab{position:fixed;right:20px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:20;
+    display:inline-flex;align-items:center;gap:9px;min-height:56px;padding:0 20px;border-radius:28px;
+    border:1px solid color-mix(in srgb,var(--teal) 45%,transparent);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--teal) 22%,#0b1218),#0b1218);color:var(--ink);
+    font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+    touch-action:manipulation;box-shadow:0 12px 30px rgba(0,0,0,.6)}
+  .fab:hover{border-color:var(--teal)}
+  .fab:active{background:color-mix(in srgb,var(--teal) 30%,#0b1218)}
+  @media (max-width:640px){.fab{right:14px;bottom:calc(64px + env(safe-area-inset-bottom));min-height:52px}}
   @media (max-width:860px){ .cols{grid-template-columns:1fr} }
   @media (max-width:640px){
     .chrome{font-size:10px;letter-spacing:.06em;gap:8px}
@@ -224,11 +260,14 @@
 
   <p class="say"><b>2 things need you.</b> Nothing is urgent. <b>3 things came in</b> while you were away.</p>
 
-  <div class="cols">
-    <div>
-      <!-- Level 1: the essentials, big and plain -->
-      <section class="panel" aria-labelledby="need-h">
-        <h2 id="need-h">Needs you <span id="need-count">2</span></h2>
+  <div class="modules">
+
+    <section class="m m-needs panel" aria-labelledby="m-needs-b-h">
+      <div class="mhead">
+        <h2 id="m-needs-b-h"><span class="mi">01</span> Needs you <span class="mcount" id="need-count">2</span></h2>
+        <button class="fold" type="button" aria-expanded="true" aria-controls="m-needs-b" aria-label="Collapse Needs you"><span aria-hidden="true">&ndash;</span></button>
+      </div>
+      <div class="mbody" id="m-needs-b">
         <ul class="need" id="need-list">
           <li>
             <span class="what">Evening medicine</span>
@@ -244,84 +283,87 @@
             <span class="rowact"><button type="button" class="btn ghost" data-why>Why?</button></span>
           </li>
         </ul>
-      </section>
+      </div>
+    </section>
 
-      <!-- the quiet state is a real, good answer -->
-      <section class="panel" aria-labelledby="calm-h" style="margin-top:16px">
-        <h2 id="calm-h">And when nothing does <span>the good state</span></h2>
-        <p class="calm"><b>Nothing needs you.</b> That is a good answer — the crew keeps working either way.</p>
-      </section>
-
-      <!-- depth: the guts, one step in, from inside the room -->
-      <details class="depth" id="depth">
-        <summary><span class="mk">▸</span> How this room works</summary>
-        <dl class="guts">
-          <div><dt>Connections checked</dt><dd>2 · both fine</dd></div>
-          <div><dt>Last checked</dt><dd>20:39:12</dd></div>
-          <div><dt>Where this comes from</dt><dd>/api/status · /api/attention</dd></div>
-          <div><dt>Times come from</dt><dd>the server clock</dd></div>
-          <div><dt>Motion</dt><dd>reduced — yours to switch on</dd></div>
-          <div><dt>Came in today</dt><dd>3 · grouped, not one by one</dd></div>
-        </dl>
-      </details>
-
-      <p class="sig"><b>signature</b>teal · concentric rings · a warm centre · you know it before you read it</p>
-    </div>
-
-    <div>
-      <!-- the Transmission: what's arriving, bounded -->
-      <section class="panel" aria-labelledby="arr-h">
-        <h2 id="arr-h">Arriving <span>3 today</span></h2>
+    <section class="m panel" aria-labelledby="m-arr-b-h">
+      <div class="mhead">
+        <h2 id="m-arr-b-h"><span class="mi">02</span> Arriving <span class="mcount">3 today</span></h2>
+        <button class="fold" type="button" aria-expanded="true" aria-controls="m-arr-b" aria-label="Collapse Arriving"><span aria-hidden="true">&ndash;</span></button>
+      </div>
+      <div class="mbody" id="m-arr-b">
         <ul class="arr" id="arrive-list">
-          <li>
-            <span class="from">Renai</span>
-            <span class="line">Quiet night. Nothing new needs you.</span>
-            <span class="ago">4 min</span>
-          </li>
-          <li>
-            <span class="from">Burrito J.</span>
-            <span class="line">The night market returns on Friday.</span>
-            <span class="ago">1 h</span>
-            <span class="meta">from News · one story</span>
-          </li>
-          <li>
-            <span class="from">Mira</span>
-            <span class="line">Three signals in the same region.</span>
-            <span class="ago">3 h</span>
-            <span class="meta">from Interests · nothing to decide yet</span>
-          </li>
+          <li><span class="from">Renai</span><span class="line">Quiet night. Nothing new needs you.</span><span class="ago">4 min</span></li>
+          <li><span class="from">Burrito J.</span><span class="line">The night market returns on Friday.</span><span class="ago">1 h</span><span class="meta">from News &middot; one story</span></li>
+          <li><span class="from">Mira</span><span class="line">Three signals in the same region.</span><span class="ago">3 h</span><span class="meta">from Interests &middot; nothing to decide yet</span></li>
         </ul>
-        <p class="calm" style="border-top:1px solid var(--line)">That is all of them — <b>this list ends.</b></p>
+        <p class="calm" style="border-top:1px solid var(--line)">That is all of them &mdash; <b>this list ends.</b></p>
         <div class="actions"><button type="button" class="btn ghost" id="markread" aria-pressed="false">Mark all as read</button></div>
-      </section>
+      </div>
+    </section>
 
-      <!-- the resident, on shift -->
-      <section class="panel" aria-labelledby="crew-h" style="margin-top:16px">
-        <h2 id="crew-h">On shift</h2>
+    <section class="m panel" aria-labelledby="m-crew-b-h">
+      <div class="mhead">
+        <h2 id="m-crew-b-h"><span class="mi">03</span> On shift</h2>
+        <button class="fold" type="button" aria-expanded="true" aria-controls="m-crew-b" aria-label="Collapse On shift"><span aria-hidden="true">&ndash;</span></button>
+      </div>
+      <div class="mbody" id="m-crew-b">
         <div class="crew">
           <div>
             <p class="who">Renai</p>
             <p class="task">Watching what comes in.</p>
-            <p class="ago">On shift · last checked 4 min ago</p>
+            <p class="ago">On shift &middot; last checked 4 min ago</p>
           </div>
           <img src="../assets/station/characters/renai.png" alt="">
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- the assistant, always one step away -->
-      <section class="assist" aria-labelledby="ask-h">
-        <h2 id="ask-h">Your assistant — always here</h2>
-        <p>Ask anything, any time. <span class="eg">Try: “what's due today?” or “why is the connection down?”</span></p>
+    <section class="m panel" aria-labelledby="m-calm-b-h">
+      <div class="mhead">
+        <h2 id="m-calm-b-h"><span class="mi">04</span> When nothing needs you</h2>
+        <button class="fold" type="button" aria-expanded="true" aria-controls="m-calm-b" aria-label="Collapse When nothing needs you"><span aria-hidden="true">&ndash;</span></button>
+      </div>
+      <div class="mbody" id="m-calm-b">
+        <p class="calm"><b>Nothing needs you.</b> That is a good answer &mdash; the crew keeps working either way.</p>
+      </div>
+    </section>
+
+    <section class="m assist" id="assist" aria-labelledby="m-ask-b-h">
+      <div class="mhead">
+        <h2 id="m-ask-b-h"><span class="mi">05</span> Your assistant</h2>
+        <button class="fold" type="button" aria-expanded="true" aria-controls="m-ask-b" aria-label="Collapse Your assistant"><span aria-hidden="true">&ndash;</span></button>
+      </div>
+      <div class="mbody" id="m-ask-b">
+        <p>Ask anything, any time. <span class="eg">Try: &ldquo;what&rsquo;s due today?&rdquo; or &ldquo;why is the connection down?&rdquo;</span></p>
         <form class="askrow" id="askform">
           <label class="sr" for="ask">Ask your assistant</label>
-          <input id="ask" type="text" placeholder="Ask anything…" autocomplete="off">
+          <input id="ask" type="text" placeholder="Ask anything&hellip;" autocomplete="off">
           <button type="submit" class="btn">Ask</button>
         </form>
         <p class="askmsg" id="askmsg" hidden></p>
-      </section>
-    </div>
+      </div>
+    </section>
+
+    <details class="depth m m-wide" id="depth">
+      <summary><span class="mk">&rsaquo;</span> How this room works</summary>
+      <dl class="guts">
+        <div><dt>Connections checked</dt><dd>2 &middot; both fine</dd></div>
+        <div><dt>Last checked</dt><dd>20:39:12</dd></div>
+        <div><dt>Where this comes from</dt><dd>/api/status &middot; /api/attention</dd></div>
+        <div><dt>Times come from</dt><dd>the server clock</dd></div>
+        <div><dt>Motion</dt><dd>reduced &mdash; yours to switch on</dd></div>
+        <div><dt>Came in today</dt><dd>3 &middot; grouped, not one by one</dd></div>
+      </dl>
+    </details>
   </div>
+
+  <p class="sig"><b>signature</b>teal &middot; concentric rings &middot; a warm centre</p>
 </main>
+
+<button class="fab" id="fab" type="button" aria-controls="assist">
+  <span aria-hidden="true">&#10022;</span> Ask
+</button>
 
 <footer class="chrome bot">
   <span>Nothing needs you is a good answer</span>
@@ -363,6 +405,27 @@
     mr.textContent = on ? 'Mark all as read' : 'All read ✓';
     document.getElementById('arrive-list').classList.toggle('read', !on);
     say(on ? 'Marked unread.' : 'All marked read.');
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.fold'), function (b) {
+    b.addEventListener('click', function () {
+      var m = b.closest('.m');
+      var open = !m.classList.toggle('collapsed');
+      b.setAttribute('aria-expanded', open ? 'true' : 'false');
+      b.querySelector('span').textContent = open ? '\u2013' : '+';
+      var h = m.querySelector('h2').cloneNode(true);
+      Array.prototype.forEach.call(h.querySelectorAll('.mi,.mcount'), function (n) { n.remove(); });
+      say((open ? 'Opened ' : 'Closed ') + (h.textContent || '').trim());
+    });
+  });
+  var fab = document.getElementById('fab');
+  if (fab) fab.addEventListener('click', function () {
+    var a = document.getElementById('assist');
+    a.classList.remove('collapsed');
+    var fd = a.querySelector('.fold');
+    if (fd) { fd.setAttribute('aria-expanded', 'true'); fd.querySelector('span').textContent = '\u2013'; }
+    document.getElementById('ask').focus();
+    a.scrollIntoView({ block: 'center' });
+    say('Assistant ready.');
   });
   var f = document.getElementById('askform');
   if (f) f.addEventListener('submit', function (e) {
