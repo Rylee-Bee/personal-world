@@ -100,23 +100,24 @@ Three rules:
    plain-language job line, in the same place, in every dialect. A dialect is
    dress over a legible function — never a puzzle, and never the only signal.
 
-### Proposed dialects
+### The dialects (owner pass, 2026-09-18)
 
-★ = named directly by the owner (2026-09-18); the rest are proposals to react to.
+The owner refined every room in one sitting (2026-09-18). The dialects below are
+owner-described; the right column is the essence in the owner's words.
 
-| Deck | Familiar role (kept) | Dialect (proposed) |
-|---|---|---|
-| Bridge | Chat / Today | the **Ring** — the station seen from outside |
-| Engineering | Systems | the **Loop Line** — routes, stops, service status |
-| Workshop | Projects / Lab | ★ the **Blueprint** — modules, leaders, a title block |
-| Archives | Journal / Memory | the **Ledger** — entries, datelines, rules |
-| Galley | Media / News | the **Postcard** — something written and sent to you |
-| Observatory | Interests | ★ the **Constellation** — clusters at rest, opened by moving toward them |
-| Vault | Backups / provenance | the **Shelves** — spines you pull; records with provenance |
-| Quarters | Settings / rest | the **Quiet Room** — deliberately plain; rest has no metaphor |
+| Deck | Familiar role (kept) | Dialect | One-line essence |
+|---|---|---|---|
+| Bridge | Communications / visibility | the **Transmission** | what is coming in to you |
+| Engineering | Settings / depth | the **Loop Line** | settings and depth; the lifelines across the product |
+| Workshop | Projects | the **Blueprint** | fun and tinkery — GitHub-flavoured, easy to manage several projects |
+| Archives | Memory / lore | the **Library** | a sci-fi library — *Voyager's* astrometrics, the Jedi archive |
+| Galley | News / hangout | the **Food Court** | where you go to eat, so the news and the neat things gather here too |
+| Observatory | Interests | the **Constellation** | what the universe has in store — drill down by category, and it grows or shrinks with your current interest |
+| Vault | Backups / records | the **Bank** | a sci-fi bank and records keeping |
+| Quarters | Personalization | the **Quiet Room** | where personalization options live |
 
-The eight dialects are explored as concept pages in the showcase (packets 1–8 plus
-the Transmission and the Ring); they are **concepts, not implementation**. No
+The dialects are explored as concept pages in the showcase (packets 1–8, the
+Transmission, the Dialect Sheet); they are **concepts, not implementation**. No
 dialect is wired into `src/` yet.
 
 ---
