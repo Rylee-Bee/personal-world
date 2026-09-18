@@ -37,6 +37,35 @@ They are siblings in art direction — shared pastel palette, aubergine outlines
 
 **Naming canon:** display names and the station-id ↔ server-key mapping are canonical in [docs/COMPANION-CANON.md](../docs/COMPANION-CANON.md); the row labels above are repo descriptors, not the display names.
 
+## Art direction (reference: the crew sheet)
+
+**Canonical art-direction reference:** `design/screens/crew.png` — the owner's crew
+character sheet (curated 2026-09-17; source drop `design/owner/crew/`). It is the
+**new** direction and the target for companion artwork. The runtime companion SVGs and
+source rigs (`design/assets/companions/`, `src/personal_world/static/companions/`) are
+the **earlier** direction; bring them toward the crew sheet rather than regenerating
+them casually (see `AGENTS.md` "Do not casually regenerate").
+
+What the crew sheet establishes:
+
+- **Matching uniform + combadge.** Every resident wears the same dark uniform with gold
+  trim and a combadge. The uniform is what makes them a *crew*; a character is not
+  redrawn without it.
+- **Family resemblance, distinct silhouette.** Shared pastel-to-saturated palette, crisp
+  dark outlines, large expressive eyes with highlights, rosy cheeks, sparkle accents —
+  but each character's shape is unmistakably its own.
+- **Warm, painterly, cosy lighting** (lanterns, stalls, night) against the deep
+  navy/space canvas. Gold is the accent, never the field.
+- **Cute but competent** — adventurer/astronaut energy, not infantilised.
+- **Use the tracked set.** The curated companion assets live in
+  `design/assets/crew/` — **true-vector SVGs** in `vector/` (five residents + planet
+  emblem), transparent **cutouts** in `cutouts/`, the **app-icon set** in `icons/`,
+  the three **attention-voice marks** in `marks/`, plus room art, skies and poses.
+  Prefer the vector SVGs in the UI (crisp at any size, tiny).
+
+Accessibility still wins: companion art is decorative + `aria-hidden`, motion is never
+the only signal, and reduced motion shows static poses.
+
 ## Companion Architecture
 
 ```
