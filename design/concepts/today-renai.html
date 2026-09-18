@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Today — the room · Project Worlds</title>
+<title>The Letters — Today, as Renai keeps it</title>
 <style>
   @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
   @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
@@ -229,6 +229,12 @@
   }
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
+<style>
+  /* page-specific: her marginalia */
+  .note{font-family:var(--body);font-style:italic;color:var(--dim);font-size:15.5px;margin:0 0 12px;
+    padding-left:14px;border-left:1px solid color-mix(in srgb,var(--gold) 32%,transparent)}
+  .note b{font-style:normal;color:var(--gold);font-weight:600}
+</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -237,104 +243,79 @@
 <header>
   <div class="chrome top">
     <span class="brand">✦ Project Worlds</span>
-    <span class="here">Today — the Transmission</span>
-    <span class="onshift"><i></i><span>Renai on shift · 4 min</span></span>
+    <span class="here">Today — as Renai keeps it</span>
+    <span class="onshift"><i></i><span>Renai · your companion</span></span>
   </div>
 </header>
 
 <main id="main" tabindex="-1">
   <p id="room-status" role="status" class="sr"></p>
+
   <div class="head">
-    <span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M15.7 8.3l-2.1 4.3-4.3 2.1 2.1-4.3z" fill="currentColor" stroke="none"/></svg></span>
+    <span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.4" y="6" width="17.2" height="12" rx="1.5"/><path d="M4 7l8 6 8-6"/></svg></span>
     <div>
       <h1>Today</h1>
-      <p class="role">What is coming in to you</p>
+      <p class="role">Renai keeps this room — the letters, and the telling</p>
     </div>
-    <span class="dlt">the Transmission</span>
+    <span class="dlt">her handwriting</span>
   </div>
 
-  <p class="say"><b>Today, two things need you.</b> Nothing urgent — and three things came in while you were away.</p>
+  <p class="say"><b>Nothing here pings.</b> What comes in is written, or it is told — never a chime.</p>
 
   <div class="modules">
 
-    <section class="m m-needs panel" aria-labelledby="m-needs-b-h">
+    <section class="m m-needs panel" aria-labelledby="t-h">
       <div class="mhead">
-        <h2 id="m-needs-b-h"><span class="mi">01</span> Needs you <span class="mcount" id="need-count">2</span></h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-needs-b" aria-label="Collapse Needs you"><span aria-hidden="true">&ndash;</span></button>
+        <h2 id="t-h"><span class="mi">01</span> The telling</h2>
+        <button class="fold" type="button" aria-expanded="true" aria-controls="m-t-b" aria-label="Collapse The telling"><span aria-hidden="true">&ndash;</span></button>
       </div>
-      <div class="mbody" id="m-needs-b">
-        <ul class="need" id="need-list">
-          <li>
-            <span class="what">Evening medicine</span>
-            <span class="when due">due 20:00</span>
-            <span class="why">From your own list. It stays here until you mark it done.</span>
-            <span class="rowact"><button type="button" class="btn" data-done aria-pressed="false">Mark done</button></span>
-          </li>
-          <li>
-            <span class="what">One connection is down</span>
-            <span class="when">12 min ago</span>
-            <span class="why">The other connection is fine, so nothing is lost.</span>
-            <span class="to">fix it in Systems</span>
-            <span class="rowact"><button type="button" class="btn ghost" data-why>Why?</button></span>
-          </li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="m panel" aria-labelledby="m-arr-b-h">
-      <div class="mhead">
-        <h2 id="m-arr-b-h"><span class="mi">02</span> Arriving <span class="mcount">3 today</span></h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-arr-b" aria-label="Collapse Arriving"><span aria-hidden="true">&ndash;</span></button>
-      </div>
-      <div class="mbody" id="m-arr-b">
-        <ul class="arr" id="arrive-list">
-          <li><span class="from">Renai</span><span class="line">Quiet night. Nothing new needs you.</span><span class="ago">4 min</span></li>
-          <li><span class="from">Burrito J.</span><span class="line">The night market returns on Friday.</span><span class="ago">1 h</span><span class="meta">from News &middot; one story</span></li>
-          <li><span class="from">Mira</span><span class="line">Three signals in the same region.</span><span class="ago">3 h</span><span class="meta">from Interests &middot; nothing to decide yet</span></li>
-        </ul>
-        <p class="calm" style="border-top:1px solid var(--line)">That is all of them &mdash; <b>this list ends.</b></p>
-        <div class="actions"><button type="button" class="btn ghost" id="markread" aria-pressed="false">Mark all as read</button></div>
-      </div>
-    </section>
-
-    <section class="m panel" aria-labelledby="m-crew-b-h">
-      <div class="mhead">
-        <h2 id="m-crew-b-h"><span class="mi">03</span> On shift</h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-crew-b" aria-label="Collapse On shift"><span aria-hidden="true">&ndash;</span></button>
-      </div>
-      <div class="mbody" id="m-crew-b">
-        <div class="crew">
-          <div>
-            <p class="who">Renai</p>
-            <p class="task">Watching what comes in.</p>
-            <p class="ago">On shift &middot; last checked 4 min ago</p>
-          </div>
-          <img src="../assets/station/characters/renai.png" alt="">
+      <div class="mbody" id="m-t-b">
+        <p class="calm" id="telling">Three letters came while you were away. None of them urgent. Shall I read them to you?</p>
+        <div class="actions">
+          <button type="button" class="btn" id="read-all" aria-pressed="false">Read it to me</button>
         </div>
+        <p class="askmsg" id="voice-note" hidden></p>
       </div>
     </section>
 
-    <section class="m panel" aria-labelledby="m-calm-b-h">
+    <section class="m panel" aria-labelledby="l-h">
       <div class="mhead">
-        <h2 id="m-calm-b-h"><span class="mi">04</span> When nothing needs you</h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-calm-b" aria-label="Collapse When nothing needs you"><span aria-hidden="true">&ndash;</span></button>
+        <h2 id="l-h"><span class="mi">02</span> The letters <span class="mcount">3</span></h2>
+        <button class="fold" type="button" aria-expanded="true" aria-controls="m-l-b" aria-label="Collapse The letters"><span aria-hidden="true">&ndash;</span></button>
       </div>
-      <div class="mbody" id="m-calm-b">
-        <p class="calm"><b>Nothing needs you.</b> That is a good answer &mdash; the crew keeps working either way.</p>
+      <div class="mbody" id="m-l-b">
+        <ul class="arr" id="letters">
+          <li><span class="from">Mira</span><span class="line">Three signals, same region. I have not named it yet.</span><span class="ago">3 h</span><span class="meta">a field note, pressed between pages</span></li>
+          <li><span class="from">Burrito J.</span><span class="line">The night market returns on Friday. Come hungry.</span><span class="ago">1 h</span><span class="meta">written on the back of a menu</span></li>
+          <li><span class="from">Bruma</span><span class="line">Today&rsquo;s records are filed. Nothing was lost.</span><span class="ago">4 min</span><span class="meta">a receipt, folded once</span></li>
+        </ul>
+        <p class="calm" style="border-top:1px solid var(--line)">That is all of them. <b>A letter ends.</b></p>
       </div>
     </section>
 
-    <section class="m assist" id="assist" aria-labelledby="m-ask-b-h">
+    <section class="m panel" aria-labelledby="n-h">
       <div class="mhead">
-        <h2 id="m-ask-b-h"><span class="mi">05</span> Your assistant</h2>
-        <button class="fold" type="button" aria-expanded="true" aria-controls="m-ask-b" aria-label="Collapse Your assistant"><span aria-hidden="true">&ndash;</span></button>
+        <h2 id="n-h"><span class="mi">03</span> In the margin</h2>
+        <button class="fold" type="button" aria-expanded="true" aria-controls="m-n-b" aria-label="Collapse In the margin"><span aria-hidden="true">&ndash;</span></button>
       </div>
-      <div class="mbody" id="m-ask-b">
-        <p>Ask anything, any time. <span class="eg">Try: &ldquo;what&rsquo;s due today?&rdquo; or &ldquo;why is the connection down?&rdquo;</span></p>
+      <div class="mbody" id="m-n-b">
+        <p class="note"><b>on Mira&rsquo;s note &mdash;</b> she is closer than she thinks. I kept it by the window.</p>
+        <p class="note"><b>on Friday &mdash;</b> you liked the lantern stall last time. I have not forgotten.</p>
+        <p class="note"><b>on the receipt &mdash;</b> Bruma is proud of this one; say thank you.</p>
+      </div>
+    </section>
+
+    <section class="m assist" id="assist" aria-labelledby="w-h">
+      <div class="mhead">
+        <h2 id="w-h"><span class="mi">04</span> Write back, or ask me</h2>
+        <button class="fold" type="button" aria-expanded="true" aria-controls="m-w-b" aria-label="Collapse Write back"><span aria-hidden="true">&ndash;</span></button>
+      </div>
+      <div class="mbody" id="m-w-b">
+        <p>Say a line, or ask me anything. I answer in writing &mdash; and aloud, if you&rsquo;d like.</p>
         <form class="askrow" id="askform">
-          <label class="sr" for="ask">Ask your assistant</label>
-          <input id="ask" type="text" placeholder="Ask anything&hellip;" autocomplete="off">
-          <button type="submit" class="btn">Ask</button>
+          <label class="sr" for="ask">Write to Renai</label>
+          <input id="ask" type="text" placeholder="Write a line, or ask me&hellip;" autocomplete="off">
+          <button type="submit" class="btn">Say it</button>
         </form>
         <p class="askmsg" id="askmsg" hidden></p>
       </div>
@@ -343,68 +324,27 @@
     <details class="depth m m-wide" id="depth">
       <summary><span class="mk">&rsaquo;</span> How this room works</summary>
       <dl class="guts">
-        <div><dt>Connections checked</dt><dd>2 &middot; both fine</dd></div>
-        <div><dt>Last checked</dt><dd>20:39:12</dd></div>
-        <div><dt>Where this comes from</dt><dd>/api/status &middot; /api/attention</dd></div>
-        <div><dt>Times come from</dt><dd>the server clock</dd></div>
+        <div><dt>Sound</dt><dd>none &mdash; nothing pings</dd></div>
+        <div><dt>Voice</dt><dd>on request only; text always present</dd></div>
+        <div><dt>Letters held</dt><dd>3 &middot; kept until answered</dd></div>
+        <div><dt>Marginalia</dt><dd>Renai&rsquo;s own hand</dd></div>
+        <div><dt>Where this comes from</dt><dd>/api/attention &middot; /api/status</dd></div>
         <div><dt>Motion</dt><dd>reduced &mdash; yours to switch on</dd></div>
-        <div><dt>Came in today</dt><dd>3 &middot; grouped, not one by one</dd></div>
       </dl>
     </details>
   </div>
 
-  <div class="actions" style="justify-content:flex-start;margin-top:16px">
-    <a class="btn ghost" href="today-renai.html"><span aria-hidden="true">&#9998;</span> See Today as Renai keeps it</a>
-  </div>
-
-  <p class="sig"><b>signature</b>teal &middot; concentric rings &middot; a warm centre</p>
+  <p class="sig"><b>signature</b>gold ink on night vellum &middot; spoken only when asked &middot; never a chime</p>
 </main>
 
 <button class="fab" id="fab" type="button" aria-controls="assist">
-  <span aria-hidden="true">&#10022;</span> Ask
+  <span aria-hidden="true">&#9998;</span> Ask Renai
 </button>
-
-<footer class="chrome bot">
-  <span>Nothing needs you is a good answer</span>
-  <span>concept · Today, the first room</span>
-</footer>
 
 <script>
 (function () {
   var status = document.getElementById('room-status');
   function say(m) { if (status) status.textContent = m; }
-  function recount() {
-    var n = document.querySelectorAll('#need-list li:not(.done)').length;
-    document.getElementById('need-count').textContent = n;
-    return n;
-  }
-  Array.prototype.forEach.call(document.querySelectorAll('[data-done]'), function (b) {
-    b.addEventListener('click', function () {
-      var li = b.closest('li');
-      var done = li.classList.toggle('done');
-      b.setAttribute('aria-pressed', done ? 'true' : 'false');
-      b.textContent = done ? 'Done ✓' : 'Mark done';
-      var n = recount();
-      say(done ? ('Marked done. ' + n + (n === 1 ? ' thing still needs' : ' things still need') + ' you.')
-               : ('Reopened. ' + n + ' need you.'));
-    });
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('[data-why]'), function (b) {
-    b.addEventListener('click', function () {
-      var d = document.getElementById('depth');
-      d.open = true;
-      d.querySelector('summary').focus();
-      say('Opened how this room works.');
-    });
-  });
-  var mr = document.getElementById('markread');
-  if (mr) mr.addEventListener('click', function () {
-    var on = mr.getAttribute('aria-pressed') === 'true';
-    mr.setAttribute('aria-pressed', on ? 'false' : 'true');
-    mr.textContent = on ? 'Mark all as read' : 'All read ✓';
-    document.getElementById('arrive-list').classList.toggle('read', !on);
-    say(on ? 'Marked unread.' : 'All marked read.');
-  });
   Array.prototype.forEach.call(document.querySelectorAll('.fold'), function (b) {
     b.addEventListener('click', function () {
       var m = b.closest('.m');
@@ -424,15 +364,42 @@
     if (fd) { fd.setAttribute('aria-expanded', 'true'); fd.querySelector('span').textContent = '\u2013'; }
     document.getElementById('ask').focus();
     a.scrollIntoView({ block: 'center' });
-    say('Assistant ready.');
+    say('Ready to write.');
   });
   var f = document.getElementById('askform');
   if (f) f.addEventListener('submit', function (e) {
     e.preventDefault();
     var m = document.getElementById('askmsg');
     m.hidden = false;
-    m.textContent = 'This concept is not connected to the assistant yet — in the real room, the answer appears here.';
-    say('The assistant is not connected in this concept.');
+    m.textContent = 'In the real room, Renai answers here \u2014 in her own voice, and in writing.';
+    say('Renai would answer here.');
+  });
+  /* the telling: real speech, optional, never a beep */
+  var synth = window.speechSynthesis;
+  var btn = document.getElementById('read-all');
+  var note = document.getElementById('voice-note');
+  var reading = false;
+  function voices() { try { return synth ? synth.getVoices().length : 0; } catch (err) { return 0; } }
+  function reset() { reading = false; if (btn) { btn.setAttribute('aria-pressed', 'false'); btn.textContent = 'Read it to me'; } }
+  function tell(m) { if (note) { note.hidden = false; note.textContent = m; } }
+  if (btn) btn.addEventListener('click', function () {
+    if (reading) { if (synth) synth.cancel(); reset(); say('Stopped.'); return; }
+    if (!synth || !voices()) {
+      tell('No voice is installed on this device \u2014 the words are all on the page, above.');
+      say('No voice available; the words are on the page.');
+      return;
+    }
+    var text = document.getElementById('telling').textContent + ' ' +
+      Array.prototype.map.call(document.querySelectorAll('#letters .line'), function (n) { return n.textContent; }).join(' ');
+    var u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95;
+    u.onend = function () { reset(); say('That is all of them.'); };
+    synth.cancel(); synth.speak(u);
+    reading = true;
+    btn.setAttribute('aria-pressed', 'true');
+    btn.textContent = 'Stop reading';
+    tell('Reading aloud. Press the button again to stop.');
+    say('Reading aloud.');
   });
 })();
 </script>

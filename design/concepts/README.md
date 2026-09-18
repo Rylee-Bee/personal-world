@@ -13,6 +13,7 @@ is versioned, not only local.
 |---|---|
 | `packets.html` | the index — links every page below |
 | `today-room.html` | **Today** (the first real room) at product scale — the reference for room work |
+| `today-renai.html` | **Today, as Renai keeps it** — the same room, *made by its resident*: letters, the telling (real speech), her marginalia |
 | `dialects.html` | one world, eight dialects — the room-identity sheet |
 | `p1`–`p8`, `p10-transmission.html` | the eight divergent layout packets (+ the deck × postcard fusion) |
 | `hub.html`, `station.html`, `crew-maker.html` | the Ring home, the all-rooms view, and the resident-maker |
@@ -37,23 +38,31 @@ The art is **not** duplicated here. These pages reference the canonical set:
 - the bed icon → `../assets/station/icons/bedicon.png`
 
 Only concept-specific files live under `assets/` here: the index thumbnails
-(`assets/packets/`), the display face (`assets/fraunces-*.woff2`), and a few skies
-and room photos used by the exploration pages.
+(`assets/packets/`), the fonts (`assets/fonts/`), and a few skies and room photos
+used by the exploration pages.
 
-## The device card (shared surface)
+## The scroll card (shared surface)
 
-Rooms are built from one shared "portable display" card: a bezel with an inset
-**screen**, a faint scanline + holo texture, HUD corner brackets, a channel **LED**
-beside the panel heading, and a luminous top edge. It **wakes** on hover (the edge
-brightens); the LED **breathes only when the OS allows motion** (`prefers-reduced-motion:
-no-preference`) and is perfectly still otherwise.
+Rooms are built from one shared **scroll** card: a sheet of night-vellum with
+leaf-cut corners, a gold hairline frame, a scribe's tapered stroke along the top,
+and a gold **seal** beside the heading. It **wakes** on hover/focus (the frame
+brightens); the seal **twinkles only when the OS allows motion**
+(`prefers-reduced-motion: no-preference`) and is perfectly still otherwise.
 
 It is defined once, in `today-room.html`, as the `.panel, .assist, details.depth`
 block. Reuse that block in the next rooms — do not invent a new surface.
 
-**Type (readability first, sci-fi second):** reading text is **IBM Plex Sans**;
-room names are **Space Grotesk**; telemetry is **IBM Plex Mono**. All self-hosted —
-see [`assets/fonts/README.md`](assets/fonts/README.md).
+**Type — storytellers, not scientists.** Room names are **Cormorant** (calligraphic
+display); reading text is **Spectral** (a literary serif); the *technical depths*
+stay **IBM Plex Mono**, so the surface is *written* and the machinery is, literally,
+a different hand. All self-hosted — see
+[`assets/fonts/README.md`](assets/fonts/README.md).
+
+**The culture (canonical: `docs/STATION-MAP.md` §6).** This is a literate, oral
+society that went to space: the interface is **written and spoken**, never a beep.
+Every resident *builds their own tools* in their own medium — `today-renai.html` is
+the worked example (Renai's room as **letters and the telling**, with real, optional
+speech and text always present).
 
 **Actions flow to one place.** Every card puts its controls at the end of the
 reading flow, right-aligned — `.rowact` per item, `.actions` per card — always
