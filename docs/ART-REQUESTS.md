@@ -53,8 +53,8 @@ described in `docs/COMPANION-CANON.md`. Art direction: `design/COMPANION_INTEGRA
   expresses through light and constellations more than dialogue."
 
 **New area characters — one-line clauses (owner canon 2026-09-17).** Hekek,
-Bruma and Mira have **no art yet**: no rig, cutout, pose sheet, or vector exists
-in the repo. Paste the clause as-is when commissioning.
+Bruma and Mira now have transparent cutouts (Mira delivered 2026-09-18); vector
+SVGs are still outstanding. Paste the clause as-is when commissioning.
 
 - **Hekek** — "A retired paladin dwarf turned station engineer; Builder ·
   Maintainer · Steward; broad, steady and practical, wearing the Project Worlds
@@ -125,8 +125,8 @@ mostly implementation-ready assets, plus four undrawn areas.
 
 | Still missing | Why |
 |---|---|
-| **Mira transparent cutout** | ❌ MISSING — the new art set has cutouts for all other residents but not Mira (Observatory). Art request #21. |
-| **Bridge room background** | ❌ MISSING — uses `bgstars2.png` starfield placeholder. A dedicated bridge scene would be ideal. |
+| ~~Mira transparent cutout~~ | ✅ DELIVERED 2026-09-18 — `design/owner/station/mira.png` (1024×1536, alpha), promoted to `design/assets/station/characters/mira.png`. Art request #21. |
+| ~~Bridge room background~~ | ✅ DELIVERED 2026-09-18 — `design/owner/station/bridgebg.png` (1672×941), promoted to `design/assets/station/backgrounds/bridgebg.png`. |
 | **Vector / SVG for new crew** | The 2026-09-17 art set has PNGs; Hekek, Bruma, Mira need vector SVGs matching the existing `design/assets/crew/vector/` set. |
 | **Quarters SVG export** | ❌ MISSING — bed icon as vector + 16/32/48px PNGs (art request #28). |
 | **The six product states, labeled** | The sheets have "Six Key Poses"; the Station reacts to `REST · CURIOUS · ATTENTIVE · ENGAGED · PROTECTIVE · GIVING SPACE`. If those poses are not mapped to those, that is the one character gap. |
@@ -345,7 +345,7 @@ A transparent-background PNG of Bruma (the polar bear librarian), full body, fro
 view, isolated. Librarian mantle, combadge, archive satchel and key.
 ```
 
-**21 · Transparent cutout — Mira**
+**21 · Transparent cutout — Mira** ✅ delivered 2026-09-18
 
 ```
 A transparent-background PNG of Mira (the young Observatory investigator), full
