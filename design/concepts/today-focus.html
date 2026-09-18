@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Focus — Today, with the room tagged</title>
+<title>The Focus — Today, and the badges that project it</title>
 <style>
   @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
   @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
@@ -52,7 +52,7 @@
   .head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
   .head .badge{width:46px;height:46px;flex:0 0 46px;border-radius:50%;display:grid;place-items:center;
     border:1px solid var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}
-  .head .badge svg{width:25px;height:25px}
+  .head .pin svg{width:25px;height:25px}
   h1{font-family:var(--display);font-weight:600;font-size:clamp(34px,5.4vw,54px);margin:0;line-height:1;letter-spacing:.01em}
   .role{font-family:var(--label);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin:6px 0 0}
   .dlt{margin-left:auto;align-self:center;font-family:var(--label);font-size:10px;letter-spacing:.12em;
@@ -230,38 +230,56 @@
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 <style>
-  /* --- the focus: a perception layer written on top of the world --- */
-  .stage{display:grid;grid-template-columns:1.3fr .92fr;gap:16px;align-items:start}
-  @media (max-width:900px){.stage{grid-template-columns:1fr}}
-  .world{position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--gold) 30%,transparent);
-    border-radius:20px 5px 20px 5px;min-height:min(72vh,600px);
-    box-shadow:0 18px 44px rgba(0,0,0,.6),inset 0 1px 0 rgba(216,185,120,.09)}
-  .world img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.92}
-  .world .wash{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,9,18,.18),rgba(10,9,18,.66))}
-  .world .ar{position:absolute;inset:0;pointer-events:none;opacity:.45;
+  /* --- the room, full width; the overlay is invisible until you look --- */
+  main{max-width:1440px}
+  .room{position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--gold) 30%,transparent);
+    border-radius:22px 6px 22px 6px;min-height:min(78vh,700px);
+    box-shadow:0 24px 60px rgba(0,0,0,.65),inset 0 1px 0 rgba(216,185,120,.09)}
+  .room>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.94}
+  .room .wash{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,9,18,.12),rgba(10,9,18,.62))}
+  .room .ar{position:absolute;inset:0;pointer-events:none;opacity:.35;
     background-image:linear-gradient(rgba(216,185,120,.07) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(216,185,120,.07) 1px,transparent 1px);
-    background-size:36px 36px}
-  .scanwrap{position:absolute;left:16px;top:16px;z-index:4}
-  .tag{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);z-index:3}
-  .tagb{display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:5px 14px 5px 9px;
-    border:1px solid color-mix(in srgb,var(--gold) 42%,transparent);border-radius:999px;
-    background:rgba(10,9,18,.86);color:var(--ink);font-family:var(--label);font-size:13.5px;
-    cursor:pointer;touch-action:manipulation;text-align:left}
-  .tagb:hover{border-color:var(--gold);background:rgba(20,17,30,.94)}
-  .tagb .dot{flex:0 0 auto;width:13px;height:13px;border:1px solid var(--gold);border-radius:50%;
-    background:radial-gradient(circle at 40% 38%,var(--gold),transparent 70%);
-    box-shadow:0 0 9px color-mix(in srgb,var(--gold) 55%,transparent)}
-  .tagb b{color:var(--gold);font-weight:600;margin-right:2px}
-  .tag.deep{opacity:0;visibility:hidden}
-  .world.scanned .tag.deep{opacity:1;visibility:visible}
-  .readout{position:absolute;left:16px;bottom:16px;right:16px;z-index:3;display:none;
-    border:1px solid color-mix(in srgb,var(--gold) 26%,transparent);border-radius:14px;
-    background:rgba(10,9,18,.82);padding:12px 14px}
-  .world.scanned .readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:6px 18px}
-  .readout dt{font-family:var(--label);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-  .readout dd{margin:2px 0 0;font-family:var(--mono);font-size:12.5px;color:var(--ink)}
-  .taglink{margin:0 0 10px}
+      linear-gradient(90deg,rgba(216,185,120,.07) 1px,transparent 1px);background-size:40px 40px}
+  .scanwrap{position:absolute;left:18px;top:18px;z-index:6;display:flex;gap:10px;align-items:center}
+  .hint{position:absolute;right:18px;top:22px;z-index:6;font-family:var(--label);font-size:12px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink);opacity:.85;text-shadow:0 1px 6px #000}
+  /* the comm badges — physical pins; their names are the overlay */
+  .pin{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);z-index:5;
+    display:grid;place-items:center;width:54px;height:54px;border-radius:50%;
+    border:1px solid color-mix(in srgb,var(--gold) 48%,transparent);background:rgba(10,9,18,.84);
+    color:var(--gold);cursor:pointer;touch-action:manipulation}
+  .badge svg{width:28px;height:28px}
+  .pin:hover{border-color:var(--gold)}
+  .pin:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .pin[aria-expanded="true"]{border-color:var(--gold);
+    box-shadow:0 0 0 1px var(--gold),0 0 26px -4px color-mix(in srgb,var(--gold) 65%,transparent)}
+  .bdgtag{position:absolute;left:50%;top:calc(100% + 9px);transform:translateX(-50%);white-space:nowrap;
+    background:rgba(10,9,18,.9);border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);
+    border-radius:999px;padding:6px 13px;font-family:var(--label);font-size:13px;color:var(--ink);
+    opacity:0;visibility:hidden}
+  .room.scanned .bdgtag,.pin:hover .bdgtag,.pin:focus-visible .bdgtag{opacity:1;visibility:visible}
+  /* the projected card: techno-futuristic paper, an overlay on the room */
+  .overlay{position:absolute;right:18px;top:18px;bottom:18px;width:min(460px,92%);z-index:7;
+    overflow:auto;border:1px solid color-mix(in srgb,var(--gold) 48%,transparent);
+    border-radius:18px 5px 18px 5px;padding:20px 22px 18px;
+    background:linear-gradient(180deg,rgba(216,185,120,.07),transparent 36%),linear-gradient(180deg,#171428,#0c0b15);
+    box-shadow:0 30px 70px rgba(0,0,0,.72),0 0 46px -12px color-mix(in srgb,var(--gold) 45%,transparent)}
+  .overlay::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background-image:linear-gradient(rgba(216,185,120,.055) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(216,185,120,.055) 1px,transparent 1px);background-size:22px 22px;
+    -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.85),transparent 62%);
+    mask-image:linear-gradient(180deg,rgba(0,0,0,.85),transparent 62%)}
+  .overlay::after{content:"";position:absolute;inset:6px;border-radius:inherit;pointer-events:none;
+    border:1px solid color-mix(in srgb,var(--teal) 20%,transparent)}
+  .overlay>*{position:relative;z-index:1}
+  .ohead{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+  .ohead h2{margin:0;font-size:21px}
+  .closer{margin-left:auto;min-height:44px;padding:0 14px;border-radius:10px;
+    border:1px solid color-mix(in srgb,var(--gold) 42%,transparent);background:transparent;color:var(--ink);
+    font-family:var(--label);font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;touch-action:manipulation}
+  .closer:hover{border-color:var(--gold)}
+  @media (max-width:900px){ .overlay{left:12px;right:12px;width:auto;top:auto;bottom:12px;max-height:74%} }
+  @media (max-width:640px){ .room{min-height:70vh} .pin{width:48px;height:48px} .hint{display:none} }
 </style>
 </head>
 <body>
@@ -272,7 +290,7 @@
   <div class="chrome top">
     <span class="brand">✦ Project Worlds</span>
     <span class="here">Today — the focus</span>
-    <span class="onshift"><i></i><span>Renai on shift &middot; 4 min</span></span>
+    <span class="onshift"><i></i><span>Overlay projected by the comm badges</span></span>
   </div>
 </header>
 
@@ -283,154 +301,132 @@
     <span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.4"/><path d="M12 2.4v3.6M12 18v3.6M2.4 12h3.6M18 12h3.6"/></svg></span>
     <div>
       <h1>Today</h1>
-      <p class="role">The room, with the focus on</p>
+      <p class="role">The room, and the overlay the badges project</p>
     </div>
-    <span class="dlt">the perception layer</span>
+    <span class="dlt">invisible until you look</span>
   </div>
 
-  <p class="say"><b>The room is the room.</b> The focus only writes on top of it. Turn it off and nothing is lost — because nothing lives only here.</p>
+  <p class="say"><b>The room is the room.</b> The overlay is invisible until you look — and when it shows, it only tells you what is already here.</p>
 
-  <div class="stage">
-    <!-- the world, tagged -->
-    <div class="world" id="world">
-      <img src="../assets/station/backgrounds/bridgebg.png" alt="">
-      <div class="wash" aria-hidden="true"></div>
-      <div class="ar" aria-hidden="true"></div>
+  <div class="room" id="room">
+    <img src="../assets/station/backgrounds/bridgebg.png" alt="">
+    <div class="wash" aria-hidden="true"></div><div class="ar" aria-hidden="true"></div>
 
-      <div class="scanwrap">
-        <button class="btn" id="scan" type="button" aria-pressed="false" aria-controls="world">Scan the room</button>
-      </div>
+    <div class="scanwrap">
+      <button class="btn" id="scan" type="button" aria-pressed="false" aria-controls="room">Scan the room</button>
+    </div>
+    <p class="hint" aria-hidden="true">nothing is labelled until you ask</p>
 
-      <ul style="list-style:none;margin:0;padding:0">
-        <li class="tag" style="--x:56%;--y:40%">
-          <button class="tagb" type="button" data-goto="need-h"><span class="dot" aria-hidden="true"></span><span><b>01</b> 2 things need you</span></button>
+    <button class="pin" type="button" style="--x:36%;--y:58%" data-open="ov-room" aria-expanded="false" aria-controls="ov-room" aria-label="The console &mdash; 2 things need you. Open its overlay.">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg>
+      <span class="bdgtag">the console &mdash; 2 things need you</span>
+    </button>
+
+    <button class="pin" type="button" style="--x:70%;--y:64%" data-open="ov-renai" aria-expanded="false" aria-controls="ov-renai" aria-label="Renai &mdash; on shift. Open her overlay.">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg>
+      <span class="bdgtag">Renai &mdash; on shift</span>
+    </button>
+
+    <button class="pin" type="button" style="--x:20%;--y:30%" data-open="ov-mira" aria-expanded="false" aria-controls="ov-mira" aria-label="A note from Mira. Open her overlay.">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg>
+      <span class="bdgtag">a note from Mira, left here</span>
+    </button>
+
+    <!-- projected overlays -->
+    <section class="overlay" id="ov-room" hidden tabindex="-1" aria-labelledby="ov-room-h">
+      <div class="ohead"><h2 id="ov-room-h">The room, right now</h2><button class="closer" type="button">Close</button></div>
+      <ul class="need" id="need-list">
+        <li>
+          <span class="what">Evening medicine</span>
+          <span class="when due">due 20:00</span>
+          <span class="why">From your own list. It stays here until you mark it done.</span>
+          <span class="rowact"><button type="button" class="btn" data-done aria-pressed="false">Mark done</button></span>
         </li>
-        <li class="tag" style="--x:25%;--y:30%">
-          <button class="tagb" type="button" data-goto="arr-h"><span class="dot" aria-hidden="true"></span><span><b>02</b> 3 letters, waiting</span></button>
-        </li>
-        <li class="tag" style="--x:68%;--y:66%">
-          <button class="tagb" type="button" data-goto="crew-h"><span class="dot" aria-hidden="true"></span><span><b>03</b> Renai &mdash; on shift</span></button>
-        </li>
-        <li class="tag deep" style="--x:83%;--y:20%" hidden>
-          <button class="tagb" type="button"><span class="dot" aria-hidden="true"></span><span>the view &mdash; quiet</span></button>
-        </li>
-        <li class="tag deep" style="--x:13%;--y:72%" hidden>
-          <button class="tagb" type="button"><span class="dot" aria-hidden="true"></span><span>kept &middot; watered Tuesday</span></button>
+        <li>
+          <span class="what">One connection is down</span>
+          <span class="when">12 min ago</span>
+          <span class="why">The other connection is fine, so nothing is lost.</span>
+          <span class="rowact"><button type="button" class="btn ghost" data-why>Why?</button></span>
         </li>
       </ul>
-
-      <dl class="readout" aria-label="What this room is made of">
-        <div><dt>Connections</dt><dd>2 &middot; both fine</dd></div>
-        <div><dt>Letters held</dt><dd>3</dd></div>
-        <div><dt>Last checked</dt><dd>20:39:12</dd></div>
-        <div><dt>Sound</dt><dd>none &mdash; nothing pings</dd></div>
-      </dl>
-    </div>
-
-    <!-- the cards, docked beside the world -->
-    <div class="modules">
-      <section class="m panel" aria-labelledby="need-h">
-        <div class="mhead">
-          <h2 id="need-h"><span class="mi">01</span> Needs you <span class="mcount" id="need-count">2</span></h2>
-          <button class="fold" type="button" aria-expanded="true" aria-controls="m-needs-b" aria-label="Collapse Needs you"><span aria-hidden="true">&ndash;</span></button>
-        </div>
-        <div class="mbody" id="m-needs-b">
-          <ul class="need" id="need-list">
-            <li>
-              <span class="what">Evening medicine</span>
-              <span class="when due">due 20:00</span>
-              <span class="why">From your own list. It stays here until you mark it done.</span>
-              <span class="rowact"><button type="button" class="btn" data-done aria-pressed="false">Mark done</button></span>
-            </li>
-            <li>
-              <span class="what">One connection is down</span>
-              <span class="when">12 min ago</span>
-              <span class="why">The other connection is fine, so nothing is lost.</span>
-              <span class="rowact"><button type="button" class="btn ghost" data-why>Why?</button></span>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section class="m panel" aria-labelledby="arr-h">
-        <div class="mhead">
-          <h2 id="arr-h"><span class="mi">02</span> Arriving <span class="mcount">3 today</span></h2>
-          <button class="fold" type="button" aria-expanded="true" aria-controls="m-arr-b" aria-label="Collapse Arriving"><span aria-hidden="true">&ndash;</span></button>
-        </div>
-        <div class="mbody" id="m-arr-b">
-          <ul class="arr" id="arrive-list">
-            <li><span class="from">Mira</span><span class="line">Three signals, same region. Not named yet.</span><span class="ago">3 h</span></li>
-            <li><span class="from">Burrito J.</span><span class="line">The night market returns on Friday.</span><span class="ago">1 h</span></li>
-          </ul>
-          <p class="calm" style="border-top:1px solid var(--line)">That is all of them &mdash; <b>this list ends.</b></p>
-        </div>
-      </section>
-
-      <section class="m panel" aria-labelledby="crew-h">
-        <div class="mhead">
-          <h2 id="crew-h"><span class="mi">03</span> On shift</h2>
-          <button class="fold" type="button" aria-expanded="true" aria-controls="m-crew-b" aria-label="Collapse On shift"><span aria-hidden="true">&ndash;</span></button>
-        </div>
-        <div class="mbody" id="m-crew-b">
-          <div class="crew">
-            <div>
-              <p class="who">Renai</p>
-              <p class="task">Watching what comes in.</p>
-              <p class="ago">On shift &middot; last checked 4 min ago</p>
-            </div>
-            <img src="../assets/station/characters/renai.png" alt="">
-          </div>
-        </div>
-      </section>
-
-      <details class="depth m" id="depth">
-        <summary><span class="mk">&rsaquo;</span> How this room works</summary>
+      <details class="depth" id="depth" style="margin-top:14px">
+        <summary><span class="mk">&rsaquo;</span> What this room is made of</summary>
         <dl class="guts">
-          <div><dt>Focus</dt><dd>a layer over the world, never the world</dd></div>
-          <div><dt>Scanning</dt><dd>reveals what is already there</dd></div>
-          <div><dt>If you turn it off</dt><dd>the room is still the room</dd></div>
+          <div><dt>Connections</dt><dd>2 &middot; both fine</dd></div>
+          <div><dt>Last checked</dt><dd>20:39:12</dd></div>
           <div><dt>Sound</dt><dd>none &mdash; nothing pings</dd></div>
+          <div><dt>Overlay</dt><dd>a layer over the world, never the world</dd></div>
         </dl>
       </details>
-    </div>
+    </section>
+
+    <section class="overlay" id="ov-renai" hidden tabindex="-1" aria-labelledby="ov-renai-h">
+      <div class="ohead"><h2 id="ov-renai-h">Renai, on shift</h2><button class="closer" type="button">Close</button></div>
+      <p class="calm" id="telling">Three letters came while you were away. None urgent. Shall I read them to you?</p>
+      <div class="actions" style="justify-content:flex-start">
+        <button type="button" class="btn" id="read-all" aria-pressed="false">Read it to me</button>
+      </div>
+      <p class="askmsg" id="voice-note" hidden></p>
+      <ul class="arr" id="letters" style="margin-top:12px">
+        <li><span class="from">Mira</span><span class="line">Three signals, same region. Not named yet.</span><span class="ago">3 h</span></li>
+        <li><span class="from">Burrito J.</span><span class="line">The night market returns on Friday.</span><span class="ago">1 h</span></li>
+      </ul>
+      <p class="calm" style="border-top:1px solid var(--line)">That is all of them. <b>A letter ends.</b></p>
+    </section>
+
+    <section class="overlay" id="ov-mira" hidden tabindex="-1" aria-labelledby="ov-mira-h">
+      <div class="ohead"><h2 id="ov-mira-h">Mira's note</h2><button class="closer" type="button">Close</button></div>
+      <p class="note" style="margin-top:4px">Three signals, same region. I have not named it yet &mdash; I wanted you to see it before I did.</p>
+      <p class="calm">Left here for you, on the shelf by the window.</p>
+    </section>
   </div>
 
-  <p class="sig"><b>signature</b>gold ink over the world &middot; the map is not the place</p>
+  <p class="sig"><b>signature</b>gold ink over the world &middot; the overlay is the badge&rsquo;s, not the room&rsquo;s</p>
 </main>
 
 <script>
 (function () {
   var status = document.getElementById('room-status');
   function say(m) { if (status) status.textContent = m; }
-  Array.prototype.forEach.call(document.querySelectorAll('.fold'), function (b) {
-    b.addEventListener('click', function () {
-      var m = b.closest('.m'); var open = !m.classList.toggle('collapsed');
-      b.setAttribute('aria-expanded', open ? 'true' : 'false');
-      b.querySelector('span').textContent = open ? '\u2013' : '+';
-      var h = m.querySelector('h2').cloneNode(true);
-      Array.prototype.forEach.call(h.querySelectorAll('.mi,.mcount'), function (n) { n.remove(); });
-      say((open ? 'Opened ' : 'Closed ') + (h.textContent || '').trim());
+  function badges() { return Array.prototype.slice.call(document.querySelectorAll('.pin')); }
+  function closeAll(except) {
+    Array.prototype.forEach.call(document.querySelectorAll('.overlay'), function (o) {
+      if (o !== except) o.hidden = true;
+    });
+    badges().forEach(function (b) {
+      if (!except || b.getAttribute('aria-controls') !== except.id) b.setAttribute('aria-expanded', 'false');
+    });
+  }
+  function open(b) {
+    var o = document.getElementById(b.getAttribute('aria-controls'));
+    closeAll(o);
+    o.hidden = false;
+    b.setAttribute('aria-expanded', 'true');
+    o.focus();
+    say(b.querySelector('.bdgtag').textContent + ' — overlay open.');
+  }
+  badges().forEach(function (b) { b.addEventListener('click', function () { open(b); }); });
+  Array.prototype.forEach.call(document.querySelectorAll('.closer'), function (c) {
+    c.addEventListener('click', function () {
+      var o = c.closest('.overlay'); var b = document.querySelector('[aria-controls="' + o.id + '"]');
+      o.hidden = true; if (b) { b.setAttribute('aria-expanded', 'false'); b.focus(); }
+      say('Overlay closed.');
     });
   });
-  var scan = document.getElementById('scan'), world = document.getElementById('world');
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var openO = document.querySelector('.overlay:not([hidden])');
+    if (!openO) return;
+    var b = document.querySelector('[aria-controls="' + openO.id + '"]');
+    openO.hidden = true; if (b) { b.setAttribute('aria-expanded', 'false'); b.focus(); }
+    say('Overlay closed.');
+  });
+  var scan = document.getElementById('scan'), room = document.getElementById('room');
   if (scan) scan.addEventListener('click', function () {
-    var on = world.classList.toggle('scanned');
+    var on = room.classList.toggle('scanned');
     scan.setAttribute('aria-pressed', on ? 'true' : 'false');
-    scan.textContent = on ? 'Hide the scan' : 'Scan the room';
-    Array.prototype.forEach.call(world.querySelectorAll('.tag.deep'), function (t) { t.hidden = !on; });
-    say(on ? 'Scanning. Two more things revealed.' : 'Scan hidden.');
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('[data-goto]'), function (b) {
-    b.addEventListener('click', function () {
-      var id = b.getAttribute('data-goto');
-      var sec = document.getElementById(id).closest('.m');
-      sec.classList.remove('collapsed');
-      var fd = sec.querySelector('.fold');
-      if (fd) { fd.setAttribute('aria-expanded', 'true'); fd.querySelector('span').textContent = '\u2013'; }
-      sec.scrollIntoView({ block: 'center' });
-      document.getElementById(id).focus && document.getElementById(id).focus();
-      say('Opened the matching card.');
-    });
+    scan.textContent = on ? 'Hide the names' : 'Scan the room';
+    say(on ? 'The badges are named.' : 'The names are hidden again.');
   });
   Array.prototype.forEach.call(document.querySelectorAll('[data-done]'), function (b) {
     b.addEventListener('click', function () {
@@ -438,12 +434,28 @@
       b.setAttribute('aria-pressed', done ? 'true' : 'false');
       b.textContent = done ? 'Done \u2713' : 'Mark done';
       var n = document.querySelectorAll('#need-list li:not(.done)').length;
-      document.getElementById('need-count').textContent = n;
       say(done ? ('Marked done. ' + n + ' still need you.') : ('Reopened. ' + n + ' need you.'));
     });
   });
   Array.prototype.forEach.call(document.querySelectorAll('[data-why]'), function (b) {
-    b.addEventListener('click', function () { var d = document.getElementById('depth'); d.open = true; d.querySelector('summary').focus(); say('Opened how this room works.'); });
+    b.addEventListener('click', function () { var d = document.getElementById('depth'); d.open = true; d.querySelector('summary').focus(); say('Opened what this room is made of.'); });
+  });
+  /* the telling, from Renai's overlay */
+  var synth = window.speechSynthesis, btn = document.getElementById('read-all'), note = document.getElementById('voice-note');
+  var reading = false;
+  function voices() { try { return synth ? synth.getVoices().length : 0; } catch (e) { return 0; } }
+  function reset() { reading = false; if (btn) { btn.setAttribute('aria-pressed','false'); btn.textContent='Read it to me'; } }
+  if (btn) btn.addEventListener('click', function () {
+    if (reading) { if (synth) synth.cancel(); reset(); say('Stopped.'); return; }
+    if (!synth || !voices()) { if (note) { note.hidden = false; note.textContent = 'No voice is installed on this device \u2014 the words are all here, in writing.'; } say('No voice available; the words are in writing.'); return; }
+    var text = document.getElementById('telling').textContent + ' ' +
+      Array.prototype.map.call(document.querySelectorAll('#letters .line'), function (n) { return n.textContent; }).join(' ');
+    var u = new SpeechSynthesisUtterance(text); u.rate = 0.95;
+    u.onend = function () { reset(); say('That is all of them.'); };
+    synth.cancel(); synth.speak(u);
+    reading = true; btn.setAttribute('aria-pressed','true'); btn.textContent = 'Stop reading';
+    if (note) { note.hidden = false; note.textContent = 'Reading aloud. Press the button again to stop.'; }
+    say('Reading aloud.');
   });
 })();
 </script>
