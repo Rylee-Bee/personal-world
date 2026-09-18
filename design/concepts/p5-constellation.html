@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Constellation — Station packet 5</title>
+<style>
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-italic-latin.woff2") format("woff2");font-style:italic;font-weight:400}
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-normal-latin.woff2") format("woff2");font-style:normal;font-weight:400}
+  :root{--ink:#eef3f7;--dim:#a3b2c0;--faint:#6f8090;--teal:#8fe0d6;--gold:#e0c489;--line:rgba(163,178,192,.2);
+        --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#02050c;color:var(--ink);
+    font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .sky{position:fixed;inset:0;background:url('assets/worlds/sky1.jpg') center/cover;z-index:0;opacity:.55}
+  .dust{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background-image:radial-gradient(1px 1px at 12% 22%,rgba(255,255,255,.7),transparent),
+      radial-gradient(1px 1px at 68% 12%,rgba(255,255,255,.5),transparent),
+      radial-gradient(1.4px 1.4px at 41% 63%,rgba(255,255,255,.45),transparent),
+      radial-gradient(1px 1px at 84% 74%,rgba(255,255,255,.5),transparent),
+      radial-gradient(1px 1px at 27% 88%,rgba(255,255,255,.4),transparent),
+      radial-gradient(1.2px 1.2px at 91% 38%,rgba(255,255,255,.45),transparent),
+      radial-gradient(1px 1px at 6% 54%,rgba(255,255,255,.35),transparent),
+      radial-gradient(1px 1px at 57% 33%,rgba(255,255,255,.3),transparent)}
+  .vig{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(85% 75% at 50% 45%,transparent 40%,rgba(2,5,12,.8) 100%)}
+  .chrome{position:fixed;left:0;right:0;z-index:7;display:flex;justify-content:space-between;align-items:center;
+    padding:10px 18px;font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+    background:linear-gradient(180deg,rgba(2,5,12,.85),transparent)}
+  .bot{background:linear-gradient(0deg,rgba(2,5,12,.85),transparent);color:var(--faint)}
+  .top{top:0} .bot{bottom:0}
+  .brand{color:var(--teal)} .pkt{color:var(--gold)}
+  /* chart */
+  .chart{position:fixed;inset:0 390px 0 0;z-index:3}
+  svg.lines{position:absolute;inset:0;width:100%;height:100%}
+  svg.lines polyline{fill:none;stroke:rgba(143,224,214,.28);stroke-width:1;
+    stroke-dasharray:3 4;vector-effect:non-scaling-stroke}
+  svg.lines polyline.inner{stroke:rgba(224,196,137,.22)}
+  .star{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);width:56px;height:56px;
+    background:none;border:0;padding:0;cursor:pointer;display:grid;place-items:center;color:var(--ink);font:inherit}
+  .star .orb{width:var(--s,10px);height:var(--s,10px);border-radius:50%;background:#fff;
+    box-shadow:0 0 var(--glow,16px) rgba(255,255,255,.75),0 0 calc(var(--glow,16px) * 3) rgba(143,224,214,.28)}
+  .star .greek{position:absolute;left:50%;top:-2px;transform:translate(-50%,-100%);font-family:var(--mono);
+    font-size:11px;color:var(--gold);letter-spacing:.1em;opacity:.9}
+  .star .nm{position:absolute;left:50%;top:100%;transform:translate(-50%,2px);white-space:nowrap;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  .star:hover .nm,.star:focus-visible .nm{color:var(--ink)}
+  .star:hover .orb,.star:focus-visible .orb{background:var(--teal);box-shadow:0 0 28px rgba(143,224,214,.8)}
+  .star:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:50%}
+  .star[aria-current="true"] .orb{background:var(--gold);box-shadow:0 0 30px rgba(224,196,137,.9),0 0 70px rgba(224,196,137,.4)}
+  .star[aria-current="true"] .nm{color:var(--gold)}
+  @media (prefers-reduced-motion:no-preference){
+    .star .orb{animation:tw 4.5s ease-in-out infinite;animation-delay:var(--d,0s)}
+    @keyframes tw{0%,100%{opacity:.75}50%{opacity:1}}
+  }
+  /* observation window */
+  .obs{position:fixed;right:26px;top:50%;transform:translateY(-50%);z-index:6;width:min(86vw,360px);
+    background:rgba(4,8,18,.88);border:1px solid var(--line);padding:12px;opacity:0;
+    transition:opacity .45s ease,transform .45s ease}
+  .obs.on{opacity:1;transform:translateY(-50%) translateX(0)}
+  .obs.off{transform:translateY(-50%) translateX(14px)}
+  @media (prefers-reduced-motion:reduce){.obs{transition:none}.obs.off{transform:translateY(-50%)}}
+  .obs .frame{position:relative;aspect-ratio:16/10;background-size:cover;background-position:center;
+    border:1px solid var(--line);overflow:hidden}
+  .obs .frame::after{content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 100% at 50% 40%,transparent 30%,rgba(4,8,18,.75))}
+  .obs .cnr{position:absolute;width:14px;height:14px;border:1px solid var(--teal);z-index:2}
+  .obs .cnr.tl{top:-1px;left:-1px;border-right:0;border-bottom:0}
+  .obs .cnr.tr{top:-1px;right:-1px;border-left:0;border-bottom:0}
+  .obs .cnr.bl{bottom:-1px;left:-1px;border-right:0;border-top:0}
+  .obs .cnr.br{bottom:-1px;right:-1px;border-left:0;border-top:0}
+  .obs .fig{position:absolute;right:6px;bottom:0;height:88%;width:auto;max-width:48%;object-fit:contain;z-index:1;
+    filter:drop-shadow(0 10px 22px rgba(0,0,0,.8))}
+  .obs .fig.round{height:52%;right:12px;border-radius:50%;object-fit:cover;object-position:center 22%;border:1px solid var(--line)}
+  .obs h2{font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:24px;margin:12px 0 0}
+  .obs .desig{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin:3px 0 10px}
+  .obs .say{font-family:"Fraunces",Georgia,serif;font-style:italic;font-size:17px;color:#dbe4ea;margin:0 0 10px}
+  .obs .facts{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+    display:grid;gap:4px;border-top:1px solid var(--line);padding-top:9px}
+  .obs .facts b{color:var(--teal);font-weight:400;float:right}
+  .hint{position:fixed;left:18px;bottom:42px;z-index:7;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .hint b{color:var(--teal);font-weight:400}
+  @media (max-width:860px){
+    .obs{left:16px;right:16px;top:auto;bottom:56px;width:auto;transform:none}
+    .chart{inset:0 0 215px 0}
+    .obs.off{transform:translateY(12px)}
+    .obs.on{transform:none}
+    .star .nm{font-size:9.5px}
+    .hint{display:none}
+  }
+@media (max-width:640px){.chrome{font-size:10px;letter-spacing:.08em;gap:10px}
+    .pkt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw;text-align:right}}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+<div class="dust" aria-hidden="true"></div>
+<div class="vig" aria-hidden="true"></div>
+
+<div class="chrome top"><span class="brand">✦ Project Worlds</span><span>A chart of eight places</span><span class="pkt">Packet 5 / 8 · The Constellation</span></div>
+<div class="chrome bot"><span>Every star is a room</span><span>← → to travel the chart</span></div>
+
+<div class="chart" id="chart">
+  <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="50,16 24,34 14,62 30,84 70,86 86,58 76,30 50,16"></polyline>
+    <polyline class="inner" points="50,16 50,52 14,62"></polyline>
+    <polyline class="inner" points="50,52 86,58"></polyline>
+  </svg>
+</div>
+
+<aside class="obs off" id="obs" aria-live="polite">
+  <div class="frame" id="frame">
+    <span class="cnr tl"></span><span class="cnr tr"></span><span class="cnr bl"></span><span class="cnr br"></span>
+    <img class="fig" id="fig" src="" alt="">
+  </div>
+  <h2 id="oname">The Bridge</h2>
+  <p class="desig" id="odesig">α · Deck One · what needs you</p>
+  <p class="say" id="osay"></p>
+  <div class="facts" id="ofacts"></div>
+</aside>
+
+<div class="hint">Click a <b>star</b> to open its observation window</div>
+
+<script>
+const DECKS=[
+ {name:'The Bridge',deck:'Deck One',does:'what needs you',x:'50%',y:'16%',size:'15px',glow:'22px',greek:'α',
+  bg:'../assets/station/backgrounds/bridgebg.png',fig:'../assets/station/characters/renai.png',
+  say:'Brightest in the chart. Nothing needs you right now.',
+  facts:[['State','quiet'],['Changed today','3'],['Resident','Renai']]},
+ {name:'Engineering',deck:'Deck Two',does:'systems & capabilities',x:'24%',y:'34%',size:'11px',glow:'16px',greek:'β',
+  bg:'../assets/station/backgrounds/engineeringbg.png',fig:'../assets/station/characters/hekek.png',
+  say:'Steady, warm, faintly humming. Everything holds.',
+  facts:[['Capabilities','healthy'],['Providers','2'],['Resident','Hekek']]},
+ {name:'The Workshop',deck:'Deck Three',does:'making things',x:'76%',y:'30%',size:'11px',glow:'16px',greek:'γ',
+  bg:'../assets/station/backgrounds/placesbg.png',fig:'../assets/station/characters/bolt.png',
+  say:'Two on the bench, one being stubborn.',
+  facts:[['In flight','2'],['Quiet','1'],['Resident','Bolt']]},
+ {name:'The Archives',deck:'Deck Four',does:'memory & lore',x:'14%',y:'62%',size:'10px',glow:'14px',greek:'δ',
+  bg:'../assets/station/backgrounds/maproom.png',fig:'../assets/station/characters/ratatoskr.png',
+  say:'Threads between facts. Two new entries this week.',
+  facts:[['Memory','current'],['New entries','2'],['Resident','Ratatoskr']]},
+ {name:'The Galley',deck:'Deck Five',does:'stories & news',x:'86%',y:'58%',size:'10px',glow:'14px',greek:'ε',
+  bg:'../assets/station/backgrounds/mediabg.png',fig:'../assets/station/characters/burrito.png',
+  say:'The truck is parked and the coffee has gone cold.',
+  facts:[['Breaking','nothing'],['Stories','2'],['Resident','Burrito Journalism']]},
+ {name:'The Observatory',deck:'Deck Six',does:'the map of your world',x:'30%',y:'84%',size:'11px',glow:'17px',greek:'ζ',
+  bg:'../assets/station/backgrounds/observeatorybg.png',fig:'../assets/station/characters/mira.png',
+  say:'Three signals in the same region. Possibly a pattern.',
+  facts:[['Patterns','quiet'],['Signals','3'],['Resident','Mira']]},
+ {name:'The Vault',deck:'Deck Seven',does:'secrets & backups',x:'70%',y:'86%',size:'10px',glow:'15px',greek:'η',
+  bg:'../assets/station/backgrounds/vaultbg.png',fig:'../assets/station/characters/bruma.png',
+  say:'Shelved, traced, and quiet. Nothing lost this quarter.',
+  facts:[['Preservation','current'],['Provenance','complete'],['Resident','Bruma']]},
+ {name:'Your Quarters',deck:'Deck Eight',does:'rest & profile',x:'50%',y:'52%',size:'9px',glow:'13px',greek:'θ',
+  bg:'../assets/station/backgrounds/quarters.png',fig:'../assets/station/icons/bedicon.png',
+  say:'The quiet centre of the chart. The door is yours.',
+  facts:[['Resident','none, by choice'],['Motion','reduced'],['Door','yours']]}
+];
+const chart=document.getElementById('chart');
+const stars=[];
+DECKS.forEach((d,i)=>{
+  const b=document.createElement('button');
+  b.type='button';b.className='star';
+  b.style.setProperty('--x',d.x);b.style.setProperty('--y',d.y);
+  b.style.setProperty('--s',d.size);b.style.setProperty('--glow',d.glow);
+  b.style.setProperty('--d',(i*0.6)+'s');
+  b.setAttribute('aria-label',d.name+', '+d.does);
+  b.innerHTML='<span class="greek">'+d.greek+'</span><span class="orb"></span><span class="nm">'+d.name+'</span>';
+  b.addEventListener('click',()=>open(i));
+  chart.appendChild(b);stars.push(b);
+});
+let cur=-1;
+function open(i){
+  cur=i;const d=DECKS[i];
+  stars.forEach((s,k)=>s.setAttribute('aria-current',k===i?'true':'false'));
+  const obs=document.getElementById('obs');
+  document.getElementById('frame').style.backgroundImage="url('"+d.bg+"')";
+  const fig=document.getElementById('fig');
+  fig.src=d.fig;fig.className='fig'+(d.round?' round':'');
+  document.getElementById('oname').textContent=d.name;
+  document.getElementById('odesig').textContent=d.greek+' · '+d.deck+' · '+d.does;
+  document.getElementById('osay').textContent=d.say;
+  document.getElementById('ofacts').innerHTML=d.facts.map(([k,v])=>'<span>'+k+'<b>'+v+'</b></span>').join('');
+  obs.classList.remove('off');obs.classList.add('on');
+  document.title=d.name+' — Station packet 5';
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+    const n=(cur+(e.key==='ArrowRight'?1:-1)+DECKS.length)%DECKS.length;open(n);
+  }
+});
+open(0);
+</script>
+</body>
+</html>

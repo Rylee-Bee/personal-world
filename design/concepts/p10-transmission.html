@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Transmission — Station packet 10</title>
+<style>
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-italic-latin.woff2") format("woff2");font-style:italic;font-weight:400}
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-normal-latin.woff2") format("woff2");font-style:normal;font-weight:400}
+  :root{--ink:#eef2f4;--dim:#a8b4bb;--faint:#75838b;--line:rgba(150,220,214,.20);
+        --teal:#7fd0c8;--gold:#d9bb79;--canvas:#05080e;
+        --glass:rgba(8,15,22,.72);--glass2:rgba(10,19,27,.86);
+        --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--canvas);color:var(--ink);
+    font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+  /* ---------- depth stack ---------- */
+  .sky{position:fixed;inset:0;z-index:0;background:url('assets/worlds/sky1.jpg') center/cover;opacity:.6}
+  .dust{position:fixed;inset:-6%;z-index:1;pointer-events:none;will-change:transform}
+  .dust.l1{background-image:radial-gradient(1.4px 1.4px at 18% 24%,rgba(255,255,255,.75),transparent),
+    radial-gradient(1.2px 1.2px at 62% 14%,rgba(255,255,255,.6),transparent),
+    radial-gradient(1px 1px at 84% 62%,rgba(255,255,255,.5),transparent),
+    radial-gradient(1.6px 1.6px at 34% 78%,rgba(255,255,255,.5),transparent),
+    radial-gradient(1px 1px at 8% 52%,rgba(255,255,255,.4),transparent);opacity:.85}
+  .dust.l2{background-image:radial-gradient(1px 1px at 27% 33%,rgba(180,240,235,.5),transparent),
+    radial-gradient(1px 1px at 71% 47%,rgba(180,240,235,.45),transparent),
+    radial-gradient(1.2px 1.2px at 47% 12%,rgba(255,225,180,.5),transparent),
+    radial-gradient(1px 1px at 91% 80%,rgba(180,240,235,.35),transparent),
+    radial-gradient(1px 1px at 12% 88%,rgba(255,225,180,.35),transparent);opacity:.6}
+  .veil{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(88% 74% at 62% 40%,rgba(5,8,14,.22),rgba(5,8,14,.78) 58%,rgba(5,8,14,.97))}
+  .scan{position:fixed;inset:0;z-index:3;pointer-events:none;opacity:.045;
+    background:repeating-linear-gradient(0deg,#9fe9e0 0 1px,transparent 1px 3px)}
+  /* ---------- life support / chrome ---------- */
+  .chrome{position:fixed;left:0;right:0;z-index:9;display:flex;justify-content:space-between;align-items:center;
+    padding:10px 18px;background:rgba(5,8,14,.76);backdrop-filter:blur(9px);font-family:var(--mono);
+    font-size:11.5px;letter-spacing:.16em;text-transform:uppercase}
+  .top{top:0;border-bottom:1px solid var(--line)} .bot{bottom:0;border-top:1px solid var(--line);color:var(--faint)}
+  .brand{color:var(--teal)} .pkt{color:var(--gold)}
+  /* ---------- plane 1: the view through the window ---------- */
+  .view{position:fixed;z-index:4;top:7.5%;right:3.5%;width:54%;max-width:760px;aspect-ratio:16/9;
+    border-radius:14px;overflow:hidden;border:1px solid rgba(150,220,214,.22);
+    box-shadow:0 40px 90px rgba(0,0,0,.72),inset 0 0 60px rgba(0,0,0,.5);margin:0}
+  .view .pic{position:absolute;inset:0;background-size:cover;background-position:center;
+    transform:scale(1.02);transition:opacity .5s ease}
+  .view::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(5,8,14,.16) 0%,rgba(5,8,14,.06) 42%,rgba(5,8,14,.72) 100%)}
+  .view .cnr{position:absolute;width:16px;height:16px;border:1px solid var(--teal);z-index:3;opacity:.8}
+  .view .cnr.tl{top:7px;left:7px;border-right:0;border-bottom:0}
+  .view .cnr.tr{top:7px;right:7px;border-left:0;border-bottom:0}
+  .view .cnr.bl{bottom:7px;left:7px;border-right:0;border-top:0}
+  .view .cnr.br{bottom:7px;right:7px;border-left:0;border-top:0}
+  .view .tag{position:absolute;left:14px;bottom:12px;z-index:3;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.2em;text-transform:uppercase;color:#eaf2f3;text-shadow:0 2px 10px rgba(0,0,0,.9)}
+  /* plane 2: the character stands IN the window, breaking its bottom edge */
+  .stand{position:fixed;z-index:5;right:7.5%;top:calc(7.5% + 54% * 0.5625 - 5%);pointer-events:none;
+    display:flex;align-items:flex-end;gap:14px}
+  .stand img{width:auto;height:44vh;max-height:390px;object-fit:contain;
+    filter:drop-shadow(0 26px 44px rgba(0,0,0,.85))}
+  .stand img.core{height:16vh;max-height:150px;opacity:.95}
+  /* ---------- plane 3: the glass panel — the transmission ---------- */
+  .glass{position:fixed;z-index:6;left:3.5%;bottom:calc(212px + 5vh);width:min(46%,530px);
+    background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px 16px;box-shadow:0 30px 70px rgba(0,0,0,.7)}
+  .glass::before{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;
+    background:linear-gradient(90deg,transparent,var(--accent,var(--teal)),transparent);opacity:.85}
+  .glass::after{content:"";position:absolute;left:-1px;top:16px;bottom:16px;width:2px;border-radius:2px;
+    background:var(--accent,var(--teal));opacity:.9}
+  .head{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .badge{width:34px;height:34px;flex:0 0 34px;border-radius:50%;display:grid;place-items:center;
+    background:color-mix(in srgb,var(--accent,var(--teal)) 22%,transparent);
+    border:1px solid var(--accent,var(--teal));color:var(--accent,var(--teal))}
+  .badge svg{width:19px;height:19px}
+  .head .dt{color:var(--ink);letter-spacing:.14em}
+  .head .rec{margin-left:auto;color:var(--faint);white-space:nowrap}
+  .role{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--accent,var(--teal));margin:10px 0 0}
+  .note{font-family:"Fraunces",Georgia,serif;font-style:italic;font-size:clamp(18px,2.1vw,23px);
+    line-height:1.38;color:#f4f2ec;margin:8px 0 0}
+  .sig{display:flex;align-items:baseline;gap:9px;margin:12px 0 0;padding-top:11px;border-top:1px solid var(--line)}
+  .sig .nm{font-family:"Fraunces",Georgia,serif;font-size:19px;color:var(--gold)}
+  .sig .who{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  dl.facts{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:12px 0 0;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase}
+  dl.facts dt{color:var(--faint)} dl.facts dd{margin:0;color:var(--accent,var(--teal));text-align:right}
+  .seal{position:absolute;right:18px;bottom:14px;width:66px;height:66px;border-radius:50%;
+    border:1px dashed rgba(217,187,121,.6);display:grid;place-items:center;color:var(--gold);opacity:.95}
+  .seal svg{width:34px;height:34px}
+  .seal b{position:absolute;bottom:-15px;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;font-weight:400;
+    text-transform:uppercase;color:var(--faint)}
+  /* ---------- plane 4: the deck (the hand) ---------- */
+  .hand{position:fixed;left:0;right:0;bottom:52px;height:212px;z-index:7}
+  .card{position:absolute;left:50%;bottom:0;width:150px;height:206px;border-radius:12px;overflow:hidden;
+    border:1px solid rgba(150,220,214,.18);background:#0a1016;cursor:pointer;padding:0;
+    box-shadow:0 16px 34px rgba(0,0,0,.66);transition:transform .34s cubic-bezier(.2,.8,.2,1),box-shadow .3s,border-color .2s}
+  .card .face{position:absolute;inset:0;background-size:cover;background-position:center}
+  .card .face::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(5,8,14,.5),rgba(5,8,14,.2) 40%,rgba(5,8,14,.9) 78%)}
+  .card .bar{position:absolute;left:0;right:0;top:0;height:3px;background:var(--accent,#7fd0c8);
+    opacity:.85;z-index:3}
+  .card .badge{position:absolute;left:9px;top:12px;z-index:3;width:30px;height:30px;flex:none;
+    background:rgba(6,11,17,.78);border-color:color-mix(in srgb,var(--accent,#7fd0c8) 70%,transparent)}
+  .card .badge svg{width:17px;height:17px}
+  .card .pip{position:absolute;right:10px;top:13px;z-index:3;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;color:var(--gold)}
+  .card .cap{position:absolute;left:0;right:0;bottom:0;padding:9px 10px 10px;z-index:3}
+  .card .cap .nm{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:#f0f4f4}
+  .card .cap .jb{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;margin-top:3px;
+    color:var(--accent,#7fd0c8)}
+  .card:hover{border-color:var(--accent,#7fd0c8)}
+  .card:hover .bar{opacity:1}
+  .card:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .card[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 34px -6px var(--accent,#7fd0c8),0 24px 46px rgba(0,0,0,.72)}
+  .card[aria-pressed="true"] .cap .nm{color:var(--gold)}
+  @media (prefers-reduced-motion:reduce){.card{transition:none}.view .pic{transition:none}}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* ---------- responsive ---------- */
+  @media (max-width:1050px){
+    .view{width:auto;left:3.5%;right:3.5%;top:6.5%;aspect-ratio:16/8}
+    .stand{right:8%;top:calc(6.5% + 44% * 0.5)}
+    .stand img{height:30vh}
+    .glass{left:3.5%;right:3.5%;width:auto;bottom:calc(196px + 3vh)}
+  }
+  @media (max-width:640px){
+    .chrome{font-size:10px;letter-spacing:.08em;gap:8px}
+    .pkt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw;text-align:right}
+    .view{top:52px;left:10px;right:10px;aspect-ratio:16/9;border-radius:11px}
+    .stand{right:16%;top:calc(52px + 26vw)}
+    .stand img{height:22vh;max-height:190px}
+    .stand img.core{height:11vh}
+    .glass{left:10px;right:10px;bottom:214px;padding:13px 14px 12px;border-radius:11px}
+    .glass .note{font-size:17px}
+    dl.facts{grid-template-columns:1fr auto;font-size:10px}
+    dl.facts .f3{display:none}
+    .seal{width:52px;height:52px;right:12px;bottom:10px}
+    .seal svg{width:26px;height:26px}
+    .seal b{display:none}
+    .hand{bottom:44px;height:150px}
+    .card{width:112px;height:144px}
+    .card .cap .jb{font-size:9.5px}
+    .card .badge{width:24px;height:24px;left:7px;top:9px}
+    .card .badge svg{width:14px;height:14px}
+  }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+<div class="dust l1" id="d1" aria-hidden="true"></div>
+<div class="dust l2" id="d2" aria-hidden="true"></div>
+<div class="veil" aria-hidden="true"></div>
+<div class="scan" aria-hidden="true"></div>
+
+<div class="chrome top"><span class="brand">✦ Project Worlds</span><span>Incoming transmissions</span><span class="pkt">Packet 10 · The Transmission</span></div>
+
+<!-- plane 1 + 2: the view, and whoever is standing in it -->
+<figure class="view" id="view">
+  <div class="pic" id="pic"></div>
+  <span class="cnr tl"></span><span class="cnr tr"></span><span class="cnr bl"></span><span class="cnr br"></span>
+  <figcaption class="tag" id="viewtag">The Bridge · deck one</figcaption>
+</figure>
+<div class="stand" id="stand" aria-hidden="true"></div>
+
+<!-- plane 3: the transmission itself -->
+<aside class="glass" id="glass">
+  <div class="head">
+    <span class="badge" id="pbadge"></span>
+    <span class="dt" id="pdeck">The Bridge</span>
+    <span class="rec" id="prec">recv 20:41</span>
+  </div>
+  <p class="role" id="prole">what needs you</p>
+  <p class="note" id="pnote"></p>
+  <p class="sig"><span class="nm" id="pwho">Renai</span><span class="who" id="pwhorole">at the bridge with you</span></p>
+  <dl class="facts" id="pfacts"></dl>
+  <span class="seal" id="seal" aria-hidden="true"></span>
+</aside>
+
+<p class="sr" role="status" id="status"></p>
+
+<!-- plane 4: the deck -->
+<div class="hand" id="hand" role="group" aria-label="The eight decks"></div>
+
+<div class="chrome bot"><span id="foot">The Bridge · needs you</span><span>← → to take the next card</span></div>
+
+<script>
+const G={
+ compass:'<circle cx="12" cy="12" r="8.2"/><path d="M15.7 8.3l-2.1 4.3-4.3 2.1 2.1-4.3z" fill="currentColor" stroke="none"/>',
+ nut:'<path d="M12 3.4l7.5 4.3v8.6L12 20.6l-7.5-4.3V7.7z"/><circle cx="12" cy="12" r="3.1"/>',
+ hammer:'<rect x="4" y="4.7" width="9.3" height="5" rx="1.3"/><path d="M9.5 9.7l6.4 8.5"/>',
+ book:'<path d="M6 3.9h8.1a2.9 2.9 0 0 1 2.9 2.9v13.3H8.9A2.9 2.9 0 0 1 6 17.2z"/><path d="M9 3.9v16.2"/>',
+ news:'<rect x="3.4" y="5.4" width="17.2" height="13.2" rx="2"/><path d="M6.4 9.3h7.1M6.4 12.4h7.1M6.4 15.5h4.2M16.5 9.3h1.1v6.2h-1.1z"/>',
+ scope:'<path d="M3.5 13.7l10.3-7.9 3.5 4.5-10.3 7.9z"/><path d="M11.1 16.2v3.4M7.5 19.6h7.2"/>',
+ key:'<circle cx="7.6" cy="14.6" r="3.4"/><path d="M10.1 12.1l8.4-8.4M16.5 5.8l2.2 2.2M14.3 8l2.2 2.2"/>',
+ bed:'<path d="M3.7 18.5V10.4"/><path d="M3.7 14.4h16.6v4.1"/><path d="M6.3 10.8h4.4a1.6 1.6 0 0 1 1.6 1.6v2H6.3z"/>',
+ planet:'<circle cx="12" cy="12" r="6.5"/><ellipse cx="12" cy="12" rx="10.5" ry="3.8" transform="rotate(-22 12 12)"/>'
+};
+const DECKS=[
+ {no:'I',deck:'The Bridge',job:'needs you',role:'what needs you',accent:'#8fc9c2',glyph:'compass',
+  recv:'20:41',bg:'../assets/station/backgrounds/bridgebg.png',fig:'../assets/station/characters/renai.png',
+  note:'Nothing needs you. The kettle is where you left it, and the station has been keeping its own counsel.',
+  who:'Renai',whorole:'at the bridge with you',
+  facts:[['state','quiet'],['changed today','3'],['resident','Renai']]},
+ {no:'II',deck:'Engineering',job:'systems',role:'systems & capabilities',accent:'#d9a76b',glyph:'nut',
+  recv:'04:12',bg:'../assets/station/backgrounds/engineeringbg.png',fig:'../assets/station/characters/hekek.png',
+  note:'Everything holds. I tightened a thing you will never notice — which is most of the job.',
+  who:'Hekek',whorole:'on the night watch',
+  facts:[['capabilities','healthy'],['providers','2'],['resident','Hekek']]},
+ {no:'III',deck:'The Workshop',job:'projects',role:'making things',accent:'#c98f6a',glyph:'hammer',
+  recv:'16:05',bg:'../assets/station/backgrounds/placesbg.png',fig:'../assets/station/characters/bolt.png',
+  note:'Two on the bench, one of them stubborn. Garden Atlas is not abandoned — it is waiting for spring.',
+  who:'Bolt',whorole:'with sawdust on him',
+  facts:[['in flight','2'],['quiet','1'],['resident','Bolt']]},
+ {no:'IV',deck:'The Archives',job:'memory',role:'memory & lore',accent:'#b39a63',glyph:'book',
+  recv:'09:30',bg:'../assets/station/backgrounds/maproom.png',fig:'../assets/station/characters/ratatoskr.png',
+  note:'I found the thread you lost. It was two entries back, exactly where you left it.',
+  who:'Ratatoskr',whorole:'between the branches',
+  facts:[['memory','current'],['new entries','2'],['resident','Ratatoskr']]},
+ {no:'V',deck:'The Galley',job:'news',role:'stories & news',accent:'#c47a55',glyph:'news',
+  recv:'18:20',bg:'../assets/station/backgrounds/mediabg.png',fig:'../assets/station/characters/burrito.png',
+  note:'Truck is parked, two stories came home, neither one shouting. The night market returns on Friday.',
+  who:'Burrito Journalism',whorole:'engine still warm',
+  facts:[['breaking','nothing'],['stories','2'],['resident','Burrito J.']]},
+ {no:'VI',deck:'The Observatory',job:'the map',role:'the map of your world',accent:'#8a9fc9',glyph:'scope',
+  recv:'22:58',bg:'../assets/station/backgrounds/observeatorybg.png',fig:'../assets/station/characters/mira.png',
+  note:'Three signals in the same region this week. Either a coincidence, or the beginning of a shape.',
+  who:'Mira',whorole:'lens cap in hand',
+  facts:[['patterns','quiet'],['signals','3'],['resident','Mira']]},
+ {no:'VII',deck:'The Vault',job:'secrets',role:'secrets & backups',accent:'#9c8fb0',glyph:'key',
+  recv:'11:47',bg:'../assets/station/backgrounds/vaultbg.png',fig:'../assets/station/characters/bruma.png',
+  note:'Fourteen entries, three seasons, this week\u2019s notes — all traced. Nothing was lost this quarter.',
+  who:'Bruma',whorole:'reshelving',
+  facts:[['preservation','current'],['provenance','complete'],['resident','Bruma']]},
+ {no:'VIII',deck:'Your Quarters',job:'rest',role:'rest & profile',accent:'#9aa0a4',glyph:'bed',
+  recv:'23:10',bg:'../assets/station/backgrounds/quarters.png',fig:'../assets/station/icons/bedicon.png',core:true,
+  note:'The door is yours. No one lives here unless you ask them to — and that is one setting away.',
+  who:'Nobody, by default',whorole:'the bed icon',
+  facts:[['resident','none, by choice'],['motion','reduced'],['door','yours']]}
+];
+const hand=document.getElementById('hand');
+const cards=[];
+DECKS.forEach((d,i)=>{
+  const b=document.createElement('button');
+  b.type='button';b.className='card';
+  b.style.setProperty('--accent',d.accent);
+  b.setAttribute('aria-pressed','false');
+  b.setAttribute('aria-label','Deck '+d.no+', '+d.deck+' — '+d.role+'. Resident: '+d.who+'.');
+  b.innerHTML='<span class="face" style="background-image:url(\''+d.bg+'\')"></span>'+
+    '<span class="bar"></span>'+
+    '<span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+G[d.glyph]+'</svg></span>'+
+    '<span class="pip">'+d.no+'</span>'+
+    '<span class="cap"><span class="nm">'+d.deck+'</span><span class="jb">'+d.job+'</span></span>';
+  b.addEventListener('click',()=>pick(i));
+  hand.appendChild(b);cards.push(b);
+});
+let cur=-1;
+function layout(){
+  const n=DECKS.length,w=hand.clientWidth;
+  const cw=window.innerWidth<640?112:150;
+  const gap=Math.max(24,Math.min(112,(w-cw-36)/(n-1)));
+  const mid=(n-1)/2;
+  cards.forEach((c,i)=>{
+    const dist=Math.abs(i-cur);
+    const off=(i-mid)*gap;
+    const rot=(i-mid)*3.4;
+    const lift=dist*3+(i===cur?(window.innerWidth<640?-14:-30):0);
+    const scale=i===cur?1.09:1;
+    c.style.zIndex=100-dist;
+    c.style.transform='translateX(calc(-50% + '+off+'px)) translateY('+lift+'px) rotate('+rot+'deg) scale('+scale+')';
+  });
+}
+function pick(i){
+  cur=(i+DECKS.length)%DECKS.length;
+  const d=DECKS[cur];
+  cards.forEach((c,k)=>c.setAttribute('aria-pressed',k===cur?'true':'false'));
+  layout();
+  document.getElementById('glass').style.setProperty('--accent',d.accent);
+  document.getElementById('view').style.setProperty('--accent',d.accent);
+  const pic=document.getElementById('pic');
+  pic.style.opacity=0;
+  setTimeout(()=>{pic.style.backgroundImage="url('"+d.bg+"')";pic.style.opacity=1;},130);
+  document.getElementById('viewtag').textContent=d.deck+' · deck '+d.no.toLowerCase();
+  const stand=document.getElementById('stand');
+  stand.innerHTML='<img class="'+(d.core?'core':'')+'" src="'+d.fig+'" alt="">';
+  const badge='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+G[d.glyph]+'</svg>';
+  document.getElementById('pbadge').innerHTML=badge;
+  document.getElementById('pdeck').textContent=d.deck;
+  document.getElementById('prec').textContent='recv '+d.recv;
+  document.getElementById('prole').textContent=d.role;
+  document.getElementById('pnote').textContent=d.note;
+  document.getElementById('pwho').textContent=d.who;
+  document.getElementById('pwhorole').textContent=d.whorole;
+  document.getElementById('pfacts').innerHTML=d.facts.map(([k,v],n2)=>'<dt class="f'+(n2+1)+'">'+k+'</dt><dd class="f'+(n2+1)+'">'+v+'</dd>').join('');
+  document.getElementById('seal').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">'+G.planet+'</svg><b>PW · '+d.recv+'</b>';
+  document.getElementById('status').textContent=d.deck+', deck '+d.no+'. '+d.role+'. '+d.who+' is here.';
+  document.getElementById('foot').textContent=d.deck+' · '+d.job;
+  document.title=d.deck+' — Station packet 10';
+}
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  if(e.key==='ArrowRight')pick(cur+1);
+  if(e.key==='ArrowLeft')pick(cur-1);
+});
+window.addEventListener('resize',layout);
+/* parallax — depth only, never required to understand the page */
+if(window.matchMedia('(prefers-reduced-motion:no-preference)').matches){
+  const d1=document.getElementById('d1'),d2=document.getElementById('d2'),vw=document.getElementById('view');
+  window.addEventListener('pointermove',e=>{
+    const x=(e.clientX/window.innerWidth-.5),y=(e.clientY/window.innerHeight-.5);
+    d1.style.transform='translate('+(x*-18)+'px,'+(y*-12)+'px)';
+    d2.style.transform='translate('+(x*-34)+'px,'+(y*-22)+'px)';
+    vw.style.transform='translate('+(x*7)+'px,'+(y*5)+'px)';
+  },{passive:true});
+}
+pick(0);
+</script>
+</body>
+</html>

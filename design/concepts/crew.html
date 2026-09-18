@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Crew — Project Worlds</title>
+<style>
+  @font-face {
+    font-family: "Fraunces";
+    src: url("assets/fraunces-italic-latin.woff2") format("woff2");
+    font-style: italic;
+    font-weight: 400;
+  }
+  @font-face {
+    font-family: "Fraunces";
+    src: url("assets/fraunces-normal-latin.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 400;
+  }
+  :root {
+    /* luminance-only; canvas is the product default. Gold is the uniform/badge accent. */
+    --canvas: #0a0810;
+    --surface: #14101c;
+    --ink: #f2eee6;
+    --ink-dim: #b9b2c6;
+    --line: #2a2338;
+    --gold: #e0b978;
+    --gold-dim: #8a7346;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font: 17px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 44px 22px 80px;
+  }
+  header { text-align: center; margin-bottom: 26px; }
+  .badge { display: block; margin: 0 auto 14px; width: 42px; height: 42px; }
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(36px, 7vw, 60px);
+    margin: 0 0 4px;
+  }
+  .sub { color: var(--ink-dim); margin: 0; letter-spacing: .04em; }
+  .poster {
+    width: 100%;
+    height: auto;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    display: block;
+    margin: 26px 0 34px;
+  }
+  .crew {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+  }
+  article {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    padding: 16px 16px 18px;
+    text-align: center;
+  }
+  article img {
+    width: 100%;
+    height: 150px;
+    object-fit: contain;
+    display: block;
+    margin: 2px auto 10px;
+  }
+  h2 {
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 25px;
+    color: var(--gold);
+    margin: 0 0 2px;
+  }
+  .descriptor { color: var(--ink); margin: 0 0 8px; font-size: 14px; letter-spacing: .04em; }
+  .role { color: var(--ink-dim); margin: 0; font-size: 14px; }
+  footer { margin-top: 40px; text-align: center; }
+  .motto {
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--gold);
+    margin: 0 0 6px;
+  }
+  .values { color: var(--ink-dim); margin: 0 0 26px; letter-spacing: .06em; }
+  .books {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding: 0;
+    list-style: none;
+    margin: 0;
+  }
+  .books li {
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    letter-spacing: .12em;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <svg class="badge" viewBox="0 0 48 48" role="img" aria-label="Crew emblem">
+      <path d="M24 3 L42 15 V33 L24 45 L6 33 V15 Z"
+            fill="none" stroke="#e0b978" stroke-width="2"/>
+      <circle cx="24" cy="24" r="5.5" fill="#e0b978"/>
+    </svg>
+    <h1>The Crew</h1>
+    <p class="sub">DIFFERENT WORLDS · SAME CREW</p>
+  </header>
+
+  <img class="poster"
+       src="../screens/crew-scene-sept17.png"
+       alt="The crew together in space: Renai the mermaid resting on a rock, Ratatoskr the squirrel with a cap, cloak and satchel beneath the book-leaf tree, Bolt the robot holding a wrench beside an open toolbox, the Burrito Journalism truck lit warm from within, and Personal World as a smiling ringed planet — all wearing the same uniform with a planet emblem."
+       style="margin-bottom:14px">
+
+  <img class="poster"
+       src="../screens/crew.png"
+       alt="The Project Worlds crew sheet: Renai the mermaid, the Burrito Journalism truck, Ratatoskr the squirrel, Bolt the robot, and Personal World the living planet — in matching uniforms with combadges, shown front, three-quarter, side and back, with expressions and uniform detail.">
+
+  <section class="crew">
+    <article>
+      <img src="../assets/crew/vector/renai.svg" alt="Renai, a pastel mermaid with a rainbow braid, gold gaze and a uniform combadge.">
+      <h2>Renai</h2>
+      <p class="descriptor">Explorer · Companion · Dreamer</p>
+      <p class="role">Personal companion — presence, conversation, your own theme.</p>
+    </article>
+    <article>
+      <img src="../assets/crew/vector/ratatoskr.svg" alt="Ratatoskr, a Norse messenger squirrel in a cloak, holding an acorn.">
+      <h2>Ratatoskr</h2>
+      <p class="descriptor">Scout · Guide · Explorer</p>
+      <p class="role">Worlds, lore and memory — from VEFR.</p>
+    </article>
+    <article>
+      <img src="../assets/crew/vector/bolt.svg" alt="Bolt, a small round robot with a glowing antenna.">
+      <h2>Bolt</h2>
+      <p class="descriptor">Helper · Learner · Good Company</p>
+      <p class="role">Lab, development and building — the workshop.</p>
+    </article>
+    <article>
+      <img src="../assets/crew/vector/burrito-journalism.svg" alt="The Burrito Journalism breakfast burrito truck with a news sign.">
+      <h2>Burrito Journalism</h2>
+      <p class="descriptor">News · Snacks · Stories · Everywhere</p>
+      <p class="role">Journalism and city life — a breakfast burrito truck.</p>
+    </article>
+    <article>
+      <img src="../assets/crew/vector/personal-world.svg" alt="Personal World, a smiling planet with a golden ring.">
+      <h2>Personal World</h2>
+      <p class="descriptor">Home · Connection · Possibility</p>
+      <p class="role">The default system companion.</p>
+    </article>
+  </section>
+
+  <footer>
+    <p class="motto">Same Crew. Bigger Horizons.</p>
+    <p class="values">EXPLORE · LEARN · CREATE · BELONG</p>
+    <ul class="books">
+      <li>CURIOSITY</li><li>OCEANS</li><li>FAR PLACES</li><li>GOOD COMPANY</li>
+    </ul>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Postcard — Station packet 8</title>
+<style>
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-italic-latin.woff2") format("woff2");font-style:italic;font-weight:400}
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-normal-latin.woff2") format("woff2");font-style:normal;font-weight:400}
+  :root{--ink:#f0e9dc;--dim:#b3aa99;--faint:#857c6b;--line:rgba(240,233,220,.16);
+        --card:#12100d;--card2:#171410;--teal:#7fd0c8;--gold:#cfa963;--desk:#0a0806;
+        --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--desk);color:var(--ink);
+    font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+  body{background-image:
+    radial-gradient(120% 80% at 50% 0%,rgba(207,169,99,.07),transparent 55%),
+    repeating-linear-gradient(92deg,rgba(255,255,255,.014) 0 3px,transparent 3px 9px)}
+  .chrome{position:fixed;left:0;right:0;z-index:8;display:flex;justify-content:space-between;align-items:center;
+    padding:10px 18px;font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+    background:rgba(10,8,6,.86);backdrop-filter:blur(6px)}
+  .top{top:0;border-bottom:1px solid var(--line)} .bot{bottom:0;border-top:1px solid var(--line);color:var(--faint)}
+  .brand{color:var(--gold)} .pkt{color:var(--teal)}
+  .stack{position:relative;width:min(94vw,760px);margin:0 auto;padding:86px 0 132px;
+    min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+  /* cards */
+  .card{position:relative;width:100%;background:var(--card);border:1px solid var(--line);
+    border-radius:3px;overflow:hidden;display:grid;grid-template-columns:1.15fr .95fr;
+    box-shadow:0 26px 60px rgba(0,0,0,.72);transform:rotate(-1.1deg);
+    transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .35s ease}
+  .card.out{transform:rotate(-3.4deg) translateY(14px);opacity:0}
+  @media (prefers-reduced-motion:reduce){.card{transition:none;transform:none}.card.out{transform:none}}
+  .card .pile{position:absolute;inset:0;border:1px solid var(--line);border-radius:3px;pointer-events:none}
+  .stack::before,.stack::after{content:"";position:absolute;left:2%;right:2%;height:100%;top:86px;
+    border:1px solid rgba(240,233,220,.08);border-radius:3px;background:rgba(18,16,13,.55);z-index:-1}
+  .stack::before{transform:rotate(1.6deg) translateY(8px)}
+  .stack::after{transform:rotate(-2.4deg) translateY(16px)}
+  .photo{position:relative;background-size:cover;background-position:center;min-height:340px}
+  .photo::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,rgba(10,8,6,.1),rgba(10,8,6,.45) 80%,rgba(10,8,6,.7))}
+  .photo .fig{position:absolute;right:4%;bottom:0;height:88%;width:auto;max-width:52%;object-fit:contain;
+    z-index:2;filter:drop-shadow(0 16px 30px rgba(0,0,0,.8))}
+  .photo .fig.round{height:46%;right:9%;border-radius:50%;object-fit:cover;object-position:center 22%;
+    border:1px solid rgba(255,255,255,.2)}
+  .photo .placename{position:absolute;left:14px;bottom:12px;z-index:2;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.2em;text-transform:uppercase;color:#efe7d8;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+  /* writing half */
+  .writing{position:relative;background:linear-gradient(180deg,var(--card2),#100e0b);padding:20px 22px 18px;
+    border-left:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+  .writing .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .writing .pc{font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--faint)}
+  .stamp{width:62px;height:74px;flex:0 0 auto;border:1px dashed rgba(240,233,220,.35);border-radius:2px;
+    background:rgba(255,255,255,.03);display:grid;place-items:center;padding:6px;position:relative}
+  .stamp img{width:100%;height:100%;object-fit:contain}
+  .stamp::after{content:"";position:absolute;right:-16px;top:6px;width:44px;height:44px;border-radius:50%;
+    border:1px dashed rgba(240,233,220,.28)}
+  .writing .say{font-family:"Fraunces",Georgia,serif;font-style:italic;font-size:clamp(18px,2.5vw,23px);
+    line-height:1.4;color:#f4ecdd;margin:4px 0 0}
+  .writing .note{font-size:14px;color:#ddd4c4;margin:0}
+  .writing .sig{margin-top:auto;padding-top:12px;border-top:1px solid var(--line)}
+  .writing .sig .who{font-family:"Fraunces",Georgia,serif;font-style:italic;font-size:20px;color:var(--gold);display:block}
+  .writing .sig .role{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .writing .facts{display:grid;gap:3px;margin-top:10px;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .writing .facts b{color:var(--teal);font-weight:400;float:right}
+  /* controls */
+  .controls{margin-top:26px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .controls button{min-height:44px;border:1px solid var(--line);border-radius:3px;background:rgba(255,255,255,.02);
+    color:var(--ink);font:inherit;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    cursor:pointer;padding:0 18px}
+  .controls button:hover{border-color:var(--teal);color:var(--teal)}
+  .controls button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .dots{display:flex;gap:6px;margin-left:auto}
+  .dots button{width:44px;height:44px;border:0;background:none;cursor:pointer;padding:0;display:grid;place-items:center}
+  .dots i{width:9px;height:9px;border-radius:50%;background:rgba(240,233,220,.22);display:block}
+  .dots button:hover i,.dots button:focus-visible i{background:var(--teal)}
+  .dots button:focus-visible{outline:2px solid var(--teal);outline-offset:0;border-radius:50%}
+  .dots button[aria-current="true"] i{background:var(--gold);width:11px;height:11px}
+  .count{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  @media (max-width:760px){
+    .card{grid-template-columns:1fr;transform:none}
+    .photo{min-height:210px}
+    .writing{border-left:0;border-top:1px solid var(--line)}
+    .stack{padding:74px 0 120px}
+    .dots{margin-left:0}
+  }
+@media (max-width:640px){.chrome{font-size:10px;letter-spacing:.08em;gap:10px}
+    .pkt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw;text-align:right}}
+</style>
+</head>
+<body>
+<div class="chrome top"><span class="brand">✦ Project Worlds</span><span>Postcards from the Station</span><span class="pkt">Packet 8 / 8 · The Postcard</span></div>
+<div class="chrome bot"><span id="foot">One postcard at a time</span><span>← → to flip</span></div>
+
+<div class="stack">
+  <article class="card" id="card">
+    <div class="pile" aria-hidden="true"></div>
+    <div class="photo" id="photo">
+      <img class="fig" id="fig" src="" alt="">
+      <span class="placename" id="placename">The Bridge</span>
+    </div>
+    <div class="writing">
+      <div class="hd">
+        <span class="pc">Post Card</span>
+        <span class="stamp" aria-hidden="true"><img src="../assets/crew/vector/personal-world.svg" alt=""></span>
+      </div>
+      <p class="say" id="say"></p>
+      <p class="note" id="note"></p>
+      <div class="sig">
+        <span class="who" id="who">Renai</span>
+        <span class="role" id="role">at the Bridge · deck one</span>
+      </div>
+      <div class="facts" id="facts"></div>
+    </div>
+  </article>
+
+  <div class="controls">
+    <button type="button" id="next">Read the next postcard</button>
+    <span class="count" id="count">1 of 8</span>
+    <div class="dots" id="dots" role="group" aria-label="Choose a postcard"></div>
+  </div>
+</div>
+
+<script>
+const DECKS=[
+ {name:'The Bridge',who:'Renai',role:'at the Bridge · deck one',bg:'../assets/station/backgrounds/bridgebg.png',
+  fig:'../assets/station/characters/renai.png',
+  say:'Good evening. Nothing needs you right now.',
+  note:'The windows are open, the kettle is where you left it, and the station has been keeping its own counsel all day. Three small things happened while you were away; none are urgent, all are yours.',
+  facts:[['State','quiet'],['Changed today','3']]},
+ {name:'Engineering',who:'Hekek',role:'on the night watch · deck two',bg:'../assets/station/backgrounds/engineeringbg.png',
+  fig:'../assets/station/characters/hekek.png',
+  say:'Everything is holding. I tightened a thing you will never notice.',
+  note:'That is the job, mostly. The second provider came back up on its own at four in the morning and nobody had to be woken for it, which is the best possible outcome.',
+  facts:[['Capabilities','healthy'],['Providers','2']]},
+ {name:'The Workshop',who:'Bolt',role:'with sawdust on him · deck three',bg:'../assets/station/backgrounds/placesbg.png',
+  fig:'../assets/station/characters/bolt.png',
+  say:'Two on the bench. One of them is being stubborn, which I respect.',
+  note:'Garden Atlas is quiet, and quiet is not abandoned. It is waiting for spring, which is a legitimate way to work on something. I have opinions about both projects and have been keeping them to myself, which is a first.',
+  facts:[['In flight','2'],['Quiet','1']]},
+ {name:'The Archives',who:'Ratatoskr',role:'between the branches · deck four',bg:'../assets/station/backgrounds/maproom.png',
+  fig:'../assets/station/characters/ratatoskr.png',
+  say:'I found the thread you lost. It was two entries back, where you left it.',
+  note:'I run the threads, not the facts — the threads between the facts, which is the more interesting job and the one nobody else wanted. Two entries were worth keeping this week. You know the ones.',
+  facts:[['Memory','current'],['New entries','2']]},
+ {name:'The Galley',who:'Burrito Journalism',role:'engine still warm · deck five',bg:'../assets/station/backgrounds/mediabg.png',
+  fig:'../assets/station/characters/burrito.png',
+  say:'Truck is parked. Two stories came home. Neither one is shouting.',
+  note:'A neighbourhood garden opened; the night market returns on Friday. Both were written up before the coffee went cold. House rules: no outrage, no churn, and every story has to be worth telling someone at the table.',
+  facts:[['Breaking','nothing'],['Stories','2']]},
+ {name:'The Observatory',who:'Mira',role:'lens cap in hand · deck six',bg:'../assets/station/backgrounds/observeatorybg.png',
+  fig:'../assets/station/characters/mira.png',
+  say:'I forgot the name, but I remember the shape.',
+  note:'Three signals appeared in the same region this week. That is either a coincidence or the beginning of a pattern, and this room exists to sit with that question long enough to find out. The lost notebook was under the lens cap. Of course it was.',
+  facts:[['Patterns','quiet'],['Signals','3']]},
+ {name:'The Vault',who:'Bruma',role:'reshelving · deck seven',bg:'../assets/station/backgrounds/vaultbg.png',
+  fig:'../assets/station/characters/bruma.png',
+  say:'I kept that safe for you.',
+  note:'Fourteen world-lore entries, three seasons of personal records, this week\u2019s session notes. Every one of them has a provenance line, because a thing you cannot trace is a thing you cannot trust. Nothing was lost this quarter. Please note it, briefly, and then never mention it again.',
+  facts:[['Preservation','current'],['Provenance','complete']]},
+ {name:'Your Quarters',who:'Nobody, by default',role:'the bed icon · deck eight',bg:'../assets/station/backgrounds/quarters.png',
+  fig:'../assets/station/icons/bedicon.png',
+  say:'The door is yours.',
+  note:'The bed icon is deliberate: Quarters is not a job, so it has no resident by default. Nothing here asks anything of you. If you would rather someone lived here, that is a setting, and it is one line to change.',
+  facts:[['Resident','none, by choice'],['Motion','reduced']]}
+];
+const dots=document.getElementById('dots');
+const dotBtns=[];
+DECKS.forEach((d,i)=>{
+  const b=document.createElement('button');b.type='button';
+  b.setAttribute('aria-label','Postcard '+(i+1)+', '+d.name);
+  b.setAttribute('aria-current','false');
+  b.innerHTML='<i></i>';
+  b.addEventListener('click',()=>flip(i));
+  dots.appendChild(b);dotBtns.push(b);
+});
+let cur=-1,busy=false;
+function render(i){
+  cur=i;const d=DECKS[i];
+  document.getElementById('photo').style.backgroundImage="url('"+d.bg+"')";
+  const fig=document.getElementById('fig');fig.src=d.fig;fig.className='fig'+(d.round?' round':'');
+  document.getElementById('placename').textContent=d.name;
+  document.getElementById('say').textContent=d.say;
+  document.getElementById('note').textContent=d.note;
+  document.getElementById('who').textContent=d.who;
+  document.getElementById('role').textContent=d.role;
+  document.getElementById('facts').innerHTML=d.facts.map(([k,v])=>'<span>'+k+'<b>'+v+'</b></span>').join('');
+  document.getElementById('count').textContent=(i+1)+' of '+DECKS.length;
+  document.getElementById('foot').textContent=d.name+' · from '+d.who;
+  dotBtns.forEach((b,k)=>b.setAttribute('aria-current',k===i?'true':'false'));
+  document.title=d.name+' — Station packet 8';
+}
+function flip(i){
+  const n=(i+DECKS.length)%DECKS.length;
+  if(n===cur||busy)return;
+  busy=true;
+  const card=document.getElementById('card');
+  card.classList.add('out');
+  setTimeout(()=>{render(n);card.classList.remove('out');busy=false;},190);
+}
+document.getElementById('next').addEventListener('click',()=>flip(cur+1));
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')flip(cur+1);
+  if(e.key==='ArrowLeft')flip(cur-1);
+});
+render(0);
+</script>
+</body>
+</html>

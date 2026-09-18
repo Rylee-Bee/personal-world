@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ledger — Station packet 1</title>
+<style>
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-italic-latin.woff2") format("woff2");font-style:italic;font-weight:400}
+  @font-face{font-family:"Fraunces";src:url("assets/fraunces-normal-latin.woff2") format("woff2");font-style:normal;font-weight:400}
+  :root{--ink:#efe9dc;--dim:#a89f8d;--faint:#7c7364;--rule:rgba(239,233,220,.18);
+        --gold:#c9ad6b;--teal:#7fd0c8;--paper:#0c0a08;
+        --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.62 Georgia,"Times New Roman",serif}
+  .wrap{max-width:790px;margin:0 auto;padding:74px 22px 120px}
+  .chrome{position:fixed;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:center;
+    padding:10px 18px;background:rgba(12,10,8,.88);backdrop-filter:blur(8px);font-family:var(--mono);
+    font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+  .top{top:0;border-bottom:1px solid var(--rule)} .bot{bottom:0;border-top:1px solid var(--rule);color:var(--faint)}
+  .pkt{color:var(--gold)} .brand{color:var(--ink)}
+  /* masthead */
+  .masthead{text-align:center;border-bottom:3px double var(--rule);padding-bottom:14px}
+  .masthead h1{font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:clamp(40px,9vw,74px);margin:0;letter-spacing:-.01em}
+  .masthead h1 em{font-style:italic}
+  .dateline{font-family:var(--mono);font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);
+    margin-top:10px;display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+  .dateline span::before{content:"◆ ";color:var(--gold)}
+  /* index */
+  .index{display:flex;flex-wrap:wrap;gap:4px 18px;justify-content:center;padding:14px 0 0;border-bottom:1px solid var(--rule)}
+  .index a{min-height:44px;display:inline-flex;align-items:center;color:var(--dim);text-decoration:none;
+    font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+  .index a:hover,.index a:focus-visible{color:var(--teal)}
+  /* lead story */
+  .lead{padding:30px 0 8px;border-bottom:1px solid var(--rule)}
+  .kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);margin:0 0 8px}
+  h2.hed{font-family:"Fraunces",Georgia,serif;font-style:italic;font-weight:400;font-size:clamp(30px,6vw,46px);
+    line-height:1.06;margin:0 0 12px}
+  .byline{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 16px}
+  .lede{font-size:19.5px;line-height:1.55;margin:0}
+  .lede::first-letter{float:left;font-family:"Fraunces",Georgia,serif;font-size:66px;line-height:.78;padding:8px 10px 0 0;color:var(--gold)}
+  .standfirst{float:right;width:min(42%,270px);margin:6px 0 14px 22px;text-align:center}
+  .standfirst img{width:100%;height:auto;filter:drop-shadow(0 16px 30px rgba(0,0,0,.6))}
+  .standfirst figcaption{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:6px}
+  /* deck sections */
+  section.deck{padding:34px 0 6px;border-bottom:1px solid var(--rule)}
+  section.deck:last-of-type{border-bottom:0}
+  .cols{column-gap:30px}
+  @media (min-width:680px){.cols{columns:2}}
+  .cols p{margin:0 0 12px;font-size:16.5px;color:#e2dbcd}
+  .band{position:relative;margin:14px 0 0;border:1px solid var(--rule);overflow:hidden;
+        background-size:cover;background-position:center;aspect-ratio:21/9}
+  .band::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,10,8,.1),rgba(12,10,8,.62))}
+  .band img.cut{position:absolute;right:3%;bottom:0;height:118%;max-height:270px;width:auto;z-index:2;
+        filter:drop-shadow(0 14px 26px rgba(0,0,0,.75))}
+  .band img.cut.small{height:88%}
+  .facts{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:12px;font-family:var(--mono);font-size:11.5px;
+        letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .facts b{color:var(--teal);font-weight:400}
+  .pager{display:flex;justify-content:space-between;gap:12px;margin-top:40px;flex-wrap:wrap}
+  .pager a{min-height:44px;display:inline-flex;align-items:center;color:var(--ink);text-decoration:none;
+    border:1px solid var(--rule);border-radius:3px;padding:0 16px;font-family:var(--mono);font-size:12px;letter-spacing:.1em}
+  .pager a:hover,.pager a:focus-visible{border-color:var(--teal);color:var(--teal)}
+  .colophon{text-align:center;color:var(--faint);font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;margin-top:30px}
+@media (max-width:640px){.chrome{font-size:10px;letter-spacing:.08em;gap:10px}
+    .pkt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw;text-align:right}}
+</style>
+</head>
+<body>
+<div class="chrome top"><span class="brand">The Station Ledger</span><span class="pkt">Packet 1 / 8 · The Ledger</span></div>
+<div class="chrome bot"><span>Eight rooms, one world</span><span><a href="packets.html" style="color:var(--faint);text-decoration:none">all packets</a></span></div>
+
+<div class="wrap">
+  <header class="masthead">
+    <h1>The Station <em>Ledger</em></h1>
+    <p class="dateline"><span>No. 1</span><span>17 September</span><span>Eight rooms, one world</span><span>Price: a quiet evening</span></p>
+  </header>
+
+  <nav class="index" aria-label="Rooms">
+    <a href="#bridge">The Bridge</a><a href="#engineering">Engineering</a><a href="#workshop">The Workshop</a>
+    <a href="#archives">The Archives</a><a href="#galley">The Galley</a><a href="#observatory">The Observatory</a>
+    <a href="#vault">The Vault</a><a href="#quarters">Your Quarters</a>
+  </nav>
+
+  <!-- LEAD -->
+  <article class="lead" id="bridge">
+    <p class="kicker">The Bridge · Deck One</p>
+    <h2 class="hed">Good evening. Nothing needs you right now.</h2>
+    <p class="byline">Filed by Renai, at the bridge with you</p>
+    <figure class="standfirst">
+      <img src="../assets/station/characters/renai.png" alt="Renai">
+      <figcaption>Renai · your companion</figcaption>
+    </figure>
+    <p class="lede">The windows are open, the kettle is where you left it, and the station has been keeping its own counsel all day. Three small things happened while you were away; none of them are urgent, and all of them are yours to look at when you feel like it. That is the whole of the news from the top of the station.</p>
+    <div class="facts"><span>State <b>quiet</b></span><span>Needs you <b>nothing</b></span><span>Changed today <b>3</b></span></div>
+  </article>
+
+  <!-- ENGINEERING -->
+  <section class="deck" id="engineering">
+    <p class="kicker">Engineering · Deck Two</p>
+    <h2 class="hed">Everything that keeps the station running, kept well.</h2>
+    <p class="byline">Filed by Hekek, on the night watch</p>
+    <div class="band" style="background-image:url('../assets/station/backgrounds/engineeringbg.png')">
+      <img class="cut" src="../assets/station/characters/hekek.png" alt="Hekek">
+    </div>
+    <div class="cols">
+      <p>Hekek does not tidy. Hekek maintains. There is a difference, and you can see it in the pipes: everything has been taken apart and put back at least once this year, and everything came back better.</p>
+      <p>The lab bridge is read-only, as it should be; the second provider came back up on its own at 4 a.m. and nobody had to be woken for it.</p>
+    </div>
+    <div class="facts"><span>Capabilities <b>healthy</b></span><span>Providers <b>2</b></span><span>Watch <b>Hekek</b></span></div>
+  </section>
+
+  <!-- WORKSHOP -->
+  <section class="deck" id="workshop">
+    <p class="kicker">The Workshop · Deck Three</p>
+    <h2 class="hed">Where things get made, and unmade, and made again.</h2>
+    <p class="byline">Filed by Bolt, with sawdust on him</p>
+    <div class="band" style="background-image:url('../assets/station/backgrounds/placesbg.png')">
+      <img class="cut" src="../assets/station/characters/bolt.png" alt="Bolt">
+    </div>
+    <div class="cols">
+      <p>Two projects are in flight: the Station itself, and the manuscript that has been circling it for months. Bolt has opinions about both and has been keeping them to himself, which is a first.</p>
+      <p>Garden Atlas is quiet. It is not abandoned; it is waiting for spring, which is a legitimate way to work on something.</p>
+    </div>
+    <div class="facts"><span>In flight <b>2</b></span><span>Quiet <b>1</b></span><span>Bench <b>Bolt</b></span></div>
+  </section>
+
+  <!-- ARCHIVES -->
+  <section class="deck" id="archives">
+    <p class="kicker">The Archives · Deck Four</p>
+    <h2 class="hed">Everything you have written, kept where you can find it.</h2>
+    <p class="byline">Filed by Ratatoskr, between the branches</p>
+    <div class="band" style="background-image:url('../assets/station/backgrounds/maproom.png')">
+      <img class="cut small" src="../assets/station/characters/ratatoskr.png" alt="Ratatoskr">
+    </div>
+    <div class="cols">
+      <p>Ratatoskr runs the threads. Not the facts — the threads between the facts, which is the more interesting job and the one nobody else wanted.</p>
+      <p>Two entries were worth keeping this week: the first warm morning, and a small constellation of three good things that found each other before supper.</p>
+    </div>
+    <div class="facts"><span>Memory <b>current</b></span><span>New entries <b>2</b></span><span>Keeper <b>Ratatoskr</b></span></div>
+  </section>
+
+  <!-- GALLEY -->
+  <section class="deck" id="galley">
+    <p class="kicker">The Galley · Deck Five</p>
+    <h2 class="hed">The truck is parked. Two stories came home today.</h2>
+    <p class="byline">Filed by Burrito Journalism, engine still warm</p>
+    <div class="band" style="background-image:url('../assets/station/backgrounds/mediabg.png')">
+      <img class="cut" src="../assets/station/characters/burrito.png" alt="The Burrito Journalism truck">
+    </div>
+    <div class="cols">
+      <p>Nothing is breaking, which the truck takes personally. A neighbourhood garden opened; the night market returns on Friday. Both were written up before the coffee went cold.</p>
+      <p>The rules of the Galley are simple: no outrage, no churn, and every story has to be worth telling someone at the table.</p>
+    </div>
+    <div class="facts"><span>Breaking <b>nothing</b></span><span>Stories <b>2</b></span><span>Parked <b>yes</b></span></div>
+  </section>
+
+  <!-- OBSERVATORY -->
+  <section class="deck" id="observatory">
+    <p class="kicker">The Observatory · Deck Six</p>
+    <h2 class="hed">I forgot the name, but I remember the shape.</h2>
+    <p class="byline">Filed by Mira, lens cap in hand</p>
+    <div class="band" style="background-image:url('../assets/station/backgrounds/observeatorybg.png')">
+      <img class="cut" src="../assets/station/characters/mira.png" alt="Mira">
+    </div>
+    <div class="cols">
+      <p>Three signals appeared in the same region this week. That is either a coincidence or the beginning of a pattern, and the Observatory exists to sit with that question long enough to find out.</p>
+      <p>The lost notebook was under the telescope lens cap. Of course it was.</p>
+    </div>
+    <div class="facts"><span>Patterns <b>quiet</b></span><span>Signals <b>3</b></span><span>Watching <b>Mira</b></span></div>
+  </section>
+
+  <!-- VAULT -->
+  <section class="deck" id="vault">
+    <p class="kicker">The Vault · Deck Seven</p>
+    <h2 class="hed">I kept that safe for you.</h2>
+    <p class="byline">Filed by Bruma, reshelving</p>
+    <div class="band" style="background-image:url('../assets/station/backgrounds/vaultbg.png')">
+      <img class="cut" src="../assets/station/characters/bruma.png" alt="Bruma">
+    </div>
+    <div class="cols">
+      <p>Fourteen world-lore entries, three seasons of personal records, and this week's session notes. Every one of them has a provenance line, because a thing you cannot trace is a thing you cannot trust.</p>
+      <p>Nothing was lost this quarter. Bruma would like that noted, briefly, and then never mentioned again.</p>
+    </div>
+    <div class="facts"><span>Preservation <b>current</b></span><span>Provenance <b>complete</b></span><span>Keeper <b>Bruma</b></span></div>
+  </section>
+
+  <!-- QUARTERS -->
+  <section class="deck" id="quarters">
+    <p class="kicker">Your Quarters · Deck Eight</p>
+    <h2 class="hed">Rest, privacy, safety, and quiet.</h2>
+    <p class="byline">Filed by nobody — no resident lives here by default</p>
+    <div class="band" style="background-image:url('../assets/station/backgrounds/quarters.png')">
+      <img class="cut small" src="../assets/station/icons/bedicon.png" alt="The bed icon">
+    </div>
+    <div class="cols">
+      <p>The bed icon is deliberate. Quarters is not a job, so it has no resident; the door is yours. If you would rather someone lived here, that is a setting, and it is one line to change.</p>
+      <p>Motion is reduced, contrast is comfortable, the companion is Renai. All of it adjustable, none of it buried.</p>
+    </div>
+    <div class="facts"><span>Resident <b>none, by choice</b></span><span>Motion <b>reduced</b></span><span>Door <b>yours</b></span></div>
+  </section>
+
+  <nav class="pager" aria-label="Packets">
+    <a href="packets.html">← All 8 packets</a>
+    <a href="p2-compass.html">Next: The Compass →</a>
+  </nav>
+  <p class="colophon">The Station Ledger · printed once, read slowly</p>
+</div>
+</body>
+</html>
