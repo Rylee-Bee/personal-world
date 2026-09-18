@@ -222,6 +222,14 @@
   /* signature — the four channels you recognise a room by, before reading */
   .tile .chan{margin:6px 0 0;font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--faint)}
   .tile .chan b{color:var(--dim);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;margin-right:7px}
+  /* front door — a built room opens; an unbuilt one says so plainly */
+  .tile.open-room{display:block;text-decoration:none;color:inherit}
+  .tile.open-room:hover{border-color:var(--accent)}
+  .tile.open-room:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-color:var(--accent)}
+  .tile .go{margin:10px 0 0;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .tile .go.soon{color:var(--faint)}
+  .build{max-width:900px;margin:14px auto 0;color:var(--dim);font-size:14.5px}
+  .build b{color:var(--ink);font-weight:500}
   /* the target feeling — one feel, held across every room */
   .keeps{margin:18px 0 0;border:1px solid var(--line);border-radius:13px;padding:16px 18px;background:var(--panel)}
   .keeps h2{font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:20px;margin:0 0 8px}
@@ -270,6 +278,7 @@
     <p><i>5</i><span><b>Alive, and ready at any hour.</b> Someone is always on shift, every room answers a glance in ten seconds, and your assistant is one step away — whether you came for a list, a problem, or something new.</span></p>
     <p><i>6</i><span><b>Same hand, every room.</b> One voice, one rhythm, one warmth — the room changes, the <i>feel</i> never does. Moving between rooms must never cause whiplash.</span></p>
   </div>
+  <p class="build"><b>1 of 8 rooms built.</b> Today is live — open it below. The other seven are planned; each tile opens its room as it ships.</p>
 
   <div class="arriving">
     <div class="arrive"><h2>I need one thing, now</h2><p><b>Today</b> answers first: your essentials — <b>meds, what's due, the one thing waiting</b>. Plain and immediate, no digging.</p></div>
@@ -297,7 +306,7 @@
 
   <div class="grid">
 
-    <!-- 1 --><article class="tile" style="--accent:#8fc9c2">
+    <!-- 1 --><a class="tile open-room" href="today-room.html" aria-label="Open the Today room" style="--accent:#8fc9c2">
       <header>
         <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M15.7 8.3l-2.1 4.3-4.3 2.1 2.1-4.3z" fill="currentColor" stroke="none"/></svg></span>
         <div><h2>Today</h2><p class="role">Communications · visibility</p></div>
@@ -317,7 +326,8 @@
       <p class="why">Everything coming in to you — <b>messages, mentions, signals</b> — visible where it lives.</p>
       <p class="arr">arranges: incoming · what needs you</p>
       <p class="chan"><b>signature</b>teal · concentric rings · a warm centre</p>
-    </article>
+      <p class="go">Open the room <span aria-hidden="true">→</span></p>
+    </a>
 
     <!-- 2 --><article class="tile" style="--accent:#d9a76b">
       <header>
@@ -337,6 +347,7 @@
       <p class="why">Settings and depth, drawn as <b>lifelines that run across the product</b> — what is wired to what, and how it is doing.</p>
       <p class="arr">arranges: settings · depth · wiring</p>
       <p class="chan"><b>signature</b>amber · one continuous line · status ticks</p>
+      <p class="go soon">Not built yet</p>
     </article>
 
     <!-- 3 --><article class="tile" style="--accent:#c98f6a">
@@ -357,6 +368,7 @@
       <p class="why">Fun and tinkery. <b>GitHub-flavoured modules</b> — branches, issues, a title block — soft and cute enough to keep a whole bench of projects going.</p>
       <p class="arr">arranges: projects · branches · the bench</p>
       <p class="chan"><b>signature</b>clay · a drafting grid · bench light</p>
+      <p class="go soon">Not built yet</p>
     </article>
 
     <!-- 4 --><article class="tile" style="--accent:#b39a63">
@@ -379,6 +391,7 @@
       <p class="why">A grand sci-fi library — <b>Voyager's astrometrics, the Jedi archive</b>. Memory as light, stored in tall glowing stacks you can walk down.</p>
       <p class="arr">arranges: memory · lore · the threads between</p>
       <p class="chan"><b>signature</b>brass · tall stacks · a lamplit floor</p>
+      <p class="go soon">Not built yet</p>
     </article>
 
     <!-- 5 --><article class="tile" style="--accent:#c47a55">
@@ -397,6 +410,7 @@
       <p class="why">Where you go to eat, so the <b>news and the neat things</b> gather here too — a note from the day, read at a wander-over pace.</p>
       <p class="arr">arranges: stories · food · what's new</p>
       <p class="chan"><b>signature</b>coral · a board &amp; a note · counter light</p>
+      <p class="go soon">Not built yet</p>
     </article>
 
     <!-- 6 --><article class="tile" style="--accent:#8a9fc9">
@@ -418,6 +432,7 @@
       <p class="why">What the universe has in store. <b>Drill down by category</b>, and each cluster grows or shrinks with your current interest.</p>
       <p class="arr">arranges: interests · categories · what's drawing you</p>
       <p class="chan"><b>signature</b>blue · a star chart · a drifting sky</p>
+      <p class="go soon">Not built yet</p>
     </article>
 
     <!-- 7 --><article class="tile" style="--accent:#9c8fb0">
@@ -438,6 +453,7 @@
       <p class="why">A sci-fi bank. <b>Deposits, safety boxes and careful records</b> — everything with a receipt, nothing ever lost.</p>
       <p class="arr">arranges: records · receipts · provenance</p>
       <p class="chan"><b>signature</b>violet · a door &amp; a slip · cool steel</p>
+      <p class="go soon">Not built yet</p>
     </article>
 
     <!-- 8 --><article class="tile" style="--accent:#9aa0a4">
@@ -456,6 +472,7 @@
       <p class="why">Where your <b>personalization options</b> live — and your rest. Deliberately plain; this room keeps its calm by having no metaphor.</p>
       <p class="arr">arranges: preferences · rest · you</p>
       <p class="chan"><b>signature</b>grey · almost nothing · one soft glow</p>
+      <p class="go soon">Not built yet</p>
     </article>
 
   </div>
