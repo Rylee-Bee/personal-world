@@ -2,7 +2,7 @@
    Shown only when the pw-onboarded flag is absent. Three short steps:
      1. what the map is  ·  2. choose a companion  ·  3. set comfort defaults.
    "Skip for now", the × button, and Esc all close AND set the flag, so it
-   never nags again — no guilt copy, no "are you sure". A quiet "Show me again"
+   never nags again — no guilt copy, no "are you sure". A quiet "Show me"
    control in the top bar clears the flag and replays it on demand.
 
    Comfort controls deliberately REUSE station.js: the density/motion/demand
@@ -24,7 +24,7 @@
     { id: 'robot',     label: 'Robot',              color: 'var(--cream)',  desc: 'Plain and careful; allergic to shortcuts.' },
     { id: 'burrito',   label: 'Burrito Journalism', color: 'var(--coral)',  desc: 'Warm newsroom voice; background before breaking.' }
   ];
-  var WORLDS = ['Interests', 'Projects', 'Journal', 'People', 'Media', 'Systems', 'Places'];
+  var WORLDS = ['Today', 'Interests', 'Media', 'Projects', 'Lab', 'Journal', 'Vault', 'Chat', 'Settings'];
 
   /* ── storage + prefs (mirrors station.js keys/defaults) ── */
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -54,13 +54,13 @@
       '<p class="onb-lede" id="onb-d-0">This is your <strong>systems map</strong> — not a dashboard, ' +
         'not a wall of notifications. It stays quiet until you move toward something.</p>' +
       '<ul class="onb-points">' +
-        '<li>At rest it shows seven little worlds. Drift toward one and it opens into its clusters; ' +
+        '<li>At rest it shows your nine worlds. Drift toward one and it opens into its clusters; ' +
           'open a cluster and its items appear. Depth arrives only because you approached it.</li>' +
         '<li>When nothing needs you, the map says so plainly. Quiet is a real state here, not an empty one.</li>' +
         '<li>The shape of the map is yours to change — add, rename, re-parent, or hide anything under ' +
           '“Shape this map”.</li>' +
       '</ul>' +
-      '<p class="onb-worlds-label" id="onb-worlds-label">The seven worlds at rest</p>' +
+      '<p class="onb-worlds-label" id="onb-worlds-label">Your nine worlds at rest</p>' +
       '<ul class="onb-worlds" aria-labelledby="onb-worlds-label">' +
         WORLDS.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') +
       '</ul>' +
@@ -127,7 +127,7 @@
       seg('demand', 'onb-l-demand', 'How much it asks',
           'Low shows only what needs you; your world stays exactly where it is.',
           [{ v: 'normal', t: 'Normal' }, { v: 'low', t: 'Low' }]) +
-      '<p class="onb-note-inline">You can fine-tune all of this later in Settings → “How this feels”.</p>' +
+      '<p class="onb-note-inline">You can fine-tune all of this later in Settings.</p>' +
     '</section>';
   }
 
@@ -153,7 +153,7 @@
           '<button type="button" class="onb-back" id="onb-back" hidden>Back</button>' +
           '<button type="button" class="onb-next" id="onb-next">Next</button>' +
         '</div>' +
-        '<p class="onb-replay-note">You can replay this any time from “Show me again” in the top bar.</p>' +
+        '<p class="onb-replay-note">You can replay this any time from "Show me" in the top bar.</p>' +
         // hidden persistence bridge: station.js listens for [data-companion-set] change
         '<select class="onb-bridge sr-only" data-companion-set tabindex="-1" aria-hidden="true">' +
           COMPANIONS.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.label) + '</option>'; }).join('') +
@@ -276,13 +276,13 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
 
-  /* ── the quiet "Show me again" reset, in the top bar ── */
+  /* ── the quiet "Show me" reset, in the top bar ── */
   function buildAgainButton() {
     againBtn = document.createElement('button');
     againBtn.type = 'button';
     againBtn.className = 'onb-again';
     againBtn.id = 'onb-again';
-    againBtn.textContent = 'Show me again';
+    againBtn.textContent = 'Show me';
     againBtn.setAttribute('aria-label', 'Show the welcome introduction again');
     againBtn.title = 'Replay the introduction';
     againBtn.addEventListener('click', function () { clearFlag(); open(); });

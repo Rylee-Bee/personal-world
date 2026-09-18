@@ -165,3 +165,32 @@ class TestTraversal:
             r = client.get(path)
             assert r.status_code in (200, 303, 404), path
             assert "TOP SECRET" not in (r.text or "")
+
+
+class TestGzipCompression:
+    """GZipMiddleware compresses text responses when client accepts gzip."""
+
+    def test_large_response_is_gzipped(self, tmp_path, monkeypatch):
+        """Responses above minimum_size carry content-encoding: gzip."""
+        client = _app(tmp_path, monkeypatch)
+        # /login is a server-rendered HTML page well above 500 bytes.
+        r = client.get("/login")
+        assert r.status_code == 200
+        assert r.headers.get("content-encoding") == "gzip"
+
+    def test_small_responses_not_compressed(self, tmp_path, monkeypatch):
+        """Health-check sized payloads stay uncompressed (< minimum_size)."""
+        client = _app(tmp_path, monkeypatch)
+        r = client.get("/healthz")
+        assert r.status_code == 200
+        # /healthz returns a tiny JSON body — below 500 bytes.
+        assert r.headers.get("content-encoding") != "gzip"
+
+    def test_login_page_cache_header_preserved(self, tmp_path, monkeypatch):
+        """GZipMiddleware must not alter cache policy (no-store for HTML)."""
+        client = _app(tmp_path, monkeypatch)
+        r = client.get("/login")
+        assert r.status_code == 200
+        assert r.headers.get("Cache-Control") == "no-store"
+        # And it's still gzip-compressed (confirming both coexist).
+        assert r.headers.get("content-encoding") == "gzip"

@@ -3,7 +3,7 @@
  *
  * Journal page: the specimen "journal view" is gone from the normal
  * route; the real server journal (API-005) carries the honest states;
- * the browser-local tabs say "Notes on this device", never "Vault".
+ * the browser-local tabs say "Notes (this device only)", never "Vault".
  *
  * Settings page: destructive controls name the exact browser-local
  * object and scope; confirmation names what is deleted, what is NOT
@@ -52,21 +52,21 @@ test.describe("Journal page truthfulness", () => {
     expect(errors).toEqual([]);
   });
 
-  test("browser notes are labelled ‘Notes on this device’, never ‘Vault’", async ({ page }) => {
+  test("browser notes are labelled 'Notes (this device only)', never 'Vault'", async ({ page }) => {
     const errors = collectErrors(page);
     await login(page);
     await gotoStation(page, "journal.html");
     const text = await page.locator("main").textContent();
     const body = text || "";
     expect(body).not.toMatch(/vault/i);
-    expect(body).toContain("Notes on this device");
+    expect(body).toContain("Notes (this device only)");
     // save checkbox states the real boundary
-    expect(body).toContain("Save only in this browser (not encrypted or synced)");
+    expect(body).toContain("Saved on this device only — not sent to your world yet.");
     expect(body).not.toMatch(/Seed 100000%|never encrypted|stays private/i);
-    // hidden-from-map honesty
+    // hidden-from-map honesty: notes panel is clear about the storage boundary
     await page.locator('[data-tab="vault"]').click();
     const panel = await page.locator("#panel-vault").textContent();
-    expect(panel).toContain("not encrypted");
+    expect(panel).toMatch(/on this device only|not sent to your world/i);
     expect(errors).toEqual([]);
   });
 

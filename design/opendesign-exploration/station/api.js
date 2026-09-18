@@ -105,7 +105,8 @@
     ['PROP-list', 'GET', '/api/proposals', 'proposals', 'read', 'none'],
     ['PROP-approve', 'POST', '/api/proposals/{proposal_id}/approve', 'proposals', 'write', 'step-up'],
     ['PROP-reject', 'POST', '/api/proposals/{proposal_id}/reject', 'proposals', 'write', 'step-up'],
-    ['PROP-execute', 'POST', '/api/proposals/{proposal_id}/execute', 'proposals', 'write', 'proposal']
+    ['PROP-execute', 'POST', '/api/proposals/{proposal_id}/execute', 'proposals', 'write', 'proposal'],
+    ['sections', 'GET', '/api/sections', 'sections', 'read', 'none']
   ].map(function (r) {
     return { id: r[0], method: r[1], path: r[2], capability: r[3], kind: r[4], gate: r[5] };
   });

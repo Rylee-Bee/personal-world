@@ -91,15 +91,21 @@
     var who = (function () {
       try { return localStorage.getItem('pw-station-companion') || 'mermaid'; } catch (e) { return 'mermaid'; }
     })();
-    var companion = document.createElement('a');
+    var companion = document.createElement('button');
+    companion.type = 'button';
     companion.className = 'companion';
     companion.id = 'companion-orb';
-    companion.href = 'chat.html';   /* upgraded to a dock toggle when chat.js loads */
-    companion.setAttribute('aria-label', 'Open World assistant');
+    companion.setAttribute('aria-label', 'Hail ' + companionName + ' — open World assistant');
     companion.title = 'Talk to your companion';
     companion.innerHTML =
       '<span class="c-sil" aria-hidden="true"><svg><use href="chars.svg#char-' + who + '"/></svg></span>' +
       '<span class="companion-sparkle" aria-hidden="true">✦</span>';
+    var companionLabel = document.createElement('span');
+    companionLabel.className = 'companion-label';
+    companionLabel.setAttribute('aria-hidden', 'true');
+    var companionName = (COMPANIONS[who] || COMPANIONS.mermaid).label;
+    companionLabel.textContent = 'Hail ' + companionName;
+    companion.appendChild(companionLabel);
 
     var dock = document.createElement('div');
     dock.className = 'chat-dock';
@@ -108,14 +114,26 @@
     dock.setAttribute('aria-label', 'Chat with your companion');
     dock.hidden = true;
 
+    var dockClose = document.createElement('button');
+    dockClose.type = 'button';
+    dockClose.className = 'dock-close';
+    dockClose.setAttribute('aria-label', 'Close chat');
+    dockClose.textContent = '✕';
+    dock.insertBefore(dockClose, dock.firstChild);
+    dockClose.addEventListener('click', function() {
+      dock.hidden = true;
+      var o = document.getElementById('companion-orb');
+      if (o) { o.setAttribute('aria-expanded', 'false'); o.focus(); }
+    });
+
     var help = document.createElement('button');
     help.type = 'button';
-    help.className = 'help-btn';
+    help.className = 'help-btn distress-call';
     help.id = 'help-btn';
     help.setAttribute('aria-haspopup', 'dialog');
     help.setAttribute('aria-expanded', 'false');
-    help.setAttribute('aria-label', 'Help & quiet mode');
-    help.innerHTML = '<svg style="width:16px;height:16px;margin-right:6px;vertical-align:middle"><use href="icons.svg#ic-compass"/></svg>Help & quiet mode';
+    help.setAttribute('aria-label', 'Help and quiet mode');
+    help.innerHTML = '<span class="distress-badge" aria-hidden="true"></span>Cruising speed';
 
     var dialog = document.createElement('div');
     dialog.className = 'help-dialog';
@@ -207,6 +225,20 @@
     write('theme', sel.value);
     apply();
   });
+
+  function celebrate(reason) {
+    if (document.documentElement.getAttribute('data-motion') !== 'on') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var orb = document.getElementById('companion-orb');
+    if (!orb) return;
+    var sparkle = document.createElement('span');
+    sparkle.className = 'companion-sparkle-celebrate';
+    sparkle.setAttribute('aria-hidden', 'true');
+    sparkle.textContent = '✦';
+    orb.appendChild(sparkle);
+    setTimeout(function() { sparkle.remove(); }, 600);
+  }
+  window.PW_CELEBRATE = celebrate;
 
   function boot() { injectChrome(); apply(); }
   if (document.readyState === 'loading') {

@@ -18,8 +18,6 @@
 <link rel="stylesheet" href="mobile.css">
 <script src="station.js" defer></script>
 <script src="chat.js" defer></script>
-<script src="starmap.js" defer></script>
-<script src="shapemap.js" defer></script>
 <script src="deeplink.js" defer></script>
 <script src="onboarding.js" defer></script>
 <script src="search.js" defer></script>
@@ -27,10 +25,11 @@
 <!-- live API client (same-origin session auth): the view reads the REAL
      interests list (API-051) through it; no specimen feed on this page -->
 <script src="api.js" defer></script>
+<script src="world-state.js" defer></script>
 <script src="interests-view.js" defer></script>
 <style>
   /* ── Interest cards ── */
-  .interest-section { margin-bottom: var(--s6); }
+  .interest-section { max-width:var(--w-shell);  margin-bottom: var(--s6); }
   .interest-section h3 {
     font-family: var(--font-serif); font-style: italic;
     font-size: var(--fs-lead); color: var(--cream);
@@ -45,6 +44,26 @@
     display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: var(--s3);
   }
+  /* Cards that open focus are real buttons — reset button chrome,
+     keep the card look. Full text left-aligned. */
+  button.interest-card {
+    font-family: var(--font-sans); color: var(--text);
+    text-align: left; cursor: pointer; width: 100%;
+    display: block;
+  }
+  button.interest-card:focus-visible {
+    outline: 2px solid #72b1b1; outline-offset: 2px;
+    border-color: var(--border-warm);
+  }
+  /* Focus drawer (Level 3): one interest in depth */
+  .iv-focus {
+    border: 2px solid var(--border-warm); border-radius: var(--r-lg);
+    background: linear-gradient(180deg, var(--panel), var(--panel-warm));
+    padding: var(--s5); margin: var(--s4) 0;
+    box-shadow: var(--shadow-warm);
+  }
+  .iv-focus-head { margin-bottom: var(--s3); }
+  .iv-focus-actions { display: flex; gap: var(--s2); margin-top: var(--s4); }
   .interest-card {
     border: 1px solid var(--border); border-radius: var(--r-lg);
     background: var(--panel); padding: var(--s4);
@@ -72,6 +91,25 @@
     font-size: var(--fs-micro); color: var(--text-faint);
     font-family: var(--font-mono); margin-top: var(--s2);
   }
+  /* Draft cards — visibly different from saved items */
+  .interest-card[data-draft="true"] {
+    border-style: dashed; border-color: var(--amber-soft, var(--border-warm));
+  }
+  .interest-card[data-draft="true"] .card-source {
+    color: var(--amber, #d4a057);
+    font-style: italic;
+  }
+  .btn-save-draft {
+    min-height: 44px; padding: var(--s1) var(--s3); margin-top: var(--s2);
+    border-radius: var(--r-full);
+    border: 1px solid var(--accent, var(--amber));
+    background: transparent; color: var(--accent, var(--amber));
+    font-size: var(--fs-micro); font-family: var(--font-sans);
+    font-weight: 600; cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-save-draft:hover { background: var(--accent-soft, var(--amber-soft)); color: var(--cream); }
+  .btn-save-draft:focus-visible { outline: 2px solid #72b1b1; outline-offset: 2px; }
   .interest-card .card-remove {
     position: absolute; top: var(--s2); right: var(--s3);
     min-width: 32px; min-height: 32px;
@@ -169,204 +207,215 @@
       <span class="fn">Constellation · what you follow</span>
       <h1 class="cn">Interests</h1>
     </div>
-    <p style="color:var(--text-soft);font-size:var(--fs-lead);max-width:62ch;margin-top:var(--s2)">
+    <p style="color:var(--text-soft);font-size:var(--fs-lead);max-width:var(--w-prose);margin-top:var(--s2)">
       What you follow, the clusters inside it, and the quiet threads connecting them. ✦
     </p>
   </header>
-
-  <div class="sky-crumb" id="sky-crumb" aria-label="Where you are in the map"></div>
-  <div class="sky" id="sky" data-start="interests" role="group"
-       aria-label="Map of Interests. Use the buttons to move toward a cluster."></div>
-  <div class="sky-info" id="sky-info"></div>
-  <div class="dive" id="sky-dive" tabindex="-1" hidden></div>
-
-  <!-- ══ INTERESTS: real interests read, rendered by interests-view.js ══
+<!-- ══ INTERESTS: real interests read, rendered by interests-view.js ══
        Real data from API-051 (the server's interests list), with honest
        empty / not-set-up / unavailable states. No specimen feed. -->
   <div id="interests-view" class="cv-view"></div>
 
-  <!-- ══ INTERESTS: content views ══ -->
-
-  <!-- Music -->
-  <div class="section-divider">Music</div>
-  <div class="interest-section" data-section="music">
-    <h3>Musicians & albums <span class="count" id="music-count"></span></h3>
-    <div class="interest-grid" id="music-grid"></div>
-    <div class="add-form" id="music-add-form">
-      <label>Add to Music</label>
-      <input type="text" id="music-name" placeholder="Artist or album name…" aria-label="Artist or album name">
-      <select id="music-type" aria-label="Type">
-        <option value="artist">Artist</option>
-        <option value="album">Album</option>
-        <option value="playlist">Playlist</option>
-      </select>
-      <input type="text" id="music-note" placeholder="A note (optional)" aria-label="Note" style="max-width:200px">
-      <button type="button" class="btn-add" data-add="music">Add ✦</button>
-    </div>
-    <p id="music-storage-status" role="status" aria-live="polite" hidden class="storage-status"></p>
+  <!-- ══ FOLLOW SOMETHING — one native add bar ══
+       The server model is {name, category, weight}. Category is
+       free text with suggestions from your existing clusters.
+       Weight is follow strength: lightly / normally / closely. -->
+  <div class="section-divider">Follow something new</div>
+  <div class="add-form" id="iv-add-form">
+    <label for="iv-name">Follow something</label>
+    <input type="text" id="iv-name" placeholder="Something you're circling…" aria-label="Interest name" autocomplete="off">
+    <input type="text" id="iv-category" placeholder="Cluster (optional)" aria-label="Cluster" list="iv-category-list" style="max-width:200px" autocomplete="off">
+    <datalist id="iv-category-list"></datalist>
+    <select id="iv-weight" aria-label="Follow strength" style="min-width:140px">
+      <option value="1.0" selected>Following</option>
+      <option value="0.5">Lightly</option>
+      <option value="2.0">Closely</option>
+    </select>
+    <button type="button" class="btn-add" id="iv-add">Follow ✦</button>
   </div>
+  <p id="iv-storage-status" role="status" aria-live="polite" hidden class="storage-status"></p>
 
-  <!-- AI & local-first -->
-  <div class="section-divider">AI & local-first</div>
-  <div class="interest-section" data-section="ai">
-    <h3>Topics & threads <span class="count" id="ai-count"></span></h3>
-    <div class="interest-grid" id="ai-grid"></div>
-    <div class="add-form" id="ai-add-form">
-      <label>Add to AI & local-first</label>
-      <input type="text" id="ai-name" placeholder="Topic or thread…" aria-label="Topic name">
-      <input type="text" id="ai-note" placeholder="A note (optional)" aria-label="Note" style="max-width:200px">
-      <button type="button" class="btn-add" data-add="ai">Add ✦</button>
-    </div>
-    <p id="ai-storage-status" role="status" aria-live="polite" hidden class="storage-status"></p>
+  <!-- ══ DRAFTS — failed writes live here, visibly, until saved ══ -->
+  <div id="iv-drafts-wrap" hidden>
+    <div class="section-divider">Drafts on this device</div>
+    <div class="interest-grid" id="iv-drafts-grid"></div>
+    <p style="font-size:var(--fs-small);color:var(--text-faint);max-width:var(--w-prose);line-height:1.6">
+      These couldn't reach your world yet. Nothing is hidden — retry
+      each one when you're ready, or remove it.
+    </p>
   </div>
-
-  <!-- Reading -->
-  <div class="section-divider">Reading</div>
-  <div class="interest-section" data-section="reading">
-    <h3>Books, articles & sources <span class="count" id="reading-count"></span></h3>
-    <div class="interest-grid" id="reading-grid"></div>
-    <div class="add-form" id="reading-add-form">
-      <label>Add to Reading</label>
-      <input type="text" id="reading-name" placeholder="Title or source…" aria-label="Title">
-      <select id="reading-type" aria-label="Type">
-        <option value="book">Book</option>
-        <option value="article">Article</option>
-        <option value="paper">Paper</option>
-        <option value="newsletter">Newsletter</option>
-      </select>
-      <input type="text" id="reading-note" placeholder="A note (optional)" aria-label="Note" style="max-width:200px">
-      <button type="button" class="btn-add" data-add="reading">Add ✦</button>
-    </div>
-    <p id="reading-storage-status" role="status" aria-live="polite" hidden class="storage-status"></p>
-  </div>
-
-  <p class="map-note" style="font-size:var(--fs-small);color:var(--text-faint);margin-top:var(--s5);max-width:62ch;line-height:1.6">
-    You opened inside this region. Zoom out any time to see the whole sky. Drag planets to rearrange them. ✦
-  </p>
-
-  <details class="more-settings">
-    <summary>Shape this map</summary>
-    <div class="ms-body">
-      <div id="shape-map" data-region="interests" class="shape" style="margin-top:0;border:none;padding:0;background:none"></div>
-    </div>
-  </details>
-
-  <div style="height:100px"></div>
+<div style="height:100px"></div>
 </main>
 
 <script>
 (function() {
   'use strict';
-  var STORE_KEY = 'pw-interests';
 
-  function read() {
-    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch(e) { return {}; }
+  /* ── Storage: localStorage is DRAFT-ONLY ──
+     The server is the one user-visible truth (API-051).
+     localStorage (pw-interests-draft) holds items that failed
+     server save — visible drafts, never silent storage.
+     Drafts are a flat list now (no hardcoded shelves). */
+  var DRAFT_KEY = 'pw-interests-draft';
+
+  // Migrate old per-shelf drafts {music:[], ai:[], reading:[]} → flat list
+  function readDrafts() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(DRAFT_KEY) || '[]');
+      if (Array.isArray(raw)) return raw;
+      // Old shape: object keyed by shelf → flatten, shelf becomes category
+      var flat = [];
+      Object.keys(raw).forEach(function (shelf) {
+        (raw[shelf] || []).forEach(function (d) {
+          d.category = d.category || shelf;
+          flat.push(d);
+        });
+      });
+      return flat;
+    } catch(e) { return []; }
   }
-  function write(data) {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); return true; }
+  function writeDrafts(list) {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(list)); return true; }
     catch (e) { return false; }
   }
-  /* LANG-060: never claim success when browser storage refused the
-     write — the grid still shows the in-memory change, so the failure
-     must be announced where the person is looking. */
-  function storageStatus(section, ok) {
-    var line = document.getElementById(section + '-storage-status');
+
+  function storageStatus(ok, msg) {
+    var line = document.getElementById('iv-storage-status');
     if (!line) return;
-    if (ok) {
-      line.textContent = '';
-      line.hidden = true;
-    } else {
-      line.textContent = 'Couldn’t save this in your browser. Nothing was saved. ' +
-        'Check browser storage settings and try again. This list here shows the ' +
-        'unsaved change only until the page reloads.';
-      line.hidden = false;
-    }
+    line.textContent = msg || '';
+    line.hidden = !msg;
   }
+
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function(c) {
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
     });
   }
 
-  function renderSection(section) {
-    var data = read();
-    var items = data[section] || [];
-    var grid = document.getElementById(section + '-grid');
-    var count = document.getElementById(section + '-count');
-    if (!grid) return;
+  /* ── Render drafts ── */
+  function renderDrafts() {
+    var items = readDrafts();
+    var wrap = document.getElementById('iv-drafts-wrap');
+    var grid = document.getElementById('iv-drafts-grid');
+    if (!wrap || !grid) return;
+    wrap.hidden = !items.length;
+    if (!items.length) { grid.innerHTML = ''; return; }
+    grid.innerHTML = items.map(function(item, i) {
+      return '<div class="interest-card" data-draft="true">' +
+        '<button class="card-remove" data-iv-draft-remove="' + i + '" ' +
+        'aria-label="Remove draft ' + esc(item.name) + '">&times;</button>' +
+        '<div class="card-type">' + esc(item.category || 'following') + ' · draft</div>' +
+        '<div class="card-name">' + esc(item.name) + '</div>' +
+        '<div class="card-source">draft — not saved to your world yet</div>' +
+        '<button type="button" class="btn-save-draft" data-iv-draft-retry="' + i + '" ' +
+        'aria-label="Save ' + esc(item.name) + ' to your world">Save to your world</button>' +
+      '</div>';
+    }).join('');
+  }
 
-    count.textContent = items.length ? '(' + items.length + ')' : '';
-
-    if (items.length) {
-      grid.innerHTML = items.map(function(item, i) {
-        return '<div class="interest-card">' +
-          '<button class="card-remove" data-section="' + section + '" data-index="' + i + '" ' +
-          'aria-label="Remove ' + esc(item.name) + '">&times;</button>' +
-          '<div class="card-type">' + esc(item.type || section) + '</div>' +
-          '<div class="card-name">' + esc(item.name) + '</div>' +
-          (item.note ? '<div class="card-note">' + esc(item.note) + '</div>' : '') +
-          '<div class="card-source">yours · added ' + new Date(item.ts).toLocaleDateString() + '</div>' +
-        '</div>';
-      }).join('');
-    } else {
-      var messages = {
-        music: 'No musicians yet. Add someone you have been listening to.',
-        ai: 'No topics yet. Add something you have been thinking about.',
-        reading: 'Nothing on the shelf yet. Add a book, article, or source.'
-      };
-      grid.innerHTML =
-        '<div class="interest-empty" style="grid-column:1/-1">' +
-          '<h3>Quiet for now ✦</h3>' +
-          '<p>' + (messages[section] || 'Nothing here yet. Add something when you are ready.') + '</p>' +
-        '</div>';
+  /* ── Add: POST to server (real model), fall back to draft ── */
+  function tryServerWrite(item) {
+    var API = window.PW_API;
+    if (!API || typeof API.write !== 'function') {
+      var drafts = readDrafts();
+      drafts.push(item);
+      writeDrafts(drafts);
+      renderDrafts();
+      storageStatus(false, 'No connection to the server. Saved as a draft on this device only.');
+      return;
     }
-  }
 
-  function renderAll() {
-    ['music', 'ai', 'reading'].forEach(renderSection);
-  }
+    /* Real server model: {name, category, weight}. No note, no type —
+       the server does not store them, so the UI does not send them. */
+    var body = {
+      name: item.name,
+      category: item.category || null,
+      weight: item.weight || 1.0
+    };
 
-  // Add items
-  document.querySelectorAll('.btn-add').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var section = btn.getAttribute('data-add');
-      var name = document.getElementById(section + '-name').value.trim();
-      if (!name) return;
-      var note = document.getElementById(section + '-note');
-      var typeEl = document.getElementById(section + '-type');
-      var data = read();
-      if (!data[section]) data[section] = [];
-      data[section].push({
-        id: section + '-' + Date.now(),
-        name: name,
-        type: typeEl ? typeEl.value : section,
-        note: note ? note.value.trim() : '',
-        ts: Date.now()
+    API.write('API-051-add', body)
+      .then(function(env) {
+        if (env && env.ok) {
+          storageStatus(true, 'Saved to your world.');
+          renderDrafts();
+          // Refresh the server list immediately — the new star appears now
+          if (window.PW_INTERESTS_REFRESH) window.PW_INTERESTS_REFRESH();
+          // Clear the confirmation after a few seconds
+          setTimeout(function() { storageStatus(true, ''); }, 4000);
+        } else {
+          var detail = (env && env.error && env.error.message) || '';
+          var d = readDrafts();
+          d.push(item);
+          writeDrafts(d);
+          renderDrafts();
+          storageStatus(false,
+            'Could not save to your world. Saved as a draft on this device instead.' +
+            (detail ? ' ' + detail : ''));
+        }
+      })
+      .catch(function() {
+        var d2 = readDrafts();
+        d2.push(item);
+        writeDrafts(d2);
+        renderDrafts();
+        storageStatus(false, 'Could not reach the server. Saved as a draft on this device instead.');
       });
-      var ok = write(data);
-      document.getElementById(section + '-name').value = '';
-      if (note) note.value = '';
-      renderSection(section);
-      storageStatus(section, ok);
+  }
+
+  document.getElementById('iv-add').addEventListener('click', function() {
+    var nameInput = document.getElementById('iv-name');
+    var catInput = document.getElementById('iv-category');
+    var weightSel = document.getElementById('iv-weight');
+    var name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    var item = {
+      id: 'draft-' + Date.now(),
+      name: name,
+      category: catInput.value.trim() || null,
+      weight: parseFloat(weightSel.value) || 1.0,
+      ts: Date.now()
+    };
+    nameInput.value = '';
+    catInput.value = '';
+    weightSel.value = '1.0';
+    storageStatus(true, 'Saving…');
+    tryServerWrite(item);
+    nameInput.focus();
+  });
+
+  // Enter in either input submits
+  ['iv-name', 'iv-category'].forEach(function(id) {
+    document.getElementById(id).addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('iv-add').click(); }
     });
   });
 
-  // Remove items (event delegation)
+  /* Draft remove / retry (event delegation) */
   document.addEventListener('click', function(e) {
-    var btn = e.target.closest('.card-remove');
-    if (!btn) return;
-    var section = btn.getAttribute('data-section');
-    var index = parseInt(btn.getAttribute('data-index'), 10);
-    var data = read();
-    if (data[section]) {
-      data[section].splice(index, 1);
-      var ok = write(data);
-      renderSection(section);
-      storageStatus(section, ok);
+    var rm = e.target.closest('[data-iv-draft-remove]');
+    if (rm) {
+      var idx = parseInt(rm.getAttribute('data-iv-draft-remove'), 10);
+      var drafts = readDrafts();
+      drafts.splice(idx, 1);
+      writeDrafts(drafts);
+      renderDrafts();
+      return;
+    }
+    var retry = e.target.closest('[data-iv-draft-retry]');
+    if (retry) {
+      var i = parseInt(retry.getAttribute('data-iv-draft-retry'), 10);
+      var list = readDrafts();
+      var draftItem = list[i];
+      if (!draftItem) return;
+      list.splice(i, 1);
+      writeDrafts(list);
+      renderDrafts();
+      storageStatus(true, 'Saving…');
+      tryServerWrite(draftItem);
     }
   });
 
-  renderAll();
+  renderDrafts();
 })();
 </script>
 </body>

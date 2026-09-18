@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
-<title>How this feels — Project Worlds</title>
+<title>Settings — Project Worlds</title>
 <link rel="stylesheet" href="station.css">
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="real-data.css">
@@ -17,10 +17,11 @@
 <script src="chat.js" defer></script>
 <!-- live API client + real-data providers (same-origin session auth) -->
 <script src="api.js" defer></script>
+<script src="world-state.js" defer></script>
 <script src="real-data.js" defer></script>
 <script src="backup-ui.js" defer></script>
 <style>
-  .set-wrap { max-width: 720px; }
+  .set-wrap { max-width: 960px; margin: 0 auto; }
   .set-group {
     margin-bottom: var(--s6);
     border: 1px solid var(--border); border-radius: var(--r-lg);
@@ -177,12 +178,19 @@
 <main class="shell-main" id="main">
   <div class="station-sign">
     <span class="fn">Comfort &amp; access</span>
-    <h1 class="cn">How this feels</h1>
+    <h1 class="cn">Settings — how this looks &amp; feels</h1>
   </div>
-  <p style="color:var(--text-soft);font-size:var(--fs-lead);max-width:60ch;margin-bottom:var(--s6)">
+  <p style="color:var(--text-soft);font-size:var(--fs-lead);max-width:var(--w-prose);margin-bottom:var(--s6)">
     Everything here is a comfort layer above the accessibility floor — it can never
     go below it. Changes apply everywhere and are remembered on this device. ✦
   </p>
+
+  <nav class="settings-wayfind" aria-label="Jump to settings section" style="display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s5)">
+    <a class="beam" href="#h-look">How it looks</a>
+    <a class="beam" href="#h-move">How it moves</a>
+    <a class="beam" href="#h-data">Your data</a>
+    <a class="beam" href="#h-backup">Back up my world</a>
+  </nav>
 
   <div class="set-wrap">
 
@@ -314,16 +322,23 @@
          one reaches the server and never claims a binding that is not
          there. Saving is PUT /api/prefs (gate: step-up) — a deliberate
          act, not a side effect of opening this page. -->
-    <section class="set-group" aria-labelledby="h-server-prefs">
-      <h2 id="h-server-prefs">What the server knows</h2>
-      <div data-rd-prefs data-rd-labelledby="h-server-prefs"></div>
-    </section>
+    <details class="tech" style="margin-top:var(--s4)">
+      <summary>technical · what the server knows</summary>
+      <div class="tech-body" style="padding:0">
+        <section class="set-group" aria-labelledby="h-server-prefs" style="margin:0;border:none">
+          <h2 id="h-server-prefs">What the server knows</h2>
+          <div data-rd-prefs data-rd-labelledby="h-server-prefs"></div>
+        </section>
+      </div>
+    </details>
 
     <!-- ══ DATA ══ -->
     <section class="set-group" aria-labelledby="h-data">
       <h2 id="h-data">Your data</h2>
       <p class="set-desc">
-        This section manages data saved by this browser. Server data and connected services are separate and are not cleared here.
+        Data stored by this browser on this device. Notes, interests, chat history, and map
+        positions all live here — not on the server. Deleting any of these does not touch
+        your server journal, connected services, or anything your world keeps for you.
       </p>
       <div class="data-actions">
         <button class="btn-danger" data-clear="journal">Delete browser notes</button>
@@ -376,7 +391,7 @@
   </div>
 
   <!-- Encrypted SOS backup/restore (worlds_backup routes; step-up gated) -->
-  <section aria-labelledby="h-backup" style="max-width:640px;margin-top:var(--s6)">
+  <section aria-labelledby="h-backup" style="max-width:var(--w-shell);margin-top:var(--s6)">
     <h2 class="sec-label" id="h-backup">Back up your world</h2>
     <div id="settings-backup"></div>
   </section>
@@ -438,7 +453,7 @@
       body: 'This removes the interests this browser saved on this device. It does not change server data. This cannot be undone.',
       button: 'Delete browser interests',
       success: 'Browser interests were deleted from this browser. Server data was not changed.',
-      run: function () { localStorage.removeItem('pw-interests'); }
+      run: function () { localStorage.removeItem('pw-interests'); localStorage.removeItem('pw-interests-draft'); }
     },
     chat: {
       title: 'Delete local chat history?',

@@ -91,6 +91,29 @@
       '<ul class="findings-list">' + rows + '</ul></details>';
   }
 
+  /* ── UI context: tell the assistant where the person is ──
+     The backend's build_ui_context() accepts these fields and
+     injects them into the system prompt. The assistant can then
+     answer "what's here?" contextually instead of generically.
+
+     This is provenance (where in the interface the person is),
+     NOT canonical world state. The server trusts it only as a hint. */
+  function uiContext() {
+    var ws = window.PW_WORLD_STATE && window.PW_WORLD_STATE.current();
+    if (!ws) return null;
+    var section = ws.currentSection;
+    if (!section || section === 'world') return null;
+    var secState = ws.sections.find(function (s) { return s.id === section; });
+    return {
+      route: window.location.pathname,
+      section_id: section,
+      section_label: secState ? secState.label : null,
+      section_status: secState ? (secState.status || 'unknown') : 'unknown',
+      section_capabilities: secState ? (secState.kind || '') : '',
+      entity: ws.selectedEntity || null
+    };
+  }
+
   function historyFor() {
     return readLog()
       .filter(function (m) {
@@ -112,7 +135,7 @@
     if (status === 'not_configured' || /no chat provider configured/i.test(detail)) {
       /* Manifest copy for a genuinely unconnected assistant; the raw
          endpoint warning stays in the envelope, not the room. */
-      return 'No assistant is connected yet. Your message is saved in this browser.';
+      return 'No assistant is connected yet. This world has Ollama bundled — once a model is pulled, the assistant will answer. Your message is saved in this browser for now.';
     }
     if (env && env.ok === false && typeof raw === 'string' && raw) {
       return raw;
@@ -130,7 +153,7 @@
       paint();
       return;
     }
-    API.write(CHAT_ENDPOINT, { message: text, history: historyFor() })
+    API.write(CHAT_ENDPOINT, { message: text, history: historyFor(), ui_context: uiContext() })
       .then(function (env) {
         if (env && env.ok && env.data && typeof env.data.reply === 'string' && env.data.reply.trim()) {
           writeLog(readLog().concat([{
@@ -156,15 +179,6 @@
     var meta = COMPANIONS[who] || COMPANIONS.mermaid;
     var templates = TEMPLATES.filter(function (t) { return t.companion === who; });
 
-    // Build template cards (visible, not hidden in a select)
-    var templateCards = templates.map(function (t) {
-      return '<button type="button" class="chat-tpl" data-tpl="' + esc(t.id) + '" ' +
-             'aria-label="' + esc(t.label) + ': ' + esc(t.personality) + '">' +
-               '<span class="tpl-label">' + esc(t.label) + '</span>' +
-               '<span class="tpl-desc">' + esc(t.personality) + '</span>' +
-             '</button>';
-    }).join('');
-
     root.innerHTML =
       '<div class="chat-head" style="--cc:' + meta.color + '">' +
         '<span class="chat-ava" aria-hidden="true"><svg><use href="chars.svg#char-' + esc(who) + '"/></svg></span>' +
@@ -172,10 +186,6 @@
         '<span class="chat-pers" id="chat-pers-' + root.id + '">' +
           'Pick a mood, or just talk.' +
         '</span>' +
-      '</div>' +
-      '<div class="chat-templates" role="group" aria-label="Conversation templates">' +
-        '<span class="chat-tl">Set the mood</span>' +
-        templateCards +
       '</div>' +
       '<div class="chat-log" id="chat-log-' + root.id + '" aria-live="polite" aria-label="Conversation"></div>' +
       '<form class="chat-form">' +
@@ -195,7 +205,7 @@
         return '<div class="msg sys"><span class="msg-t">' + esc(m.text) + '</span></div>';
       }
       if (m.role === 'ai') {
-        return '<div class="msg ai"><span class="msg-t">' + esc(m.text) + '</span>' +
+        return '<div class="msg ai"><span class="msg-icon" aria-hidden="true"><svg><use href="chars.svg#char-' + esc(who) + '"/></svg></span><span class="msg-t">' + esc(m.text) + '</span>' +
           findingsHtml(m.findings) + '</div>';
       }
       return '<div class="msg ' + esc(m.role) + '"><span class="msg-t">' + esc(m.text) + '</span></div>';
@@ -262,7 +272,6 @@
       var text = input.value.trim();
       if (!text) { return; }
       input.value = '';
-      pers.textContent = 'Pick a mood, or just talk.';
       // Clear template selection
       root.querySelectorAll('.chat-tpl, .empty-chip').forEach(function (el) {
         el.setAttribute('aria-pressed', 'false');
@@ -291,8 +300,6 @@
   var dock = document.getElementById('chat-dock');
   if (orb && dock) {
     var mounted = false;
-    orb.removeAttribute('href');
-    orb.setAttribute('role', 'button');
     orb.setAttribute('aria-haspopup', 'dialog');
     orb.setAttribute('aria-expanded', 'false');
     orb.setAttribute('aria-controls', 'chat-dock');

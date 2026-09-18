@@ -20,6 +20,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
+from starlette.middleware.gzip import GZipMiddleware
 
 from . import export, prefs
 from .connection_manager import ConnectionManager
@@ -289,6 +290,20 @@ def _is_true_loopback(request: Request) -> bool:
     return ip.is_loopback
 
 
+def _is_dev_lan_allowed(request: Request) -> bool:
+    """When PW_DEV_AUTH_BYPASS=1, also accept RFC1918 LAN addresses.
+    Explicit opt-in only — never implicit. The operator chose to trust
+    their local network by setting the env var."""
+    client = request.client.host if request.client else ""
+    import ipaddress as _ipa
+
+    try:
+        ip = _ipa.ip_address(client)
+    except ValueError:
+        return False
+    return ip.is_private and not ip.is_loopback
+
+
 async def require_auth(request: Request) -> None:
     """Gate + canonical principal resolution (the single seam).
 
@@ -324,7 +339,11 @@ async def require_auth(request: Request) -> None:
     instance_token = _token()
 
     # 1. Explicit loopback development bypass (never implicit).
-    if dev_bypass_enabled() and _is_true_loopback(request):
+    # When PW_DEV_AUTH_BYPASS=1, accept both loopback AND private LAN
+    # addresses — the operator explicitly chose to trust their network.
+    if dev_bypass_enabled() and (
+        _is_true_loopback(request) or _is_dev_lan_allowed(request)
+    ):
         _set_principal(request, dev_bypass_principal(), "dev-bypass")
         return
 
@@ -2948,5 +2967,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         if not path.exists():
             raise HTTPException(status_code=404, detail="font missing")
         return _cached_file(request, path, ctype)
+
+    app.add_middleware(GZipMiddleware, minimum_size=500)
 
     return app

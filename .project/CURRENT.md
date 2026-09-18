@@ -44,7 +44,9 @@ experience → `docs/PERSONAL-WORLD-FINISH-LINE.md`; verified direction
 → `ROADMAP.md`; design truth → `design/tokens.json` +
 `docs/DESIGN-HANDOFF.md` (V0.1 baseline) + `docs/accessibility/`;
 companion/chat architecture → `design/COMPANION_INTEGRATION.md`;
-decisions → `.project/DECISIONS.md` + `docs/adr/`.
+decisions → `.project/DECISIONS.md` + `docs/adr/`. UI improvement
+lanes (access/optimize/clarify/delight, verified 2026-09-17) →
+[`.project/HANDOFF-UI-ORCHESTRATION-2026-09-17.md`](./HANDOFF-UI-ORCHESTRATION-2026-09-17.md).
 
 ---
 

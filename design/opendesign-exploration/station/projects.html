@@ -18,8 +18,6 @@
 <link rel="stylesheet" href="mobile.css">
 <script src="station.js" defer></script>
 <script src="chat.js" defer></script>
-<script src="starmap.js" defer></script>
-<script src="shapemap.js" defer></script>
 <script src="deeplink.js" defer></script>
 <script src="onboarding.js" defer></script>
 <script src="search.js" defer></script>
@@ -27,6 +25,7 @@
 <!-- live API client (same-origin session auth): the content view
      reads the REAL source-control endpoints through it -->
 <script src="api.js" defer></script>
+<script src="world-state.js" defer></script>
 <script src="projects-view.js" defer></script>
 </head>
 <body>
@@ -56,18 +55,11 @@
       <span class="fn">Constellation · what you are making</span>
       <h1 class="cn">Projects</h1>
     </div>
-    <p style="color:var(--text-soft);font-size:var(--fs-lead);max-width:62ch;margin-top:var(--s2)">
+    <p style="color:var(--text-soft);font-size:var(--fs-lead);max-width:var(--w-prose);margin-top:var(--s2)">
       What you are making, as it actually is — including the messy parts. A dirty tree is information, not an emergency. ✦
     </p>
   </header>
-
-  <div class="sky-crumb" id="sky-crumb" aria-label="Where you are in the map"></div>
-  <div class="sky" id="sky" data-start="projects" role="group"
-       aria-label="Map of Projects. Use the buttons to move toward a cluster."></div>
-  <div class="sky-info" id="sky-info"></div>
-  <div class="dive" id="sky-dive" tabindex="-1" hidden></div>
-
-  <!-- ══ PROJECTS: content view — rendered by projects-view.js ══
+<!-- ══ PROJECTS: content view — rendered by projects-view.js ══
        Real repository state, read through the API client from the
        source-control endpoints (API-033 list, API-034 history). Honest
        not-set-up / unavailable / empty states; a GATED "How project
@@ -77,20 +69,7 @@
     <h2 class="pv-title" id="pv-title">Your repositories</h2>
     <p class="pv-boot">Working out what to show you…</p>
   </section>
-
-  <p class="map-note" style="font-size:var(--fs-small);color:var(--text-faint);margin-top:var(--s5);max-width:62ch;line-height:1.6">
-    You opened inside this region. Zoom out any time to see the whole sky, or use the
-    bar above to jump elsewhere. Drag planets to rearrange them — your layout is saved. ✦
-  </p>
-
-  <details class="more-settings">
-    <summary>Shape this map</summary>
-    <div class="ms-body">
-      <div id="shape-map" data-region="projects" class="shape" style="margin-top:0;border:none;padding:0;background:none"></div>
-    </div>
-  </details>
-
-  <!-- spacer for companion orb -->
+<!-- spacer for companion orb -->
   <div style="height:100px"></div>
 
 </main>

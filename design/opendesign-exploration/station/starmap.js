@@ -22,115 +22,54 @@
 
   var O = function (t, src, when) { return { t: t, src: src, when: when }; };
 
-  var DEFAULT_TREE = {
-    id: 'world', name: 'Systems Map', kind: 'galaxy',
-    activity: 'nothing needs you; routine work is batched behind the glass',
-    provenance: 'personal-world status',
-    rec: 'start anywhere, or nowhere. Both are valid.',
-    children: [
-      { id: 'interests', name: 'Interests', color: 'ai', egg: 'ratatoskr', links: ['media', 'projects'],
-        activity: 'last new thread 3 days ago', provenance: 'API-051 · API-016',
-        rec: 'the World thinks "local-first" is a value, not a phase',
-        children: [
-          { id: 'ai', name: 'AI & local-first', color: 'ai', links: ['reading'],
-            activity: '4 new items this month', provenance: 'API-051',
-            rec: 'two unread sources match this closely',
-            objects: [ O('Nothing here yet', 'real items arrive when a discovery source is connected', '') ] },
-          { id: 'music', name: 'Music', color: 'music', links: ['media'],
-            activity: 'an album you returned to 4x', provenance: 'API-051 · API-054',
-            rec: 'adjacent artists you have not heard',
-            objects: [ O('Nothing here yet', 'your listening history arrives when a music source is connected', '') ] },
-          { id: 'reading', name: 'Reading', color: 'reading', links: ['ai'],
-            activity: 'the seed of most of your projects', provenance: 'API-051',
-            rec: 'one long-read held for you',
-            objects: [ O('Nothing here yet', 'saved reads arrive when a reading source is connected', '') ] }
-        ]},
-      { id: 'projects', name: 'Projects', color: 'build', egg: 'robot', links: ['systems', 'journal'],
-        activity: 'one repo with local work', provenance: 'API-079 · API-033',
-        rec: 'nothing urgent; a dirty tree is information',
-        children: [
-          { id: 'pw', name: 'personal-world', color: 'build', links: ['systems'],
-            activity: 'ahead of origin', provenance: 'API-033',
-            rec: 'review diff, then approve a refresh',
-            objects: [ O('Nothing charted yet', 'commits and branches arrive from source-control status', '') ] },
-          { id: 'tools', name: 'Tools & models', color: 'build', links: [],
-            activity: 'quiet', provenance: 'API-079', rec: '',
-            objects: [ O('Nothing charted yet', 'tools arrive from the estate inventory', '') ] }
-        ]},
-      { id: 'journal', name: 'Journal', color: 'reading', links: ['people'],
-        activity: 'you stopped mid-thought 4 days ago', provenance: 'API-005',
-        rec: 'pick it up, or leave it; both are fine',
-        children: [
-          { id: 'entries', name: 'Entries', color: 'reading', links: [],
-            activity: 'your words, as you wrote them', provenance: 'API-005', rec: '',
-            objects: [ O('Nothing charted yet', 'your written entries arrive from the journal', '') ] },
-          { id: 'running', name: 'Running threads', color: 'reading', links: ['interests'],
-            activity: 'where you left off', provenance: 'API-005 · API-016', rec: '',
-            objects: [ O('Nothing charted yet', 'running threads arrive from journal and memory', '') ] }
-        ]},
-      { id: 'people', name: 'People', color: 'creative', egg: 'mermaid', links: ['journal'],
-        activity: 'companions present; humans as you add them', provenance: 'companion registry',
-        rec: 'nobody needs you right now',
-        children: [
-          { id: 'companions', name: 'Companions', color: 'creative', links: [],
-            activity: 'your chosen companion travels with you', provenance: 'companion registry', rec: '',
-            objects: [ O('Mermaid', 'chat companion', 'now'), O('Ratatoskr', 'chat companion', 'recent'),
-                       O('Robot', 'chat companion', 'recent'), O('Burrito Journalism', 'chat companion', 'sometimes') ] },
-          { id: 'humans', name: 'Humans', color: 'creative', links: [],
-            activity: 'empty until you say otherwise', provenance: 'API-014', rec: '',
-            objects: [] }
-        ]},
-      { id: 'media', name: 'Media', color: 'music', egg: 'burrito', links: ['interests'],
-        activity: 'no adapters connected — unknown, not broken', provenance: 'API-053..057',
-        rec: 'connect a source and this fills with your library',
-        children: [
-          { id: 'albums', name: 'Albums', color: 'music', links: ['music'],
-            activity: '—', provenance: 'API-054', rec: '', objects: [] },
-          { id: 'watching', name: 'Watching', color: 'music', links: [],
-            activity: '—', provenance: 'API-054', rec: '', objects: [] }
-        ]},
-      { id: 'systems', name: 'Systems', color: 'world', links: ['projects'],
-        activity: 'routine work batched, nothing needs you', provenance: 'API-020 · API-058',
-        rec: 'health on demand, never loud',
-        children: [
-          { id: 'capabilities', name: 'Capabilities', color: 'world', links: ['providers'],
-            activity: 'mixed states, all honest', provenance: 'API-020', rec: '',
-            objects: [ O('source_control', 'healthy', 'now'), O('discovery', 'not set up yet', 'now'),
-                       O('media', 'not sure yet', 'now') ] },
-          { id: 'providers', name: 'Providers', color: 'world', links: [],
-            activity: 'machinery; replaceable', provenance: 'API-037..048', rec: '',
-            objects: [ O('Nothing charted yet', 'providers arrive from the lab inventory', '') ] }
-        ]},
-      { id: 'places', name: 'Places', color: 'reading', links: [],
-        activity: 'this Station, and anywhere you add', provenance: 'this Station',
-        rec: 'places are presences; they speak up when needed',
-        children: [
-          { id: 'decks', name: 'Decks', color: 'reading', links: [],
-            activity: 'quiet rooms you can duck into', provenance: 'this Station', rec: '',
-            objects: [ O('Observation Deck', 'you are here', 'now'), O('Making', 'workshop.html', ''),
-                       O('Under the hood', 'engine.html', ''), O('Care', 'medbay.html', '') ] }
-        ]}
-    ]
-  };
+  // Build the galaxy from the shared sections config (PW_SECTIONS).
+  // This keeps the map in sync with the topbar nav — add a section
+  // to sections.js and it appears on both surfaces automatically.
+  // Rebuilt on every viewTree() call so late-arriving canonical
+  // sections (from /api/sections) replace the fallback.
+  function buildDefaultTree() {
+    var sections = window.PW_SECTIONS || [];
+    return {
+      id: 'world', name: 'Station', kind: 'galaxy',
+      activity: 'nothing needs attention; routine work is batched behind the glass',
+      provenance: 'personal-world status',
+      rec: 'start anywhere, or nowhere. Both are valid.',
+      children: sections.map(function (s) {
+        return {
+          id: s.id,
+          name: s.name,
+          color: s.colorKey || 'world',
+          egg: s.egg || undefined,
+          activity: '',
+          provenance: '',
+          rec: '',
+          children: [],
+          href: s.href
+        };
+      })
+    };
+  }
+  var DEFAULT_TREE = buildDefaultTree();
 
   var COLORS = {
     ai: 'var(--lavender)', music: 'var(--coral)', build: 'var(--teal)',
     reading: 'var(--gold)', creative: 'var(--green)', world: 'var(--cream)'
   };
   var ICON = {
-    interests: 'sparkle', projects: 'wrench', journal: 'pen', people: 'heart',
-    media: 'film', systems: 'cloud', places: 'compass',
+    interests: 'sparkle', projects: 'wrench', journal: 'pen',
+    chat: 'heart', settings: 'gear',
+    today: 'sparkle', media: 'film', lab: 'flask', vault: 'cloud',
     ai: 'brain', music: 'music', reading: 'book', papers: 'book',
     pw: 'wrench', tools: 'gear', entries: 'pen', running: 'pen',
     companions: 'heart', humans: 'heart', albums: 'music', watching: 'film',
     capabilities: 'cloud', providers: 'cloud', decks: 'compass', care: 'leaf', rest: 'leaf'
   };
-  var ATTN = { projects: 1, journal: 1, pw: 1, capabilities: 1 };
   var CMD = {
     world: 'personal-world status', interests: 'personal-world discovery interests',
     projects: 'personal-world repo status', journal: 'personal-world journal list',
-    people: 'personal-world companions list', media: 'personal-world media status',
-    systems: 'personal-world lab health', places: 'personal-world places',
+    today: 'personal-world daily', media: 'personal-world media status',
+    lab: 'personal-world lab health', vault: 'personal-world vault status',
+    people: 'personal-world companions list',
     pw: 'personal-world repo diff  →  propose  →  approve  →  act  →  re-observe',
     tools: 'personal-world repo status', entries: 'personal-world journal list',
     running: 'personal-world memory search', companions: 'personal-world companions list',
@@ -138,6 +77,29 @@
     watching: 'personal-world media recent', capabilities: 'personal-world lab health',
     providers: 'personal-world lab inventory', decks: 'personal-world places'
   };
+
+  /* ── Live attention from the world projection ──
+     Replaces the hardcoded ATTN specimen. Reads real
+     proposal/reminder counts from PW_WORLD_STATE. */
+  function liveAttention() {
+    var ws = window.PW_WORLD_STATE && window.PW_WORLD_STATE.current();
+    if (!ws) return {};
+    var attn = {};
+    ws.sections.forEach(function (s) {
+      if (s.attentionCount > 0) {
+        attn[s.id] = s.attentionCount;
+      }
+    });
+    return attn;
+  }
+  /* ── Live section state from the world projection ──
+     Returns { status, statusLabel, mood, configured } for a section,
+     or null if not available. */
+  function liveSectionState(id) {
+    var ws = window.PW_WORLD_STATE && window.PW_WORLD_STATE.current();
+    if (!ws) return null;
+    return ws.sections.find(function (s) { return s.id === id; }) || null;
+  }
 
   var sky = document.getElementById('sky');
   var crumb = document.getElementById('sky-crumb');
@@ -165,7 +127,7 @@
     try { return JSON.parse(localStorage.getItem('pw-region-' + id) || '{}'); } catch (e) { return {}; }
   }
   function viewTree() {
-    var t = clone(DEFAULT_TREE);
+    var t = clone(buildDefaultTree());
     var s = readStruct();
     (s.hide || []).forEach(function (id) {
       var f = find(t, id, null);
@@ -235,13 +197,18 @@
     for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
     return Math.abs(h);
   }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
   function organic(i, n, id) {
     var GA = 2.399963229728653;
     var theta = i * GA + (hash(id) % 100) / 100 * 0.6;
     var rr = Math.sqrt((i + 0.55) / n);
     var jx = ((hash(id + 'x') % 9) - 4);
     var jy = ((hash(id + 'y') % 9) - 4);
-    return { x: 50 + Math.cos(theta) * rr * 38 + jx, y: 50 + Math.sin(theta) * rr * 33 + jy };
+    // Clamp so orbs stay inside .sky on narrow viewports (~390 px).
+    return {
+      x: clamp(50 + Math.cos(theta) * rr * 38 + jx, 12, 88),
+      y: clamp(50 + Math.sin(theta) * rr * 33 + jy, 10, 90)
+    };
   }
   function mass(k) {
     var c = k.children ? k.children.length : (k.objects || []).length;
@@ -263,7 +230,7 @@
              '<span class="crumb-here">' + esc(current.name) + '</span>' +
              '<span class="crumb-sep" aria-hidden="true">&middot;</span>' +
              '<span style="font-size:var(--fs-micro);color:var(--text-faint)">' +
-             (current.kind === 'galaxy' ? 'seven constellations' : kids.length + ' bodies in this region') +
+             (current.kind === 'galaxy' ? kids.length + ' constellations' : kids.length + ' bodies in this region') +
              '</span>';
     crumb.innerHTML = cr;
 
@@ -304,15 +271,23 @@
                         esc(k.egg) + '"/></svg></span>' : '';
       var isDrill = !!k.children && !forceLeaf;
       var isSel = selectedCluster === k.id;
-      var attn = ATTN[k.id] || 0;
+      var attn = liveAttention()[k.id] || 0;
+      var secState = liveSectionState(k.id);
+      var mood = secState ? secState.mood : '';
       var scale = (1 + Math.min(attn, 4) * 0.06).toFixed(2);
+      // Sleeping nodes are slightly smaller and dimmer
+      if (mood === 'sleeping' || mood === 'off') {
+        scale = (0.7 + Math.min(attn, 4) * 0.06).toFixed(2);
+      }
+      var moodClass = mood ? ' mood-' + mood : '';
       html += '<span class="drift" style="left:' + pts[i].x.toFixed(1) + '%;top:' + pts[i].y.toFixed(1) +
               '%;--ddur:' + (20 + (hash(k.id) % 18)) + 's;--ddelay:-' + (hash(k.id + 'd') % 20) + 's">' +
               '<button type="button" class="node' + (isSel ? ' sel' : '') + (attn ? ' attn' : '') +
-              (isDrill ? ' drill' : '') + '" data-id="' + esc(k.id) + '" ' +
+              (isDrill ? ' drill' : '') + moodClass + '" data-id="' + esc(k.id) + '" ' +
               'style="--node-color:' + COLORS[k.color] + ';--nscale:' + scale + ';--orb:' + mass(k) + 'px" ' +
               'aria-label="' + esc(k.name) +
-              (attn ? ', ' + attn + ' item' + (attn === 1 ? '' : 's') + ' need you,' : '') +
+              (secState && secState.statusLabel ? ', ' + secState.statusLabel + ',' : '') +
+              (attn ? ' ' + attn + ' item' + (attn === 1 ? '' : 's') + ' need you,' : '') +
               (isDrill ? ' enter region' : ' show what is in it') + '">' +
               '<span class="node-orb" aria-hidden="true">' +
               '<svg class="node-ic" focusable="false"><use href="icons.svg#ic-' + (ICON[k.id] || 'sparkle') + '"/></svg>' +
@@ -323,25 +298,66 @@
 
     sky.innerHTML = html;
 
-    // info strip: activity / provenance / suggestion / needs-you-IN-WORDS
-    var needsWords = kids.filter(function (k) { return ATTN[k.id]; })
-      .map(function (k) { return esc(k.name) + ' (' + ATTN[k.id] + ')'; }).join(', ');
+    // info strip: real activity / provenance / suggestion / needs-you-IN-WORDS
+    var ws = window.PW_WORLD_STATE && window.PW_WORLD_STATE.current();
+    var needsWords = kids.map(function (k) {
+      var a = liveAttention()[k.id];
+      return a ? esc(k.name) + ' (' + a + ')' : null;
+    }).filter(Boolean).join(', ');
+
+    // Real section states in words
+    var sectionStates = kids.map(function (k) {
+      var ss = liveSectionState(k.id);
+      if (!ss || !ss.statusLabel) return null;
+      return esc(k.name) + ': ' + esc(ss.statusLabel);
+    }).filter(Boolean).join(' · ');
+
     if (info) {
+      var noteLine = '';
+      if (ws && ws.unchecked && ws.unchecked.length) {
+        noteLine = '<div><span class="il">Map note</span> some sources could not be checked (' +
+          esc(ws.unchecked.join(', ')) + ') — this view is honest about what it does not know</div>';
+      } else if (sectionStates) {
+        noteLine = '<div><span class="il">Map note</span> ' + sectionStates + '</div>';
+      } else {
+        noteLine = '<div><span class="il">Map note</span> reading the world now…</div>';
+      }
+
+      var recentLine = '';
+      if (ws && ws.recentActivity && ws.recentActivity.length) {
+        var latest = ws.recentActivity[0];
+        recentLine = '<div><span class="il">Recently</span> ' + esc(latest.summary || 'quiet') + '</div>';
+      } else {
+        recentLine = '<div><span class="il">Recently</span> ' + esc(current.activity || 'quiet') + '</div>';
+      }
+
       info.innerHTML =
-        '<div><span class="il">Map note</span> illustrative specimen data — real sources fill this in as they connect</div>' +
-        '<div><span class="il">Recently</span> ' + esc(current.activity || 'quiet') + '</div>' +
+        noteLine +
+        recentLine +
         '<div><span class="il">From</span> ' + esc(current.provenance || '—') + '</div>' +
         (current.rec ? '<div><span class="il">Suggests</span> ' + esc(current.rec) + '</div>' : '') +
         '<div><span class="il">Needs you here</span> ' + (needsWords || 'nothing in view') + '</div>';
     }
     if (dive) { dive.hidden = true; dive.innerHTML = ''; }
 
+    // Constellations with dedicated pages — clicking navigates there
+    // instead of drilling into the map. Nodes without pages keep the
+    // drill-down behavior. Built from the shared sections config.
+    var PAGES = {};
+    (window.PW_SECTIONS || []).forEach(function (s) { PAGES[s.id] = s.href; });
+
     document.getElementById('sky-out').addEventListener('click', zoomOut);
     sky.querySelectorAll('.node').forEach(function (b) {
       b.addEventListener('click', function (e) {
         // Don't fire click if we just finished a drag
         if (b._dragMoved) { b._dragMoved = false; return; }
-        activate(b.getAttribute('data-id'));
+        var id = b.getAttribute('data-id');
+        // Galaxy-level constellations with dedicated pages → navigate
+        if (current.kind === 'galaxy' && PAGES[id]) {
+          window.location.href = PAGES[id];
+          return;
+        }
+        activate(id);
       });
       setupDrag(b);
     });
@@ -483,20 +499,42 @@
     var objs = cluster.objects || [];
     var subs = cluster.children || [];
     dive.hidden = false;
-    var body = objs.length
-      ? '<ul class="dive-list">' + objs.map(function (o) {
-          return '<li><span class="t">' + esc(o.t) + '</span>' +
-                 '<span class="s">' + esc(o.src) + (o.when ? ' · ' + esc(o.when) : '') + '</span></li>';
-        }).join('') + '</ul>'
-      : (subs.length
-          ? '<ul class="dive-list">' + subs.map(function (s) {
-              return '<li><span class="t">' + esc(s.name) + '</span><span class="s">sub-region · enter from the map</span></li>';
-            }).join('') + '</ul>'
-          : '<div class="state"><div class="state-title">This corner is quiet for now ✦</div>' +
-            'Add something when you are ready — or don\'t. Both are fine.</div>');
+
+    /* Show real section status when available (from the world projection).
+       Sections without pages (today, media, lab, vault) reach this path
+       because PAGES[id] is null, so the click handler falls through to
+       activate() → openDive(). Instead of a generic "quiet" message,
+       show the honest status from the backend. */
+    var secState = liveSectionState(cluster.id);
+    var statusCopy = secState ? secState.statusLabel : null;
+    var statusMood = secState ? secState.mood : '';
+
+    var body;
+    if (objs.length) {
+      body = '<ul class="dive-list">' + objs.map(function (o) {
+        return '<li><span class="t">' + esc(o.t) + '</span>' +
+               '<span class="s">' + esc(o.src) + (o.when ? ' · ' + esc(o.when) : '') + '</span></li>';
+      }).join('') + '</ul>';
+    } else if (subs.length) {
+      body = '<ul class="dive-list">' + subs.map(function (s) {
+        return '<li><span class="t">' + esc(s.name) + '</span><span class="s">sub-region · enter from the map</span></li>';
+      }).join('') + '</ul>';
+    } else if (statusCopy) {
+      /* Real status from the backend — honest about what this section is */
+      body = '<div class="state"><div class="state-title">' + esc(cluster.name) + ': ' + esc(statusCopy) + '</div>' +
+        '<p>' + diveStatusCopy(cluster.id, secState) + '</p></div>';
+    } else {
+      body = '<div class="state"><div class="state-title">This corner is quiet for now ✦</div>' +
+        '<p>Add something when you are ready — or don\'t. Both are fine.</p></div>';
+    }
+
+    var metaText = objs.length ? objs.length + ' items'
+      : subs.length ? subs.length + ' bodies in this region'
+      : statusCopy || 'quiet';
+
     dive.innerHTML =
       '<div class="dive-head"><span class="dive-title">' + esc(cluster.name) + '</span>' +
-      '<span class="dive-meta">' + esc(objs.length || subs.length) + ' items · specimen</span></div>' +
+      '<span class="dive-meta">' + esc(metaText) + '</span></div>' +
       body +
       '<details class="tech"><summary>technical · the command behind this</summary><div class="tech-body">' +
       '$ ' + esc(CMD[cluster.id] || CMD[current.id] || 'personal-world status') + '<br>' +
@@ -507,9 +545,83 @@
     dive.focus();
   }
 
+  /* Warm, honest copy for sections that exist but aren't set up.
+     Each section gets a brief, companion-voiced explanation of what
+     it IS — not a technical error, just an honest absence. */
+  function diveStatusCopy(id, secState) {
+    var status = secState ? secState.status : null;
+    var copies = {
+      today: {
+        healthy: 'Your day is here, and it\'s looking good. ✦',
+        not_configured: 'Today is where your morning briefing will live — once a few more pieces are connected, it\'ll greet you here every day.',
+        unavailable: 'Today can\'t reach its data source right now. It\'ll be back.',
+        _default: 'Today is waking up. It\'ll be here soon.'
+      },
+      media: {
+        healthy: 'Your library is here and ready to browse.',
+        not_configured: 'Media is where your books, shows, and music will live. Connect a media source and this corner will come alive.',
+        unavailable: 'Media can\'t reach its source right now. It\'ll be back.',
+        _default: 'Media is resting. It\'ll wake up when you connect a source.'
+      },
+      lab: {
+        healthy: 'Your lab is running and healthy.',
+        not_configured: 'Lab is where your homelab and infrastructure live. Connect your services and this corner will show you how they\'re doing.',
+        unavailable: 'Lab can\'t reach its data right now. It\'ll be back.',
+        _default: 'Lab is quiet. It\'ll come alive when you connect your services.'
+      },
+      vault: {
+        healthy: 'Your vault is sealed and healthy.',
+        not_configured: 'Vault is where your secrets and credentials are stored safely. It\'ll show status once the vault is unlocked.',
+        unavailable: 'Vault can\'t be reached right now. It\'ll be back.',
+        _default: 'Vault is sealed. It\'ll open when you\'re ready.'
+      },
+      interests: {
+        healthy: 'Your interests are here and being watched.',
+        not_configured: 'Interests is where the things you follow live. Add something you\'re curious about — even a half-formed thought counts.',
+        unavailable: 'Interests can\'t be checked right now. It\'ll be back.',
+        _default: 'Interests is quiet. Add something when you\'re ready.'
+      },
+      journal: {
+        healthy: 'Your journal is here with recent entries.',
+        not_configured: 'Journal is where your history lives. Write something — or let the companion note things for you.',
+        unavailable: 'Journal can\'t be read right now. It\'ll be back.',
+        _default: 'Journal is quiet. Write when you\'re ready.'
+      },
+      projects: {
+        healthy: 'Your repositories are here and healthy.',
+        not_configured: 'Projects is where your source control lives. Point it at a repo and it\'ll show you what\'s happening.',
+        unavailable: 'Projects can\'t check your repos right now. It\'ll be back.',
+        _default: 'Projects is quiet. It\'ll show your repos when connected.'
+      },
+      chat: {
+        healthy: 'Your companion is here and ready to talk.',
+        not_configured: 'Chat is where you talk to your companion. Once a model is connected, it\'ll answer.',
+        unavailable: 'Chat can\'t reach its model right now. It\'ll be back.',
+        _default: 'Chat is resting. Your companion will be here when you\'re ready.'
+      },
+      settings: {
+        healthy: 'Settings is here — your preferences are loaded.',
+        _default: 'Settings is where you tune how this looks and feels.'
+      }
+    };
+    var sectionCopy = copies[id];
+    if (!sectionCopy) {
+      return 'This corner of your world is quiet for now. ✦';
+    }
+    var copy = sectionCopy[status] || sectionCopy._default;
+    return copy || 'This corner of your world is quiet for now. ✦';
+  }
+
   sky.setAttribute('tabindex', '-1');
   render(false);
   window.addEventListener('pw:prefs', function () { setMood(); });
+  /* Re-render when canonical sections or world state arrive late.
+     The first render uses the sections.js fallback; when /api/sections
+     answers, 'pw:sections-loaded' fires and the map rebuilds from the
+     real registry. Same for world-state (attention/moods). Neither
+     event is dispatched by render(), so no loop. */
+  window.addEventListener('pw:sections-loaded', function () { render(false); });
+  window.addEventListener('pw:world-state', function () { render(false); });
   window.PW_MAP_REFRESH = function () { render(true); };
   window.PW_MAP_API = { viewTree: viewTree, find: find, readStruct: readStruct, writeStruct: writeStruct, regionPrefs: regionPrefs };
 

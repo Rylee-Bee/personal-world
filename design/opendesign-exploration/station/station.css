@@ -11,6 +11,26 @@
    Motion: event-driven only. Reduced-motion first-class.
    ═══════════════════════════════════════════════════════ */
 
+/* Fraunces — display face for place-names and expressive headings.
+   Self-hosted, latin subset only. Georgia italic fallback unchanged.
+   OFL 1.1 — see fonts/OFL.txt */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/fraunces-normal-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/fraunces-italic-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   /* ── STRUCTURE: deep navy/indigo, warm-leaning ── */
   --space:        #080B14;   /* deepest structural — a real void, not near-black mud */
@@ -49,9 +69,14 @@
   --border-hover: rgba(232, 220, 200, 0.20);
 
   /* ── TYPE ── */
-  --font-serif: Georgia, 'Times New Roman', 'Palatino Linotype', serif;
+  --font-serif: 'Fraunces', Georgia, 'Times New Roman', 'Palatino Linotype', serif;
   --font-sans:  'Avenir Next', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono:  'SF Mono', 'Cascadia Code', Consolas, monospace;
+
+  /* ── WIDTH SYSTEM (one source of truth for content widths) ── */
+  --w-shell:    1180px;   /* outer frame — maps, grids, dashboards */
+  --w-content:  760px;    /* content column — panels, forms, chat */
+  --w-prose:    62ch;     /* reading width — paragraphs, ledes, notes */
 
   /* ── SPACING (4px) ── */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
@@ -137,7 +162,7 @@ html { scroll-behavior:smooth; }
    Truly inline links inside prose are exempt per WCAG 2.5.8 (targets in a
    sentence), which is the one place the floor is not applied. */
 button, select, input, summary,
-.nav-link, .beam, .presence, .stroll-item, .sig-dismiss, .door {
+.nav-link, .beam, .presence, .door {
   min-height: 44px;
 }
 summary { cursor: pointer; }
@@ -302,12 +327,11 @@ body::after {
    --pad-main/--gap-block come from the density control. */
 .shell-main {
   position:relative; z-index:1;
-  max-width:1180px; margin:0 auto;
+  max-width:var(--w-shell); margin:0 auto;
   padding: var(--pad-main) var(--s5) calc(var(--s7) + 220px);
 }
 
 /* Reading column: content never sprawls to full width */
-.stroll { max-width: 720px; }
 body { font-size: var(--fs-body); }
 
 /* ═══ CHARACTER ICONS ═══ */
@@ -317,71 +341,12 @@ body { font-size: var(--fs-body); }
 .char--md svg { width:40px; height:40px; }
 .char--lg svg { width:72px; height:72px; }
 
-/* ═══ CROSS-CONTAMINATION TRACE (visible + interactive) ═══ */
-.trace {
-  display:inline-flex; align-items:center; gap:var(--s2);
-  padding: var(--s1) var(--s3);
-  border:1px dashed var(--border-warm);
-  border-radius: var(--r-full);
-  background: rgba(212,160,87,0.06);
-  color: var(--text-soft);
-  font-size:12px; font-style:italic;
-  opacity:0.6;                       /* visible, not hidden */
-  cursor:pointer;
-  transition: opacity 0.15s, background 0.15s;
-}
-.trace:hover, .trace:focus-visible { opacity:1; background: var(--amber-soft); }
-.trace:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
-.trace .who { font-style:normal; font-weight:600; }
-/* the pill stays visually delicate; the hit area does not */
-.trace > summary {
-  min-height:44px; display:inline-flex; align-items:center; gap:var(--s2);
-  list-style:none;
-}
-.trace > summary::-webkit-details-marker { display:none; }
-
 /* ═══ SPECIMEN FRAMING (shared) ═══
    Design patterns shown for review. Never a claim about the user's world. */
 .specimen-note {
   font-size: var(--fs-micro); color: var(--text-faint);
   letter-spacing:0.06em; text-transform:uppercase; font-family: var(--font-mono);
 }
-details.pattern-ref {
-  border:1px dashed var(--border); border-radius: var(--r-sm);
-  padding: var(--s2) var(--s3); margin-top: var(--s3);
-}
-details.pattern-ref > summary {
-  font-size: var(--fs-small); color: var(--text-faint);
-  display:flex; align-items:center;
-}
-details.pattern-ref > summary:hover { color: var(--text-soft); }
-details.pattern-ref .pattern-body { padding-top: var(--s3); }
-.is-specimen { position:relative; }
-.is-specimen::after {
-  content:'specimen';
-  position:absolute; top:var(--s2); right:var(--s3);
-  font-family: var(--font-mono); font-size:9px;
-  letter-spacing:0.1em; text-transform:uppercase;
-  color: var(--text-faint); opacity:0.75; pointer-events:none;
-}
-
-/* ═══ ENVIRONMENTAL DETAILS (inhabited, still) ═══ */
-.env { position:relative; }
-.env-window {
-  position:relative; border-radius: var(--r-lg);
-  border:1px solid var(--border);
-  background: linear-gradient(160deg, #0B1020, #131A2E 60%, #1A2238);
-  overflow:hidden; min-height:180px;
-}
-.env-window .star { position:absolute; border-radius:50%; background:var(--cream); }
-.env-shelf {
-  display:flex; gap:var(--s1); align-items:flex-end;
-  padding: var(--s3); border-bottom:3px solid var(--wood);
-}
-.env-shelf .book { width:14px; border-radius:2px 2px 0 0; }
-.env-plant { color: var(--green); }
-.env-cup { color: var(--cream); }
-
 /* ═══ HONEST STATES (empty / loading / unavailable) ═══ */
 .state {
   padding: var(--s5); border-radius: var(--r-md);
@@ -401,26 +366,6 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
 .discovery:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
 .discovery .src { font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-faint); }
 .discovery .ttl { font-family: var(--font-serif); font-size:18px; color:var(--cream); margin:var(--s1) 0; }
-
-/* ═══ ORIENTATION BAND (attention-and-focus) ═══
-   Answers in order: What needs me? What was I working on? What is coming up?
-   Attention flows to EXCEPTIONS, not routine success. */
-.orient { display:grid; grid-template-columns: repeat(3, 1fr); gap: var(--s5); margin: var(--s6) 0; }
-@media (max-width: 860px){ .orient{ grid-template-columns:1fr; } }
-.orient-col h2 {
-  font-family:var(--font-sans); font-size:12px; font-weight:600;
-  letter-spacing:0.14em; text-transform:uppercase; color:var(--text-faint);
-  margin-bottom:var(--s3);
-}
-.orient-item {
-  display:flex; gap:var(--s3); align-items:flex-start;
-  padding:var(--s3) var(--s4); margin-bottom:var(--s2);
-  border-radius:var(--r-sm); border:1px solid var(--border);
-  background:var(--panel); font-size:14px; color:var(--text-soft);
-}
-.orient-item.needs { border-color:var(--border-warm); background:var(--amber-soft); color:var(--text); }
-.orient-item .what { font-weight:600; color:var(--text); }
-.orient-item .why { display:block; font-size:12.5px; color:var(--text-faint); margin-top:2px; }
 
 /* All-quiet path (quiet-when-healthy): explicit, calm, one line */
 .all-quiet {
@@ -454,10 +399,6 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
   border:1px dashed var(--border); color:var(--text-faint);
   font-size:13px; text-align:center;
 }
-
-/* ═══ TIGHTER ORIENTATION (uses density tokens) ═══ */
-.orient { gap: var(--gap-block); margin: var(--gap-block) 0; }
-.orient-col h2 { font-size: var(--fs-label); }
 
 /* ═══════════════════════════════════════════════════════════
    BACKGROUND ATMOSPHERE — the world, behind the glass
@@ -544,18 +485,6 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
     radial-gradient(2px 2px at 8% 46%, rgba(237,231,219,0.5), transparent);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PROMENADE LAYOUT — content foreground, presences to the side
-   ═══════════════════════════════════════════════════════════ */
-.promenade {
-  position:relative; z-index:1;
-  display:grid; grid-template-columns: minmax(0,1fr) 268px;
-  gap: var(--s6); align-items:start;
-}
-@media (max-width: 980px) {
-  .promenade { grid-template-columns: 1fr; }
-}
-
 /* ═══ SECTION LABEL (quiet, consistent, uppercase micro-type) ═══ */
 .sec-label {
   font-family: var(--font-mono);
@@ -571,43 +500,6 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
   background: linear-gradient(90deg, var(--border), transparent);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SIGNALS — the alert / communication system
-   "A distress call beams you right there."
-   Severity is TEXT, never color alone (accessibility-floor 1.3).
-   Dismissible + recoverable (interruption-and-resumption): the
-   dismissed signal is listed in the log, never silently lost.
-   ═══════════════════════════════════════════════════════════ */
-.signals { display:flex; flex-direction:column; gap: var(--s3); }
-.signal {
-  position:relative;
-  display:grid; grid-template-columns:auto minmax(0,1fr) auto;
-  gap: var(--s3); align-items:start;
-  padding: var(--s4);
-  border-radius: var(--r-md);
-  border:1px solid var(--border);
-  border-left:3px solid var(--sig-color, var(--text-faint));
-  background: var(--panel);
-}
-.signal.distress      { --sig-color: var(--coral);  background: var(--coral-soft); }
-.signal.communication { --sig-color: var(--amber);  background: var(--amber-soft); }
-.signal.fyi           { --sig-color: var(--teal); }
-
-.signal .sig-who {
-  display:flex; align-items:center; gap:var(--s2);
-  font-size: var(--fs-small); font-weight:600; color: var(--text);
-}
-.signal .sig-kind {
-  font-family: var(--font-mono);
-  font-size: var(--fs-micro); letter-spacing:0.1em; text-transform:uppercase;
-  color: var(--sig-color, var(--text-faint));
-  border:1px solid currentColor; border-radius:var(--r-full);
-  padding:1px 8px;
-}
-.signal .sig-what { font-size: var(--fs-body); color: var(--text); margin-top:2px; font-weight:600; }
-.signal .sig-why  { font-size: var(--fs-small); color: var(--text-soft); margin-top:2px; }
-.signal .sig-from { font-size: var(--fs-micro); color: var(--text-faint); margin-top:var(--s2); }
-
 /* Beam there: the primary action. 44px min, always. */
 .beam {
   display:inline-flex; align-items:center; justify-content:center; gap:var(--s2);
@@ -622,50 +514,11 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
 .beam:hover, .beam:focus-visible { background: var(--sig-color, var(--amber)); color: var(--space); }
 .beam:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
 
-/* secondary: dismiss without losing it */
-.sig-dismiss {
-  min-width:44px; min-height:44px;
-  background:none; border:none; color:var(--text-faint);
-  font-size:var(--fs-small); cursor:pointer; border-radius:var(--r-sm);
-  text-decoration:underline; text-underline-offset:3px;
-}
-.sig-dismiss:hover { color:var(--text); }
-
 /* ═══════════════════════════════════════════════════════════
    THE STROLL — content is the primary focus
    Each item answers What / Why it matters / Next, carries its
    provenance, and offers a way to duck into the deck that owns it.
    ═══════════════════════════════════════════════════════════ */
-.stroll { display:flex; flex-direction:column; gap: var(--s3); }
-.stroll-item {
-  display:block; width:100%; text-align:left;
-  padding: var(--s4);
-  border-radius: var(--r-md);
-  border:1px solid var(--border);
-  background: var(--panel);
-  text-decoration:none; color:inherit;
-  transition: border-color 0.15s, background 0.15s;
-}
-.stroll-item:hover, .stroll-item:focus-visible {
-  border-color: var(--border-warm); background: var(--panel-warm);
-}
-.stroll-item:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
-.stroll-item .si-top {
-  display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap;
-  font-size: var(--fs-micro); letter-spacing:0.1em; text-transform:uppercase;
-  color: var(--text-faint); font-family:var(--font-mono);
-}
-.stroll-item .si-title {
-  font-family: var(--font-serif); font-size: calc(var(--fs-lead) + 2px);
-  color: var(--cream); margin: var(--s1) 0; line-height:1.35;
-}
-.stroll-item .si-why { font-size: var(--fs-small); color: var(--text-soft); }
-.stroll-item .si-next {
-  font-size: var(--fs-small); color: var(--text-faint);
-  margin-top: var(--s2); display:flex; align-items:center; gap:var(--s2);
-}
-.stroll-item .si-next .duck { color: var(--amber); text-decoration:underline; text-underline-offset:3px; }
-
 /* ═══════════════════════════════════════════════════════════
    PRESENCE RAIL — decks are PRESENCES, not destinations
    "I don't need to go to Medbay; Medbay has a presence as needed.
@@ -695,16 +548,6 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
 .presence .p-name { font-size: var(--fs-body); color: var(--text); font-weight:500; }
 .presence .p-doing { font-size: var(--fs-micro); color: var(--text-faint); display:block; line-height:1.4; }
 .presence.speaks .p-doing { color: var(--text-soft); }
-
-/* The backstage line: the station IS busy. Said once, calmly, in text. */
-.backstage {
-  padding: var(--s3) var(--s4);
-  border-radius: var(--r-sm);
-  border:1px dashed var(--border);
-  background: rgba(255,255,255,0.02);
-  font-size: var(--fs-small); color: var(--text-faint); line-height:1.6;
-}
-.backstage strong { color: var(--text-soft); font-weight:600; }
 
 /* ═══════════════════════════════════════════════════════════
    COMFORT CONTROLS — density + theme (a real preference, not a mode)
@@ -793,18 +636,6 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
     linear-gradient(180deg, #080C18 0%, #0E1220 50%, #0A0F1A 100%);
   overflow: hidden;
 }
-/* Sci-fi grid overlay */
-.sky::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: 
-    linear-gradient(rgba(100, 160, 200, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(100, 160, 200, 0.05) 1px, transparent 1px);
-  background-size: 50px 50px;
-  pointer-events: none;
-  opacity: 0.6;
-}
 /* Radial scan lines */
 .sky::after {
   content: '';
@@ -845,9 +676,10 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
   color: var(--text-soft); font-family: var(--font-sans);
   padding: var(--s2);
   border-radius: var(--r-md);
+  transform-origin: center;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.node:hover { transform: translate(-50%, -50%) scale(1.08); }
+.node:hover, .node:focus-visible { transform: translate(-50%, -50%) scale(calc(var(--nscale, 1) * 1.08)); }
 .node:focus-visible { outline:2px solid #72b1b1; outline-offset:4px; }
 .node-orb {
   position: relative;
@@ -1007,7 +839,6 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
    Size/ring are REDUNDANT — the text count always carries the same meaning,
    so nothing is communicated by size or colour alone (accessibility-floor 1.4).
    The ring is STATIC by default; it only breathes when motion is opted in. */
-.node { transform: translate(-50%,-50%) scale(var(--nscale, 1)); transform-origin: center; }
 .node.attn .node-orb {
   box-shadow: 0 0 0 3px rgba(212,160,87,0.16), 0 0 14px var(--node-color, var(--cream));
 }
@@ -1045,6 +876,85 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
   border:1px solid var(--node-color, var(--cream)); opacity:0.45;
 }
 .node.drill:hover .node-orb::after, .node.drill:focus-visible .node-orb::after { opacity:0.8; }
+
+/* ═══ MOOD-BASED NODE STATES — the personality of the map ═══
+   These are NOT status badges. They are how a section FEELS
+   when you look at it. The words (in the info strip and aria-label)
+   carry the semantic meaning; the visual is the emotional layer.
+
+   content  — healthy, settled, warm. The default.
+   sleeping — not set up yet. Resting, dim, soft. Not broken.
+   waking   — unknown. Between sleep and awake. Uncertain dawn.
+   reaching — needs attention. Gently bigger, breathing. Reaching for you.
+   fading   — stale. Still here, less certain. Like a memory.
+   off      — disabled. Very quiet. Almost invisible. */
+.node.mood-sleeping .node-orb {
+  opacity: 0.45;
+  filter: saturate(0.5);
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--node-color, var(--cream)) 30%, transparent),
+    0 0 20px color-mix(in srgb, var(--node-color, var(--cream)) 15%, transparent),
+    inset 0 0 8px rgba(0,0,0,0.3);
+}
+.node.mood-sleeping .node-ic {
+  filter: brightness(0.6) saturate(0.5);
+  opacity: 0.5;
+}
+.node.mood-sleeping .node-label {
+  color: var(--text-faint);
+  opacity: 0.7;
+}
+/* A gentle, barely-there breathing for sleeping nodes — like slow breaths */
+@keyframes sleep-breathe {
+  0%, 100% { opacity: 0.40; transform: scale(1); }
+  50%      { opacity: 0.50; transform: scale(1.02); }
+}
+[data-motion="on"] .node.mood-sleeping .node-orb {
+  animation: sleep-breathe 8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .node.mood-sleeping .node-orb { animation: none; }
+}
+
+.node.mood-waking .node-orb {
+  opacity: 0.65;
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--node-color, var(--cream)) 40%, transparent),
+    0 0 24px color-mix(in srgb, var(--node-color, var(--cream)) 20%, transparent),
+    inset 0 0 10px rgba(255,255,255,0.3);
+}
+.node.mood-waking .node-label {
+  color: var(--text-soft);
+  opacity: 0.85;
+}
+
+.node.mood-fading .node-orb {
+  opacity: 0.55;
+  filter: saturate(0.7);
+}
+.node.mood-fading .node-label {
+  color: var(--text-soft);
+  opacity: 0.8;
+}
+
+.node.mood-off .node-orb {
+  opacity: 0.25;
+  filter: saturate(0.2);
+}
+.node.mood-off .node-label {
+  color: var(--text-faint);
+  opacity: 0.5;
+}
+
+/* Content nodes get a slightly warmer default glow */
+.node.mood-content .node-orb {
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--node-color, var(--cream)) 60%, transparent),
+    0 0 36px color-mix(in srgb, var(--node-color, var(--cream)) 30%, transparent),
+    0 0 72px color-mix(in srgb, var(--node-color, var(--cream)) 12%, transparent),
+    inset 0 0 12px rgba(255,255,255,0.4),
+    inset 0 -2px 6px color-mix(in srgb, var(--node-color, var(--cream)) 30%, black);
+}
 
 /* ═══ "SHAPE THIS MAP" editor — the taxonomy is user data ═══ */
 .shape { border:1px solid var(--border); border-radius:var(--r-md); background:var(--panel); padding:var(--s4); margin-top:var(--s4); }
@@ -1093,7 +1003,7 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
     rgba(232,220,200,0.22) 0%,
     rgba(30,38,54,0.95) 55%,
     rgba(14,18,30,0.98) 100%);
-  border: 2px solid var(--accent, rgba(212,160,87,0.5));
+  border: 3px solid var(--accent, rgba(212,160,87,0.5));
   box-shadow:
     0 0 0 5px rgba(10,13,22,0.6),
     0 0 24px var(--accent-soft, rgba(212,160,87,0.3)),
@@ -1143,8 +1053,27 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
   border-radius:var(--r-lg); box-shadow:var(--shadow-warm); overflow:hidden;
 }
 .chat-dock[hidden] { display:none; }
+.dock-close {
+  position: absolute;
+  top: var(--s2);
+  right: var(--s2);
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  z-index: 2;
+}
+.dock-close:hover { color: var(--text); }
+.dock-close:focus-visible { outline: 2px solid #72b1b1; outline-offset: 2px; }
 .chat-page {
-  max-width:760px; margin:0 auto; height:min(660px, 74vh);
+  max-width:var(--w-shell); margin:0 auto; height:min(660px, 74vh);
   display:flex; flex-direction:column;
   border:2px solid var(--border); border-radius:var(--r-lg);
   background:var(--panel); overflow:hidden;
@@ -1158,43 +1087,6 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
 .chat-ava svg { width:100%; height:100%; display:block; }
 .chat-who { font-weight:700; color:var(--cream); font-size:var(--fs-body); }
 .chat-pers { font-size:var(--fs-micro); color:var(--text-soft); font-style:italic; margin-left:auto; text-align:right; max-width:52%; }
-
-/* Template cards — visible personality chips, not a hidden dropdown */
-.chat-templates {
-  display:flex; flex-wrap:wrap; gap:var(--s2);
-  padding:var(--s3) var(--s4); border-bottom:1px solid var(--border);
-  background: rgba(255,255,255,0.015);
-}
-.chat-tl {
-  width:100%; font-size:var(--fs-micro); color:var(--text-faint);
-  letter-spacing:0.08em; text-transform:uppercase; margin-bottom:var(--s1);
-}
-.chat-tpl {
-  min-height:44px; padding:var(--s2) var(--s3);
-  background: var(--panel-warm); color:var(--text-soft);
-  border:1.5px solid var(--border); border-radius:var(--r-full);
-  font-size:var(--fs-small); font-family:var(--font-sans); font-weight:500;
-  cursor:pointer; transition: all 0.2s ease;
-  white-space:nowrap;
-}
-.chat-tpl:hover {
-  background: var(--accent-soft, var(--amber-soft));
-  border-color: var(--accent, var(--amber));
-  color: var(--cream);
-  transform: translateY(-1px);
-}
-.chat-tpl:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
-.chat-tpl .tpl-label { font-weight:600; }
-.chat-tpl .tpl-desc {
-  display:block; font-size:var(--fs-micro); color:var(--text-faint);
-  font-weight:400; margin-top:2px; font-style:italic;
-}
-/* Hidden select fallback (for the mini dock which is smaller) */
-.chat-templates select.chat-tpl-select {
-  flex:1; min-height:44px; background:var(--space-warm); color:var(--text);
-  border:1.5px solid var(--border); border-radius:var(--r-full);
-  padding:0 var(--s3); font-size:var(--fs-small); font-family:var(--font-sans);
-}
 
 .chat-log { flex:1; overflow-y:auto; padding:var(--s3) var(--s4); display:flex; flex-direction:column; gap:var(--s3); }
 .msg { padding:var(--s3) var(--s4); border-radius:var(--r-md); font-size:var(--fs-small); line-height:1.55; max-width:85%; }
@@ -1290,13 +1182,93 @@ details.pattern-ref .pattern-body { padding-top: var(--s3); }
   box-shadow: 0 2px 8px color-mix(in srgb, var(--accent, var(--amber)) 30%, transparent);
 }
 .chat-send:hover { transform:scale(1.05); box-shadow: 0 4px 16px color-mix(in srgb, var(--accent, var(--amber)) 40%, transparent); }
-.chat-send:focus-visible, .chat-tpl:focus-visible, .chat-in:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
+.chat-send:focus-visible, .chat-in:focus-visible { outline:2px solid #72b1b1; outline-offset:2px; }
 .chat-full {
   display:block; text-align:center; padding:var(--s3); font-size:var(--fs-micro);
   color:var(--text-soft); text-decoration:none; border-top:1px solid var(--border);
   transition: color 0.15s, background 0.15s;
 }
 .chat-full:hover { color:var(--cream); background:var(--cream-soft); }
+
+/* ═══ DISTRESS CALL (commbadge help button) ═══ */
+.distress-call {
+  box-shadow: 0 0 8px rgba(212,160,87,0.18), 0 0 20px rgba(212,160,87,0.08);
+}
+.distress-call:hover {
+  box-shadow: 0 0 12px rgba(212,160,87,0.28), 0 0 28px rgba(212,160,87,0.12);
+}
+.distress-badge {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-right: var(--s2);
+  vertical-align: middle;
+  background: radial-gradient(circle at 40% 35%, #FFF5E6, #E8C48A 60%, #D4A057);
+}
+
+/* ═══ COMPANION LABEL ═══ */
+.companion-label {
+  position: absolute;
+  bottom: calc(100% + var(--s3));
+  right: 0;
+  white-space: nowrap;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--cream);
+  pointer-events: none;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  /* commbadge styling */
+  background: var(--panel);
+  border: 1px solid var(--border-warm);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow-soft);
+}
+.companion-label::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 40% 35%, #FFF5E6, #E8C48A 60%, #D4A057);
+  box-shadow: 0 0 6px rgba(212, 160, 87, 0.4);
+}
+
+/* ═══ COMPANION CELEBRATION SPARKLE ═══ */
+.companion-sparkle-celebrate {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 18px;
+  color: var(--amber);
+  pointer-events: none;
+  animation: sparkle-pop-celebrate 0.6s ease-out forwards;
+}
+@keyframes sparkle-pop-celebrate {
+  0% { opacity: 1; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 0; transform: scale(1) translateY(-12px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .companion-sparkle-celebrate { animation: none; display: none; }
+}
+
+/* ═══ CHAT MESSAGE ICONS (companion silhouette in AI bubbles) ═══ */
+.msg-icon {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  vertical-align: top;
+  margin-right: var(--s2);
+  margin-top: 2px;
+  color: var(--text-faint);
+}
+.msg-icon svg { width: 100%; height: 100%; display: block; }
 
 /* ═══ STAR-MAP EASTER EGGS (decorative only) ═══
    A companion silhouette tucked into a node, revealed on hover/focus.
@@ -1356,10 +1328,10 @@ details.tech .tech-body {
    In the topbar, always visible. It never says "you're okay."
    It lowers what the world asks of you while keeping the world intact. */
 .help-dialog {
-  position:fixed; left:var(--s4); right:var(--s4); bottom:calc(var(--s4) + 56px);
-  max-width:440px; margin:0 auto; z-index:96;
+  position:fixed; top:60px; right:var(--s4);
+  max-width:400px; z-index:96;
   background:var(--panel); border:1px solid var(--border-warm);
-  border-radius:var(--r-md); padding:var(--s5); box-shadow:var(--shadow-soft);
+  border-radius:var(--r-md); padding:var(--s5); box-shadow:var(--shadow-warm);
 }
 .help-dialog[hidden] { display:none; }
 .help-dialog h2 {
@@ -1381,13 +1353,9 @@ details.tech .tech-body {
 /* Low-demand: keep the whole world, lower what it asks. Never "you're okay." */
 [data-demand="low"] .sky,
 [data-demand="low"] .notices,
-[data-demand="low"] .stroll,
 [data-demand="low"] .elsewhere,
-[data-demand="low"] .backstage,
-[data-demand="low"] .pattern-ref,
 [data-demand="low"] .presences,
 [data-demand="low"] .rail { display:none; }
-[data-demand="low"] .promenade { grid-template-columns:1fr; }
 [data-demand="low"] body { font-size: calc(var(--fs-body) + 1px); }
 .quiet-only { display:none; }
 [data-demand="low"] .quiet-only { display:block; }
@@ -1423,8 +1391,7 @@ details.tech .tech-body {
 @media (max-width: 768px) {
   .shell-main { padding: var(--pad-main) var(--s4) var(--s6); }
   .shell-nav { overflow-x:auto; }
-  .signal { grid-template-columns: auto minmax(0,1fr); }
-  .signal .beam { grid-column: 1 / -1; width:100%; }
+
   .companion { width:56px; height:56px; right:var(--s3); bottom:var(--s3); }
   .companion .c-sil { width:26px; height:26px; }
   .chat-dock { right:var(--s2); bottom:calc(var(--s3) + 66px); width:calc(100vw - 2*var(--s2)); }
@@ -1481,13 +1448,6 @@ details.tech .tech-body {
 }
 
 /* Cuter cards — warm hover, soft shadows */
-.stroll-item {
-  transition: border-color 0.2s, background 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
-}
-.stroll-item:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-warm);
-}
 
 /* Cuter all-quiet — softer, warmer, with a tiny companion peek */
 .all-quiet {
@@ -1497,19 +1457,6 @@ details.tech .tech-body {
 }
 .all-quiet .dot {
   box-shadow: 0 0 6px var(--green), 0 0 12px rgba(106,154,102,0.3);
-}
-
-/* Cuter beam button — pill shape, gradient, bouncy hover */
-.beam {
-  border-radius: var(--r-full);
-  border:2px solid var(--sig-color, var(--border-warm));
-  background: linear-gradient(135deg, rgba(0,0,0,0.15), rgba(0,0,0,0.22));
-  font-weight:700;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.beam:hover, .beam:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--sig-color, var(--amber)) 30%, transparent);
 }
 
 /* Cuter help dialog — warmer border, softer shadow */
@@ -1587,7 +1534,7 @@ details.tech .tech-body {
   .companion-sparkle { animation:none; opacity:0; }
 }
 
-/* Cute node hover — the bounce already defined above, now with glow trail */
+/* Cute node hover — glow trail */
 .node:hover .node-orb::before,
 .node:focus-visible .node-orb::before {
   opacity: 0.9;

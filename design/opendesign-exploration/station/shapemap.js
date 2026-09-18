@@ -35,8 +35,22 @@
 
   function render() {
     var tree = API.viewTree();
-    var nodes = flatten(tree, 0, [], null);
+    var displayTree = tree;
+    if (scope !== 'world') {
+      var found = API.find(tree, scope, null);
+      if (found && found.node) {
+        displayTree = found.node;
+      }
+    }
+    var nodes = flatten(displayTree, 0, [], null);
     var ids = nodes.map(function (n) { return n.id; });
+
+    var introCopy = scope === 'world'
+      ? 'This map is yours to organise. Add a cluster, rename one, tuck something under a ' +
+        'different parent, or hide a default. Changes apply to the chart immediately and are ' +
+        'remembered on this device.'
+      : 'Organise your ' + esc(displayTree.name || scope) + ' clusters. Rename, re-parent, or add ' +
+        'a new one. Changes apply immediately and are remembered on this device.';
 
     var rows = nodes.map(function (n) {
       var indent = n.depth * 14;
@@ -49,7 +63,7 @@
           '<option value="">move…</option>' +
           ids.filter(function (id) {
             if (id === n.id) { return false; }
-            var f = API.find(tree, n.id, null);
+            var f = API.find(displayTree, n.id, null);
             return f && descendants(f.node).indexOf(id) === -1;
           }).map(function (id) { return '<option value="' + esc(id) + '">' + esc(id) + '</option>'; }).join('') +
         '</select>' +
@@ -61,9 +75,7 @@
 
     host.innerHTML =
       '<p style="font-size:var(--fs-small);color:var(--text-soft);line-height:1.6;margin-bottom:var(--s3)">' +
-        'This map is yours to organise. Add a cluster, rename one, tuck something under a ' +
-        'different parent, or hide a default. Changes apply to the chart immediately and are ' +
-        'remembered on this device.' +
+        introCopy +
       '</p>' +
       '<div class="shape-add">' +
         '<input type="text" id="shape-name" placeholder="New cluster name (e.g. Synthwave, Bandcamp)" ' +
@@ -73,7 +85,12 @@
         '</select>' +
         '<button type="button" data-act="add">Add</button>' +
       '</div>' +
-      '<div style="margin-top:var(--s4)">' + rows + '</div>' +
+      (scope !== 'world' && rows
+        ? '<details style="margin-top:var(--s4)">' +
+            '<summary style="cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:var(--fs-small);color:var(--text-faint)">Rename, move, or hide clusters</summary>' +
+            '<div style="margin-top:var(--s3)">' + rows + '</div>' +
+          '</details>'
+        : '<div style="margin-top:var(--s4)">' + rows + '</div>') +
       '<div class="shape-add" style="align-items:center">' +
         '<span style="font-size:var(--fs-small);color:var(--text-soft)">Levels revealed in ' +
         esc(scope === 'world' ? 'each region' : scope) + ':</span>' +

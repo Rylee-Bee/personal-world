@@ -18,14 +18,13 @@
 <link rel="stylesheet" href="real-data.css">
 <script src="station.js" defer></script>
 <script src="chat.js" defer></script>
-<script src="starmap.js" defer></script>
-<script src="shapemap.js" defer></script>
 <script src="deeplink.js" defer></script>
 <script src="onboarding.js" defer></script>
 <script src="search.js" defer></script>
 <!-- live API client + real-data providers; loaded before the content views
      so a view can consume window.PW_REAL_DATA instead of re-fetching -->
 <script src="api.js" defer></script>
+<script src="world-state.js" defer></script>
 <script src="real-data.js" defer></script>
 
 <script src="journal-view.js" data-unused defer></script>
@@ -226,18 +225,11 @@
       <span class="fn">Constellation · what you wrote</span>
       <h1 class="cn">Journal</h1>
     </div>
-    <p style="color:var(--text-soft);font-size:var(--fs-lead);max-width:62ch;margin-top:var(--s2)">
+    <p style="color:var(--text-soft);font-size:var(--fs-lead);max-width:var(--w-prose);margin-top:var(--s2)">
       Your words as you wrote them, and exactly where you left off. Nothing rewritten, nothing tidied. ✦
     </p>
   </header>
-
-  <div class="sky-crumb" id="sky-crumb" aria-label="Where you are in the map"></div>
-  <div class="sky" id="sky" data-start="journal" role="group"
-       aria-label="Map of Journal. Use the buttons to move toward a cluster."></div>
-  <div class="sky-info" id="sky-info"></div>
-  <div class="dive" id="sky-dive" tabindex="-1" hidden></div>
-
-  <!-- ══ YOUR REAL JOURNAL — API-005 GET /api/journal ══
+<!-- ══ YOUR REAL JOURNAL — API-005 GET /api/journal ══
        Rendered by real-data.js from the server's own journal (newest
        first, current version of each correction chain). Read-only: this
        panel never writes, corrects or deletes an entry. -->
@@ -257,15 +249,20 @@
     <!-- Entry / Vault tabs -->
     <div class="journal-tabs" role="tablist" aria-label="Journal views">
       <button class="journal-tab" role="tab" id="tab-entries" aria-selected="true" aria-controls="panel-entries" data-tab="entries">
-        Entries
+        Journal <span class="specimen-note" style="margin-left:var(--s1)">(saved by your world)</span>
       </button>
       <button class="journal-tab" role="tab" id="tab-vault" aria-selected="false" aria-controls="panel-vault" data-tab="vault">
-        Notes on this device
+        Notes (this device only)
       </button>
       <button class="journal-tab" role="tab" id="tab-write" aria-selected="false" aria-controls="panel-write" data-tab="write">
         Write
       </button>
     </div>
+    <p style="font-size:var(--fs-small);color:var(--text-faint);margin-top:var(--s2);line-height:1.5;max-width:60ch">
+      <strong style="color:var(--text-soft)">Journal</strong> is saved by your world — it is part of your permanent record.
+      <strong style="color:var(--text-soft)">Notes</strong> stay on this device only — private, not backed up.
+      <strong style="color:var(--text-soft)">Write</strong> to either.
+    </p>
 
     <!-- Write panel -->
     <div id="panel-write" role="tabpanel" aria-labelledby="tab-write" hidden>
@@ -282,7 +279,7 @@
         <div class="form-actions">
           <button type="button" class="btn-primary" id="entry-save-btn">Save entry ✦</button>
           <button type="button" class="btn-secondary" id="entry-clear-btn">Clear</button>
-          <span class="hint">Saved in this browser only. This note is not encrypted or synced.</span>
+          <span class="hint">Saved on this device only — not sent to your world yet.</span>
         </div>
         <p class="save-status" id="save-status" role="status" aria-live="polite" hidden></p>
       </div>
@@ -302,19 +299,7 @@
       </div>
     </div>
   </div>
-
-  <p class="map-note" style="font-size:var(--fs-small);color:var(--text-faint);margin-top:var(--s5);max-width:62ch;line-height:1.6">
-    You opened inside this region. Zoom out any time to see the whole sky. ✦
-  </p>
-
-  <details class="more-settings">
-    <summary>Shape this map</summary>
-    <div class="ms-body">
-      <div id="shape-map" data-region="journal" class="shape" style="margin-top:0;border:none;padding:0;background:none"></div>
-    </div>
-  </details>
-
-  <div style="height:100px"></div>
+<div style="height:100px"></div>
 </main>
 
 <script>
@@ -372,7 +357,8 @@
         '<div class="journal-empty">' +
           '<span class="empty-icon">✦</span>' +
           '<h3>No entries yet</h3>' +
-          '<p>These are saved in this browser only. Write something — it does not have to be finished or important.</p>' +
+          '<p>Your journal entries will appear here — genuinely empty, not sample content. ' +
+          'Write something in the Write tab. It does not have to be finished or important.</p>' +
         '</div>';
     }
 
@@ -390,8 +376,8 @@
         '<div class="journal-empty">' +
           '<span class="empty-icon">✦</span>' +
           '<h3>No notes yet</h3>' +
-          '<p>These notes are hidden from the map but they are not encrypted. ' +
-          'Write something just for yourself.</p>' +
+          '<p>No notes yet — write something just for yourself. ' +
+          'Notes stay on this device only and are never sent to your world.</p>' +
         '</div>';
     }
   }
