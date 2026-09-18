@@ -1,8 +1,10 @@
 # The Station — deck map
 
-**Status:** Owner canon (owner-stated 2026-09-17). The logical deck plan of
-**The Station** (Project Worlds): eight decks, each named for the job done there,
-each with a resident — except `Quarters`, which is an icon.
+**Status:** Owner canon. Deck names re-anchored to **plain job words** by owner
+direction 2026-09-18 (*accessibility over cuteness when forced: the plain word is
+the label, the dialect is the delight*). The logical deck plan of **The Station**
+(Project Worlds): eight decks, each named for the job done there, each with a
+resident — except `Settings`, which is an icon.
 
 - **Character and voice truth** (who each resident is) →
   [`docs/CHARACTER-HANDBOOK.md`](CHARACTER-HANDBOOK.md).
@@ -11,42 +13,66 @@ each with a resident — except `Quarters`, which is an icon.
 - This file owns the **map** only: which deck exists, what its job is, and who is
   there.
 
+### Naming: plain word + invented dialect (owner direction, 2026-09-18)
+
+Every deck has **two layers**, and they never compete:
+
+- the **name** is a plain, familiar job word — the accessible label you can act on
+  without decoding anything;
+- the **dialect** (§4) is the invented visual language — the personality, which is
+  decorative and never load-bearing.
+
+Ship-flavoured names were retired on 2026-09-18. **Historical documents keep the
+old names** (history is not rewritten); this is the mapping:
+
+| Retired name | Deck name | Dialect (§4) |
+|---|---|---|
+| Bridge | **Today** | the Transmission |
+| Engineering | **Systems** | the Loop Line |
+| Workshop | **Projects** | the Blueprint |
+| Archives | **Journal** | the Library |
+| Galley | **News** | the Food Court |
+| Observatory | **Interests** | the Constellation |
+| Vault | **Backups** | the Bank |
+| Quarters | **Settings** | the Quiet Room |
+
 ---
 
 ## 1. The eight decks
 
-**Every name is a job.** A deck is not a rank or a title — *Bridge*, *Workshop*,
-*Vault* and the rest name the work that happens there. The deck plan places the
-crew; it is not a hierarchy. This stays consistent with
+**Every name is a job, in plain words.** A deck is not a rank or a title — *Today*,
+*Projects*, *Backups* and the rest name the work that happens there. The deck plan
+places the crew; it is not a hierarchy. This stays consistent with
 [`docs/CREW-AND-STATION-THESIS.md`](CREW-AND-STATION-THESIS.md) §1 (*no ranks and
-stations, no franchise framing*): these are job names, not crew roles.
+stations, no franchise framing*): these are job names, not crew roles, and carry no
+borrowed franchise vocabulary.
 
 | Deck | Its job | Product area | Resident |
 |---|---|---|---|
-| **Bridge** | Personal presence — conversation, wonder, reflection, personal continuity | Chat / Companion | **Renai** |
-| **Engineering** | Keeping the machinery healthy enough that dramatic problems never happen; maintenance as care | Systems | **Hekek** |
-| **Workshop** | Making things together — building, learning by doing, checking the work | Projects / Lab | **Bolt** |
-| **Archives** | Carrying knowledge between worlds; finding paths and connections across lore and memory | Journal / Memory | **Ratatoskr** |
-| **Galley** | Bringing the outside world home — news, stories, city life, at a wander-over pace | Media | **Burrito Journalism** |
-| **Observatory** | Watching, note-taking, and noticing patterns before they are understood | Interests | **Mira** |
-| **Vault** | Careful preservation with provenance — remembering where things came from | Vault | **Bruma** |
-| **Quarters** | Rest, privacy, safety, and quiet | Settings / rest | **icon — no character** |
+| **Today** | Personal presence, communications and visibility — what is coming in to you, and conversation | Chat / Companion | **Renai** |
+| **Systems** | Settings, depth and the lifelines across the product; keeping the machinery healthy enough that dramatic problems never happen | Systems | **Hekek** |
+| **Projects** | Making things together — building, learning by doing, checking the work | Projects / Lab | **Bolt** |
+| **Journal** | Carrying knowledge between worlds; finding paths and connections across lore and memory | Journal / Memory | **Ratatoskr** |
+| **News** | Bringing the outside world home — news, stories, city life, at a wander-over pace | Media | **Burrito Journalism** |
+| **Interests** | Watching, note-taking, and noticing patterns before they are understood | Interests | **Mira** |
+| **Backups** | Careful preservation with provenance — remembering where things came from | Backups | **Bruma** |
+| **Settings** | Rest, privacy, safety, quiet — and where your personalization options live | Settings / rest | **icon — no character** |
 
 The *Product area* column is a **proposed** deck → surface mapping, not owner
 canon and not yet implemented; see §3.
 
 ---
 
-## 2. Quarters is an icon, not a resident
+## 2. Settings is an icon, not a resident
 
-`Quarters` does **not** need a character. It is a stylized bed icon in the same
+`Settings` does **not** need a character. It is a stylized bed icon in the same
 visual language as the crew icon set: simple rounded silhouette; bed, pillow,
 folded blanket; dark navy and warm gold; optional tiny star or crescent; no face,
 no personality. It should read clearly at 16px, 32px and 48px, and must not use
 colour as the only meaningful signal. It communicates **rest · privacy · safety ·
 quiet** (see [`docs/ART-REQUESTS.md`](ART-REQUESTS.md)).
 
-Do not add `Quarters` as a companion, a station id, or a server key.
+Do not add `Settings` as a companion, a station id, or a server key.
 
 ---
 
@@ -56,9 +82,9 @@ The residents in §1 are **the default crew**: they ship in the box, and they ar
 also the owner's own crew. They are not the only possible crew.
 
 - **A deck is a job; a resident is who does it.** The **eight decks are fixed** —
-  they name the work (Bridge, Engineering, …). **Residents are assignable.**
+  they name the work (Today, Systems, …). **Residents are assignable.**
 - **Which resident sits on a deck is a setting.** Anyone can create their own
-  resident and assign them to any deck — including Quarters, where the bed icon is
+  resident and assign them to any deck — including Settings, where the bed icon is
   the default when nobody is assigned.
 - **A created resident is a resident pack** (name, role line, voice, art),
   installed and uninstalled with provenance — the existing "a new identity is a
@@ -80,12 +106,12 @@ first.* It extends it: nobody has to keep the shipped crew first, either.
 
 ## 4. One world, eight dialects (owner direction, 2026-09-18)
 
-Owner direction (2026-09-18): the rooms should feel **distinct and purposeful** —
+owner direction (2026-09-18): the rooms should feel **distinct and purposeful** —
 each room may speak its own visual dialect — while **colours and theming stay
 consistent**. And the surfaces being replaced are **not abandoned wholesale**: a
-room should still read like the thing it replaces, the way a ship still has a
-bridge, an engineering room and a sickbay. Familiar roles are why a room is
-legible on day one.
+room should still read like the thing it replaces — a front desk is still a front
+desk, a workshop is still a workshop. Familiar roles are why a room is legible on
+day one.
 
 Four rules:
 
@@ -111,14 +137,14 @@ owner-described; the right column is the essence in the owner's words.
 
 | Deck | Familiar role (kept) | Dialect | One-line essence |
 |---|---|---|---|
-| Bridge | Communications / visibility | the **Transmission** | what is coming in to you |
-| Engineering | Settings / depth | the **Loop Line** | settings and depth; the lifelines across the product |
-| Workshop | Projects | the **Blueprint** | fun and tinkery — GitHub-flavoured, easy to manage several projects |
-| Archives | Memory / lore | the **Library** | a sci-fi library — *Voyager's* astrometrics, the Jedi archive |
-| Galley | News / hangout | the **Food Court** | where you go to eat, so the news and the neat things gather here too |
-| Observatory | Interests | the **Constellation** | what the universe has in store — drill down by category, and it grows or shrinks with your current interest |
-| Vault | Backups / records | the **Bank** | a sci-fi bank and records keeping |
-| Quarters | Personalization | the **Quiet Room** | where personalization options live |
+| Today | Communications / visibility | the **Transmission** | what is coming in to you |
+| Systems | Settings / depth | the **Loop Line** | settings and depth; the lifelines across the product |
+| Projects | Projects | the **Blueprint** | fun and tinkery — GitHub-flavoured, easy to manage several projects |
+| Journal | Memory / lore | the **Library** | a sci-fi library — *Voyager's* astrometrics, the Jedi archive |
+| News | News / hangout | the **Food Court** | where you go to eat, so the news and the neat things gather here too |
+| Interests | Interests | the **Constellation** | what the universe has in store — drill down by category, and it grows or shrinks with your current interest |
+| Backups | Backups / records | the **Bank** | a sci-fi bank and records keeping |
+| Settings | Personalization | the **Quiet Room** | where personalization options live |
 
 The dialects are explored as concept pages in the showcase (packets 1–8, the
 Transmission, the Dialect Sheet); they are **concepts, not implementation**. No
@@ -199,14 +225,14 @@ corridor vocabulary in the UI).
   in the Station or the server today. Whether the Station exposes decks as
   navigable areas is **UNKNOWN**.
 - **Product areas are proposed.** Which product surface each deck maps to
-  (Chat, Systems, Projects/Lab, Journal/Memory, Media, Interests, Vault,
+  (Chat, Systems, Projects/Lab, Journal/Memory, Media, Interests, Backups,
   Settings) is a proposal recorded above; the owner spec names decks and
   residents, not surfaces.
 - **Three area residents are not in the repo.** Hekek, Bruma and Mira are owner
   canon (2026-09-17); their station ids / server keys (`hekek`, `bruma`, `mira`)
   are **proposed** and unread by any code or asset. See
   [`docs/COMPANION-CANON.md`](COMPANION-CANON.md).
-- **Quarters has no id.** It is an icon, not a resident — unless someone assigns
+- **Settings has no id.** It is an icon, not a resident — unless someone assigns
   one to it (§3).
 - **Resident creation and assignment are a concept, not an implementation.** The
   2026-09-17 concept in §3 says anyone may create residents and assign them to

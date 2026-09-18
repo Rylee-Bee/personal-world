@@ -28,9 +28,9 @@ Where this file disagrees with repo evidence, the disagreement is recorded below
 | **Bolt** | Lab / development / AI helper ("Little Helper Robot") | Repo design (`design/COMPANION_INTEGRATION.md`); personal name chosen by the owner, 2026-09-17 | `robot` | `robot` |
 | **Burrito Journalism** | Journalism / stories / city life — a **breakfast burrito truck** | **Burrito Journalism** (owner game). Repo design label: "Tacos & the Morning Paper" | `burrito` | `taco-news-truck` |
 | **Personal World** | Default system companion | Repo product identity | *(none — absent from the Station control)* | `personal-world` |
-| **Hekek** | Engineering — Builder · Maintainer · Steward | Owner canon 2026-09-17. **New area character, not in the repo today** | `hekek` *(proposed)* | `hekek` *(proposed)* |
-| **Bruma** | The Vault — Archivist · Keeper · Witness | Owner canon 2026-09-17. **New area character, not in the repo today** | `bruma` *(proposed)* | `bruma` *(proposed)* |
-| **Mira** | The Observatory — Observer · Note-Taker · Pattern Seeker | Owner canon 2026-09-17. **New area character, not in the repo today** | `mira` *(proposed)* | `mira` *(proposed)* |
+| **Hekek** | Systems — Builder · Maintainer · Steward | Owner canon 2026-09-17. **New area character, not in the repo today** | `hekek` *(proposed)* | `hekek` *(proposed)* |
+| **Bruma** | Backups — Archivist · Keeper · Witness | Owner canon 2026-09-17. **New area character, not in the repo today** | `bruma` *(proposed)* | `bruma` *(proposed)* |
+| **Mira** | Interests — Observer · Note-Taker · Pattern Seeker | Owner canon 2026-09-17. **New area character, not in the repo today** | `mira` *(proposed)* | `mira` *(proposed)* |
 
 "Origin (game / repo)" says where the character comes from, not that the repo
 already spells the name that way.
@@ -42,7 +42,7 @@ names, ids and server keys below stay canonical for the *default* crew; a
 user-created resident brings its own name and pack and never renames an existing
 id.
 
-**Quarters is an icon, not a resident.** The deck `Quarters` has no character, no
+**Settings is an icon, not a resident.** The deck `Settings` has no character, no
 display name beyond the deck name, and no station id or server key. It is a
 stylized bed icon in the crew icon language
 (see [`docs/ART-REQUESTS.md`](ART-REQUESTS.md) and
@@ -71,7 +71,7 @@ Evidence: `design/opendesign-exploration/station/real-data.js` L94–99,
 
 The three `*(proposed)*` rows are a naming proposal only — no code reads them
 yet, and whether these ids are correct is **UNKNOWN** until an implementation
-decision. `Quarters` is deliberately absent: it is an icon, not a resident.
+decision. `Settings` is deliberately absent: it is an icon, not a resident.
 
 The Station and the server are two stores that are **not synchronized**
 (`real-data.js` L94–98: the Station control saves in this browser, the server
@@ -85,7 +85,7 @@ keeps its own value). The mapping above is the translation, not a live sync.
 
 | Surface | Use |
 |---|---|
-| Human-facing copy, docs, chat, UI labels | Owner canon: **Renai**, **Ratatoskr**, **Bolt**, **Burrito Journalism**, **Personal World**, **Hekek**, **Bruma**, **Mira**. **Quarters** names the deck/icon, not a resident. |
+| Human-facing copy, docs, chat, UI labels | Owner canon: **Renai**, **Ratatoskr**, **Bolt**, **Burrito Journalism**, **Personal World**, **Hekek**, **Bruma**, **Mira**. **Settings** names the deck/icon, not a resident. |
 | Station code (`design/opendesign-exploration/station/`) | ids `mermaid`, `ratatoskr`, `robot`, `burrito` (proposed for the new area crew: `hekek`, `bruma`, `mira`) |
 | Server / preferences / API | keys `personal-world`, `mermaid`, `robot`, `world-tree-squirrel`, `taco-news-truck` (proposed for the new area crew: `hekek`, `bruma`, `mira`) |
 | Artwork / rig filenames | Keep the existing paths (`mermaid`, `robot`, `world-tree-squirrel`, `taco-news-truck`, `personal-world`). Never rename art to match a display name. |
@@ -137,7 +137,7 @@ an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
   area residents (2026-09-17). Their station ids / server keys are **proposed**
   as `hekek`, `bruma`, `mira` (exact binding), but no code, asset, or Station
   control reads them yet. Whether these ids are correct is **UNKNOWN** until an
-  owner/implementation decision. `Quarters` has no id — it is an icon, not a
+  owner/implementation decision. `Settings` has no id — it is an icon, not a
   resident.
 
 ---
