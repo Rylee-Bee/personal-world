@@ -1,0 +1,67 @@
+name: opencode
+
+# Comment-triggered OpenCode, running inside this repository's GitHub Actions
+# runner. Comment `/oc` or `/opencode` on an issue or PR comment.
+#
+# There is no `opencode github install` in OpenCode V2 (verified absent from
+# the v2.0.7 CLI), so this file is the supported install path. The upstream
+# documentation at https://opencode.ai/docs/github/ is version-independent:
+# the integration is this Action, not a CLI feature.
+#
+# Prerequisites before the first trigger fires:
+#   1. The OpenCode GitHub App is installed on this repository
+#      (https://github.com/apps/opencode-agent). Its installation token is
+#      obtained by exchanging this workflow's OIDC token, which is why the job
+#      requests `id-token: write` instead of using a checked-in token.
+#   2. The repository secret ALIBABA_TOKEN_PLAN_API_KEY is set
+#      (Settings -> Secrets and variables -> Actions).
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+concurrency:
+  group: opencode-${{ github.event.comment.id }}
+  cancel-in-progress: false
+
+jobs:
+  opencode:
+    if: |
+      contains(github.event.comment.body, '/oc') ||
+      contains(github.event.comment.body, '/opencode')
+    runs-on: ubuntu-latest
+    permissions:
+      # actions/checkout needs to read this repository.
+      contents: read
+      # Exchanged for the OpenCode App installation token. Adding this scope
+      # does not broaden what the App itself is allowed to do.
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@a97622c801f4ca571530ddc51076af659a9c32cd # v1.18.31
+        env:
+          ALIBABA_TOKEN_PLAN_API_KEY: ${{ secrets.ALIBABA_TOKEN_PLAN_API_KEY }}
+        with:
+          # `alibaba-token-plan` is a catalog provider: it resolves in a clean
+          # runner from this env var alone. The personal `bailian-cli` provider
+          # from the workstation's ~/.config/opencode config does NOT exist in
+          # CI (verified locally: "Model unavailable: bailian-cli/..."), so it
+          # is deliberately not referenced here. Both point at the same
+          # Alibaba Token Plan endpoint and the same model.
+          model: alibaba-token-plan/deepseek-v4.1-flash
+
+          # `agent` is intentionally omitted so it falls back to default_agent,
+          # then to "build". Set it to pin a single primary agent; one workflow
+          # run cannot fan out across several agents.
+          #
+          # Upstream defaults `share` to true for public repositories, which
+          # publishes the session transcript. Kept off on purpose.
+          share: false
