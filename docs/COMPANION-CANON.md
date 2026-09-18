@@ -5,6 +5,8 @@ Not a replacement for `design/COMPANION_INTEGRATION.md` (design/art authority),
 `docs/accessibility/ACCESSIBILITY_CONTRACT.md` (accessibility), or
 `docs/CREW-AND-STATION-THESIS.md` (the family thesis).
 
+**Who each resident is** — character and voice truth — is canonical in [`docs/CHARACTER-HANDBOOK.md`](CHARACTER-HANDBOOK.md); this file owns names and ids only.
+
 Two truths coexist and must not be silently merged:
 
 - **Owner canon is authoritative for the name a human reads and hears.**

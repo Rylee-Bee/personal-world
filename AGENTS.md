@@ -55,7 +55,9 @@ agent's WIP into its commit. The rules:
   historical, never edit it to change design.
   `design/COMPANION_INTEGRATION.md` is the current companion/chat
   architecture. Companion display names and the station-id ↔ server-key
-  mapping are canonical in `docs/COMPANION-CANON.md`.
+  mapping are canonical in `docs/COMPANION-CANON.md`. Character and voice
+  truth — who each resident is, the two voices, and the attention voices —
+  is canonical in `docs/CHARACTER-HANDBOOK.md`.
 - **Accessibility is non-negotiable and canonical at
   `docs/accessibility/ACCESSIBILITY_CONTRACT.md`.** Any UI change —
   screens, components, CSS, tokens — answers that contract first
