@@ -15,7 +15,7 @@ Station rooms and residents. Curated into `design/assets/station/`.
 | File | Deck | Notes |
 |---|---|---|
 | `engineeringbg.png` | Systems | Brass, pipes, amber light — Hekek's domain |
-| `vaultbg.png` | Backups | Warm library, lamplight, shelves — Bruma's domain |
+| `vaultbg.png` | Records | Warm library, lamplight, shelves — Bruma's domain |
 | `observeatorybg.png` | Interests | Night sky, instruments, huge windows — Mira's domain |
 | `quarters.png` | Settings | Bed, lamplight, quiet — the bed icon lives here |
 | `mediabg.png` | News | Media/news backdrop |
@@ -34,7 +34,7 @@ Station rooms and residents. Curated into `design/assets/station/`.
 | `ratatoskr.png` | Ratatoskr (Journal) | 2.4M |
 | `burrito.png` | Burrito Journalism (News) | 1.5M |
 | `hekek.png` | Hekek (Systems) | 1024×1536, 2.5M |
-| `bruma.png` | Bruma (Backups / standing in at Interests) | 1024×1536, 2.1M |
+| `bruma.png` | Bruma (Records / standing in at Interests) | 1024×1536, 2.1M |
 | `world.png` | Personal World (the core) | 1122×1402, 1.3M |
 | **mira.png** | Mira (Interests) | 1024×1536, alpha — delivered 2026-09-18 |
 

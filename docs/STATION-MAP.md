@@ -33,7 +33,7 @@ old names** (history is not rewritten); this is the mapping:
 | Archives | **Journal** | the Library |
 | Galley | **News** | the Food Court |
 | Observatory | **Interests** | the Constellation |
-| Vault | **Backups** | the Bank |
+| Vault | **Records** | the Bank |
 | Quarters | **Settings** | the Quiet Room |
 
 ---
@@ -41,7 +41,7 @@ old names** (history is not rewritten); this is the mapping:
 ## 1. The eight decks
 
 **Every name is a job, in plain words.** A deck is not a rank or a title — *Today*,
-*Projects*, *Backups* and the rest name the work that happens there. The deck plan
+*Projects*, *Records* and the rest name the work that happens there. The deck plan
 places the crew; it is not a hierarchy. This stays consistent with
 [`docs/CREW-AND-STATION-THESIS.md`](CREW-AND-STATION-THESIS.md) §1 (*no ranks and
 stations, no franchise framing*): these are job names, not crew roles, and carry no
@@ -55,7 +55,7 @@ borrowed franchise vocabulary.
 | **Journal** | Carrying knowledge between worlds; finding paths and connections across lore and memory | Journal / Memory | **Ratatoskr** |
 | **News** | Bringing the outside world home — news, stories, city life, at a wander-over pace | Media | **Burrito Journalism** |
 | **Interests** | Watching, note-taking, and noticing patterns before they are understood | Interests | **Mira** |
-| **Backups** | Careful preservation with provenance — remembering where things came from | Backups | **Bruma** |
+| **Records** | Careful preservation with provenance — remembering where things came from | Records | **Bruma** |
 | **Settings** | Rest, privacy, safety, quiet — and where your personalization options live | Settings / rest | **icon — no character** |
 
 The *Product area* column is a **proposed** deck → surface mapping, not owner
@@ -143,7 +143,7 @@ owner-described; the right column is the essence in the owner's words.
 | Journal | Memory / lore | the **Library** | a sci-fi library — *Voyager's* astrometrics, the Jedi archive |
 | News | News / hangout | the **Food Court** | where you go to eat, so the news and the neat things gather here too |
 | Interests | Interests | the **Constellation** | what the universe has in store — drill down by category, and it grows or shrinks with your current interest |
-| Backups | Backups / records | the **Bank** | a sci-fi bank and records keeping |
+| Records | Records / backups | the **Bank** | a sci-fi bank and records keeping |
 | Settings | Personalization | the **Quiet Room** | where personalization options live |
 
 The dialects are explored as concept pages in the showcase (packets 1–8, the
@@ -225,7 +225,7 @@ corridor vocabulary in the UI).
   in the Station or the server today. Whether the Station exposes decks as
   navigable areas is **UNKNOWN**.
 - **Product areas are proposed.** Which product surface each deck maps to
-  (Chat, Systems, Projects/Lab, Journal/Memory, Media, Interests, Backups,
+  (Chat, Systems, Projects/Lab, Journal/Memory, Media, Interests, Records,
   Settings) is a proposal recorded above; the owner spec names decks and
   residents, not surfaces.
 - **Three area residents are not in the repo.** Hekek, Bruma and Mira are owner

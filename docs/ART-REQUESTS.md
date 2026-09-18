@@ -71,7 +71,7 @@ SVGs are still outstanding. Paste the clause as-is when commissioning.
   Project Worlds navy-and-gold crew uniform as a practical astronomer's jacket,
   carrying notebooks and observing tools; she may forget the name, but remembers
   the shape of the pattern."
-- **Quarters** *(icon, not a character)* — "A simple stylized bed, pillow and
+- **Settings** *(icon, not a character)* — "A simple stylized bed, pillow and
   folded blanket in the Project Worlds navy-and-gold icon language, with a tiny
   optional celestial accent; calm, private and instantly readable at small
   sizes."
@@ -126,9 +126,9 @@ mostly implementation-ready assets, plus four undrawn areas.
 | Still missing | Why |
 |---|---|
 | ~~Mira transparent cutout~~ | ✅ DELIVERED 2026-09-18 — `design/owner/station/mira.png` (1024×1536, alpha), promoted to `design/assets/station/characters/mira.png`. Art request #21. |
-| ~~Bridge room background~~ | ✅ DELIVERED 2026-09-18 — `design/owner/station/bridgebg.png` (1672×941), promoted to `design/assets/station/backgrounds/bridgebg.png`. |
+| ~~Today room background~~ | ✅ DELIVERED 2026-09-18 — `design/owner/station/bridgebg.png` (1672×941), promoted to `design/assets/station/backgrounds/bridgebg.png`. |
 | **Vector / SVG for new crew** | The 2026-09-17 art set has PNGs; Hekek, Bruma, Mira need vector SVGs matching the existing `design/assets/crew/vector/` set. |
-| **Quarters SVG export** | ❌ MISSING — bed icon as vector + 16/32/48px PNGs (art request #28). |
+| **Settings SVG export** | ❌ MISSING — bed icon as vector + 16/32/48px PNGs (art request #28). |
 | **The six product states, labeled** | The sheets have "Six Key Poses"; the Station reacts to `REST · CURIOUS · ATTENTIVE · ENGAGED · PROTECTIVE · GIVING SPACE`. If those poses are not mapped to those, that is the one character gap. |
 
 **One-line ask:** cutouts + vector, the four areas, and the exported icon files
@@ -318,7 +318,7 @@ for: Interests, Projects, Journal, People, Media, Systems, Places.)
 
 Already delivered in `design/assets/crew/newchars.png`: turnarounds
 (front / ¾ / side / back), expression rows, the six labeled states, the combadge,
-and role detail insets — plus the **Quarters** bed-icon set with sizes.
+and role detail insets — plus the **Settings** bed-icon set with sizes.
 
 Still needed (one topic per request):
 
@@ -327,8 +327,8 @@ Still needed (one topic per request):
 | **Transparent cutouts** — one per character | The sheet is composite; the UI needs each isolated. |
 | **Vector SVGs** — Hekek, Bruma, Mira | Match `design/assets/crew/vector/` for crisp scaling. |
 | **Scale tests** (16→96 px) | Confirm each silhouette reads small. |
-| **New room art** — Engineering, Vault, Observatory, Quarters | The four new decks have no backdrop yet. |
-| **Quarters icon export** | 16/32/48 px PNGs + a vector SVG. |
+| **New room art** — Systems, Records, Interests, Settings | The four new decks have no backdrop yet. |
+| **Settings icon export** | 16/32/48 px PNGs + a vector SVG. |
 
 **19 · Transparent cutout — Hekek**
 
@@ -367,37 +367,37 @@ A scale test of each new character (Hekek, Bruma, Mira) at 16, 32, 48, 64 and 96
 labelled, so each silhouette reads small.
 ```
 
-**24 · Room art — Engineering (Hekek)**
+**24 · Room art — Systems (Hekek)**
 
 ```
-Wide (~16:9) room art for Engineering: heavy machinery, brass and pipes, a
+Wide (~16:9) room art for Systems: heavy machinery, brass and pipes, a
 workbench, warm amber light. Deep navy, no text.
 ```
 
-**25 · Room art — The Vault (Bruma)**
+**25 · Room art — Records (Bruma)**
 
 ```
-Wide (~16:9) room art for the Vault: a warm library of shelves, lamplight and
+Wide (~16:9) room art for Records: a warm library of shelves, lamplight and
 archive drawers. Preserved and cherished, never ominous. No text.
 ```
 
-**26 · Room art — The Observatory (Mira)**
+**26 · Room art — Interests (Mira)**
 
 ```
-Wide (~16:9) room art for the Observatory: brass instruments, star maps, a large
+Wide (~16:9) room art for Interests: brass instruments, star maps, a large
 telescope, huge night-sky windows. Deep navy, warm light, no text.
 ```
 
-**27 · Room art — Your Quarters**
+**27 · Room art — Settings**
 
 ```
-Wide (~16:9) room art for Quarters: a calm restful room — bed, lamplight, quiet and
+Wide (~16:9) room art for Settings: a calm restful room — bed, lamplight, quiet and
 private. Deep navy and warm gold, no text.
 ```
 
-**28 · Quarters bed icon export**
+**28 · Settings bed icon export**
 
 ```
-Export the Quarters bed icon as clean 16, 32 and 48 px PNGs plus a vector SVG, in
+Export the Settings bed icon as clean 16, 32 and 48 px PNGs plus a vector SVG, in
 the crew icon language (navy + warm gold, optional tiny crescent, no face).
 ```

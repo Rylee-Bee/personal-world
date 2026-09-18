@@ -16,8 +16,8 @@ Taco Truck / "Tacos & the Morning Paper" → **Burrito Journalism**;
 "Personal World" stays.
 
 **Area residents (owner canon 2026-09-17) extend the crew:** **Hekek**
-(Engineering), **Bruma** (The Vault) and **Mira** (The Observatory). Same crew,
-same uniform, different worlds — see §7–§9. **Quarters has no character**: it is
+(Systems), **Bruma** (Records) and **Mira** (Interests). Same crew,
+same uniform, different worlds — see §7–§9. **Settings has no character**: it is
 an icon, not a resident (see [`docs/STATION-MAP.md`](STATION-MAP.md)).
 
 > **This is the owner's own understanding, given in her words.** Quoted phrases
@@ -40,7 +40,7 @@ an icon, not a resident (see [`docs/STATION-MAP.md`](STATION-MAP.md)).
 | **Bruma** | Archivist · Keeper · Witness | Preservation without possessiveness; provenance, context, gentle memory |
 | **Mira** | Observer · Note-Taker · Pattern Seeker | Curiosity, noticing patterns, remembering the shape of an idea |
 
-**Quarters is not a character.** It is an icon — a stylized bed in the crew icon
+**Settings is not a character.** It is an icon — a stylized bed in the crew icon
 language — with no voice, no states, and no personality; rest · privacy · safety ·
 quiet.
 
@@ -122,7 +122,7 @@ this works."* Then it picks up a wrench.
 **Role.** It can make mistakes. It learns. It checks its work. It builds things.
 It shows you what it made. **Competence without omniscience.** *"Good Company"* is
 sneakily important — Robot doesn't have to constantly produce value; sometimes
-Robot can just be tinkering in Workshop while you're elsewhere.
+Robot can just be tinkering in Projects while you're elsewhere.
 
 | Do | Don't |
 |---|---|
@@ -181,9 +181,9 @@ waiting.** It doesn't need much dialogue. Maybe none.
 
 ## 7. Hekek
 
-**Engineering — Builder · Maintainer · Steward**
+**Systems — Builder · Maintainer · Steward**
 
-**Who he is.** A retired paladin dwarf who now looks after Engineering. He spent
+**Who he is.** A retired paladin dwarf who now looks after Systems. He spent
 enough of his life charging toward dramatic problems; these days he would rather
 keep the machinery healthy enough that dramatic problems never happen. He treats
 maintenance as a form of care. Practical, steady, protective, mildly gruff
@@ -228,10 +228,10 @@ dirty; warm amber engineering light.
 
 ## 8. Bruma
 
-**The Vault — Archivist · Keeper · Witness**
+**Records — Archivist · Keeper · Witness**
 
-**Who she is.** A polar bear librarian who tends the Vault. Large, soft-spoken,
-deliberate, reassuring. The Vault is not a dungeon and Bruma is not its guard;
+**Who she is.** A polar bear librarian who tends the Records. Large, soft-spoken,
+deliberate, reassuring. Records is not a dungeon and Bruma is not its guard;
 she is its librarian. She preserves things carefully, remembers where they came
 from, understands what belongs together, and respects whether something should be
 brought back into view. She does not treat old information as automatically true
@@ -270,19 +270,19 @@ motifs: bookplates, seals, labels, ribbons, constellation-like filing marks.
 |---|---|
 | Preserve carefully; remember where things came from. | Treat old information as automatically true because it was kept. |
 | Respect provenance, versions, context, privacy. | Read as a guard, warden, or dungeon keeper. |
-| Offer the original or the summary; look gently. | Make the Vault ominous or possessive. |
+| Offer the original or the summary; look gently. | Make Records ominous or possessive. |
 
 ---
 
 ## 9. Mira
 
-**The Observatory — Observer · Note-Taker · Pattern Seeker**
+**Interests — Observer · Note-Taker · Pattern Seeker**
 
-**Who she is.** A young woman working in the Observatory. Energy reminiscent of
+**Who she is.** A young woman who works on the Interests deck. Energy reminiscent of
 the capable young-investigator archetype — bright, curious, resourceful, always
 following another clue — but entirely her own Project Worlds character. She is a
 little forgetful: may forget the exact name of something, where she put a
-notebook, or why she walked across the Observatory. But she often remembers the
+notebook, or why she walked across the deck. But she often remembers the
 shape of an idea, the relationship between two things, or a tiny observation
 everyone else overlooked. Her forgetfulness should make her human and charming,
 never incompetent or foolish. She notices patterns before she necessarily knows
@@ -305,7 +305,7 @@ what they mean.
 | **ATTENTIVE** | Eye to telescope, notebook ready |
 | **ENGAGED** | Tracing a constellation or relationship between observations |
 | **PROTECTIVE** | Carefully shielding an instrument, record, or small companion while staying focused |
-| **GIVING SPACE** | Working quietly at a distant telescope while the Observatory remains calm |
+| **GIVING SPACE** | Working quietly at a distant telescope while Interests remains calm |
 
 **Visual design highlights.** Young woman astronomer/investigator; a distinct
 human silhouette from Renai and the non-human crew. Same navy crew uniform with
@@ -314,7 +314,7 @@ clearly visible; comfortable trousers or practical skirt/tunic. Small cross-body
 notebook satchel; multiple notebooks, index cards, bookmarks, pencils, folded
 star maps; telescope eyepiece, compact spyglass, or portable observing lens; hair
 clip / headband / star pins for silhouette. Slightly rumpled in an endearing
-"I was following an idea" way; the Observatory mixes brass instruments, star
+"I was following an idea" way; the Interests deck mixes brass instruments, star
 maps, lenses, soft displays and huge night-sky windows; a note tucked somewhere
 she forgot.
 
