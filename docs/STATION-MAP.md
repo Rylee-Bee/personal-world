@@ -78,7 +78,50 @@ first.* It extends it: nobody has to keep the shipped crew first, either.
 
 ---
 
-## 4. Open / UNKNOWN
+## 5. One world, eight dialects (owner direction, 2026-09-18)
+
+Owner direction (2026-09-18): the rooms should feel **distinct and purposeful** —
+each room may speak its own visual dialect — while **colours and theming stay
+consistent**. And the surfaces being replaced are **not abandoned wholesale**: a
+room should still read like the thing it replaces, the way a ship still has a
+bridge, an engineering room and a sickbay. Familiar roles are why a room is
+legible on day one.
+
+Three rules:
+
+1. **Familiar job, invented dialect.** Every deck keeps the plain job it already
+   has (§1 *Product area*). A dialect changes *how a room arranges its content*,
+   never *what the room is for*.
+2. **One palette, one floor.** All dialects share the same design tokens, the same
+   type ramp, the same component vocabulary, and the
+   [accessibility floor](accessibility/ACCESSIBILITY_CONTRACT.md). A dialect may
+   never add a colour, a size, or a gesture the other rooms do not have.
+3. **The dialect never hides the job.** Every room carries its name and a
+   plain-language job line, in the same place, in every dialect. A dialect is
+   dress over a legible function — never a puzzle, and never the only signal.
+
+### Proposed dialects
+
+★ = named directly by the owner (2026-09-18); the rest are proposals to react to.
+
+| Deck | Familiar role (kept) | Dialect (proposed) |
+|---|---|---|
+| Bridge | Chat / Today | the **Ring** — the station seen from outside |
+| Engineering | Systems | the **Loop Line** — routes, stops, service status |
+| Workshop | Projects / Lab | ★ the **Blueprint** — modules, leaders, a title block |
+| Archives | Journal / Memory | the **Ledger** — entries, datelines, rules |
+| Galley | Media / News | the **Postcard** — something written and sent to you |
+| Observatory | Interests | ★ the **Constellation** — clusters at rest, opened by moving toward them |
+| Vault | Backups / provenance | the **Shelves** — spines you pull; records with provenance |
+| Quarters | Settings / rest | the **Quiet Room** — deliberately plain; rest has no metaphor |
+
+The eight dialects are explored as concept pages in the showcase (packets 1–8 plus
+the Transmission and the Ring); they are **concepts, not implementation**. No
+dialect is wired into `src/` yet.
+
+---
+
+## 6. Open / UNKNOWN
 
 - **Deck names are owner canon; the implementation is not.** No deck plan exists
   in the Station or the server today. Whether the Station exposes decks as
