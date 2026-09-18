@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 620" role="img" aria-labelledby="title desc">
+<title id="title">Personal World</title><desc id="desc">Clean Project Worlds vector artwork. Pure SVG geometry; no embedded raster.</desc>
+<defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0a9"/><stop offset=".48" stop-color="#f2bb52"/><stop offset="1" stop-color="#d28a2c"/></linearGradient>
+<linearGradient id="tailIri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b4efff"/><stop offset=".34" stop-color="#d8c5ff"/><stop offset=".66" stop-color="#ffd0e0"/><stop offset="1" stop-color="#fff0bd"/></linearGradient>
+<linearGradient id="hairIri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb0c6"/><stop offset=".28" stop-color="#ffd3b0"/><stop offset=".56" stop-color="#b9eaff"/><stop offset=".8" stop-color="#d6baff"/><stop offset="1" stop-color="#ffb8d0"/></linearGradient><radialGradient id="planet" cx="35%" cy="28%" r="78%"><stop offset="0" stop-color="#d8fbff"/><stop offset=".45" stop-color="#72d0e5"/><stop offset="1" stop-color="#4c8ec8"/></radialGradient></defs>
+<g stroke="#0a1022" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="256" cy="356" r="152" fill="url(#planet)"/>
+<!-- land/clouds --> <path d="M155 273q55-54 112-18-3 31-39 39-20 28-70 13zM292 393q48-28 101 7-16 34-67 35-28 18-55-3zM156 430q35-24 71 0-20 36-67 21z" fill="#b8d79a" stroke="none"/><path d="M137 335q31-25 66-5t61-4M214 248q42-28 88 1M270 463q54-28 99 8" fill="none" stroke="#eefbff" stroke-width="14"/>
+<!-- ring back/front illusion --> <ellipse cx="256" cy="356" rx="230" ry="67" transform="rotate(-16 256 356)" fill="none" stroke="#0a1022" stroke-width="30"/><ellipse cx="256" cy="356" rx="230" ry="67" transform="rotate(-16 256 356)" fill="none" stroke="url(#gold)" stroke-width="18"/>
+<!-- face --> <path d="M200 356q18-23 36 0M276 356q18-23 36 0" fill="none" stroke="#392739" stroke-width="11"/><path d="M226 394q30 28 60 0" fill="#f19493" stroke="#6f3341" stroke-width="6"/><ellipse cx="190" cy="385" rx="22" ry="12" fill="#f2a0ad" stroke="none"/><ellipse cx="322" cy="385" rx="22" ry="12" fill="#f2a0ad" stroke="none"/>
+<!-- sparkles --> <path d="M89 193l8 20 20 8-20 8-8 20-8-20-20-8 20-8zM419 205l7 18 18 7-18 7-7 18-7-18-18-7 18-7zM422 488l9 22 22 9-22 9-9 22-9-22-22-9 22-9z" fill="url(#gold)"/>
+</g></svg>

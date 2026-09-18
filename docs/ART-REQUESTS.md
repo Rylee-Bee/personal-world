@@ -89,9 +89,9 @@ Everything below arrived in `design/owner/crew/newassets/` (owner drop, gitignor
 - **Pose sheets:** `renaipose`, `ratatoskrpose`, `boltpose`, `burritopose`.
 - **Emblem:** `badge.png`.
 
-Still to do (repo housekeeping, not art): promote these from the gitignored drop
-into the tracked `design/` set, and label which poses are the six product states.
-The table below is kept as the record of what was asked for.
+Still to do (repo housekeeping, not art): label which poses are the six product states.
+The asset set is now **tracked** in `design/assets/crew/` (promoted 2026-09-17 from the
+gitignored drop). The table below is kept as the record of what was asked for.
 
 Character work is **done** (see "What already exists" below). What remains is
 mostly implementation-ready assets, plus four undrawn areas.

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" role="img" aria-labelledby="title desc">
+<title id="title">Ratatoskr</title><desc id="desc">Clean Project Worlds vector artwork. Pure SVG geometry; no embedded raster.</desc>
+<defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0a9"/><stop offset=".48" stop-color="#f2bb52"/><stop offset="1" stop-color="#d28a2c"/></linearGradient>
+<linearGradient id="tailIri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b4efff"/><stop offset=".34" stop-color="#d8c5ff"/><stop offset=".66" stop-color="#ffd0e0"/><stop offset="1" stop-color="#fff0bd"/></linearGradient>
+<linearGradient id="hairIri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb0c6"/><stop offset=".28" stop-color="#ffd3b0"/><stop offset=".56" stop-color="#b9eaff"/><stop offset=".8" stop-color="#d6baff"/><stop offset="1" stop-color="#ffb8d0"/></linearGradient></defs>
+<g stroke="#0a1022" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+<path d="M102 192c-55 34-70 152-35 265 30 98 117 124 150 47-42-31-36-76-10-116 46-70 34-187-105-196z" fill="#c56e35"/><path d="M112 202c-35 44-41 132-12 212 17 47 55 70 83 54-31-39-22-84 5-128 29-48 8-121-76-138z" fill="#e99550" stroke="none"/>
+<!-- ears/head --> <path d="M187 163l-45-51 9 77zM324 163l45-51-9 77z" fill="#c97843"/><ellipse cx="256" cy="206" rx="92" ry="82" fill="#cf8250"/><path d="M192 218q64 46 128 0-12 76-64 76t-64-76z" fill="#fff0df" stroke="none"/><ellipse cx="224" cy="202" rx="11" ry="15" fill="#3b261d" stroke="none"/><ellipse cx="288" cy="202" rx="11" ry="15" fill="#3b261d" stroke="none"/><path d="M245 228q11 10 22 0" fill="none" stroke="#5a3026" stroke-width="5"/>
+<!-- cap --> <path d="M176 166q74-64 160 0l-11 28q-70-27-139 2z" fill="#4057b0"/><path d="M309 166q47 8 60 29-42 0-67-9z" fill="#4057b0"/><ellipse cx="256" cy="147" rx="16" ry="11" fill="url(#gold)"/>
+<!-- cape --> <path d="M165 315q-55 55-67 165 45-37 77-52 35 34 79 25l-7-122z" fill="#a882e8"/><path d="M347 315q55 55 67 165-45-37-77-52-35 34-79 25l7-122z" fill="#a882e8"/>
+<!-- body uniform --> <path d="M181 292q75-31 150 0l28 171q-102 48-206 0z" fill="#111a32"/><path d="M205 300l29 38h44l29-38" fill="none" stroke="url(#gold)" stroke-width="8"/>
+<!-- arms --> <path d="M178 339q-47 42-48 110l36 7q10-49 43-79M334 339q47 42 48 110l-36 7q-10-49-43-79" fill="#111a32"/>
+<!-- legs --> <path d="M193 451q-21 78-7 154l50 2 20-135 20 135 50-2q14-76-7-154z" fill="#111a32"/><path d="M184 598q-12 55 35 58 33 1 24-50zM328 598q12 55-35 58-33 1-24-50z" fill="#c97843"/>
+<!-- satchel --> <path d="M129 390q41-34 83-3l-8 111q-57 24-104-8z" fill="#75442f"/><path d="M144 406h53v17h-53z" fill="url(#gold)"/><path d="M144 388q44-91 138-94" fill="none" stroke="#75442f" stroke-width="14"/>
+<!-- badge --> <g transform="translate(299 326) scale(.23)"><ellipse cx="0" cy="0" rx="44" ry="44" fill="url(#gold)"/><ellipse cx="0" cy="0" rx="78" ry="22" transform="rotate(-18)" fill="none" stroke="url(#gold)" stroke-width="13"/></g>
+<!-- acorn --> <path d="M386 337q30 17 0 60-31-43 0-60z" fill="#b8742d"/><path d="M365 343q21-34 42 0z" fill="#6d3e24"/>
+</g></svg>
