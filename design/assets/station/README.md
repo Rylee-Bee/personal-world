@@ -23,7 +23,7 @@ Station rooms and residents. Curated into `design/assets/station/`.
 | `placesbg.png` | The Workshop | Places/projects backdrop |
 | `systemsbg.png` | *(old Systems)* | Historical — superseded by engineeringbg |
 | `bgstars1.png`, `bgstars2.png` | Any deck / starfield | Star backgrounds for decks without a dedicated room |
-| `bridgebg` | **MISSING** | The Bridge currently uses bgstars2 |
+| `bridgebg.png` | The Bridge | Delivered 2026-09-18 (1672×941) — lived-in station interior |
 
 ### Character cutouts (transparent)
 
@@ -36,7 +36,7 @@ Station rooms and residents. Curated into `design/assets/station/`.
 | `hekek.png` | Hekek (Engineering) | 1024×1536, 2.5M |
 | `bruma.png` | Bruma (Vault / standing in at Observatory) | 1024×1536, 2.1M |
 | `world.png` | Personal World (the core) | 1122×1402, 1.3M |
-| **mira.png** | **MISSING** | Observatory resident; art request #21 |
+| **mira.png** | Mira (Observatory) | 1024×1536, alpha — delivered 2026-09-18 |
 
 ### Pose sheets
 
@@ -67,10 +67,9 @@ All seven residents have pose sheets in `characters/poses/`:
 
 | Need | Status |
 |---|---|
-| **`mira.png`** (Observatory cutout) | Art request #21 — Observatory uses Bruma as a placeholder until delivered |
-| **Bridge room background** | Uses `bgstars2.png` as a starfield; a dedicated bridge scene would be ideal |
 | **Archives room background** | Uses `maproom.png`; a dedicated archives/shelves scene may be better |
 | **Quarters SVG export** | Bed icon as vector + 16/32/48px PNGs (art request #28) |
+| **Vector SVGs for new crew** | Hekek, Bruma, Mira need vector exports (art request #22) |
 
 ---
 
