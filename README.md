@@ -1,6 +1,6 @@
 # Project Worlds
 
-![The Project Worlds crew — Mermaid, Burrito Journalism, Ratataskor, Robot, and Personal World](design/screens/crew.png)
+![The Project Worlds crew together — Renai, Ratatoskr, Bolt, the Burrito Journalism truck, and Personal World — in matching uniforms beneath the book-leaf world-tree](design/screens/crew-scene-sept17.png)
 
 A personal operating environment. One core process with native
 capabilities, a gentle star-map frontend (the **Station**), and an AI
