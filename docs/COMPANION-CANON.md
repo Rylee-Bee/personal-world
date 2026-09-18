@@ -35,6 +35,13 @@ Where this file disagrees with repo evidence, the disagreement is recorded below
 "Origin (game / repo)" says where the character comes from, not that the repo
 already spells the name that way.
 
+**These are the default crew.** The residents above ship as the default set; which
+resident sits on which deck is a **setting** the user can change, including
+creating their own residents (see [`docs/STATION-MAP.md`](STATION-MAP.md) §3). The
+names, ids and server keys below stay canonical for the *default* crew; a
+user-created resident brings its own name and pack and never renames an existing
+id.
+
 **Quarters is an icon, not a resident.** The deck `Quarters` has no character, no
 display name beyond the deck name, and no station id or server key. It is a
 stylized bed icon in the crew icon language

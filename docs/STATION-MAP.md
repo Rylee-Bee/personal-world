@@ -50,7 +50,35 @@ Do not add `Quarters` as a companion, a station id, or a server key.
 
 ---
 
-## 3. Open / UNKNOWN
+## 3. The crew is the default — and it is a setting (owner canon, 2026-09-17)
+
+The residents in §1 are **the default crew**: they ship in the box, and they are
+also the owner's own crew. They are not the only possible crew.
+
+- **A deck is a job; a resident is who does it.** The **eight decks are fixed** —
+  they name the work (Bridge, Engineering, …). **Residents are assignable.**
+- **Which resident sits on a deck is a setting.** Anyone can create their own
+  resident and assign them to any deck — including Quarters, where the bed icon is
+  the default when nobody is assigned.
+- **A created resident is a resident pack** (name, role line, voice, art),
+  installed and uninstalled with provenance — the existing "a new identity is a
+  pack, not a one-off" mechanism
+  ([`docs/CREW-AND-STATION-THESIS.md`](CREW-AND-STATION-THESIS.md) §5).
+- By default **one resident per deck**; a resident may still *visit* another deck
+  as a temporary reaction, never a silent permanent move.
+- **The setting never touches the accessibility floor.** It is a product
+  preference alongside theme and companion — *not* a key in
+  [`docs/accessibility/PREFERENCES_SCHEMA.json`](accessibility/PREFERENCES_SCHEMA.json),
+  which is the comfort floor. No crew choice may remove a label, a control, or a
+  route to functionality; residency never carries critical information
+  (thesis §3.1).
+
+This does not weaken the thesis — *nobody has to become more like the others
+first.* It extends it: nobody has to keep the shipped crew first, either.
+
+---
+
+## 4. Open / UNKNOWN
 
 - **Deck names are owner canon; the implementation is not.** No deck plan exists
   in the Station or the server today. Whether the Station exposes decks as
@@ -63,4 +91,8 @@ Do not add `Quarters` as a companion, a station id, or a server key.
   canon (2026-09-17); their station ids / server keys (`hekek`, `bruma`, `mira`)
   are **proposed** and unread by any code or asset. See
   [`docs/COMPANION-CANON.md`](COMPANION-CANON.md).
-- **Quarters has no id.** It is an icon, not a resident.
+- **Quarters has no id.** It is an icon, not a resident — unless someone assigns
+  one to it (§3).
+- **Resident creation and assignment are a concept, not an implementation.** The
+  2026-09-17 concept in §3 says anyone may create residents and assign them to
+  decks; no creator, pack format, or assignment model exists in the code yet.
