@@ -37,6 +37,8 @@ Source: `design/COMPANION_INTEGRATION.md` L27–33.
 
 **Names:** display canon (Renai, Ratatoskr, Bolt, Burrito Journalism, Personal World) and the station-id ↔ server-key mapping live in [COMPANION-CANON.md](COMPANION-CANON.md).
 
+**Owner canon 2026-09-17 adds three area residents** — Hekek (Engineering), Bruma (Vault), Mira (Observatory) — and makes residents **assignable to decks**: the crew above is the *starter crew*, not the only possible one. See [STATION-MAP.md](STATION-MAP.md) §3 and [CHARACTER-HANDBOOK.md](CHARACTER-HANDBOOK.md). The five rigs in this table remain the original companion set.
+
 Sibling rules (same file, L35, L219–221): shared art direction, distinct silhouette; one companion per domain; a companion may *visit* another area only as a temporary reaction, never a permanent move.
 
 **Identity model — Personal Companion vs Contextual Character** (`COMPANION_INTEGRATION.md` L61–68). Separate concepts that coexist:
@@ -84,7 +86,7 @@ Read top-down; each layer is authoritative only for what it owns.
 - **Start from the thesis, then the frame.** Name which resident(s) and which identity (personal vs contextual) a change touches; if it cannot say, it is not ready to design.
 - **Never edit authority downward.** Composition from Figma, values from `design/tokens.json`, art from the canonical rigs — resolve gaps in canonical tokens or ask the owner, never by sampling a screenshot hex or tracing art.
 - **Design for companion-off and reduced motion first**, then add the delightful layer on top. If the screen only works with motion or the mascot, it fails.
-- **Reuse the five; do not invent a sixth.** A new identity is a pack/theme concern with provenance and install/uninstall, not a one-off character (`PLAY-NICE-CONFORMANCE.md`; `PRODUCT-VISION-HANDOFF.md` decision #21).
+- **Reuse the five; do not invent a sixth — *amended by owner, 2026-09-17*.** A new identity is still a **pack/theme concern with provenance and install/uninstall**, never a one-off character hard-coded into a screen (`PLAY-NICE-CONFORMANCE.md`; `PRODUCT-VISION-HANDOFF.md` decision #21). The owner concept of 2026-09-17 makes that path first-class: **the shipped crew is the default crew, and which resident takes which deck is a setting** — anyone may create their own residents and assign them to any deck ([STATION-MAP.md](STATION-MAP.md) §3). Creating new residents is now owner-sanctioned *through the pack mechanism*; inventing throwaway characters inside screens is still wrong.
 - **Record, don't silently resolve.** When the frame and the floor disagree, the floor wins and the conflict is written back as an owner-facing reservation (`.project/design/WORKSHOP-V3-MANIFEST.yaml` is the pattern).
 
 *Stated in-repo 2026-09-17. Sources cited above are authoritative within their own scope; this file is the single statement design work obeys.*
