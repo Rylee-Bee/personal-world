@@ -52,6 +52,33 @@ described in `docs/COMPANION-CANON.md`. Art direction: `design/COMPANION_INTEGRA
   Connection · Possibility**; the spirit of the place, not a chat personality; it
   expresses through light and constellations more than dialogue."
 
+**New area characters — one-line clauses (owner canon 2026-09-17).** Hekek,
+Bruma and Mira have **no art yet**: no rig, cutout, pose sheet, or vector exists
+in the repo. Paste the clause as-is when commissioning.
+
+- **Hekek** — "A retired paladin dwarf turned station engineer; Builder ·
+  Maintainer · Steward; broad, steady and practical, wearing the Project Worlds
+  navy-and-gold crew uniform adapted into a durable engineering coat and apron,
+  carrying well-used tools and subtle relics of his paladin life; maintenance as
+  care, repair over spectacle."
+- **Bruma** — "A gentle polar bear librarian who tends the Vault; Archivist ·
+  Keeper · Witness; large, calm and reassuring, wearing the Project Worlds
+  navy-and-gold crew uniform as a warm librarian mantle, surrounded by carefully
+  kept books, provenance cards, archive ribbons and lamplight; preservation
+  without possessiveness."
+- **Mira** — "A bright, slightly forgetful young Observatory investigator;
+  Observer · Note-Taker · Pattern Seeker; curious and capable, wearing the
+  Project Worlds navy-and-gold crew uniform as a practical astronomer's jacket,
+  carrying notebooks and observing tools; she may forget the name, but remembers
+  the shape of the pattern."
+- **Quarters** *(icon, not a character)* — "A simple stylized bed, pillow and
+  folded blanket in the Project Worlds navy-and-gold icon language, with a tiny
+  optional celestial accent; calm, private and instantly readable at small
+  sizes."
+
+> **Set rule:** Same crew, same uniform, different worlds — cute but competent,
+> warm painterly light, and a distinct silhouette for each.
+
 ## 4. Format to ask for (so the result is usable)
 
 - Transparent-background PNG cutouts **plus** the flat sheet.

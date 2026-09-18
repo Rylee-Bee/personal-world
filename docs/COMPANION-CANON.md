@@ -28,9 +28,18 @@ Where this file disagrees with repo evidence, the disagreement is recorded below
 | **Bolt** | Lab / development / AI helper ("Little Helper Robot") | Repo design (`design/COMPANION_INTEGRATION.md`); personal name chosen by the owner, 2026-09-17 | `robot` | `robot` |
 | **Burrito Journalism** | Journalism / stories / city life — a **breakfast burrito truck** | **Burrito Journalism** (owner game). Repo design label: "Tacos & the Morning Paper" | `burrito` | `taco-news-truck` |
 | **Personal World** | Default system companion | Repo product identity | *(none — absent from the Station control)* | `personal-world` |
+| **Hekek** | Engineering — Builder · Maintainer · Steward | Owner canon 2026-09-17. **New area character, not in the repo today** | `hekek` *(proposed)* | `hekek` *(proposed)* |
+| **Bruma** | The Vault — Archivist · Keeper · Witness | Owner canon 2026-09-17. **New area character, not in the repo today** | `bruma` *(proposed)* | `bruma` *(proposed)* |
+| **Mira** | The Observatory — Observer · Note-Taker · Pattern Seeker | Owner canon 2026-09-17. **New area character, not in the repo today** | `mira` *(proposed)* | `mira` *(proposed)* |
 
 "Origin (game / repo)" says where the character comes from, not that the repo
 already spells the name that way.
+
+**Quarters is an icon, not a resident.** The deck `Quarters` has no character, no
+display name beyond the deck name, and no station id or server key. It is a
+stylized bed icon in the crew icon language
+(see [`docs/ART-REQUESTS.md`](ART-REQUESTS.md) and
+[`docs/STATION-MAP.md`](STATION-MAP.md)); do not add it as a companion.
 
 ---
 
@@ -49,6 +58,13 @@ Evidence: `design/opendesign-exploration/station/real-data.js` L94–99,
 | `robot` | `robot` | exact | Display: **Bolt** ("Little Helper Robot"). |
 | `burrito` | `taco-news-truck` | renamed | Station id is the game name; server key is the descriptor. |
 | *(absent)* | `personal-world` | server-only | Default value and floor of the companion preference; the Station control offers only the four above. |
+| `hekek` *(proposed)* | `hekek` *(proposed)* | exact | **Not in the Station control or server today.** Display canon: **Hekek**. New area character, owner canon 2026-09-17. |
+| `bruma` *(proposed)* | `bruma` *(proposed)* | exact | **Not in the Station control or server today.** Display canon: **Bruma**. New area character, owner canon 2026-09-17. |
+| `mira` *(proposed)* | `mira` *(proposed)* | exact | **Not in the Station control or server today.** Display canon: **Mira**. New area character, owner canon 2026-09-17. |
+
+The three `*(proposed)*` rows are a naming proposal only — no code reads them
+yet, and whether these ids are correct is **UNKNOWN** until an implementation
+decision. `Quarters` is deliberately absent: it is an icon, not a resident.
 
 The Station and the server are two stores that are **not synchronized**
 (`real-data.js` L94–98: the Station control saves in this browser, the server
@@ -62,9 +78,9 @@ keeps its own value). The mapping above is the translation, not a live sync.
 
 | Surface | Use |
 |---|---|
-| Human-facing copy, docs, chat, UI labels | Owner canon: **Renai**, **Ratatoskr**, **Bolt**, **Burrito Journalism**, **Personal World** |
-| Station code (`design/opendesign-exploration/station/`) | ids `mermaid`, `ratatoskr`, `robot`, `burrito` |
-| Server / preferences / API | keys `personal-world`, `mermaid`, `robot`, `world-tree-squirrel`, `taco-news-truck` |
+| Human-facing copy, docs, chat, UI labels | Owner canon: **Renai**, **Ratatoskr**, **Bolt**, **Burrito Journalism**, **Personal World**, **Hekek**, **Bruma**, **Mira**. **Quarters** names the deck/icon, not a resident. |
+| Station code (`design/opendesign-exploration/station/`) | ids `mermaid`, `ratatoskr`, `robot`, `burrito` (proposed for the new area crew: `hekek`, `bruma`, `mira`) |
+| Server / preferences / API | keys `personal-world`, `mermaid`, `robot`, `world-tree-squirrel`, `taco-news-truck` (proposed for the new area crew: `hekek`, `bruma`, `mira`) |
 | Artwork / rig filenames | Keep the existing paths (`mermaid`, `robot`, `world-tree-squirrel`, `taco-news-truck`, `personal-world`). Never rename art to match a display name. |
 
 **What each must never be confused with**
@@ -110,6 +126,12 @@ an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
   Station should expose it is UNKNOWN.
 - **"Tacos & the Morning Paper" retirement date UNKNOWN.** Reconcile to Burrito
   Journalism; when the repo label is retired is not yet decided.
+- **Hekek, Bruma, Mira — ids proposed, not implemented.** Owner canon adds three
+  area residents (2026-09-17). Their station ids / server keys are **proposed**
+  as `hekek`, `bruma`, `mira` (exact binding), but no code, asset, or Station
+  control reads them yet. Whether these ids are correct is **UNKNOWN** until an
+  owner/implementation decision. `Quarters` has no id — it is an icon, not a
+  resident.
 
 ---
 
@@ -132,4 +154,6 @@ Recorded by `rg -i 'renai|ratatoskr|world-tree|tacos & the morning paper|burrito
   server keys and art filename. Correct — identifiers are not renamed.
 
 Names below remain **UNKNOWN** in the repo: **Renai** (absent from copy; the id
-stays `mermaid`). **Bolt** is now canon (owner-stated 2026-09-17).
+stays `mermaid`), and the new area crew **Hekek**, **Bruma**, **Mira** (owner
+canon 2026-09-17; no repo copy or id yet). **Bolt** is now canon (owner-stated
+2026-09-17).
