@@ -15,6 +15,27 @@ Mermaid → **Renai**; Little Robot / Robot → **Bolt**;
 Taco Truck / "Tacos & the Morning Paper" → **Burrito Journalism**;
 "Personal World" stays.
 
+> **Pronoun canon (owner-stated 2026-09-18 — this supersedes the prose below).**
+>
+> | Character | Pronouns |
+> |---|---|
+> | Renai | she/her |
+> | Ratatoskr | he/him |
+> | **Bolt** | *none* — **Bolt is just Bolt.** Write the name, not he/she/they/it |
+> | Scoop *(the burrito truck; "Burrito Journalism" below)* | they/them |
+> | Solace *(the planet; "Personal World" below)* | it/they |
+> | **Hekek** | **he/them** — mixed, deliberately |
+> | Bruma | she/her |
+> | **Mira** | **she/him** — mixed, deliberately |
+>
+> The §4/§7/§9 headings below still read "Who he is" / "Who she is" and were
+> written 2026-09-17. They are left as the owner's original words; **use the
+> table above when writing new copy.** Mixed pronouns are not a typo — vary them
+> naturally and never correct one to the other.
+>
+> Name authority now lives in
+> `~/code/Rylee-Bee/media_files/MEDIA_INDEX.md` § Pronouns and § Alias map.
+
 **Area residents (owner canon 2026-09-17) extend the crew:** **Hekek**
 (Systems), **Bruma** (Records) and **Mira** (Interests). Same crew,
 same uniform, different worlds — see §7–§9. **Settings has no character**: it is
