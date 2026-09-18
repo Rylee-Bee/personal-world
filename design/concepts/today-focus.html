@@ -250,7 +250,33 @@
   .overlay{position:absolute;right:18px;top:18px;bottom:18px;width:min(470px,92%);z-index:7;overflow:auto;
     border:1px solid color-mix(in srgb,var(--teal) 45%,transparent);border-radius:4px;padding:18px 20px 16px;
     background:linear-gradient(180deg,color-mix(in srgb,var(--teal) 7%,transparent),transparent 32%),rgba(6,10,14,.92);
-    box-shadow:0 0 0 1px rgba(0,0,0,.5),0 30px 70px rgba(0,0,0,.72),0 0 64px -14px color-mix(in srgb,var(--teal) 65%,transparent)}
+    box-shadow:0 0 0 1px rgba(0,0,0,.5),0 30px 70px rgba(0,0,0,.72),0 0 64px -14px color-mix(in srgb,var(--teal) 65%,transparent);
+    visibility:hidden;opacity:0;clip-path:inset(0 0 100% 0);pointer-events:none}
+  .overlay.open{visibility:visible;opacity:1;clip-path:inset(0);pointer-events:auto}
+  /* the rod leads the unroll */
+  .rod{position:absolute;left:10px;right:10px;top:0;height:5px;border-radius:3px;z-index:2;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.9}
+  /* a soft spill of light below the rod */
+  .rod::after{content:"";position:absolute;left:-8px;right:-8px;top:100%;height:14px;border-radius:2px;pointer-events:none;
+    background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 45%,transparent),transparent);opacity:.25}
+  /* a highlight that scans along the rod */
+  .rod::before{content:"";position:absolute;top:-1px;bottom:-1px;width:26%;left:-30%;border-radius:3px;opacity:0;pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent)}
+  @media (prefers-reduced-motion: no-preference){
+    .overlay{transition:clip-path .58s cubic-bezier(.2,.8,.25,1),opacity .3s ease,visibility 0s linear .58s}
+    .overlay.open{transition:clip-path .58s cubic-bezier(.2,.8,.25,1),opacity .3s ease,visibility 0s}
+    /* the rod pulses: a bright bloom as it pops out, then a slow breath while it is open */
+    .overlay.open .rod{animation:rodIn .8s ease-out, rodBreathe 3.8s ease-in-out .8s infinite}
+    .overlay.open .rod::after{animation:spill 3.8s ease-in-out infinite}
+    @keyframes rodIn{0%{box-shadow:0 0 0 0 rgba(216,185,120,0);opacity:.45}
+      38%{box-shadow:0 0 28px 3px rgba(216,185,120,.85);opacity:1}
+      100%{box-shadow:0 0 12px 0 rgba(216,185,120,.45);opacity:.9}}
+    @keyframes rodBreathe{0%,100%{box-shadow:0 0 10px 0 rgba(216,185,120,.35);opacity:.85}
+      50%{box-shadow:0 0 22px 3px rgba(216,185,120,.75);opacity:1}}
+    @keyframes spill{0%,100%{opacity:.18}50%{opacity:.42}}
+    .overlay.open .rod::before{animation:sweep 2.8s cubic-bezier(.45,0,.25,1) infinite}
+    @keyframes sweep{0%{left:-30%;opacity:0}10%{opacity:1}86%{opacity:1}100%{left:104%;opacity:0}}
+  }
   .overlay::before{content:"";position:absolute;inset:0;pointer-events:none;
     background-image:linear-gradient(rgba(143,201,194,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(143,201,194,.06) 1px,transparent 1px);background-size:26px 26px}
   .overlay::after{content:"";position:absolute;inset:6px;pointer-events:none;--brk:color-mix(in srgb,var(--teal) 70%,transparent);
@@ -311,35 +337,40 @@
       <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 14.5l5-5"/><path d="M8 12l-1.8 1.8a3.6 3.6 0 0 0 5 5L13 17"/><path d="M16 12l1.8-1.8a3.6 3.6 0 0 0-5-5L11 7"/></svg></span><span class="chip"><b>New connections</b> &middot; memory</span>
     </button>
 
-    <section class="overlay" id="ov-med" hidden tabindex="-1" style="--c:#d8b978" aria-labelledby="ov-med-h">
+    <section class="overlay" id="ov-med" tabindex="-1" style="--c:#d8b978" aria-labelledby="ov-med-h">
+      <span class="rod" aria-hidden="true"></span>
       <div class="ohead"><svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg><span class="kind">Focus &middot; Renai&rsquo;s badge</span><button class="closer" type="button">Close</button></div>
       <div class="subj"><span class="big" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.2" y="9" width="17.6" height="6" rx="3" transform="rotate(-30 12 12)"/><path d="M9.3 7.6l7.4 8.8"/></svg></span><div><h2 id="ov-med-h">Medicine</h2><p class="osub">due 20:00 &middot; from your own list</p></div></div>
       <p class="note">Take it with water. It stays here until you mark it done &mdash; it will not nag, and it will not disappear.</p>
       <p class="voice">&ldquo;It is on your list because you put it there.&rdquo; &mdash; nobody has to remind you but you.</p>
 <div class="actions"><button type="button" class="btn" data-done aria-pressed="false">Mark done</button></div>
     </section>
-    <section class="overlay" id="ov-sys" hidden tabindex="-1" style="--c:#d9a76b" aria-labelledby="ov-sys-h">
+    <section class="overlay" id="ov-sys" tabindex="-1" style="--c:#d9a76b" aria-labelledby="ov-sys-h">
+      <span class="rod" aria-hidden="true"></span>
       <div class="ohead"><svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg><span class="kind">Focus &middot; Renai&rsquo;s badge</span><button class="closer" type="button">Close</button></div>
       <div class="subj"><span class="big" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v6M15 3v6"/><path d="M6 9h12v3.5a6 6 0 0 1-12 0z"/><path d="M12 18.5V21"/></svg></span><div><h2 id="ov-sys-h">A connection is down</h2><p class="osub">12 min ago &middot; Systems</p></div></div>
       <p class="note">One of two connections. The other is fine and carrying the load, so nothing is lost while it is mended.</p>
       <p class="voice">&ldquo;I&rsquo;m already on it. Nothing for you to do.&rdquo; <b>&mdash; Hekek</b></p>
 <div class="actions"><button type="button" class="btn" data-why>See the details</button></div>
     </section>
-    <section class="overlay" id="ov-note" hidden tabindex="-1" style="--c:#8a9fc9" aria-labelledby="ov-note-h">
+    <section class="overlay" id="ov-note" tabindex="-1" style="--c:#8a9fc9" aria-labelledby="ov-note-h">
+      <span class="rod" aria-hidden="true"></span>
       <div class="ohead"><svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg><span class="kind">Focus &middot; Renai&rsquo;s badge</span><button class="closer" type="button">Close</button></div>
       <div class="subj"><span class="big" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M4 7.2l8 6 8-6"/></svg></span><div><h2 id="ov-note-h">A note to read</h2><p class="osub">3 h ago &middot; left for you</p></div></div>
       <p class="note">Three signals, same region. I have not named it yet.</p>
       <p class="voice">&ldquo;I wanted you to see it before I did.&rdquo; <b>&mdash; Mira</b></p>
 
     </section>
-    <section class="overlay" id="ov-rec" hidden tabindex="-1" style="--c:#9c8fb0" aria-labelledby="ov-rec-h">
+    <section class="overlay" id="ov-rec" tabindex="-1" style="--c:#9c8fb0" aria-labelledby="ov-rec-h">
+      <span class="rod" aria-hidden="true"></span>
       <div class="ohead"><svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg><span class="kind">Focus &middot; Renai&rsquo;s badge</span><button class="closer" type="button">Close</button></div>
       <div class="subj"><span class="big" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><circle cx="12" cy="14" r="3.1"/></svg></span><div><h2 id="ov-rec-h">Records filed</h2><p class="osub">4 min ago &middot; Records</p></div></div>
       <p class="note">This week&rsquo;s records are filed and stamped. Nothing was lost.</p>
       <p class="voice">&ldquo;I&rsquo;ll keep this safe for you!&rdquo; <b>&mdash; Bruma</b></p>
 
     </section>
-    <section class="overlay" id="ov-link" hidden tabindex="-1" style="--c:#b39a63" aria-labelledby="ov-link-h">
+    <section class="overlay" id="ov-link" tabindex="-1" style="--c:#b39a63" aria-labelledby="ov-link-h">
+      <span class="rod" aria-hidden="true"></span>
       <div class="ohead"><svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg><span class="kind">Focus &middot; Renai&rsquo;s badge</span><button class="closer" type="button">Close</button></div>
       <div class="subj"><span class="big" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 14.5l5-5"/><path d="M8 12l-1.8 1.8a3.6 3.6 0 0 0 5 5L13 17"/><path d="M16 12l1.8-1.8a3.6 3.6 0 0 0-5-5L11 7"/></svg></span><div><h2 id="ov-link-h">New connections</h2><p class="osub">2 found today &middot; memory</p></div></div>
       <p class="note">Two things you wrote about in March connect to the note you saved this morning. Neither is urgent; both are worth a look.</p>
@@ -360,23 +391,23 @@
   function say(m) { if (status) status.textContent = m; }
   var btns = Array.prototype.slice.call(document.querySelectorAll('[data-open]'));
   function closeAll(except) {
-    Array.prototype.forEach.call(document.querySelectorAll('.overlay'), function (o) { if (o !== except) o.hidden = true; });
+    Array.prototype.forEach.call(document.querySelectorAll('.overlay'), function (o) { if (o !== except) o.classList.remove('open'); });
     btns.forEach(function (b) { if (!except || b.getAttribute('aria-controls') !== except.id) b.setAttribute('aria-expanded','false'); });
   }
   btns.forEach(function (b) {
     b.addEventListener('click', function () {
       var o = document.getElementById(b.getAttribute('aria-controls'));
-      if (o.hidden) { closeAll(o); o.hidden=false; b.setAttribute('aria-expanded','true'); o.focus(); say(b.querySelector('.chip').textContent.replace(/\s+/g,' ').trim()+' — opened.'); }
-      else { o.hidden=true; b.setAttribute('aria-expanded','false'); b.focus(); say('Closed.'); }
+      if (!o.classList.contains('open')) { closeAll(o); o.classList.add('open'); b.setAttribute('aria-expanded','true'); o.focus(); say(b.querySelector('.chip').textContent.replace(/\s+/g,' ').trim()+' — opened.'); }
+      else { o.classList.remove('open'); b.setAttribute('aria-expanded','false'); b.focus(); say('Closed.'); }
     });
   });
   Array.prototype.forEach.call(document.querySelectorAll('.closer'), function (c) {
     c.addEventListener('click', function () { var o=c.closest('.overlay'), b=document.querySelector('[aria-controls="'+o.id+'"]');
-      o.hidden=true; if(b){b.setAttribute('aria-expanded','false');b.focus();} say('Closed.'); });
+      o.classList.remove('open'); if(b){b.setAttribute('aria-expanded','false');b.focus();} say('Closed.'); });
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape') return; var o=document.querySelector('.overlay:not([hidden])'); if(!o) return;
-    var b=document.querySelector('[aria-controls="'+o.id+'"]'); o.hidden=true; if(b){b.setAttribute('aria-expanded','false');b.focus();} say('Closed.');
+    if (e.key !== 'Escape') return; var o=document.querySelector('.overlay.open'); if(!o) return;
+    var b=document.querySelector('[aria-controls="'+o.id+'"]'); o.classList.remove('open'); if(b){b.setAttribute('aria-expanded','false');b.focus();} say('Closed.');
   });
   Array.prototype.forEach.call(document.querySelectorAll('[data-done]'), function (b) {
     b.addEventListener('click', function () { var on=b.getAttribute('aria-pressed')!=='true';
