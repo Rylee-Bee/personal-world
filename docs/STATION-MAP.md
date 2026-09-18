@@ -261,6 +261,14 @@ floor — they extend them):
    labels, same contrast, same motion rules hold. A handmade tool is still an
    accessible tool.
 
+**The technical layer is also the maker's choice.** The *lived* surface stays in
+the maker's medium; the **technical** layer — the overlay, the scan, the readouts —
+is the instrument that maker reaches for, and it *clashes on purpose* with the
+surface. **Renai's technical layer is the comm-badge Focus**: the small badge she
+wears projects a Horizon-style lens (reticles, tags, wireframe readouts, scanning)
+over a written world. The other makers' technical layers are **deliberately
+undecided** — we find each one when we build the room.
+
 **Copy guard.** The vocabulary is ours (see §5): no borrowed ship, deck or corridor
 words, and no "beep".
 
