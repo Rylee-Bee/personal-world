@@ -219,7 +219,58 @@ corridor vocabulary in the UI).
 
 ---
 
-## 6. Open / UNKNOWN
+## 6. Storyteller sci-fi — everyone builds their own tools (owner direction, 2026-09-18)
+
+Owner direction (2026-09-18): *"what if sci-fi was written by storytellers, and kept
+a strong tradition of vocal and written language, instead of just tiny screen alerts
+and beeps and boops?"* And: *"what would the tech be like if Renai made it and used
+it every day… hers would be different than the others."*
+
+**The thesis.** This is a literate, oral culture that went to space. Its technology
+is **written and spoken before it is displayed**: language first, light second,
+sound never as a beep. Nothing pings. What arrives is **told, or it is written** —
+and never a chime.
+
+**Everyone builds their own tools.** The resident of a deck doesn't just use it —
+they *make* it, in the medium of their own nature. So the dialect (§4) is not a
+skin: it is the maker's **native language**, and the instrument is shaped by who
+built it. A visitor recognises the maker by the tool.
+
+| Deck | Resident | Their medium — the tool they'd build |
+|---|---|---|
+| Today | **Renai** | **letters & the telling** — correspondence, spoken aloud on request, marginalia in her hand |
+| Systems | **Hekek** | **brass instruments** — engraved gauges and dials; maintenance felt as a reading, not a log |
+| Projects | **Bolt** | **the bench** — chalk, jigs and pinned drawings; tinkering you can pick up |
+| Journal | **Ratatoskr** | **threads & knots** — memory tied, not filed; a story is a cord you follow |
+| News | **Burrito Journalism** | **the broadsheet** — printed pages and a market stall; stories traded, not fed |
+| Interests | **Mira** | **field notebooks & star-charts** — sketches, observations, a thing not yet named |
+| Records | **Bruma** | **the ledger & the shelf** — record slips, stamps, a place for everything |
+| Settings | *(none — an icon)* | **the plain room** — deliberately unadorned; rest needs no instrument |
+
+**Rules for a maker's instrument** (they do not override §4–§5 or the accessibility
+floor — they extend them):
+
+1. **Language first.** Every arrival has words. Voice is an *option on top of text*,
+   never a replacement — a person who cannot hear loses nothing.
+2. **Nothing pings.** Status is stated or written. No chimes, no beeps, no red
+   badges. Urgency is carried by plain words, not by sound or colour.
+3. **The maker's hand is visible.** The resident's medium shows in the form itself
+   (a letter, a gauge, a thread) — so you can tell whose room you are in by the
+   instrument, before you read a label.
+4. **Same floor underneath.** Whatever the medium, the same 44&nbsp;px targets, same
+   labels, same contrast, same motion rules hold. A handmade tool is still an
+   accessible tool.
+
+**Copy guard.** The vocabulary is ours (see §5): no borrowed ship, deck or corridor
+words, and no "beep".
+
+> §1–§5 are the map, the dialects and the wayfinding rules; this section is the
+> *culture* that explains why the tools look like that. Exploration only — nothing
+> here is wired into `src/` yet.
+
+---
+
+## 7. Open / UNKNOWN
 
 - **Deck names are owner canon; the implementation is not.** No deck plan exists
   in the Station or the server today. Whether the Station exposes decks as
