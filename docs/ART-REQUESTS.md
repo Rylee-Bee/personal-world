@@ -107,3 +107,162 @@ mostly implementation-ready assets, plus four undrawn areas.
 
 Owner drops live in `design/owner/crew/` (gitignored); curated pieces are promoted
 to `design/screens/`.
+
+---
+
+## 8. Copy-paste requests (one topic each)
+
+### Prefix — paste this under every request below
+
+> **Style:** match the Project Worlds crew sheet — the same dark uniform with gold
+> trim and the shared **planet combadge**; pastel-to-saturated palette; crisp dark
+> outlines; large expressive eyes; rosy cheeks; sparkle accents; warm painterly
+> light on a deep navy field; **cute but competent** (not infantilised). Keep it
+> consistent with the existing crew art. No text in the image.
+
+---
+
+**1 · Transparent cutout — Renai**
+
+```
+Give me one transparent-background PNG of Renai (the mermaid), full body, front
+view, completely isolated — no background, no panel, no drop shadow. She wears the
+crew uniform with the planet combadge.
+```
+
+**2 · Transparent cutout — Ratatoskr**
+
+```
+Give me one transparent-background PNG of Ratatoskr (the Norse messenger squirrel:
+cap, cloak, satchel, acorn), full body, front view, completely isolated — no
+background, no panel, no drop shadow. Same uniform and combadge.
+```
+
+**3 · Transparent cutout — Bolt**
+
+```
+Give me one transparent-background PNG of Bolt (the little helper robot), full
+body, front view, completely isolated — no background, no panel, no drop shadow.
+Same uniform and combadge.
+```
+
+**4 · Transparent cutout — Burrito Journalism**
+
+```
+Give me one transparent-background PNG of the Burrito Journalism truck, side view,
+completely isolated — no background, no panel, no drop shadow. Same uniform/marking
+language as the crew.
+```
+
+**5 · Transparent cutout — Personal World**
+
+```
+Give me one transparent-background PNG of Personal World (the smiling ringed
+planet), completely isolated — no background, no panel, no drop shadow. Same
+combadge/emblem language.
+```
+
+**6 · Six labeled states — Renai**
+
+```
+One reference sheet of Renai in six separated, captioned poses — REST (quietly
+here), CURIOUS (something caught my attention), ATTENTIVE (I'll keep watch),
+ENGAGED (how can I help), PROTECTIVE (keeping watch), GIVING SPACE (quietly
+present). Caption each pose with its state name. (Captions are fine on this
+reference sheet.)
+```
+
+**7 · Six labeled states — Ratatoskr**
+
+```
+One reference sheet of Ratatoskr in the same six captioned states: REST, CURIOUS,
+ATTENTIVE, ENGAGED, PROTECTIVE, GIVING SPACE. Caption each pose. (Captions fine
+here.)
+```
+
+**8 · Six labeled states — Bolt**
+
+```
+One reference sheet of Bolt in the same six captioned states: REST, CURIOUS,
+ATTENTIVE, ENGAGED, PROTECTIVE, GIVING SPACE. Caption each pose. (Captions fine
+here.)
+```
+
+**9 · Six labeled states — Burrito Journalism**
+
+```
+One reference sheet of the Burrito Journalism truck in the same six captioned
+states: REST, CURIOUS, ATTENTIVE, ENGAGED, PROTECTIVE, GIVING SPACE (e.g. parked,
+noticing, watching, serving, protecting, quietly idle). Caption each pose.
+```
+
+**10 · Six labeled states — Personal World**
+
+```
+One reference sheet of Personal World in the same six captioned states: REST,
+CURIOUS, ATTENTIVE, ENGAGED, PROTECTIVE, GIVING SPACE (expressed through light,
+orbit speed and atmosphere rather than a face change). Caption each pose.
+```
+
+**11 · Vector / SVG export**
+
+```
+Convert the existing crew sheets into clean SVG: one file per character (Renai,
+Ratatoskr, Bolt, Burrito Journalism, Personal World) and one for the planet
+emblem. Keep the exact same design, colours and combadge; no embedded raster.
+```
+
+**12 · App icon + favicon set**
+
+```
+From the crew emblem (the planet combadge), produce an app-icon set: 1024, 512,
+256, 192, 180, 152, 120, 64, 32 and 16 px PNGs, plus one multi-size .ico. Centred,
+clean, on the deep navy field, no text.
+```
+
+**13 · Attention-voice marks (a set of three)**
+
+```
+Three small, simple transparent marks for the attention voices: GOOD NEWS (a
+sparkle/star), A SMALL UPDATE (a soft dot or page), WHEN YOU'RE READY (a small
+lantern — a gentle "waiting" mark). Minimal, one or two palette colours, no text.
+```
+
+**14 · Area art — People**
+
+```
+Wide scene art (~16:9) for the "People" area of the world: a warm, inhabited space
+where the people in your life appear as gentle presences and constellations. Deep
+navy, warm light, quiet, no text, no UI chrome.
+```
+
+**15 · Area art — Media**
+
+```
+Wide scene art (~16:9) for the "Media" area: a cosy den of screens, shelves and a
+small lit screen — where what you watch and read lives. Deep navy, warm light, no
+text, no UI chrome.
+```
+
+**16 · Area art — Systems**
+
+```
+Wide scene art (~16:9) for the "Systems" area: the quiet engine room — soft
+machinery, gauges and lights that read as "everything is running". Deep navy, warm
+light, calm, no text, no UI chrome.
+```
+
+**17 · Area art — Places**
+
+```
+Wide scene art (~16:9) for the "Places" area: a map-room / observatory of
+locations, pins and horizons. Deep navy, warm light, no text, no UI chrome.
+```
+
+**18 · Per-area skies (repeat per area)**
+
+```
+A quiet background "sky" for the <AREA> area — a subtle constellation/star field
+that feels like that area's night sky. Low-contrast, calm, no text. (Swap <AREA>
+for: Interests, Projects, Journal, People, Media, Systems, Places.)
+```
