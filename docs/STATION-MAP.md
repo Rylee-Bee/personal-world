@@ -87,7 +87,7 @@ room should still read like the thing it replaces, the way a ship still has a
 bridge, an engineering room and a sickbay. Familiar roles are why a room is
 legible on day one.
 
-Three rules:
+Four rules:
 
 1. **Familiar job, invented dialect.** Every deck keeps the plain job it already
    has (§1 *Product area*). A dialect changes *how a room arranges its content*,
@@ -99,6 +99,10 @@ Three rules:
 3. **The dialect never hides the job.** Every room carries its name and a
    plain-language job line, in the same place, in every dialect. A dialect is
    dress over a legible function — never a puzzle, and never the only signal.
+4. **One place.** All rooms share the same environment — the same stars outside
+   every window, the same lamplight, the same deck underfoot — so the station
+   reads as one hull with eight compartments, not eight unrelated screens. A
+   dialect changes what a room *holds*, never where it *is*.
 
 ### The dialects (owner pass, 2026-09-18)
 
