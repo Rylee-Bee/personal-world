@@ -76,7 +76,22 @@ described in `docs/COMPANION-CANON.md`. Art direction: `design/COMPANION_INTEGRA
 
 ---
 
-## 7. Still missing — the current gap list (2026-09-17)
+## 7. Gap list — DELIVERED 2026-09-17
+
+Everything below arrived in `design/owner/crew/newassets/` (owner drop, gitignored):
+
+- **Transparent cutouts:** `renai1/2`, `ratatoskr1`, `bolt1`, `burrito1`, `worlds1` (alpha).
+- **True-vector crew SVGs (~3 KB each):** `project-worlds-crew-svg-clean/{renai, ratatoskr, bolt, burrito-journalism, personal-world, planet-emblem}.svg`.
+- **App icon + favicon set:** `project-worlds-app-icons/` — 1024→16 px PNG + multi-size `.ico`, navy `#051437`, emblem centred.
+- **Attention-voice marks:** `goodnews.png`, `softdot.png`, `lantern.png`.
+- **Rooms (the four areas):** `peoplebg.png`, `mediabg.png`, `systemsbg.png`, `placesbg.png` (1672×941).
+- **Skies:** `bgstars1.png`, `bgstars2.png`.
+- **Pose sheets:** `renaipose`, `ratatoskrpose`, `boltpose`, `burritopose`.
+- **Emblem:** `badge.png`.
+
+Still to do (repo housekeeping, not art): promote these from the gitignored drop
+into the tracked `design/` set, and label which poses are the six product states.
+The table below is kept as the record of what was asked for.
 
 Character work is **done** (see "What already exists" below). What remains is
 mostly implementation-ready assets, plus four undrawn areas.
