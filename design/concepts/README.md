@@ -15,6 +15,8 @@ is versioned, not only local.
 | `today-room.html` | **Today** (the first real room) at product scale — the reference for room work |
 | `today-renai.html` | **Today, as Renai keeps it** — the same room, *made by its resident*: letters, the telling (real speech), her marginalia |
 | `today-focus.html` | **Today with the focus on** — a *perception layer* over the room: world tags, scan-to-reveal, cards docked to what they annotate |
+| `focus-expansions.html` | **Transition studies** — eight ways a holographic notification becomes a card, each with why it isn't tacked on |
+| `crew-tech-studies.html` | **Working studies** — how each resident uses technology (their need, in one shared station) |
 | `dialects.html` | one world, eight dialects — the room-identity sheet |
 | `p1`–`p8`, `p10-transmission.html` | the eight divergent layout packets (+ the deck × postcard fusion) |
 | `hub.html`, `station.html`, `crew-maker.html` | the Ring home, the all-rooms view, and the resident-maker |

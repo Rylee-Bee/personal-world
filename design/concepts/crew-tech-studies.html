@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Focus — Today, quiet icons and the person in the card</title>
+<title>Working studies — how each resident uses technology</title>
 <style>
   @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
   @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
@@ -230,211 +230,159 @@
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 <style>
-  main{max-width:1440px}
-  .room{position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--gold) 30%,transparent);
-    border-radius:22px 6px 22px 6px;min-height:min(80vh,720px);
-    box-shadow:0 24px 60px rgba(0,0,0,.65),inset 0 1px 0 rgba(216,185,120,.09)}
-  .room>img.back{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.94}
-  .room .wash{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,9,18,.10),rgba(10,9,18,.6))}
-  /* --- quiet: a rounded icon and a status chip. that is all --- */
-  .notif{position:absolute;left:var(--x);bottom:var(--b);transform:translateX(-50%);z-index:5;
-    display:grid;justify-items:center;gap:7px;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation}
-  .ava{position:relative;display:block;width:54px;height:54px;border-radius:50%;overflow:hidden;
-    border:1px solid color-mix(in srgb,var(--c) 72%,transparent);
-    background:radial-gradient(circle at 50% 26%,color-mix(in srgb,var(--c) 20%,transparent),rgba(6,10,14,.5));
-    box-shadow:inset 0 0 16px -9px color-mix(in srgb,var(--c) 90%,transparent)}
-  .ava img{width:100%;height:100%;object-fit:cover;object-position:50% 24%;display:block;opacity:.72;
-    filter:saturate(.45) contrast(1.05) brightness(1.12)}
-  .ava::after{content:"";position:absolute;inset:0;pointer-events:none;
-    background:linear-gradient(color-mix(in srgb,var(--c) 60%,transparent),color-mix(in srgb,var(--c) 60%,transparent));
-    mix-blend-mode:color;opacity:.6}
-  .ava.emblem{display:grid;place-items:center}
-  .ava.emblem svg{width:26px;height:26px;color:#fff;opacity:.85}
-  .chip{font-family:var(--label);font-size:12.5px;color:var(--ink);background:rgba(10,9,18,.82);
-    border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:999px;padding:3px 11px;white-space:nowrap}
-  .chip b{color:#fff;font-weight:600}
-  .notif:hover .ava,.notif:focus-visible .ava{border-color:var(--c)}
-  .notif:hover .ava img{opacity:.95}
-  .notif:focus-visible{outline:2px solid var(--c);outline-offset:6px;border-radius:14px}
-  .notif[aria-expanded="true"] .chip{border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
-  /* --- the card: the crew member arrives in it --- */
-  .overlay{position:absolute;right:18px;top:18px;bottom:18px;width:min(470px,92%);z-index:7;overflow:auto;
-    border:1px solid color-mix(in srgb,var(--teal) 45%,transparent);border-radius:4px;padding:18px 20px 16px;
-    background:linear-gradient(180deg,color-mix(in srgb,var(--teal) 7%,transparent),transparent 32%),rgba(6,10,14,.9);
-    box-shadow:0 0 0 1px rgba(0,0,0,.5),0 30px 70px rgba(0,0,0,.72),0 0 64px -14px color-mix(in srgb,var(--teal) 65%,transparent)}
-  .overlay::before{content:"";position:absolute;inset:0;pointer-events:none;
-    background-image:linear-gradient(rgba(143,201,194,.06) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(143,201,194,.06) 1px,transparent 1px);background-size:26px 26px}
-  .overlay::after{content:"";position:absolute;inset:6px;pointer-events:none;
-    --brk:color-mix(in srgb,var(--teal) 70%,transparent);
-    background:
-      linear-gradient(var(--brk),var(--brk)) left 0 top 0/16px 1px no-repeat,
-      linear-gradient(var(--brk),var(--brk)) left 0 top 0/1px 16px no-repeat,
-      linear-gradient(var(--brk),var(--brk)) right 0 top 0/16px 1px no-repeat,
-      linear-gradient(var(--brk),var(--brk)) right 0 top 0/1px 16px no-repeat,
-      linear-gradient(var(--brk),var(--brk)) left 0 bottom 0/16px 1px no-repeat,
-      linear-gradient(var(--brk),var(--brk)) left 0 bottom 0/1px 16px no-repeat,
-      linear-gradient(var(--brk),var(--brk)) right 0 bottom 0/16px 1px no-repeat,
-      linear-gradient(var(--brk),var(--brk)) right 0 bottom 0/1px 16px no-repeat}
-  .overlay>*{position:relative;z-index:1}
-  .ohead{display:flex;align-items:center;gap:9px;margin:0 0 12px}
-  .bbadge{width:24px;height:24px;flex:0 0 24px;color:var(--teal)}
-  .ohead .kind{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal)}
-  .closer{margin-left:auto;min-height:44px;padding:0 14px;border-radius:6px;
-    border:1px solid color-mix(in srgb,var(--teal) 45%,transparent);background:transparent;color:var(--ink);
-    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;touch-action:manipulation}
-  .closer:hover{border-color:var(--teal);color:#fff}
-  .who{display:flex;align-items:center;gap:13px;margin:0 0 12px}
-  .portrait{position:relative;display:block;flex:0 0 76px;width:76px;height:76px;border-radius:50%;overflow:hidden;
-    border:1px solid color-mix(in srgb,var(--c) 75%,transparent);
-    background:radial-gradient(circle at 50% 26%,color-mix(in srgb,var(--c) 24%,transparent),rgba(6,10,14,.6));
-    box-shadow:inset 0 0 18px -8px color-mix(in srgb,var(--c) 95%,transparent)}
-  .portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;display:block;opacity:.9}
-  .portrait::after{content:"";position:absolute;inset:0;
-    background:linear-gradient(color-mix(in srgb,var(--c) 55%,transparent),color-mix(in srgb,var(--c) 55%,transparent));
-    mix-blend-mode:color;opacity:.5}
-  .portrait.emblem{display:grid;place-items:center}
-  .portrait.emblem svg{width:34px;height:34px;color:#fff;opacity:.9}
-  .who h2{margin:0;font-size:24px}
-  .who .osub{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:4px 0 0}
-  .overlay .note{font-family:var(--body);font-style:italic;color:var(--ink);font-size:16.5px;margin:0 0 10px;
-    padding-left:14px;border-left:1px solid color-mix(in srgb,var(--gold) 32%,transparent)}
-  .overlay .calm{color:var(--dim);font-size:14.5px;margin:0}
-  @media (max-width:900px){ .overlay{left:12px;right:12px;width:auto;top:auto;bottom:12px;max-height:76%} }
-  @media (max-width:640px){ .room{min-height:74vh} }
+  main{max-width:1320px}
+  .studies{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr));gap:16px;margin-top:18px}
+  .study{border:1px solid color-mix(in srgb,var(--gold) 26%,transparent);border-radius:16px 5px 16px 5px;
+    background:rgba(10,9,18,.62);padding:14px 15px 15px;display:flex;flex-direction:column}
+  .study h3{margin:0;font-size:19px}
+  .study .mech{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin:4px 0 0}
+  .stage{position:relative;height:190px;margin:12px 0 10px;border-radius:10px;overflow:hidden;padding:12px;
+    border:1px solid color-mix(in srgb,var(--gold) 20%,transparent);
+    background:linear-gradient(180deg,rgba(10,9,18,.5),rgba(10,9,18,.82)),url(../assets/station/backgrounds/bridgebg.png) center/cover}
+  .study .why{margin:auto 0 0;color:var(--dim);font-size:13.5px}
+  .study .why b{color:var(--ink);font-weight:600}
+  .study .need{color:var(--gold);font-size:12.5px;font-family:var(--label);margin:0 0 4px}
+  .ctl{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+  .mini{min-height:44px;padding:0 13px;border-radius:9px;border:1px solid color-mix(in srgb,var(--gold) 45%,transparent);
+    background:color-mix(in srgb,var(--gold) 10%,transparent);color:var(--ink);font-family:var(--label);font-size:12.5px;
+    cursor:pointer;touch-action:manipulation}
+  .mini:hover{border-color:var(--gold)}
+  .mini[aria-pressed="true"]{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 22%,transparent)}
+  .field{flex:1 1 150px;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid var(--line);
+    background:rgba(5,9,14,.7);color:var(--ink);font-family:var(--body);font-size:14px}
+  .field::placeholder{color:var(--faint)}
+  .field:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  /* Renai: a written line, and the voice only when asked */
+  .renai .wave{display:flex;gap:3px;align-items:flex-end;height:26px;margin-top:10px;opacity:0;transition:opacity .2s}
+  .renai.telling .wave{opacity:1}
+  .renai .wave i{width:3px;background:var(--teal);border-radius:2px;height:8px}
+  .renai.telling .wave i:nth-child(odd){height:22px} .renai.telling .wave i:nth-child(3n){height:15px}
+  /* Hekek: a dial you can take in hand */
+  .hekek .gauge{position:relative;width:92px;height:52px;margin:2px 0 8px;border-radius:92px 92px 0 0;
+    border:1px solid color-mix(in srgb,var(--gold) 45%,transparent);border-bottom:0;background:radial-gradient(circle at 50% 100%,rgba(216,185,120,.12),transparent 70%)}
+  .hekek .needle{position:absolute;left:50%;bottom:0;width:2px;height:46px;background:var(--gold);
+    transform-origin:50% 100%;transform:rotate(calc(-90deg + var(--v,42) * 1.8deg))}
+  .hekek input[type=range]{width:100%;accent-color:var(--gold);min-height:44px}
+  /* Bolt: the bench — take it apart */
+  .bolt .bench{position:relative;height:70px}
+  .bolt .part{position:absolute;left:12px;top:22px;width:64px;height:26px;border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);
+    border-radius:4px;background:rgba(216,185,120,.08);transition:transform .3s ease}
+  .bolt .part:nth-child(2){left:84px} .bolt .part:nth-child(3){left:156px}
+  .bolt.apart .part:nth-child(1){transform:translateY(-14px)}
+  .bolt.apart .part:nth-child(2){transform:translateY(6px)}
+  .bolt.apart .part:nth-child(3){transform:translateY(-8px)}
+  /* Ratatoskr: a thread you follow */
+  .rat .cord{width:100%;height:64px} .rat .cord path{fill:none;stroke:var(--gold);stroke-width:1.5;stroke-dasharray:220;stroke-dashoffset:220}
+  .rat.followed .cord path{stroke-dashoffset:0;transition:stroke-dashoffset .6s ease}
+  /* Burrito: a broadsheet you can tear */
+  .burro .page{position:relative;padding:10px 12px;border:1px solid color-mix(in srgb,var(--gold) 35%,transparent);
+    border-radius:4px;background:rgba(233,242,243,.04);font-family:var(--body);font-size:13px;color:var(--dim)}
+  .burro .strip{height:0;overflow:hidden;transition:height .3s ease;border-top:1px dashed color-mix(in srgb,var(--gold) 40%,transparent);
+    font-size:12px;color:var(--gold)}
+  .burro.torn .strip{height:30px;padding-top:7px}
+  /* Mira: a field notebook */
+  .mira .scrib{width:100%;height:58px} .mira .scrib path{fill:none;stroke:var(--teal);stroke-width:1.6;stroke-dasharray:260;stroke-dashoffset:260}
+  .mira.sketched .scrib path{stroke-dashoffset:0;transition:stroke-dashoffset .7s ease}
+  /* Bruma: the stamp */
+  .bruma .seal{display:inline-grid;place-items:center;width:58px;height:58px;border-radius:50%;
+    border:1px dashed color-mix(in srgb,var(--gold) 60%,transparent);color:var(--gold);opacity:.35;transition:opacity .2s,transform .2s}
+  .bruma.stamped .seal{opacity:1;transform:rotate(-8deg)}
+  /* Settings: the plain switch */
+  .set .roommini{position:relative;height:74px;border-radius:6px;border:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(10,9,18,.6),rgba(10,9,18,.9));transition:filter .3s ease}
+  .set.plain .roommini{filter:grayscale(1) brightness(.7)}
+  .set .roommini span{position:absolute;left:12px;right:12px;bottom:12px;height:1px;background:var(--line)}
+  .set .roommini b{position:absolute;left:12px;top:12px;font-family:var(--label);font-size:12px;color:var(--dim)}
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="bg" aria-hidden="true"></div><div class="veil" aria-hidden="true"></div><div class="rings" aria-hidden="true"></div>
-<header>
-  <div class="chrome top">
-    <span class="brand">✦ Project Worlds</span>
-    <span class="here">Today — what the badge found</span>
-    <span class="onshift"><i></i><span>4 waiting</span></span>
-  </div>
-</header>
+<header><div class="chrome top"><span class="brand">✦ Project Worlds</span><span class="here">The Focus — working studies</span><span class="onshift"><i></i><span>how each of them uses technology</span></span></div></header>
 <main id="main" tabindex="-1">
   <p id="room-status" role="status" class="sr"></p>
   <div class="head">
     <span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.4"/><path d="M12 2.4v3.6M12 18v3.6M2.4 12h3.6M18 12h3.6"/></svg></span>
-    <div><h1>Today</h1><p class="role">Quiet icons. The person arrives when you open one</p></div>
-    <span class="dlt">the badge&rsquo;s overlay</span>
+    <div><h1>Working studies</h1><p class="role">Eight ways to use a machine &mdash; one per resident, in one shared station</p></div>
+    <span class="dlt">their needs, not ours</span>
   </div>
-  <p class="say"><b>The room stays quiet.</b> Only a rounded icon and a line of status here — tap one and the person it belongs to opens into a card.</p>
-
-  <div class="room" id="room">
-    <img class="back" src="../assets/station/backgrounds/bridgebg.png" alt="">
-    <div class="wash" aria-hidden="true"></div>
-
-    <button class="notif" type="button" style="--x:60%;--b:7%;--c:#8fc9c2" data-open="ov-renai" aria-expanded="false" aria-controls="ov-renai" aria-label="Renai &mdash; on shift. Open her card.">
-      <span class="ava" aria-hidden="true"><img src="assets/faces/renai.png" alt=""></span>
-      <span class="chip"><b>Renai</b> &middot; on shift</span>
-    </button>
-    <button class="notif" type="button" style="--x:26%;--b:28%;--c:#8a9fc9" data-open="ov-mira" aria-expanded="false" aria-controls="ov-mira" aria-label="Mira &mdash; a note, 3 h ago. Open her card.">
-      <span class="ava" aria-hidden="true"><img src="assets/faces/mira.png" alt=""></span>
-      <span class="chip"><b>Mira</b> &middot; 3 h</span>
-    </button>
-    <button class="notif" type="button" style="--x:44%;--b:10%;--c:#c47a55" data-open="ov-burrito" aria-expanded="false" aria-controls="ov-burrito" aria-label="Burrito Journalism &mdash; a note, 1 h ago. Open his card.">
-      <span class="ava" aria-hidden="true"><img src="assets/faces/burrito.png" alt=""></span>
-      <span class="chip"><b>Burrito J.</b> &middot; 1 h</span>
-    </button>
-    <button class="notif" type="button" style="--x:12%;--b:12%;--c:#9c8fb0" data-open="ov-bruma" aria-expanded="false" aria-controls="ov-bruma" aria-label="Bruma &mdash; a receipt, 4 min ago. Open her card.">
-      <span class="ava" aria-hidden="true"><img src="assets/faces/bruma.png" alt=""></span>
-      <span class="chip"><b>Bruma</b> &middot; 4 min</span>
-    </button>
-    <button class="notif" type="button" style="--x:33%;--b:48%;--c:#d8b978" data-open="ov-room" aria-expanded="false" aria-controls="ov-room" aria-label="The console &mdash; 2 things need you. Open it.">
-      <span class="ava emblem" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.6"/><path d="M12 2.6v3.4M12 18v3.4M2.6 12h3.4M18 12h3.4"/></svg></span>
-      <span class="chip"><b>the console</b> &middot; 2 need you</span>
-    </button>
-
-    <section class="overlay" id="ov-renai" hidden tabindex="-1" style="--c:#8fc9c2" aria-labelledby="ov-renai-h">
-      <div class="ohead">
-        <svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg>
-        <span class="kind">Focus &middot; Renai&rsquo;s badge</span>
-        <button class="closer" type="button">Close</button>
-      </div>
-      <div class="who"><span class="portrait" aria-hidden="true"><img src="assets/faces/renai.png" alt=""></span><div><h2 id="ov-renai-h">Renai</h2><p class="osub">your companion &middot; on shift</p></div></div>
-      <p class="note">Three letters came while you were away. None urgent &mdash; I&rsquo;ll read them to you if you like.</p>
-      <p class="calm">Watching what comes in. Nothing else needs you.</p>
+  <p class="say"><b>Everyone builds their own tools.</b> These are studies, not final design: each resident&rsquo;s way of touching technology, the need behind it, and how it survives being <i>shared</i> with the others.</p>
+  <div class="studies">
+    <section class="study renai" data-c="renai" style="--c:#8fc9c2">
+      <h3>The written line</h3><p class="mech">1 &middot; Renai</p>
+      <div class="stage"><div class="ctl"><input class="field" type="text" placeholder="write a line to Renai&hellip;" aria-label="Write a line"></div><div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="ctl"><button class="mini" type="button" data-act="telling" aria-pressed="false">Tell me</button></div>
+      <p class="need">Their need: to be asked, and to answer in words</p>
+      <p class="why">Her technology is <b>language</b>: a line you write, and a voice that only speaks when you ask. In the shared space her voice is opt-in, so it never fills a room for anyone else.</p>
     </section>
-    <section class="overlay" id="ov-mira" hidden tabindex="-1" style="--c:#8a9fc9" aria-labelledby="ov-mira-h">
-      <div class="ohead">
-        <svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg>
-        <span class="kind">Focus &middot; Renai&rsquo;s badge</span>
-        <button class="closer" type="button">Close</button>
-      </div>
-      <div class="who"><span class="portrait" aria-hidden="true"><img src="assets/faces/mira.png" alt=""></span><div><h2 id="ov-mira-h">Mira</h2><p class="osub">observer &middot; note-taker &middot; 3 h ago</p></div></div>
-      <p class="note">Three signals, same region. I have not named it yet &mdash; I wanted you to see it before I did.</p>
-      <p class="calm">Left on the shelf by the window, three hours ago.</p>
+    <section class="study hekek" data-c="hekek" style="--c:#d9a76b">
+      <h3>The dial</h3><p class="mech">2 &middot; Hekek</p>
+      <div class="stage"><div class="gauge" aria-hidden="true"><i class="needle"></i></div></div>
+      <div class="ctl"><input type="range" min="0" max="100" value="42" aria-label="Hekek's dial" class="dial"></div>
+      <p class="need">Their need: to see the machine at a glance, and fix it by hand</p>
+      <p class="why">He wants <b>instruments, not readouts</b>: a dial he can put his hand on. His controls live in Systems only &mdash; he never rearranges anyone else&rsquo;s room to suit him.</p>
     </section>
-    <section class="overlay" id="ov-burrito" hidden tabindex="-1" style="--c:#c47a55" aria-labelledby="ov-burrito-h">
-      <div class="ohead">
-        <svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg>
-        <span class="kind">Focus &middot; Renai&rsquo;s badge</span>
-        <button class="closer" type="button">Close</button>
-      </div>
-      <div class="who"><span class="portrait" aria-hidden="true"><img src="assets/faces/burrito.png" alt=""></span><div><h2 id="ov-burrito-h">Burrito Journalism</h2><p class="osub">news &middot; stories &middot; 1 h ago</p></div></div>
-      <p class="note">The night market returns on Friday. Come hungry.</p>
-      <p class="calm">Written on the back of a menu, an hour ago.</p>
+    <section class="study bolt" data-c="bolt" style="--c:#c98f6a">
+      <h3>The bench</h3><p class="mech">3 &middot; Bolt</p>
+      <div class="stage"><div class="bench" aria-hidden="true"><i class="part"></i><i class="part"></i><i class="part"></i></div></div>
+      <div class="ctl"><button class="mini" type="button" data-act="apart" aria-pressed="false">Take it apart</button></div>
+      <p class="need">Their need: to poke, break, and rebuild</p>
+      <p class="why">He learns by <b>taking the lid off</b>. He leaves the bench out on purpose, chalked, so the next person can pick up where he stopped.</p>
     </section>
-    <section class="overlay" id="ov-bruma" hidden tabindex="-1" style="--c:#9c8fb0" aria-labelledby="ov-bruma-h">
-      <div class="ohead">
-        <svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg>
-        <span class="kind">Focus &middot; Renai&rsquo;s badge</span>
-        <button class="closer" type="button">Close</button>
-      </div>
-      <div class="who"><span class="portrait" aria-hidden="true"><img src="assets/faces/bruma.png" alt=""></span><div><h2 id="ov-bruma-h">Bruma</h2><p class="osub">archivist &middot; keeper &middot; 4 min ago</p></div></div>
-      <p class="note">Today&rsquo;s records are filed. Nothing was lost.</p>
-      <p class="calm">A receipt, folded once, four minutes ago.</p>
+    <section class="study rat" data-c="rat" style="--c:#b39a63">
+      <h3>The thread</h3><p class="mech">4 &middot; Ratatoskr</p>
+      <div class="stage"><svg class="cord" viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true"><path d="M6 56 C 90 56, 100 8, 170 8 S 250 40, 294 12"></path></svg></div>
+      <div class="ctl"><button class="mini" type="button" data-act="followed" aria-pressed="false">Follow the thread</button></div>
+      <p class="need">Their need: to find the path between things</p>
+      <p class="why">His technology is <b>the cord</b>: memory you follow rather than search. His threads run <b>between</b> rooms &mdash; he is the one who connects your things.</p>
     </section>
-    <section class="overlay" id="ov-room" hidden tabindex="-1" style="--c:#d8b978" aria-labelledby="ov-room-h">
-      <div class="ohead">
-        <svg class="bbadge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8.6" width="16" height="6.8" rx="3.4"/><path d="M12 9.9l.7 1.5 1.6.6-1.6.6-.7 1.5-.7-1.5-1.6-.6 1.6-.6z" fill="currentColor" stroke="none"/></svg>
-        <span class="kind">Focus &middot; Renai&rsquo;s badge</span>
-        <button class="closer" type="button">Close</button>
-      </div>
-      <div class="who"><span class="portrait emblem" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.6"/><path d="M12 2.6v3.4M12 18v3.4M2.6 12h3.4M18 12h3.4"/></svg></span><div><h2 id="ov-room-h">the console</h2><p class="osub">the room&rsquo;s own state</p></div></div>
-      <p class="note">Two things need you: evening medicine, and one connection that is down. The other connection is fine.</p>
-      <p class="calm">Nothing is lost. The kettle is where you left it.</p>
+    <section class="study burro" data-c="burro" style="--c:#c47a55">
+      <h3>The broadsheet</h3><p class="mech">5 &middot; Burrito Journalism</p>
+      <div class="stage"><div class="page">The night market returns on Friday. Bring a coat.<div class="strip" aria-hidden="true">tear here &middot; keep this half</div></div></div>
+      <div class="ctl"><button class="mini" type="button" data-act="torn" aria-pressed="false">Tear off a strip</button></div>
+      <p class="need">Their need: to gather, and to pass things on</p>
+      <p class="why">His is <b>print</b>: a page anyone can tear a strip from. In the shared space his page is communal property &mdash; nothing on it is only his.</p>
+    </section>
+    <section class="study mira" data-c="mira" style="--c:#8a9fc9">
+      <h3>The field notebook</h3><p class="mech">6 &middot; Mira</p>
+      <div class="stage"><svg class="scrib" viewBox="0 0 300 58" preserveAspectRatio="none" aria-hidden="true"><path d="M8 44 C 40 10, 70 52, 104 26 S 168 6, 196 40 S 250 14, 292 30"></path></svg></div>
+      <div class="ctl"><button class="mini" type="button" data-act="sketched" aria-pressed="false">Sketch it</button></div>
+      <p class="need">Their need: to notice before she understands</p>
+      <p class="why">She <b>draws first, names later</b>, and leaves blanks in the margin for other people. Her notebook is the reason an unnamed signal is shared, not hoarded.</p>
+    </section>
+    <section class="study bruma" data-c="bruma" style="--c:#9c8fb0">
+      <h3>The stamp</h3><p class="mech">7 &middot; Bruma</p>
+      <div class="stage"><div class="seal" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><path d="M12 6.5l1.7 3.6 3.8.4-2.9 2.6.9 3.8L12 14.9 8.5 16.9l.9-3.8L6.5 10.5l3.8-.4z"/></svg></div></div>
+      <div class="ctl"><button class="mini" type="button" data-act="stamped" aria-pressed="false">Stamp it</button></div>
+      <p class="need">Their need: to keep a thing, and to prove it</p>
+      <p class="why">Her technology is <b>the record</b>: a stamp and a receipt. When something is stamped, the whole station can stop worrying about it &mdash; that is how she gives the others peace.</p>
+    </section>
+    <section class="study set" data-c="set" style="--c:#9aa0a4">
+      <h3>The plain switch</h3><p class="mech">8 &middot; Settings (no resident)</p>
+      <div class="stage"><div class="roommini" aria-hidden="true"><b>quiet</b><span></span></div></div>
+      <div class="ctl"><button class="mini" type="button" data-act="plain" aria-pressed="false">Leave it plain</button></div>
+      <p class="need">Their need: rest &mdash; and no instrument at all</p>
+      <p class="why">This room has <b>no technology of anyone&rsquo;s</b>, by design. Flipping the plain switch strips the room back &mdash; the one place the station does not ask anything of you.</p>
     </section>
   </div>
-  <div class="actions" style="justify-content:flex-start;margin-top:16px">
-    <a class="btn ghost" href="focus-expansions.html">Transition studies &mdash; how a notification becomes a card</a>
-    <a class="btn ghost" href="crew-tech-studies.html">Working studies &mdash; how each of them uses technology</a>
-  </div>
-
-  <p class="sig"><b>signature</b>gold ink over the world &middot; a quiet room, and the person arrives when you open one</p>
+  <p class="sig"><b>signature</b>the same station &middot; eight hands on it</p>
 </main>
 <script>
 (function () {
   var status = document.getElementById('room-status');
   function say(m) { if (status) status.textContent = m; }
-  var btns = Array.prototype.slice.call(document.querySelectorAll('[data-open]'));
-  function closeAll(except) {
-    Array.prototype.forEach.call(document.querySelectorAll('.overlay'), function (o) { if (o !== except) o.hidden = true; });
-    btns.forEach(function (b) { if (!except || b.getAttribute('aria-controls') !== except.id) b.setAttribute('aria-expanded','false'); });
-  }
-  btns.forEach(function (b) {
+  document.querySelectorAll('[data-act]').forEach ? null : null;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-act]'), function (b) {
     b.addEventListener('click', function () {
-      var o = document.getElementById(b.getAttribute('aria-controls'));
-      if (o.hidden) { closeAll(o); o.hidden = false; b.setAttribute('aria-expanded','true'); o.focus();
-        say((b.querySelector('.chip').textContent).replace(/\s+/g,' ').trim() + ' — opened.'); }
-      else { o.hidden = true; b.setAttribute('aria-expanded','false'); b.focus(); say('Closed.'); }
+      var st = b.closest('.study'), cls = b.getAttribute('data-act');
+      var on = !st.classList.contains(cls);
+      st.classList.toggle(cls, on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      say(st.querySelector('h3').textContent + (on ? ' — on.' : ' — off.'));
     });
   });
-  Array.prototype.forEach.call(document.querySelectorAll('.closer'), function (c) {
-    c.addEventListener('click', function () {
-      var o = c.closest('.overlay'), b = document.querySelector('[aria-controls="' + o.id + '"]');
-      o.hidden = true; if (b) { b.setAttribute('aria-expanded','false'); b.focus(); } say('Closed.');
-    });
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape') return;
-    var o = document.querySelector('.overlay:not([hidden])'); if (!o) return;
-    var b = document.querySelector('[aria-controls="' + o.id + '"]');
-    o.hidden = true; if (b) { b.setAttribute('aria-expanded','false'); b.focus(); } say('Closed.');
-  });
+  var dial = document.querySelector('.dial');
+  if (dial) dial.addEventListener('input', function () { dial.closest('.study').style.setProperty('--v', dial.value); });
 })();
 </script>
 </body>
