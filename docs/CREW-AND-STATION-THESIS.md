@@ -37,7 +37,7 @@ Source: `design/COMPANION_INTEGRATION.md` L27–33.
 
 **Names:** display canon (Renai, Ratatoskr, Bolt, Burrito Journalism, Personal World) and the station-id ↔ server-key mapping live in [COMPANION-CANON.md](COMPANION-CANON.md).
 
-**Owner canon 2026-09-17 adds three area residents** — Hekek (Engineering), Bruma (Vault), Mira (Observatory) — and makes residents **assignable to decks**: the crew above is the *starter crew*, not the only possible one. See [STATION-MAP.md](STATION-MAP.md) §3 and [CHARACTER-HANDBOOK.md](CHARACTER-HANDBOOK.md). The five rigs in this table remain the original companion set.
+**Owner canon 2026-09-17 adds three area residents** — Hekek (Systems), Bruma (Backups), Mira (Interests) — and makes residents **assignable to decks**: the crew above is the *starter crew*, not the only possible one. See [STATION-MAP.md](STATION-MAP.md) §3 and [CHARACTER-HANDBOOK.md](CHARACTER-HANDBOOK.md). The five rigs in this table remain the original companion set.
 
 Sibling rules (same file, L35, L219–221): shared art direction, distinct silhouette; one companion per domain; a companion may *visit* another area only as a temporary reaction, never a permanent move.
 
