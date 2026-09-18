@@ -291,6 +291,11 @@ Today/Journal/Vault). Legacy server UI coexists (`PW_FRONTEND` selects).
   truck) under the world-tree. Curated 2026-09-17 from
   `design/owner/crew/worlds.png`; used as the closing README image in place
   of the older companion-trio preview.
+- **Crew scene (curated):** `design/screens/crew-scene-sept17.png` — the wide
+  "crew together" scene: Renai, Ratatoskr, Bolt, the Burrito Journalism truck,
+  and Personal World in the shared uniform, among the book-leaf world-tree.
+  Added 2026-09-17 from the owner's untracked drop
+  (`design/owner/crew/crew-sept17.png`); the drop directory stays gitignored.
 - Deliberate artwork — do not casually regenerate: Mermaid master Lottie
   (byte-identical by decision), companion source rigs, icon library,
   screen SVGs.
