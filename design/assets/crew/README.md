@@ -14,6 +14,7 @@ never regenerate or overwrite this art casually (see `AGENTS.md`).
 | `skies/` | Quiet constellation backgrounds (`bgstars1/2`). |
 | `poses/` | Pose sheets per resident. |
 | `badge.png` | The planet emblem, large. |
+| `newchars.png` | The **new area characters** production sheet (2026-09-17): **Mira** (Observatory), **Bruma** (Vault), **Hekek** (Engineering) — turnarounds, expressions, six states, combadge, role details — plus the **Quarters** bed-icon set and scene. |
 
 **Read alongside:** names/roles `docs/COMPANION-CANON.md` · who they are
 `docs/CHARACTER-HANDBOOK.md` · art direction `design/COMPANION_INTEGRATION.md` ·
