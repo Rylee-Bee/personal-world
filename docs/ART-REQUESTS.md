@@ -125,13 +125,11 @@ mostly implementation-ready assets, plus four undrawn areas.
 
 | Still missing | Why |
 |---|---|
-| **Transparent cutouts** | Almost every file is opaque (`alpha=False`) — composed with a background/panel. The UI needs each character isolated on transparency. Only `crew2`, `mermaidchar`, `renai2`, `worlds` carry alpha. |
-| **Vector / SVG (or the source)** | All PNG today. The screen designs ship SVG; the crew needs the same for crisp scaling and tinting. |
+| **Mira transparent cutout** | ❌ MISSING — the new art set has cutouts for all other residents but not Mira (Observatory). Art request #21. |
+| **Bridge room background** | ❌ MISSING — uses `bgstars2.png` starfield placeholder. A dedicated bridge scene would be ideal. |
+| **Vector / SVG for new crew** | The 2026-09-17 art set has PNGs; Hekek, Bruma, Mira need vector SVGs matching the existing `design/assets/crew/vector/` set. |
+| **Quarters SVG export** | ❌ MISSING — bed icon as vector + 16/32/48px PNGs (art request #28). |
 | **The six product states, labeled** | The sheets have "Six Key Poses"; the Station reacts to `REST · CURIOUS · ATTENTIVE · ENGAGED · PROTECTIVE · GIVING SPACE`. If those poses are not mapped to those, that is the one character gap. |
-| **Four undrawn areas** | Rooms exist for Interests, Projects, Journal. **People, Media, Systems, Places** have no art. |
-| **App icon + favicon files** | Shown on the sheet; need the exported `.ico` / `.png` sizes. |
-| **Per-area "sky" / backgrounds** | So each area feels like a place. |
-| **Three attention-voice motifs** *(optional)* | Small marks for GOOD NEWS · A SMALL UPDATE · WHEN YOU'RE READY. |
 
 **One-line ask:** cutouts + vector, the four areas, and the exported icon files
 — the characters themselves are already excellent.
@@ -146,9 +144,14 @@ mostly implementation-ready assets, plus four undrawn areas.
 - **Icon + sticker library:** `icons.png` (characters, symbols, books, map, world-tree, foliage, weather).
 - **Wide crew scene:** `design/screens/crew-scene-sept17.png` (tracked).
 - **Crew portrait:** `design/screens/worlds.png` (tracked).
+- **Station art set (2026-09-17):** `design/owner/station/` → curated to `design/assets/station/`.
+  Room backgrounds for all 8 decks (engineering, vault, observatory, quarters, media,
+  archives/maps, starfield), transparent cutouts for 7 residents (renai, bolt, ratatoskr,
+  burrito, hekek, bruma, personal-world), pose sheets, icons (bedicon, goodnews, softdot,
+  lantern), and composites (fullcrew, newchars, charscaletest).
 
 Owner drops live in `design/owner/crew/` (gitignored); curated pieces are promoted
-to `design/screens/`.
+to `design/screens/` and `design/assets/station/`.
 
 ---
 
