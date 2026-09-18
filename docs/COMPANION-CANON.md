@@ -29,7 +29,7 @@ Where this file disagrees with repo evidence, the disagreement is recorded below
 | **Burrito Journalism** | Journalism / stories / city life — a **breakfast burrito truck** | **Burrito Journalism** (owner game). Repo design label: "Tacos & the Morning Paper" | `burrito` | `taco-news-truck` |
 | **Personal World** | Default system companion | Repo product identity | *(none — absent from the Station control)* | `personal-world` |
 | **Hekek** | Systems — Builder · Maintainer · Steward | Owner canon 2026-09-17. **New area character, not in the repo today** | `hekek` *(proposed)* | `hekek` *(proposed)* |
-| **Bruma** | Backups — Archivist · Keeper · Witness | Owner canon 2026-09-17. **New area character, not in the repo today** | `bruma` *(proposed)* | `bruma` *(proposed)* |
+| **Bruma** | Records — Archivist · Keeper · Witness | Owner canon 2026-09-17. **New area character, not in the repo today** | `bruma` *(proposed)* | `bruma` *(proposed)* |
 | **Mira** | Interests — Observer · Note-Taker · Pattern Seeker | Owner canon 2026-09-17. **New area character, not in the repo today** | `mira` *(proposed)* | `mira` *(proposed)* |
 
 "Origin (game / repo)" says where the character comes from, not that the repo
