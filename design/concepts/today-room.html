@@ -5,15 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Today — the room · Project Worlds</title>
 <style>
-  @font-face{font-family:"Fraunces";src:url("assets/fraunces-italic-latin.woff2") format("woff2");font-style:italic;font-weight:400}
-  @font-face{font-family:"Fraunces";src:url("assets/fraunces-normal-latin.woff2") format("woff2");font-style:normal;font-weight:400}
+  @font-face{font-family:"Plex Sans";src:url("assets/fonts/plex-sans-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+  @font-face{font-family:"Plex Sans";src:url("assets/fonts/plex-sans-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
+  @font-face{font-family:"Plex Sans";src:url("assets/fonts/plex-sans-600.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
+  @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+  @font-face{font-family:"Plex Mono";src:url("assets/fonts/plex-mono-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
+  @font-face{font-family:"Space Grotesk";src:url("assets/fonts/space-grotesk-600.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
   :root{--ink:#eef2f4;--dim:#a8b4bb;--faint:#9aa7af;--line:rgba(150,220,214,.20);
         --teal:#7fd0c8;--gold:#d9bb79;--canvas:#05080e;--panel:rgba(6,11,16,.88);
         --accent:#8fc9c2;
-        --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace}
+        --sans:"Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+        --display:"Space Grotesk","Plex Sans",system-ui,sans-serif;
+        --mono:"Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;background:var(--canvas);color:var(--ink);
-    font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+    font:16.5px/1.62 var(--sans)}
   .skip{position:absolute;left:8px;top:8px;z-index:30;transform:translateY(-240%);
     display:inline-flex;align-items:center;min-height:44px;background:var(--canvas);color:var(--ink);
     border:1px solid var(--teal);border-radius:8px;padding:10px 16px;font-family:var(--mono);
@@ -45,11 +51,11 @@
   .head .badge{width:46px;height:46px;flex:0 0 46px;border-radius:50%;display:grid;place-items:center;
     border:1px solid var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}
   .head .badge svg{width:25px;height:25px}
-  h1{font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:clamp(30px,4.6vw,44px);margin:0;line-height:1}
+  h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,4.6vw,44px);margin:0;line-height:1;letter-spacing:-.01em}
   .role{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin:6px 0 0}
   .dlt{margin-left:auto;align-self:center;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
     text-transform:uppercase;color:var(--accent);border:1px solid var(--line);border-radius:20px;padding:4px 11px;white-space:nowrap}
-  .say{color:var(--dim);font-size:16px;margin:0 0 16px;max-width:70ch}
+  .say{color:var(--dim);font-size:17px;margin:0 0 16px;max-width:66ch}
   .say b{color:var(--ink);font-weight:500}
   .say .good{color:var(--accent)}
   /* --- panels --- */
@@ -58,8 +64,7 @@
   .panel,.assist,details.depth{
     position:relative;border:1px solid var(--line);border-radius:15px;
     background:linear-gradient(180deg,rgba(150,220,214,.05),transparent 34%),linear-gradient(180deg,#0a1119,#060b11);
-    box-shadow:0 18px 44px rgba(0,0,0,.55),inset 0 1px 0 rgba(233,242,243,.05);
-    transition:border-color .2s ease}
+    box-shadow:0 18px 44px rgba(0,0,0,.55),inset 0 1px 0 rgba(233,242,243,.05)}
   .panel{padding:20px 20px 18px}
   /* the screen, inset into the bezel */
   .panel::before,.assist::before{
@@ -79,7 +84,7 @@
       radial-gradient(130% 90% at 50% -12%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 62%),
       repeating-linear-gradient(0deg,rgba(150,220,214,.055) 0 1px,transparent 1px 3px),
       rgba(6,11,16,.8);
-    box-shadow:inset 0 0 22px rgba(0,0,0,.55);transition:border-color .2s ease}
+    box-shadow:inset 0 0 22px rgba(0,0,0,.55)}
   /* the device's light bar */
   .panel::after,.assist::after{
     content:"";position:absolute;left:18px;right:18px;top:1px;height:1px;pointer-events:none;z-index:2;
@@ -100,26 +105,26 @@
   .need{list-style:none;margin:0;padding:0}
   .need li{display:grid;grid-template-columns:1fr auto;gap:4px 14px;padding:12px 0;border-top:1px solid var(--line)}
   .need li:first-child{border-top:0;padding-top:2px}
-  .need .what{font-family:"Fraunces",Georgia,serif;font-size:20px;color:var(--ink);line-height:1.25}
-  .need .why{color:var(--dim);font-size:14px}
+  .need .what{font-family:var(--sans);font-weight:600;font-size:20px;color:var(--ink);line-height:1.3}
+  .need .why{color:var(--dim);font-size:15px}
   .need .when{grid-row:1 / span 2;align-self:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
     color:var(--accent);white-space:nowrap;text-align:right}
   .need .when.due{color:var(--gold)}
   .need .to{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-  .calm{padding:10px 0 2px;color:var(--dim);font-size:15px}
+  .calm{padding:10px 0 2px;color:var(--dim);font-size:16px}
   .calm b{color:var(--accent);font-weight:500}
   /* arriving — the Transmission, bounded */
   .arr{list-style:none;margin:0;padding:0}
   .arr li{display:grid;grid-template-columns:auto 1fr auto;gap:3px 11px;padding:10px 0;border-top:1px solid var(--line);align-items:baseline}
   .arr li:first-child{border-top:0;padding-top:2px}
   .arr .from{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
-  .arr .line{color:var(--ink);font-size:14.5px}
+  .arr .line{color:var(--ink);font-size:15px}
   .arr .ago{grid-row:1 / span 2;font-family:var(--mono);font-size:10.5px;color:var(--faint);white-space:nowrap;text-align:right}
   .arr .meta{grid-column:2;color:var(--faint);font-size:12px}
   /* the resident, on shift */
   .crew{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}
-  .crew .who{font-family:"Fraunces",Georgia,serif;font-size:19px;margin:0 0 2px}
-  .crew .task{color:var(--dim);font-size:14.5px;margin:0}
+  .crew .who{font-family:var(--sans);font-weight:600;font-size:19px;margin:0 0 2px}
+  .crew .task{color:var(--dim);font-size:15px;margin:0}
   .crew .ago{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin:6px 0 0}
   .crew img{width:auto;height:104px;object-fit:contain;align-self:end;filter:drop-shadow(0 10px 18px rgba(0,0,0,.7))}
   /* depth — the guts, one step in (native disclosure) */
@@ -142,10 +147,32 @@
   .assist{margin-top:16px;padding:18px 20px 16px;border-color:color-mix(in srgb,var(--teal) 34%,transparent);
     background:linear-gradient(180deg,color-mix(in srgb,var(--teal) 7%,transparent),transparent 42%),linear-gradient(180deg,#0a1119,#060b11)}
   .assist h2{margin:0 0 4px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);font-weight:500}
-  .assist p{margin:0;color:var(--dim);font-size:14.5px}
+  .assist p{margin:0;color:var(--dim);font-size:15px}
   .assist .eg{color:var(--faint);font-style:italic}
   .sig{margin:18px 0 0;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--faint)}
   .sig b{color:var(--dim);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;margin-right:7px}
+  /* --- actions: one place per card, at the end of the reading flow --- */
+  .btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:10px;
+    border:1px solid color-mix(in srgb,var(--accent) 42%,transparent);background:color-mix(in srgb,var(--accent) 12%,transparent);
+    color:var(--ink);font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+    cursor:pointer}
+  .btn:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 20%,transparent)}
+  .btn.ghost{border-color:var(--line);background:transparent;color:var(--dim)}
+  .btn.ghost:hover{border-color:var(--accent);color:var(--ink)}
+  .btn[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 24%,transparent)}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:12px}
+  .rowact{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:10px}
+  .need li.done .what{text-decoration:line-through;color:var(--faint)}
+  .need li.done .when,.need li.done .why{color:var(--faint)}
+  .arr.read .line{color:var(--dim)}
+  .arr.read .from,.arr.read .ago{opacity:.6}
+  .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .askrow{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .askrow input{flex:1 1 220px;min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);
+    background:rgba(5,9,14,.7);color:var(--ink);font-family:var(--sans);font-size:15px}
+  .askrow input::placeholder{color:var(--faint)}
+  .askrow input:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-color:var(--teal)}
+  .askmsg{margin:10px 0 0;color:var(--dim);font-size:14.5px}
   @media (max-width:860px){ .cols{grid-template-columns:1fr} }
   @media (max-width:640px){
     .chrome{font-size:10px;letter-spacing:.06em;gap:8px}
@@ -164,6 +191,10 @@
     @keyframes drift{0%,100%{opacity:.42}50%{opacity:.6}}
     .panel h2::before,.assist h2::before{animation:led 6s ease-in-out infinite}
     @keyframes led{0%,100%{opacity:.5}50%{opacity:1}}
+    /* transitions exist only when motion is allowed */
+    .panel,.assist,details.depth{transition:border-color .2s ease}
+    .panel::before,.assist::before{transition:border-color .2s ease}
+    .btn{transition:border-color .2s ease,background .2s ease}
   }
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -181,33 +212,36 @@
 </header>
 
 <main id="main" tabindex="-1">
+  <p id="room-status" role="status" class="sr"></p>
   <div class="head">
     <span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M15.7 8.3l-2.1 4.3-4.3 2.1 2.1-4.3z" fill="currentColor" stroke="none"/></svg></span>
     <div>
       <h1>Today</h1>
-      <p class="role">Communications · visibility — what's coming in to you</p>
+      <p class="role">What is coming in to you</p>
     </div>
     <span class="dlt">the Transmission</span>
   </div>
 
-  <p class="say">Two things want you, and nothing is on fire. <b>3 things arrived while you were away</b> — and everything else is being kept.</p>
+  <p class="say"><b>2 things need you.</b> Nothing is urgent. <b>3 things came in</b> while you were away.</p>
 
   <div class="cols">
     <div>
       <!-- Level 1: the essentials, big and plain -->
       <section class="panel" aria-labelledby="need-h">
-        <h2 id="need-h">Needs you <span>2</span></h2>
-        <ul class="need">
+        <h2 id="need-h">Needs you <span id="need-count">2</span></h2>
+        <ul class="need" id="need-list">
           <li>
-            <span class="what">Medications — the evening dose</span>
+            <span class="what">Evening medicine</span>
             <span class="when due">due 20:00</span>
-            <span class="why">On your own list. It will keep saying so, calmly, until it's done.</span>
+            <span class="why">From your own list. It stays here until you mark it done.</span>
+            <span class="rowact"><button type="button" class="btn" data-done aria-pressed="false">Mark done</button></span>
           </li>
           <li>
-            <span class="what">A provider is failing</span>
+            <span class="what">One connection is down</span>
             <span class="when">12 min ago</span>
-            <span class="why">One of two. The other is healthy and carrying the load — nothing is lost.</span>
-            <span class="to">goes to → Systems</span>
+            <span class="why">The other connection is fine, so nothing is lost.</span>
+            <span class="to">fix it in Systems</span>
+            <span class="rowact"><button type="button" class="btn ghost" data-why>Why?</button></span>
           </li>
         </ul>
       </section>
@@ -215,19 +249,19 @@
       <!-- the quiet state is a real, good answer -->
       <section class="panel" aria-labelledby="calm-h" style="margin-top:16px">
         <h2 id="calm-h">And when nothing does <span>the good state</span></h2>
-        <p class="calm">“<b>Nothing needs you</b>. The kettle is where you left it, and the station has been keeping its own counsel.” — a room that says this is working correctly.</p>
+        <p class="calm"><b>Nothing needs you.</b> That is a good answer — the crew keeps working either way.</p>
       </section>
 
       <!-- depth: the guts, one step in, from inside the room -->
-      <details class="depth">
-        <summary><span class="mk">▸</span> Deeper — how this room is wired</summary>
+      <details class="depth" id="depth">
+        <summary><span class="mk">▸</span> How this room works</summary>
         <dl class="guts">
-          <div><dt>Providers checked</dt><dd>2 · 2 healthy</dd></div>
-          <div><dt>Last poll</dt><dd>20:39:12</dd></div>
-          <div><dt>Sources</dt><dd>/api/status · /api/attention</dd></div>
-          <div><dt>Recency source</dt><dd>server clock, honest</dd></div>
-          <div><dt>Motion</dt><dd>reduced (yours to switch on)</dd></div>
-          <div><dt>Arrived today</dt><dd>3 · batch announced, not each</dd></div>
+          <div><dt>Connections checked</dt><dd>2 · both fine</dd></div>
+          <div><dt>Last checked</dt><dd>20:39:12</dd></div>
+          <div><dt>Where this comes from</dt><dd>/api/status · /api/attention</dd></div>
+          <div><dt>Times come from</dt><dd>the server clock</dd></div>
+          <div><dt>Motion</dt><dd>reduced — yours to switch on</dd></div>
+          <div><dt>Came in today</dt><dd>3 · grouped, not one by one</dd></div>
         </dl>
       </details>
 
@@ -238,26 +272,27 @@
       <!-- the Transmission: what's arriving, bounded -->
       <section class="panel" aria-labelledby="arr-h">
         <h2 id="arr-h">Arriving <span>3 today</span></h2>
-        <ul class="arr">
+        <ul class="arr" id="arrive-list">
           <li>
             <span class="from">Renai</span>
-            <span class="line">“Quiet night. Nothing new that needs you.”</span>
+            <span class="line">Quiet night. Nothing new needs you.</span>
             <span class="ago">4 min</span>
           </li>
           <li>
             <span class="from">Burrito J.</span>
             <span class="line">The night market returns on Friday.</span>
             <span class="ago">1 h</span>
-            <span class="meta">from the Galley · one story, no follow-ups</span>
+            <span class="meta">from News · one story</span>
           </li>
           <li>
             <span class="from">Mira</span>
             <span class="line">Three signals in the same region.</span>
             <span class="ago">3 h</span>
-            <span class="meta">from Interests · unfiled, nothing to decide yet</span>
+            <span class="meta">from Interests · nothing to decide yet</span>
           </li>
         </ul>
-        <p class="calm" style="border-top:1px solid var(--line)">That is all of them. This list ends — <b>there is no infinite feed here.</b></p>
+        <p class="calm" style="border-top:1px solid var(--line)">That is all of them — <b>this list ends.</b></p>
+        <div class="actions"><button type="button" class="btn ghost" id="markread" aria-pressed="false">Mark all as read</button></div>
       </section>
 
       <!-- the resident, on shift -->
@@ -266,8 +301,8 @@
         <div class="crew">
           <div>
             <p class="who">Renai</p>
-            <p class="task">Watching what comes in, and keeping the quiet parts quiet.</p>
-            <p class="ago">on shift · last touched the log 4 min ago</p>
+            <p class="task">Watching what comes in.</p>
+            <p class="ago">On shift · last checked 4 min ago</p>
           </div>
           <img src="../assets/station/characters/renai.png" alt="">
         </div>
@@ -275,16 +310,69 @@
 
       <!-- the assistant, always one step away -->
       <section class="assist" aria-labelledby="ask-h">
-        <h2 id="ask-h">Your assistant — always one step away</h2>
-        <p>Ask anything, from anywhere: <span class="eg">“what's due today?”, “why is the provider failing?”, “anything new I'd like?”</span></p>
+        <h2 id="ask-h">Your assistant — always here</h2>
+        <p>Ask anything, any time. <span class="eg">Try: “what's due today?” or “why is the connection down?”</span></p>
+        <form class="askrow" id="askform">
+          <label class="sr" for="ask">Ask your assistant</label>
+          <input id="ask" type="text" placeholder="Ask anything…" autocomplete="off">
+          <button type="submit" class="btn">Ask</button>
+        </form>
+        <p class="askmsg" id="askmsg" hidden></p>
       </section>
     </div>
   </div>
 </main>
 
 <footer class="chrome bot">
-  <span>Nothing needs you is a good answer · you are never lost, and never alone in it</span>
+  <span>Nothing needs you is a good answer</span>
   <span>concept · Today, the first room</span>
 </footer>
+
+<script>
+(function () {
+  var status = document.getElementById('room-status');
+  function say(m) { if (status) status.textContent = m; }
+  function recount() {
+    var n = document.querySelectorAll('#need-list li:not(.done)').length;
+    document.getElementById('need-count').textContent = n;
+    return n;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-done]'), function (b) {
+    b.addEventListener('click', function () {
+      var li = b.closest('li');
+      var done = li.classList.toggle('done');
+      b.setAttribute('aria-pressed', done ? 'true' : 'false');
+      b.textContent = done ? 'Done ✓' : 'Mark done';
+      var n = recount();
+      say(done ? ('Marked done. ' + n + (n === 1 ? ' thing still needs' : ' things still need') + ' you.')
+               : ('Reopened. ' + n + ' need you.'));
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-why]'), function (b) {
+    b.addEventListener('click', function () {
+      var d = document.getElementById('depth');
+      d.open = true;
+      d.querySelector('summary').focus();
+      say('Opened how this room works.');
+    });
+  });
+  var mr = document.getElementById('markread');
+  if (mr) mr.addEventListener('click', function () {
+    var on = mr.getAttribute('aria-pressed') === 'true';
+    mr.setAttribute('aria-pressed', on ? 'false' : 'true');
+    mr.textContent = on ? 'Mark all as read' : 'All read ✓';
+    document.getElementById('arrive-list').classList.toggle('read', !on);
+    say(on ? 'Marked unread.' : 'All marked read.');
+  });
+  var f = document.getElementById('askform');
+  if (f) f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var m = document.getElementById('askmsg');
+    m.hidden = false;
+    m.textContent = 'This concept is not connected to the assistant yet — in the real room, the answer appears here.';
+    say('The assistant is not connected in this concept.');
+  });
+})();
+</script>
 </body>
 </html>
