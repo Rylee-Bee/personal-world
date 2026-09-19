@@ -137,6 +137,7 @@ def _read_extra_config(config_dir: Path, key: str) -> dict:
     Resolves flat UI config into the nested shape native providers expect.
     """
     from .connection_manager import resolve_native_config
+
     raw = {}
     for name in ("connections.local.json", "connections.json"):
         path = config_dir / name
@@ -151,7 +152,14 @@ def _read_extra_config(config_dir: Path, key: str) -> dict:
     return resolve_native_config(raw, key)
 
 
-def build_registry(world: World, registry: Registry, config_dir: Path, vault=None, journal=None, data_dir: Path = None) -> Registry:
+def build_registry(
+    world: World,
+    registry: Registry,
+    config_dir: Path,
+    vault=None,
+    journal=None,
+    data_dir: Path = None,
+) -> Registry:
     """Wire providers from config/connections.json. Unknown provider
     types are skipped with a warning; the core still boots. The
     source_control native baseline is registered when no provider for
@@ -175,24 +183,27 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
         try:
             local_conns = json.loads(local_conn_path.read_text())
             existing = conns.get("connections", [])
-            local = [c for c in local_conns.get("connections", []) if isinstance(c, dict)]
+            local = [
+                c for c in local_conns.get("connections", []) if isinstance(c, dict)
+            ]
             conns["connections"] = existing + local
         except json.JSONDecodeError:
             pass
-    connections = [
-        c for c in conns.get("connections", []) if isinstance(c, dict)
-    ]
+    connections = [c for c in conns.get("connections", []) if isinstance(c, dict)]
 
     # Native baseline (see comment above)
     if not any(c.get("capability") == "source_control" for c in connections):
         try:
             from .source_control import config_recursive_flag
+
             git_impl = NativeGit(
                 configured_search_paths(config_dir),
                 recurse=config_recursive_flag(config_dir),
             )
             registry.register(
-                "source_control", "native-git", git_impl,
+                "source_control",
+                "native-git",
+                git_impl,
                 health_check=git_impl.git_available,
                 writes="none",
                 mode=ProviderMode.NATIVE,
@@ -205,9 +216,12 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
     # router API; degrades honestly when the API is missing.
     try:
         from .providers.traefik_ingress import TraefikIngress
+
         traefik = TraefikIngress()
         registry.register(
-            "ingress", "traefik", traefik,
+            "ingress",
+            "traefik",
+            traefik,
             health_check=lambda: True,
             writes="none",
             mode=ProviderMode.NATIVE,
@@ -229,7 +243,9 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
             if url:
                 impl = HttpStatus(name, url, conn.get("expected", 200))
                 registry.register(
-                    capability, name, impl,
+                    capability,
+                    name,
+                    impl,
                     health_check=impl.probe,
                     writes="none",
                     mode=mode,
@@ -240,7 +256,9 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
             if base:
                 impl = Gitea(base, conn.get("token_env", ""))
                 registry.register(
-                    capability, name, impl,
+                    capability,
+                    name,
+                    impl,
                     health_check=lambda impl=impl: impl.observe().ok,
                     writes="none",
                     mode=mode,
@@ -257,7 +275,9 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
             if base:
                 impl = LangGraphMemory(base, conn.get("api_key_env"))
                 registry.register(
-                    capability, name, impl,
+                    capability,
+                    name,
+                    impl,
                     health_check=impl.health,
                     writes="none",
                     mode=mode,
@@ -270,7 +290,9 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
             if built is not None:
                 cname, impl = built
                 registry.register(
-                    capability or "reasoning", cname, impl,
+                    capability or "reasoning",
+                    cname,
+                    impl,
                     health_check=lambda i=impl: i.observe().ok,
                     writes="none",
                     mode=mode,
@@ -282,7 +304,9 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
             # system. Never a production dependency.
             impl = FakeSourceControl(conn.get("version", "fake-1.0"))
             registry.register(
-                capability, name, impl,
+                capability,
+                name,
+                impl,
                 health_check=lambda: True,
                 writes="none",
                 mode=mode,
@@ -293,7 +317,9 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
             if base:
                 impl = CandyDispenser(base)
                 registry.register(
-                    capability, name, impl,
+                    capability,
+                    name,
+                    impl,
                     health_check=lambda impl=impl: impl.health().ok,
                     writes="none",
                     mode=mode,
@@ -309,37 +335,67 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
                 # Settings
                 settings_impl = LabSettings(lab_path)
                 registry.register(
-                    "homelab_settings", f"{name}-settings", settings_impl,
-                    health_check=lambda settings_impl=settings_impl: settings_impl.observe().ok,
-                    writes="none", mode=mode, required=required,
+                    "homelab_settings",
+                    f"{name}-settings",
+                    settings_impl,
+                    health_check=lambda settings_impl=settings_impl: (
+                        settings_impl.observe().ok
+                    ),
+                    writes="none",
+                    mode=mode,
+                    required=required,
                 )
                 # Health
                 health_impl = LabHealth(lab_path)
                 registry.register(
-                    "homelab_health", f"{name}-health", health_impl,
-                    health_check=lambda health_impl=health_impl: health_impl.observe().ok,
-                    writes="none", mode=mode, required=required,
+                    "homelab_health",
+                    f"{name}-health",
+                    health_impl,
+                    health_check=lambda health_impl=health_impl: (
+                        health_impl.observe().ok
+                    ),
+                    writes="none",
+                    mode=mode,
+                    required=required,
                 )
                 # Deploy
                 deploy_impl = LabDeploy(lab_path)
                 registry.register(
-                    "homelab_deploy", f"{name}-deploy", deploy_impl,
-                    health_check=lambda deploy_impl=deploy_impl: deploy_impl.observe().ok,
-                    writes="none", mode=mode, required=required,
+                    "homelab_deploy",
+                    f"{name}-deploy",
+                    deploy_impl,
+                    health_check=lambda deploy_impl=deploy_impl: (
+                        deploy_impl.observe().ok
+                    ),
+                    writes="none",
+                    mode=mode,
+                    required=required,
                 )
                 # Secrets
                 secrets_impl = LabSecrets(lab_path)
                 registry.register(
-                    "homelab_secrets", f"{name}-secrets", secrets_impl,
-                    health_check=lambda secrets_impl=secrets_impl: secrets_impl.observe().ok,
-                    writes="none", mode=mode, required=required,
+                    "homelab_secrets",
+                    f"{name}-secrets",
+                    secrets_impl,
+                    health_check=lambda secrets_impl=secrets_impl: (
+                        secrets_impl.observe().ok
+                    ),
+                    writes="none",
+                    mode=mode,
+                    required=required,
                 )
                 # Resources
                 resources_impl = LabResources(lab_path)
                 registry.register(
-                    "homelab_resources", f"{name}-resources", resources_impl,
-                    health_check=lambda resources_impl=resources_impl: resources_impl.observe().ok,
-                    writes="none", mode=mode, required=required,
+                    "homelab_resources",
+                    f"{name}-resources",
+                    resources_impl,
+                    health_check=lambda resources_impl=resources_impl: (
+                        resources_impl.observe().ok
+                    ),
+                    writes="none",
+                    mode=mode,
+                    required=required,
                 )
         elif ptype == "native_lab":
             # Native Lab provider: generic lab capabilities that ship
@@ -350,40 +406,62 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
                 NativeLabSettings,
                 NativeLabResources,
             )
+
             inventory = NativeLabInventory()
             health = NativeLabHealth(inventory)
             settings = NativeLabSettings()
             resources = NativeLabResources()
 
             registry.register(
-                "service_inventory", f"{name}-inventory", inventory,
+                "service_inventory",
+                f"{name}-inventory",
+                inventory,
                 health_check=lambda inventory=inventory: inventory.observe().ok,
-                writes="none", mode=ProviderMode.NATIVE, required=False,
+                writes="none",
+                mode=ProviderMode.NATIVE,
+                required=False,
             )
             registry.register(
-                "service_health", f"{name}-health", health,
+                "service_health",
+                f"{name}-health",
+                health,
                 health_check=lambda health=health: health.observe().ok,
-                writes="none", mode=ProviderMode.NATIVE, required=False,
+                writes="none",
+                mode=ProviderMode.NATIVE,
+                required=False,
             )
             registry.register(
-                "settings_validation", f"{name}-settings", settings,
+                "settings_validation",
+                f"{name}-settings",
+                settings,
                 health_check=lambda settings=settings: settings.observe().ok,
-                writes="none", mode=ProviderMode.NATIVE, required=False,
+                writes="none",
+                mode=ProviderMode.NATIVE,
+                required=False,
             )
             registry.register(
-                "resource_monitoring", f"{name}-resources", resources,
+                "resource_monitoring",
+                f"{name}-resources",
+                resources,
                 health_check=lambda resources=resources: resources.observe().ok,
-                writes="none", mode=ProviderMode.NATIVE, required=False,
+                writes="none",
+                mode=ProviderMode.NATIVE,
+                required=False,
             )
         elif ptype == "native_discovery":
             # Native Discovery provider: generic content discovery that
             # ships with Project Worlds. Users configure their own sources.
             from .providers.native_discovery import NativeDiscovery
+
             discovery = NativeDiscovery()
             registry.register(
-                "discovery", f"{name}-discovery", discovery,
+                "discovery",
+                f"{name}-discovery",
+                discovery,
                 health_check=lambda discovery=discovery: discovery.observe().ok,
-                writes="none", mode=ProviderMode.NATIVE, required=False,
+                writes="none",
+                mode=ProviderMode.NATIVE,
+                required=False,
             )
         # unknown types: skipped, not fatal -- standalone deployments
         # boot with zero providers
@@ -394,71 +472,129 @@ def build_registry(world: World, registry: Registry, config_dir: Path, vault=Non
     # native_vault: secrets capability backed by encrypted vault
     if vault is not None:
         from .providers.native_vault import NativeVaultProvider
+
         vault_provider = NativeVaultProvider(vault)
         registry.register(
-            "secrets", "native-vault", vault_provider,
+            "secrets",
+            "native-vault",
+            vault_provider,
             health_check=vault_provider.health,
-            writes="none", mode=ProviderMode.NATIVE, required=False,
+            writes="none",
+            mode=ProviderMode.NATIVE,
+            required=False,
         )
 
-    # native_memory: memory capability via SQLite FTS5
+    # native_memory: memory capability via SQLite FTS5 (journal search)
     from .providers.native_memory import NativeMemoryProvider
+
     memory_provider = NativeMemoryProvider(data_dir or Path("./data"), journal=journal)
     registry.register(
-        "memory", "native-memory", memory_provider,
+        "memory",
+        "native-memory",
+        memory_provider,
         health_check=memory_provider.health,
-        writes="none", mode=ProviderMode.NATIVE, required=False,
+        writes="none",
+        mode=ProviderMode.NATIVE,
+        required=False,
+    )
+
+    # content_db: cross-repo content database via agent-config's ContentMaster
+    from .providers.content_db import ContentDBProvider
+    import os
+
+    _master_db = Path(
+        os.environ.get(
+            "PW_CONTENT_MASTER_DB",
+            str(Path.home() / ".local/share/agent-config/content.master.db"),
+        )
+    )
+    _code_root = Path(
+        os.environ.get(
+            "PW_CODE_ROOT",
+            str(Path.home() / "code/Rylee-Bee"),
+        )
+    )
+    content_provider = ContentDBProvider(
+        master_db_path=_master_db, code_root=_code_root
+    )
+    registry.register(
+        "memory",
+        "content-db",
+        content_provider,
+        health_check=content_provider.health,
+        writes="none",
+        mode=ProviderMode.NATIVE,
+        required=False,
     )
 
     # native_calendar: calendar capability via ICS/CalDAV
     from .providers.native_calendar import NativeCalendarProvider
+
     calendar_config = _read_extra_config(config_dir, "calendar")
     calendar_provider = NativeCalendarProvider(calendar_config)
     registry.register(
-        "calendar", "native-calendar", calendar_provider,
+        "calendar",
+        "native-calendar",
+        calendar_provider,
         health_check=calendar_provider.health,
-        writes="none", mode=ProviderMode.NATIVE, required=False,
+        writes="none",
+        mode=ProviderMode.NATIVE,
+        required=False,
     )
 
     # native_notifications: notification dispatcher (webhook/ntfy)
     from .providers.native_notifications import NativeNotificationsProvider
+
     notif_config = _read_extra_config(config_dir, "notifications")
     notifications_provider = NativeNotificationsProvider(notif_config)
     registry.register(
-        "notifications", "native-notifications", notifications_provider,
+        "notifications",
+        "native-notifications",
+        notifications_provider,
         health_check=notifications_provider.health,
-        writes="none", mode=ProviderMode.NATIVE, required=False,
+        writes="none",
+        mode=ProviderMode.NATIVE,
+        required=False,
     )
 
     # native_updates: version/update discovery
     from .providers.native_updates import NativeUpdatesProvider
+
     updates_config = _read_extra_config(config_dir, "updates")
     updates_provider = NativeUpdatesProvider(updates_config)
     registry.register(
-        "update_discovery", "native-updates", updates_provider,
+        "update_discovery",
+        "native-updates",
+        updates_provider,
         health_check=updates_provider.health,
-        writes="none", mode=ProviderMode.NATIVE, required=False,
+        writes="none",
+        mode=ProviderMode.NATIVE,
+        required=False,
     )
 
     # native_deployment: deployment domain (compose/systemd)
     from .providers.native_deployment import NativeDeploymentProvider
+
     deploy_config = _read_extra_config(config_dir, "deployment")
     deployment_provider = NativeDeploymentProvider(deploy_config)
     registry.register(
-        "deployment", "native-deployment", deployment_provider,
+        "deployment",
+        "native-deployment",
+        deployment_provider,
         health_check=deployment_provider.health,
-        writes="none", mode=ProviderMode.NATIVE, required=False,
+        writes="none",
+        mode=ProviderMode.NATIVE,
+        required=False,
     )
 
     # Execution Viewer: captures bounded executions from providers/agents
     from .execution_viewer import ExecutionViewer
+
     execution_viewer = ExecutionViewer(data_dir or Path("./data"))
 
     # Chat/reasoning native baseline: absent a configured provider the
     # capability is honestly not_configured (zero-AI boot is supported).
-    if not any(
-        c.get("capability") == "reasoning" for c in connections
-    ):
+    if not any(c.get("capability") == "reasoning" for c in connections):
         registry.define_capability("reasoning", StatusContract)
 
     for cap in world.capabilities.values():
