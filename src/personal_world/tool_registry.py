@@ -234,6 +234,104 @@ def build_default_tools(
         )
     )
 
+    # ── Content Database ──
+
+    # Look up the content-db provider from the registry (if registered).
+    _content_impl = None
+    _content_p = registry.provider_for("memory") if registry else None
+    # The content-db provider has a search() that accepts kind/repo kwargs.
+    if _content_p and _content_p.name == "content-db":
+        _content_impl = registry.impl("content-db")
+    elif registry:
+        # Try to find it explicitly — it may be behind native-memory
+        _content_impl = registry.impl("content-db")
+
+    tools.register(
+        Tool(
+            id="search_content",
+            capability="memory",
+            operation="search",
+            description=(
+                "Search across all indexed repos for templates, configs, skills, "
+                "design data, documentation, and session logs. Uses full-text search "
+                "across the content database. Optionally filter by kind (template, "
+                "skill, config, design, resource, session, version, project) or repo name."
+            ),
+            read_write="read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query text",
+                    },
+                    "kind": {
+                        "type": "string",
+                        "description": "Filter by content kind: template, skill, config, design, resource, session, version, project",
+                    },
+                    "repo": {
+                        "type": "string",
+                        "description": "Filter by repo name (e.g. homelab, vefr, rylee_lore)",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max results (default 20)",
+                    },
+                },
+                "required": ["query"],
+            },
+            handler=lambda query, kind=None, repo=None, limit=20: _search_content(
+                _content_impl, query, kind=kind, repo=repo, limit=limit
+            ),
+        )
+    )
+
+    tools.register(
+        Tool(
+            id="list_content",
+            capability="memory",
+            operation="read",
+            description=(
+                "List content from the content database. Optionally filter by "
+                "kind or repo. Returns recent items sorted by last update."
+            ),
+            read_write="read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "type": "string",
+                        "description": "Filter by content kind",
+                    },
+                    "repo": {
+                        "type": "string",
+                        "description": "Filter by repo name",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max results (default 50)",
+                    },
+                },
+                "required": [],
+            },
+            handler=lambda kind=None, repo=None, limit=50: _list_content(
+                _content_impl, kind=kind, repo=repo, limit=limit
+            ),
+        )
+    )
+
+    tools.register(
+        Tool(
+            id="list_content_repos",
+            capability="memory",
+            operation="read",
+            description="List all repos registered in the content database with their item counts and kinds.",
+            read_write="read",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: _list_content_repos(_content_impl),
+        )
+    )
+
     # ── Source Control ──
 
     tools.register(
@@ -1333,6 +1431,106 @@ def _read_journal(journal: Any, count: int) -> Result:
         return ok("healthy", data={"entries": results, "count": len(results)})
     except Exception as e:
         return fail("unavailable", warnings=[f"journal read: {e}"])
+
+
+def _search_content(
+    content_provider: Any,
+    query: str,
+    *,
+    kind: str | None = None,
+    repo: str | None = None,
+    limit: int = 20,
+) -> Result:
+    """Search across all indexed repos in the content database."""
+    if content_provider is None or not hasattr(content_provider, "search"):
+        return fail(
+            "unavailable",
+            warnings=["content database not wired; search unavailable"],
+        )
+    try:
+        result = content_provider.search(query, kind=kind, repo=repo, limit=limit)
+        if not result.ok:
+            return result
+        data = result.data or {}
+        # Trim body from results to keep brain context small
+        trimmed = []
+        for r in data.get("results", []):
+            trimmed.append(
+                {
+                    "repo": r.get("repo", ""),
+                    "path": r.get("path", ""),
+                    "kind": r.get("kind", ""),
+                    "title": r.get("title", ""),
+                    "abstract": r.get("abstract", ""),
+                    "tags": r.get("tags", []),
+                    "updated_at": r.get("updated_at", ""),
+                }
+            )
+        return ok(
+            "healthy",
+            data={
+                "results": trimmed,
+                "query": query,
+                "count": len(trimmed),
+                "repos_searched": data.get("repos_searched", 0),
+                "source": "content-db",
+            },
+        )
+    except Exception as e:
+        return fail("unavailable", warnings=[f"content search: {e}"])
+
+
+def _list_content(
+    content_provider: Any,
+    *,
+    kind: str | None = None,
+    repo: str | None = None,
+    limit: int = 50,
+) -> Result:
+    """List content from the content database."""
+    if content_provider is None:
+        return fail("unavailable", warnings=["content database not wired"])
+    try:
+        master = content_provider._get_master()
+        if master is None:
+            return fail("unavailable", warnings=["content database unavailable"])
+        if repo:
+            items = master.repo_content(repo, kind=kind, limit=limit)
+        else:
+            items = []
+            for r in master.list_repos():
+                repo_items = master.repo_content(r["name"], kind=kind, limit=limit)
+                for item in repo_items:
+                    item["repo"] = r["name"]
+                items.extend(repo_items)
+            items = items[:limit]
+        trimmed = [
+            {
+                "repo": i.get("repo", ""),
+                "path": i.get("path", ""),
+                "kind": i.get("kind", ""),
+                "title": i.get("title", ""),
+                "abstract": i.get("abstract", ""),
+                "updated_at": i.get("updated_at", ""),
+            }
+            for i in items
+        ]
+        return ok("healthy", data={"items": trimmed, "count": len(trimmed)})
+    except Exception as e:
+        return fail("unavailable", warnings=[f"content list: {e}"])
+
+
+def _list_content_repos(content_provider: Any) -> Result:
+    """List all repos in the content database."""
+    if content_provider is None:
+        return fail("unavailable", warnings=["content database not wired"])
+    try:
+        result = content_provider.list_repos()
+        if not result.ok:
+            return result
+        return ok("healthy", data={"repos": result.data, "count": len(result.data)})
+    except Exception as e:
+        return fail("unavailable", warnings=[f"content repos: {e}"])
 
 
 def _source_control_status(source_control: Any, config_dir: Any = None) -> Result:
