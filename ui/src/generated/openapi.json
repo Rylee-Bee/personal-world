@@ -1,0 +1,323 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Project Worlds", "version": "0.2.0" },
+  "paths": {
+    "/healthz": {
+      "get": { "operationId": "healthz", "summary": "Health check", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Healthz" } } } } } }
+    },
+    "/api/status": {
+      "get": { "operationId": "getStatus", "summary": "World summary", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StatusResponse" } } } } } }
+    },
+    "/api/setup/status": {
+      "get": { "operationId": "getSetupStatus", "summary": "Setup status", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SetupStatus" } } } } } }
+    },
+    "/api/daily": {
+      "get": { "operationId": "getDaily", "summary": "Daily digest", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DailyResponse" } } } } } }
+    },
+    "/api/journal": {
+      "get": { "operationId": "listJournal", "summary": "List journal entries", "parameters": [
+        { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
+        { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalListResponse" } } } } } },
+      "post": { "operationId": "writeJournal", "summary": "Write journal entry", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalWrite" } } } }, "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalEvent" } } } } } }
+    },
+    "/api/journal/history": {
+      "get": { "operationId": "journalHistory", "summary": "Journal history", "parameters": [
+        { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalHistoryResponse" } } } } } }
+    },
+    "/api/journal/audit": {
+      "get": { "operationId": "journalAudit", "summary": "Journal audit", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalAuditResponse" } } } } } }
+    },
+    "/api/journal/supersede": {
+      "post": { "operationId": "supersedeJournal", "summary": "Supersede journal entry", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalSupersede" } } } }, "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/chat": {
+      "post": { "operationId": "sendChat", "summary": "Send chat message", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatResponse" } } } } } }
+    },
+    "/api/chat/providers": {
+      "get": { "operationId": "listChatProviders", "summary": "List chat providers", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatProvidersResponse" } } } } } }
+    },
+    "/api/chat/history": {
+      "get": { "operationId": "chatHistory", "summary": "Chat history", "parameters": [
+        { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatHistoryResponse" } } } } } }
+    },
+    "/api/proposals": {
+      "get": { "operationId": "listProposals", "summary": "List proposals", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProposalListResponse" } } } } } }
+    },
+    "/api/proposals/{proposal_id}": {
+      "get": { "operationId": "getProposal", "summary": "Get proposal", "parameters": [
+        { "name": "proposal_id", "in": "path", "required": true, "schema": { "type": "string" } }
+      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Proposal" } } } } } }
+    },
+    "/api/proposals/{proposal_id}/approve": {
+      "post": { "operationId": "approveProposal", "summary": "Approve proposal", "parameters": [
+        { "name": "proposal_id", "in": "path", "required": true, "schema": { "type": "string" } }
+      ], "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/proposals/{proposal_id}/reject": {
+      "post": { "operationId": "rejectProposal", "summary": "Reject proposal", "parameters": [
+        { "name": "proposal_id", "in": "path", "required": true, "schema": { "type": "string" } }
+      ], "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/proposals/{proposal_id}/execute": {
+      "post": { "operationId": "executeProposal", "summary": "Execute proposal", "parameters": [
+        { "name": "proposal_id", "in": "path", "required": true, "schema": { "type": "string" } }
+      ], "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/actors": {
+      "get": { "operationId": "listActors", "summary": "List actors", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActorsResponse" } } } } } }
+    },
+    "/api/manifest": {
+      "get": { "operationId": "getManifest", "summary": "Capability manifest", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ManifestResponse" } } } } } }
+    },
+    "/api/brain/templates": {
+      "get": { "operationId": "listBrainTemplates", "summary": "List brain templates", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BrainTemplatesResponse" } } } } } }
+    },
+    "/api/memory/search": {
+      "get": { "operationId": "searchMemory", "summary": "Search memory", "parameters": [
+        { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } },
+        { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } }
+      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MemorySearchResponse" } } } } } }
+    },
+    "/api/tools": {
+      "get": { "operationId": "listTools", "summary": "List tools", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ToolsResponse" } } } } } }
+    },
+    "/api/auth/login": {
+      "post": { "operationId": "login", "summary": "Login", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginResponse" } } } } } }
+    },
+    "/api/auth/logout": {
+      "post": { "operationId": "logout", "summary": "Logout", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/auth/session": {
+      "get": { "operationId": "getSession", "summary": "Get session", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionResponse" } } } } } }
+    },
+    "/api/auth/step-up": {
+      "post": { "operationId": "stepUp", "summary": "Step-up auth", "responses": { "200": { "description": "OK" } } }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Healthz": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "auth_configured": { "type": "boolean" },
+          "setup_needed": { "type": "boolean" },
+          "dev_bypass": { "type": "boolean" }
+        },
+        "required": ["ok"]
+      },
+      "SetupStatus": {
+        "type": "object",
+        "properties": {
+          "setup_needed": { "type": "boolean" },
+          "auth_configured": { "type": "boolean" }
+        }
+      },
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "world": { "$ref": "#/components/schemas/WorldSummary" },
+          "capabilities": { "$ref": "#/components/schemas/CapabilityMap" },
+          "actors": { "$ref": "#/components/schemas/ActorsResponse" }
+        }
+      },
+      "WorldSummary": {
+        "type": "object",
+        "properties": {
+          "facts": { "type": "integer" },
+          "intents": { "type": "integer" },
+          "policies": { "type": "integer" },
+          "lore": { "type": "integer" },
+          "providers": { "type": "integer" },
+          "packs": { "type": "integer" }
+        }
+      },
+      "CapabilityMap": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "boolean" },
+            "status": { "type": "string" },
+            "warnings": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      },
+      "JournalEvent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string", "enum": ["entry", "correction", "supersession"] },
+          "content": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "superseded_by": { "type": "string", "nullable": true },
+          "metadata": { "type": "object" }
+        },
+        "required": ["id", "kind", "content", "timestamp"]
+      },
+      "JournalWrite": {
+        "type": "object",
+        "properties": {
+          "content": { "type": "string" },
+          "kind": { "type": "string", "default": "entry" },
+          "metadata": { "type": "object" }
+        },
+        "required": ["content"]
+      },
+      "JournalSupersede": {
+        "type": "object",
+        "properties": {
+          "entry_id": { "type": "string" },
+          "reason": { "type": "string" }
+        },
+        "required": ["entry_id", "reason"]
+      },
+      "JournalListResponse": {
+        "type": "object",
+        "properties": {
+          "entries": { "type": "array", "items": { "$ref": "#/components/schemas/JournalEvent" } },
+          "total": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "offset": { "type": "integer" }
+        }
+      },
+      "JournalHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "history": { "type": "array", "items": { "$ref": "#/components/schemas/JournalEvent" } }
+        }
+      },
+      "JournalAuditResponse": {
+        "type": "object",
+        "properties": {
+          "audit": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "ChatRequest": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "provider": { "type": "string" },
+          "context": { "type": "object" }
+        },
+        "required": ["message"]
+      },
+      "ChatResponse": {
+        "type": "object",
+        "properties": {
+          "reply": { "type": "string" },
+          "provider": { "type": "string" },
+          "usage": { "type": "object" }
+        }
+      },
+      "ChatProvidersResponse": {
+        "type": "object",
+        "properties": {
+          "providers": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "available": { "type": "boolean" } } } }
+        }
+      },
+      "ChatHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "messages": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "Proposal": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "summary": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "approved", "rejected", "executed"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "actor": { "type": "string" },
+          "detail": { "type": "object" }
+        },
+        "required": ["id", "kind", "summary", "status"]
+      },
+      "ProposalListResponse": {
+        "type": "object",
+        "properties": {
+          "proposals": { "type": "array", "items": { "$ref": "#/components/schemas/Proposal" } },
+          "total": { "type": "integer" }
+        }
+      },
+      "Actor": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "status": { "type": "string" }
+        },
+        "required": ["id", "name", "type"]
+      },
+      "ActorsResponse": {
+        "type": "object",
+        "properties": {
+          "actors": { "type": "array", "items": { "$ref": "#/components/schemas/Actor" } }
+        }
+      },
+      "ManifestResponse": {
+        "type": "object",
+        "properties": {
+          "endpoints": { "type": "array", "items": { "type": "object" } },
+          "version": { "type": "string" }
+        }
+      },
+      "BrainTemplatesResponse": {
+        "type": "object",
+        "properties": {
+          "templates": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "kind": { "type": "string" }, "surface": { "type": "string" } } } }
+        }
+      },
+      "MemorySearchResponse": {
+        "type": "object",
+        "properties": {
+          "results": { "type": "array", "items": { "type": "object", "properties": { "text": { "type": "string" }, "score": { "type": "number" }, "source": { "type": "string" } } } },
+          "total": { "type": "integer" }
+        }
+      },
+      "ToolsResponse": {
+        "type": "object",
+        "properties": {
+          "tools": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "kind": { "type": "string" } } } }
+        }
+      },
+      "DailyResponse": {
+        "type": "object",
+        "properties": {
+          "summary": { "type": "string" },
+          "reminders": { "type": "array", "items": { "type": "object" } },
+          "journal_recent": { "type": "array", "items": { "$ref": "#/components/schemas/JournalEvent" } },
+          "projects": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" }
+        },
+        "required": ["token"]
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "session_id": { "type": "string" },
+          "principal": { "type": "string" }
+        }
+      },
+      "SessionResponse": {
+        "type": "object",
+        "properties": {
+          "authenticated": { "type": "boolean" },
+          "principal": { "type": "string" },
+          "step_up": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

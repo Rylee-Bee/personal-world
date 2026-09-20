@@ -22,6 +22,7 @@ secrets/**
 
 # State / data — runtime, not source
 data/
+!ui/src/data/
 *.db
 *.sqlite
 *.sqlite3

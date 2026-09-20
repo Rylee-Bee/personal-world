@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "tokens:generate": "node scripts/generate-tokens.mjs",
+    "api:generate": "node scripts/generate-api-types.mjs",
     "dev": "npm run tokens:generate && vite",
-    "build": "npm run tokens:generate && tsc -b && vite build",
+    "build": "npm run tokens:generate && npm run api:generate && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
