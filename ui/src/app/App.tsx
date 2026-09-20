@@ -10,12 +10,44 @@
 
 import { useState } from "react";
 import { Today } from "../screens/Today/Today";
+import { Journal } from "../screens/Journal/Journal";
+import { Vault } from "../screens/Vault/Vault";
+import { Settings } from "../screens/Settings/Settings";
+import { Chat } from "../screens/Chat/Chat";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
 import { WORLD_AREAS } from "../data/types";
+import type { WorldAreaId } from "../data/types";
 
 export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeArea, setActiveArea] = useState<WorldAreaId>("today");
+
+  function renderScreen() {
+    switch (activeArea) {
+      case "today":
+        return <Today onOpenAssistant={() => setDrawerOpen(true)} />;
+      case "journal":
+        return <Journal />;
+      case "records":
+        return <Vault />;
+      case "settings":
+        return <Settings />;
+      case "news":
+        return <Chat />;
+      default:
+        return (
+          <main id="main-content" className="relative z-10 p-[var(--pw-spacing-xl)]">
+            <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+              {WORLD_AREAS.find((a) => a.id === activeArea)?.label || activeArea}
+            </h1>
+            <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-muted)]">
+              Coming soon.
+            </p>
+          </main>
+        );
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[var(--pw-surface-canvas)]">
@@ -50,7 +82,11 @@ export function App() {
           <ul className="flex gap-[var(--pw-spacing-xs)] overflow-x-auto">
             {WORLD_AREAS.map((area) => (
               <li key={area.id}>
-                <WorldAreaLink area={area} isActive={area.id === "today"} />
+                <WorldAreaLink
+                  area={area}
+                  isActive={area.id === activeArea}
+                  onClick={() => setActiveArea(area.id)}
+                />
               </li>
             ))}
           </ul>
@@ -71,8 +107,8 @@ export function App() {
         </div>
       </header>
 
-      {/* §5.1: main content */}
-      <Today onOpenAssistant={() => setDrawerOpen(true)} />
+      {/* §5.1: main content — screen router */}
+      {renderScreen()}
 
       {/* §3.1: provenance drawer — non-modal */}
       <WorldDrawer
