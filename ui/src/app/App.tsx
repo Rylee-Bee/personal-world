@@ -45,8 +45,13 @@ function useWorldAreas(): WorldArea[] {
     const byId = new Map<string, WorldArea>(WORLD_AREAS.map((a) => [a.id, a]));
     const ordered = [...serverSections]
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .filter((s) => s.id && byId.has(s.id) && s.visible !== false)
-      .map((s) => byId.get(s.id!)!);
+      .flatMap((s) => {
+        // Server ids the UI has no destination for (media, lab, vault,
+        // chat) are skipped; the tail-append below guarantees no known
+        // area is ever silently lost.
+        const area = byId.get(s.id);
+        return area && s.visible !== false ? [area] : [];
+      });
     // Never silently lose navigation destinations the server hasn't seen.
     const seen = new Set(ordered.map((a) => a.id));
     return [...ordered, ...WORLD_AREAS.filter((a) => !seen.has(a.id))];
@@ -70,17 +75,23 @@ export function App() {
         return <Settings />;
       case "news":
         return <Chat />;
-      default:
+      default: {
+        const label = areas.find((a) => a.id === activeArea)?.label ?? activeArea;
         return (
-          <main id="main-content" className="relative z-10 p-[var(--pw-spacing-xl)]">
+          <main
+            id="main-content"
+            aria-label={label}
+            className="relative z-10 p-[var(--pw-spacing-xl)]"
+          >
             <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
-              {areas.find((a) => a.id === activeArea)?.label || activeArea}
+              {label}
             </h1>
             <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-muted)]">
               Coming soon.
             </p>
           </main>
         );
+      }
     }
   }
 

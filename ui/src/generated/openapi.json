@@ -1,234 +1,1580 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "Project Worlds", "version": "0.2.0" },
+  "info": {
+    "title": "Project Worlds",
+    "version": "0.2.0",
+    "description": "Hand-maintained contract fixture for the Station vNext UI (regenerate types with `npm run api:generate`). Endpoint shapes consumed by the UI are verified against src/personal_world (api.py, auth_routes.py, prefs.py, sections.py, status.py, classification.py, template_registry.py, api_manifest.py, envelope.py) on 2026-09-20 — the deployed Station serves /openapi.json as HTTP 500, so the spec cannot be fetched from the live server. Unconsumed endpoints still reflect the older wave-0 snapshot and may drift from the server."
+  },
   "paths": {
     "/healthz": {
-      "get": { "operationId": "healthz", "summary": "Health check", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Healthz" } } } } } }
+      "get": {
+        "operationId": "healthz",
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Healthz"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/status": {
-      "get": { "operationId": "getStatus", "summary": "World summary", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StatusResponse" } } } } } }
+      "get": {
+        "operationId": "getStatus",
+        "summary": "World summary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/setup/status": {
-      "get": { "operationId": "getSetupStatus", "summary": "Setup status", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SetupStatus" } } } } } }
+      "get": {
+        "operationId": "getSetupStatus",
+        "summary": "Setup status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupStatus"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/daily": {
-      "get": { "operationId": "getDaily", "summary": "Daily digest", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DailyResponse" } } } } } }
+      "get": {
+        "operationId": "getDaily",
+        "summary": "Daily digest",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/journal": {
-      "get": { "operationId": "listJournal", "summary": "List journal entries", "parameters": [
-        { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
-        { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalListResponse" } } } } } },
-      "post": { "operationId": "writeJournal", "summary": "Write journal entry", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalWrite" } } } }, "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalEvent" } } } } } }
+      "get": {
+        "operationId": "listJournal",
+        "summary": "List journal entries",
+        "parameters": [
+          {
+            "name": "n",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "writeJournal",
+        "summary": "Write personal journal note",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JournalNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalNoteResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/journal/history": {
-      "get": { "operationId": "journalHistory", "summary": "Journal history", "parameters": [
-        { "name": "limit", "in": "query", "schema": { "type": "integer" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalHistoryResponse" } } } } } }
+      "get": {
+        "operationId": "journalHistory",
+        "summary": "Journal history",
+        "parameters": [
+          {
+            "name": "ts",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Timestamp of the entry whose chain to show"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalHistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/journal/audit": {
-      "get": { "operationId": "journalAudit", "summary": "Journal audit", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalAuditResponse" } } } } } }
+      "get": {
+        "operationId": "journalAudit",
+        "summary": "Journal audit",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalAuditResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/journal/supersede": {
-      "post": { "operationId": "supersedeJournal", "summary": "Supersede journal entry", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JournalSupersede" } } } }, "responses": { "200": { "description": "OK" } } }
+      "post": {
+        "operationId": "supersedeJournal",
+        "summary": "Supersede journal entry",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JournalSupersedeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalSupersedeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/chat": {
-      "post": { "operationId": "sendChat", "summary": "Send chat message", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatResponse" } } } } } }
+      "post": {
+        "operationId": "sendChat",
+        "summary": "Send chat message",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/chat/providers": {
-      "get": { "operationId": "listChatProviders", "summary": "List chat providers", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatProvidersResponse" } } } } } }
+      "get": {
+        "operationId": "listChatProviders",
+        "summary": "List chat providers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatProvidersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/chat/history": {
-      "get": { "operationId": "chatHistory", "summary": "Chat history", "parameters": [
-        { "name": "limit", "in": "query", "schema": { "type": "integer" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatHistoryResponse" } } } } } }
+      "get": {
+        "operationId": "chatHistory",
+        "summary": "Chat history",
+        "parameters": [
+          {
+            "name": "n",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatHistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/proposals": {
-      "get": { "operationId": "listProposals", "summary": "List proposals", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProposalListResponse" } } } } } }
+      "get": {
+        "operationId": "listProposals",
+        "summary": "List proposals",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/proposals/{proposal_id}": {
-      "get": { "operationId": "getProposal", "summary": "Get proposal", "parameters": [
-        { "name": "proposal_id", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Proposal" } } } } } }
+      "get": {
+        "operationId": "getProposal",
+        "summary": "Get proposal",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proposal"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/proposals/{proposal_id}/approve": {
-      "post": { "operationId": "approveProposal", "summary": "Approve proposal", "parameters": [
-        { "name": "proposal_id", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK" } } }
+      "post": {
+        "operationId": "approveProposal",
+        "summary": "Approve proposal",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     },
     "/api/proposals/{proposal_id}/reject": {
-      "post": { "operationId": "rejectProposal", "summary": "Reject proposal", "parameters": [
-        { "name": "proposal_id", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK" } } }
+      "post": {
+        "operationId": "rejectProposal",
+        "summary": "Reject proposal",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     },
     "/api/proposals/{proposal_id}/execute": {
-      "post": { "operationId": "executeProposal", "summary": "Execute proposal", "parameters": [
-        { "name": "proposal_id", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK" } } }
+      "post": {
+        "operationId": "executeProposal",
+        "summary": "Execute proposal",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     },
     "/api/actors": {
-      "get": { "operationId": "listActors", "summary": "List actors", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActorsResponse" } } } } } }
+      "get": {
+        "operationId": "listActors",
+        "summary": "List actors",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActorsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/manifest": {
-      "get": { "operationId": "getManifest", "summary": "Capability manifest", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ManifestResponse" } } } } } }
+      "get": {
+        "operationId": "getManifest",
+        "summary": "Capability manifest",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManifestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/brain/templates": {
-      "get": { "operationId": "listBrainTemplates", "summary": "List brain templates", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BrainTemplatesResponse" } } } } } }
+      "get": {
+        "operationId": "listBrainTemplates",
+        "summary": "List brain templates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrainTemplatesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/memory/search": {
-      "get": { "operationId": "searchMemory", "summary": "Search memory", "parameters": [
-        { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } },
-        { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MemorySearchResponse" } } } } } }
+      "get": {
+        "operationId": "searchMemory",
+        "summary": "Search memory",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/tools": {
-      "get": { "operationId": "listTools", "summary": "List tools", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ToolsResponse" } } } } } }
+      "get": {
+        "operationId": "listTools",
+        "summary": "List tools",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/auth/login": {
-      "post": { "operationId": "login", "summary": "Login", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginResponse" } } } } } }
+      "post": {
+        "operationId": "login",
+        "summary": "Login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/auth/logout": {
-      "post": { "operationId": "logout", "summary": "Logout", "responses": { "200": { "description": "OK" } } }
+      "post": {
+        "operationId": "logout",
+        "summary": "Logout",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     },
     "/api/auth/session": {
-      "get": { "operationId": "getSession", "summary": "Get session", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionResponse" } } } } } }
+      "get": {
+        "operationId": "getSession",
+        "summary": "Get session",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/auth/step-up": {
-      "post": { "operationId": "stepUp", "summary": "Step-up auth", "responses": { "200": { "description": "OK" } } }
+      "post": {
+        "operationId": "stepUp",
+        "summary": "Step-up auth",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     },
     "/api/connections/schemas": {
-      "get": { "operationId": "getConnectionSchemas", "summary": "List connection schemas", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionSchemasResponse" } } } } } }
+      "get": {
+        "operationId": "getConnectionSchemas",
+        "summary": "List connection schemas",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionSchemasResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/connections/schema/{capability}": {
-      "get": { "operationId": "getConnectionSchema", "summary": "Schema for one capability", "parameters": [
-        { "name": "capability", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionSchemaResponse" } } } }, "404": { "description": "Unknown capability" } } }
+      "get": {
+        "operationId": "getConnectionSchema",
+        "summary": "Schema for one capability",
+        "parameters": [
+          {
+            "name": "capability",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionSchemaResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown capability"
+          }
+        }
+      }
     },
     "/api/connections/config": {
-      "get": { "operationId": "getConnectionsConfig", "summary": "Connection configuration", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionsConfigResponse" } } } } } }
+      "get": {
+        "operationId": "getConnectionsConfig",
+        "summary": "Connection configuration",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionsConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/connections/overview": {
-      "get": { "operationId": "getConnectionsOverview", "summary": "Overview of all connections", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionsOverviewResponse" } } } } } }
+      "get": {
+        "operationId": "getConnectionsOverview",
+        "summary": "Overview of all connections",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionsOverviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/connections": {
-      "get": { "operationId": "listConnections", "summary": "List connections", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionsListResponse" } } } } } },
-      "put": { "operationId": "saveConnection", "summary": "Save or update a connection", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionSaveRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionSaveResponse" } } } } } }
+      "get": {
+        "operationId": "listConnections",
+        "summary": "List connections",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionsListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveConnection",
+        "summary": "Save or update a connection",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionSaveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionSaveResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/connections/{name}": {
-      "delete": { "operationId": "deleteConnection", "summary": "Remove a connection", "parameters": [
-        { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionDeleteResponse" } } } } } }
+      "delete": {
+        "operationId": "deleteConnection",
+        "summary": "Remove a connection",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionDeleteResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/connections/test": {
-      "post": { "operationId": "testConnection", "summary": "Test a connection", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionTestRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionTestResponse" } } } } } }
+      "post": {
+        "operationId": "testConnection",
+        "summary": "Test a connection",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionTestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionTestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/connections/validate": {
-      "post": { "operationId": "validateConnection", "summary": "Validate connection config", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionTestRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConnectionTestResponse" } } } } } }
+      "post": {
+        "operationId": "validateConnection",
+        "summary": "Validate connection config",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionTestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionTestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/identity/principal": {
-      "get": { "operationId": "getIdentityPrincipal", "summary": "Current principal info", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PrincipalResponse" } } } } } },
-      "put": { "operationId": "updateIdentityPrincipal", "summary": "Update display name", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PrincipalUpdateRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PrincipalResponse" } } } } } }
+      "get": {
+        "operationId": "getIdentityPrincipal",
+        "summary": "Current principal info",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateIdentityPrincipal",
+        "summary": "Update display name",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrincipalUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/identity/users": {
-      "get": { "operationId": "listUsers", "summary": "List users", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UsersListResponse" } } } } } },
-      "post": { "operationId": "createUser", "summary": "Create user", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserCreateRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserCreateResponse" } } } } } }
+      "get": {
+        "operationId": "listUsers",
+        "summary": "List users",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsersListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUser",
+        "summary": "Create user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCreateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/identity/agents": {
-      "get": { "operationId": "listAgents", "summary": "List agents", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AgentsListResponse" } } } } } }
+      "get": {
+        "operationId": "listAgents",
+        "summary": "List agents",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentsListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/identity/agents/{agent_id}": {
-      "get": { "operationId": "getAgent", "summary": "Get agent details", "parameters": [
-        { "name": "agent_id", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AgentDetailResponse" } } } } } }
+      "get": {
+        "operationId": "getAgent",
+        "summary": "Get agent details",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/discovery/status": {
-      "get": { "operationId": "getDiscoveryStatus", "summary": "Discovery status", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiscoveryStatusResponse" } } } } } }
+      "get": {
+        "operationId": "getDiscoveryStatus",
+        "summary": "Discovery status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/discovery/sources": {
-      "get": { "operationId": "listDiscoverySources", "summary": "List discovery sources", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiscoverySourcesResponse" } } } } } }
+      "get": {
+        "operationId": "listDiscoverySources",
+        "summary": "List discovery sources",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverySourcesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/discovery/interests": {
-      "get": { "operationId": "listDiscoveryInterests", "summary": "List interests", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiscoveryInterestsResponse" } } } } } }
+      "get": {
+        "operationId": "listDiscoveryInterests",
+        "summary": "List interests",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryInterestsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/discovery/discover": {
-      "get": { "operationId": "triggerDiscovery", "summary": "Trigger discovery", "parameters": [
-        { "name": "source", "in": "query", "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiscoveryDiscoverResponse" } } } } } }
+      "get": {
+        "operationId": "triggerDiscovery",
+        "summary": "Trigger discovery",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryDiscoverResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/media/status": {
-      "get": { "operationId": "getMediaStatus", "summary": "Media status", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MediaStatusResponse" } } } } } }
+      "get": {
+        "operationId": "getMediaStatus",
+        "summary": "Media status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/media/library": {
-      "get": { "operationId": "getMediaLibrary", "summary": "Library listing", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MediaLibraryResponse" } } } } } }
+      "get": {
+        "operationId": "getMediaLibrary",
+        "summary": "Library listing",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaLibraryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/media/recent": {
-      "get": { "operationId": "getMediaRecent", "summary": "Recent media", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MediaRecentResponse" } } } } } }
+      "get": {
+        "operationId": "getMediaRecent",
+        "summary": "Recent media",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaRecentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/media/activity": {
-      "get": { "operationId": "getMediaActivity", "summary": "Media activity", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MediaActivityResponse" } } } } } }
+      "get": {
+        "operationId": "getMediaActivity",
+        "summary": "Media activity",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaActivityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/media/search": {
-      "get": { "operationId": "searchMedia", "summary": "Search media", "parameters": [
-        { "name": "q", "in": "query", "schema": { "type": "string", "default": "" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MediaSearchResponse" } } } } } }
+      "get": {
+        "operationId": "searchMedia",
+        "summary": "Search media",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaSearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/vault/status": {
-      "get": { "operationId": "getVaultStatus", "summary": "Vault status", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VaultStatusResponse" } } } } } }
+      "get": {
+        "operationId": "getVaultStatus",
+        "summary": "Vault status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VaultStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/vault/unlock": {
-      "post": { "operationId": "unlockVault", "summary": "Unlock vault", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VaultUnlockRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VaultActionResponse" } } } } } }
+      "post": {
+        "operationId": "unlockVault",
+        "summary": "Unlock vault",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VaultUnlockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VaultActionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/vault/lock": {
-      "post": { "operationId": "lockVault", "summary": "Lock vault", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VaultLockResponse" } } } } } }
+      "post": {
+        "operationId": "lockVault",
+        "summary": "Lock vault",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VaultLockResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/vault/names": {
-      "get": { "operationId": "listVaultNames", "summary": "List vault secret names", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VaultNamesResponse" } } } } } }
+      "get": {
+        "operationId": "listVaultNames",
+        "summary": "List vault secret names",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VaultNamesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/vault/set": {
-      "post": { "operationId": "setVaultSecret", "summary": "Store a secret", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VaultSetRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VaultSetResponse" } } } } } }
+      "post": {
+        "operationId": "setVaultSecret",
+        "summary": "Store a secret",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VaultSetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VaultSetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/vault/{name}": {
-      "get": { "operationId": "getVaultSecret", "summary": "Read a secret (loopback-only)", "parameters": [
-        { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VaultGetResponse" } } } } } },
-      "delete": { "operationId": "deleteVaultSecret", "summary": "Delete a secret", "parameters": [
-        { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VaultDeleteResponse" } } } } } }
+      "get": {
+        "operationId": "getVaultSecret",
+        "summary": "Read a secret (loopback-only)",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VaultGetResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteVaultSecret",
+        "summary": "Delete a secret",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VaultDeleteResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/prefs": {
-      "get": { "operationId": "getPrefs", "summary": "Get preferences", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PrefsResponse" } } } } } },
-      "put": { "operationId": "updatePrefs", "summary": "Update preferences", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PrefsResponse" } } } } } }
+      "get": {
+        "operationId": "getPrefs",
+        "summary": "Get preferences",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrefsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updatePrefs",
+        "summary": "Update preferences",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrefsUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrefsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/prefs/schema": {
-      "get": { "operationId": "getPrefsSchema", "summary": "Preference vocabulary", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PrefsSchemaResponse" } } } } } }
+      "get": {
+        "operationId": "getPrefsSchema",
+        "summary": "Preference vocabulary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrefsSchemaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/sections": {
-      "get": { "operationId": "getSections", "summary": "Get section layout", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SectionsResponse" } } } } } },
-      "put": { "operationId": "updateSections", "summary": "Update section layout", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SectionsResponse" } } } } } }
+      "get": {
+        "operationId": "getSections",
+        "summary": "Get section layout",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectionsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateSections",
+        "summary": "Update section layout",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SectionsUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/reminders": {
-      "get": { "operationId": "listReminders", "summary": "List reminders", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RemindersResponse" } } } } } },
-      "post": { "operationId": "addReminder", "summary": "Add reminder", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReminderCreateRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReminderActionResponse" } } } } } }
+      "get": {
+        "operationId": "listReminders",
+        "summary": "List reminders",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemindersResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addReminder",
+        "summary": "Add reminder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReminderCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderActionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/reminders/{rid}": {
-      "patch": { "operationId": "toggleReminder", "summary": "Toggle reminder", "parameters": [
-        { "name": "rid", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "enabled": { "type": "boolean" } }, "required": ["enabled"] } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReminderActionResponse" } } } } } },
-      "delete": { "operationId": "deleteReminder", "summary": "Delete reminder", "parameters": [
-        { "name": "rid", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReminderActionResponse" } } } } } }
+      "patch": {
+        "operationId": "toggleReminder",
+        "summary": "Toggle reminder",
+        "parameters": [
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderActionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteReminder",
+        "summary": "Delete reminder",
+        "parameters": [
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderActionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/apps": {
-      "get": { "operationId": "listApps", "summary": "List apps", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AppsResponse" } } } } } },
-      "put": { "operationId": "updateApps", "summary": "Update apps registry", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AppsUpdateRequest" } } } }, "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AppsResponse" } } } } } }
+      "get": {
+        "operationId": "listApps",
+        "summary": "List apps",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateApps",
+        "summary": "Update apps registry",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppsUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/themes": {
-      "get": { "operationId": "listThemes", "summary": "List theme packs", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ThemesResponse" } } } } } }
+      "get": {
+        "operationId": "listThemes",
+        "summary": "List theme packs",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/themes/{name}": {
-      "get": { "operationId": "getTheme", "summary": "Get theme pack", "parameters": [
-        { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
-      ], "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ThemeDetailResponse" } } } } } }
+      "get": {
+        "operationId": "getTheme",
+        "summary": "Get theme pack",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -236,642 +1582,1655 @@
       "Healthz": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "auth_configured": { "type": "boolean" },
-          "setup_needed": { "type": "boolean" },
-          "dev_bypass": { "type": "boolean" }
+          "ok": {
+            "type": "boolean"
+          },
+          "auth_configured": {
+            "type": "boolean"
+          },
+          "setup_needed": {
+            "type": "boolean"
+          },
+          "dev_bypass": {
+            "type": "boolean"
+          }
         },
-        "required": ["ok"]
+        "required": [
+          "ok"
+        ]
       },
       "SetupStatus": {
         "type": "object",
+        "description": "GET /api/setup/status → {ok, data:{complete}}.",
         "properties": {
-          "setup_needed": { "type": "boolean" },
-          "auth_configured": { "type": "boolean" }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "complete"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "StatusResponse": {
         "type": "object",
+        "description": "GET /api/status → Result envelope.",
         "properties": {
-          "world": { "$ref": "#/components/schemas/WorldSummary" },
-          "capabilities": { "$ref": "#/components/schemas/CapabilityMap" },
-          "actors": { "$ref": "#/components/schemas/ActorsResponse" }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StatusData"
+          }
+        },
+        "required": [
+          "ok",
+          "status",
+          "data"
+        ]
       },
       "WorldSummary": {
         "type": "object",
+        "description": "world.summary() — src/personal_world/world.py.",
         "properties": {
-          "facts": { "type": "integer" },
-          "intents": { "type": "integer" },
-          "policies": { "type": "integer" },
-          "lore": { "type": "integer" },
-          "providers": { "type": "integer" },
-          "packs": { "type": "integer" }
-        }
+          "facts": {
+            "type": "integer"
+          },
+          "intents": {
+            "type": "integer"
+          },
+          "policies": {
+            "type": "integer"
+          },
+          "cemented_policies": {
+            "type": "integer"
+          },
+          "lore": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "declared_capabilities": {
+            "type": "integer"
+          },
+          "providers": {
+            "type": "integer"
+          },
+          "packs": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "facts",
+          "intents",
+          "policies",
+          "cemented_policies",
+          "lore",
+          "declared_capabilities",
+          "providers",
+          "packs"
+        ]
       },
       "CapabilityMap": {
         "type": "object",
         "additionalProperties": {
-          "type": "object",
-          "properties": {
-            "ok": { "type": "boolean" },
-            "status": { "type": "string" },
-            "warnings": { "type": "array", "items": { "type": "string" } }
-          }
+          "$ref": "#/components/schemas/CapabilityObservation"
         }
       },
       "JournalEvent": {
         "type": "object",
+        "description": "model.JournalEvent (pydantic dump; every key always present).",
         "properties": {
-          "id": { "type": "string" },
-          "kind": { "type": "string", "enum": ["entry", "correction", "supersession"] },
-          "content": { "type": "string" },
-          "timestamp": { "type": "string", "format": "date-time" },
-          "superseded_by": { "type": "string", "nullable": true },
-          "metadata": { "type": "object" }
+          "ts": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/JournalKind"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Classification"
+          },
+          "supersedes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "supersede_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         },
-        "required": ["id", "kind", "content", "timestamp"]
-      },
-      "JournalWrite": {
-        "type": "object",
-        "properties": {
-          "content": { "type": "string" },
-          "kind": { "type": "string", "default": "entry" },
-          "metadata": { "type": "object" }
-        },
-        "required": ["content"]
-      },
-      "JournalSupersede": {
-        "type": "object",
-        "properties": {
-          "entry_id": { "type": "string" },
-          "reason": { "type": "string" }
-        },
-        "required": ["entry_id", "reason"]
+        "required": [
+          "ts",
+          "kind",
+          "summary",
+          "provenance",
+          "classification",
+          "supersedes",
+          "supersede_reason"
+        ]
       },
       "JournalListResponse": {
         "type": "object",
+        "description": "GET /api/journal → {ok, data: [current events]}.",
         "properties": {
-          "entries": { "type": "array", "items": { "$ref": "#/components/schemas/JournalEvent" } },
-          "total": { "type": "integer" },
-          "limit": { "type": "integer" },
-          "offset": { "type": "integer" }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalEvent"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "JournalHistoryResponse": {
         "type": "object",
+        "description": "GET /api/journal/history?ts= → one correction chain, oldest→newest.",
         "properties": {
-          "history": { "type": "array", "items": { "$ref": "#/components/schemas/JournalEvent" } }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "entries": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/JournalEvent"
+                }
+              }
+            },
+            "required": [
+              "entries"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "status"
+        ]
       },
       "JournalAuditResponse": {
         "type": "object",
+        "description": "GET /api/journal/audit → {ok, data:{text}} (rendered audit).",
         "properties": {
-          "audit": { "type": "array", "items": { "type": "object" } }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "text"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ChatRequest": {
         "type": "object",
+        "description": "POST /api/chat body. The server picks the reasoning provider; there is no per-request provider field.",
         "properties": {
-          "message": { "type": "string" },
-          "provider": { "type": "string" },
-          "context": { "type": "object" }
+          "message": {
+            "type": "string"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "role",
+                "content"
+              ]
+            }
+          },
+          "context": {
+            "type": "object",
+            "description": "Where in the UI the person is (provenance, not truth).",
+            "properties": {
+              "route": {
+                "type": "string"
+              },
+              "section_id": {
+                "type": "string"
+              },
+              "entity": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
+          }
         },
-        "required": ["message"]
+        "required": [
+          "message"
+        ]
       },
       "ChatResponse": {
         "type": "object",
+        "description": "POST /api/chat → Result dump; data keys are provider-dependent ({reply, provider, usage, proposal?}).",
         "properties": {
-          "reply": { "type": "string" },
-          "provider": { "type": "string" },
-          "usage": { "type": "object" }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "data": {
+            "type": "object",
+            "description": "Provider-dependent result payload.",
+            "properties": {
+              "reply": {
+                "type": "string"
+              },
+              "provider": {
+                "type": "string"
+              },
+              "usage": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "proposal": {}
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "status"
+        ]
       },
       "ChatProvidersResponse": {
         "type": "object",
+        "description": "GET /api/chat/providers → {ok, data:{providers, active}}.",
         "properties": {
-          "providers": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "available": { "type": "boolean" } } } }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "providers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ChatProviderInfo"
+                }
+              },
+              "active": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "providers",
+              "active"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ChatHistoryResponse": {
         "type": "object",
+        "description": "GET /api/chat/history → {ok, data:{entries, count}}.",
         "properties": {
-          "messages": { "type": "array", "items": { "type": "object" } }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "entries": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ChatHistoryEntry"
+                }
+              },
+              "count": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "entries",
+              "count"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "Proposal": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "kind": { "type": "string" },
-          "summary": { "type": "string" },
-          "status": { "type": "string", "enum": ["pending", "approved", "rejected", "executed"] },
-          "created_at": { "type": "string", "format": "date-time" },
-          "actor": { "type": "string" },
-          "detail": { "type": "object" }
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "executed"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "object"
+          }
         },
-        "required": ["id", "kind", "summary", "status"]
+        "required": [
+          "id",
+          "kind",
+          "summary",
+          "status"
+        ]
       },
       "ProposalListResponse": {
         "type": "object",
         "properties": {
-          "proposals": { "type": "array", "items": { "$ref": "#/components/schemas/Proposal" } },
-          "total": { "type": "integer" }
+          "proposals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Proposal"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
         }
       },
       "Actor": {
         "type": "object",
+        "description": "model.Actor — staff-directory entry for a connected PROVIDER (not a companion).",
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "type": { "type": "string" },
-          "status": { "type": "string" }
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "provider": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string"
+          },
+          "secrets": {
+            "type": "string"
+          },
+          "writes": {
+            "type": "string"
+          }
         },
-        "required": ["id", "name", "type"]
+        "required": [
+          "name",
+          "role",
+          "provider",
+          "capabilities",
+          "status",
+          "secrets",
+          "writes"
+        ]
       },
       "ActorsResponse": {
         "type": "object",
+        "description": "GET /api/actors → {ok, data: Actor[]}.",
         "properties": {
-          "actors": { "type": "array", "items": { "$ref": "#/components/schemas/Actor" } }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Actor"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ManifestResponse": {
         "type": "object",
+        "description": "GET /api/manifest → {ok, data: capability manifest, endpoints: [...]} (api_manifest.py).",
         "properties": {
-          "endpoints": { "type": "array", "items": { "type": "object" } },
-          "version": { "type": "string" }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManifestEndpoint"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "endpoints"
+        ]
       },
       "BrainTemplatesResponse": {
         "type": "object",
+        "description": "GET /api/brain/templates → {ok, data:{templates}}.",
         "properties": {
-          "templates": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "kind": { "type": "string" }, "surface": { "type": "string" } } } }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "templates": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BrainTemplate"
+                }
+              }
+            },
+            "required": [
+              "templates"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "MemorySearchResponse": {
         "type": "object",
         "properties": {
-          "results": { "type": "array", "items": { "type": "object", "properties": { "text": { "type": "string" }, "score": { "type": "number" }, "source": { "type": "string" } } } },
-          "total": { "type": "integer" }
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "score": {
+                  "type": "number"
+                },
+                "source": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
         }
       },
       "ToolsResponse": {
         "type": "object",
         "properties": {
-          "tools": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "kind": { "type": "string" } } } }
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         }
       },
       "DailyResponse": {
         "type": "object",
+        "description": "GET /api/daily → full Result dump.",
         "properties": {
-          "summary": { "type": "string" },
-          "reminders": { "type": "array", "items": { "type": "object" } },
-          "journal_recent": { "type": "array", "items": { "$ref": "#/components/schemas/JournalEvent" } },
-          "projects": { "type": "array", "items": { "type": "object" } }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyDigest"
+          }
+        },
+        "required": [
+          "ok",
+          "status",
+          "changed",
+          "warnings",
+          "actions",
+          "data"
+        ]
       },
       "LoginRequest": {
         "type": "object",
         "properties": {
-          "token": { "type": "string" }
+          "token": {
+            "type": "string"
+          }
         },
-        "required": ["token"]
+        "required": [
+          "token"
+        ]
       },
       "LoginResponse": {
         "type": "object",
         "properties": {
-          "session_id": { "type": "string" },
-          "principal": { "type": "string" }
+          "session_id": {
+            "type": "string"
+          },
+          "principal": {
+            "type": "string"
+          }
         }
       },
       "SessionResponse": {
         "type": "object",
+        "description": "GET /api/auth/session (auth_routes.py): ok:false + status when not signed in.",
         "properties": {
-          "authenticated": { "type": "boolean" },
-          "principal": { "type": "string" },
-          "step_up": { "type": "boolean" }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "unauthenticated",
+              "expired"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "principal_id": {
+                "type": "string"
+              },
+              "auth_method": {
+                "type": "string"
+              },
+              "has_step_up": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "principal_id",
+              "auth_method",
+              "has_step_up"
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
       },
       "ConfigField": {
         "type": "object",
         "description": "A single configuration field for a provider.",
         "properties": {
-          "key": { "type": "string" },
-          "label": { "type": "string" },
-          "type": { "type": "string", "enum": ["text", "url", "secret", "select", "boolean"] },
-          "required": { "type": "boolean", "default": false },
-          "description": { "type": "string", "default": "" },
-          "placeholder": { "type": "string", "default": "" },
-          "options": { "type": "array", "items": { "type": "object", "properties": { "value": { "type": "string" }, "label": { "type": "string" } } }, "default": [] },
-          "secret_ref": { "type": "boolean", "default": false }
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "url",
+              "secret",
+              "select",
+              "boolean"
+            ]
+          },
+          "required": {
+            "type": "boolean",
+            "default": false
+          },
+          "description": {
+            "type": "string",
+            "default": ""
+          },
+          "placeholder": {
+            "type": "string",
+            "default": ""
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            },
+            "default": []
+          },
+          "secret_ref": {
+            "type": "boolean",
+            "default": false
+          }
         },
-        "required": ["key", "label", "type"]
+        "required": [
+          "key",
+          "label",
+          "type"
+        ]
       },
       "ProviderSchema": {
         "type": "object",
         "description": "Configuration schema for a provider/adapter.",
         "properties": {
-          "id": { "type": "string" },
-          "display_name": { "type": "string" },
-          "capability": { "type": "string" },
-          "description": { "type": "string" },
-          "adapter_type": { "type": "string" },
-          "config_fields": { "type": "array", "items": { "$ref": "#/components/schemas/ConfigField" } },
-          "can_test": { "type": "boolean", "default": true },
-          "multiple": { "type": "boolean", "default": true }
+          "id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "adapter_type": {
+            "type": "string"
+          },
+          "config_fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfigField"
+            }
+          },
+          "can_test": {
+            "type": "boolean",
+            "default": true
+          },
+          "multiple": {
+            "type": "boolean",
+            "default": true
+          }
         },
-        "required": ["id", "display_name", "capability", "description", "adapter_type"]
+        "required": [
+          "id",
+          "display_name",
+          "capability",
+          "description",
+          "adapter_type"
+        ]
       },
       "CapabilitySchema": {
         "type": "object",
         "description": "Full schema for a capability: available providers, active config.",
         "properties": {
-          "capability": { "type": "string" },
-          "display_name": { "type": "string" },
-          "description": { "type": "string" },
-          "icon": { "type": "string" },
-          "providers": { "type": "array", "items": { "$ref": "#/components/schemas/ProviderSchema" } },
-          "needs_setup": { "type": "boolean", "default": false },
-          "help_text": { "type": "string", "default": "" }
+          "capability": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderSchema"
+            }
+          },
+          "needs_setup": {
+            "type": "boolean",
+            "default": false
+          },
+          "help_text": {
+            "type": "string",
+            "default": ""
+          }
         },
-        "required": ["capability", "display_name", "description", "icon", "providers"]
+        "required": [
+          "capability",
+          "display_name",
+          "description",
+          "icon",
+          "providers"
+        ]
       },
       "ConnectionSchemasResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "array", "items": { "$ref": "#/components/schemas/CapabilitySchema" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CapabilitySchema"
+            }
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ConnectionSchemaResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "$ref": "#/components/schemas/CapabilitySchema" }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CapabilitySchema"
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ConnectionsConfigResponse": {
         "type": "object",
         "description": "Full merged connection configuration (connections.json + connections.local.json).",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "object" }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object"
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ConnectionOverviewEntry": {
         "type": "object",
         "description": "Per-capability overview for the Connections & Providers UI.",
         "properties": {
-          "capability": { "type": "string" },
-          "display_name": { "type": "string" },
-          "description": { "type": "string" },
-          "icon": { "type": "string" },
-          "status": { "type": "string" },
-          "ok": { "type": "boolean" },
-          "configured": { "type": "boolean" },
-          "needs_setup": { "type": "boolean" },
-          "help_text": { "type": "string" },
-          "providers": { "type": "array", "items": { "$ref": "#/components/schemas/ProviderSchema" } }
+          "capability": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "needs_setup": {
+            "type": "boolean"
+          },
+          "help_text": {
+            "type": "string"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderSchema"
+            }
+          }
         },
-        "required": ["capability", "display_name", "description", "icon", "status", "ok", "configured", "needs_setup", "help_text", "providers"]
+        "required": [
+          "capability",
+          "display_name",
+          "description",
+          "icon",
+          "status",
+          "ok",
+          "configured",
+          "needs_setup",
+          "help_text",
+          "providers"
+        ]
       },
       "ConnectionsOverviewResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "array", "items": { "$ref": "#/components/schemas/ConnectionOverviewEntry" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionOverviewEntry"
+            }
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ConnectionEntry": {
         "type": "object",
         "description": "A saved connection record.",
         "properties": {
-          "name": { "type": "string" },
-          "type": { "type": "string" },
-          "capability": { "type": "string" },
-          "adapter_type": { "type": "string" },
-          "config": { "type": "object" }
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "adapter_type": {
+            "type": "string"
+          },
+          "config": {
+            "type": "object"
+          }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       },
       "ConnectionsListResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "array", "items": { "$ref": "#/components/schemas/ConnectionEntry" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionEntry"
+            }
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ConnectionSaveRequest": {
         "type": "object",
         "description": "Save or update a connection (step-up required).",
         "properties": {
-          "name": { "type": "string" },
-          "type": { "type": "string" },
-          "capability": { "type": "string" },
-          "adapter_type": { "type": "string" },
-          "config": { "type": "object" }
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "adapter_type": {
+            "type": "string"
+          },
+          "config": {
+            "type": "object"
+          }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       },
       "ConnectionSaveResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "saved": { "type": "boolean" },
-              "name": { "type": "string" }
+              "saved": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              }
             }
           }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ConnectionDeleteResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "deleted": { "type": "boolean" }
+              "deleted": {
+                "type": "boolean"
+              }
             }
           }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "ConnectionTestRequest": {
         "type": "object",
         "description": "Test or validate a connection configuration without saving.",
         "properties": {
-          "capability": { "type": "string" },
-          "adapter_type": { "type": "string" },
-          "config": { "type": "object" }
+          "capability": {
+            "type": "string"
+          },
+          "adapter_type": {
+            "type": "string"
+          },
+          "config": {
+            "type": "object"
+          }
         },
-        "required": ["capability", "adapter_type", "config"]
+        "required": [
+          "capability",
+          "adapter_type",
+          "config"
+        ]
       },
       "ConnectionTestResult": {
         "type": "object",
         "description": "Result of a connection test/probe.",
         "properties": {
-          "status": { "type": "string", "enum": ["healthy", "unavailable", "invalid_configuration", "validated", "unknown"] },
-          "detail": { "type": "string" },
-          "code": { "type": "integer" },
-          "redirected": { "type": "boolean" }
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "unavailable",
+              "invalid_configuration",
+              "validated",
+              "unknown"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "code": {
+            "type": "integer"
+          },
+          "redirected": {
+            "type": "boolean"
+          }
         },
-        "required": ["status"]
+        "required": [
+          "status"
+        ]
       },
       "ConnectionTestResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "$ref": "#/components/schemas/ConnectionTestResult" }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ConnectionTestResult"
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "PrincipalInfo": {
         "type": "object",
         "description": "Who is calling (resolved principal).",
         "properties": {
-          "id": { "type": "string" },
-          "kind": { "type": "string", "enum": ["person", "agent"] },
-          "display_name": { "type": "string" },
-          "scopes": { "type": "array", "items": { "type": "string" } },
-          "source": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "person",
+              "agent"
+            ]
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string"
+          }
         },
-        "required": ["id", "kind", "display_name", "scopes", "source"]
+        "required": [
+          "id",
+          "kind",
+          "display_name",
+          "scopes",
+          "source"
+        ]
       },
       "PrincipalResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "$ref": "#/components/schemas/PrincipalInfo" }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PrincipalInfo"
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "PrincipalUpdateRequest": {
         "type": "object",
         "description": "Update the caller's display name.",
         "properties": {
-          "display_name": { "type": "string", "minLength": 1, "maxLength": 80 }
+          "display_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
         },
-        "required": ["display_name"]
+        "required": [
+          "display_name"
+        ]
       },
       "IdentityUser": {
         "type": "object",
         "description": "A user record from the identity store.",
         "properties": {
-          "user_id": { "type": "string" },
-          "display_name": { "type": "string" },
-          "enabled": { "type": "boolean" },
-          "kind": { "type": "string", "enum": ["person", "agent"] },
-          "scopes": { "type": "array", "items": { "type": "string" } },
-          "owner_id": { "type": "string" }
+          "user_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "person",
+              "agent"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "owner_id": {
+            "type": "string"
+          }
         },
-        "required": ["user_id"]
+        "required": [
+          "user_id"
+        ]
       },
       "UsersListResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "array", "items": { "$ref": "#/components/schemas/IdentityUser" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IdentityUser"
+            }
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "UserCreateRequest": {
         "type": "object",
         "description": "Create a new person (admin only, step-up required).",
         "properties": {
-          "user_id": { "type": "string" },
-          "display_name": { "type": "string" },
-          "token": { "type": "string" }
+          "user_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
         },
-        "required": ["user_id"]
+        "required": [
+          "user_id"
+        ]
       },
       "UserCreateResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "user_id": { "type": "string" },
-              "display_name": { "type": "string" },
-              "token": { "type": "string" }
+              "user_id": {
+                "type": "string"
+              },
+              "display_name": {
+                "type": "string"
+              },
+              "token": {
+                "type": "string"
+              }
             }
           }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "AgentRecord": {
         "type": "object",
         "description": "An agent record from the identity store.",
         "properties": {
-          "user_id": { "type": "string" },
-          "display_name": { "type": "string" },
-          "owner_id": { "type": "string" },
-          "scopes": { "type": "array", "items": { "type": "string" } },
-          "enabled": { "type": "boolean" },
-          "kind": { "type": "string", "enum": ["person", "agent"] }
+          "user_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "person",
+              "agent"
+            ]
+          }
         },
-        "required": ["user_id"]
+        "required": [
+          "user_id"
+        ]
       },
       "AgentsListResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "array", "items": { "$ref": "#/components/schemas/AgentRecord" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentRecord"
+            }
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "AgentDetailResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "$ref": "#/components/schemas/AgentRecord" }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentRecord"
+          }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "DiscoveryStatusResponse": {
         "type": "object",
         "description": "Native Discovery status (from NativeDiscovery.observe()).",
         "properties": {
-          "ok": { "type": "boolean" },
-          "status": { "type": "string" },
-          "data": { "type": "object" },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["ok", "status"]
+        "required": [
+          "ok",
+          "status"
+        ]
       },
       "DiscoverySource": {
         "type": "object",
         "description": "An RSS discovery source.",
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "url": { "type": "string" },
-          "tags": { "type": "array", "items": { "type": "string" } }
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["id", "name", "url"]
+        "required": [
+          "id",
+          "name",
+          "url"
+        ]
       },
       "DiscoverySourcesResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "sources": { "type": "array", "items": { "$ref": "#/components/schemas/DiscoverySource" } }
+              "sources": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DiscoverySource"
+                }
+              }
             }
           }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "DiscoveryInterest": {
         "type": "object",
         "description": "A tracked interest for content discovery.",
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "category": { "type": "string", "nullable": true },
-          "weight": { "type": "number", "default": 1.0 }
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number",
+            "default": 1.0
+          }
         },
-        "required": ["id", "name"]
+        "required": [
+          "id",
+          "name"
+        ]
       },
       "DiscoveryInterestsResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "interests": { "type": "array", "items": { "$ref": "#/components/schemas/DiscoveryInterest" } }
+              "interests": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DiscoveryInterest"
+                }
+              }
             }
           }
         },
-        "required": ["ok", "data"]
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "DiscoveryDiscoverResponse": {
         "type": "object",
         "description": "Result of a discovery run.",
         "properties": {
-          "ok": { "type": "boolean" },
-          "status": { "type": "string" },
-          "data": { "type": "object" },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["ok", "status"]
+        "required": [
+          "ok",
+          "status"
+        ]
       },
       "MediaStatusResponse": {
         "type": "object",
         "description": "Media engine status.",
         "properties": {
-          "ok": { "type": "boolean" },
-          "status": { "type": "string" },
-          "data": { "type": "object" },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["ok", "status"]
+        "required": [
+          "ok",
+          "status"
+        ]
       },
       "MediaLibraryResponse": {
         "type": "object",
         "description": "Media library listing.",
         "properties": {
-          "ok": { "type": "boolean" },
-          "status": { "type": "string" },
-          "data": { "type": "object" },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["ok", "status"]
+        "required": [
+          "ok",
+          "status"
+        ]
       },
       "MediaRecentResponse": {
         "type": "object",
         "description": "Recently added/played media.",
         "properties": {
-          "ok": { "type": "boolean" },
-          "status": { "type": "string" },
-          "data": { "type": "object" },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["ok", "status"]
+        "required": [
+          "ok",
+          "status"
+        ]
       },
       "MediaActivityResponse": {
         "type": "object",
         "description": "Media activity feed.",
         "properties": {
-          "ok": { "type": "boolean" },
-          "status": { "type": "string" },
-          "data": { "type": "object" },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["ok", "status"]
+        "required": [
+          "ok",
+          "status"
+        ]
       },
       "MediaSearchResponse": {
         "type": "object",
         "description": "Media search results.",
         "properties": {
-          "ok": { "type": "boolean" },
-          "status": { "type": "string" },
-          "data": { "type": "object" },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["ok", "status"]
+        "required": [
+          "ok",
+          "status"
+        ]
       },
       "VaultStatusResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "locked": { "type": "boolean" },
-              "encrypted": { "type": "boolean" },
-              "warning": { "type": "string" }
+              "locked": {
+                "type": "boolean"
+              },
+              "encrypted": {
+                "type": "boolean"
+              },
+              "warning": {
+                "type": "string"
+              }
             }
           }
         }
@@ -879,27 +3238,50 @@
       "VaultUnlockRequest": {
         "type": "object",
         "properties": {
-          "passphrase": { "type": "string" }
+          "passphrase": {
+            "type": "string"
+          }
         },
-        "required": ["passphrase"]
+        "required": [
+          "passphrase"
+        ]
       },
       "VaultActionResponse": {
         "type": "object",
+        "description": "POST /api/vault/unlock — all four keys always present; data may be null.",
         "properties": {
-          "ok": { "type": "boolean" },
-          "status": { "type": "string" },
-          "data": { "type": "object" },
-          "warnings": { "type": "array", "items": { "type": "string" } }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "data": {},
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "status",
+          "warnings"
+        ]
       },
       "VaultLockResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "locked": { "type": "boolean" }
+              "locked": {
+                "type": "boolean"
+              }
             }
           }
         }
@@ -907,11 +3289,18 @@
       "VaultNamesResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "names": { "type": "array", "items": { "type": "string" } }
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
             }
           }
         }
@@ -919,33 +3308,55 @@
       "VaultSetRequest": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "value": { "type": "string" }
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
         },
-        "required": ["name", "value"]
+        "required": [
+          "name",
+          "value"
+        ]
       },
       "VaultSetResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "name": { "type": "string" }
+              "name": {
+                "type": "string"
+              }
             }
           },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       },
       "VaultGetResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "name": { "type": "string" },
-              "value": { "type": "string" }
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
             }
           }
         }
@@ -953,38 +3364,73 @@
       "VaultDeleteResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "name": { "type": "string" }
+              "name": {
+                "type": "string"
+              }
             }
           },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       },
       "PrefsResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "object" }
-        }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PrefsData"
+          }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "PrefsSchemaResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "additionalProperties": {
               "type": "object",
               "properties": {
-                "type": { "type": "string", "enum": ["number", "enum"] },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "number",
+                    "enum"
+                  ]
+                },
                 "default": {},
                 "floor": {},
-                "allowed": { "type": ["array", "null"], "items": {} },
-                "integer": { "type": "boolean" },
-                "unit": { "type": "string" }
+                "allowed": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {}
+                },
+                "integer": {
+                  "type": "boolean"
+                },
+                "unit": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -993,120 +3439,878 @@
       "SectionsResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "data": {
             "type": "object",
             "properties": {
-              "schema": { "type": "string" },
-              "sections": { "type": "array", "items": { "$ref": "#/components/schemas/Section" } }
-            }
+              "schema": {
+                "type": "string"
+              },
+              "sections": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Section"
+                }
+              }
+            },
+            "required": [
+              "schema",
+              "sections"
+            ]
           }
-        }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
       },
       "Section": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "label": { "type": "string" },
-          "icon": { "type": "string" },
-          "order": { "type": "integer" },
-          "visible": { "type": "boolean" },
-          "pinned": { "type": "boolean" },
-          "kind": { "type": "string", "enum": ["core", "transitional", "extension"] },
-          "status": { "type": ["string", "null"] },
-          "configured": { "type": "boolean" }
-        }
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "core",
+              "transitional",
+              "extension"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "configured": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "icon",
+          "order",
+          "visible",
+          "pinned",
+          "kind",
+          "configured",
+          "status"
+        ]
       },
       "Reminder": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "text": { "type": "string" },
-          "cron_hour": { "type": ["integer", "null"] },
-          "cron_minute": { "type": ["integer", "null"] },
-          "cron_day": { "type": ["string", "null"] },
-          "enabled": { "type": "boolean" },
-          "last_fired": { "type": ["number", "null"] },
-          "created_at": { "type": "number" }
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "cron_hour": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "cron_minute": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "cron_day": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "last_fired": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "number"
+          }
         }
       },
       "RemindersResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Reminder" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Reminder"
+            }
+          }
         }
       },
       "ReminderCreateRequest": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "text": { "type": "string" },
-          "cron_hour": { "type": ["integer", "null"] },
-          "cron_minute": { "type": ["integer", "null"] },
-          "cron_day": { "type": ["string", "null"] }
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "cron_hour": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "cron_minute": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "cron_day": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         },
-        "required": ["text"]
+        "required": [
+          "text"
+        ]
       },
       "ReminderActionResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "object" },
-          "warnings": { "type": "array", "items": { "type": "string" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       },
       "AppEntry": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "url": { "type": "string" },
-          "icon": { "type": "string" },
-          "category": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          }
         }
       },
       "AppsResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "array", "items": { "$ref": "#/components/schemas/AppEntry" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppEntry"
+            }
+          }
         }
       },
       "AppsUpdateRequest": {
         "type": "object",
         "properties": {
-          "apps": { "type": "array", "items": { "$ref": "#/components/schemas/AppEntry" } }
+          "apps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppEntry"
+            }
+          }
         },
-        "required": ["apps"]
+        "required": [
+          "apps"
+        ]
       },
       "ThemePack": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "display_name": { "type": "string" },
-          "author": { "type": "string" },
-          "version": { "type": "string" },
-          "companion": { "type": "object" },
-          "animation": { "type": ["object", "null"] },
-          "accent": { "type": "object", "additionalProperties": { "type": "string" } },
-          "companion_palette": { "type": "object", "additionalProperties": { "type": "string" } },
-          "favicon": { "type": ["string", "null"] },
-          "service_icons": { "type": ["string", "null"] }
+          "name": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "companion": {
+            "type": "object"
+          },
+          "animation": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "accent": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "companion_palette": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "favicon": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "service_icons": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       },
       "ThemesResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "type": "array", "items": { "$ref": "#/components/schemas/ThemePack" } }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ThemePack"
+            }
+          }
         }
       },
       "ThemeDetailResponse": {
         "type": "object",
         "properties": {
-          "ok": { "type": "boolean" },
-          "data": { "$ref": "#/components/schemas/ThemePack" }
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ThemePack"
+          }
+        }
+      },
+      "CapabilityStatus": {
+        "type": "string",
+        "description": "Server Status enum (src/personal_world/status.py) — the shared status vocabulary.",
+        "enum": [
+          "healthy",
+          "warning",
+          "needs_attention",
+          "unavailable",
+          "stale",
+          "disabled",
+          "not_configured",
+          "unknown"
+        ]
+      },
+      "Classification": {
+        "type": "string",
+        "enum": [
+          "world",
+          "private",
+          "secret"
+        ]
+      },
+      "JournalKind": {
+        "type": "string",
+        "enum": [
+          "observation",
+          "health",
+          "drift",
+          "recommendation",
+          "approval",
+          "reconciliation",
+          "provider_action",
+          "failure",
+          "pack_change",
+          "settings_change",
+          "security",
+          "discovery"
+        ]
+      },
+      "Provenance": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "provider": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "authority": {
+            "type": "string",
+            "enum": [
+              "observed",
+              "reported",
+              "inferred"
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "observed_at",
+          "provider",
+          "authority"
+        ]
+      },
+      "CapabilityObservation": {
+        "type": "object",
+        "description": "registry.status_map() value.",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CapabilityStatus"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "last_observed": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "ok",
+          "status",
+          "warnings",
+          "last_observed"
+        ]
+      },
+      "StatusData": {
+        "type": "object",
+        "description": "GET /api/status data = world.summary() + capabilities + actors.",
+        "properties": {
+          "facts": {
+            "type": "integer"
+          },
+          "intents": {
+            "type": "integer"
+          },
+          "policies": {
+            "type": "integer"
+          },
+          "cemented_policies": {
+            "type": "integer"
+          },
+          "lore": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "declared_capabilities": {
+            "type": "integer"
+          },
+          "providers": {
+            "type": "integer"
+          },
+          "packs": {
+            "type": "integer"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/CapabilityMap"
+          },
+          "actors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Actor"
+            }
+          }
+        },
+        "required": [
+          "facts",
+          "intents",
+          "policies",
+          "cemented_policies",
+          "lore",
+          "declared_capabilities",
+          "providers",
+          "packs",
+          "capabilities",
+          "actors"
+        ]
+      },
+      "DailyDigest": {
+        "type": "object",
+        "description": "loop.daily() digest.",
+        "properties": {
+          "world": {
+            "$ref": "#/components/schemas/WorldSummary"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/CapabilityMap"
+          },
+          "attention": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "world",
+          "capabilities",
+          "attention"
+        ]
+      },
+      "JournalNoteRequest": {
+        "type": "object",
+        "description": "POST /api/journal body {text}. Stored as an observation.",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "JournalNoteResponse": {
+        "type": "object",
+        "description": "POST /api/journal → {ok, data:{written: chars}}.",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "written": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "written"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "data"
+        ]
+      },
+      "JournalSupersedeRequest": {
+        "type": "object",
+        "description": "POST /api/journal/supersede body.",
+        "properties": {
+          "supersedes": {
+            "type": "string",
+            "description": "ts of the entry being replaced"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "reason": {
+            "type": "string"
+          },
+          "drafted_by": {
+            "type": "string",
+            "enum": [
+              "the Journal screen",
+              "Personal World (assistant draft)"
+            ]
+          }
+        },
+        "required": [
+          "supersedes",
+          "text"
+        ]
+      },
+      "JournalSupersedeResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "current": {
+                "$ref": "#/components/schemas/JournalEvent"
+              },
+              "superseded": {
+                "$ref": "#/components/schemas/JournalEvent"
+              },
+              "audit": {
+                "$ref": "#/components/schemas/JournalEvent"
+              },
+              "already_applied": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "current",
+              "superseded",
+              "already_applied"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "status"
+        ]
+      },
+      "ChatHistoryEntry": {
+        "type": "object",
+        "description": "ChatHistory NDJSON line — ts is unix epoch SECONDS (float).",
+        "properties": {
+          "ts": {
+            "type": "number"
+          },
+          "role": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts",
+          "role",
+          "content"
+        ]
+      },
+      "ChatProviderInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "display_name",
+          "status",
+          "ok"
+        ]
+      },
+      "ManifestEndpoint": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "gate": {
+            "type": "string"
+          },
+          "auth": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "method",
+          "path",
+          "capability",
+          "kind",
+          "gate",
+          "auth",
+          "note"
+        ]
+      },
+      "BrainTemplate": {
+        "type": "object",
+        "description": "TemplateRegistry.list_templates() row (Template.to_dict + has_override).",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "surface": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "max_tokens": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "content_length": {
+            "type": "integer"
+          },
+          "has_override": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "kind",
+          "surface",
+          "max_tokens",
+          "source",
+          "description",
+          "content_length",
+          "has_override"
+        ]
+      },
+      "PrefsData": {
+        "type": "object",
+        "description": "prefs.normalize_prefs() — every key always present (defaults fill in).",
+        "properties": {
+          "motion": {
+            "type": "string",
+            "enum": [
+              "off",
+              "reduced",
+              "subtle"
+            ]
+          },
+          "contrast": {
+            "type": "string",
+            "enum": [
+              "comfortable",
+              "high"
+            ]
+          },
+          "text_scale": {
+            "type": "number",
+            "enum": [
+              1.0,
+              1.25,
+              1.5
+            ]
+          },
+          "density": {
+            "type": "string",
+            "enum": [
+              "comfortable",
+              "compact"
+            ]
+          },
+          "target_size": {
+            "type": "integer",
+            "enum": [
+              44,
+              56
+            ]
+          },
+          "companion": {
+            "type": "string",
+            "enum": [
+              "personal-world",
+              "mermaid",
+              "robot",
+              "world-tree-squirrel",
+              "taco-news-truck"
+            ]
+          },
+          "accent": {
+            "type": "string",
+            "enum": [
+              "world-keeper",
+              "rylee"
+            ]
+          }
+        },
+        "required": [
+          "accent",
+          "companion",
+          "contrast",
+          "density",
+          "motion",
+          "target_size",
+          "text_scale"
+        ]
+      },
+      "PrefsUpdateRequest": {
+        "type": "object",
+        "description": "PUT /api/prefs — partial update; unknown keys or below-floor values fail 400 as a whole.",
+        "properties": {
+          "motion": {
+            "type": "string",
+            "enum": [
+              "off",
+              "reduced",
+              "subtle"
+            ]
+          },
+          "contrast": {
+            "type": "string",
+            "enum": [
+              "comfortable",
+              "high"
+            ]
+          },
+          "text_scale": {
+            "type": "number",
+            "enum": [
+              1.0,
+              1.25,
+              1.5
+            ]
+          },
+          "density": {
+            "type": "string",
+            "enum": [
+              "comfortable",
+              "compact"
+            ]
+          },
+          "target_size": {
+            "type": "integer",
+            "enum": [
+              44,
+              56
+            ]
+          },
+          "companion": {
+            "type": "string",
+            "enum": [
+              "personal-world",
+              "mermaid",
+              "robot",
+              "world-tree-squirrel",
+              "taco-news-truck"
+            ]
+          },
+          "accent": {
+            "type": "string",
+            "enum": [
+              "world-keeper",
+              "rylee"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "SectionsUpdateRequest": {
+        "type": "object",
+        "description": "PUT /api/sections body — sections.validate_layout_update(): {order?, hidden?} id lists.",
+        "properties": {
+          "order": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hidden": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     }

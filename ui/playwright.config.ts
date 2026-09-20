@@ -3,20 +3,22 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright config for ui/e2e/*.spec.ts.
  *
- * Before this file existed the specs were unrunnable — `playwright test`
- * had no config, no baseURL, and no webServer.
- *
  * The specs run against the production PREVIEW build (`vite preview`,
- * default port 4173), so `dist/` must exist first:
+ * port 4173), so `dist/` must exist first:
  *   npm run build && npm run test:e2e
  *
- * Caveat for wave-1: the preview server proxies /api to
- * http://127.0.0.1:8000 (vite.config.ts server.proxy) and there is no
- * MSW bootstrapping in the preview bundle — without a live Station
- * backend, screens render their error states, so any assertion that
- * requires the success state (e.g. today.spec's greeting) cannot pass
- * against preview alone. Expected-red; not fixed here (ui/src is owned
- * by another workstream).
+ * The preview bundle has no MSW (mocks are Storybook-only) and the
+ * live backend on :8000 is auth-gated (401 on every data endpoint;
+ * e2e must never carry a token). So Playwright boots the deterministic
+ * mock API from scripts/e2e-api.mjs on 127.0.0.1:4174 and points the
+ * preview proxy at it via VITE_API_PROXY_TARGET. The mock speaks the
+ * REAL server contract ({ok, status, data} envelopes, JournalEvent as
+ * {ts, kind, summary, provenance, …}) — it replaces the old comment
+ * that declared success-state specs "expected-red"; screens must be
+ * proven against their success path, not just their failure path.
+ *
+ * Order matters only for startup checks — both servers are health
+ * probed before tests run.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -34,10 +36,24 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: "npm run preview",
-    url: "http://localhost:4173",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: "node scripts/e2e-api.mjs",
+      url: "http://127.0.0.1:4174/healthz",
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+    },
+    {
+      command: "npm run preview",
+      url: "http://localhost:4173",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      env: {
+        // vite.config.ts reads this for the /api + /healthz proxy
+        // target in preview mode (playwright's webServer env is
+        // merged into the child process, not the browser).
+        VITE_API_PROXY_TARGET: "http://127.0.0.1:4174",
+      },
+    },
+  ],
 });
