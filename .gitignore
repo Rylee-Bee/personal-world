@@ -83,6 +83,10 @@ id_ed25519
 .bcode/
 node_modules/
 
+# Station vNext React build output — generated, never tracked.
+# Rebuild with: scripts/build-vnext.sh
+src/personal_world/static/vnext/
+
 # Test-run artifacts (regenerated every run)
 test-results/
 
