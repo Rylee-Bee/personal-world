@@ -288,7 +288,7 @@ filesystem-media provider merely to give every capability a default.
 ## Remaining human decisions
 
 1. **Adoption manifest authority — RESOLVED 2026-09-15.**
-   `.project/contracts/adoption.yaml` (pin `0cee0652`, v0.6.0) is the
+   `.project/contracts/adoption.yaml` (pin `0cee065`, v0.6.0) is the
    single manifest: it is declared by `.project/project.yaml`, used by
    the documented session workflow, and matches the Play-Nice
    project-context layout. The duplicate `.contracts/adoption.yaml`

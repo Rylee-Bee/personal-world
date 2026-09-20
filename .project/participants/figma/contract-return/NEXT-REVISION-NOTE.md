@@ -15,14 +15,14 @@ explicit-state) rather than silently closed.
 2026-09-12, later the same day as Figma's accepted pass: this project's
 Play-Nice adoption (`.project/contracts/adoption.yaml`) was bumped
 twice more, neither time by Figma or as part of her pack's lifecycle —
-first to `d6c97db20d` (v0.5.0) during a bounded contract-refresh pass,
+first to `d6c97db` (v0.5.0) during a bounded contract-refresh pass,
 then to `0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad` (v0.6.0) during the
 trunk-unification + product-identity pass (same day the project's
 human-facing name changed from "Personal World" to "Project Worlds" —
 irrelevant to her pack's content, noted here only for the timeline).
 
 Figma's `attestation.yaml` remains exactly as she left it: bundle
-`nectar-heather-heather`, revision `2bb60b4a`, 15 contracts, gate PASS,
+`nectar-heather-heather`, revision `2bb60b4`, 15 contracts, gate PASS,
 commitment ACTIVE. That attestation is still true for what it says —
 she really did read those 15 contracts at that revision and her
 task-impact sentences are still her real words for that bundle. It is
@@ -93,5 +93,5 @@ lists are unaffected).
    `.project/CURRENT.md`).
 
 Until then: `attestation.yaml` stays exactly as she wrote it, correctly
-labeled as scoped to `2bb60b4a`, and this note is the honest record of
+labeled as scoped to `2bb60b4`, and this note is the honest record of
 the gap.

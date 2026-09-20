@@ -124,7 +124,7 @@ dated entry superseding the old one (append-only, like the journal).
 - **2026-09-15 — One Play Nice adoption manifest, at the project-context
   path, re-pinned to the library HEAD at adoption time.** The project had
   two adoption manifests with different pins
-  (`.project/contracts/adoption.yaml` v0.6.0 @ `0cee0652` vs a root
+  (`.project/contracts/adoption.yaml` v0.6.0 @ `0cee065` vs a root
   `.contracts/adoption.yaml` @ `1c05de4`), and nothing machine-read
   either. Resolved to `.project/contracts/adoption.yaml` — the layout the
   Play-Nice project-context framework itself uses, the path declared by

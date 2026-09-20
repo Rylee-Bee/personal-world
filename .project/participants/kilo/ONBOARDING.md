@@ -171,7 +171,7 @@ session observed:
   21-commit local-vs-remote drift; turn 2 caught a fresh 1-commit
   drift. Both times the project fast-forwarded with `git pull
   --ff-only` before any participant-pack authoring. The Play-Nice
-  adoption pin (v0.6.0 @ `0cee0652`) was honored unchanged through
+  adoption pin (v0.6.0 @ `0cee065`) was honored unchanged through
   both updates — repo freshness and contract freshness are treated as
   separate questions.
 - **Efficient project-truth discovery:** read 7 files

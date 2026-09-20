@@ -87,7 +87,7 @@ no other adopted contract changed meaning. Verified with the real
 ACTIVE (bundle `dovetail-harbor-prairie`). Every new/changed contract read
 in full at each bump; no conflict found with how this project operates. The Figma pack's own
 attestation (`participants/figma/attestation.yaml`) is scoped to the
-original revision (receipt `nectar-heather-heather`, bundle `2bb60b4a`)
+original revision (receipt `nectar-heather-heather`, bundle `2bb60b4`)
 and is left unedited — participant-supplied provenance is never
 rewritten on her behalf (see
 `participants/figma/contract-return/NEXT-REVISION-NOTE.md` for the

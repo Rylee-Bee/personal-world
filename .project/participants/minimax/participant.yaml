@@ -68,7 +68,7 @@ profile:
     - canonical-freshness-verification-before-writing
       # session start: local HEAD 42389d0 was 21 commits behind origin/main
       # (ec29e85); turn 2: another 1-commit drift detected and pulled;
-      # the project adoption pin (v0.6.0 @ 0cee0652) was honored unchanged
+      # the project adoption pin (v0.6.0 @ 0cee065) was honored unchanged
       # through both updates — repo freshness and contract freshness
       # treated as separate questions.
     - efficient-project-truth-discovery-from-a-bounded-file-set
@@ -249,7 +249,7 @@ attestation:
     two consecutive turns). It is NOT a self-attested acceptance gate.
     No canonical contracts were read or attested in this session —
     contractctl was not present and the adoption pin (v0.6.0 @
-    0cee0652) was honored without modification through two
+    0cee065) was honored without modification through two
     repo-freshness updates. Any real mutation task still requires the
     full task-gate: RESOLVE, READ applicable canonical sources, VERIFY
     version/hash/receipt, TASK IMPACT, CONFLICT CHECK, ATTESTATION,
@@ -333,7 +333,7 @@ claims:
   - id: adoption-pin-unchanged-across-session
     grade: observed
     observed_at: 2026-09-12T18:12:25Z
-    claim: .project/contracts/adoption.yaml revision pin (0cee0652, v0.6.0) was honored unchanged through two repo-freshness updates
+    claim: .project/contracts/adoption.yaml revision pin (0cee065, v0.6.0) was honored unchanged through two repo-freshness updates
     evidence:
       command: git log -1 --format=%H -- .project/contracts/adoption.yaml
       expected_hash_unchanged: 0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad

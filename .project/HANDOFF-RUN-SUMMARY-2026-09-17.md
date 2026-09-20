@@ -3,7 +3,7 @@
 One combined handoff for everything this run accomplished. Detailed
 evidence lives in the companion files; this is the entry point.
 
-**Repo state:** `main` @ `f4b063f` (local; `origin/main` was `3accaeee`
+**Repo state:** `main` @ `f4b063f` (local; `origin/main` was `3accaee`
 when the run started — commits have not been pushed by this session).
 Still-dirty files `src/personal_world/identity.py`,
 `providers/adapters.py`, `tests/test_identity.py` are **another lane's
@@ -145,7 +145,7 @@ the now-final gates.
 ## 6. Next concrete actions
 1. Run the in-flight identity lane to completion and commit its 3 dirty
    files (not this run's work).
-2. Push `main` (6 local commits ahead of `3accaeee`).
+2. Push `main` (6 local commits ahead of `3accaee`).
 3. Open the chat-wiring lane (`/api/chat*` ↔ `station/chat.js`) as its
    own swarm lane — the biggest verified product gap.
 4. Small: curation review of setup-wizard/worlds-backup routes in the

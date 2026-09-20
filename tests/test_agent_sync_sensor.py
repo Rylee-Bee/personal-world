@@ -55,7 +55,7 @@ def _record(project: str = "demo", **over) -> dict:
         "publish_state": "match",
         "working_tree": {"staged": 0, "modified": 0, "untracked": 0,
                          "conflicted": 0},
-        "play_nice": {"present": True, "revision": "0cee0652",
+        "play_nice": {"present": True, "revision": "0cee065",
                       "source_repository": "Rylee-Bee/play-nice-contracts"},
         "work_state": "working",
         "safe_to_leave": "yes",
@@ -201,7 +201,7 @@ class TestNormalization:
         assert p["working_tree"] == {"staged": 0, "modified": 0,
                                      "untracked": 0, "conflicted": 0}
         assert p["play_nice"]["present"] is True
-        assert p["play_nice"]["revision"] == "0cee0652"
+        assert p["play_nice"]["revision"] == "0cee065"
         assert p["work_state"] == "working"
         assert p["safe_to_leave"] == "yes"
 

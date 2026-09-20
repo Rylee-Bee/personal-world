@@ -9,7 +9,7 @@
 
 Read-only decision-prep pass over three clusters, built entirely on the
 surface registry (`docs/surfaces/`). Baseline: branch
-`docs/current-product-refresh`, SHA `2e728fd0…61aa7`. Product is
+`docs/current-product-refresh`, SHA `2e728fd…61aa7`. Product is
 "Project Worlds" (formerly Personal World). Registry IDs are stable; no
 new surfaces are introduced. Where the registry left a question
 unresolved, the specific implementation line was checked — those checks

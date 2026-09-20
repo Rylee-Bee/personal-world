@@ -9,7 +9,7 @@ project: personal-world
 source:
   repository: Rylee-Bee/play-nice-contracts   # renamed from burgeswe/play-nice-contracts (account rename, 2026-09-12); old URL redirects
   revision: a0e3efbee315aeaa16910818e234bff3853417a6   # play-nice-contracts v0.7.0 (library HEAD at adoption)
-  # Bump history: 2bb60b4a (v0.3.0) -> d6c97db20d (v0.5.0) -> 0cee0652
+  # Bump history: 2bb60b4 (v0.3.0) -> d6c97db (v0.5.0) -> 0cee065
   # (v0.6.0) -> f825ffb (v0.7.0, 2026-09-15). Each bump verified against the
   # live repository (commit exists, VERSION/CHANGELOG match,
   # contracts.lock.json fetched and diffed against the previous pin) before

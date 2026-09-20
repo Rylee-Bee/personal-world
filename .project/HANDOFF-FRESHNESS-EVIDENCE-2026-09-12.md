@@ -20,8 +20,8 @@ Canonical Freshness rule. Nothing here changes any canonical contract.
      fetch caught it. Fast-forward-first would have missed it entirely.
 
 2. LOCAL HOMELAB CHECKOUT 1007 COMMITS BEHIND (cross-repo)
-   - What: /var/home/rylee/projects/homelab local main (72aec7f,
-     2026-08-26) is strictly behind GitHub main (641022d, 2026-09-12)
+   - What: /var/home/rylee/projects/homelab local main (eb895a5,
+     2026-08-26) is strictly behind GitHub main (2588446, 2026-09-12)
      by 1007 commits; the lab CLI the Project Worlds providers consume
      was added on GitHub AFTER the local checkout diverged. The LAN
      origin (the historical Gitea mirror) is unreachable from this
@@ -57,7 +57,7 @@ Canonical Freshness rule. Nothing here changes any canonical contract.
 
 5. PLAY-NICE LIBRARY CHECKOUT AHEAD OF THE ADOPTION PIN (by design)
    - What: /home/rylee/play-nice-contracts HEAD is 1c05de4 (v0.6.0 +
-     3 later profile/onboarding commits); the project pin is 0cee0652
+     3 later profile/onboarding commits); the project pin is 0cee065
      (v0.6.0). The contract SET is unchanged by those commits (docs/
      profiles only); validate PASSes at HEAD and the pinned set
      resolves identically.

@@ -463,7 +463,7 @@ Note: the mission brief said 26 tools; the code registers 29 (read count above).
 | DOC-007 | documentation | Figma implementation skill | INDIRECT | .agents/skills/personal-world-implement-figma/SKILL.md | same | contracts | none | — | UI agents | N/A | skill file | ACTIVE |
 | DOC-008 | documentation | design/handoff (archived Workshop v3 spec) | INDIRECT | design/handoff/ | `design/handoff/FRAME_INDEX.md` etc. | — | none (never edit) | — | design reference | N/A | archived (historical) | HIDDEN |
 | DOC-008a | documentation | design/tokens.json + docs/DESIGN-HANDOFF.md | INDIRECT | design | `design/tokens.json` | — | — | — | frontend gen-tokens | N/A | canonical design tokens | ACTIVE |
-| DOC-008b | documentation | .project/contracts/adoption.yaml (Play-Nice) | INDIRECT | .project/contracts/adoption.yaml | `.project/contracts/adoption.yaml` | — | — | — | contract loading | N/A | pinned revision (v0.6.0 @ 0cee0652) | ACTIVE |
+| DOC-008b | documentation | .project/contracts/adoption.yaml (Play-Nice) | INDIRECT | .project/contracts/adoption.yaml | `.project/contracts/adoption.yaml` | — | — | — | contract loading | N/A | pinned revision (v0.6.0 @ 0cee065) | ACTIVE |
 
 ## Assets
 

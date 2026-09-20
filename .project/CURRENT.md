@@ -291,7 +291,7 @@ ACTIVE.
 
 `.project/participants/figma/` — status: **accepted** (contract gate
 PASS; commitment ACTIVE), but her attestation is scoped to the bundle
-she actually read (revision `2bb60b4a`, v0.3.0) — now three bumps
+she actually read (revision `2bb60b4`, v0.3.0) — now three bumps
 behind the current v0.6.0 pin. Not fabricated forward on her behalf;
 see `figma/contract-return/NEXT-REVISION-NOTE.md` for the exact,
 non-blocking gap and the tiny re-pass needed if a live Figma session

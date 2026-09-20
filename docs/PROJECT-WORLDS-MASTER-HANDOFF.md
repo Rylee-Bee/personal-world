@@ -106,7 +106,7 @@ Key ideas:
 - `docs/PRODUCT-VISION-HANDOFF.md` (all decisions), `docs/WHERE-WE-ARE.md`
   (one-pager), `docs/DEV-RESET.md`, `design/.../HANDOFF-UI-FIX.md`,
   `design/.../STATION-NAVIGATION-MODEL.md`, `PLAY-NICE-CONFORMANCE.md`.
-- Lore synced & pushed (`rylee_lore` @ `90b6cf8`), including the DNA.
+- Lore synced & pushed (`rylee_lore` @ `ef98d7d`), including the DNA.
 
 ### Ops ✅
 - `scripts/reset-dev.sh` — dry-run-by-default dev wipe (verified).
@@ -208,7 +208,7 @@ docs/                          WHERE-WE-ARE · PRODUCT-VISION-HANDOFF ·
                                DEV-RESET · ARCHITECTURE · accessibility/* ·
                                repo/WIRING-READINESS · adr/0002 (brain)
 docs/PROJECT-WORLDS-MASTER-HANDOFF.md   ← you are here
-~/rylee_lore/                  cross-project memory (synced @ 90b6cf8)
+~/rylee_lore/                  cross-project memory (synced @ ef98d7d)
 ```
 
 ---

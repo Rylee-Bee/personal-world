@@ -195,7 +195,7 @@ the pre-rename `burgeswe/rylee_lore` URL (GitHub account renamed
 to Rylee-Bee 2026-09-12; `gh api` shows burgeswe/rylee_lore
 redirects to Rylee-Bee/rylee_lore, `fork: false`, and the
 `burgeswe` user 404s), and the true local↔remote relationship was
-strictly BEHIND (local `d66ea6e` = merge-base, 0 local-only
+strictly BEHIND (local `ea089df` = merge-base, 0 local-only
 commits, 21 remote-only commits) — agent-sync's "diverged" was
 its honest fallback (it compares against `ls-remote` SHAs without
 fetching; rev-list against an unknown SHA fails → "diverged").
@@ -205,7 +205,7 @@ NO reset/rebase/merge/pull — the checkout is still behind 21
 commits, an owner decision; tree clean before/after, nothing
 absorbed). The estate now truthfully reports rylee_lore `behind`.
 The pre-existing play-nice-contracts `diverged` (remote moved to
-`2036692` past the pinned `0cee0652`) is REAL divergence —
+`2036692` past the pinned `0cee065`) is REAL divergence —
 preserved and reported, an owner decision. (2) Observation AGE
 surfacing: every project-status surface now distinguishes WHAT
 was observed from WHEN it was observed. agent-sync's own
