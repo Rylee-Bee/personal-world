@@ -37,6 +37,15 @@ interface CompanionStatus {
   current_state?: string;
 }
 
+interface JournalEntry {
+  id: string;
+  kind: "entry" | "correction" | "supersession";
+  content: string;
+  timestamp: string;
+  superseded_by: string | null;
+  metadata?: Record<string, never>;
+}
+
 // ─── Capability sets ──────────────────────────────────────────────────────
 
 const CAPABILITIES_QUIET: Capability[] = [
@@ -117,9 +126,192 @@ function buildHandlers(capabilities: Capability[], resident?: CompanionStatus) {
   ];
 }
 
+// ─── Screen-specific handler sets ─────────────────────────────────────────
+
+/** Journal — list and history endpoints */
+function buildJournalHandlers(entries: JournalEntry[]) {
+  return [
+    http.get("/api/journal", () => {
+      return HttpResponse.json({ entries });
+    }),
+    http.get("/api/journal/history", () => {
+      return HttpResponse.json({ history: entries });
+    }),
+    http.post("/api/journal/supersede", () => {
+      return HttpResponse.json({ ok: true });
+    }),
+    http.get("/api/status", () => {
+      return HttpResponse.json({
+        capabilities: {
+          journal: { status: "healthy" },
+          vault: { status: "healthy" },
+        },
+      });
+    }),
+    http.get("/api/auth/session", () => {
+      return HttpResponse.json({ authenticated: true, principal: "Rylee" });
+    }),
+  ];
+}
+
+/** Vault — direct fetch endpoints used by the Vault screen */
+function buildVaultHandlers(
+  vaultStatus: { locked: boolean; encrypted: boolean; secret_count: number },
+  secretNames: string[],
+) {
+  return [
+    http.get("/api/vault/status", () => {
+      return HttpResponse.json(vaultStatus);
+    }),
+    http.get("/api/vault/names", () => {
+      return HttpResponse.json(secretNames);
+    }),
+    http.post("/api/vault/unlock", () => {
+      return HttpResponse.json({ ok: true });
+    }),
+    http.post("/api/vault/lock", () => {
+      return HttpResponse.json({ ok: true });
+    }),
+    http.post("/api/vault/set", () => {
+      return HttpResponse.json({ ok: true });
+    }),
+    http.get("/api/status", () => {
+      return HttpResponse.json({
+        capabilities: {
+          vault: { status: vaultStatus.locked ? "not_configured" : "healthy" },
+          source_control: { status: "healthy" },
+        },
+      });
+    }),
+    http.get("/api/auth/session", () => {
+      return HttpResponse.json({ authenticated: true, principal: "Rylee" });
+    }),
+  ];
+}
+
+/** Settings — session, brain, manifest, status */
+function buildSettingsHandlers() {
+  return [
+    http.get("/api/status", () => {
+      return HttpResponse.json({
+        capabilities: {
+          source_control: { status: "healthy" },
+          discovery: { status: "healthy" },
+          journal: { status: "healthy" },
+          vault: { status: "stale", warnings: ["Last backup 7 days ago"] },
+        },
+      });
+    }),
+    http.get("/api/auth/session", () => {
+      return HttpResponse.json({ authenticated: true, principal: "Rylee" });
+    }),
+    http.get("/api/brain/templates", () => {
+      return HttpResponse.json({
+        templates: [
+          { id: "daily-digest", kind: "digest", surface: "today" },
+          { id: "journal-prompt", kind: "prompt", surface: "journal" },
+        ],
+      });
+    }),
+    http.get("/api/manifest", () => {
+      return HttpResponse.json({ version: "0.1.0", endpoints: [] });
+    }),
+    http.get("/api/identity/principal", () => {
+      return HttpResponse.json({ display_name: "Rylee" });
+    }),
+  ];
+}
+
+/** Chat — history and providers */
+function buildChatHandlers(
+  messages: Array<{ role: string; content: string; timestamp?: string }>,
+  providers?: Array<{ id: string; name: string; available: boolean }>,
+) {
+  return [
+    http.get("/api/chat/history", () => {
+      return HttpResponse.json({ messages });
+    }),
+    http.get("/api/chat/providers", () => {
+      return HttpResponse.json({
+        providers: providers ?? [
+          { id: "default", name: "Default", available: true },
+          { id: "openai", name: "OpenAI", available: true },
+        ],
+      });
+    }),
+    http.post("/api/chat", () => {
+      return HttpResponse.json({ ok: true });
+    }),
+  ];
+}
+
 // ─── Named handler sets ───────────────────────────────────────────────────
 
+const JOURNAL_ENTRIES_EMPTY: JournalEntry[] = [];
+
+const JOURNAL_ENTRIES_POPULATED: JournalEntry[] = [
+  {
+    id: "j-001",
+    kind: "entry",
+    content: "Started working on the new onboarding flow. The wireframes look solid — need to review accessibility before implementation.",
+    timestamp: "2026-09-19T10:30:00Z",
+    superseded_by: null,
+  },
+  {
+    id: "j-002",
+    kind: "entry",
+    content: "Reviewed the vault encryption approach. Using AES-256-GCM for at-rest secrets. The key derivation uses Argon2id.",
+    timestamp: "2026-09-19T14:15:00Z",
+    superseded_by: null,
+  },
+  {
+    id: "j-003",
+    kind: "correction",
+    content: "Previous entry about the database choice was inaccurate — we're using SQLite for local storage, not PostgreSQL.",
+    timestamp: "2026-09-19T16:00:00Z",
+    superseded_by: null,
+  },
+  {
+    id: "j-004",
+    kind: "supersession",
+    content: "This entry replaces the earlier draft. The project timeline has shifted by two weeks.",
+    timestamp: "2026-09-18T09:00:00Z",
+    superseded_by: "j-002",
+  },
+];
+
+const CHAT_MESSAGES_EMPTY: Array<{ role: string; content: string; timestamp?: string }> = [];
+
+const CHAT_MESSAGES_POPULATED: Array<{ role: string; content: string; timestamp?: string }> = [
+  {
+    role: "user",
+    content: "Hey Renai, how are the systems looking today?",
+    timestamp: "2026-09-19T10:00:00Z",
+  },
+  {
+    role: "assistant",
+    content: "All systems are healthy! The vault is encrypted and locked, journal has 3 entries today, and the discovery feed is current. Nothing needs your attention right now.",
+    timestamp: "2026-09-19T10:00:05Z",
+  },
+  {
+    role: "user",
+    content: "Great. Can you give me a summary of recent journal entries?",
+    timestamp: "2026-09-19T10:01:00Z",
+  },
+  {
+    role: "assistant",
+    content: "You have 3 active entries today: one about the onboarding flow work, one on vault encryption architecture, and a correction about the database choice. The supersession entry from yesterday has been archived.",
+    timestamp: "2026-09-19T10:01:03Z",
+  },
+];
+
+const VAULT_LOCKED = { locked: true, encrypted: true, secret_count: 3 };
+const VAULT_UNLOCKED = { locked: false, encrypted: true, secret_count: 3 };
+const VAULT_UNLOCKED_EMPTY = { locked: false, encrypted: true, secret_count: 0 };
+const VAULT_SECRET_NAMES = ["API_KEY", "DATABASE_URL", "SECRET_TOKEN"];
+
 export const handlers = {
+  // ─── Today screen states ─────────────────────────────
   quiet: buildHandlers(CAPABILITIES_QUIET),
   goodnews: buildHandlers(CAPABILITIES_GOODNEWS),
   waiting: buildHandlers(CAPABILITIES_WAITING),
@@ -127,6 +319,22 @@ export const handlers = {
   unavailable: buildHandlers(CAPABILITIES_UNAVAILABLE),
   offline: buildHandlers(CAPABILITIES_OFFLINE),
   empty: buildHandlers(CAPABILITIES_EMPTY),
+
+  // ─── Journal screen states ───────────────────────────
+  journalEmpty: buildJournalHandlers(JOURNAL_ENTRIES_EMPTY),
+  journalPopulated: buildJournalHandlers(JOURNAL_ENTRIES_POPULATED),
+
+  // ─── Vault screen states ─────────────────────────────
+  vaultLocked: buildVaultHandlers(VAULT_LOCKED, []),
+  vaultUnlocked: buildVaultHandlers(VAULT_UNLOCKED, VAULT_SECRET_NAMES),
+  vaultUnlockedEmpty: buildVaultHandlers(VAULT_UNLOCKED_EMPTY, []),
+
+  // ─── Settings screen states ──────────────────────────
+  settingsDefault: buildSettingsHandlers(),
+
+  // ─── Chat screen states ──────────────────────────────
+  chatEmpty: buildChatHandlers(CHAT_MESSAGES_EMPTY),
+  chatPopulated: buildChatHandlers(CHAT_MESSAGES_POPULATED),
 };
 
 export type HandlerSet = keyof typeof handlers;

@@ -39,6 +39,15 @@ export default defineConfig({
           }]
         }
       }
+    },
+    {
+      extends: true,
+      test: {
+        name: 'unit',
+        environment: 'jsdom',
+        setupFiles: ['./src/test/setup.ts'],
+        include: ['src/test/**/*.test.{ts,tsx}'],
+      }
     }]
   }
 });
