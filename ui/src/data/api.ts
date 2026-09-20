@@ -3,10 +3,17 @@
  *
  * Uses openapi-fetch with generated types from the OpenAPI spec.
  * All API calls are type-checked at build time.
+ *
+ * Every successful (HTTP 2xx) body below carries the server's own
+ * envelope (`{ok, status, data, warnings}` where applicable); the
+ * envelope is data, not an HTTP error, and is preserved untouched for
+ * hooks and screens to interpret honestly.
  */
 
 import createClient from "openapi-fetch";
-import type { paths } from "../generated/api-types";
+import type { components, paths } from "../generated/api-types";
+
+type Schemas = components["schemas"];
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -17,21 +24,6 @@ export const api = createClient<paths>({
 // Auth token management
 function clearAuthToken(): void {
   localStorage.removeItem("pw_token");
-}
-
-// Step-up auth header
-async function withStepUp<T>(fn: () => Promise<T>): Promise<T> {
-  // Try the request first — if 403 with step-up required, prompt and retry
-  try {
-    return await fn();
-  } catch (err: unknown) {
-    const error = err as { status?: number; message?: string };
-    if (error.status === 403) {
-      // TODO: Show step-up prompt UI (T8 StepUpPrompt component)
-      throw err;
-    }
-    throw err;
-  }
 }
 
 // Error types
@@ -49,21 +41,34 @@ export class ApiError extends Error {
   }
 }
 
-// Typed response helper
-async function unwrap<T>(promise: Promise<{ data?: T; error?: unknown; response: Response }>): Promise<T> {
-  const { data, error, response } = await promise;
+/** The subset of a parsed failure body the FastAPI server actually sends. */
+interface ErrorBody {
+  detail?: unknown;
+  message?: unknown;
+  code?: unknown;
+  warnings?: unknown;
+}
 
-  if (error) {
-    const errObj = error as { message?: string; detail?: string; code?: string };
-    throw new ApiError(
-      response.status,
-      // FastAPI HTTPException bodies arrive as {detail} — surface it so
-      // error state is real, not a bare "HTTP 4xx".
-      errObj.message || errObj.detail || `HTTP ${response.status}`,
-      errObj.code,
-      errObj.detail
-    );
+function bodyText(value: unknown): string | undefined {
+  if (typeof value === "string" && value.length > 0) return value;
+  if (Array.isArray(value)) {
+    const first = value.find((v) => typeof v === "string" && v.length > 0);
+    return typeof first === "string" ? first : undefined;
   }
+  return undefined;
+}
+
+/**
+ * Typed response helper.
+ *
+ * An HTTP failure (declared error code OR any other non-2xx status —
+ * FastAPI's 401/403/404/409/422 all arrive this way) must throw; a
+ * silent `undefined` here is how a 404 once rendered as "Online".
+ */
+async function unwrap<T>(
+  promise: Promise<{ data?: T; error?: unknown; response: Response }>,
+): Promise<T> {
+  const { data, error, response } = await promise;
 
   if (response.status === 401) {
     clearAuthToken();
@@ -75,75 +80,110 @@ async function unwrap<T>(promise: Promise<{ data?: T; error?: unknown; response:
     throw new ApiError(503, "Service unavailable", "service_unavailable");
   }
 
-  return data as T;
+  if (error !== undefined || !response.ok) {
+    const errObj = (error ?? (await response.json().catch(() => undefined))) as
+      | ErrorBody
+      | undefined;
+    throw new ApiError(
+      response.status,
+      // FastAPI HTTPException bodies arrive as {detail} — surface it so
+      // error state is real, not a bare "HTTP 4xx". Envelope failures
+      // additionally carry {warnings:[…]}.
+      bodyText(errObj?.message) ??
+        bodyText(errObj?.detail) ??
+        bodyText(errObj?.warnings) ??
+        `HTTP ${response.status}`,
+      bodyText(errObj?.code),
+      bodyText(errObj?.detail),
+    );
+  }
+
+  if (data === undefined) {
+    throw new ApiError(
+      response.status,
+      "The server answered without a body — cannot show unknown data as real.",
+    );
+  }
+
+  return data;
 }
 
 // ===== Typed API functions =====
 
 // Health
-export const healthz = () =>
-  unwrap(api.GET("/healthz", {}));
+export const healthz = () => unwrap(api.GET("/healthz", {}));
 
 // Setup
-export const getSetupStatus = () =>
-  unwrap(api.GET("/api/setup/status", {}));
+export const getSetupStatus = () => unwrap(api.GET("/api/setup/status", {}));
 
 // World
-export const getStatus = () =>
-  unwrap(api.GET("/api/status", {}));
+export const getStatus = () => unwrap(api.GET("/api/status", {}));
 
-export const getDaily = () =>
-  unwrap(api.GET("/api/daily", {}));
+export const getDaily = () => unwrap(api.GET("/api/daily", {}));
 
-// Journal
-export const listJournal = (params?: { limit?: number; offset?: number }) =>
+// Journal — server contract: {ok, data:[JournalEvent…]} current-events
+// list (query `n`, clamped 1..500 server-side); writes are {text};
+// supersede is {supersedes: ts, text, reason?}; history is one chain by ts.
+export const listJournal = (params?: { n?: number }) =>
   unwrap(api.GET("/api/journal", { params: { query: params } }));
 
-export const writeJournal = (body: { content: string; kind?: string; metadata?: Record<string, never> }) =>
-  unwrap(api.POST("/api/journal", { body: { ...body, kind: body.kind ?? "entry" } }));
+export const writeJournal = (body: Schemas["JournalNoteRequest"]) =>
+  unwrap(api.POST("/api/journal", { body }));
 
-export const supersedeJournal = (body: { entry_id: string; reason: string }) =>
+export const supersedeJournal = (body: Schemas["JournalSupersedeRequest"]) =>
   unwrap(api.POST("/api/journal/supersede", { body }));
 
-export const journalHistory = (params?: { limit?: number }) =>
+export const journalHistory = (params: { ts: string }) =>
   unwrap(api.GET("/api/journal/history", { params: { query: params } }));
 
-export const journalAudit = () =>
-  unwrap(api.GET("/api/journal/audit", {}));
+export const journalAudit = () => unwrap(api.GET("/api/journal/audit", {}));
 
-// Chat
-export const sendChat = (body: { message: string; provider?: string; context?: Record<string, never> }) =>
-  unwrap(withStepUp(() => api.POST("/api/chat", { body })));
+// Chat — the server picks the reasoning provider (no per-request
+// provider field). An unconfigured provider answers 200 + ok:false;
+// screens must read the envelope, not just the HTTP status.
+export const sendChat = (body: Schemas["ChatRequest"]) =>
+  unwrap(api.POST("/api/chat", { body }));
 
 export const listChatProviders = () =>
   unwrap(api.GET("/api/chat/providers", {}));
 
-export const chatHistory = (params?: { limit?: number }) =>
+export const chatHistory = (params?: { n?: number }) =>
   unwrap(api.GET("/api/chat/history", { params: { query: params } }));
 
 // Proposals
-export const listProposals = () =>
-  unwrap(api.GET("/api/proposals", {}));
+export const listProposals = () => unwrap(api.GET("/api/proposals", {}));
 
 export const getProposal = (id: string) =>
-  unwrap(api.GET("/api/proposals/{proposal_id}", { params: { path: { proposal_id: id } } }));
+  unwrap(
+    api.GET("/api/proposals/{proposal_id}", { params: { path: { proposal_id: id } } }),
+  );
 
 export const approveProposal = (id: string) =>
-  unwrap(withStepUp(() => api.POST("/api/proposals/{proposal_id}/approve", { params: { path: { proposal_id: id } } })));
+  unwrap(
+    api.POST("/api/proposals/{proposal_id}/approve", {
+      params: { path: { proposal_id: id } },
+    }),
+  );
 
 export const rejectProposal = (id: string) =>
-  unwrap(withStepUp(() => api.POST("/api/proposals/{proposal_id}/reject", { params: { path: { proposal_id: id } } })));
+  unwrap(
+    api.POST("/api/proposals/{proposal_id}/reject", {
+      params: { path: { proposal_id: id } },
+    }),
+  );
 
 export const executeProposal = (id: string) =>
-  unwrap(api.POST("/api/proposals/{proposal_id}/execute", { params: { path: { proposal_id: id } } }));
+  unwrap(
+    api.POST("/api/proposals/{proposal_id}/execute", {
+      params: { path: { proposal_id: id } },
+    }),
+  );
 
-// Actors
-export const listActors = () =>
-  unwrap(api.GET("/api/actors", {}));
+// Actors — {ok, data: Actor[]}: staff directory of connected PROVIDERS.
+export const listActors = () => unwrap(api.GET("/api/actors", {}));
 
 // Manifest
-export const getManifest = () =>
-  unwrap(api.GET("/api/manifest", {}));
+export const getManifest = () => unwrap(api.GET("/api/manifest", {}));
 
 // Brain
 export const listBrainTemplates = () =>
@@ -154,94 +194,77 @@ export const searchMemory = (q: string, limit?: number) =>
   unwrap(api.GET("/api/memory/search", { params: { query: { q, limit } } }));
 
 // Tools
-export const listTools = () =>
-  unwrap(api.GET("/api/tools", {}));
+export const listTools = () => unwrap(api.GET("/api/tools", {}));
 
 // Auth
 export const login = (token: string) =>
   unwrap(api.POST("/api/auth/login", { body: { token } }));
 
-export const logout = () =>
-  unwrap(api.POST("/api/auth/logout", {}));
+export const logout = () => unwrap(api.POST("/api/auth/logout", {}));
 
-export const getSession = () =>
-  unwrap(api.GET("/api/auth/session", {}));
+export const getSession = () => unwrap(api.GET("/api/auth/session", {}));
 
 // Re-export types
 export type { paths } from "../generated/api-types";
 export type { components } from "../generated/api-types";
 
 // ===== Vault =====
-export const getVaultStatus = () =>
-  unwrap(api.GET("/api/vault/status", {}));
+export const getVaultStatus = () => unwrap(api.GET("/api/vault/status", {}));
 
 export const unlockVault = (passphrase: string) =>
-  unwrap(withStepUp(() => api.POST("/api/vault/unlock", { body: { passphrase } })));
+  unwrap(api.POST("/api/vault/unlock", { body: { passphrase } }));
 
-export const lockVault = () =>
-  unwrap(withStepUp(() => api.POST("/api/vault/lock", {})));
+export const lockVault = () => unwrap(api.POST("/api/vault/lock", {}));
 
-export const listVaultNames = () =>
-  unwrap(api.GET("/api/vault/names", {}));
+export const listVaultNames = () => unwrap(api.GET("/api/vault/names", {}));
 
 export const setVaultSecret = (name: string, value: string) =>
-  unwrap(withStepUp(() => api.POST("/api/vault/set", { body: { name, value } })));
+  unwrap(api.POST("/api/vault/set", { body: { name, value } }));
 
 export const getVaultSecret = (name: string) =>
   unwrap(api.GET("/api/vault/{name}", { params: { path: { name } } }));
 
 export const deleteVaultSecret = (name: string) =>
-  unwrap(withStepUp(() => api.DELETE("/api/vault/{name}", { params: { path: { name } } })));
+  unwrap(api.DELETE("/api/vault/{name}", { params: { path: { name } } }));
 
 // ===== Prefs =====
-export const getPrefs = () =>
-  unwrap(api.GET("/api/prefs", {}));
+export const getPrefs = () => unwrap(api.GET("/api/prefs", {}));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const putPrefs = (body: any) =>
-  unwrap(withStepUp(() => api.PUT("/api/prefs", { body })));
+export const putPrefs = (body: Schemas["PrefsUpdateRequest"]) =>
+  unwrap(api.PUT("/api/prefs", { body }));
 
-export const getPrefsSchema = () =>
-  unwrap(api.GET("/api/prefs/schema", {}));
+export const getPrefsSchema = () => unwrap(api.GET("/api/prefs/schema", {}));
 
 // ===== Sections =====
-export const getSections = () =>
-  unwrap(api.GET("/api/sections", {}));
+// GET answers {ok, data:{schema, sections}}; PUT accepts the layout
+// delta {order?, hidden?} of server-known section ids.
+export const getSections = () => unwrap(api.GET("/api/sections", {}));
 
-export const putSections = (body: { sections: Record<string, unknown>[] }) =>
-  // openapi-typescript renders a bare `type: object` schema as
-  // `{ [x: string]: never }`, which is type-level fiction — the wire
-  // shape is {sections: [...]} per server docs. Cast at the boundary.
-  unwrap(
-    withStepUp(() =>
-      api.PUT("/api/sections", { body: body as unknown as Record<string, never> }),
-    )
-  );
+export const putSections = (body: Schemas["SectionsUpdateRequest"]) =>
+  unwrap(api.PUT("/api/sections", { body }));
 
 // ===== Reminders =====
-export const listReminders = () =>
-  unwrap(api.GET("/api/reminders", {}));
+export const listReminders = () => unwrap(api.GET("/api/reminders", {}));
 
 export const addReminder = (text: string) =>
-  unwrap(withStepUp(() => api.POST("/api/reminders", { body: { text } })));
+  unwrap(api.POST("/api/reminders", { body: { text } }));
 
 export const toggleReminder = (rid: string, enabled: boolean) =>
-  unwrap(withStepUp(() => api.PATCH("/api/reminders/{rid}", { params: { path: { rid } }, body: { enabled } })));
+  unwrap(
+    api.PATCH("/api/reminders/{rid}", { params: { path: { rid } }, body: { enabled } }),
+  );
 
 export const deleteReminder = (rid: string) =>
-  unwrap(withStepUp(() => api.DELETE("/api/reminders/{rid}", { params: { path: { rid } } })));
+  unwrap(api.DELETE("/api/reminders/{rid}", { params: { path: { rid } } }));
 
 // ===== Apps =====
-export const listApps = () =>
-  unwrap(api.GET("/api/apps", {}));
+export const listApps = () => unwrap(api.GET("/api/apps", {}));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const putApps = (body: any) =>
-  unwrap(withStepUp(() => api.PUT("/api/apps", { body })));
+export const putApps = (body: Schemas["AppsUpdateRequest"]) =>
+  unwrap(api.PUT("/api/apps", { body }));
 
 // ===== Themes =====
-export const listThemes = () =>
-  unwrap(api.GET("/api/themes", {}));
+export const listThemes = () => unwrap(api.GET("/api/themes", {}));
 
 export const getTheme = (name: string) =>
   unwrap(api.GET("/api/themes/{name}", { params: { path: { name } } }));
@@ -251,7 +274,11 @@ export const getConnectionSchemas = () =>
   unwrap(api.GET("/api/connections/schemas", {}));
 
 export const getConnectionSchema = (capability: string) =>
-  unwrap(api.GET("/api/connections/schema/{capability}", { params: { path: { capability } } }));
+  unwrap(
+    api.GET("/api/connections/schema/{capability}", {
+      params: { path: { capability } },
+    }),
+  );
 
 export const getConnectionsConfig = () =>
   unwrap(api.GET("/api/connections/config", {}));
@@ -259,40 +286,32 @@ export const getConnectionsConfig = () =>
 export const getConnectionsOverview = () =>
   unwrap(api.GET("/api/connections/overview", {}));
 
-export const listConnections = () =>
-  unwrap(api.GET("/api/connections", {}));
+export const listConnections = () => unwrap(api.GET("/api/connections", {}));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const saveConnection = (body: any) =>
-  unwrap(withStepUp(() => api.PUT("/api/connections", { body })));
+export const saveConnection = (body: Schemas["ConnectionSaveRequest"]) =>
+  unwrap(api.PUT("/api/connections", { body }));
 
 export const deleteConnection = (name: string) =>
-  unwrap(withStepUp(() => api.DELETE("/api/connections/{name}", { params: { path: { name } } })));
+  unwrap(api.DELETE("/api/connections/{name}", { params: { path: { name } } }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const testConnection = (body: any) =>
+export const testConnection = (body: Schemas["ConnectionTestRequest"]) =>
   unwrap(api.POST("/api/connections/test", { body }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const validateConnection = (body: any) =>
+export const validateConnection = (body: Schemas["ConnectionTestRequest"]) =>
   unwrap(api.POST("/api/connections/validate", { body }));
 
 // ===== Identity =====
-export const getPrincipal = () =>
-  unwrap(api.GET("/api/identity/principal", {}));
+export const getPrincipal = () => unwrap(api.GET("/api/identity/principal", {}));
 
 export const putPrincipal = (display_name: string) =>
-  unwrap(withStepUp(() => api.PUT("/api/identity/principal", { body: { display_name } })));
+  unwrap(api.PUT("/api/identity/principal", { body: { display_name } }));
 
-export const listUsers = () =>
-  unwrap(api.GET("/api/identity/users", {}));
+export const listUsers = () => unwrap(api.GET("/api/identity/users", {}));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createUser = (body: any) =>
-  unwrap(withStepUp(() => api.POST("/api/identity/users", { body })));
+export const createUser = (body: Schemas["UserCreateRequest"]) =>
+  unwrap(api.POST("/api/identity/users", { body }));
 
-export const listAgents = () =>
-  unwrap(api.GET("/api/identity/agents", {}));
+export const listAgents = () => unwrap(api.GET("/api/identity/agents", {}));
 
 // ===== Discovery =====
 export const getDiscoveryStatus = () =>
@@ -308,52 +327,22 @@ export const triggerDiscovery = () =>
   unwrap(api.GET("/api/discovery/discover", {}));
 
 // ===== Media =====
-export const getMediaStatus = () =>
-  unwrap(api.GET("/api/media/status", {}));
+export const getMediaStatus = () => unwrap(api.GET("/api/media/status", {}));
 
-export const getMediaLibrary = () =>
-  unwrap(api.GET("/api/media/library", {}));
+export const getMediaLibrary = () => unwrap(api.GET("/api/media/library", {}));
 
-export const getMediaRecent = () =>
-  unwrap(api.GET("/api/media/recent", {}));
+export const getMediaRecent = () => unwrap(api.GET("/api/media/recent", {}));
 
-export const getMediaActivity = () =>
-  unwrap(api.GET("/api/media/activity", {}));
+export const getMediaActivity = () => unwrap(api.GET("/api/media/activity", {}));
 
 export const searchMedia = (q: string) =>
   unwrap(api.GET("/api/media/search", { params: { query: { q } } }));
 
-// ===== Projects =====
-// TODO: add /api/projects/status to openapi.json
-// export const getProjectsStatus = () =>
-//   unwrap(api.GET("/api/projects/status", {}));
-
-// ===== Source Control =====
-// TODO: add /api/source-control/* to openapi.json
-// export const getSourceControlStatus = () =>
-//   unwrap(api.GET("/api/source-control/status", {}));
-
-// ===== Lab =====
-// TODO: add /api/lab/* and /api/native-lab/* to openapi.json
-// export const getLabState = () =>
-//   unwrap(api.GET("/api/lab/state", {}));
-
-// ===== Ingress =====
-// TODO: add /api/ingress/rollups to openapi.json
-// export const getIngressRollups = () =>
-//   unwrap(api.GET("/api/ingress/rollups", {}));
-
-// ===== Updates =====
-// TODO: add /api/updates to openapi.json
-// export const getUpdates = () =>
-//   unwrap(api.GET("/api/updates", {}));
-
-// ===== Exports =====
-// TODO: add /api/exports/* to openapi.json
-// export const exportSettings = () =>
-//   unwrap(api.GET("/api/exports/settings", {}));
-
-// ===== Reconciler =====
-// TODO: add /api/reconciler/* to openapi.json
-// export const getReconcilerStatus = () =>
-//   unwrap(api.GET("/api/reconciler/status", {}));
+// ===== Endpoints the client does NOT call yet =====
+// /api/projects/status, /api/source-control/*, /api/lab/*,
+// /api/native-lab/*, /api/ingress/rollups, /api/updates,
+// /api/exports/*, /api/reconciler/* exist on the server but are not
+// part of the generated spec snapshot and have no typed wrapper here.
+// Adding them means regenerating src/generated/openapi.json from the
+// server contract — not hand-writing a wrapper against an unknown
+// shape.

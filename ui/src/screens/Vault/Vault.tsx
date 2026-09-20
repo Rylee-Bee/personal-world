@@ -24,7 +24,7 @@ import {
   useDeleteVaultSecret,
 } from "../../data/hooks";
 import { describeError } from "../../data/errors";
-import { STATUS_LABELS, type CapabilityStatus } from "../../data/types";
+import { STATUS_LABELS, toCapabilityStatus } from "../../data/types";
 
 // ─── Button classes (shared by the screen; motion guarded per §6.2) ──────
 
@@ -223,13 +223,13 @@ export function Vault() {
     [closeDeleteDialog],
   );
 
-  // Derive capabilities from status query
-  const capabilities = statusQuery.data
-    ? Object.entries(statusQuery.data.capabilities || {}).map(([id, cap]) => ({
+  // Derive capabilities from the live status envelope ({ok, status, data}).
+  const capabilities = statusQuery.data?.data
+    ? Object.entries(statusQuery.data.data.capabilities ?? {}).map(([id, cap]) => ({
         id,
         name: id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-        status: (cap as { status?: string }).status || "unknown",
-        warnings: (cap as { warnings?: string[] }).warnings,
+        status: toCapabilityStatus(cap.status),
+        warnings: cap.warnings,
       }))
     : [];
 
@@ -581,9 +581,9 @@ export function Vault() {
                     </div>
                     <span
                       className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] shrink-0"
-                      aria-label={`Status: ${STATUS_LABELS[cap.status as CapabilityStatus] || "Unknown"}`}
+                      aria-label={`Status: ${STATUS_LABELS[cap.status]}`}
                     >
-                      {STATUS_LABELS[cap.status as CapabilityStatus] || "Unknown"}
+                      {STATUS_LABELS[cap.status]}
                     </span>
                   </div>
                 ))}

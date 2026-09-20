@@ -10,6 +10,26 @@ import { WorldSignal } from "../../components/WorldSignal";
 import { ResidentPresence } from "../../components/ResidentPresence";
 import { WorldAssistant } from "../../components/WorldAssistant";
 import { WORLD_AREAS } from "../../data/types";
+import type { CapabilityStatus } from "../../data/types";
+
+/** One honest word per status — text carries the signal, not color. */
+function statusWord(status: CapabilityStatus): string {
+  switch (status) {
+    case "healthy":
+      return "online";
+    case "warning":
+    case "needs_attention":
+      return "attention";
+    case "unavailable":
+    case "stale":
+      return "offline";
+    case "disabled":
+    case "not_configured":
+      return "off";
+    case "unknown":
+      return "unknown";
+  }
+}
 
 interface TodayProps {
   onOpenAssistant: () => void;
@@ -20,7 +40,7 @@ export function Today({ onOpenAssistant }: TodayProps) {
 
   if (error) {
     return (
-      <main id="main-content" className="relative z-10 p-[var(--pw-spacing-xl)]">
+      <main id="main-content" aria-label="Today" className="relative z-10 p-[var(--pw-spacing-xl)]">
         <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
           Today
         </h1>
@@ -36,7 +56,7 @@ export function Today({ onOpenAssistant }: TodayProps) {
 
   if (isLoading || !summary) {
     return (
-      <main id="main-content" className="relative z-10 p-[var(--pw-spacing-xl)]">
+      <main id="main-content" aria-label="Today" className="relative z-10 p-[var(--pw-spacing-xl)]">
         <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
           Today
         </h1>
@@ -48,11 +68,15 @@ export function Today({ onOpenAssistant }: TodayProps) {
   }
 
   const needsAttention = summary.capabilities.filter(
-    (c) => c.status === "needs_attention" || c.status === "unavailable" || c.status === "stale",
+    (c) =>
+      c.status === "warning" ||
+      c.status === "needs_attention" ||
+      c.status === "unavailable" ||
+      c.status === "stale",
   );
 
   return (
-    <main id="main-content" className="relative z-10 p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)] max-w-[720px]">
+    <main id="main-content" aria-label="Today" className="relative z-10 p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)] max-w-[720px]">
       {/* Greeting */}
       <header className="mb-[var(--pw-spacing-2xl)]">
         <p className="text-[var(--pw-typography-size_label)] font-medium uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-1">
@@ -137,7 +161,7 @@ export function Today({ onOpenAssistant }: TodayProps) {
                     {cap.summary && <p className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] truncate">{cap.summary}</p>}
                   </div>
                   <span className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] shrink-0">
-                    {cap.status === "healthy" ? "online" : cap.status === "needs_attention" ? "attention" : "offline"}
+                    {statusWord(cap.status)}
                   </span>
                 </div>
               ))}

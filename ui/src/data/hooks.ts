@@ -3,6 +3,12 @@
  *
  * Typed data-fetching hooks using openapi-fetch + TanStack Query.
  * Every hook is backed by the generated API client.
+ *
+ * Envelope discipline: the Station server answers 200 with a
+ * `{ok:false, status, warnings}` body for soft failures (step-up not
+ * granted, no provider configured, unknown journal ts). Hooks that
+ * own such endpoints convert ok:false into a thrown Error here, so
+ * screens render real failure states instead of "success with holes".
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,7 +71,13 @@ import {
   getMediaActivity,
 } from "./api";
 import type { components } from "../generated/api-types";
-import type { CapabilitySummary, WorldSignal } from "./types";
+import type {
+  CapabilitySummary,
+  Resident,
+  TodaySummary,
+  WorldSignal,
+} from "./types";
+import { COMPANION_RESIDENTS, toCapabilityStatus } from "./types";
 
 // ===== Query Keys =====
 export const queryKeys = {
@@ -85,6 +97,7 @@ export const queryKeys = {
   tools: ["tools"] as const,
   session: ["session"] as const,
   setup: ["setup"] as const,
+  prefs: ["prefs"] as const,
 } as const;
 
 // ===== Health =====
@@ -122,7 +135,8 @@ export function useDaily() {
 }
 
 // ===== Journal =====
-export function useJournalList(params?: { limit?: number; offset?: number }) {
+/** Current events (each supersede chain's newest version), newest first. */
+export function useJournalList(params?: { n?: number }) {
   return useQuery({
     queryKey: [...queryKeys.journal, params],
     queryFn: () => listJournal(params),
@@ -143,17 +157,33 @@ export function useWriteJournal() {
 export function useSupersedeJournal() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: supersedeJournal,
+    mutationFn: async (body: Parameters<typeof supersedeJournal>[0]) => {
+      const res = await supersedeJournal(body);
+      // The server reports "no entry found" / conflicts as 200 + ok:false.
+      if (res.ok === false) {
+        throw new Error(res.warnings?.[0] || res.status || "Supersede failed");
+      }
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.journal });
     },
   });
 }
 
-export function useJournalHistory(limit?: number) {
+/** The full correction chain for ONE entry (oldest → newest, with reasons). */
+export function useJournalChain(ts: string | null) {
   return useQuery({
-    queryKey: [...queryKeys.journalHistory, limit],
-    queryFn: () => journalHistory({ limit }),
+    queryKey: [...queryKeys.journalHistory, ts],
+    queryFn: async () => {
+      if (ts === null) return [];
+      const res = await journalHistory({ ts });
+      if (res.ok === false) {
+        throw new Error(res.warnings?.[0] || res.status || "History unavailable");
+      }
+      return res.data?.entries ?? [];
+    },
+    enabled: ts !== null,
   });
 }
 
@@ -169,17 +199,26 @@ export function useChatProviders() {
 export function useSendChat() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: sendChat,
+    mutationFn: async (body: Parameters<typeof sendChat>[0]) => {
+      const res = await sendChat(body);
+      // No reasoning provider configured: HTTP 200 + ok:false + warnings.
+      if (res.ok === false) {
+        throw new Error(
+          res.warnings?.[0] || "Chat is not configured on this station yet.",
+        );
+      }
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.chatHistory });
     },
   });
 }
 
-export function useChatHistory(limit?: number) {
+export function useChatHistory(n?: number) {
   return useQuery({
-    queryKey: [...queryKeys.chatHistory, limit],
-    queryFn: () => chatHistory({ limit }),
+    queryKey: [...queryKeys.chatHistory, n],
+    queryFn: () => chatHistory({ n }),
   });
 }
 
@@ -220,6 +259,7 @@ export function useRejectProposal() {
 }
 
 // ===== Actors =====
+/** {ok, data: Actor[]} — the staff directory of connected PROVIDERS. */
 export function useActors() {
   return useQuery({
     queryKey: queryKeys.actors,
@@ -277,9 +317,9 @@ export function useSession() {
 
 // ===== Vault =====
 //
-// Backend contract (openapi.json → VaultStatusResponse / VaultNamesResponse):
-// every vault response is an `{ok, data}` envelope and there is NO
-// secret_count on status — the count is derived from the names list.
+// Backend contract (src/personal_world/api.py): every vault response
+// is an `{ok, data}` envelope and there is NO secret_count on status —
+// the count is derived from the names list.
 
 export function useVaultStatus() {
   return useQuery({
@@ -309,10 +349,12 @@ export function useVaultSecret(name: string) {
   });
 }
 
-/** Unlock returns `{ok, status, data?, warnings?}` — `ok:false` is a failure, not a throw. */
-async function vaultAction(fn: () => Promise<{ ok?: boolean; status?: string; warnings?: string[] }>) {
+/** Vault actions answer 200 with `{ok:false, status, warnings}` on refusal. */
+async function vaultAction<
+  T extends { ok?: boolean; status?: string; warnings?: string[] },
+>(fn: () => Promise<T>): Promise<T> {
   const res = await fn();
-  if (res?.ok === false) {
+  if (res.ok === false) {
     throw new Error(res.warnings?.[0] || res.status || "Vault action failed");
   }
   return res;
@@ -363,7 +405,7 @@ export function useDeleteVaultSecret() {
 // ===== Prefs =====
 export function usePrefs() {
   return useQuery({
-    queryKey: ["prefs"],
+    queryKey: queryKeys.prefs,
     queryFn: getPrefs,
   });
 }
@@ -373,7 +415,7 @@ export function usePutPrefs() {
   return useMutation({
     mutationFn: putPrefs,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["prefs"] });
+      qc.invalidateQueries({ queryKey: queryKeys.prefs });
     },
   });
 }
@@ -592,136 +634,65 @@ export function useMediaActivity() {
   });
 }
 
-// ===== Projects =====
-// TODO: uncomment when /api/projects/status is added to openapi.json
-// export function useProjectsStatus() {
-//   return useQuery({
-//     queryKey: ["projects", "status"],
-//     queryFn: getProjectsStatus,
-//   });
-// }
-
-// ===== Source Control =====
-// TODO: uncomment when /api/source-control/* is added to openapi.json
-// export function useSourceControlStatus() {
-//   return useQuery({
-//     queryKey: ["source-control", "status"],
-//     queryFn: getSourceControlStatus,
-//   });
-// }
-
-// ===== Lab =====
-// TODO: uncomment when /api/lab/* is added to openapi.json
-// export function useLabState() {
-//   return useQuery({
-//     queryKey: ["lab", "state"],
-//     queryFn: getLabState,
-//   });
-// }
-
-// ===== Ingress =====
-// TODO: uncomment when /api/ingress/rollups is added to openapi.json
-// export function useIngressRollups() {
-//   return useQuery({
-//     queryKey: ["ingress", "rollups"],
-//     queryFn: getIngressRollups,
-//   });
-// }
-
-// ===== Updates =====
-// TODO: uncomment when /api/updates is added to openapi.json
-// export function useUpdates() {
-//   return useQuery({
-//     queryKey: ["updates"],
-//     queryFn: getUpdates,
-//   });
-// }
-
-// ===== Exports =====
-// TODO: uncomment when /api/exports/* is added to openapi.json
-// export function useExportSettings() {
-//   return useQuery({
-//     queryKey: ["exports", "settings"],
-//     queryFn: exportSettings,
-//   });
-// }
-
-// export function useExportWorld() {
-//   return useQuery({
-//     queryKey: ["exports", "world"],
-//     queryFn: exportWorld,
-//   });
-// }
-
-// export function useBackup() {
-//   return useQuery({
-//     queryKey: ["backup"],
-//     queryFn: getBackup,
-//   });
-// }
-
 // ===== Today Summary (composed) =====
-
-/**
- * Explicit return type: without it the `{ data: undefined }` branch
- * widened to `any` (this project runs with strictNullChecks off), which
- * silently disabled typechecking of everything derived from the summary —
- * that is how an invented `level: "info"` signal ever compiled at all.
- */
-export interface TodaySummaryData {
-  greeting: string;
-  resident?: Actor;
-  capabilities: CapabilitySummary[];
-  signals: WorldSignal[];
-  daily: DailyDigest;
-}
+//
+// Composition inputs, all server-truth envelopes:
+//   GET /api/status  → {ok, status, data:{capabilities, actors, …}}
+//   GET /api/daily   → {ok, status, …, data:{world, capabilities, attention}}
+//   GET /api/actors  → {ok, data: Actor[]}  (provider staff directory)
+//   GET /api/prefs   → {ok, data:{companion, …}}  (names the resident)
 
 export function useTodaySummary(): {
-  data: TodaySummaryData | undefined;
+  data: TodaySummary | undefined;
   isLoading: boolean;
   error: Error | undefined;
 } {
   const status = useStatus();
   const daily = useDaily();
-  const actors = useActors();
+  const prefs = usePrefs();
 
-  const isLoading = status.isLoading || daily.isLoading || actors.isLoading;
-  const error = status.error || daily.error || actors.error;
+  const isLoading = status.isLoading || daily.isLoading || prefs.isLoading;
+  const error = status.error ?? daily.error ?? prefs.error ?? undefined;
 
-  if (isLoading || error || !status.data || !daily.data) {
+  if (isLoading || error || !status.data?.data || !daily.data?.data) {
     return { data: undefined, isLoading, error };
   }
 
-  const capabilities: CapabilitySummary[] = Object.entries(status.data.capabilities || {}).map(
-    ([id, cap]) => ({
-      id,
-      name: id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-      // CapabilityMap types status as bare string; the wire vocabulary is
-      // CapabilityStatus (contract §1.3) — cast at the boundary.
-      status: ((cap as { status?: string }).status || "unknown") as CapabilitySummary["status"],
-      summary: (cap as { warnings?: string[] }).warnings?.[0],
-    })
-  );
+  const capabilities: CapabilitySummary[] = Object.entries(
+    status.data.data.capabilities ?? {},
+  ).map(([id, cap]) => ({
+    id,
+    name: id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    // Wire status is the server Status vocabulary; anything unseen
+    // degrades to "unknown" at this boundary (never cast).
+    status: toCapabilityStatus(cap.status),
+    summary: cap.warnings?.[0],
+  }));
 
-  const signals: WorldSignal[] = (daily.data.reminders || []).slice(0, 3).map(
-    (r: Record<string, unknown>, i: number) => ({
-      id: `reminder-${i}`,
-      // Reminders are not alarms — they surface as "A small update"
-      // (WorldSignalLevel has no "info" tier; adding one would touch
-      // labels + styles without a real urgency difference).
+  // Signals: the daily digest's attention list — plain strings the
+  // loop deemed worth surfacing. Not alarms: "A small update".
+  // (WorldSignalLevel has no "info" tier; adding one would touch
+  // labels + styles without a real urgency difference.)
+  const signals: WorldSignal[] = (daily.data.data.attention ?? [])
+    .slice(0, 3)
+    .map((text, i) => ({
+      id: `attention-${i}`,
       level: "update" as const,
-      title: "Reminder",
-      description: typeof r.text === "string" ? r.text : "",
-    })
-  );
+      title: "Attention",
+      description: text,
+    }));
+
+  const companion = prefs.data?.data?.companion;
+  const resident: Resident | undefined = companion
+    ? COMPANION_RESIDENTS[companion]
+    : undefined;
 
   return {
     data: {
       greeting: getGreeting(),
-      resident: actors.data?.actors?.[0],
+      resident,
       capabilities,
       signals,
-      daily: daily.data,
     },
     isLoading: false,
     error: undefined,
@@ -742,7 +713,8 @@ export type WorldStatus = NonNullable<ReturnType<typeof useStatus>["data"]>;
 export type DailyDigest = NonNullable<ReturnType<typeof useDaily>["data"]>;
 export type JournalList = NonNullable<ReturnType<typeof useJournalList>["data"]>;
 export type JournalEntry = components["schemas"]["JournalEvent"];
+export type ChatEntry = components["schemas"]["ChatHistoryEntry"];
 export type Proposal = components["schemas"]["Proposal"];
-export type Actor = components["schemas"]["Actor"];
+export type ProviderActor = components["schemas"]["Actor"];
 export type Healthz = components["schemas"]["Healthz"];
 export type Session = components["schemas"]["SessionResponse"];

@@ -82,7 +82,7 @@ export interface paths {
         /** List journal entries */
         get: operations["listJournal"];
         put?: never;
-        /** Write journal entry */
+        /** Write personal journal note */
         post: operations["writeJournal"];
         delete?: never;
         options?: never;
@@ -1044,81 +1044,115 @@ export interface components {
             setup_needed?: boolean;
             dev_bypass?: boolean;
         };
+        /** @description GET /api/setup/status → {ok, data:{complete}}. */
         SetupStatus: {
-            setup_needed?: boolean;
-            auth_configured?: boolean;
-        };
-        StatusResponse: {
-            world?: components["schemas"]["WorldSummary"];
-            capabilities?: components["schemas"]["CapabilityMap"];
-            actors?: components["schemas"]["ActorsResponse"];
-        };
-        WorldSummary: {
-            facts?: number;
-            intents?: number;
-            policies?: number;
-            lore?: number;
-            providers?: number;
-            packs?: number;
-        };
-        CapabilityMap: {
-            [key: string]: {
-                ok?: boolean;
-                status?: string;
-                warnings?: string[];
+            ok: boolean;
+            data: {
+                complete: boolean;
             };
         };
+        /** @description GET /api/status → Result envelope. */
+        StatusResponse: {
+            ok: boolean;
+            status: string;
+            data: components["schemas"]["StatusData"];
+        };
+        /** @description world.summary() — src/personal_world/world.py. */
+        WorldSummary: {
+            facts: number;
+            intents: number;
+            policies: number;
+            cemented_policies: number;
+            lore: {
+                [key: string]: number;
+            };
+            declared_capabilities: number;
+            providers: number;
+            packs: number;
+        };
+        CapabilityMap: {
+            [key: string]: components["schemas"]["CapabilityObservation"];
+        };
+        /** @description model.JournalEvent (pydantic dump; every key always present). */
         JournalEvent: {
-            id: string;
-            /** @enum {string} */
-            kind: "entry" | "correction" | "supersession";
-            content: string;
             /** Format: date-time */
-            timestamp: string;
-            superseded_by?: string | null;
-            metadata?: Record<string, never>;
+            ts: string;
+            kind: components["schemas"]["JournalKind"];
+            summary: string;
+            provenance: components["schemas"]["Provenance"];
+            classification: components["schemas"]["Classification"];
+            /** Format: date-time */
+            supersedes: string | null;
+            supersede_reason: string | null;
         };
-        JournalWrite: {
-            content: string;
-            /** @default entry */
-            kind: string;
-            metadata?: Record<string, never>;
-        };
-        JournalSupersede: {
-            entry_id: string;
-            reason: string;
-        };
+        /** @description GET /api/journal → {ok, data: [current events]}. */
         JournalListResponse: {
-            entries?: components["schemas"]["JournalEvent"][];
-            total?: number;
-            limit?: number;
-            offset?: number;
+            ok: boolean;
+            data: components["schemas"]["JournalEvent"][];
         };
+        /** @description GET /api/journal/history?ts= → one correction chain, oldest→newest. */
         JournalHistoryResponse: {
-            history?: components["schemas"]["JournalEvent"][];
+            ok: boolean;
+            status: string;
+            warnings?: string[];
+            data?: {
+                entries: components["schemas"]["JournalEvent"][];
+            };
         };
+        /** @description GET /api/journal/audit → {ok, data:{text}} (rendered audit). */
         JournalAuditResponse: {
-            audit?: Record<string, never>[];
+            ok: boolean;
+            data: {
+                text: string;
+            };
         };
+        /** @description POST /api/chat body. The server picks the reasoning provider; there is no per-request provider field. */
         ChatRequest: {
             message: string;
-            provider?: string;
-            context?: Record<string, never>;
-        };
-        ChatResponse: {
-            reply?: string;
-            provider?: string;
-            usage?: Record<string, never>;
-        };
-        ChatProvidersResponse: {
-            providers?: {
-                id?: string;
-                name?: string;
-                available?: boolean;
+            history?: {
+                role: string;
+                content: string;
             }[];
+            /** @description Where in the UI the person is (provenance, not truth). */
+            context?: {
+                route?: string;
+                section_id?: string;
+                entity?: string;
+                label?: string;
+            };
         };
+        /** @description POST /api/chat → Result dump; data keys are provider-dependent ({reply, provider, usage, proposal?}). */
+        ChatResponse: {
+            ok: boolean;
+            status: string;
+            changed?: boolean;
+            warnings?: string[];
+            actions?: string[];
+            /** @description Provider-dependent result payload. */
+            data?: {
+                reply?: string;
+                provider?: string;
+                usage?: {
+                    [key: string]: unknown;
+                };
+                proposal?: unknown;
+            };
+        };
+        /** @description GET /api/chat/providers → {ok, data:{providers, active}}. */
+        ChatProvidersResponse: {
+            ok: boolean;
+            data: {
+                providers: components["schemas"]["ChatProviderInfo"][];
+                active: string | null;
+            };
+        };
+        /** @description GET /api/chat/history → {ok, data:{entries, count}}. */
         ChatHistoryResponse: {
-            messages?: Record<string, never>[];
+            ok: boolean;
+            data: {
+                entries: components["schemas"]["ChatHistoryEntry"][];
+                count: number;
+            };
         };
         Proposal: {
             id: string;
@@ -1135,25 +1169,35 @@ export interface components {
             proposals?: components["schemas"]["Proposal"][];
             total?: number;
         };
+        /** @description model.Actor — staff-directory entry for a connected PROVIDER (not a companion). */
         Actor: {
-            id: string;
             name: string;
-            type: string;
-            status?: string;
+            role: string;
+            provider: string | null;
+            capabilities: string[];
+            status: string;
+            secrets: string;
+            writes: string;
         };
+        /** @description GET /api/actors → {ok, data: Actor[]}. */
         ActorsResponse: {
-            actors?: components["schemas"]["Actor"][];
+            ok: boolean;
+            data: components["schemas"]["Actor"][];
         };
+        /** @description GET /api/manifest → {ok, data: capability manifest, endpoints: [...]} (api_manifest.py). */
         ManifestResponse: {
-            endpoints?: Record<string, never>[];
-            version?: string;
+            ok: boolean;
+            data: {
+                [key: string]: unknown;
+            };
+            endpoints: components["schemas"]["ManifestEndpoint"][];
         };
+        /** @description GET /api/brain/templates → {ok, data:{templates}}. */
         BrainTemplatesResponse: {
-            templates?: {
-                id?: string;
-                kind?: string;
-                surface?: string;
-            }[];
+            ok: boolean;
+            data: {
+                templates: components["schemas"]["BrainTemplate"][];
+            };
         };
         MemorySearchResponse: {
             results?: {
@@ -1170,11 +1214,14 @@ export interface components {
                 kind?: string;
             }[];
         };
+        /** @description GET /api/daily → full Result dump. */
         DailyResponse: {
-            summary?: string;
-            reminders?: Record<string, never>[];
-            journal_recent?: components["schemas"]["JournalEvent"][];
-            projects?: Record<string, never>[];
+            ok: boolean;
+            status: string;
+            changed: boolean;
+            warnings: string[];
+            actions: string[];
+            data: components["schemas"]["DailyDigest"];
         };
         LoginRequest: {
             token: string;
@@ -1183,10 +1230,16 @@ export interface components {
             session_id?: string;
             principal?: string;
         };
+        /** @description GET /api/auth/session (auth_routes.py): ok:false + status when not signed in. */
         SessionResponse: {
-            authenticated?: boolean;
-            principal?: string;
-            step_up?: boolean;
+            ok: boolean;
+            /** @enum {string} */
+            status?: "unauthenticated" | "expired";
+            data?: {
+                principal_id: string;
+                auth_method: string;
+                has_step_up: boolean;
+            };
         };
         /** @description A single configuration field for a provider. */
         ConfigField: {
@@ -1464,11 +1517,12 @@ export interface components {
         VaultUnlockRequest: {
             passphrase: string;
         };
+        /** @description POST /api/vault/unlock — all four keys always present; data may be null. */
         VaultActionResponse: {
-            ok?: boolean;
-            status?: string;
-            data?: Record<string, never>;
-            warnings?: string[];
+            ok: boolean;
+            status: string;
+            data?: unknown;
+            warnings: string[];
         };
         VaultLockResponse: {
             ok?: boolean;
@@ -1508,8 +1562,8 @@ export interface components {
             warnings?: string[];
         };
         PrefsResponse: {
-            ok?: boolean;
-            data?: Record<string, never>;
+            ok: boolean;
+            data: components["schemas"]["PrefsData"];
         };
         PrefsSchemaResponse: {
             ok?: boolean;
@@ -1526,23 +1580,23 @@ export interface components {
             };
         };
         SectionsResponse: {
-            ok?: boolean;
-            data?: {
-                schema?: string;
-                sections?: components["schemas"]["Section"][];
+            ok: boolean;
+            data: {
+                schema: string;
+                sections: components["schemas"]["Section"][];
             };
         };
         Section: {
-            id?: string;
-            label?: string;
-            icon?: string;
-            order?: number;
-            visible?: boolean;
-            pinned?: boolean;
+            id: string;
+            label: string;
+            icon: string;
+            order: number;
+            visible: boolean;
+            pinned: boolean;
             /** @enum {string} */
-            kind?: "core" | "transitional" | "extension";
-            status?: string | null;
-            configured?: boolean;
+            kind: "core" | "transitional" | "extension";
+            status: string | null;
+            configured: boolean;
         };
         Reminder: {
             id?: string;
@@ -1607,6 +1661,157 @@ export interface components {
         ThemeDetailResponse: {
             ok?: boolean;
             data?: components["schemas"]["ThemePack"];
+        };
+        /**
+         * @description Server Status enum (src/personal_world/status.py) — the shared status vocabulary.
+         * @enum {string}
+         */
+        CapabilityStatus: "healthy" | "warning" | "needs_attention" | "unavailable" | "stale" | "disabled" | "not_configured" | "unknown";
+        /** @enum {string} */
+        Classification: "world" | "private" | "secret";
+        /** @enum {string} */
+        JournalKind: "observation" | "health" | "drift" | "recommendation" | "approval" | "reconciliation" | "provider_action" | "failure" | "pack_change" | "settings_change" | "security" | "discovery";
+        Provenance: {
+            source: string;
+            /** Format: date-time */
+            observed_at: string;
+            provider: string | null;
+            /** @enum {string} */
+            authority: "observed" | "reported" | "inferred";
+        };
+        /** @description registry.status_map() value. */
+        CapabilityObservation: {
+            ok: boolean;
+            status: components["schemas"]["CapabilityStatus"];
+            warnings: string[];
+            /** Format: date-time */
+            last_observed: string;
+        };
+        /** @description GET /api/status data = world.summary() + capabilities + actors. */
+        StatusData: {
+            facts: number;
+            intents: number;
+            policies: number;
+            cemented_policies: number;
+            lore: {
+                [key: string]: number;
+            };
+            declared_capabilities: number;
+            providers: number;
+            packs: number;
+            capabilities: components["schemas"]["CapabilityMap"];
+            actors: components["schemas"]["Actor"][];
+        };
+        /** @description loop.daily() digest. */
+        DailyDigest: {
+            world: components["schemas"]["WorldSummary"];
+            capabilities: components["schemas"]["CapabilityMap"];
+            attention: string[];
+        };
+        /** @description POST /api/journal body {text}. Stored as an observation. */
+        JournalNoteRequest: {
+            text: string;
+        };
+        /** @description POST /api/journal → {ok, data:{written: chars}}. */
+        JournalNoteResponse: {
+            ok: boolean;
+            data: {
+                written: number;
+            };
+        };
+        /** @description POST /api/journal/supersede body. */
+        JournalSupersedeRequest: {
+            /** @description ts of the entry being replaced */
+            supersedes: string;
+            text: string;
+            reason?: string;
+            /** @enum {string} */
+            drafted_by?: "the Journal screen" | "Personal World (assistant draft)";
+        };
+        JournalSupersedeResponse: {
+            ok: boolean;
+            status: string;
+            warnings?: string[];
+            data?: {
+                current: components["schemas"]["JournalEvent"];
+                superseded: components["schemas"]["JournalEvent"];
+                audit?: components["schemas"]["JournalEvent"];
+                already_applied: boolean;
+            };
+        };
+        /** @description ChatHistory NDJSON line — ts is unix epoch SECONDS (float). */
+        ChatHistoryEntry: {
+            ts: number;
+            role: string;
+            content: string;
+            provider?: string;
+        };
+        ChatProviderInfo: {
+            name: string;
+            display_name: string;
+            status: string;
+            ok: boolean;
+        };
+        ManifestEndpoint: {
+            id: string;
+            method: string;
+            path: string;
+            capability: string;
+            kind: string;
+            gate: string;
+            auth: string;
+            note: string | null;
+        };
+        /** @description TemplateRegistry.list_templates() row (Template.to_dict + has_override). */
+        BrainTemplate: {
+            id: string;
+            version: string;
+            kind: string;
+            surface: string | null;
+            max_tokens: number;
+            source: string;
+            description: string;
+            content_length: number;
+            has_override: boolean;
+        };
+        /** @description prefs.normalize_prefs() — every key always present (defaults fill in). */
+        PrefsData: {
+            /** @enum {string} */
+            motion: "off" | "reduced" | "subtle";
+            /** @enum {string} */
+            contrast: "comfortable" | "high";
+            /** @enum {number} */
+            text_scale: 1 | 1.25 | 1.5;
+            /** @enum {string} */
+            density: "comfortable" | "compact";
+            /** @enum {integer} */
+            target_size: 44 | 56;
+            /** @enum {string} */
+            companion: "personal-world" | "mermaid" | "robot" | "world-tree-squirrel" | "taco-news-truck";
+            /** @enum {string} */
+            accent: "world-keeper" | "rylee";
+        };
+        /** @description PUT /api/prefs — partial update; unknown keys or below-floor values fail 400 as a whole. */
+        PrefsUpdateRequest: {
+            /** @enum {string} */
+            motion?: "off" | "reduced" | "subtle";
+            /** @enum {string} */
+            contrast?: "comfortable" | "high";
+            /** @enum {number} */
+            text_scale?: 1 | 1.25 | 1.5;
+            /** @enum {string} */
+            density?: "comfortable" | "compact";
+            /** @enum {integer} */
+            target_size?: 44 | 56;
+            /** @enum {string} */
+            companion?: "personal-world" | "mermaid" | "robot" | "world-tree-squirrel" | "taco-news-truck";
+            /** @enum {string} */
+            accent?: "world-keeper" | "rylee";
+        };
+        /** @description PUT /api/sections body — sections.validate_layout_update(): {order?, hidden?} id lists. */
+        SectionsUpdateRequest: {
+            order?: string[];
+            hidden?: string[];
         };
     };
     responses: never;
@@ -1700,8 +1905,7 @@ export interface operations {
     listJournal: {
         parameters: {
             query?: {
-                limit?: number;
-                offset?: number;
+                n?: number;
             };
             header?: never;
             path?: never;
@@ -1729,25 +1933,26 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["JournalWrite"];
+                "application/json": components["schemas"]["JournalNoteRequest"];
             };
         };
         responses: {
-            /** @description Created */
-            201: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JournalEvent"];
+                    "application/json": components["schemas"]["JournalNoteResponse"];
                 };
             };
         };
     };
     journalHistory: {
         parameters: {
-            query?: {
-                limit?: number;
+            query: {
+                /** @description Timestamp of the entry whose chain to show */
+                ts: string;
             };
             header?: never;
             path?: never;
@@ -1795,7 +2000,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["JournalSupersede"];
+                "application/json": components["schemas"]["JournalSupersedeRequest"];
             };
         };
         responses: {
@@ -1804,7 +2009,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["JournalSupersedeResponse"];
+                };
             };
         };
     };
@@ -1855,7 +2062,7 @@ export interface operations {
     chatHistory: {
         parameters: {
             query?: {
-                limit?: number;
+                n?: number;
             };
             header?: never;
             path?: never;
@@ -2857,7 +3064,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": Record<string, never>;
+                "application/json": components["schemas"]["PrefsUpdateRequest"];
             };
         };
         responses: {
@@ -2921,7 +3128,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": Record<string, never>;
+                "application/json": components["schemas"]["SectionsUpdateRequest"];
             };
         };
         responses: {

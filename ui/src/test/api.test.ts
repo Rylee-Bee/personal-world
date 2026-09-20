@@ -77,27 +77,47 @@ describe("api client", () => {
   });
 
   describe("listJournal()", () => {
-    it("returns journal entries", async () => {
+    it("returns journal events under the server envelope", async () => {
       const journalData = {
-        entries: [
-          { id: "1", kind: "entry", content: "hello", timestamp: "2026-01-01T00:00:00Z" },
+        ok: true,
+        data: [
+          {
+            ts: "2026-01-01T00:00:00Z",
+            kind: "observation",
+            summary: "hello",
+            provenance: {
+              source: "user",
+              observed_at: "2026-01-01T00:00:00Z",
+              provider: null,
+              authority: "observed",
+            },
+            classification: "private",
+            supersedes: null,
+            supersede_reason: null,
+          },
         ],
-        total: 1,
       };
       mockGet.mockResolvedValueOnce(okResponse(journalData));
 
-      const result = await listJournal({ limit: 10 });
+      const result = await listJournal({ n: 10 });
 
       expect(mockGet).toHaveBeenCalledWith("/api/journal", {
-        params: { query: { limit: 10 } },
+        params: { query: { n: 10 } },
       });
-      expect(result.entries).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
     });
   });
 
   describe("sendChat()", () => {
-    it("sends a chat message via POST", async () => {
-      const chatResponse = { reply: "Hello!", provider: "openai" };
+    it("sends a chat message via POST and keeps the envelope", async () => {
+      const chatResponse = {
+        ok: true,
+        status: "healthy",
+        changed: false,
+        warnings: [],
+        actions: [],
+        data: { reply: "Hello!", provider: "ollama" },
+      };
       mockPost.mockResolvedValueOnce(okResponse(chatResponse));
 
       const result = await sendChat({ message: "Hi" });
@@ -105,7 +125,7 @@ describe("api client", () => {
       expect(mockPost).toHaveBeenCalledWith("/api/chat", {
         body: { message: "Hi" },
       });
-      expect(result.reply).toBe("Hello!");
+      expect(result.data?.reply).toBe("Hello!");
     });
   });
 
@@ -156,6 +176,39 @@ describe("api client", () => {
         expect((err as ApiError).status).toBe(503);
         expect((err as ApiError).code).toBe("service_unavailable");
       }
+    });
+
+    it("throws on an undeclared non-2xx whose body openapi-fetch put in data", async () => {
+      // A 404 (undeclared in the spec) arrives as {data:{detail}, error:undefined}
+      // — treating that as success is how a dead endpoint once read as "Online".
+      mockGet.mockResolvedValue({
+        data: { detail: "Not Found" },
+        error: undefined,
+        response: {
+          status: 404,
+          ok: false,
+          json: async () => ({ detail: "Not Found" }),
+        } as Response,
+      });
+
+      try {
+        await getStatus();
+        expect.fail("should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as ApiError).status).toBe(404);
+        expect((err as ApiError).message).toBe("Not Found");
+      }
+    });
+
+    it("throws on an empty 2xx body instead of returning undefined as data", async () => {
+      mockGet.mockResolvedValue({
+        data: undefined,
+        error: undefined,
+        response: { status: 200, ok: true } as Response,
+      });
+
+      await expect(getStatus()).rejects.toThrow(/without a body/);
     });
   });
 });
