@@ -1,0 +1,115 @@
+name: ui-ci
+
+# CI for the Station vNext UI (ui/, React + Vite + Vitest + oxlint).
+#
+# Why this exists: validate.yml (same repo) gates the Python backend,
+# docker compose, the legacy frontend/ Playwright suite, and the
+# security/framework suites — but it never typechecks, lints, tests, or
+# builds ui/. This workflow closes that gap; it does not replace
+# validate.yml.
+#
+# STATUS: authored, not armed. It only runs on GitHub once this branch is
+# pushed and a PR opened or it lands on main. Activation is an owner
+# decision — nothing here enables it beyond its own trigger rules.
+
+on:
+  pull_request:
+    paths:
+      - "ui/**"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ui/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      # Action pins reused from validate.yml (same-repo convention:
+      # full SHA + version comment, persist-credentials off).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium for the Vitest Storybook project
+        # vite.config.ts defines two vitest projects: 'unit' (jsdom) and
+        # 'storybook' (browser mode via @vitest/browser-playwright,
+        # chromium). Without this step `vitest run` fails to launch a
+        # browser for the storybook project.
+        run: npx playwright install --with-deps chromium
+
+      - name: Token drift gate
+        # src/generated/tokens.{css,ts} are committed; regeneration must be
+        # a no-op. A non-empty diff means generated output drifted from
+        # design/themes/*.json (or someone hand-edited the generated files).
+        # Pathspec resolves relative to ui/, i.e. ui/src/generated/.
+        run: |
+          npm run tokens:generate
+          git diff --exit-code src/generated
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit + Storybook tests (vitest)
+        run: npx vitest run
+
+      - name: Build
+        run: npm run build
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ENABLE AFTER wave-1 lands (owner decision D5)
+#
+# axe + Storybook gate. Held back because ui/src stories and the theme
+# cascade are still moving in wave-1; arming it now would gate the repo
+# on a known-red suite. When D5 approves it, uncomment the job — its
+# vitest invocation overlaps the storybook project in the ui job above,
+# so consider moving that project down here at the same time.
+#
+#   storybook-axe:
+#     runs-on: ubuntu-latest
+#     defaults:
+#       run:
+#         working-directory: ui
+#     steps:
+#       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+#         with:
+#           persist-credentials: false
+#       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+#         with:
+#           node-version: "22"
+#           cache: npm
+#           cache-dependency-path: ui/package-lock.json
+#       - name: Install
+#         run: npm ci --no-audit --no-fund
+#       - name: Install Chromium (axe runs in a browser)
+#         run: npx playwright install --with-deps chromium
+#       - name: Build Storybook
+#         run: npm run build-storybook
+#       - name: axe checks via Storybook addon-a11y (vitest browser project)
+#         run: npx vitest run --project storybook
+# ─────────────────────────────────────────────────────────────────────────────
