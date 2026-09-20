@@ -1,5 +1,19 @@
 # Project Worlds — Design Handoff (V0.1)
 
+> [!WARNING]
+> **⚠️ V0.1 HISTORICAL BASELINE — superseded as current truth (2026-09-20).**
+> This document is the **V0.1 historical baseline**, not the current product.
+> Its "implemented today" statements are dated to the V0.1 era (commit
+> `7c16a61`+): the hash-routed `DASHBOARD_HTML` described in §B **no longer
+> exists** — the 2026-09-16 Station-only cutover removed it, and `/` now
+> redirects to `/station/` (vNext is served side-by-side at `/vnext/`).
+> **Settings-write now exists** (`PUT /api/prefs`, step-up gated) — §E's
+> "not implemented" row is stale. `design/rylee-lab/tokens.css` (§J) **no
+> longer exists.** Current product truth:
+> [`docs/INDEX.md`](INDEX.md) + [`.project/CURRENT.md`](../.project/CURRENT.md).
+> The accessibility contract and the architectural *intent* below remain
+> useful as provenance; treat everything else as dated.
+
 (Formerly "Personal World" — product renamed 2026-09-12; the design it
 describes is unchanged. Technical identifiers unchanged.)
 
@@ -220,6 +234,11 @@ Single-page app at `/`, hash-routed. Server: FastAPI. No JS
 framework; one HTML template string in `src/personal_world/api.py`
 (`DASHBOARD_HTML`). All data via the same `/api/*` the CLI uses.
 
+> **[SUPERSEDED 2026-09-16]** — the route table below describes the
+> `DASHBOARD_HTML` SPA, deleted in the Station-only cutover; "implemented
+> today" is no longer true. Production routing today: `/` → `/station/`
+> (vNext side-by-side at `/vnext/`). Kept verbatim as V0.1 baseline.
+
 | Route | Purpose | Status | Primary tasks | Data source |
 |---|---|---|---|---|
 | `#today` (default) | daily briefing | implemented | glance health, attention list, recent journal | `/api/status`, `/api/daily`, `/api/journal?n=5` |
@@ -325,7 +344,7 @@ status word; color (any tint) is reinforcement only.
 | Cemented policy change | CLI | explicit UserAction flag | user-only |
 | Pack install | CLI | normal | never overwrites user policy |
 | Provider writes | none enabled (writes="none" everywhere) | — | future step-up-auth candidates |
-| Settings write | not implemented | — | future |
+| Settings write | **[SUPERSEDED]** implemented — `PUT /api/prefs` (step-up) | step-up auth | was "not implemented / future" at V0.1 |
 
 Future step-up-auth candidates (not built): policy changes, provider
 writes, secrets-broker use.
