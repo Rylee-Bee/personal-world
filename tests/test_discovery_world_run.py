@@ -110,3 +110,28 @@ def test_disabled_source_skipped(tmp_path):
     w["sources"]["one"]["enabled"] = False
     r = world_run.run_world(w, tmp_path / "s.json", source_types=TYPES)
     assert r["ran"] == [] and r["discovered"] == []
+
+
+def test_provider_marriage(tmp_path):
+    """NativeDiscovery routes engine-typed sources through run_world and
+    surfaces the finds as ContentItems with honest provenance — the world
+    shows its own discoveries, no ntfy involved."""
+    from personal_world.discovery.sources import SOURCE_TYPES
+    from personal_world.providers.native_discovery import DiscoverySource, NativeDiscovery
+
+    SOURCE_TYPES.setdefault("fake", FakeSource)
+    try:
+        nd = NativeDiscovery(config_path=tmp_path / "discovery.json")
+        nd._sources["rel"] = DiscoverySource(
+            id="rel", name="Test releases", source_type="fake",
+            config={"items": _items(2)}, enabled=True,
+        )
+        res = nd.discover()
+        assert res.ok is True
+        assert res.data["count"] == 2
+        first = res.data["items"][0]
+        assert first["provenance"]["engine"].startswith("candy-dispenser")
+        # round two: engine dedup applies through the provider too
+        assert nd.discover().data["count"] == 0
+    finally:
+        SOURCE_TYPES.pop("fake", None)

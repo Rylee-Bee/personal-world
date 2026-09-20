@@ -80,10 +80,17 @@ def run_world(
             state["errors"] = state.get("errors", 0) + 1
 
     save_state(state, Path(state_path))
+    new_items = state.get("discovered", [])[captured_before:]
+    # capture history is a queue, not an archive: keep the newest window so
+    # disposable per-world state files stay disposable
+    keep = int(world.get("capture_keep", 200) or 200)
+    if len(state.get("discovered", [])) > keep:
+        state["discovered"] = state["discovered"][-keep:]
+        save_state(state, Path(state_path))
     return {
         "world": world.get("name"),
         "ran": ran,
-        # only THIS run's finds; the state file keeps the full capture history
-        "discovered": state.get("discovered", [])[captured_before:],
+        # only THIS run's finds; the state file keeps a bounded capture window
+        "discovered": new_items[-keep:],
         "errors": state.get("errors", 0),
     }
