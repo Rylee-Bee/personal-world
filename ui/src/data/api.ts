@@ -168,3 +168,184 @@ export const getSession = () =>
 // Re-export types
 export type { paths } from "../generated/api-types";
 export type { components } from "../generated/api-types";
+
+// ===== Vault =====
+export const getVaultStatus = () =>
+  unwrap(api.GET("/api/vault/status", {}));
+
+export const unlockVault = (passphrase: string) =>
+  unwrap(withStepUp(() => api.POST("/api/vault/unlock", { body: { passphrase } })));
+
+export const lockVault = () =>
+  unwrap(withStepUp(() => api.POST("/api/vault/lock", {})));
+
+export const listVaultNames = () =>
+  unwrap(api.GET("/api/vault/names", {}));
+
+export const setVaultSecret = (name: string, value: string) =>
+  unwrap(withStepUp(() => api.POST("/api/vault/set", { body: { name, value } })));
+
+export const getVaultSecret = (name: string) =>
+  unwrap(api.GET("/api/vault/{name}", { params: { path: { name } } }));
+
+export const deleteVaultSecret = (name: string) =>
+  unwrap(withStepUp(() => api.DELETE("/api/vault/{name}", { params: { path: { name } } })));
+
+// ===== Prefs =====
+export const getPrefs = () =>
+  unwrap(api.GET("/api/prefs", {}));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const putPrefs = (body: any) =>
+  unwrap(withStepUp(() => api.PUT("/api/prefs", { body })));
+
+export const getPrefsSchema = () =>
+  unwrap(api.GET("/api/prefs/schema", {}));
+
+// ===== Sections =====
+export const getSections = () =>
+  unwrap(api.GET("/api/sections", {}));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const putSections = (body: any) =>
+  unwrap(withStepUp(() => api.PUT("/api/sections", { body })));
+
+// ===== Reminders =====
+export const listReminders = () =>
+  unwrap(api.GET("/api/reminders", {}));
+
+export const addReminder = (text: string) =>
+  unwrap(withStepUp(() => api.POST("/api/reminders", { body: { text } })));
+
+export const toggleReminder = (rid: string, enabled: boolean) =>
+  unwrap(withStepUp(() => api.PATCH("/api/reminders/{rid}", { params: { path: { rid } }, body: { enabled } })));
+
+export const deleteReminder = (rid: string) =>
+  unwrap(withStepUp(() => api.DELETE("/api/reminders/{rid}", { params: { path: { rid } } })));
+
+// ===== Apps =====
+export const listApps = () =>
+  unwrap(api.GET("/api/apps", {}));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const putApps = (body: any) =>
+  unwrap(withStepUp(() => api.PUT("/api/apps", { body })));
+
+// ===== Themes =====
+export const listThemes = () =>
+  unwrap(api.GET("/api/themes", {}));
+
+export const getTheme = (name: string) =>
+  unwrap(api.GET("/api/themes/{name}", { params: { path: { name } } }));
+
+// ===== Connections =====
+export const getConnectionSchemas = () =>
+  unwrap(api.GET("/api/connections/schemas", {}));
+
+export const getConnectionSchema = (capability: string) =>
+  unwrap(api.GET("/api/connections/schema/{capability}", { params: { path: { capability } } }));
+
+export const getConnectionsConfig = () =>
+  unwrap(api.GET("/api/connections/config", {}));
+
+export const getConnectionsOverview = () =>
+  unwrap(api.GET("/api/connections/overview", {}));
+
+export const listConnections = () =>
+  unwrap(api.GET("/api/connections", {}));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const saveConnection = (body: any) =>
+  unwrap(withStepUp(() => api.PUT("/api/connections", { body })));
+
+export const deleteConnection = (name: string) =>
+  unwrap(withStepUp(() => api.DELETE("/api/connections/{name}", { params: { path: { name } } })));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const testConnection = (body: any) =>
+  unwrap(api.POST("/api/connections/test", { body }));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const validateConnection = (body: any) =>
+  unwrap(api.POST("/api/connections/validate", { body }));
+
+// ===== Identity =====
+export const getPrincipal = () =>
+  unwrap(api.GET("/api/identity/principal", {}));
+
+export const putPrincipal = (display_name: string) =>
+  unwrap(withStepUp(() => api.PUT("/api/identity/principal", { body: { display_name } })));
+
+export const listUsers = () =>
+  unwrap(api.GET("/api/identity/users", {}));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const createUser = (body: any) =>
+  unwrap(withStepUp(() => api.POST("/api/identity/users", { body })));
+
+export const listAgents = () =>
+  unwrap(api.GET("/api/identity/agents", {}));
+
+// ===== Discovery =====
+export const getDiscoveryStatus = () =>
+  unwrap(api.GET("/api/discovery/status", {}));
+
+export const listDiscoverySources = () =>
+  unwrap(api.GET("/api/discovery/sources", {}));
+
+export const listDiscoveryInterests = () =>
+  unwrap(api.GET("/api/discovery/interests", {}));
+
+export const triggerDiscovery = () =>
+  unwrap(api.GET("/api/discovery/discover", {}));
+
+// ===== Media =====
+export const getMediaStatus = () =>
+  unwrap(api.GET("/api/media/status", {}));
+
+export const getMediaLibrary = () =>
+  unwrap(api.GET("/api/media/library", {}));
+
+export const getMediaRecent = () =>
+  unwrap(api.GET("/api/media/recent", {}));
+
+export const getMediaActivity = () =>
+  unwrap(api.GET("/api/media/activity", {}));
+
+export const searchMedia = (q: string) =>
+  unwrap(api.GET("/api/media/search", { params: { query: { q } } }));
+
+// ===== Projects =====
+// TODO: add /api/projects/status to openapi.json
+// export const getProjectsStatus = () =>
+//   unwrap(api.GET("/api/projects/status", {}));
+
+// ===== Source Control =====
+// TODO: add /api/source-control/* to openapi.json
+// export const getSourceControlStatus = () =>
+//   unwrap(api.GET("/api/source-control/status", {}));
+
+// ===== Lab =====
+// TODO: add /api/lab/* and /api/native-lab/* to openapi.json
+// export const getLabState = () =>
+//   unwrap(api.GET("/api/lab/state", {}));
+
+// ===== Ingress =====
+// TODO: add /api/ingress/rollups to openapi.json
+// export const getIngressRollups = () =>
+//   unwrap(api.GET("/api/ingress/rollups", {}));
+
+// ===== Updates =====
+// TODO: add /api/updates to openapi.json
+// export const getUpdates = () =>
+//   unwrap(api.GET("/api/updates", {}));
+
+// ===== Exports =====
+// TODO: add /api/exports/* to openapi.json
+// export const exportSettings = () =>
+//   unwrap(api.GET("/api/exports/settings", {}));
+
+// ===== Reconciler =====
+// TODO: add /api/reconciler/* to openapi.json
+// export const getReconcilerStatus = () =>
+//   unwrap(api.GET("/api/reconciler/status", {}));

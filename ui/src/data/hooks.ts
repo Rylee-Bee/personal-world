@@ -28,6 +28,41 @@ import {
   listTools,
   getSession,
   getSetupStatus,
+  getVaultStatus,
+  listVaultNames,
+  getVaultSecret,
+  unlockVault,
+  lockVault,
+  setVaultSecret,
+  deleteVaultSecret,
+  getPrefs,
+  putPrefs,
+  getPrefsSchema,
+  getSections,
+  putSections,
+  listReminders,
+  addReminder,
+  toggleReminder,
+  deleteReminder,
+  listApps,
+  listThemes,
+  getTheme,
+  getConnectionsOverview,
+  listConnections,
+  getConnectionSchemas,
+  saveConnection,
+  deleteConnection,
+  getPrincipal,
+  putPrincipal,
+  listUsers,
+  listAgents,
+  getDiscoveryStatus,
+  listDiscoverySources,
+  listDiscoveryInterests,
+  getMediaStatus,
+  getMediaLibrary,
+  getMediaRecent,
+  getMediaActivity,
 } from "./api";
 import type { components } from "../generated/api-types";
 
@@ -238,6 +273,369 @@ export function useSession() {
     retry: false,
   });
 }
+
+// ===== Vault =====
+export function useVaultStatus() {
+  return useQuery({
+    queryKey: ["vault", "status"],
+    queryFn: getVaultStatus,
+  });
+}
+
+export function useVaultNames() {
+  return useQuery({
+    queryKey: ["vault", "names"],
+    queryFn: listVaultNames,
+  });
+}
+
+export function useVaultSecret(name: string) {
+  return useQuery({
+    queryKey: ["vault", "secret", name],
+    queryFn: () => getVaultSecret(name),
+    enabled: !!name,
+  });
+}
+
+export function useUnlockVault() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: unlockVault,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vault"] });
+    },
+  });
+}
+
+export function useLockVault() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: lockVault,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vault"] });
+    },
+  });
+}
+
+export function useSetVaultSecret() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, value }: { name: string; value: string }) => setVaultSecret(name, value),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vault"] });
+    },
+  });
+}
+
+export function useDeleteVaultSecret() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteVaultSecret,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vault"] });
+    },
+  });
+}
+
+// ===== Prefs =====
+export function usePrefs() {
+  return useQuery({
+    queryKey: ["prefs"],
+    queryFn: getPrefs,
+  });
+}
+
+export function usePutPrefs() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: putPrefs,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["prefs"] });
+    },
+  });
+}
+
+export function usePrefsSchema() {
+  return useQuery({
+    queryKey: ["prefs", "schema"],
+    queryFn: getPrefsSchema,
+    staleTime: 300_000,
+  });
+}
+
+// ===== Sections =====
+export function useSections() {
+  return useQuery({
+    queryKey: ["sections"],
+    queryFn: getSections,
+  });
+}
+
+export function usePutSections() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: putSections,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sections"] });
+    },
+  });
+}
+
+// ===== Reminders =====
+export function useReminders() {
+  return useQuery({
+    queryKey: ["reminders"],
+    queryFn: listReminders,
+  });
+}
+
+export function useAddReminder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: addReminder,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reminders"] });
+    },
+  });
+}
+
+export function useToggleReminder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rid, enabled }: { rid: string; enabled: boolean }) => toggleReminder(rid, enabled),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reminders"] });
+    },
+  });
+}
+
+export function useDeleteReminder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteReminder,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reminders"] });
+    },
+  });
+}
+
+// ===== Apps =====
+export function useApps() {
+  return useQuery({
+    queryKey: ["apps"],
+    queryFn: listApps,
+  });
+}
+
+// ===== Themes =====
+export function useThemes() {
+  return useQuery({
+    queryKey: ["themes"],
+    queryFn: listThemes,
+  });
+}
+
+export function useTheme(name: string) {
+  return useQuery({
+    queryKey: ["themes", name],
+    queryFn: () => getTheme(name),
+    enabled: !!name,
+  });
+}
+
+// ===== Connections =====
+export function useConnectionsOverview() {
+  return useQuery({
+    queryKey: ["connections", "overview"],
+    queryFn: getConnectionsOverview,
+  });
+}
+
+export function useConnections() {
+  return useQuery({
+    queryKey: ["connections"],
+    queryFn: listConnections,
+  });
+}
+
+export function useConnectionSchemas() {
+  return useQuery({
+    queryKey: ["connections", "schemas"],
+    queryFn: getConnectionSchemas,
+    staleTime: 300_000,
+  });
+}
+
+export function useSaveConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: saveConnection,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["connections"] });
+    },
+  });
+}
+
+export function useDeleteConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteConnection,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["connections"] });
+    },
+  });
+}
+
+// ===== Identity =====
+export function usePrincipal() {
+  return useQuery({
+    queryKey: ["identity", "principal"],
+    queryFn: getPrincipal,
+  });
+}
+
+export function usePutPrincipal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: putPrincipal,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["identity", "principal"] });
+    },
+  });
+}
+
+export function useUsers() {
+  return useQuery({
+    queryKey: ["identity", "users"],
+    queryFn: listUsers,
+  });
+}
+
+export function useAgents() {
+  return useQuery({
+    queryKey: ["identity", "agents"],
+    queryFn: listAgents,
+  });
+}
+
+// ===== Discovery =====
+export function useDiscoveryStatus() {
+  return useQuery({
+    queryKey: ["discovery", "status"],
+    queryFn: getDiscoveryStatus,
+  });
+}
+
+export function useDiscoverySources() {
+  return useQuery({
+    queryKey: ["discovery", "sources"],
+    queryFn: listDiscoverySources,
+  });
+}
+
+export function useDiscoveryInterests() {
+  return useQuery({
+    queryKey: ["discovery", "interests"],
+    queryFn: listDiscoveryInterests,
+  });
+}
+
+// ===== Media =====
+export function useMediaStatus() {
+  return useQuery({
+    queryKey: ["media", "status"],
+    queryFn: getMediaStatus,
+  });
+}
+
+export function useMediaLibrary() {
+  return useQuery({
+    queryKey: ["media", "library"],
+    queryFn: getMediaLibrary,
+  });
+}
+
+export function useMediaRecent() {
+  return useQuery({
+    queryKey: ["media", "recent"],
+    queryFn: getMediaRecent,
+  });
+}
+
+export function useMediaActivity() {
+  return useQuery({
+    queryKey: ["media", "activity"],
+    queryFn: getMediaActivity,
+  });
+}
+
+// ===== Projects =====
+// TODO: uncomment when /api/projects/status is added to openapi.json
+// export function useProjectsStatus() {
+//   return useQuery({
+//     queryKey: ["projects", "status"],
+//     queryFn: getProjectsStatus,
+//   });
+// }
+
+// ===== Source Control =====
+// TODO: uncomment when /api/source-control/* is added to openapi.json
+// export function useSourceControlStatus() {
+//   return useQuery({
+//     queryKey: ["source-control", "status"],
+//     queryFn: getSourceControlStatus,
+//   });
+// }
+
+// ===== Lab =====
+// TODO: uncomment when /api/lab/* is added to openapi.json
+// export function useLabState() {
+//   return useQuery({
+//     queryKey: ["lab", "state"],
+//     queryFn: getLabState,
+//   });
+// }
+
+// ===== Ingress =====
+// TODO: uncomment when /api/ingress/rollups is added to openapi.json
+// export function useIngressRollups() {
+//   return useQuery({
+//     queryKey: ["ingress", "rollups"],
+//     queryFn: getIngressRollups,
+//   });
+// }
+
+// ===== Updates =====
+// TODO: uncomment when /api/updates is added to openapi.json
+// export function useUpdates() {
+//   return useQuery({
+//     queryKey: ["updates"],
+//     queryFn: getUpdates,
+//   });
+// }
+
+// ===== Exports =====
+// TODO: uncomment when /api/exports/* is added to openapi.json
+// export function useExportSettings() {
+//   return useQuery({
+//     queryKey: ["exports", "settings"],
+//     queryFn: exportSettings,
+//   });
+// }
+
+// export function useExportWorld() {
+//   return useQuery({
+//     queryKey: ["exports", "world"],
+//     queryFn: exportWorld,
+//   });
+// }
+
+// export function useBackup() {
+//   return useQuery({
+//     queryKey: ["backup"],
+//     queryFn: getBackup,
+//   });
+// }
 
 // ===== Today Summary (composed) =====
 export function useTodaySummary() {

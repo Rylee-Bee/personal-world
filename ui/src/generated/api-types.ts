@@ -430,6 +430,610 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/connections/schemas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List connection schemas */
+        get: operations["getConnectionSchemas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/schema/{capability}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Schema for one capability */
+        get: operations["getConnectionSchema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connection configuration */
+        get: operations["getConnectionsConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview of all connections */
+        get: operations["getConnectionsOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List connections */
+        get: operations["listConnections"];
+        /** Save or update a connection */
+        put: operations["saveConnection"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a connection */
+        delete: operations["deleteConnection"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test a connection */
+        post: operations["testConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate connection config */
+        post: operations["validateConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/identity/principal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current principal info */
+        get: operations["getIdentityPrincipal"];
+        /** Update display name */
+        put: operations["updateIdentityPrincipal"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/identity/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List users */
+        get: operations["listUsers"];
+        put?: never;
+        /** Create user */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/identity/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List agents */
+        get: operations["listAgents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/identity/agents/{agent_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get agent details */
+        get: operations["getAgent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discovery/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Discovery status */
+        get: operations["getDiscoveryStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discovery/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List discovery sources */
+        get: operations["listDiscoverySources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discovery/interests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List interests */
+        get: operations["listDiscoveryInterests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discovery/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Trigger discovery */
+        get: operations["triggerDiscovery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/media/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Media status */
+        get: operations["getMediaStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/media/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Library listing */
+        get: operations["getMediaLibrary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/media/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent media */
+        get: operations["getMediaRecent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/media/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Media activity */
+        get: operations["getMediaActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/media/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search media */
+        get: operations["searchMedia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vault status */
+        get: operations["getVaultStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unlock vault */
+        post: operations["unlockVault"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lock vault */
+        post: operations["lockVault"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List vault secret names */
+        get: operations["listVaultNames"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/set": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Store a secret */
+        post: operations["setVaultSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a secret (loopback-only) */
+        get: operations["getVaultSecret"];
+        put?: never;
+        post?: never;
+        /** Delete a secret */
+        delete: operations["deleteVaultSecret"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prefs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get preferences */
+        get: operations["getPrefs"];
+        /** Update preferences */
+        put: operations["updatePrefs"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prefs/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preference vocabulary */
+        get: operations["getPrefsSchema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get section layout */
+        get: operations["getSections"];
+        /** Update section layout */
+        put: operations["updateSections"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List reminders */
+        get: operations["listReminders"];
+        put?: never;
+        /** Add reminder */
+        post: operations["addReminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/{rid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete reminder */
+        delete: operations["deleteReminder"];
+        options?: never;
+        head?: never;
+        /** Toggle reminder */
+        patch: operations["toggleReminder"];
+        trace?: never;
+    };
+    "/api/apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List apps */
+        get: operations["listApps"];
+        /** Update apps registry */
+        put: operations["updateApps"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/themes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List theme packs */
+        get: operations["listThemes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/themes/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get theme pack */
+        get: operations["getTheme"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -583,6 +1187,426 @@ export interface components {
             authenticated?: boolean;
             principal?: string;
             step_up?: boolean;
+        };
+        /** @description A single configuration field for a provider. */
+        ConfigField: {
+            key: string;
+            label: string;
+            /** @enum {string} */
+            type: "text" | "url" | "secret" | "select" | "boolean";
+            /** @default false */
+            required: boolean;
+            /** @default  */
+            description: string;
+            /** @default  */
+            placeholder: string;
+            /** @default [] */
+            options: {
+                value?: string;
+                label?: string;
+            }[];
+            /** @default false */
+            secret_ref: boolean;
+        };
+        /** @description Configuration schema for a provider/adapter. */
+        ProviderSchema: {
+            id: string;
+            display_name: string;
+            capability: string;
+            description: string;
+            adapter_type: string;
+            config_fields?: components["schemas"]["ConfigField"][];
+            /** @default true */
+            can_test: boolean;
+            /** @default true */
+            multiple: boolean;
+        };
+        /** @description Full schema for a capability: available providers, active config. */
+        CapabilitySchema: {
+            capability: string;
+            display_name: string;
+            description: string;
+            icon: string;
+            providers: components["schemas"]["ProviderSchema"][];
+            /** @default false */
+            needs_setup: boolean;
+            /** @default  */
+            help_text: string;
+        };
+        ConnectionSchemasResponse: {
+            ok: boolean;
+            data: components["schemas"]["CapabilitySchema"][];
+        };
+        ConnectionSchemaResponse: {
+            ok: boolean;
+            data: components["schemas"]["CapabilitySchema"];
+        };
+        /** @description Full merged connection configuration (connections.json + connections.local.json). */
+        ConnectionsConfigResponse: {
+            ok: boolean;
+            data: Record<string, never>;
+        };
+        /** @description Per-capability overview for the Connections & Providers UI. */
+        ConnectionOverviewEntry: {
+            capability: string;
+            display_name: string;
+            description: string;
+            icon: string;
+            status: string;
+            ok: boolean;
+            configured: boolean;
+            needs_setup: boolean;
+            help_text: string;
+            providers: components["schemas"]["ProviderSchema"][];
+        };
+        ConnectionsOverviewResponse: {
+            ok: boolean;
+            data: components["schemas"]["ConnectionOverviewEntry"][];
+        };
+        /** @description A saved connection record. */
+        ConnectionEntry: {
+            name: string;
+            type?: string;
+            capability?: string;
+            adapter_type?: string;
+            config?: Record<string, never>;
+        };
+        ConnectionsListResponse: {
+            ok: boolean;
+            data: components["schemas"]["ConnectionEntry"][];
+        };
+        /** @description Save or update a connection (step-up required). */
+        ConnectionSaveRequest: {
+            name: string;
+            type?: string;
+            capability?: string;
+            adapter_type?: string;
+            config?: Record<string, never>;
+        };
+        ConnectionSaveResponse: {
+            ok: boolean;
+            data: {
+                saved?: boolean;
+                name?: string;
+            };
+        };
+        ConnectionDeleteResponse: {
+            ok: boolean;
+            data: {
+                deleted?: boolean;
+            };
+        };
+        /** @description Test or validate a connection configuration without saving. */
+        ConnectionTestRequest: {
+            capability: string;
+            adapter_type: string;
+            config: Record<string, never>;
+        };
+        /** @description Result of a connection test/probe. */
+        ConnectionTestResult: {
+            /** @enum {string} */
+            status: "healthy" | "unavailable" | "invalid_configuration" | "validated" | "unknown";
+            detail?: string;
+            code?: number;
+            redirected?: boolean;
+        };
+        ConnectionTestResponse: {
+            ok: boolean;
+            data: components["schemas"]["ConnectionTestResult"];
+        };
+        /** @description Who is calling (resolved principal). */
+        PrincipalInfo: {
+            id: string;
+            /** @enum {string} */
+            kind: "person" | "agent";
+            display_name: string;
+            scopes: string[];
+            source: string;
+        };
+        PrincipalResponse: {
+            ok: boolean;
+            data: components["schemas"]["PrincipalInfo"];
+        };
+        /** @description Update the caller's display name. */
+        PrincipalUpdateRequest: {
+            display_name: string;
+        };
+        /** @description A user record from the identity store. */
+        IdentityUser: {
+            user_id: string;
+            display_name?: string;
+            enabled?: boolean;
+            /** @enum {string} */
+            kind?: "person" | "agent";
+            scopes?: string[];
+            owner_id?: string;
+        };
+        UsersListResponse: {
+            ok: boolean;
+            data: components["schemas"]["IdentityUser"][];
+        };
+        /** @description Create a new person (admin only, step-up required). */
+        UserCreateRequest: {
+            user_id: string;
+            display_name?: string;
+            token?: string;
+        };
+        UserCreateResponse: {
+            ok: boolean;
+            data: {
+                user_id?: string;
+                display_name?: string;
+                token?: string;
+            };
+        };
+        /** @description An agent record from the identity store. */
+        AgentRecord: {
+            user_id: string;
+            display_name?: string;
+            owner_id?: string;
+            scopes?: string[];
+            enabled?: boolean;
+            /** @enum {string} */
+            kind?: "person" | "agent";
+        };
+        AgentsListResponse: {
+            ok: boolean;
+            data: components["schemas"]["AgentRecord"][];
+        };
+        AgentDetailResponse: {
+            ok: boolean;
+            data: components["schemas"]["AgentRecord"];
+        };
+        /** @description Native Discovery status (from NativeDiscovery.observe()). */
+        DiscoveryStatusResponse: {
+            ok: boolean;
+            status: string;
+            data?: Record<string, never>;
+            warnings?: string[];
+        };
+        /** @description An RSS discovery source. */
+        DiscoverySource: {
+            id: string;
+            name: string;
+            url: string;
+            tags?: string[];
+        };
+        DiscoverySourcesResponse: {
+            ok: boolean;
+            data: {
+                sources?: components["schemas"]["DiscoverySource"][];
+            };
+        };
+        /** @description A tracked interest for content discovery. */
+        DiscoveryInterest: {
+            id: string;
+            name: string;
+            category?: string | null;
+            /** @default 1 */
+            weight: number;
+        };
+        DiscoveryInterestsResponse: {
+            ok: boolean;
+            data: {
+                interests?: components["schemas"]["DiscoveryInterest"][];
+            };
+        };
+        /** @description Result of a discovery run. */
+        DiscoveryDiscoverResponse: {
+            ok: boolean;
+            status: string;
+            data?: Record<string, never>;
+            warnings?: string[];
+        };
+        /** @description Media engine status. */
+        MediaStatusResponse: {
+            ok: boolean;
+            status: string;
+            data?: Record<string, never>;
+            warnings?: string[];
+        };
+        /** @description Media library listing. */
+        MediaLibraryResponse: {
+            ok: boolean;
+            status: string;
+            data?: Record<string, never>;
+            warnings?: string[];
+        };
+        /** @description Recently added/played media. */
+        MediaRecentResponse: {
+            ok: boolean;
+            status: string;
+            data?: Record<string, never>;
+            warnings?: string[];
+        };
+        /** @description Media activity feed. */
+        MediaActivityResponse: {
+            ok: boolean;
+            status: string;
+            data?: Record<string, never>;
+            warnings?: string[];
+        };
+        /** @description Media search results. */
+        MediaSearchResponse: {
+            ok: boolean;
+            status: string;
+            data?: Record<string, never>;
+            warnings?: string[];
+        };
+        VaultStatusResponse: {
+            ok?: boolean;
+            data?: {
+                locked?: boolean;
+                encrypted?: boolean;
+                warning?: string;
+            };
+        };
+        VaultUnlockRequest: {
+            passphrase: string;
+        };
+        VaultActionResponse: {
+            ok?: boolean;
+            status?: string;
+            data?: Record<string, never>;
+            warnings?: string[];
+        };
+        VaultLockResponse: {
+            ok?: boolean;
+            data?: {
+                locked?: boolean;
+            };
+        };
+        VaultNamesResponse: {
+            ok?: boolean;
+            data?: {
+                names?: string[];
+            };
+        };
+        VaultSetRequest: {
+            name: string;
+            value: string;
+        };
+        VaultSetResponse: {
+            ok?: boolean;
+            data?: {
+                name?: string;
+            };
+            warnings?: string[];
+        };
+        VaultGetResponse: {
+            ok?: boolean;
+            data?: {
+                name?: string;
+                value?: string;
+            };
+        };
+        VaultDeleteResponse: {
+            ok?: boolean;
+            data?: {
+                name?: string;
+            };
+            warnings?: string[];
+        };
+        PrefsResponse: {
+            ok?: boolean;
+            data?: Record<string, never>;
+        };
+        PrefsSchemaResponse: {
+            ok?: boolean;
+            data?: {
+                [key: string]: {
+                    /** @enum {string} */
+                    type?: "number" | "enum";
+                    default?: unknown;
+                    floor?: unknown;
+                    allowed?: unknown[] | null;
+                    integer?: boolean;
+                    unit?: string;
+                };
+            };
+        };
+        SectionsResponse: {
+            ok?: boolean;
+            data?: {
+                schema?: string;
+                sections?: components["schemas"]["Section"][];
+            };
+        };
+        Section: {
+            id?: string;
+            label?: string;
+            icon?: string;
+            order?: number;
+            visible?: boolean;
+            pinned?: boolean;
+            /** @enum {string} */
+            kind?: "core" | "transitional" | "extension";
+            status?: string | null;
+            configured?: boolean;
+        };
+        Reminder: {
+            id?: string;
+            text?: string;
+            cron_hour?: number | null;
+            cron_minute?: number | null;
+            cron_day?: string | null;
+            enabled?: boolean;
+            last_fired?: number | null;
+            created_at?: number;
+        };
+        RemindersResponse: {
+            ok?: boolean;
+            data?: components["schemas"]["Reminder"][];
+        };
+        ReminderCreateRequest: {
+            id?: string;
+            text: string;
+            cron_hour?: number | null;
+            cron_minute?: number | null;
+            cron_day?: string | null;
+        };
+        ReminderActionResponse: {
+            ok?: boolean;
+            data?: Record<string, never>;
+            warnings?: string[];
+        };
+        AppEntry: {
+            id?: string;
+            name?: string;
+            url?: string;
+            icon?: string;
+            category?: string;
+        };
+        AppsResponse: {
+            ok?: boolean;
+            data?: components["schemas"]["AppEntry"][];
+        };
+        AppsUpdateRequest: {
+            apps: components["schemas"]["AppEntry"][];
+        };
+        ThemePack: {
+            name?: string;
+            display_name?: string;
+            author?: string;
+            version?: string;
+            companion?: Record<string, never>;
+            animation?: Record<string, never> | null;
+            accent?: {
+                [key: string]: string;
+            };
+            companion_palette?: {
+                [key: string]: string;
+            };
+            favicon?: string | null;
+            service_icons?: string | null;
+        };
+        ThemesResponse: {
+            ok?: boolean;
+            data?: components["schemas"]["ThemePack"][];
+        };
+        ThemeDetailResponse: {
+            ok?: boolean;
+            data?: components["schemas"]["ThemePack"];
         };
     };
     responses: never;
@@ -1132,6 +2156,963 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    getConnectionSchemas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionSchemasResponse"];
+                };
+            };
+        };
+    };
+    getConnectionSchema: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                capability: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionSchemaResponse"];
+                };
+            };
+            /** @description Unknown capability */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getConnectionsConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionsConfigResponse"];
+                };
+            };
+        };
+    };
+    getConnectionsOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionsOverviewResponse"];
+                };
+            };
+        };
+    };
+    listConnections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionsListResponse"];
+                };
+            };
+        };
+    };
+    saveConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionSaveResponse"];
+                };
+            };
+        };
+    };
+    deleteConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionDeleteResponse"];
+                };
+            };
+        };
+    };
+    testConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionTestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionTestResponse"];
+                };
+            };
+        };
+    };
+    validateConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionTestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionTestResponse"];
+                };
+            };
+        };
+    };
+    getIdentityPrincipal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrincipalResponse"];
+                };
+            };
+        };
+    };
+    updateIdentityPrincipal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrincipalUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrincipalResponse"];
+                };
+            };
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsersListResponse"];
+                };
+            };
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserCreateResponse"];
+                };
+            };
+        };
+    };
+    listAgents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentsListResponse"];
+                };
+            };
+        };
+    };
+    getAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentDetailResponse"];
+                };
+            };
+        };
+    };
+    getDiscoveryStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryStatusResponse"];
+                };
+            };
+        };
+    };
+    listDiscoverySources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverySourcesResponse"];
+                };
+            };
+        };
+    };
+    listDiscoveryInterests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryInterestsResponse"];
+                };
+            };
+        };
+    };
+    triggerDiscovery: {
+        parameters: {
+            query?: {
+                source?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryDiscoverResponse"];
+                };
+            };
+        };
+    };
+    getMediaStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaStatusResponse"];
+                };
+            };
+        };
+    };
+    getMediaLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaLibraryResponse"];
+                };
+            };
+        };
+    };
+    getMediaRecent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaRecentResponse"];
+                };
+            };
+        };
+    };
+    getMediaActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaActivityResponse"];
+                };
+            };
+        };
+    };
+    searchMedia: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaSearchResponse"];
+                };
+            };
+        };
+    };
+    getVaultStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultStatusResponse"];
+                };
+            };
+        };
+    };
+    unlockVault: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VaultUnlockRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultActionResponse"];
+                };
+            };
+        };
+    };
+    lockVault: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultLockResponse"];
+                };
+            };
+        };
+    };
+    listVaultNames: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultNamesResponse"];
+                };
+            };
+        };
+    };
+    setVaultSecret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VaultSetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultSetResponse"];
+                };
+            };
+        };
+    };
+    getVaultSecret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultGetResponse"];
+                };
+            };
+        };
+    };
+    deleteVaultSecret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultDeleteResponse"];
+                };
+            };
+        };
+    };
+    getPrefs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrefsResponse"];
+                };
+            };
+        };
+    };
+    updatePrefs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrefsResponse"];
+                };
+            };
+        };
+    };
+    getPrefsSchema: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrefsSchemaResponse"];
+                };
+            };
+        };
+    };
+    getSections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionsResponse"];
+                };
+            };
+        };
+    };
+    updateSections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionsResponse"];
+                };
+            };
+        };
+    };
+    listReminders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemindersResponse"];
+                };
+            };
+        };
+    };
+    addReminder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReminderCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderActionResponse"];
+                };
+            };
+        };
+    };
+    deleteReminder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderActionResponse"];
+                };
+            };
+        };
+    };
+    toggleReminder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderActionResponse"];
+                };
+            };
+        };
+    };
+    listApps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppsResponse"];
+                };
+            };
+        };
+    };
+    updateApps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppsUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppsResponse"];
+                };
+            };
+        };
+    };
+    listThemes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThemesResponse"];
+                };
+            };
+        };
+    };
+    getTheme: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThemeDetailResponse"];
+                };
             };
         };
     };
