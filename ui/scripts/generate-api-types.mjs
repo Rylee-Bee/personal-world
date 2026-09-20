@@ -5,12 +5,14 @@
  *
  * Generates TypeScript types from the Project Worlds OpenAPI spec.
  * Uses the local spec (src/generated/openapi.json) as source of truth.
- * To update the spec from a running backend, hit /openapi.json and replace it.
+ * The spec is hand-maintained from the server source — the deployed
+ * Station disables /openapi.json (HTTP 500). See README → "Updating
+ * the API Spec".
  *
  * Usage: node scripts/generate-api-types.mjs
  */
 
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
@@ -26,13 +28,23 @@ if (!existsSync(specPath)) {
 
 console.log(`Generating types from ${specPath}...`);
 
-try {
-  execSync(
-    `npx openapi-typescript "${specPath}" -o "${outputPath}"`,
-    { cwd: resolve(__dirname, ".."), stdio: "inherit" }
+// Invoke the locally installed CLI directly. Going through `npx` added
+// an npm-install round trip that emitted an `npm warn install-scripts`
+// line on every build (and could resolve a remote version).
+const bin = resolve(
+  __dirname, "..", "node_modules", ".bin",
+  `openapi-typescript${process.platform === "win32" ? ".cmd" : ""}`,
+);
+
+const result = spawnSync(bin, [specPath, "-o", outputPath], {
+  stdio: "inherit",
+  cwd: resolve(__dirname, ".."),
+});
+
+if (result.error || result.status !== 0) {
+  console.error(
+    `❌ Failed to generate types: ${result.error?.message ?? `exit ${result.status}`}`,
   );
-  console.log(`✓ Generated ${outputPath}`);
-} catch (err) {
-  console.error("❌ Failed to generate types:", err.message);
   process.exit(1);
 }
+console.log(`✓ Generated ${outputPath}`);

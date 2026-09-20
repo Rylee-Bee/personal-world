@@ -104,7 +104,7 @@ describe("hooks", () => {
     it("returns loading state initially", () => {
       vi.mocked(api.getStatus).mockReturnValue(new Promise(() => {}));
       vi.mocked(api.getDaily).mockReturnValue(new Promise(() => {}));
-      vi.mocked(api.listActors).mockReturnValue(new Promise(() => {}));
+      vi.mocked(api.getPrefs).mockReturnValue(new Promise(() => {}));
 
       const { wrapper } = createWrapper();
       const { result } = renderHook(() => useTodaySummary(), { wrapper });
@@ -114,18 +114,63 @@ describe("hooks", () => {
     });
 
     it("returns data once all queries resolve", async () => {
+      const observation = {
+        ok: true,
+        status: "healthy" as const,
+        warnings: [],
+        last_observed: "2026-09-20T09:00:00Z",
+      };
       vi.mocked(api.getStatus).mockResolvedValue({
-        world: { facts: 3 },
-        capabilities: { journal: { ok: true, status: "healthy" } },
+        ok: true,
+        status: "healthy",
+        data: {
+          facts: 3,
+          intents: 1,
+          policies: 2,
+          cemented_policies: 1,
+          lore: { confirmed: 1, derived: 0, suggested: 0, ephemeral: 0 },
+          declared_capabilities: 1,
+          providers: 2,
+          packs: 0,
+          capabilities: { journal: observation },
+          actors: [],
+        },
       } as Awaited<ReturnType<typeof api.getStatus>>);
 
       vi.mocked(api.getDaily).mockResolvedValue({
-        reminders: [{ text: "Read a book" }],
+        ok: true,
+        status: "healthy",
+        changed: false,
+        warnings: [],
+        actions: [],
+        data: {
+          world: {
+            facts: 3,
+            intents: 1,
+            policies: 2,
+            cemented_policies: 1,
+            lore: { confirmed: 1, derived: 0, suggested: 0, ephemeral: 0 },
+            declared_capabilities: 1,
+            providers: 2,
+            packs: 0,
+          },
+          capabilities: { journal: observation },
+          attention: ["journal: stale digest"],
+        },
       } as Awaited<ReturnType<typeof api.getDaily>>);
 
-      vi.mocked(api.listActors).mockResolvedValue({
-        actors: [{ id: "renai", name: "Renai", current_state: "rest" }],
-      } as unknown as Awaited<ReturnType<typeof api.listActors>>);
+      vi.mocked(api.getPrefs).mockResolvedValue({
+        ok: true,
+        data: {
+          motion: "reduced",
+          contrast: "comfortable",
+          text_scale: 1,
+          density: "comfortable",
+          target_size: 44,
+          companion: "mermaid",
+          accent: "world-keeper",
+        },
+      } as Awaited<ReturnType<typeof api.getPrefs>>);
 
       const { wrapper } = createWrapper();
       const { result } = renderHook(() => useTodaySummary(), { wrapper });
@@ -137,18 +182,36 @@ describe("hooks", () => {
       expect(result.current.data).toBeDefined();
       expect(result.current.data!.greeting).toBeDefined();
       expect(result.current.data!.capabilities).toHaveLength(1);
+      expect(result.current.data!.capabilities[0].status).toBe("healthy");
+      // The companion preference — not /api/actors — names the resident.
+      expect(result.current.data!.resident?.name).toBe("Renai");
+      // Attention strings become signals.
       expect(result.current.data!.signals).toHaveLength(1);
+      expect(result.current.data!.signals[0].description).toBe("journal: stale digest");
     });
   });
 
   describe("useJournalList", () => {
     it("returns data after fetch", async () => {
-      const mockEntries: components["schemas"]["JournalEvent"][] = [
-        { id: "e1", kind: "entry", content: "Test entry", timestamp: "2026-09-19T12:00:00Z" },
+      const mockEvents: components["schemas"]["JournalEvent"][] = [
+        {
+          ts: "2026-09-19T12:00:00Z",
+          kind: "observation",
+          summary: "Test entry",
+          provenance: {
+            source: "user",
+            observed_at: "2026-09-19T12:00:00Z",
+            provider: null,
+            authority: "observed",
+          },
+          classification: "private",
+          supersedes: null,
+          supersede_reason: null,
+        },
       ];
       vi.mocked(api.listJournal).mockResolvedValue({
-        entries: mockEntries,
-        total: 1,
+        ok: true,
+        data: mockEvents,
       } as Awaited<ReturnType<typeof api.listJournal>>);
 
       const { wrapper } = createWrapper();
@@ -159,8 +222,8 @@ describe("hooks", () => {
       });
 
       expect(result.current.data).toBeDefined();
-      expect(result.current.data!.entries).toHaveLength(1);
-      expect(result.current.data!.entries![0].id).toBe("e1");
+      expect(result.current.data!.data).toHaveLength(1);
+      expect(result.current.data!.data[0].ts).toBe("2026-09-19T12:00:00Z");
     });
   });
 

@@ -12,39 +12,35 @@ import {
   useChatProviders,
   useSendChat,
 } from "../../data/hooks";
+import type { ChatEntry } from "../../data/hooks";
 import { WorldButton } from "../../components/WorldButton";
 
 // ─── Local message shape ─────────────────────────────────
-// The API returns Record<string, never>[] — we normalise into a
-// concrete shape the component can work with.
+// The server transcript line is {ts:number, role, content, provider?}
+// (ChatHistory NDJSON — ts is unix epoch SECONDS). We normalise into
+// the shape this component renders.
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  timestamp?: string;
+  ts?: number;
 }
 
-function normaliseMessages(raw: unknown): ChatMessage[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((m) => {
-    const msg = m as Record<string, unknown>;
-    return {
-      role: (msg.role === "user" || msg.role === "assistant"
-        ? msg.role
-        : "assistant") as "user" | "assistant",
-      content: typeof msg.content === "string" ? msg.content : "",
-      timestamp: typeof msg.timestamp === "string" ? msg.timestamp : undefined,
-    };
-  });
+function normaliseMessages(raw: ChatEntry[] | undefined): ChatMessage[] {
+  if (!raw) return [];
+  return raw
+    .filter((m) => typeof m.content === "string" && m.content.length > 0)
+    .map((m) => ({
+      role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: m.content,
+      ts: m.ts,
+    }));
 }
 
 // ─── Component ───────────────────────────────────────────
 
 export function Chat() {
   const [input, setInput] = useState("");
-  const [selectedProvider, setSelectedProvider] = useState<string | undefined>(
-    undefined,
-  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -53,7 +49,7 @@ export function Chat() {
   const providers = useChatProviders();
   const sendChat = useSendChat();
 
-  const messages = normaliseMessages(history.data?.messages);
+  const messages = normaliseMessages(history.data?.data.entries);
   const isLoadingHistory = history.isLoading;
   const isSending = sendChat.isPending;
 
@@ -77,7 +73,11 @@ export function Chat() {
     sendChat.mutate(
       {
         message: text,
-        provider: selectedProvider,
+        // The server caps the rolling window it replays at 6 turns.
+        history: messages.slice(-6).map(({ role, content }) => ({
+          role,
+          content,
+        })),
       },
       {
         onSuccess: () => {
@@ -87,7 +87,7 @@ export function Chat() {
         },
       },
     );
-  }, [input, selectedProvider, isSending, sendChat]);
+  }, [input, messages, isSending, sendChat]);
 
   // ── Keyboard: Enter sends, Shift+Enter newline ───────
   const handleKeyDown = useCallback(
@@ -105,9 +105,12 @@ export function Chat() {
     history.refetch();
   }, [history]);
 
-  // ── Provider list (available only) ───────────────────
-  const availableProviders =
-    providers.data?.providers?.filter((p) => p.available) ?? [];
+  // ── Provider readout (the server picks the reasoning provider; the
+  //    UI shows which one answers, it does not pretend to choose) ────
+  const providerInfo = providers.data?.data;
+  const activeProvider = providerInfo?.providers.find(
+    (p) => p.name === providerInfo.active,
+  );
 
   // ── Loading state ────────────────────────────────────
   if (isLoadingHistory && messages.length === 0) {
@@ -170,12 +173,15 @@ export function Chat() {
           Chat
         </h1>
 
-        {availableProviders.length > 0 && (
-          <ProviderSelector
-            providers={availableProviders}
-            selected={selectedProvider}
-            onChange={setSelectedProvider}
-          />
+        {providerInfo && providerInfo.providers.length > 0 && (
+          <p
+            className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
+            role="note"
+          >
+            {activeProvider
+              ? `Answering provider: ${activeProvider.display_name}`
+              : "No reasoning provider is healthy yet — chat will say so honestly."}
+          </p>
         )}
       </header>
 
@@ -191,7 +197,7 @@ export function Chat() {
         ) : (
           <div className="mx-auto max-w-[720px] space-y-[var(--pw-spacing-lg)]">
             {messages.map((msg, i) => (
-              <MessageBubble key={`${msg.timestamp ?? i}-${i}`} message={msg} />
+              <MessageBubble key={`${msg.ts ?? "now"}-${i}`} message={msg} />
             ))}
 
             {isSending && (
@@ -299,35 +305,5 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         {message.content}
       </div>
     </div>
-  );
-}
-
-/** Provider selector dropdown. */
-function ProviderSelector({
-  providers,
-  selected,
-  onChange,
-}: {
-  providers: { id?: string; name?: string }[];
-  selected: string | undefined;
-  onChange: (id: string | undefined) => void;
-}) {
-  return (
-    <label className="flex items-center gap-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-      <span className="sr-only">Chat provider</span>
-      <select
-        value={selected ?? ""}
-        onChange={(e) => onChange(e.target.value || undefined)}
-        aria-label="Select chat provider"
-        className="rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-elevated)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-text-primary)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)] min-h-[var(--pw-targets-minimum)]"
-      >
-        <option value="">Default provider</option>
-        {providers.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name ?? p.id}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }

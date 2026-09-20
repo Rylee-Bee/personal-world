@@ -8,13 +8,17 @@ import {
   STATUS_LABELS,
   SIGNAL_LABELS,
   WORLD_AREAS,
+  COMPANION_RESIDENTS,
+  toCapabilityStatus,
+  journalKindLabel,
 } from "../data/types";
 
 describe("types constants", () => {
   describe("STATUS_LABELS", () => {
-    it("has all 7 capability statuses", () => {
+    it("has all 8 capability statuses (server Status vocabulary)", () => {
       const expected = [
         "healthy",
+        "warning",
         "needs_attention",
         "unavailable",
         "stale",
@@ -82,6 +86,67 @@ describe("types constants", () => {
         expect(area.href).toBeTruthy();
         expect(area.href.startsWith("/")).toBe(true);
       }
+    });
+  });
+
+  describe("toCapabilityStatus", () => {
+    it("passes the server vocabulary through unchanged", () => {
+      for (const s of Object.keys(STATUS_LABELS)) {
+        expect(toCapabilityStatus(s)).toBe(s);
+      }
+    });
+
+    it("degrades unknown values to 'unknown' (never casts fiction)", () => {
+      expect(toCapabilityStatus("on_fire")).toBe("unknown");
+      expect(toCapabilityStatus("")).toBe("unknown");
+    });
+  });
+
+  describe("COMPANION_RESIDENTS", () => {
+    it("covers every server companion preference value", () => {
+      // src/personal_world/prefs.py COMPANION.allowed
+      expect(Object.keys(COMPANION_RESIDENTS).sort()).toEqual([
+        "mermaid",
+        "personal-world",
+        "robot",
+        "taco-news-truck",
+        "world-tree-squirrel",
+      ]);
+    });
+
+    it("gives each resident an id, name and role", () => {
+      for (const resident of Object.values(COMPANION_RESIDENTS)) {
+        expect(resident.id).toBeTruthy();
+        expect(resident.name).toBeTruthy();
+        expect(resident.role).toBeTruthy();
+      }
+    });
+
+    it("maps companion keys to their canon display names", () => {
+      // docs/COMPANION-CANON.md
+      expect(COMPANION_RESIDENTS["mermaid"].name).toBe("Renai");
+      expect(COMPANION_RESIDENTS["robot"].name).toBe("Bolt");
+      expect(COMPANION_RESIDENTS["world-tree-squirrel"].name).toBe("Ratatoskr");
+      expect(COMPANION_RESIDENTS["taco-news-truck"].name).toBe("Burrito Journalism");
+      expect(COMPANION_RESIDENTS["personal-world"].name).toBe("Personal World");
+    });
+  });
+
+  describe("journalKindLabel", () => {
+    it("labels every server JournalKind", () => {
+      const kinds = [
+        "observation", "health", "drift", "recommendation", "approval",
+        "reconciliation", "provider_action", "failure", "pack_change",
+        "settings_change", "security", "discovery",
+      ];
+      for (const kind of kinds) {
+        expect(journalKindLabel(kind)).toBeTruthy();
+        expect(journalKindLabel(kind)).not.toBe("Journal entry");
+      }
+    });
+
+    it("degrades an unseen kind to a quiet generic label", () => {
+      expect(journalKindLabel("alien_kind")).toBe("Journal entry");
     });
   });
 });

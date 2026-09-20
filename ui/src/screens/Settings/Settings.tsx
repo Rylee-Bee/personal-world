@@ -2,31 +2,39 @@
  * Settings — Environment configuration screen for Project Worlds.
  *
  * Sections:
- *   Profile (display name from session)
- *   Preferences (motion, contrast, density, text_scale)
- *   Sections management (reorder/hide)
+ *   Profile (display name from GET /api/identity/principal)
+ *   Preferences (server vocabulary from GET /api/prefs: motion,
+ *                contrast, density, text_scale)
+ *   Sections management (reorder/hide — PUT /api/sections takes
+ *                {order: ids, hidden: ids}, the server's layout delta)
  *   Capabilities status (read-only from useStatus)
  *   Brain/templates info
- *   Theme selection
+ *   Theme selection (presentation-only, lives on this device)
  *
- * All writes require step-up auth.
+ * All writes require step-up auth (HTTP 403 → honest inline notice).
  */
 
 import { useCallback, useEffect, useState } from "react";
 import {
   useStatus,
   useSession,
+  usePrincipal,
+  usePrefs,
   useBrainTemplates,
   useManifest,
+  useSections,
   usePutPrefs,
   usePutSections,
   usePutPrincipal,
 } from "../../data/hooks";
+import type { components } from "../../generated/api-types";
 import { describeError } from "../../data/errors";
-import { STATUS_LABELS } from "../../data/types";
-import type { CapabilityStatus } from "../../data/types";
+import { STATUS_LABELS, toCapabilityStatus } from "../../data/types";
 import { WorldButton } from "../../components/WorldButton";
 import { THEMES, type ThemeName } from "../../generated/tokens";
+
+type PrincipalInfo = components["schemas"]["PrincipalInfo"];
+type ServerPrefs = components["schemas"]["PrefsData"];
 
 // ─── Themes ──────────────────────────────────────────────
 
@@ -65,22 +73,6 @@ function SaveNote({ message, tone }: { message: string; tone: "ok" | "error" }) 
   );
 }
 
-// ─── Preferences model ───────────────────────────────────
-
-interface Preferences {
-  motion: boolean;
-  contrast: "normal" | "high";
-  density: "compact" | "comfortable" | "spacious";
-  text_scale: "small" | "default" | "large";
-}
-
-const DEFAULT_PREFS: Preferences = {
-  motion: false,
-  contrast: "normal",
-  density: "comfortable",
-  text_scale: "default",
-};
-
 // ─── Section ordering model ──────────────────────────────
 
 interface SectionItem {
@@ -88,15 +80,6 @@ interface SectionItem {
   label: string;
   visible: boolean;
 }
-
-const DEFAULT_SECTIONS: SectionItem[] = [
-  { id: "profile", label: "Profile", visible: true },
-  { id: "preferences", label: "Preferences", visible: true },
-  { id: "sections", label: "Sections", visible: true },
-  { id: "capabilities", label: "Capabilities", visible: true },
-  { id: "brain", label: "Brain & Templates", visible: true },
-  { id: "theme", label: "Theme", visible: true },
-];
 
 // ─── Step-up note component ──────────────────────────────
 
@@ -141,11 +124,15 @@ function SettingsSection({
 // ─── Profile section ─────────────────────────────────────
 
 function ProfileSection({
-  session,
+  authenticated,
   isSessionLoading,
+  principal,
+  isPrincipalLoading,
 }: {
-  session: { authenticated?: boolean; principal?: string } | undefined;
+  authenticated: boolean;
   isSessionLoading: boolean;
+  principal: PrincipalInfo | undefined;
+  isPrincipalLoading: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -153,10 +140,10 @@ function ProfileSection({
   const putPrincipal = usePutPrincipal();
 
   const beginEdit = useCallback(() => {
-    setDisplayName(session?.principal ?? "");
+    setDisplayName(principal?.display_name ?? "");
     setSaveMessage(null);
     setEditing(true);
-  }, [session?.principal]);
+  }, [principal?.display_name]);
 
   const handleSave = useCallback(() => {
     setSaveMessage(null);
@@ -176,12 +163,12 @@ function ProfileSection({
   }, [displayName, putPrincipal]);
 
   const handleCancel = useCallback(() => {
-    setDisplayName(session?.principal ?? "");
+    setDisplayName(principal?.display_name ?? "");
     setEditing(false);
     setSaveMessage(null);
-  }, [session?.principal]);
+  }, [principal?.display_name]);
 
-  if (isSessionLoading) {
+  if (isSessionLoading || (authenticated && isPrincipalLoading)) {
     return (
       <SettingsSection id="Profile" titleId="settings-profile-heading">
         <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
@@ -191,7 +178,7 @@ function ProfileSection({
     );
   }
 
-  if (!session?.authenticated) {
+  if (!authenticated) {
     return (
       <SettingsSection id="Profile" titleId="settings-profile-heading">
         <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
@@ -251,7 +238,7 @@ function ProfileSection({
         <div className="flex items-center justify-between gap-[var(--pw-spacing-md)]">
           <div>
             <p className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
-              {session.principal ?? "Unnamed"}
+              {principal?.display_name ?? "Unnamed"}
             </p>
             <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
               Display name
@@ -272,12 +259,17 @@ function ProfileSection({
 
 // ─── Preferences section ─────────────────────────────────
 
+/** The multipliers the server accepts (prefs.py TEXT_SCALE.allowed). */
+const TEXT_SCALES = [1, 1.25, 1.5] as const;
+
 function PreferencesSection({
   prefs,
   onChange,
+  onSaved,
 }: {
-  prefs: Preferences;
-  onChange: (prefs: Preferences) => void;
+  prefs: ServerPrefs;
+  onChange: (prefs: ServerPrefs) => void;
+  onSaved: () => void;
 }) {
   const [saveMessage, setSaveMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const putPrefs = usePutPrefs();
@@ -285,35 +277,42 @@ function PreferencesSection({
   const handleSave = useCallback(() => {
     setSaveMessage(null);
     putPrefs.mutate(prefs, {
-      onSuccess: () => setSaveMessage({ text: "Preferences saved.", tone: "ok" }),
+      onSuccess: () => {
+        onSaved();
+        setSaveMessage({ text: "Preferences saved.", tone: "ok" });
+      },
       onError: (err) =>
         setSaveMessage({
           text: describeError(err, "Could not save preferences."),
           tone: "error",
         }),
     });
-  }, [prefs, putPrefs]);
+  }, [prefs, putPrefs, onSaved]);
 
   return (
     <SettingsSection id="Preferences" titleId="settings-prefs-heading">
       <div className="space-y-[var(--pw-spacing-lg)]">
-        {/* Motion */}
-        <div className="flex items-center justify-between gap-[var(--pw-spacing-md)]">
+        {/* Motion — the server's accessibility floor vocabulary
+            (src/personal_world/prefs.py): off / reduced / subtle. */}
+        <div>
           <label
             htmlFor="pref-motion"
-            className="text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]"
+            className="block mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]"
           >
-            Reduce motion
+            Motion
           </label>
-          <input
+          <select
             id="pref-motion"
-            type="checkbox"
-            checked={prefs.motion}
-            onChange={(e) => onChange({ ...prefs, motion: e.target.checked })}
-            className="min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] accent-[var(--pw-accent-teal)]"
-            role="switch"
-            aria-checked={prefs.motion}
-          />
+            value={prefs.motion}
+            onChange={(e) =>
+              onChange({ ...prefs, motion: e.target.value as ServerPrefs["motion"] })
+            }
+            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+          >
+            <option value="off">No motion</option>
+            <option value="reduced">Reduced motion</option>
+            <option value="subtle">Subtle motion</option>
+          </select>
         </div>
 
         {/* Contrast */}
@@ -328,14 +327,11 @@ function PreferencesSection({
             id="pref-contrast"
             value={prefs.contrast}
             onChange={(e) =>
-              onChange({
-                ...prefs,
-                contrast: e.target.value as Preferences["contrast"],
-              })
+              onChange({ ...prefs, contrast: e.target.value as ServerPrefs["contrast"] })
             }
             className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           >
-            <option value="normal">Normal</option>
+            <option value="comfortable">Comfortable</option>
             <option value="high">High contrast</option>
           </select>
         </div>
@@ -352,20 +348,16 @@ function PreferencesSection({
             id="pref-density"
             value={prefs.density}
             onChange={(e) =>
-              onChange({
-                ...prefs,
-                density: e.target.value as Preferences["density"],
-              })
+              onChange({ ...prefs, density: e.target.value as ServerPrefs["density"] })
             }
             className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           >
-            <option value="compact">Compact</option>
             <option value="comfortable">Comfortable</option>
-            <option value="spacious">Spacious</option>
+            <option value="compact">Compact</option>
           </select>
         </div>
 
-        {/* Text scale */}
+        {/* Text scale — numeric multipliers the server accepts (1 / 1.25 / 1.5) */}
         <div>
           <label
             htmlFor="pref-text-scale"
@@ -375,18 +367,19 @@ function PreferencesSection({
           </label>
           <select
             id="pref-text-scale"
-            value={prefs.text_scale}
-            onChange={(e) =>
-              onChange({
-                ...prefs,
-                text_scale: e.target.value as Preferences["text_scale"],
-              })
-            }
+            value={String(prefs.text_scale)}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              const scale = TEXT_SCALES.find((s) => s === value);
+              // An unlisted multiplier is not applied — the select can
+              // only offer server-legal values anyway.
+              if (scale) onChange({ ...prefs, text_scale: scale });
+            }}
             className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           >
-            <option value="small">Small</option>
-            <option value="default">Default</option>
-            <option value="large">Large</option>
+            <option value="1">Default</option>
+            <option value="1.25">Large</option>
+            <option value="1.5">Largest</option>
           </select>
         </div>
 
@@ -400,16 +393,18 @@ function PreferencesSection({
   );
 }
 
-// ─── Sections management ─────────────────────────────────
+// ─── Sections management ───────────────────────────────
 
 function SectionsManager({
-  sections,
+  serverSections,
   onReorder,
   onToggle,
+  onSaved,
 }: {
-  sections: SectionItem[];
+  serverSections: SectionItem[];
   onReorder: (sections: SectionItem[]) => void;
   onToggle: (id: string) => void;
+  onSaved: () => void;
 }) {
   const [saveMessage, setSaveMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const putSections = usePutSections();
@@ -417,37 +412,37 @@ function SectionsManager({
   const moveUp = useCallback(
     (index: number) => {
       if (index === 0) return;
-      const next = [...sections];
+      const next = [...serverSections];
       [next[index - 1], next[index]] = [next[index], next[index - 1]];
       onReorder(next);
     },
-    [sections, onReorder]
+    [serverSections, onReorder]
   );
 
   const moveDown = useCallback(
     (index: number) => {
-      if (index === sections.length - 1) return;
-      const next = [...sections];
+      if (index === serverSections.length - 1) return;
+      const next = [...serverSections];
       [next[index], next[index + 1]] = [next[index + 1], next[index]];
       onReorder(next);
     },
-    [sections, onReorder]
+    [serverSections, onReorder]
   );
 
   const handleSave = useCallback(() => {
     setSaveMessage(null);
-    // Contract shape: { sections: [{id, label, order, visible}, …] }
+    // Contract shape (sections.validate_layout_update): {order: ids,
+    // hidden: ids}. Hidden = everything currently toggled off.
     putSections.mutate(
       {
-        sections: sections.map((s, i) => ({
-          id: s.id,
-          label: s.label,
-          order: i,
-          visible: s.visible,
-        })),
+        order: serverSections.map((s) => s.id),
+        hidden: serverSections.filter((s) => !s.visible).map((s) => s.id),
       },
       {
-        onSuccess: () => setSaveMessage({ text: "Section order saved.", tone: "ok" }),
+        onSuccess: () => {
+          onSaved();
+          setSaveMessage({ text: "Section order saved.", tone: "ok" });
+        },
         onError: (err) =>
           setSaveMessage({
             text: describeError(err, "Could not save section order."),
@@ -455,9 +450,9 @@ function SectionsManager({
           }),
       }
     );
-  }, [sections, putSections]);
+  }, [serverSections, putSections, onSaved]);
 
-  if (sections.length === 0) {
+  if (serverSections.length === 0) {
     return (
       <SettingsSection id="Sections" titleId="settings-sections-heading">
         <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
@@ -470,7 +465,7 @@ function SectionsManager({
   return (
     <SettingsSection id="Sections" titleId="settings-sections-heading">
       <ul className="space-y-[var(--pw-spacing-sm)]" role="list">
-        {sections.map((section, index) => (
+        {serverSections.map((section, index) => (
           <li
             key={section.id}
             className="flex items-center gap-[var(--pw-spacing-md)] p-[var(--pw-spacing-md)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)]"
@@ -488,7 +483,7 @@ function SectionsManager({
               <WorldButton
                 variant="ghost"
                 onPress={() => moveDown(index)}
-                isDisabled={index === sections.length - 1}
+                isDisabled={index === serverSections.length - 1}
                 aria-label={`Move ${section.label} down`}
                 className="!min-h-[28px] !min-w-[28px] !px-1 !py-0 text-[var(--pw-typography-size_micro)]"
               >
@@ -530,10 +525,10 @@ function SectionsManager({
 // ─── Capabilities status ─────────────────────────────────
 
 function CapabilitiesSection({
-  status,
+  capabilities,
   isStatusLoading,
 }: {
-  status: { capabilities?: Record<string, { ok?: boolean; status?: string; warnings?: string[] }> } | undefined;
+  capabilities: components["schemas"]["CapabilityMap"] | undefined;
   isStatusLoading: boolean;
 }) {
   if (isStatusLoading) {
@@ -546,8 +541,7 @@ function CapabilitiesSection({
     );
   }
 
-  const capabilities = status?.capabilities ?? {};
-  const entries = Object.entries(capabilities);
+  const entries = Object.entries(capabilities ?? {});
 
   if (entries.length === 0) {
     return (
@@ -563,8 +557,7 @@ function CapabilitiesSection({
     <SettingsSection id="Capabilities" titleId="settings-capabilities-heading">
       <ul className="space-y-[var(--pw-spacing-sm)]" role="list">
         {entries.map(([id, cap]) => {
-          const rawStatus = (cap.status ?? "unknown") as CapabilityStatus;
-          const statusLabel = STATUS_LABELS[rawStatus] ?? rawStatus;
+          const statusLabel = STATUS_LABELS[toCapabilityStatus(cap.status)];
           const displayName = id
             .replace(/_/g, " ")
             .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -578,7 +571,7 @@ function CapabilitiesSection({
                 <p className="text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
                   {displayName}
                 </p>
-                {cap.warnings && cap.warnings.length > 0 && (
+                {cap.warnings.length > 0 && (
                   <p className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] mt-1">
                     {cap.warnings[0]}
                   </p>
@@ -601,14 +594,14 @@ function CapabilitiesSection({
 // ─── Brain / Templates info ──────────────────────────────
 
 function BrainSection({
-  brain,
+  templates,
   isBrainLoading,
-  manifest,
+  endpointCount,
   isManifestLoading,
 }: {
-  brain: { templates?: { id?: string; kind?: string; surface?: string }[] } | undefined;
+  templates: components["schemas"]["BrainTemplate"][];
   isBrainLoading: boolean;
-  manifest: { endpoints?: Record<string, never>[]; version?: string } | undefined;
+  endpointCount: number;
   isManifestLoading: boolean;
 }) {
   if (isBrainLoading || isManifestLoading) {
@@ -621,9 +614,7 @@ function BrainSection({
     );
   }
 
-  const templates = brain?.templates ?? [];
-
-  if (templates.length === 0 && !manifest?.version) {
+  if (templates.length === 0 && endpointCount === 0) {
     return (
       <SettingsSection id="Brain & Templates" titleId="settings-brain-heading">
         <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
@@ -635,9 +626,9 @@ function BrainSection({
 
   return (
     <SettingsSection id="Brain & Templates" titleId="settings-brain-heading">
-      {manifest?.version && (
+      {endpointCount > 0 && (
         <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-          API version: {manifest.version}
+          The station publishes {endpointCount} API endpoints.
         </p>
       )}
 
@@ -653,11 +644,11 @@ function BrainSection({
                 className="p-[var(--pw-spacing-md)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)]"
               >
                 <p className="text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
-                  {t.id ?? "Unnamed template"}
+                  {t.id}
                 </p>
                 <div className="flex gap-[var(--pw-spacing-md)] mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
-                  {t.kind && <span>Kind: {t.kind}</span>}
-                  {t.surface && <span>Surface: {t.surface}</span>}
+                  <span>Kind: {t.kind}</span>
+                  {t.surface !== null && <span>Surface: {t.surface}</span>}
                 </div>
               </li>
             ))}
@@ -729,33 +720,66 @@ function ThemeSection({
 
 // ─── Main Settings screen ────────────────────────────────
 
+const FALLBACK_PREFS: ServerPrefs = {
+  motion: "reduced",
+  contrast: "comfortable",
+  density: "comfortable",
+  text_scale: 1,
+  target_size: 44,
+  companion: "personal-world",
+  accent: "world-keeper",
+};
+
 export function Settings() {
   // Server state
   const { data: status, isLoading: isStatusLoading } = useStatus();
   const { data: session, isLoading: isSessionLoading } = useSession();
+  const { data: principal, isLoading: isPrincipalLoading } = usePrincipal();
+  const prefsQuery = usePrefs();
   const { data: brain, isLoading: isBrainLoading } = useBrainTemplates();
   const { data: manifest, isLoading: isManifestLoading } = useManifest();
+  const sectionsQuery = useSections();
 
-  // Local preference state (synced to server on save)
-  const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFS);
+  // Preference draft: the server's values until the person edits; a
+  // successful save clears the draft so the next render re-reads the
+  // server truth (no effect-driven state sync).
+  const [prefDraft, setPrefDraft] = useState<ServerPrefs | null>(null);
+  const effectivePrefs = prefDraft ?? prefsQuery.data?.data ?? FALLBACK_PREFS;
 
-  // Local section ordering (synced to server on save)
-  const [sections, setSections] = useState<SectionItem[]>(DEFAULT_SECTIONS);
+  // Section ordering draft — derived from the server's resolved list,
+  // overridden locally until a save lands.
+  const serverRows: SectionItem[] = (sectionsQuery.data?.data?.sections ?? [])
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map((s) => ({ id: s.id, label: s.label, visible: s.visible }));
+  const [sectionDraft, setSectionDraft] = useState<SectionItem[] | null>(null);
+  const editableSections = sectionDraft ?? serverRows;
 
-  // Theme — read from the applied document attribute so the picker
-  // reflects reality, and write it back on every change.
+  const handleReorderSections = useCallback(
+    (next: SectionItem[]) => setSectionDraft(next),
+    [],
+  );
+
+  // Section toggle handler
+  const handleToggleSection = useCallback(
+    (id: string) => {
+      setSectionDraft((prev) =>
+        (prev ?? serverRows).map((s) =>
+          s.id === id ? { ...s, visible: !s.visible } : s,
+        ),
+      );
+    },
+    [serverRows],
+  );
+
+  // Theme — presentation-only, lives on this device. Read from the
+  // applied document attribute so the picker reflects reality, and
+  // write it back on every change.
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
-
-  // Section toggle handler
-  const handleToggleSection = useCallback((id: string) => {
-    setSections((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, visible: !s.visible } : s))
-    );
-  }, []);
 
   return (
     <>
@@ -780,22 +804,54 @@ export function Settings() {
           </p>
         </header>
 
-        <ProfileSection session={session} isSessionLoading={isSessionLoading} />
-
-        <PreferencesSection prefs={prefs} onChange={setPrefs} />
-
-        <SectionsManager
-          sections={sections}
-          onReorder={setSections}
-          onToggle={handleToggleSection}
+        <ProfileSection
+          authenticated={session?.ok === true}
+          isSessionLoading={isSessionLoading}
+          principal={principal?.data}
+          isPrincipalLoading={isPrincipalLoading}
         />
 
-        <CapabilitiesSection status={status} isStatusLoading={isStatusLoading} />
+        {prefsQuery.isPending ? (
+          <SettingsSection id="Preferences" titleId="settings-prefs-heading">
+            <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+              Loading…
+            </p>
+          </SettingsSection>
+        ) : prefsQuery.isError || prefsQuery.data?.data === undefined ? (
+          <SettingsSection id="Preferences" titleId="settings-prefs-heading">
+            <p
+              role="alert"
+              className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+            >
+              {prefsQuery.error instanceof Error
+                ? prefsQuery.error.message
+                : "Preferences are unavailable on this station."}
+            </p>
+          </SettingsSection>
+        ) : (
+          <PreferencesSection
+            prefs={effectivePrefs}
+            onChange={setPrefDraft}
+            onSaved={() => setPrefDraft(null)}
+          />
+        )}
+
+        <SectionsManager
+          serverSections={editableSections}
+          onReorder={handleReorderSections}
+          onToggle={handleToggleSection}
+          onSaved={() => setSectionDraft(null)}
+        />
+
+        <CapabilitiesSection
+          capabilities={status?.data?.capabilities}
+          isStatusLoading={isStatusLoading}
+        />
 
         <BrainSection
-          brain={brain}
+          templates={brain?.data?.templates ?? []}
           isBrainLoading={isBrainLoading}
-          manifest={manifest}
+          endpointCount={manifest?.endpoints.length ?? 0}
           isManifestLoading={isManifestLoading}
         />
 
