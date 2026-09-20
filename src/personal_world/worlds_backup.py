@@ -626,7 +626,11 @@ _DOWNLOAD_TTL_SECONDS = 300.0
 # Request models live at module level on purpose: with
 # `from __future__ import annotations`, FastAPI resolves route
 # annotations against the *module* globals — models defined inside the
-# registration closure would be invisible to it.
+# registration closure would be invisible to it. The SAME rule applies
+# to response classes: `-> FileResponse` on the download route could not
+# be resolved while FileResponse lived only inside register_worlds_backup
+# (discovered by actually building app.openapi() — S2 contract fix #1).
+from fastapi.responses import FileResponse  # noqa: E402  (fastapi is a core dep)
 from pydantic import BaseModel, SecretStr  # noqa: E402  (pydantic is a core dep)
 
 
