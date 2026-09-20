@@ -110,7 +110,7 @@ export function Today({ onOpenAssistant }: TodayProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-[var(--pw-spacing-md)]">
           {WORLD_AREAS.filter((a) => a.id !== "today").map((area) => (
             <a key={area.id} href={area.href}
-              className="group flex flex-col items-center gap-[var(--pw-spacing-sm)] p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] min-h-[var(--pw-targets-minimum)] no-underline transition-colors hover:border-[var(--pw-accent-primary)] hover:bg-[var(--pw-surface-elevated)]">
+              className="group flex flex-col items-center gap-[var(--pw-spacing-sm)] p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] min-h-[var(--pw-targets-minimum)] no-underline transition-colors motion-reduce:transition-none hover:border-[var(--pw-accent-primary)] hover:bg-[var(--pw-surface-elevated)]">
               <span className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)] group-hover:text-[var(--pw-accent-primary)]">
                 {area.label}
               </span>

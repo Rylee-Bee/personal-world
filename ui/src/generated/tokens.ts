@@ -2,7 +2,7 @@
  * PROJECT WORLDS — Generated Design Token Types
  *
  * ⚠️  THIS FILE IS GENERATED. Do not edit by hand.
- * Source: design/themes/station.json
+ * Source: design/tokens.json + design/themes/station.json
  * Generator: scripts/generate-tokens.mjs
  *
  * Usage:
@@ -11,7 +11,12 @@
  */
 
 /** All available CSS custom property names */
-export type TokenName = "--pw-surface-void"
+export type TokenName = "--pw-targets-minimum"
+  | "--pw-targets-large"
+  | "--pw-focus-ring_width"
+  | "--pw-focus-ring_offset"
+  | "--pw-motion-default"
+  | "--pw-surface-void"
   | "--pw-surface-canvas"
   | "--pw-surface-hull"
   | "--pw-surface-panel"
@@ -61,12 +66,15 @@ export type TokenName = "--pw-surface-void"
   | "--pw-typography-size_body"
   | "--pw-typography-size_small"
   | "--pw-typography-size_micro"
-  | "--pw-typography-size_label"
-  | "--pw-density-comfortable"
-  | "--pw-density-compact";
+  | "--pw-typography-size_label";
 
 /** Token values keyed by CSS variable name */
 export const TOKENS: Record<TokenName, string> = {
+  "--pw-targets-minimum": "var(--pw-targets-minimum)",
+  "--pw-targets-large": "var(--pw-targets-large)",
+  "--pw-focus-ring_width": "var(--pw-focus-ring_width)",
+  "--pw-focus-ring_offset": "var(--pw-focus-ring_offset)",
+  "--pw-motion-default": "var(--pw-motion-default)",
   "--pw-surface-void": "var(--pw-surface-void)",
   "--pw-surface-canvas": "var(--pw-surface-canvas)",
   "--pw-surface-hull": "var(--pw-surface-hull)",
@@ -117,9 +125,7 @@ export const TOKENS: Record<TokenName, string> = {
   "--pw-typography-size_body": "var(--pw-typography-size_body)",
   "--pw-typography-size_small": "var(--pw-typography-size_small)",
   "--pw-typography-size_micro": "var(--pw-typography-size_micro)",
-  "--pw-typography-size_label": "var(--pw-typography-size_label)",
-  "--pw-density-comfortable": "var(--pw-density-comfortable)",
-  "--pw-density-compact": "var(--pw-density-compact)"
+  "--pw-typography-size_label": "var(--pw-typography-size_label)"
 } as const;
 
 /** Get a token value as a CSS string */
@@ -127,13 +133,13 @@ export function token(name: TokenName): string {
   return `var(${name})`;
 }
 
-/** Theme names available */
-export type ThemeName = "station" | "starfield" | "ocean" | "moss";
+/** Theme names available (generated from design/themes/*.json) */
+export type ThemeName = "station" | "moss" | "ocean" | "starfield";
 
-/** All theme selectors */
+/** All theme selectors (station is the default and lives on :root) */
 export const THEMES: Record<ThemeName, string> = {
-  station: ":root",
-  starfield: '[data-theme="starfield"]',
-  ocean: '[data-theme="ocean"]',
-  moss: '[data-theme="moss"]',
+  "station": ":root",
+  "moss": '[data-theme="moss"]',
+  "ocean": '[data-theme="ocean"]',
+  "starfield": '[data-theme="starfield"]',
 } as const;

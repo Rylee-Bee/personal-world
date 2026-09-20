@@ -47,14 +47,6 @@ function okResponse<T>(data: T) {
   };
 }
 
-function errResponse(status: number, error?: unknown) {
-  return {
-    data: undefined,
-    error: error ?? { message: `HTTP ${status}` },
-    response: { status, ok: status >= 200 && status < 300 } as Response,
-  };
-}
-
 // ── Tests ────────────────────────────────────────────────────────────
 describe("api client", () => {
   describe("healthz()", () => {

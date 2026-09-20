@@ -18,15 +18,19 @@ import {
   useSession,
   useBrainTemplates,
   useManifest,
+  usePutPrefs,
+  usePutSections,
+  usePutPrincipal,
 } from "../../data/hooks";
+import { describeError } from "../../data/errors";
 import { STATUS_LABELS } from "../../data/types";
 import type { CapabilityStatus } from "../../data/types";
 import { WorldButton } from "../../components/WorldButton";
+import { THEMES, type ThemeName } from "../../generated/tokens";
 
 // ─── Themes ──────────────────────────────────────────────
 
-const THEMES = ["moss", "ocean", "starfield", "station"] as const;
-type Theme = (typeof THEMES)[number];
+type Theme = ThemeName;
 
 const THEME_LABELS: Record<Theme, string> = {
   moss: "Moss",
@@ -34,6 +38,32 @@ const THEME_LABELS: Record<Theme, string> = {
   starfield: "Starfield",
   station: "Station",
 };
+
+const THEME_NAMES = Object.keys(THEMES) as Theme[];
+
+/** Read the theme actually applied to <html> so the picker tells the truth. */
+function readInitialTheme(): Theme {
+  const active = document.documentElement.dataset.theme;
+  return THEME_NAMES.includes(active as Theme) ? (active as Theme) : "station";
+}
+
+// ─── Inline save feedback ────────────────────────────────
+
+function SaveNote({ message, tone }: { message: string; tone: "ok" | "error" }) {
+  return (
+    <p
+      role={tone === "error" ? "alert" : "status"}
+      className={[
+        "mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)]",
+        tone === "error"
+          ? "text-[var(--pw-accent-coral)]"
+          : "text-[var(--pw-text-secondary)]",
+      ].join(" ")}
+    >
+      {message}
+    </p>
+  );
+}
 
 // ─── Preferences model ───────────────────────────────────
 
@@ -119,37 +149,36 @@ function ProfileSection({
 }) {
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  const putPrincipal = usePutPrincipal();
 
-  useEffect(() => {
-    if (session?.principal) {
-      setDisplayName(session.principal);
-    }
+  const beginEdit = useCallback(() => {
+    setDisplayName(session?.principal ?? "");
+    setSaveMessage(null);
+    setEditing(true);
   }, [session?.principal]);
 
-  const handleSave = useCallback(async () => {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/identity/principal", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ display_name: displayName.trim() }),
-      });
-      if (res.status === 403) {
-        // Step-up required — show note, don't silently fail
-        return;
-      }
-      if (res.ok) {
+  const handleSave = useCallback(() => {
+    setSaveMessage(null);
+    putPrincipal.mutate(displayName.trim(), {
+      onSuccess: () => {
         setEditing(false);
-      }
-    } finally {
-      setSaving(false);
-    }
-  }, [displayName]);
+        setSaveMessage({ text: "Display name saved.", tone: "ok" });
+      },
+      onError: (err) => {
+        // 403 = step-up gate; anything else shows the server's reason.
+        setSaveMessage({
+          text: describeError(err, "Could not save the display name."),
+          tone: "error",
+        });
+      },
+    });
+  }, [displayName, putPrincipal]);
 
   const handleCancel = useCallback(() => {
     setDisplayName(session?.principal ?? "");
     setEditing(false);
+    setSaveMessage(null);
   }, [session?.principal]);
 
   if (isSessionLoading) {
@@ -194,7 +223,7 @@ function ProfileSection({
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-none focus:ring-2 focus:ring-[#72b1b1]"
+              className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
               aria-label="Display name"
             />
           </div>
@@ -202,19 +231,20 @@ function ProfileSection({
             <WorldButton
               variant="primary"
               type="submit"
-              isDisabled={saving || !displayName.trim()}
+              isDisabled={putPrincipal.isPending || !displayName.trim()}
             >
-              {saving ? "Saving…" : "Save"}
+              {putPrincipal.isPending ? "Saving…" : "Save"}
             </WorldButton>
             <WorldButton
               variant="ghost"
               type="button"
               onPress={handleCancel}
-              isDisabled={saving}
+              isDisabled={putPrincipal.isPending}
             >
               Cancel
             </WorldButton>
           </div>
+          {saveMessage && <SaveNote message={saveMessage.text} tone={saveMessage.tone} />}
           <StepUpNote />
         </form>
       ) : (
@@ -229,7 +259,7 @@ function ProfileSection({
           </div>
           <WorldButton
             variant="ghost"
-            onPress={() => setEditing(true)}
+            onPress={beginEdit}
             aria-label="Edit display name"
           >
             Edit
@@ -249,6 +279,21 @@ function PreferencesSection({
   prefs: Preferences;
   onChange: (prefs: Preferences) => void;
 }) {
+  const [saveMessage, setSaveMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  const putPrefs = usePutPrefs();
+
+  const handleSave = useCallback(() => {
+    setSaveMessage(null);
+    putPrefs.mutate(prefs, {
+      onSuccess: () => setSaveMessage({ text: "Preferences saved.", tone: "ok" }),
+      onError: (err) =>
+        setSaveMessage({
+          text: describeError(err, "Could not save preferences."),
+          tone: "error",
+        }),
+    });
+  }, [prefs, putPrefs]);
+
   return (
     <SettingsSection id="Preferences" titleId="settings-prefs-heading">
       <div className="space-y-[var(--pw-spacing-lg)]">
@@ -288,7 +333,7 @@ function PreferencesSection({
                 contrast: e.target.value as Preferences["contrast"],
               })
             }
-            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-none focus:ring-2 focus:ring-[#72b1b1]"
+            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           >
             <option value="normal">Normal</option>
             <option value="high">High contrast</option>
@@ -312,7 +357,7 @@ function PreferencesSection({
                 density: e.target.value as Preferences["density"],
               })
             }
-            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-none focus:ring-2 focus:ring-[#72b1b1]"
+            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           >
             <option value="compact">Compact</option>
             <option value="comfortable">Comfortable</option>
@@ -337,7 +382,7 @@ function PreferencesSection({
                 text_scale: e.target.value as Preferences["text_scale"],
               })
             }
-            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-none focus:ring-2 focus:ring-[#72b1b1]"
+            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           >
             <option value="small">Small</option>
             <option value="default">Default</option>
@@ -345,14 +390,10 @@ function PreferencesSection({
           </select>
         </div>
 
-        <WorldButton
-          variant="primary"
-          onPress={() => {
-            // PUT /api/prefs — step-up required
-          }}
-        >
-          Save preferences
+        <WorldButton variant="primary" onPress={handleSave} isDisabled={putPrefs.isPending}>
+          {putPrefs.isPending ? "Saving…" : "Save preferences"}
         </WorldButton>
+        {saveMessage && <SaveNote message={saveMessage.text} tone={saveMessage.tone} />}
         <StepUpNote />
       </div>
     </SettingsSection>
@@ -370,6 +411,9 @@ function SectionsManager({
   onReorder: (sections: SectionItem[]) => void;
   onToggle: (id: string) => void;
 }) {
+  const [saveMessage, setSaveMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  const putSections = usePutSections();
+
   const moveUp = useCallback(
     (index: number) => {
       if (index === 0) return;
@@ -389,6 +433,29 @@ function SectionsManager({
     },
     [sections, onReorder]
   );
+
+  const handleSave = useCallback(() => {
+    setSaveMessage(null);
+    // Contract shape: { sections: [{id, label, order, visible}, …] }
+    putSections.mutate(
+      {
+        sections: sections.map((s, i) => ({
+          id: s.id,
+          label: s.label,
+          order: i,
+          visible: s.visible,
+        })),
+      },
+      {
+        onSuccess: () => setSaveMessage({ text: "Section order saved.", tone: "ok" }),
+        onError: (err) =>
+          setSaveMessage({
+            text: describeError(err, "Could not save section order."),
+            tone: "error",
+          }),
+      }
+    );
+  }, [sections, putSections]);
 
   if (sections.length === 0) {
     return (
@@ -448,13 +515,13 @@ function SectionsManager({
       </ul>
       <WorldButton
         variant="primary"
-        onPress={() => {
-          // PUT /api/sections — step-up required
-        }}
+        onPress={handleSave}
+        isDisabled={putSections.isPending}
         className="mt-[var(--pw-spacing-md)]"
       >
-        Save section order
+        {putSections.isPending ? "Saving…" : "Save section order"}
       </WorldButton>
+      {saveMessage && <SaveNote message={saveMessage.text} tone={saveMessage.tone} />}
       <StepUpNote />
     </SettingsSection>
   );
@@ -619,13 +686,14 @@ function ThemeSection({
       <fieldset>
         <legend className="sr-only">Select a theme</legend>
         <div className="grid grid-cols-2 gap-[var(--pw-spacing-md)]">
-          {THEMES.map((theme) => {
+          {THEME_NAMES.map((theme) => {
             const isActive = theme === currentTheme;
             return (
               <label
                 key={theme}
                 className={[
-                  "flex items-center gap-[var(--pw-spacing-md)] p-[var(--pw-spacing-md)] rounded-[var(--pw-radius-sm)] border min-h-[var(--pw-targets-minimum)] cursor-pointer transition-colors",
+                  "flex items-center gap-[var(--pw-spacing-md)] p-[var(--pw-spacing-md)] rounded-[var(--pw-radius-sm)] border min-h-[var(--pw-targets-minimum)] cursor-pointer transition-colors motion-reduce:transition-none",
+                  "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--pw-accent-primary)]",
                   isActive
                     ? "border-[var(--pw-accent-primary)] bg-[var(--pw-surface-elevated)]"
                     : "border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] hover:bg-[var(--pw-surface-elevated)]",
@@ -674,8 +742,13 @@ export function Settings() {
   // Local section ordering (synced to server on save)
   const [sections, setSections] = useState<SectionItem[]>(DEFAULT_SECTIONS);
 
-  // Theme (local until persisted)
-  const [theme, setTheme] = useState<Theme>("station");
+  // Theme — read from the applied document attribute so the picker
+  // reflects reality, and write it back on every change.
+  const [theme, setTheme] = useState<Theme>(readInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   // Section toggle handler
   const handleToggleSection = useCallback((id: string) => {
@@ -684,31 +757,11 @@ export function Settings() {
     );
   }, []);
 
-  // Error state
-  const error = null; // Hook errors are per-query; we handle loading per-section
-
-  if (error) {
-    return (
-      <main
-        id="main-content"
-        aria-label="Settings"
-        className="relative z-10 p-[var(--pw-spacing-xl)] max-w-[720px]"
-      >
-        <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
-          Settings
-        </h1>
-        <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-secondary)]">
-          Unable to load settings right now.
-        </p>
-      </main>
-    );
-  }
-
   return (
     <>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-[var(--pw-spacing-md)] focus:left-[var(--pw-spacing-md)] focus:z-50 focus:px-[var(--pw-spacing-lg)] focus:py-[var(--pw-spacing-sm)] focus:bg-[var(--pw-surface-panel)] focus:text-[var(--pw-accent-teal)] focus:outline-none focus:ring-2 focus:ring-[#72b1b1] focus:rounded-[var(--pw-radius-sm)]"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-[var(--pw-spacing-md)] focus:left-[var(--pw-spacing-md)] focus:z-50 focus:px-[var(--pw-spacing-lg)] focus:py-[var(--pw-spacing-sm)] focus:bg-[var(--pw-surface-panel)] focus:text-[var(--pw-accent-teal)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)] focus:rounded-[var(--pw-radius-sm)]"
       >
         Skip to main content
       </a>

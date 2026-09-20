@@ -3,10 +3,15 @@
 /**
  * generate-tokens.mjs
  *
- * Generates CSS custom properties and TypeScript types from theme files.
+ * Generates CSS custom properties and TypeScript types from design tokens.
  *
- * CSS: manual generation (theme files don't match Style Dictionary format)
- * TypeScript: Style Dictionary for type-safe token references
+ * Sources:
+ *   - ../design/tokens.json   — token NAMES and immutable values
+ *     (targets/, focus/, motion/ categories carry `_value` and are
+ *     contract-immutable: never overridden by themes or density).
+ *   - ../design/themes/*.json — per-theme values. Station is the default
+ *     theme and is emitted on `:root` FIRST so every [data-theme] block,
+ *     having equal specificity and later position, overrides it.
  *
  * Usage:
  *   node scripts/generate-tokens.mjs           # all themes
@@ -18,10 +23,48 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const themesDir = resolve(__dirname, "../../design/themes");
+const designTokensPath = resolve(__dirname, "../../design/tokens.json");
 const cssOutput = resolve(__dirname, "../src/generated/tokens.css");
 const tsOutput = resolve(__dirname, "../src/generated/tokens.ts");
 
-const themeFiles = readdirSync(themesDir).filter((f) => f.endsWith(".json"));
+const allThemeFiles = readdirSync(themesDir).filter((f) => f.endsWith(".json"));
+
+/** Station (the default theme) must come first; rest keeps sorted order. */
+const themeFiles = [
+  ...allThemeFiles.filter((f) => basename(f, ".json") === "station"),
+  ...allThemeFiles.filter((f) => basename(f, ".json") !== "station").sort(),
+];
+
+// ─── Immutable contract tokens (design/tokens.json) ───────────────────────
+
+/**
+ * Walk the given categories of design/tokens.json and collect every leaf
+ * that carries a string `_value`. These are accessibility-contract
+ * constants (44px targets, focus ring structure, motion default) — they
+ * live on :root and are never redefined by any theme block.
+ */
+function readImmutableTokens(categories) {
+  const design = JSON.parse(readFileSync(designTokensPath, "utf-8"));
+  const out = [];
+  for (const category of categories) {
+    const values = design[category];
+    if (!values || typeof values !== "object" || Array.isArray(values)) continue;
+    for (const [prop, val] of Object.entries(values)) {
+      if (prop.startsWith("_")) continue;
+      if (typeof val !== "object" || val === null) continue;
+      if (typeof val._value !== "string") continue;
+      out.push({
+        cssVar: `--pw-${category}-${prop.replace(/\./g, "-")}`,
+        value: val._value,
+        category,
+        prop,
+      });
+    }
+  }
+  return out;
+}
+
+const immutableTokens = readImmutableTokens(["targets", "focus", "motion"]);
 
 // ─── CSS Generation ───────────────────────────────────────────────────────
 
@@ -29,18 +72,30 @@ let css = `/**
  * PROJECT WORLDS — Generated Design Tokens
  *
  * ⚠️  THIS FILE IS GENERATED. Do not edit by hand.
- * Source: design/themes/*.json
+ * Source: design/tokens.json (immutable) + design/themes/*.json
  * Generator: scripts/generate-tokens.mjs
+ *
+ * Cascade order matters: immutable :root block first, then the station
+ * default on :root, then one [data-theme="<name>"] block per other theme.
+ * :root and [data-theme="…"] have equal specificity, so the later block
+ * wins — which is exactly how a theme override must behave.
  *
  * Run: node scripts/generate-tokens.mjs
  */\n\n`;
+
+css += `  /* Accessibility-contract constants — immutable, never themed over. */\n`;
+css += `:root {\n`;
+for (const t of immutableTokens) {
+  css += `  ${t.cssVar}: ${t.value};\n`;
+}
+css += `}\n`;
 
 for (const file of themeFiles) {
   const themeName = basename(file, ".json");
   const data = JSON.parse(readFileSync(resolve(themesDir, file), "utf-8"));
 
   if (themeName === "station") {
-    css += `:root {\n`;
+    css += `\n/* Default theme: station */\n:root {\n`;
   } else {
     css += `\n[data-theme="${themeName}"] {\n`;
   }
@@ -71,6 +126,7 @@ for (const file of themeFiles) {
 writeFileSync(cssOutput, css, "utf-8");
 console.log(`✓ Generated ${cssOutput}`);
 console.log(`  Themes: ${themeFiles.map((f) => basename(f, ".json")).join(", ")}`);
+console.log(`  Immutable tokens: ${immutableTokens.map((t) => t.cssVar).join(", ")}`);
 
 // ─── TypeScript Generation ────────────────────────────────────────────────
 
@@ -79,23 +135,34 @@ const stationData = JSON.parse(
   readFileSync(resolve(themesDir, "station.json"), "utf-8"),
 );
 
-const tokenEntries = [];
+const tokenEntries = immutableTokens.map((t) => ({
+  cssVar: t.cssVar,
+  category: t.category,
+  prop: t.prop,
+}));
+
 for (const [category, values] of Object.entries(stationData)) {
   if (category === "_comment" || category.startsWith("_")) continue;
   if (typeof values !== "object" || Array.isArray(values)) continue;
 
-  for (const [prop] of Object.entries(values)) {
+  for (const [prop, val] of Object.entries(values)) {
     if (prop === "_comment" || prop.startsWith("_")) continue;
+    // Same filter the CSS generator uses: only string leaves become
+    // custom properties. Without this, nested groups (e.g. density)
+    // produced fake tokens like --pw-density-comfortable.
+    if (typeof val !== "string") continue;
     const cssVar = `--pw-${category}-${prop.replace(/\./g, "-")}`;
     tokenEntries.push({ cssVar, category, prop });
   }
 }
 
+const themeNames = themeFiles.map((f) => basename(f, ".json"));
+
 const ts = `/**
  * PROJECT WORLDS — Generated Design Token Types
  *
  * ⚠️  THIS FILE IS GENERATED. Do not edit by hand.
- * Source: design/themes/station.json
+ * Source: design/tokens.json + design/themes/station.json
  * Generator: scripts/generate-tokens.mjs
  *
  * Usage:
@@ -116,15 +183,14 @@ export function token(name: TokenName): string {
   return \`var(\${name})\`;
 }
 
-/** Theme names available */
-export type ThemeName = "station" | "starfield" | "ocean" | "moss";
+/** Theme names available (generated from design/themes/*.json) */
+export type ThemeName = ${themeNames.map((n) => `"${n}"`).join(" | ")};
 
-/** All theme selectors */
+/** All theme selectors (station is the default and lives on :root) */
 export const THEMES: Record<ThemeName, string> = {
-  station: ":root",
-  starfield: '[data-theme="starfield"]',
-  ocean: '[data-theme="ocean"]',
-  moss: '[data-theme="moss"]',
+${themeNames
+  .map((n) => `  ${JSON.stringify(n)}: ${n === "station" ? '":root"' : `'[data-theme="${n}"]'`}`)
+  .join(",\n")},
 } as const;
 `;
 

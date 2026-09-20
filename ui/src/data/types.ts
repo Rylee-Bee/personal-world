@@ -65,7 +65,12 @@ export interface Resident {
   name: string;
   role?: string;
   artwork?: string;
-  state: ResidentState;
+  /**
+   * Presentational mood. Optional on purpose: /api/actors carries no
+   * state field yet, and no consumer renders it. Marking it required
+   * was a type-level claim the API does not back up.
+   */
+  state?: ResidentState;
 }
 
 // ─── World Area ─────────────────────────────────────────

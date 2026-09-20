@@ -65,6 +65,7 @@ import {
   getMediaActivity,
 } from "./api";
 import type { components } from "../generated/api-types";
+import type { CapabilitySummary, WorldSignal } from "./types";
 
 // ===== Query Keys =====
 export const queryKeys = {
@@ -275,6 +276,11 @@ export function useSession() {
 }
 
 // ===== Vault =====
+//
+// Backend contract (openapi.json → VaultStatusResponse / VaultNamesResponse):
+// every vault response is an `{ok, data}` envelope and there is NO
+// secret_count on status — the count is derived from the names list.
+
 export function useVaultStatus() {
   return useQuery({
     queryKey: ["vault", "status"],
@@ -282,10 +288,16 @@ export function useVaultStatus() {
   });
 }
 
-export function useVaultNames() {
+/**
+ * Secret names. Only meaningful while the vault is unlocked — the
+ * backend answers 409 when locked — so callers pass `enabled: false`
+ * while locked to avoid doomed requests.
+ */
+export function useVaultNames(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["vault", "names"],
     queryFn: listVaultNames,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -297,10 +309,20 @@ export function useVaultSecret(name: string) {
   });
 }
 
+/** Unlock returns `{ok, status, data?, warnings?}` — `ok:false` is a failure, not a throw. */
+async function vaultAction(fn: () => Promise<{ ok?: boolean; status?: string; warnings?: string[] }>) {
+  const res = await fn();
+  if (res?.ok === false) {
+    throw new Error(res.warnings?.[0] || res.status || "Vault action failed");
+  }
+  return res;
+}
+
 export function useUnlockVault() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: unlockVault,
+    mutationFn: (passphrase: string) =>
+      vaultAction(() => unlockVault(passphrase)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vault"] });
     },
@@ -310,7 +332,7 @@ export function useUnlockVault() {
 export function useLockVault() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: lockVault,
+    mutationFn: () => vaultAction(lockVault),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vault"] });
     },
@@ -320,7 +342,8 @@ export function useLockVault() {
 export function useSetVaultSecret() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, value }: { name: string; value: string }) => setVaultSecret(name, value),
+    mutationFn: ({ name, value }: { name: string; value: string }) =>
+      vaultAction(() => setVaultSecret(name, value)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vault"] });
     },
@@ -330,7 +353,7 @@ export function useSetVaultSecret() {
 export function useDeleteVaultSecret() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: deleteVaultSecret,
+    mutationFn: (name: string) => vaultAction(() => deleteVaultSecret(name)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vault"] });
     },
@@ -638,7 +661,26 @@ export function useMediaActivity() {
 // }
 
 // ===== Today Summary (composed) =====
-export function useTodaySummary() {
+
+/**
+ * Explicit return type: without it the `{ data: undefined }` branch
+ * widened to `any` (this project runs with strictNullChecks off), which
+ * silently disabled typechecking of everything derived from the summary —
+ * that is how an invented `level: "info"` signal ever compiled at all.
+ */
+export interface TodaySummaryData {
+  greeting: string;
+  resident?: Actor;
+  capabilities: CapabilitySummary[];
+  signals: WorldSignal[];
+  daily: DailyDigest;
+}
+
+export function useTodaySummary(): {
+  data: TodaySummaryData | undefined;
+  isLoading: boolean;
+  error: Error | undefined;
+} {
   const status = useStatus();
   const daily = useDaily();
   const actors = useActors();
@@ -650,19 +692,24 @@ export function useTodaySummary() {
     return { data: undefined, isLoading, error };
   }
 
-  const capabilities = Object.entries(status.data.capabilities || {}).map(
+  const capabilities: CapabilitySummary[] = Object.entries(status.data.capabilities || {}).map(
     ([id, cap]) => ({
       id,
       name: id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-      status: (cap as { status?: string }).status || "unknown",
+      // CapabilityMap types status as bare string; the wire vocabulary is
+      // CapabilityStatus (contract §1.3) — cast at the boundary.
+      status: ((cap as { status?: string }).status || "unknown") as CapabilitySummary["status"],
       summary: (cap as { warnings?: string[] }).warnings?.[0],
     })
   );
 
-  const signals = (daily.data.reminders || []).slice(0, 3).map(
+  const signals: WorldSignal[] = (daily.data.reminders || []).slice(0, 3).map(
     (r: Record<string, unknown>, i: number) => ({
       id: `reminder-${i}`,
-      level: "info" as const,
+      // Reminders are not alarms — they surface as "A small update"
+      // (WorldSignalLevel has no "info" tier; adding one would touch
+      // labels + styles without a real urgency difference).
+      level: "update" as const,
       title: "Reminder",
       description: typeof r.text === "string" ? r.text : "",
     })

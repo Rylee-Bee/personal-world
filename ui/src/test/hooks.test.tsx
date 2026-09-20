@@ -125,7 +125,7 @@ describe("hooks", () => {
 
       vi.mocked(api.listActors).mockResolvedValue({
         actors: [{ id: "renai", name: "Renai", current_state: "rest" }],
-      } as Awaited<ReturnType<typeof api.listActors>>);
+      } as unknown as Awaited<ReturnType<typeof api.listActors>>);
 
       const { wrapper } = createWrapper();
       const { result } = renderHook(() => useTodaySummary(), { wrapper });
