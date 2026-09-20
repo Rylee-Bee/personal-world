@@ -1,0 +1,116 @@
+/*
+ * PROJECT WORLDS — Base Styles
+ *
+ * Layout and composition via Tailwind.
+ * Visual identity via CSS custom properties from tokens.css.
+ * Tailwind may implement layout; it must NOT replace semantic tokens.
+ *
+ * Theme switching: set [data-theme="starfield"] on <html> to override defaults.
+ * The Station theme is the default (lives in :root).
+ */
+
+/* Fonts */
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/assets/fonts/AtkinsonHyperlegibleNext-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/assets/fonts/AtkinsonHyperlegibleNext-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/assets/fonts/fraunces-1.woff2') format('woff2');
+}
+
+/* Accessibility contract §2.4 — focus ring */
+:focus-visible {
+  outline: 2px solid var(--pw-accent-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-contrast: more) {
+  :focus-visible {
+    outline-color: #FFFFFF;
+  }
+}
+
+/* Accessibility contract §6.2 — reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Base reset */
+html {
+  background-color: var(--pw-surface-canvas);
+  color: var(--pw-text-primary);
+  font-family: var(--pw-typography-font_sans);
+  font-size: var(--pw-typography-size_body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+/* Skip link — accessibility contract §2.6 */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--pw-surface-elevated);
+  color: var(--pw-accent-primary);
+  border: 2px solid var(--pw-accent-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Starfield atmosphere — subtle, non-distracting */
+.starfield-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 800px 500px at 25% 25%, rgba(90, 168, 184, 0.06), transparent 65%),
+    radial-gradient(ellipse 700px 450px at 75% 75%, rgba(155, 142, 196, 0.04), transparent 65%),
+    radial-gradient(ellipse 900px 600px at 50% 50%, rgba(100, 160, 180, 0.03), transparent 75%);
+}
+
+/* Grid overlay — faint, structural */
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image:
+    linear-gradient(rgba(90, 168, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90, 168, 184, 0.04) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
