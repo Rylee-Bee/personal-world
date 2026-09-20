@@ -21,7 +21,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SIBLING_REPO="${VNEXT_SOURCE:-/home/rylee/code/Rylee-Bee/pw-vnext-station}"
+# VNEXT_SOURCE is required: no personal default paths in tracked scripts
+# (tests/test_public_safety.py enforces this; see .project contract too).
+SIBLING_REPO="${VNEXT_SOURCE:?set VNEXT_SOURCE to your local pw-vnext-station checkout}"
 DIST="$SIBLING_REPO/ui/dist"
 DEST="$REPO_ROOT/src/personal_world/static/vnext"
 
