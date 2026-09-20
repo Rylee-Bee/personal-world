@@ -309,8 +309,12 @@ def test_code_and_config_carry_no_personal_home_paths():
 
 TOPOLOGY_PATTERNS: dict[str, re.Pattern[str]] = {
     "private IPv4 (RFC1918/link-local)": re.compile(
-        r"(?<![\d.])(?:192\.168|10|172\.(?:1[6-9]|2\d|3[01])|169\.254)"
-        r"\.\d{1,3}(?:\.\d{1,3}){1,2}(?![\d.])"
+        # exactly four octets: {1,2} let npm semver "^10.6.0" match as an
+        # "IP" (two public-safety false positives, 2026-09-20) — versions
+        # are three dotted parts; a real IPv4 is always four.
+        r"(?<![\d.])(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+        r"|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3})"
+        r"(?![\d.])"
     ),
     "operator hostname (hulganfamily)": re.compile(r"hulganfamily"),
     "dynamic-DNS operator host": re.compile(r"[\w.-]*duckdns\.org"),
