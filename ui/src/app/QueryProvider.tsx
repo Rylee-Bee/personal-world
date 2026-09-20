@@ -4,29 +4,22 @@
  * Manages server-state lifecycle: loading, stale, retry, refresh, unavailable, cached.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-
-const defaultQueryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,        // 30s — data is fresh
-      gcTime: 5 * 60_000,       // 5min — keep in cache
-      retry: 2,                  // retry twice on failure
-      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000),
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-    },
-  },
-});
+import { createDefaultQueryClient } from "../data/queryClient";
 
 interface QueryProviderProps {
   children: React.ReactNode;
-  client?: typeof defaultQueryClient;
+  client?: QueryClient;
 }
 
+/**
+ * Each provider instance owns its cache by default. A module-level
+ * singleton would leak one screen mount's (or one Storybook story's)
+ * server state into the next — cached fiction shown as current data.
+ */
 export function QueryProvider({ children, client }: QueryProviderProps) {
-  const [queryClient] = useState(() => client || defaultQueryClient);
+  const [queryClient] = useState(() => client ?? createDefaultQueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -34,5 +27,3 @@ export function QueryProvider({ children, client }: QueryProviderProps) {
     </QueryClientProvider>
   );
 }
-
-export { defaultQueryClient };

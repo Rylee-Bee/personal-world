@@ -2,12 +2,89 @@
  * PROJECT WORLDS — Generated Design Tokens
  *
  * ⚠️  THIS FILE IS GENERATED. Do not edit by hand.
- * Source: design/themes/*.json
+ * Source: design/tokens.json (immutable) + design/themes/*.json
  * Generator: scripts/generate-tokens.mjs
+ *
+ * Cascade order matters: immutable :root block first, then the station
+ * default on :root, then one [data-theme="<name>"] block per other theme.
+ * :root and [data-theme="…"] have equal specificity, so the later block
+ * wins — which is exactly how a theme override must behave.
  *
  * Run: node scripts/generate-tokens.mjs
  */
 
+  /* Accessibility-contract constants — immutable, never themed over. */
+:root {
+  --pw-targets-minimum: 44px;
+  --pw-targets-large: 56px;
+  --pw-focus-ring_width: 2px;
+  --pw-focus-ring_offset: 2px;
+  --pw-motion-default: off;
+}
+
+/* Default theme: station */
+:root {
+  --pw-surface-void: #080B14;
+  --pw-surface-canvas: #0C101C;
+  --pw-surface-hull: #131926;
+  --pw-surface-panel: #1E2636;
+  --pw-surface-elevated: #273144;
+  --pw-surface-raised: #2D3A4E;
+
+  --pw-accent-primary: #72b1b1;
+  --pw-accent-on_primary: #0a2830;
+  --pw-accent-secondary: #C47D6D;
+  --pw-accent-warm: #D4A057;
+  --pw-accent-warm_soft: rgba(212, 160, 87, 0.16);
+  --pw-accent-gold: #C9A227;
+  --pw-accent-gold_soft: rgba(201, 162, 39, 0.14);
+  --pw-accent-green: #6A9A66;
+  --pw-accent-green_soft: rgba(106, 154, 102, 0.16);
+  --pw-accent-coral: #C47D6D;
+  --pw-accent-coral_soft: rgba(196, 125, 109, 0.14);
+  --pw-accent-teal: #5A9E9E;
+  --pw-accent-teal_soft: rgba(90, 158, 158, 0.14);
+  --pw-accent-lavender: #9B8EC4;
+  --pw-accent-lavender_soft: rgba(155, 142, 196, 0.14);
+
+  --pw-text-primary: #EDE7DB;
+  --pw-text-secondary: #CDC6B8;
+  --pw-text-muted: #A29A8C;
+
+  --pw-border-subtle: rgba(232, 220, 200, 0.10);
+  --pw-border-strong: rgba(232, 220, 200, 0.18);
+  --pw-border-hover: rgba(232, 220, 200, 0.20);
+
+  --pw-spacing-xs: 4px;
+  --pw-spacing-sm: 8px;
+  --pw-spacing-md: 12px;
+  --pw-spacing-lg: 16px;
+  --pw-spacing-xl: 24px;
+  --pw-spacing-2xl: 32px;
+  --pw-spacing-3xl: 48px;
+  --pw-spacing-4xl: 64px;
+
+  --pw-radius-sm: 10px;
+  --pw-radius-md: 16px;
+  --pw-radius-lg: 24px;
+  --pw-radius-full: 9999px;
+
+  --pw-shadow-soft: 0 2px 16px rgba(0,0,0,0.22), 0 0 40px rgba(212,160,87,0.04);
+  --pw-shadow-warm: 0 4px 24px rgba(212,160,87,0.12), 0 0 60px rgba(212,160,87,0.06);
+  --pw-shadow-glow: 0 0 20px rgba(212,160,87,0.18), 0 0 40px rgba(212,160,87,0.08);
+
+  --pw-typography-font_sans: 'Avenir Next', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --pw-typography-font_serif: Georgia, 'Times New Roman', 'Palatino Linotype', serif;
+  --pw-typography-font_mono: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+  --pw-typography-size_h1: clamp(30px, 4.4vw, 44px);
+  --pw-typography-size_lead: 18px;
+  --pw-typography-size_body: 16px;
+  --pw-typography-size_small: 14px;
+  --pw-typography-size_micro: 12px;
+  --pw-typography-size_label: 12.5px;
+
+
+}
 
 [data-theme="moss"] {
   --pw-surface-void: #080D0A;
@@ -194,68 +271,6 @@
   --pw-typography-size_small: 13px;
   --pw-typography-size_micro: 11px;
   --pw-typography-size_label: 10px;
-
-
-}
-:root {
-  --pw-surface-void: #080B14;
-  --pw-surface-canvas: #0C101C;
-  --pw-surface-hull: #131926;
-  --pw-surface-panel: #1E2636;
-  --pw-surface-elevated: #273144;
-  --pw-surface-raised: #2D3A4E;
-
-  --pw-accent-primary: #72b1b1;
-  --pw-accent-on_primary: #0a2830;
-  --pw-accent-secondary: #C47D6D;
-  --pw-accent-warm: #D4A057;
-  --pw-accent-warm_soft: rgba(212, 160, 87, 0.16);
-  --pw-accent-gold: #C9A227;
-  --pw-accent-gold_soft: rgba(201, 162, 39, 0.14);
-  --pw-accent-green: #6A9A66;
-  --pw-accent-green_soft: rgba(106, 154, 102, 0.16);
-  --pw-accent-coral: #C47D6D;
-  --pw-accent-coral_soft: rgba(196, 125, 109, 0.14);
-  --pw-accent-teal: #5A9E9E;
-  --pw-accent-teal_soft: rgba(90, 158, 158, 0.14);
-  --pw-accent-lavender: #9B8EC4;
-  --pw-accent-lavender_soft: rgba(155, 142, 196, 0.14);
-
-  --pw-text-primary: #EDE7DB;
-  --pw-text-secondary: #CDC6B8;
-  --pw-text-muted: #A29A8C;
-
-  --pw-border-subtle: rgba(232, 220, 200, 0.10);
-  --pw-border-strong: rgba(232, 220, 200, 0.18);
-  --pw-border-hover: rgba(232, 220, 200, 0.20);
-
-  --pw-spacing-xs: 4px;
-  --pw-spacing-sm: 8px;
-  --pw-spacing-md: 12px;
-  --pw-spacing-lg: 16px;
-  --pw-spacing-xl: 24px;
-  --pw-spacing-2xl: 32px;
-  --pw-spacing-3xl: 48px;
-  --pw-spacing-4xl: 64px;
-
-  --pw-radius-sm: 10px;
-  --pw-radius-md: 16px;
-  --pw-radius-lg: 24px;
-  --pw-radius-full: 9999px;
-
-  --pw-shadow-soft: 0 2px 16px rgba(0,0,0,0.22), 0 0 40px rgba(212,160,87,0.04);
-  --pw-shadow-warm: 0 4px 24px rgba(212,160,87,0.12), 0 0 60px rgba(212,160,87,0.06);
-  --pw-shadow-glow: 0 0 20px rgba(212,160,87,0.18), 0 0 40px rgba(212,160,87,0.08);
-
-  --pw-typography-font_sans: 'Avenir Next', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --pw-typography-font_serif: Georgia, 'Times New Roman', 'Palatino Linotype', serif;
-  --pw-typography-font_mono: 'SF Mono', 'Cascadia Code', Consolas, monospace;
-  --pw-typography-size_h1: clamp(30px, 4.4vw, 44px);
-  --pw-typography-size_lead: 18px;
-  --pw-typography-size_body: 16px;
-  --pw-typography-size_small: 14px;
-  --pw-typography-size_micro: 12px;
-  --pw-typography-size_label: 12.5px;
 
 
 }

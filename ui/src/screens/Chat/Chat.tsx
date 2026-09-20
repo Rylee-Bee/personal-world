@@ -166,7 +166,7 @@ export function Chat() {
 
       {/* Header + provider selector */}
       <header className="flex items-center justify-between border-b border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-xl)] py-[var(--pw-spacing-lg)]">
-        <h1 className="text-[var(--pw-typography-size_h2)] font-semibold text-[var(--pw-text-primary)]">
+        <h1 className="text-[var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
           Chat
         </h1>
 
@@ -237,7 +237,7 @@ export function Chat() {
             aria-label="Message input"
             placeholder="Type a message…"
             rows={1}
-            className="flex-1 resize-none rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-elevated)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-none focus:ring-2 focus:ring-[#72b1b1]"
+            className="flex-1 resize-none rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-elevated)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           />
           <WorldButton
             variant="primary"
@@ -260,7 +260,7 @@ function SkipLink() {
   return (
     <a
       href="#main-content"
-      className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-[var(--pw-radius-sm)] focus:bg-[var(--pw-surface-panel)] focus:px-[var(--pw-spacing-lg)] focus:py-[var(--pw-spacing-sm)] focus:text-[var(--pw-text-primary)] focus:ring-2 focus:ring-[#72b1b1]"
+      className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-[var(--pw-radius-sm)] focus:bg-[var(--pw-surface-panel)] focus:px-[var(--pw-spacing-lg)] focus:py-[var(--pw-spacing-sm)] focus:text-[var(--pw-text-primary)] focus:ring-2 focus:ring-[var(--pw-accent-primary)]"
     >
       Skip to main content
     </a>
@@ -319,7 +319,7 @@ function ProviderSelector({
         value={selected ?? ""}
         onChange={(e) => onChange(e.target.value || undefined)}
         aria-label="Select chat provider"
-        className="rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-elevated)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-text-primary)] focus:outline-none focus:ring-2 focus:ring-[#72b1b1] min-h-[var(--pw-targets-minimum)]"
+        className="rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-elevated)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-text-primary)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)] min-h-[var(--pw-targets-minimum)]"
       >
         <option value="">Default provider</option>
         {providers.map((p) => (

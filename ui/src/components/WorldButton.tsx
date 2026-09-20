@@ -19,7 +19,7 @@ export function WorldButton({
 }: WorldButtonProps) {
   const base =
     "inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium " +
-    "transition-colors duration-150 " +
+    "transition-colors duration-150 motion-reduce:transition-none " +
     "disabled:opacity-50 disabled:cursor-not-allowed " +
     "min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] " +
     "px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)]";

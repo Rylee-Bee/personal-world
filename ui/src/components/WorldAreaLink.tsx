@@ -17,7 +17,7 @@ export function WorldAreaLink({ area, isActive = false, onClick }: WorldAreaLink
   const classes = [
     "flex items-center gap-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-medium",
     "min-h-[var(--pw-targets-minimum)]",
-    "transition-colors duration-150",
+    "transition-colors duration-150 motion-reduce:transition-none",
     "no-underline",
     isActive
       ? "bg-[var(--pw-accent-warm_soft)] text-[var(--pw-accent-warm)]"
