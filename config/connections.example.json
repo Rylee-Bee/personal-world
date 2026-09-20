@@ -13,7 +13,7 @@
       "type": "openai_compat",
       "name": "mimo-xiaomi",
       "capability": "reasoning",
-      "base_url": "https://token-plan-sgp.xiaomimimo.com/v1",
+      "base_url": "https://mimo.example.invalid:8081/v1",
       "model": "mimo-v2.5",
       "api_key_env": "XIAOMI_MIMO_API_KEY",
       "timeout": 120,
