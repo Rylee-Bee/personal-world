@@ -21,7 +21,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SIBLING_REPO="${VNEXT_SOURCE:-/home/rylee/code/Rylee-Bee/pw-vnext-station}"
+SIBLING_REPO="${VNEXT_SOURCE:?Set VNEXT_SOURCE to your local pw-vnext-station checkout path}"
 DIST="$SIBLING_REPO/ui/dist"
 DEST="$REPO_ROOT/src/personal_world/static/vnext"
 
