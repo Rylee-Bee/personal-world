@@ -125,7 +125,7 @@ function WriteForm() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={4}
-          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--pw-accent-teal)]"
+          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           placeholder="Write your thoughts…"
           aria-describedby={writeMutation.isError ? "write-error" : undefined}
         />
@@ -206,7 +206,7 @@ function SupersedeDrawer({ entryId, onClose }: SupersedeDrawerProps) {
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={3}
-          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--pw-accent-teal)]"
+          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           placeholder="Why is this entry being superseded?"
           aria-describedby={
             supersedeMutation.isError ? "supersede-error" : undefined

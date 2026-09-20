@@ -1,97 +1,80 @@
 /**
  * Vault — Secret and provider configuration screen.
  *
- * Manages encrypted secrets and displays connected provider capabilities.
- * Uses direct fetch calls since vault endpoints are not yet in the
- * generated OpenAPI spec.
+ * All data flows through the typed hook layer (src/data/hooks.ts →
+ * src/data/api.ts → generated OpenAPI contract). The contract for
+ * /api/vault/* is `{name, value}` bodies and an `{ok, data}` envelope —
+ * the hand-rolled `{key, value}` fetch this screen used before violated
+ * it. There is no secret_count on the status endpoint; the count is
+ * derived from the names list.
+ *
+ * Delete confirmation is a native <dialog> with showModal(): modal,
+ * focus trapped, initial focus on the safe action, Escape cancels,
+ * background inert, focus returns to the invoking control (§3.3).
  */
 
-import { useState, useEffect, useCallback, useRef, type KeyboardEvent } from "react";
-import { useStatus } from "../../data/hooks";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useStatus,
+  useVaultStatus,
+  useVaultNames,
+  useUnlockVault,
+  useLockVault,
+  useSetVaultSecret,
+  useDeleteVaultSecret,
+} from "../../data/hooks";
+import { describeError } from "../../data/errors";
 import { STATUS_LABELS, type CapabilityStatus } from "../../data/types";
 
-// ─── Vault API (not in generated spec yet) ────────────────
+// ─── Button classes (shared by the screen; motion guarded per §6.2) ──────
 
-interface VaultStatusResponse {
-  locked: boolean;
-  encrypted: boolean;
-  secret_count: number;
-}
+const BTN_BASE =
+  "inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium " +
+  "transition-colors duration-150 motion-reduce:transition-none " +
+  "min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] " +
+  "py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)]";
 
-const VAULT_BASE = "/api/vault";
+const BTN_PLAIN =
+  `${BTN_BASE} px-[var(--pw-spacing-lg)] bg-[var(--pw-surface-panel)] text-[var(--pw-text-primary)] ` +
+  "border border-[var(--pw-border-subtle)] hover:bg-[var(--pw-surface-elevated)] active:bg-[var(--pw-surface-hull)]";
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${VAULT_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
-  if (!res.ok) {
-    throw new Error(`Vault request failed: ${res.status}`);
-  }
-  return res.json() as Promise<T>;
-}
+const BTN_PLAIN_SM =
+  `${BTN_BASE} px-[var(--pw-spacing-md)] bg-[var(--pw-surface-panel)] text-[var(--pw-text-primary)] ` +
+  "border border-[var(--pw-border-subtle)] hover:bg-[var(--pw-surface-elevated)] active:bg-[var(--pw-surface-hull)]";
 
-function useVaultStatus() {
-  const [data, setData] = useState<VaultStatusResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const BTN_WARM =
+  `${BTN_BASE} px-[var(--pw-spacing-lg)] bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)] ` +
+  "hover:brightness-110 active:brightness-90";
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const status = await apiFetch<VaultStatusResponse>("/status");
-      setData(status);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load vault status");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+const BTN_CORAL =
+  `${BTN_BASE} px-[var(--pw-spacing-lg)] bg-[var(--pw-accent-coral)] text-[var(--pw-surface-void)] ` +
+  "hover:brightness-110 active:brightness-90";
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  return { data, loading, error, refresh };
-}
-
-function useVaultNames(locked: boolean) {
-  const [names, setNames] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    if (locked) {
-      setNames([]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await apiFetch<string[]>("/names");
-      setNames(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load secret names");
-    } finally {
-      setLoading(false);
-    }
-  }, [locked]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  return { names, loading, error, refresh };
-}
+const INPUT_BASE =
+  "w-full rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] " +
+  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] " +
+  "text-[var(--pw-text-primary)] min-h-[var(--pw-targets-minimum)] " +
+  "focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
 
 // ─── Component ────────────────────────────────────────────
 
 export function Vault() {
   const statusQuery = useStatus();
-  const vaultStatus = useVaultStatus();
-  const [locked, setLocked] = useState(true);
-  const secretNames = useVaultNames(locked);
+  const vaultStatusQuery = useVaultStatus();
+  const vaultLocked = vaultStatusQuery.data?.data?.locked ?? true;
+  const encrypted = vaultStatusQuery.data?.data?.encrypted ?? false;
+
+  // The backend answers 409 on /names while the vault is locked.
+  const namesQuery = useVaultNames({ enabled: !vaultLocked });
+  const secretNames = namesQuery.data?.data?.names ?? [];
+
+  const unlockVault = useUnlockVault();
+  const lockVault = useLockVault();
+  const setSecret = useSetVaultSecret();
+  const deleteSecret = useDeleteVaultSecret();
+
+  // Unlock form state
+  const [passphrase, setPassphrase] = useState("");
 
   // Secret form state
   const [formOpen, setFormOpen] = useState(false);
@@ -99,62 +82,49 @@ export function Vault() {
   const [formKey, setFormKey] = useState("");
   const [formValue, setFormValue] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [formSubmitting, setFormSubmitting] = useState(false);
+
+  // List-level notice for failures that happen outside the form (delete)
+  const [listNotice, setListNotice] = useState<string | null>(null);
 
   // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
 
-  // Focus cancel button when delete dialog opens
+  // Native modal dialog lifecycle + focus return (§3.3)
   useEffect(() => {
-    if (deleteTarget && cancelRef.current) {
-      cancelRef.current.focus();
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (deleteTarget) {
+      if (!dialog.open) {
+        dialog.showModal(); // moves focus in; traps Tab; makes background inert
+      }
+    } else {
+      if (dialog.open) {
+        dialog.close();
+      }
+      const trigger = triggerRef.current;
+      triggerRef.current = null;
+      trigger?.focus();
     }
   }, [deleteTarget]);
 
-  const handleUnlock = useCallback(async () => {
-    try {
-      await apiFetch("/unlock", { method: "POST" });
-      setLocked(false);
-      await vaultStatus.refresh();
-    } catch {
-      // status will reflect locked state
-    }
-  }, [vaultStatus]);
-
-  const handleLock = useCallback(async () => {
-    try {
-      await apiFetch("/lock", { method: "POST" });
-      setLocked(true);
-      await vaultStatus.refresh();
-    } catch {
-      // status will reflect locked state
-    }
-  }, [vaultStatus]);
-
-  const handleToggleLock = useCallback(() => {
-    if (locked) {
-      void handleUnlock();
-    } else {
-      void handleLock();
-    }
-  }, [locked, handleUnlock, handleLock]);
-
-  const handleAddNew = useCallback(() => {
-    setEditingName(null);
-    setFormKey("");
-    setFormValue("");
-    setFormError(null);
-    setFormOpen(true);
+  const closeDeleteDialog = useCallback(() => {
+    setDeleteTarget(null);
   }, []);
 
-  const handleEditSecret = useCallback((name: string) => {
-    setEditingName(name);
-    setFormKey(name);
-    setFormValue("");
-    setFormError(null);
-    setFormOpen(true);
-  }, []);
+  const openForm = useCallback(
+    (name: string | null) => {
+      setEditingName(name);
+      setFormKey(name ?? "");
+      setFormValue("");
+      setFormError(null);
+      setListNotice(null);
+      setSecret.reset();
+      setFormOpen(true);
+    },
+    [setSecret],
+  );
 
   const handleFormCancel = useCallback(() => {
     setFormOpen(false);
@@ -162,58 +132,96 @@ export function Vault() {
     setFormKey("");
     setFormValue("");
     setFormError(null);
-  }, []);
+    setSecret.reset();
+  }, [setSecret]);
 
-  const handleFormSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formKey.trim()) {
-      setFormError("Secret name is required");
-      return;
-    }
-    if (!formValue.trim() && !editingName) {
-      setFormError("Secret value is required");
-      return;
-    }
+  const handleFormSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!formKey.trim()) {
+        setFormError("Secret name is required");
+        return;
+      }
+      if (!formValue.trim() && !editingName) {
+        setFormError("Secret value is required");
+        return;
+      }
+      if (editingName && !formValue.trim()) {
+        // The placeholder promises blank keeps the current value —
+        // posting "" here would overwrite the secret with an empty
+        // string. Nothing to change: close honestly instead.
+        handleFormCancel();
+        return;
+      }
+      // Contract body: {name, value}. Step-up 403 surfaces as an inline
+      // message instead of a silent failure.
+      setSecret.mutate(
+        { name: formKey.trim(), value: formValue },
+        {
+          onSuccess: () => {
+            setFormOpen(false);
+            setEditingName(null);
+            setFormKey("");
+            setFormValue("");
+            setFormError(null);
+          },
+          onError: (err) => {
+            setFormError(describeError(err, "Failed to save secret"));
+          },
+        },
+      );
+    },
+    [formKey, formValue, editingName, setSecret, handleFormCancel],
+  );
 
-    setFormSubmitting(true);
-    setFormError(null);
-    try {
-      await apiFetch("/set", {
-        method: "POST",
-        body: JSON.stringify({ key: formKey.trim(), value: formValue }),
-      });
-      setFormOpen(false);
-      setEditingName(null);
-      setFormKey("");
-      setFormValue("");
-      await secretNames.refresh();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to save secret");
-    } finally {
-      setFormSubmitting(false);
-    }
-  }, [formKey, formValue, editingName, secretNames]);
-
-  const handleConfirmDelete = useCallback(async () => {
+  const handleConfirmDelete = useCallback(() => {
     if (!deleteTarget) return;
-    try {
-      await apiFetch(`/${encodeURIComponent(deleteTarget)}`, {
-        method: "DELETE",
-      });
-      setDeleteTarget(null);
-      await secretNames.refresh();
-      await vaultStatus.refresh();
-    } catch {
-      // Delete failed — dialog closes, list may be stale
-      setDeleteTarget(null);
-    }
-  }, [deleteTarget, secretNames, vaultStatus]);
+    deleteSecret.mutate(deleteTarget, {
+      onSuccess: () => {
+        setListNotice(null);
+        closeDeleteDialog();
+      },
+      onError: (err) => {
+        setListNotice(describeError(err, `Failed to delete ${deleteTarget}`));
+        closeDeleteDialog();
+      },
+    });
+  }, [deleteTarget, deleteSecret, closeDeleteDialog]);
 
-  const handleDeleteDialogKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      setDeleteTarget(null);
-    }
-  }, []);
+  const handleUnlockSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!passphrase) return;
+      unlockVault.mutate(passphrase, {
+        onSuccess: () => {
+          setPassphrase("");
+          setListNotice(null);
+        },
+        onError: (err) => {
+          setListNotice(describeError(err, "Unlock failed."));
+        },
+      });
+    },
+    [passphrase, unlockVault],
+  );
+
+  const handleLock = useCallback(() => {
+    lockVault.mutate(undefined, {
+      onSuccess: () => setListNotice(null),
+      onError: (err) =>
+        setListNotice(describeError(err, "Lock failed.")),
+    });
+  }, [lockVault]);
+
+  // Click on the backdrop area (the dialog box itself, outside the panel)
+  const handleDialogBackdropClick = useCallback(
+    (e: React.MouseEvent<HTMLDialogElement>) => {
+      if (e.target === dialogRef.current) {
+        closeDeleteDialog();
+      }
+    },
+    [closeDeleteDialog],
+  );
 
   // Derive capabilities from status query
   const capabilities = statusQuery.data
@@ -227,7 +235,7 @@ export function Vault() {
 
   // ─── Loading / error states ───────────────────────────────
 
-  if (vaultStatus.loading && !vaultStatus.data) {
+  if (vaultStatusQuery.isPending) {
     return (
       <main id="main-content" className="relative z-10 p-[var(--pw-spacing-xl)]" aria-label="Vault">
         <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
@@ -238,7 +246,7 @@ export function Vault() {
     );
   }
 
-  if (vaultStatus.error) {
+  if (vaultStatusQuery.isError) {
     return (
       <main id="main-content" className="relative z-10 p-[var(--pw-spacing-xl)]" aria-label="Vault">
         <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
@@ -248,15 +256,11 @@ export function Vault() {
           Unable to load vault.
         </p>
         <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
-          {vaultStatus.error}
+          {describeError(vaultStatusQuery.error, "Vault status request failed.")}
         </p>
       </main>
     );
   }
-
-  const vaultLocked = vaultStatus.data?.locked ?? true;
-  const encrypted = vaultStatus.data?.encrypted ?? false;
-  const secretCount = vaultStatus.data?.secret_count ?? 0;
 
   // ─── Main render ───────────────────────────────────────────
 
@@ -265,7 +269,7 @@ export function Vault() {
       {/* Skip to main content */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-[var(--pw-radius-sm)] focus:bg-[var(--pw-surface-panel)] focus:p-[var(--pw-spacing-md)] focus:text-[var(--pw-text-primary)] focus:outline-2 focus:outline-[#72b1b1]"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-[var(--pw-radius-sm)] focus:bg-[var(--pw-surface-panel)] focus:p-[var(--pw-spacing-md)] focus:text-[var(--pw-text-primary)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
       >
         Skip to main content
       </a>
@@ -299,21 +303,78 @@ export function Vault() {
                 <span>
                   {encrypted ? "Encrypted" : "Not encrypted"}
                 </span>
-                <span>
-                  {secretCount} {secretCount === 1 ? "secret" : "secrets"}
-                </span>
+                {/* The status endpoint reports no count; only the unlocked
+                    names list can say how many secrets exist. */}
+                {!vaultLocked && (
+                  <span>
+                    {namesQuery.isPending
+                      ? "Counting secrets…"
+                      : `${secretNames.length} ${secretNames.length === 1 ? "secret" : "secrets"}`}
+                  </span>
+                )}
               </div>
             </div>
+            {vaultLocked ? (
+              <form
+                onSubmit={handleUnlockSubmit}
+                className="flex items-center gap-[var(--pw-spacing-md)]"
+              >
+                <label htmlFor="vault-passphrase" className="sr-only">
+                  Vault passphrase
+                </label>
+                <input
+                  id="vault-passphrase"
+                  type="password"
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                  className={`${INPUT_BASE} max-w-[240px]`}
+                  placeholder="Passphrase"
+                  autoComplete="current-password"
+                  aria-describedby={unlockVault.isError ? "vault-unlock-error" : undefined}
+                />
+                <button
+                  type="submit"
+                  disabled={unlockVault.isPending || !passphrase}
+                  className={`${BTN_PLAIN} disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {unlockVault.isPending ? "Unlocking…" : "Unlock"}
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLock}
+                disabled={lockVault.isPending}
+                className={`${BTN_PLAIN} disabled:opacity-50 disabled:cursor-not-allowed`}
+                aria-label="Lock vault"
+              >
+                {lockVault.isPending ? "Locking…" : "Lock"}
+              </button>
+            )}
+          </div>
+          {vaultStatusQuery.data?.data?.warning && (
+            <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]" role="note">
+              {vaultStatusQuery.data.data.warning}
+            </p>
+          )}
+        </section>
+
+        {/* Action notices */}
+        {listNotice && (
+          <p
+            role="alert"
+            className="mb-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+          >
+            {listNotice}
             <button
               type="button"
-              onClick={handleToggleLock}
-              className="inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium transition-colors duration-150 min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] bg-[var(--pw-surface-panel)] text-[var(--pw-text-primary)] border border-[var(--pw-border-subtle)] hover:bg-[var(--pw-surface-elevated)] active:bg-[var(--pw-surface-hull)]"
-              aria-label={vaultLocked ? "Unlock vault" : "Lock vault"}
+              onClick={() => setListNotice(null)}
+              className="ml-[var(--pw-spacing-md)] text-[var(--pw-accent-primary)] underline"
             >
-              {vaultLocked ? "Unlock" : "Lock"}
+              Dismiss
             </button>
-          </div>
-        </section>
+          </p>
+        )}
 
         {/* Secrets section */}
         <section aria-label="Secrets" className="mb-[var(--pw-spacing-2xl)]">
@@ -324,8 +385,8 @@ export function Vault() {
             {!vaultLocked && (
               <button
                 type="button"
-                onClick={handleAddNew}
-                className="inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium transition-colors duration-150 min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)] hover:brightness-110 active:brightness-90"
+                onClick={() => openForm(null)}
+                className={BTN_WARM}
                 aria-label="Add new secret"
               >
                 Add secret
@@ -340,21 +401,21 @@ export function Vault() {
                 Unlock the vault to view secrets.
               </p>
             </div>
-          ) : secretNames.loading ? (
+          ) : namesQuery.isLoading ? (
             /* Loading state */
             <div className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]">
               <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
                 Loading…
               </p>
             </div>
-          ) : secretNames.error ? (
+          ) : namesQuery.isError ? (
             /* Error state */
             <div className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]">
               <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-                {secretNames.error}
+                {describeError(namesQuery.error, "Failed to load secret names")}
               </p>
             </div>
-          ) : secretNames.names.length === 0 ? (
+          ) : secretNames.length === 0 ? (
             /* Empty state */
             <div className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] text-center">
               <p className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-muted)]">
@@ -365,7 +426,7 @@ export function Vault() {
             /* Secret list */
             <div className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]">
               <ul className="divide-y divide-[var(--pw-border-subtle)]">
-                {secretNames.names.map((name) => (
+                {secretNames.map((name) => (
                   <li
                     key={name}
                     className="flex items-center gap-[var(--pw-spacing-md)] p-[var(--pw-spacing-md)]"
@@ -375,16 +436,19 @@ export function Vault() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleEditSecret(name)}
-                      className="inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium transition-colors duration-150 min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] bg-[var(--pw-surface-panel)] text-[var(--pw-text-primary)] border border-[var(--pw-border-subtle)] hover:bg-[var(--pw-surface-elevated)] active:bg-[var(--pw-surface-hull)]"
+                      onClick={() => openForm(name)}
+                      className={BTN_PLAIN_SM}
                       aria-label={`Edit secret ${name}`}
                     >
                       Edit
                     </button>
                     <button
                       type="button"
-                      onClick={() => setDeleteTarget(name)}
-                      className="inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium transition-colors duration-150 min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] bg-[var(--pw-surface-panel)] text-[var(--pw-accent-coral)] border border-[var(--pw-border-subtle)] hover:bg-[var(--pw-surface-elevated)] active:bg-[var(--pw-surface-hull)]"
+                      onClick={(e) => {
+                        triggerRef.current = e.currentTarget;
+                        setDeleteTarget(name);
+                      }}
+                      className={`${BTN_PLAIN_SM} text-[var(--pw-accent-coral)]`}
                       aria-label={`Delete secret ${name}`}
                     >
                       Delete
@@ -405,7 +469,7 @@ export function Vault() {
             <h2 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-[var(--pw-spacing-md)]">
               {editingName ? "Edit secret" : "Add secret"}
             </h2>
-            <form onSubmit={void handleFormSubmit}>
+            <form onSubmit={handleFormSubmit}>
               <div className="space-y-[var(--pw-spacing-md)]">
                 <div>
                   <label
@@ -421,7 +485,7 @@ export function Vault() {
                     onChange={(e) => setFormKey(e.target.value)}
                     disabled={!!editingName}
                     readOnly={!!editingName}
-                    className="w-full rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-primary)] min-h-[var(--pw-targets-minimum)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-2 focus:outline-[#72b1b1]"
+                    className={`${INPUT_BASE} disabled:opacity-50 disabled:cursor-not-allowed`}
                     placeholder="e.g. API_KEY"
                     required
                     aria-label="Secret name"
@@ -439,7 +503,7 @@ export function Vault() {
                     type="password"
                     value={formValue}
                     onChange={(e) => setFormValue(e.target.value)}
-                    className="w-full rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-primary)] min-h-[var(--pw-targets-minimum)] focus:outline-2 focus:outline-[#72b1b1]"
+                    className={INPUT_BASE}
                     placeholder={editingName ? "New value (leave blank to keep current)" : "Enter secret value"}
                     required={!editingName}
                     aria-label="Secret value"
@@ -453,22 +517,28 @@ export function Vault() {
                 <div className="flex gap-[var(--pw-spacing-md)]">
                   <button
                     type="submit"
-                    disabled={formSubmitting}
-                    className="inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium transition-colors duration-150 min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)] hover:brightness-110 active:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={setSecret.isPending}
+                    className={`${BTN_WARM} disabled:opacity-50 disabled:cursor-not-allowed`}
                     aria-label={editingName ? "Save changes" : "Save secret"}
                   >
-                    {formSubmitting ? "Saving…" : editingName ? "Save changes" : "Save secret"}
+                    {setSecret.isPending ? "Saving…" : editingName ? "Save changes" : "Save secret"}
                   </button>
                   <button
                     type="button"
                     onClick={handleFormCancel}
-                    disabled={formSubmitting}
-                    className="inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium transition-colors duration-150 min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] bg-[var(--pw-surface-panel)] text-[var(--pw-text-primary)] border border-[var(--pw-border-subtle)] hover:bg-[var(--pw-surface-elevated)] active:bg-[var(--pw-surface-hull)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={setSecret.isPending}
+                    className={`${BTN_PLAIN} disabled:opacity-50 disabled:cursor-not-allowed`}
                     aria-label="Cancel"
                   >
                     Cancel
                   </button>
                 </div>
+                <p
+                  className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] italic"
+                  role="note"
+                >
+                  Saving a secret requires step-up authentication
+                </p>
               </div>
             </form>
           </section>
@@ -523,56 +593,59 @@ export function Vault() {
         </section>
       </main>
 
-      {/* Delete confirmation dialog */}
-      {deleteTarget && (
+      {/* Delete confirmation — native modal dialog (§3.3). Hidden until
+          showModal(); open:grid restores the centered layout while open. */}
+      <dialog
+        ref={dialogRef}
+        role="alertdialog"
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-desc"
+        onClick={handleDialogBackdropClick}
+        onCancel={(e) => {
+          // Escape — cancel is the safe action: nothing deleted.
+          e.preventDefault();
+          closeDeleteDialog();
+        }}
+        className="hidden open:grid fixed inset-0 z-50 m-0 h-full max-h-full w-full max-w-full place-items-center bg-black/60 p-[var(--pw-spacing-xl)] text-[var(--pw-text-primary)]"
+      >
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          role="presentation"
-          onKeyDown={handleDeleteDialogKeyDown}
+          className="w-full max-w-md rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-xl)] mx-[var(--pw-spacing-xl)]"
         >
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="delete-dialog-title"
-            aria-describedby="delete-dialog-desc"
-            className="w-full max-w-md rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-xl)] mx-[var(--pw-spacing-xl)]"
+          <h2
+            id="delete-dialog-title"
+            className="text-[var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)]"
           >
-            <h2
-              id="delete-dialog-title"
-              className="text-[var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)]"
+            Delete secret
+          </h2>
+          <p
+            id="delete-dialog-desc"
+            className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+          >
+            Are you sure you want to delete{" "}
+            <span className="font-medium text-[var(--pw-text-primary)]">{deleteTarget}</span>?
+            This cannot be undone.
+          </p>
+          <div className="mt-[var(--pw-spacing-xl)] flex justify-end gap-[var(--pw-spacing-md)]">
+            <button
+              type="button"
+              onClick={closeDeleteDialog}
+              className={BTN_PLAIN}
+              aria-label="Cancel delete"
             >
-              Delete secret
-            </h2>
-            <p
-              id="delete-dialog-desc"
-              className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDelete}
+              disabled={deleteSecret.isPending}
+              className={`${BTN_CORAL} disabled:opacity-50 disabled:cursor-not-allowed`}
+              aria-label={`Confirm delete secret ${deleteTarget ?? ""}`}
             >
-              Are you sure you want to delete{" "}
-              <span className="font-medium text-[var(--pw-text-primary)]">{deleteTarget}</span>?
-              This cannot be undone.
-            </p>
-            <div className="mt-[var(--pw-spacing-xl)] flex justify-end gap-[var(--pw-spacing-md)]">
-              <button
-                ref={cancelRef}
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                className="inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium transition-colors duration-150 min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] bg-[var(--pw-surface-panel)] text-[var(--pw-text-primary)] border border-[var(--pw-border-subtle)] hover:bg-[var(--pw-surface-elevated)] active:bg-[var(--pw-surface-hull)]"
-                aria-label="Cancel delete"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={void handleConfirmDelete}
-                className="inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium transition-colors duration-150 min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] bg-[var(--pw-accent-coral)] text-[var(--pw-surface-void)] hover:brightness-110 active:brightness-90"
-                aria-label={`Confirm delete secret ${deleteTarget}`}
-              >
-                Delete
-              </button>
-            </div>
+              {deleteSecret.isPending ? "Deleting…" : "Delete"}
+            </button>
           </div>
         </div>
-      )}
+      </dialog>
     </>
   );
 }

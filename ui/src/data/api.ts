@@ -54,10 +54,12 @@ async function unwrap<T>(promise: Promise<{ data?: T; error?: unknown; response:
   const { data, error, response } = await promise;
 
   if (error) {
-    const errObj = error as { message?: string; code?: string; detail?: string };
+    const errObj = error as { message?: string; detail?: string; code?: string };
     throw new ApiError(
       response.status,
-      errObj.message || `HTTP ${response.status}`,
+      // FastAPI HTTPException bodies arrive as {detail} — surface it so
+      // error state is real, not a bare "HTTP 4xx".
+      errObj.message || errObj.detail || `HTTP ${response.status}`,
       errObj.code,
       errObj.detail
     );
@@ -206,9 +208,15 @@ export const getPrefsSchema = () =>
 export const getSections = () =>
   unwrap(api.GET("/api/sections", {}));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const putSections = (body: any) =>
-  unwrap(withStepUp(() => api.PUT("/api/sections", { body })));
+export const putSections = (body: { sections: Record<string, unknown>[] }) =>
+  // openapi-typescript renders a bare `type: object` schema as
+  // `{ [x: string]: never }`, which is type-level fiction — the wire
+  // shape is {sections: [...]} per server docs. Cast at the boundary.
+  unwrap(
+    withStepUp(() =>
+      api.PUT("/api/sections", { body: body as unknown as Record<string, never> }),
+    )
+  );
 
 // ===== Reminders =====
 export const listReminders = () =>
