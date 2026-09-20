@@ -451,6 +451,17 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     app.include_router(station_router(data_dir))
 
+    # --- Station vNext (React UI): served side-by-side at /vnext/ so the
+    # production Station at /station/ stays live while the React rewrite
+    # is tested. Same auth gate (same require_auth credential seam).
+    # The build artifacts live at src/personal_world/static/vnext/ — they
+    # are copied from the sibling pw-vnext-station repo's `ui/dist/`.
+    # When this UI is promoted to /station/, the /vnext/ mount can be
+    # removed. Until then: both run, neither blocks the other.
+    from .station_ui import vnext_router
+
+    app.include_router(vnext_router(data_dir))
+
     # --- Encrypted worlds backup/restore (SOS hatch, owner decision #4) ---
     # Step-up gated; fails closed without the crypto extra. Registered after
     # the Station so its /api/worlds/* routes sit with the other gated writes.

@@ -250,3 +250,120 @@ def station_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
         return _serve(request, full_path)
 
     return router
+
+
+# ── Station vNext (React UI) ────────────────────────────────────────
+# Served side-by-side with the Station at /vnext/ while the React
+# rewrite is tested. Same auth gate (same require_auth credential
+# seam), same allowlist pattern, same content types. Until this UI is
+# promoted to /station/, this mount is additive — the production
+# Station keeps running at /station/.
+VNEXT_PREFIX = "/vnext"
+
+VNEXT_NOT_INSTALLED_HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Station vNext not installed</title></head>
+<body><main><h1>Station vNext not installed</h1>
+<p>The React UI build was not packaged with this server. Run
+<code>npm run build</code> in <code>pw-vnext-station/ui</code> and copy
+<code>dist/*</code> to <code>src/personal_world/static/vnext/</code>.
+The vanilla Station UI at <a href="/station/">/station/</a> is unaffected.</p>
+</main></body></html>"""
+
+
+def default_vnext_dir() -> Path:
+    """The in-repo Station vNext React build."""
+    override = os.environ.get("PW_VNEXT_DIST")
+    if override:
+        return Path(override)
+    return Path(__file__).resolve().parent / "static" / "vnext"
+
+
+def vnext_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
+    """Build the ``/vnext`` router for the React rewrite.
+
+    ``data_dir`` supplies the first-run marker; ``dist`` overrides the
+    build directory (tests, or a deployment that ships the build elsewhere).
+    """
+    root = (dist or default_vnext_dir()).resolve()
+    allowlist = build_allowlist(root)
+    if not allowlist:
+        _logger.warning(
+            "Station vNext build not installed (%s); %s will report it "
+            "honestly instead of serving",
+            root.name or "unset",
+            VNEXT_PREFIX,
+        )
+
+    router = APIRouter()
+    data_dir = Path(data_dir)
+
+    async def _gate(request: Request) -> Response | None:
+        from .api import require_auth  # local import: api.py mounts us
+
+        if not (data_dir / "setup-complete").exists():
+            return RedirectResponse(url="/setup", status_code=303)
+        try:
+            await require_auth(request)
+        except HTTPException:
+            return RedirectResponse(url="/login", status_code=303)
+        return None
+
+    def _serve(request: Request, rel: str) -> Response:
+        from .api import _cached_file
+
+        path = allowlist.get(rel)
+        if path is None or not path.is_file():
+            # React SPAs: missing path = serve index.html so client-side
+            # routing can take over. Bare 404s break /vnext/* deep links.
+            path = allowlist.get("index.html")
+            if path is None:
+                return HTMLResponse(
+                    VNEXT_NOT_INSTALLED_HTML,
+                    status_code=503,
+                    headers={"Cache-Control": "no-store"},
+                )
+        ctype = CONTENT_TYPES.get(path.suffix.lower())
+        return _cached_file(request, path, ctype)
+
+    @router.get(VNEXT_PREFIX, include_in_schema=False)
+    async def vnext_root(request: Request):
+        blocked = await _gate(request)
+        if blocked is not None:
+            return blocked
+        if not allowlist:
+            return HTMLResponse(
+                VNEXT_NOT_INSTALLED_HTML,
+                status_code=503,
+                headers={"Cache-Control": "no-store"},
+            )
+        return _serve(request, "index.html")
+
+    @router.get(VNEXT_PREFIX + "/", include_in_schema=False)
+    async def vnext_index(request: Request):
+        blocked = await _gate(request)
+        if blocked is not None:
+            return blocked
+        if not allowlist:
+            return HTMLResponse(
+                VNEXT_NOT_INSTALLED_HTML,
+                status_code=503,
+                headers={"Cache-Control": "no-store"},
+            )
+        return _serve(request, "index.html")
+
+    @router.get(VNEXT_PREFIX + "/{full_path:path}", include_in_schema=False)
+    async def vnext_asset(full_path: str, request: Request):
+        blocked = await _gate(request)
+        if blocked is not None:
+            return blocked
+        if not allowlist:
+            return HTMLResponse(
+                VNEXT_NOT_INSTALLED_HTML,
+                status_code=503,
+                headers={"Cache-Control": "no-store"},
+            )
+        # SPA fallback: any path that isn't a real file becomes index.html.
+        # This is how Vite's preview/Vercel/etc. serve a React build.
+        return _serve(request, full_path)
+
+    return router
