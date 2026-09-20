@@ -1,7 +1,7 @@
 # POST-CONNECTIONS RECONCILIATION RECEIPT
 # branch: feat/workshop-v3-architecture
-# HEAD observed at report time: d0f575c
-# origin/main: e59b59c
+# HEAD observed at report time: 803cafd
+# origin/main: fffc11b
 # commits ahead of main: 22
 
 ---
@@ -69,8 +69,8 @@
 ## BRANCH STATE
 
 - **Branch**: feat/workshop-v3-architecture
-- **HEAD**: f871b2a
-- **origin/main**: e59b59c
+- **HEAD**: f73df40
+- **origin/main**: fffc11b
 - **20 commits ahead, 0 behind**
 - **Working tree**: clean (untracked dirs are dev artifacts, not committed)
 - **Merge boundary**: not yet merged — close #30, #31, #32, #36 after merge to main

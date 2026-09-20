@@ -63,13 +63,13 @@ help questions to whoever owns the answer.
 Created 2026-09-12 by an integration session (opencode/glm) during the
 Figma participant-pack integration pass, using
 `contractctl init-project` from play-nice-contracts v0.3.0 @
-`0c0ab7c5d03452fac1650260395b466305cdfa0a`. Session commitment bundle:
+`2bb60b4ab1765660d8565ae80f9b489adf91a286`. Session commitment bundle:
 `quay-sail-tundra`.
 
 Adoption pin bumped 2026-09-12 (contract-refresh pass, bcode/claude) to
-v0.5.0 @ `805f58b46fb59adefd1dee85dd99178d9dbaa1d9`, then bumped again the
+v0.5.0 @ `d6c97db20dfcd421e1cf0d856be07437d8b1754a`, then bumped again the
 same day (trunk-unification pass, bcode/claude) to **v0.6.0 @
-`21b6841a50a1b0d459a760861385e99679852430`** — each bump verified
+`0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad`** — each bump verified
 against the live repository (commit + `contracts.lock.json` fetched and
 diffed, not taken on assertion) before pinning. v0.5.0 delta from v0.3.0:
 two new always-applicable contracts (`participation-and-contribution`,
@@ -78,7 +78,7 @@ two new always-applicable contracts (`participation-and-contribution`,
 contract (`collaborative-good-faith`) and four version bumps
 (`ask-for-help`, `mutual-contribution`, `participation-and-contribution`,
 `orchestration`). Bumped again 2026-09-15 (docs/repository-truth pass) to
-**v0.7.0 @ `79cadaceb8654279f7b2be135fcd67ba138728fb`**: delta from
+**v0.7.0 @ `f825ffb1a0b49c054bbf54e0ba3c0b15441e3f0e`**: delta from
 v0.6.0 is one new always-applicable contract (`assume-unknown`) and a
 receipt rotation on the founding `play-nice-together` (1.5.0 → 1.6.0);
 no other adopted contract changed meaning. Verified with the real
@@ -87,7 +87,7 @@ no other adopted contract changed meaning. Verified with the real
 ACTIVE (bundle `dovetail-harbor-prairie`). Every new/changed contract read
 in full at each bump; no conflict found with how this project operates. The Figma pack's own
 attestation (`participants/figma/attestation.yaml`) is scoped to the
-original revision (receipt `nectar-heather-heather`, bundle `0c0ab7c5`)
+original revision (receipt `nectar-heather-heather`, bundle `2bb60b4a`)
 and is left unedited — participant-supplied provenance is never
 rewritten on her behalf (see
 `participants/figma/contract-return/NEXT-REVISION-NOTE.md` for the

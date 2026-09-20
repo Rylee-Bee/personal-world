@@ -74,7 +74,7 @@ profile:
       # compose; durable mount via systemd user unit; full UAT probe
       # with real operator rows + provenance + operations drill-ins.
     - restart-survivable-auth-fix
-      # boot-time token reconciliation (f8428af): the first test wrote
+      # boot-time token reconciliation (90fcabb): the first test wrote
       # assertions against an UNAUTHENTICATED route (/api/setup/status
       # has no require_auth) and passed vacuously; re-read the auth
       # seam, switched the assertions to /api/sections, then
@@ -87,7 +87,7 @@ profile:
     - canonical-freshness-verification-before-work
     - play-nice-onboarding-via-contractctl
       # fetched before interpreting state; detected another participant's
-      # push landing on main mid-work (05aa727) BEFORE pushing, rebased
+      # push landing on main mid-work (4abc5f2) BEFORE pushing, rebased
       # the single local commit (no file overlap) and re-verified.
     - play-nice-onboarding-via-contractctl
       # used real contractctl onboard --role orchestrator; full commit
@@ -186,13 +186,13 @@ unknowns:
 provenance:
   supplied_by: glm-5.3-flash
   observed_at: 2026-09-12T00:00:00Z
-  source_revision: 448bc27efe7faea214b824562923742496ae70ac
+  source_revision: 47c316f8605cdec5f267fafccbe8571ca4aa8fc4
   canonical_status: optional-non-authoritative
   import_method: >-
     Self-authored during the 2026-09-12 next-phase orchestration session
-    (commit 9343152), following the existing participant-v1 pack
+    (commit 282676b), following the existing participant-v1 pack
     conventions; extended the same day with the lab-integration phase's
     observed evidence (lab UAT against real truth, restart-survivable
     auth fix, vacuous-assertion failure mode) — evidence from commits
-    f8428af and the live test-env probes; original session evidence
-    (aa5e2da cache rework, ce328c6 lab wiring) preserved.
+    90fcabb and the live test-env probes; original session evidence
+    (bbd1b5f cache rework, 0a1a622 lab wiring) preserved.

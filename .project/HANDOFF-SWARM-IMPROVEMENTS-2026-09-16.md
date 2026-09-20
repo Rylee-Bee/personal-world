@@ -22,11 +22,11 @@ verified against live code before fixing; nothing counted on handoffs.
 
 ## Commits landed
 
-- `75e7493` — fix: source-control history tool (`TOOL-030`) + redact private topology + surface truth (pre-swarm launcher)
+- `e82c818` — fix: source-control history tool (`TOOL-030`) + redact private topology + surface truth (pre-swarm launcher)
 - security lane — `security: fail-closed step-up header grant, loopback-guarded setup writes, hardened probe URLs, 0600 session/env files` (SEC-01/03/04/06/08; 11 files)
 - correctness lane — `fix: media engine construction, journal/JSON robustness, scheduler durability, anthropic tool loop; perf + dead-code cleanup` (COR-01..12 subset, PERF-02/04, SIM-01/02/04; 14 files)
 - truth/testing lane — `truth + testing: manifest chat-history row, Station copy/a11y fixes, docs contradictions, public-safety gate widened, real-app backup test` (ACTION-01, STA-01..04, DOC-01/02/03/04/06/07/08/09, TEST-01/12; 13 files)
-- `c476003` + security lane 4 — `vault secret reads true-loopback person-only; principal ids validated against identity safe pattern` (SEC-02, COR-08)
+- `9202778` + security lane 4 — `vault secret reads true-loopback person-only; principal ids validated against identity safe pattern` (SEC-02, COR-08)
 
 ## Findings table (fixed)
 
@@ -66,9 +66,9 @@ State vocabulary: HIGH/MED/LOW, V=verified before fix, T=regression test added.
 | DOC-06 | Low | truth | QUICKSTART.md | Claimed e2e/axe gate "still to-do"; it is the standing gate | Real gates documented |
 | DOC-07 | Med | truth | SECURITY.md | "single-user" + Vite framing (multi-principal shipped; SPA removed) | Updated |
 | DOC-08/09 | Low | truth | .project/CURRENT.md, REPOSITORY-INVENTORY.md | `PW_FRONTEND_DIST` taught as canonical (deleted 2026-09-16) | Superseded notes; vars moved to inert bucket |
-| TOOL-030 | High | tools | tool_registry.py | `inspect_source_control_history` imported nonexistent `source_control.history` | Fixed to `repository_history` + name→path resolution; `TestHistoryToolRegression` (pre-swarm commit `75e7493`) |
+| TOOL-030 | High | tools | tool_registry.py | `inspect_source_control_history` imported nonexistent `source_control.history` | Fixed to `repository_history` + name→path resolution; `TestHistoryToolRegression` (pre-swarm commit `e82c818`) |
 
-Also pre-swarm in `75e7493`: private-topology redaction in `.project/CURRENT.md` and `docs/AUTHELIA-CLIENT-SNIPPET.md` (values not restated), ORPHANS.md audit entries.
+Also pre-swarm in `e82c818`: private-topology redaction in `.project/CURRENT.md` and `docs/AUTHELIA-CLIENT-SNIPPET.md` (values not restated), ORPHANS.md audit entries.
 
 ## Verification (exact)
 

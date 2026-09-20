@@ -3,7 +3,7 @@
 One combined handoff for everything this run accomplished. Detailed
 evidence lives in the companion files; this is the entry point.
 
-**Repo state:** `main` @ `7a7c7c3` (local; `origin/main` was `d8b14f27`
+**Repo state:** `main` @ `f4b063f` (local; `origin/main` was `3accaeee`
 when the run started — commits have not been pushed by this session).
 Still-dirty files `src/personal_world/identity.py`,
 `providers/adapters.py`, `tests/test_identity.py` are **another lane's
@@ -32,7 +32,7 @@ Station e2e `cd frontend && npm run test:e2e` → **25 passed, 1 skipped**
   `connections/validate` alias, webfont orphan, memory no-reindex gap,
   private topology in `.project/CURRENT.md`.
 
-### Phase 2 — Security/correctness launcher (`75e7493`)
+### Phase 2 — Security/correctness launcher (`e82c818`)
 - **TOOL-030 fixed:** `inspect_source_control_history` imported a
   nonexistent `source_control.history`; now resolves repo name→path via
   the same shape as `/api/source-control/history` and calls
@@ -45,8 +45,8 @@ Station e2e `cd frontend && npm run test:e2e` → **25 passed, 1 skipped**
 - Surface truth: ORPHANS.md updated with the audit (wired vs
   API/CLI-first vs archived/blocked classification preserved).
 
-### Phase 3 — 20-fix swarm pass (`0f71e03`, `122d1a7`, `c476003`,
-`193e47d`, `7a7c7c3`)
+### Phase 3 — 20-fix swarm pass (`f3afd0e`, `002d13c`, `9202778`,
+`4e24123`, `f4b063f`)
 Full ledger:
 `[HANDOFF-SWARM-IMPROVEMENTS-2026-09-16.md](./HANDOFF-SWARM-IMPROVEMENTS-2026-09-16.md)`.
 **66 verified findings → 37 fixed + tested, 21 deferred with reasons.**
@@ -108,12 +108,12 @@ registry-build waste removed (PERF-02); dead code deleted
 
 | SHA | What |
 |---|---|
-| `75e7493` | history tool fix + topology redaction + ORPHANS truth |
-| `0f71e03` | security lane (SEC-01/03/04/06/08; 11 files) |
-| `122d1a7` | correctness lane (media/journal/scheduler/anthropic/proposals/themes/setup + perf + dead code; 14 files) |
-| `c476003` | manifest + Station + docs truth + gate widening (13 files) |
-| `193e47d` | SEC-02 vault loopback/person-only + COR-08 id validation |
-| `7a7c7c3` | both handoff documents |
+| `e82c818` | history tool fix + topology redaction + ORPHANS truth |
+| `f3afd0e` | security lane (SEC-01/03/04/06/08; 11 files) |
+| `002d13c` | correctness lane (media/journal/scheduler/anthropic/proposals/themes/setup + perf + dead code; 14 files) |
+| `9202778` | manifest + Station + docs truth + gate widening (13 files) |
+| `4e24123` | SEC-02 vault loopback/person-only + COR-08 id validation |
+| `f4b063f` | both handoff documents |
 
 All committed via `scripts/safe-commit.sh` with explicit paths; full
 pytest ran inside the gate before each commit.
@@ -145,7 +145,7 @@ the now-final gates.
 ## 6. Next concrete actions
 1. Run the in-flight identity lane to completion and commit its 3 dirty
    files (not this run's work).
-2. Push `main` (6 local commits ahead of `d8b14f27`).
+2. Push `main` (6 local commits ahead of `3accaeee`).
 3. Open the chat-wiring lane (`/api/chat*` ↔ `station/chat.js`) as its
    own swarm lane — the biggest verified product gap.
 4. Small: curation review of setup-wizard/worlds-backup routes in the

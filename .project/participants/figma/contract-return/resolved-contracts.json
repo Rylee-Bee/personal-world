@@ -5,7 +5,7 @@
   "purpose": "Canonical resolved contract bundle for Figma to read, verify, attest, and activate her own operational commitment. Set chosen by the resolver (contractctl resolve --manifest .project/contracts/adoption.yaml --task ... --tag design --tag ui) \u2014 not hand-picked.",
   "library": {
     "repository": "burgeswe/play-nice-contracts",
-    "revision": "0c0ab7c5d03452fac1650260395b466305cdfa0a",
+    "revision": "2bb60b4ab1765660d8565ae80f9b489adf91a286",
     "library_version": "0.3.0",
     "lockfile_bundle_receipt": "zenith-dovetail-willow",
     "lockfile_sha256": "91561ab43cd31f875e193fbd3ba8e54e4e7c84310f2e4ae62534e3c08b1b0366"

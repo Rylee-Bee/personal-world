@@ -84,7 +84,7 @@ acceptance:
 provenance:
   supplied_by: figma
   observed_at: 2026-09-12T00:00:00Z
-  source_revision: 0c0ab7c5d03452fac1650260395b466305cdfa0a
+  source_revision: 2bb60b4ab1765660d8565ae80f9b489adf91a286
   canonical_status: observed
   import_method: >-
     Original pack reconstructed by the integration session from the task

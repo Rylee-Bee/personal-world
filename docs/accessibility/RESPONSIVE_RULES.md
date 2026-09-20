@@ -3,7 +3,7 @@
 (Formerly "Personal World" — product renamed 2026-09-12.)
 
 Current behavior is grounded in `_DASHBOARD_HTML` in
-`src/personal_world/api.py`, implementation baseline `5017865`.
+`src/personal_world/api.py`, implementation baseline `c6d3728`.
 The [Accessibility contract](ACCESSIBILITY_CONTRACT.md) governs every viewport.
 Design requirements below are distinguished from implemented layout rules.
 

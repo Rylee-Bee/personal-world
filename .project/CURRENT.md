@@ -75,7 +75,7 @@ The current direction is the **Station** UI (served same-origin at
 route, its catch-all SPA fallback, and its dist build pipeline were removed
 on 2026-09-16.
 
-The repository is now a single branch, `main` (`28a948c` == `origin/main`).
+The repository is now a single branch, `main` (`73e2c2d` == `origin/main`).
 Every other branch was retired and archived as an annotated tag
 `archive/2026-09-16/<branch>` on origin, and its linked worktree removed:
 `feat/fleet-ferrier`, `feat/worlds-next-ui`, `redesign/prototype-v1`,
@@ -103,14 +103,14 @@ not memory, not narrative).
 
 ## 2026-09-15 finish-pass truth (read from the code, not from handoffs)
 
-**Baseline** (`main` @ `0445770`, after PR #50 (`8f061e7` — the D1–D3
-auth/authority convergence + repo/docs reorg) and PR #53 (`0445770` —
+**Baseline** (`main` @ `08577d6`, after PR #50 (`1701476` — the D1–D3
+auth/authority convergence + repo/docs reorg) and PR #53 (`08577d6` —
 this finish pass) merged; `uv sync --extra test --extra crypto`):
 backend **873 pytest pass**, frontend **343 vitest pass**, `vite build`
 clean, Playwright **54/54 pass** (incl. axe with color-contrast
 ENABLED), `tokens:check` clean, `framework validate` 0 violations.
 `main`'s own `validate` and `publish-image` CI runs are green at
-`0445770`. (Baselines are a point-in-time measurement, not a promise;
+`08577d6`. (Baselines are a point-in-time measurement, not a promise;
 re-run the gates rather than trusting these numbers.)
 
 **What Today actually implements:** Today — Quiet Day (17:481) only. The
@@ -118,9 +118,9 @@ Workshop v3 Bad Day (17:2117) and Question (17:6245) states are **not
 rendered** by the current screen (tracked in
 [issue #52](https://github.com/Rylee-Bee/personal-world/issues/52));
 `ShellModes.ts` records their modes but nothing switches to them. The
-first Figma-faithful build (`5837c99`, a 1535-line Today with Bad Day +
-Question + Mobile) was replaced during the integration pass (`4b7ec55` /
-`565dcd1`, "wire all screens to real API") because it was not driven by
+first Figma-faithful build (`8866e67`, a 1535-line Today with Bad Day +
+Question + Mobile) was replaced during the integration pass (`63aa73d` /
+`d4f8d94`, "wire all screens to real API") because it was not driven by
 real data. An unfinished attempt to re-add Bad Day + Question is archived
 as annotated tag `archive/2026-09-16/wip/today-workshop-v3-frames` (the
 branch was retired on 2026-09-16; the repo is single-branch `main` now, so
@@ -189,13 +189,13 @@ order (preserving full commit ancestry, not squashed, not
 cherry-picked):
 
 1. PR #22 (`p1/integration`, T10–T13 screens/tests) → `main` at
-   `ba2ae6cae2cfb3919dce69b70f6bb9c9de07d9ea` (merge commit).
+   `d38451d99f1baabb9400cdfd0e0943c503335bd1` (merge commit).
 2. PR #24 (`uat/t14-warmth`, T14 composition/a11y convergence +
    Play-Nice context, itself built directly on PR #22's tip) → `main`
-   at `70ab495890b5ba73a429876a029134e8bed00615` (merge commit).
+   at `659fb8750d297f35a44ffd3803617e0977ed9a8d` (merge commit).
 
 Both merges were verified independently after landing, not assumed from
-green PR checks alone: `main` @ `70ab495` passes 511/511 backend tests,
+green PR checks alone: `main` @ `659fb87` passes 511/511 backend tests,
 291/291 frontend tests, clean build, clean lint, `tokens:check` clean,
 `framework validate` healthy, and both accessibility fixes (recorded in
 the archived narrative) were re-confirmed live via CDP-driven headless
@@ -274,7 +274,7 @@ V0.1 `3:722`).
 
 ## Play-Nice adoption
 
-Pinned to **v0.7.0** @ `79cadaceb8654279f7b2be135fcd67ba138728fb`
+Pinned to **v0.7.0** @ `f825ffb1a0b49c054bbf54e0ba3c0b15441e3f0e`
 (`.project/contracts/adoption.yaml`; the manifest records the full bump
 history v0.3.0 → v0.5.0 → v0.6.0 → v0.7.0). Delta at this bump: new
 always-applicable `assume-unknown` contract; the founding
@@ -291,7 +291,7 @@ ACTIVE.
 
 `.project/participants/figma/` — status: **accepted** (contract gate
 PASS; commitment ACTIVE), but her attestation is scoped to the bundle
-she actually read (revision `0c0ab7c5`, v0.3.0) — now three bumps
+she actually read (revision `2bb60b4a`, v0.3.0) — now three bumps
 behind the current v0.6.0 pin. Not fabricated forward on her behalf;
 see `figma/contract-return/NEXT-REVISION-NOTE.md` for the exact,
 non-blocking gap and the tiny re-pass needed if a live Figma session

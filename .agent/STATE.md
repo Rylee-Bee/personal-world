@@ -27,9 +27,9 @@ that role.
 
 ## Current phase
 
-**P0 — Stabilize: COMPLETE** (merged via main `b8c77ce`). **P1 — Frontend
+**P0 — Stabilize: COMPLETE** (merged via main `17adc0d`). **P1 — Frontend
 foundation: T0–T9 COMPLETE.** T1–T4 merged to main via PR #20 (main =
-`1fda243`); T5–T9 accumulated on `p1/frontend-foundation` (pushed,
+`8ea74f1`); T5–T9 accumulated on `p1/frontend-foundation` (pushed,
 remote == local). No Fable review consumed: owner policy (2026-09-11)
 supersedes the spec's FABLE-review rows — GLM-autonomous against the spec;
 Fable reserved for genuine contradictions and the final convergence audit.
@@ -103,15 +103,15 @@ deployed build is a required human gate.
 
 | Task | Commit | Status |
 |---|---|---|
-| T1 sections API | `b65c57c` | merged (PR #20) |
-| T2 motion vocab | `d5c31e5` | merged (PR #20) |
-| T3 serving/Docker + CodeQL fix | `2608a7a` + `6fe49cc` | merged (PR #20) |
-| T4 frontend tracked + dep diet | `5b288e5` | merged (PR #20) |
-| T5 token pipeline | `86fe750` | pushed, branch |
-| T6 typed API boundary | `533c35b` | pushed, branch |
-| T7 primitives A (Dialog/Popover/LiveRegion) | `216ffb7` | pushed, branch |
-| T8 primitives B (Drawer/Disclosure/StatusChip/CompanionSlot/StepUpPrompt) | `74bb73c` | pushed, branch |
-| T9 AppShell/SectionNav/EmptyState/ErrorState/prefs bootstrap | `1654193` | pushed, branch |
+| T1 sections API | `984e656` | merged (PR #20) |
+| T2 motion vocab | `26302c7` | merged (PR #20) |
+| T3 serving/Docker + CodeQL fix | `9699d5e` + `c962ed6` | merged (PR #20) |
+| T4 frontend tracked + dep diet | `0bcfe97` | merged (PR #20) |
+| T5 token pipeline | `1296aee` | pushed, branch |
+| T6 typed API boundary | `ab5b72e` | pushed, branch |
+| T7 primitives A (Dialog/Popover/LiveRegion) | `903cc4a` | pushed, branch |
+| T8 primitives B (Drawer/Disclosure/StatusChip/CompanionSlot/StepUpPrompt) | `dbd8565` | pushed, branch |
+| T9 AppShell/SectionNav/EmptyState/ErrorState/prefs bootstrap | `6fb5656` | pushed, branch |
 
 Last full verification (T9): Python 494 passed · `framework validate`
 healthy · frontend 147 tests green · build 100.3 KB gz ≪ 350 KB ·
@@ -121,7 +121,7 @@ cascade — both are Playwright/browser-gate evidence (T14).
 
 ## NEXT
 
-1. **T10–T13** may run as parallel worktrees off `1654193` (spec §9).
+1. **T10–T13** may run as parallel worktrees off `6fb5656` (spec §9).
 2. **T14** browser/Playwright gates after T10–T13.
 3. Merge checkpoint (PR) at T9+ if owner prefers earlier convergence;
    otherwise next convergence target is after T14 gates.

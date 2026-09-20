@@ -3,7 +3,7 @@
 (Formerly "Personal World" — product renamed 2026-09-12; the observed title pattern below reflects the interface as built under the old name.)
 
 This walkthrough describes the current dashboard in `src/personal_world/api.py`
-(`_DASHBOARD_HTML` and `syncRoute`), implementation baseline `5017865`.
+(`_DASHBOARD_HTML` and `syncRoute`), implementation baseline `c6d3728`.
 Labels are source labels, not a transcript of a manual screen-reader test;
 announcement wording varies by browser and assistive technology.
 The [Accessibility contract](ACCESSIBILITY_CONTRACT.md) remains mandatory.

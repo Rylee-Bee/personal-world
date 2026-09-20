@@ -1,6 +1,6 @@
 # EXTERNAL-AGENT HANDOFF — parallel lanes for Project Worlds
 *For any agent (any model, any token plan) joining this repo. Read fully before editing.*
-*Repo: `Rylee-Bee/personal-world` · base `main` @ `5c46d7e` + uncommitted verified work.*
+*Repo: `Rylee-Bee/personal-world` · base `main` @ `c16a07c` + uncommitted verified work.*
 
 ## The soul (non-negotiable)
 DNA: smallest-reliable-first · depth-on-demand · soft-by-default · everyone-at-any-level-included.

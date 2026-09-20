@@ -103,7 +103,7 @@ provenance:
   supplied_by: kilo-session-via-minimax-m3
   observed_at: 2026-09-12T17:33:48Z
   session_commitment_bundle: see-.agent/STATE-after-this-session
-  source_revision: 21b6841a50a1b0d459a760861385e99679852430   # play-nice-contracts v0.6.0 (matches project adoption)
+  source_revision: 0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad   # play-nice-contracts v0.6.0 (matches project adoption)
   canonical_status: observed
   import_method: >-
     First created 2026-09-12 by a Play-Nice onboarding experiment
@@ -181,5 +181,5 @@ claims:
       ("Applied autostash") without data loss
     check:
       command: git log --oneline -1
-      expected: f8428af
+      expected: 90fcabb
   - destructive-actions-require-explicit-owner-authority-not-just-tool-access

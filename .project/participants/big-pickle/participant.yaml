@@ -118,7 +118,7 @@ attestation:
 provenance:
   supplied_by: big-pickle
   observed_at: 2026-09-12T00:00:00Z
-  source_revision: 21b6841a50a1b0d459a760861385e99679852430
+  source_revision: 0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad
   canonical_status: optional-non-authoritative
   import_method: >-
     Assembled by Big Pickle during the play-nice verification walk final

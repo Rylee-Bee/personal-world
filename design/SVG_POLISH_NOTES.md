@@ -1,6 +1,6 @@
 # Personal World SVG polish — 2026-09-07
 
-Base: `8862befbc442cf90a248d1d4a410295616b17238`. Scope: existing exports and icon packs only.
+Base: `5214ea113e89903f36ca3791268f33de6b48c266`. Scope: existing exports and icon packs only.
 
 ## Before / after
 

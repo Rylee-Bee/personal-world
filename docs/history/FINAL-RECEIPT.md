@@ -1,5 +1,5 @@
 # PROJECT WORLDS — FINAL RECEIPT
-# Merged to main via PR #42 (b720c82) and PR #43 (9c4cc99)
+# Merged to main via PR #42 (3405f60) and PR #43 (dc2eda7)
 # Date: 2026-09-14
 
 ---
@@ -193,17 +193,17 @@ None.
 
 | SHA | Description |
 |-----|-------------|
-| 9c4cc99 | Merge PR #43 — feat/workshop-v3-architecture |
-| b720c82 | Merge PR #42 — feat/workshop-v3-architecture |
-| b1eafba | fix: reconciliation receipt — 726 tests, 22 ahead |
-| e2c7673 | reconciliation: issue closures, receipt fixes |
-| f871b2a | docs: audited Connections receipt |
-| 3156443 | feat: Connections & Providers control panel |
-| 60f1a19 | Brain Template System |
-| 3e203d8 | Native providers + execution viewer + zero warnings |
-| 2d940c6 | Media + Auth/SSO + companion + Settings + write tools |
-| 565dcd1 | Wire all screens + chat UI + tool registry |
-| 4b7ec55 | Workshop v3 shell + native products + Ollama |
+| dc2eda7 | Merge PR #43 — feat/workshop-v3-architecture |
+| 3405f60 | Merge PR #42 — feat/workshop-v3-architecture |
+| 7e0269d | fix: reconciliation receipt — 726 tests, 22 ahead |
+| de15d76 | reconciliation: issue closures, receipt fixes |
+| f73df40 | docs: audited Connections receipt |
+| ee488b1 | feat: Connections & Providers control panel |
+| 8e9164d | Brain Template System |
+| c446e14 | Native providers + execution viewer + zero warnings |
+| 92e4f9f | Media + Auth/SSO + companion + Settings + write tools |
+| d4f8d94 | Wire all screens + chat UI + tool registry |
+| 63aa73d | Workshop v3 shell + native products + Ollama |
 
 ---
 

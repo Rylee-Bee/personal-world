@@ -45,7 +45,7 @@ dated entry superseding the old one (append-only, like the journal).
   → MCP bridge (SSH reverse tunnel, no credentials in tracked files)
   → implementation skill (`personal-world-implement-figma`) → visual
   comparison → D0–D4 report. With the chain in place, the first
-  implementation (Today — Quiet Day, `874fb69`) completed in one
+  implementation (Today — Quiet Day, `1a1e6ef`) completed in one
   session because ambiguity had been removed in advance. Reason:
   evidence-first made honesty cheaper than fabrication; keep the
   chain mandatory.
@@ -60,7 +60,7 @@ dated entry superseding the old one (append-only, like the journal).
 
 ## Milestones
 
-- **2026-09-13 — Workshop v3 implementation milestone: the bridge works.** Today — Quiet Day (Figma node `17:481`) became the first canonical Workshop v3 frame implemented in the working product at commit `874fb69`. This does **not** mark the Workshop v3 rollout complete: design convergence is 16/16, while implementation is 1/16. It establishes that the full design-to-product path works end-to-end: approved Figma design → repository design authority → Figma MCP → `personal-world-implement-figma` → canonical repository components/assets → rendered comparison → D0–D4 acceptance. The first unattended attempt correctly produced zero code when canonical evidence was unavailable; the project fixed the evidence chain rather than weakening the guardrail. Once that evidence existed, the implementation completed quickly while preserving truthful data, accessibility, repository behavior, and explicit reservations where design and implementation authority differed. Engineering acceptance reached D0–D3 PASS; D4 remained intentionally pending owner review. This is the point where Workshop v3 stopped being only a design language and became part of the working world. **The world knows how loudly to exist.**
+- **2026-09-13 — Workshop v3 implementation milestone: the bridge works.** Today — Quiet Day (Figma node `17:481`) became the first canonical Workshop v3 frame implemented in the working product at commit `1a1e6ef`. This does **not** mark the Workshop v3 rollout complete: design convergence is 16/16, while implementation is 1/16. It establishes that the full design-to-product path works end-to-end: approved Figma design → repository design authority → Figma MCP → `personal-world-implement-figma` → canonical repository components/assets → rendered comparison → D0–D4 acceptance. The first unattended attempt correctly produced zero code when canonical evidence was unavailable; the project fixed the evidence chain rather than weakening the guardrail. Once that evidence existed, the implementation completed quickly while preserving truthful data, accessibility, repository behavior, and explicit reservations where design and implementation authority differed. Engineering acceptance reached D0–D3 PASS; D4 remained intentionally pending owner review. This is the point where Workshop v3 stopped being only a design language and became part of the working world. **The world knows how loudly to exist.**
 
 ## Source of truth
 
@@ -124,13 +124,13 @@ dated entry superseding the old one (append-only, like the journal).
 - **2026-09-15 — One Play Nice adoption manifest, at the project-context
   path, re-pinned to the library HEAD at adoption time.** The project had
   two adoption manifests with different pins
-  (`.project/contracts/adoption.yaml` v0.6.0 @ `21b6841a` vs a root
-  `.contracts/adoption.yaml` @ `88effb1`), and nothing machine-read
+  (`.project/contracts/adoption.yaml` v0.6.0 @ `0cee0652` vs a root
+  `.contracts/adoption.yaml` @ `1c05de4`), and nothing machine-read
   either. Resolved to `.project/contracts/adoption.yaml` — the layout the
   Play-Nice project-context framework itself uses, the path declared by
   `.project/project.yaml`, and the path the session workflow resolves
   against; the duplicate was deleted and every document points at the one
-  manifest. The same pass re-pinned v0.6.0 → **v0.7.0** @ `79cadac`
+  manifest. The same pass re-pinned v0.6.0 → **v0.7.0** @ `f825ffb`
   (library HEAD at adoption; adds the always-applicable `assume-unknown`
   contract) and re-attested with the real `contractctl` tool:
   `adopt` = ADOPTION VALID, `commit` = CONTRACT COMMITMENT ACTIVE. Reason:

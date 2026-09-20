@@ -1,25 +1,25 @@
 # Orchestration handoff — language & truthfulness pass, full completion (2026-09-17)
 
-Repo: `Rylee-Bee/personal-world` · final `main @ 3ed9324`, pushed, clean tree, all gates green.
+Repo: `Rylee-Bee/personal-world` · final `main @ 8809843`, pushed, clean tree, all gates green.
 
 ## What was orchestrated
 
 ### Lane 0 — Qwen mechanical lane (already done before this pass)
 Copy-only/owner-"Yes" rows: LANG-001–011, 023, 024, 029–033, 038/039/043, 046/047, 054–057, partial 058; e2e wording assertions; 6 Station screenshots regenerated.
 
-### Lane A — Projects & Interests data truth (`66a8bb3`, `928b515`)
+### Lane A — Projects & Interests data truth (`3affb2c`, `8ed5da2`)
 - Projects now reads real `GET /api/source-control/status` (API-033) + `GET /api/source-control/history` (API-034). Honest not-set-up / empty / retry states. Fake specimen git estate + invented file tree REMOVED from the product route. Refresh = explanation only (no operable proposal path exists → label honest).
 - Interests reads real `GET /api/discovery/interests` (API-051). Specimen feed, keep/dismiss simulation, prototype preview switcher REMOVED from product route. Honest empty / not-set-up / failure states.
 - `real-data.js` WIRED tables updated; new `frontend/e2e/station-projects-interests.spec.ts` (real repo list, not-set-up mock, recovery, empty state); screenshots `station-projects.png`, `station-interests.png` regenerated.
 
-### Lane B — Journal truth + delete scope + Vault boundary (`5d79421`)
+### Lane B — Journal truth + delete scope + Vault boundary (`a0138fe`)
 - **LANG-021:** one journal surface per authority; stale specimen journal panel deleted from normal route (`#journal-view` unmounted, `journal-view.js` kept on disk, e2e-legal). Server-journal failure says `Couldn't load your journal. Your browser-only notes are still available below.`
 - **LANG-028:** browser journal notes verifiably unencrypted `localStorage` (`pw-journal-entries`) — copy now `Notes on this device` / `Save only in this browser (not encrypted or synced)` / `browser-only`. Encrypted server "Vault" name untouched where it IS the Vault.
 - **LANG-025/026/027:** every destructive control relabeled to exact object + scope; `window.confirm` replaced with a scoped `<dialog>` (Cancel initial focus, Esc, 44px, status region naming what changed and what did not); `Clear everything` retained ONLY because the code proves it clears exactly all `pw-*` keys — confirmation enumerates every affected object.
 - **LANG-060:** storage write failures now honest (`Couldn't save this in your browser. Nothing was saved…`); success never inferred from failure. LocalOnly.
 - New `frontend/e2e/station-lang-truth.spec.ts` (9 tests) + screenshots `station-journal.png`, `station-settings.png` regenerated.
 
-### Lane C — Step-up/OIDC + restore safety + error layering (`e893205`)
+### Lane C — Step-up/OIDC + restore safety + error layering (`d3e02d5`)
 - **014–017:** api.js envelope split (default human message + `error.detail` technical layer); existing contracts untouched.
 - **051:** transport errors human-first (`Can't connect… nothing changed…`), raw exception in detail.
 - **036/045:** step-up failure naming the ONLY real mechanism (access-code), explicitly NOT claiming provider-mediated step-up; `sign in again` copy retained only where re-signing actually works.
@@ -30,7 +30,7 @@ Copy-only/owner-"Yes" rows: LANG-001–011, 023, 024, 029–033, 038/039/043, 04
 - **058 remainder:** `no git repositories found in configured search paths` mapped; chat/update absences mapped by another lane / intentionally-until-surface.
 - Skips documented with provenance: LANG-049 (no Vault unlock UI consumer exists yet), LANG-048 (no consumer anywhere; raw detail retained in api.py as-is).
 
-### Lane D — chat truth + preference authority + a11y (`20169d0`, `e2f2517`, `a183f11`)
+### Lane D — chat truth + preference authority + a11y (`0692236`, `3a984ab`, `0a0d723`)
 - **UX-01:** chat now sends to real `POST /api/chat` (API-010); provider's reply rendered; no-provider state honest; fake "developer system lines" removed. `chat.html` was missing `api.js` (send silently dropped → fixed). History copy truthful (server transcript persists answered exchanges; browser-only otherwise).
 - **LANG-034:** tool-loop limit reply now `I reached the lookup limit before I could finish…` + additive `partial_findings` payload (real tool results, bounded).
 - **LANG-035:** per-row preference authority labels (`This browser` vs `Your Project Worlds account`); two-class persistence named truthfully, NOT synchronized (product decision deliberately not forced).
@@ -39,7 +39,7 @@ Copy-only/owner-"Yes" rows: LANG-001–011, 023, 024, 029–033, 038/039/043, 04
 - **LANG-059:** verified the duplicate proposal-kind line truly absent (`rd-item-kind` once per item); incidental `NaN`-rendering defect in real-data.js fixed.
 - Screenshots `station-chat.png`, `station-settings.png` regenerated.
 
-### Closer — full manifest reconciliation (`26152c2`, `3ed9324`)
+### Closer — full manifest reconciliation (`7c896cc`, `8809843`)
 - **LANG-052:** packaging truth re-verified (image COPYs Station files); stale "built SPA" copy rewritten (`station_ui.py` + docstring). Confirmed real change needed.
 - **LANG-044 residuals:** 4 more documented OIDC families folded (`state_invalid`, `missing_state`, `bad_signature`, `token_expired`).
 - **LANG-060 residual:** interests.html save/remove failures now announce Couldn't-save truthfully.
@@ -63,9 +63,9 @@ Copy-only/owner-"Yes" rows: LANG-001–011, 023, 024, 029–033, 038/039/043, 04
 - `git diff --check` clean; no behavior-envelopes changed apart from the 4 tiny truthful-delivery fixes each with tests.
 
 ## Git state
-- `origin/main == local main @ 3ed9324`; rev-list 0/0.
+- `origin/main == local main @ 8809843`; rev-list 0/0.
 - Working tree clean (no dirty, no untracked outside genuine infra artifacts).
-- Push history since the start of the whole language pass: e14bf56 … 3ed9324.
+- Push history since the start of the whole language pass: 4dae635 … 8809843.
 
 ## Alpha impact
 No product-level blocker from the language layer. Copy now matches actual behavior everywhere no product decision was needed. `READY-FOR-PRIVATE-TECHNICAL-ALPHA` still depends on `docs/ALPHA-ACCEPTANCE.md` being run by the owner with evidence kept OUTSIDE the repo. Public-facing alpha remains a separately-authorized security/exposure review — not this pass.

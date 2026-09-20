@@ -27,7 +27,7 @@ this document defines *how we get there*. [`../ROADMAP.md`](../ROADMAP.md)
 remains direction only.
 
 Every claim below about current behavior was verified against the working
-tree on 2026-09-10 (local HEAD `5cc6c68`, then fast-forwarded to `f6658dd`,
+tree on 2026-09-10 (local HEAD `fd9d78a`, then fast-forwarded to `bca5a80`,
 which added documentation only). Where a claim could not be verified it is
 marked `UNKNOWN`. Repository truth outranks this plan: if code and plan
 disagree, inspect the code, then fix the plan.

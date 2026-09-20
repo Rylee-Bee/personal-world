@@ -2,15 +2,15 @@
 
 Assessment for the next pass: **find what is not wired, wire it,
 establish default local providers, make API/runtime coherent
-end-to-end.** Verified against code at SHA `db6ca02` (landed on `main`
-via PR #50, merge `8f061e7`). No wiring was performed in this pass.
+end-to-end.** Verified against code at SHA `60823ae` (landed on `main`
+via PR #50, merge `1701476`). No wiring was performed in this pass.
 
 Legend: **GREEN** fully wired · **YELLOW** partial / bypass / duplicate ·
 **RED** broken / stubbed / orphaned · **GRAY** intentionally deferred.
 
 ## Truth-state convention
 
-- **BASE** — true on the committed inventory base (`db6ca02`).
+- **BASE** — true on the committed inventory base (`60823ae`).
 - **KNOWN UNMERGED FIX** — a fix exists in another worktree/lane but is
   not integrated into the base.
 - **CURRENT** — true in the authoritative branch being evaluated.
@@ -288,11 +288,11 @@ filesystem-media provider merely to give every capability a default.
 ## Remaining human decisions
 
 1. **Adoption manifest authority — RESOLVED 2026-09-15.**
-   `.project/contracts/adoption.yaml` (pin `21b6841a`, v0.6.0) is the
+   `.project/contracts/adoption.yaml` (pin `0cee0652`, v0.6.0) is the
    single manifest: it is declared by `.project/project.yaml`, used by
    the documented session workflow, and matches the Play-Nice
    project-context layout. The duplicate `.contracts/adoption.yaml`
-   (pin `88effb1`) was removed and `AGENT_CONTRACTS.md` repointed. See
+   (pin `1c05de4`) was removed and `AGENT_CONTRACTS.md` repointed. See
    `REPOSITORY-INVENTORY.md` §4 for the reasoning.
 2. **Default brain.** Now explicitly deferred (see above): repair
    tool-calling, benchmark, then choose. Not a blocker for this pass.

@@ -2,7 +2,7 @@
 
 Extraction pass, 2026-09-14. Read-only index of every meaningful
 surface. Baseline: branch `docs/current-product-refresh`, SHA
-`166159cbce3ff45e3590979e7bcefb7fabc61aa7`. Product renamed
+`2e728fd050b3a67bd7e62afeaf6a0be7fb7d645a`. Product renamed
 "Project Worlds" (was "Personal World"); technical identifiers
 unchanged. Source of truth is the code, not docs.
 
@@ -11,7 +11,7 @@ SUPERSEDED, UNKNOWN.
 
 > **Delta (2026-09-15, D1–D3 auth/authority pass).** This extraction
 > predates the auth convergence. Corrections now applied below and
-> verified against code at SHA `db6ca02`:
+> verified against code at SHA `60823ae`:
 >
 > - **AUTH-002 / AUTH-003 / AUTH-008 are ACTIVE, not PARTIAL.** Browser
 >   session and OIDC both resolve through `require_auth`
@@ -154,7 +154,7 @@ SUPERSEDED, UNKNOWN.
 | API-077 | route | GET /api/brain/templates; GET /api/brain/provenance | INDIRECT | brain templates | `api.py::brain_templates/brain_provenance` | CHAT-015 | none | TemplateRegistry | Nerd Mode | require_auth | config/prompts | ACTIVE |
 | API-078 | route | GET /api/ingress/rollups | INDIRECT | Traefik rollups | `api.py::ingress_rollups` | PROV-023 | none | TraefikIngress.observe | UI-005 | require_auth | external Traefik API | ACTIVE |
 | API-079 | route | GET /api/projects/status | INDIRECT | project estate | `api.py::projects_status` | PROV-026 (agent-sync) | none | observe_projects | UI-004 | require_auth | agent-sync subprocess | ACTIVE |
-| API-080 | route | ~~GET /api/source-control/rollups~~ | — | REMOVED | (no such route at db6ca02) | — | — | — | — | — | — | SUPERSEDED (search paths still read connections.json directly in source_control.py:283,311) |
+| API-080 | route | ~~GET /api/source-control/rollups~~ | — | REMOVED | (no such route at 60823ae) | — | — | — | — | — | — | SUPERSEDED (search paths still read connections.json directly in source_control.py:283,311) |
 | API-081 | route | GET /api/tools → see API-013 | — | — | — | — | — | — | — | — | — | — |
 
 ## CLI commands
@@ -463,7 +463,7 @@ Note: the mission brief said 26 tools; the code registers 29 (read count above).
 | DOC-007 | documentation | Figma implementation skill | INDIRECT | .agents/skills/personal-world-implement-figma/SKILL.md | same | contracts | none | — | UI agents | N/A | skill file | ACTIVE |
 | DOC-008 | documentation | design/handoff (archived Workshop v3 spec) | INDIRECT | design/handoff/ | `design/handoff/FRAME_INDEX.md` etc. | — | none (never edit) | — | design reference | N/A | archived (historical) | HIDDEN |
 | DOC-008a | documentation | design/tokens.json + docs/DESIGN-HANDOFF.md | INDIRECT | design | `design/tokens.json` | — | — | — | frontend gen-tokens | N/A | canonical design tokens | ACTIVE |
-| DOC-008b | documentation | .project/contracts/adoption.yaml (Play-Nice) | INDIRECT | .project/contracts/adoption.yaml | `.project/contracts/adoption.yaml` | — | — | — | contract loading | N/A | pinned revision (v0.6.0 @ 21b6841a) | ACTIVE |
+| DOC-008b | documentation | .project/contracts/adoption.yaml (Play-Nice) | INDIRECT | .project/contracts/adoption.yaml | `.project/contracts/adoption.yaml` | — | — | — | contract loading | N/A | pinned revision (v0.6.0 @ 0cee0652) | ACTIVE |
 
 ## Assets
 

@@ -66,7 +66,7 @@ repo-side representation or recorded approval.
 
 ## IMPLEMENTED SCREENS
 
-React routes live at `8963dda`: `/` Today, `/interests`, `/media`,
+React routes live at `090d7d7`: `/` Today, `/interests`, `/media`,
 `/projects`, `/lab`, `/chat`, `/journal`, `/vault`, `/world`, `/settings`
 (+ `/login`, `/setup`). README-confirmed implemented pages: **Today, Chat,
 World, Journal, Vault, Settings**. Current composition state: Today,

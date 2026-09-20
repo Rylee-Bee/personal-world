@@ -4,7 +4,7 @@ Not blocking. Not a conflict. A gap, honestly recorded (truth-and-evidence;
 explicit-state) rather than silently closed.
 
 > **Addendum 2026-09-15:** the project pin moved again, v0.6.0 → **v0.7.0**
-> @ `79cadac` (adds the always-applicable `assume-unknown` contract and
+> @ `f825ffb` (adds the always-applicable `assume-unknown` contract and
 > rotates the founding `play-nice-together` receipt, 1.5.0 → 1.6.0).
 > Figma's attestation is therefore now **four** revisions behind and there
 > is one additional always-applicable contract she has not read. Still
@@ -15,14 +15,14 @@ explicit-state) rather than silently closed.
 2026-09-12, later the same day as Figma's accepted pass: this project's
 Play-Nice adoption (`.project/contracts/adoption.yaml`) was bumped
 twice more, neither time by Figma or as part of her pack's lifecycle —
-first to `805f58b46f` (v0.5.0) during a bounded contract-refresh pass,
-then to `21b6841a50a1b0d459a760861385e99679852430` (v0.6.0) during the
+first to `d6c97db20d` (v0.5.0) during a bounded contract-refresh pass,
+then to `0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad` (v0.6.0) during the
 trunk-unification + product-identity pass (same day the project's
 human-facing name changed from "Personal World" to "Project Worlds" —
 irrelevant to her pack's content, noted here only for the timeline).
 
 Figma's `attestation.yaml` remains exactly as she left it: bundle
-`nectar-heather-heather`, revision `0c0ab7c5`, 15 contracts, gate PASS,
+`nectar-heather-heather`, revision `2bb60b4a`, 15 contracts, gate PASS,
 commitment ACTIVE. That attestation is still true for what it says —
 she really did read those 15 contracts at that revision and her
 task-impact sentences are still her real words for that bundle. It is
@@ -78,7 +78,7 @@ lists are unaffected).
    ones at their current versions.
 2. She writes five real task-impact sentences (one per contract).
 3. Foreman applies them to `attestation.yaml` (bundle → new receipt,
-   `loaded` → 18 entries, revision → `21b6841a50a1b0d459a760861385e99679852430`),
+   `loaded` → 18 entries, revision → `0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad`),
    same verify-on-disk-before-promoting discipline as the original
    re-pass.
 4. `participant.yaml`'s `acceptance` block updates to reference the
@@ -93,5 +93,5 @@ lists are unaffected).
    `.project/CURRENT.md`).
 
 Until then: `attestation.yaml` stays exactly as she wrote it, correctly
-labeled as scoped to `0c0ab7c5`, and this note is the honest record of
+labeled as scoped to `2bb60b4a`, and this note is the honest record of
 the gap.

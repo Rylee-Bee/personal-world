@@ -2,10 +2,10 @@
 
 ## Canonical source and purpose
 
-Canonical artwork: **`design/assets/mermaid-source-rig-v2.svg` @ `10ff4d9`**, full source commit `10ff4d91ff953a584281705aa2c0899b8772e774`.
+Canonical artwork: **`design/assets/mermaid-source-rig-v2.svg` @ `a22d5ba`**, full source commit `a22d5ba5afadfd4d41fb90307b793fd9a65af55f`.
 
-- [Pinned approved master](https://raw.githubusercontent.com/Rylee-Bee/personal-world/10ff4d91ff953a584281705aa2c0899b8772e774/design/assets/mermaid-source-rig-v2.svg)
-- [Pinned change notes](https://raw.githubusercontent.com/Rylee-Bee/personal-world/10ff4d91ff953a584281705aa2c0899b8772e774/design/assets/MERMAID_RIG_CHANGES.md)
+- [Pinned approved master](https://raw.githubusercontent.com/Rylee-Bee/personal-world/a22d5ba5afadfd4d41fb90307b793fd9a65af55f/design/assets/mermaid-source-rig-v2.svg)
+- [Pinned change notes](https://raw.githubusercontent.com/Rylee-Bee/personal-world/a22d5ba5afadfd4d41fb90307b793fd9a65af55f/design/assets/MERMAID_RIG_CHANGES.md)
 
 The animator confirmed that LottieFiles Creator collapsed the approved master into one drawable layer, even after detaching/breaking its scene. These 16 files adapt the packaging to that importer behavior: import each file as its own component and animate the resulting layers.
 

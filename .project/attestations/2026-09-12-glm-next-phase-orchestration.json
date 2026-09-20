@@ -4,7 +4,7 @@
   "contract_gate": "PASS",
   "commitment": "ACTIVE",
   "library_version": "0.6.0",
-  "library_revision": "88effb1007d6e99827f1081cc2427baaf2b361ad",
+  "library_revision": "1c05de4a0b1f7e2515a969840b54c2b358aad949",
   "bundle_receipt": "gatehouse-opal-aster",
   "bundle_sha256": "be8b7d3537a3a7fe2ce85a0e1faab6fcaf2875a065df39901394602e7f6ab34a",
   "bundle_scope": "resolved-set",

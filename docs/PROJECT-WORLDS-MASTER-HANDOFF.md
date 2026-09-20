@@ -1,7 +1,7 @@
 # PROJECT WORLDS — MASTER HANDOFF
 ### One document to understand everything: what we've done, what we have, where we are.
 *Written 2026-09-16. Copy-paste friendly. Read top-down; every section stands alone.*
-*Repo: `Rylee-Bee/personal-world` · branch `main` @ `5c46d7e` + uncommitted 2026-09-16 working tree.*
+*Repo: `Rylee-Bee/personal-world` · branch `main` @ `c16a07c` + uncommitted 2026-09-16 working tree.*
 *Status markers: ✅ done & verified · 🛠️ in flight · ⏸️ deferred by choice · ⚠️ known wrinkle.*
 
 ---

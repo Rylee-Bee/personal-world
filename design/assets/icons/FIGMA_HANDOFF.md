@@ -5,7 +5,7 @@ icon "Personal World" keeps its name.)
 
 **Prepared:** September 2026  
 **Repository:** `Rylee-Bee/personal-world`  
-**Validated asset commit:** `7b92a236902b626f12d9459eaa4d6dc522273468`  
+**Validated asset commit:** `255407ce4f0c2ea3194c737079148f4e632a268e`  
 **Pack path:** `design/assets/icons/`
 
 ## Mission
@@ -16,17 +16,17 @@ Chat is a first-class Project Worlds surface. Its complete family must remain ea
 
 ## Pinned sources
 
-- Import library: https://raw.githubusercontent.com/Rylee-Bee/personal-world/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/figma-icon-library.svg
-- Manifest: https://raw.githubusercontent.com/Rylee-Bee/personal-world/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/manifest.json
-- Individual SVGs: https://github.com/Rylee-Bee/personal-world/tree/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/svg
-- Visual reference: https://raw.githubusercontent.com/Rylee-Bee/personal-world/7b92a236902b626f12d9459eaa4d6dc522273468/design/assets/icons/contact-sheet.png
+- Import library: https://raw.githubusercontent.com/Rylee-Bee/personal-world/255407ce4f0c2ea3194c737079148f4e632a268e/design/assets/icons/figma-icon-library.svg
+- Manifest: https://raw.githubusercontent.com/Rylee-Bee/personal-world/255407ce4f0c2ea3194c737079148f4e632a268e/design/assets/icons/manifest.json
+- Individual SVGs: https://github.com/Rylee-Bee/personal-world/tree/255407ce4f0c2ea3194c737079148f4e632a268e/design/assets/icons/svg
+- Visual reference: https://raw.githubusercontent.com/Rylee-Bee/personal-world/255407ce4f0c2ea3194c737079148f4e632a268e/design/assets/icons/contact-sheet.png
 
 ## Build the library
 
 1. Create or open **Personal World — Icon Library**.
 2. Add pages: **Cover**, **Components**, **Companions**, **QA**, and **Archive**.
 3. Import `figma-icon-library.svg` into **Components**.
-4. Preserve it in a locked section named **Source / 7b92a23**.
+4. Preserve it in a locked section named **Source / 255407c**.
 5. Copy each centered icon into its own 24×24 frame and convert it to a main component.
 6. Use the exact `component` name from `manifest.json`.
 7. Use center/center constraints. Do not add a background or hit-area rectangle inside the component.
@@ -94,7 +94,7 @@ After QA passes, publish the file as **Personal World — Icon Library** from th
 
 Release description:
 
-`Initial production icon system from repository commit 7b92a23: 67 currentColor interface glyphs, 5 canonical-source companion marks, complete first-class Chat family, semantic manifest, and 16/20/24px QA.`
+`Initial production icon system from repository commit 255407c: 67 currentColor interface glyphs, 5 canonical-source companion marks, complete first-class Chat family, semantic manifest, and 16/20/24px QA.`
 
 Publishing requires a paid plan and suitable edit access. If unavailable, keep components local and return the file link; do not flatten or detach them.
 

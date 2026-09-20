@@ -12,7 +12,7 @@ endorsement by the Play Nice project. Canonical semantics of the stamp:
 [Play-Nice `docs/ACKNOWLEDGEMENT.md`](https://github.com/Rylee-Bee/play-nice-contracts/blob/main/docs/ACKNOWLEDGEMENT.md).
 
 - **Targets:** Play-Nice library **v0.7.0**, revision
-  `79cadaceb8654279f7b2be135fcd67ba138728fb` — the pin in
+  `f825ffb1a0b49c054bbf54e0ba3c0b15441e3f0e` — the pin in
   [`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml).
 - **Always-applicable contracts implemented:** `assume-unknown`,
   `ask-for-help`, `truth-and-evidence`, `human-reliability`,

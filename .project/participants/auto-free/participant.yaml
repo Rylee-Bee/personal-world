@@ -75,8 +75,8 @@ profile:
   observed_tasks_this_session:
     - canonical-freshness-verification-before-writing
       # git fetch + rev-list showed local was 4 commits behind origin/main
-      # (05aa727 vs f8428af); executed git pull --ff-only successfully;
-      # post-pull: 0 0 (HEAD = f8428af = origin/main). Dirty minimax pack
+      # (4abc5f2 vs 90fcabb); executed git pull --ff-only successfully;
+      # post-pull: 0 0 (HEAD = 90fcabb = origin/main). Dirty minimax pack
       # preserved through automatic autostash.
     - play-nice-participant-discovery
       # listed 5 existing packs (figma, big-pickle, kilo, minimax,
@@ -224,7 +224,7 @@ profile:
       grade: observed
       observed_at: 2026-09-12T19:10:00Z
       claim: >-
-        Local checkout fast-forwarded to origin/main HEAD (f8428af) before
+        Local checkout fast-forwarded to origin/main HEAD (90fcabb) before
         any pack authoring; post-pull ahead/behind is 0 0
       check:
         command: git rev-list --left-right --count HEAD...origin/main
@@ -237,7 +237,7 @@ profile:
         dirty minimax pack, fast-forwarded, then re-applied the stash
       check:
         command: git log --oneline -1
-        expected: f8428af
+        expected: 90fcabb
     - id: sibling-preservation
       grade: observed
       observed_at: 2026-09-12T19:12:00Z
@@ -294,7 +294,7 @@ provenance:
   model_id: kilo/kilo-auto/free
   config_model_field: kilo/minimax/minimax-m3
   config_model_field_source: ~/.config/kilo/kilo.jsonc line 110
-  source_revision: 21b6841a50a1b0d459a760861385e99679852430
+  source_revision: 0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad
   canonical_status: optional-non-authoritative
   import_method: >-
     First created 2026-09-12 during a cold-onboarding experiment into

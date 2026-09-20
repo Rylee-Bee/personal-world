@@ -33,7 +33,7 @@ both recorded in `.project/DECISIONS.md`:
    asset revalidates every load (explicit ETag/If-None-Match 304
    handling, since starlette 1.6.0 has none natively — verified by
    probe before relying on it). Decision-level rationale lives in the
-   commit message of `aa5e2da` and `tests/test_frontend_serving.py`.
+   commit message of `bbd1b5f` and `tests/test_frontend_serving.py`.
 
 She also stated she is fine working with the shell directly for now
 ("I'm ok with the shell for now until every UI bug is ironed out") —
@@ -44,11 +44,11 @@ infrastructure honesty.
 
 | Commit | What |
 |---|---|
-| `20946c5` | Tidy: post-rename URL sweep, dead .gitea CI removed, stale runbook wording |
-| `3454eb7` | **T15 cutover** — legacy UI deleted; React SPA is the only frontend; `PW_FRONTEND` switch removed; missing-dist = honest 503, no fallback UI. Legacy-return regression guards added. |
-| `7937ce0` | Settings fixes: server-truth refetch after every pref write; optimistic companion reverted on failure; dead theme-pack selector removed. |
-| `afee193` | Decision record: UAT data discipline (standing rule). |
-| `aa5e2da` | No immutable cache: explicit ETag revalidation + 304 + logging on all static files. |
+| `07b5dd3` | Tidy: post-rename URL sweep, dead .gitea CI removed, stale runbook wording |
+| `20697fe` | **T15 cutover** — legacy UI deleted; React SPA is the only frontend; `PW_FRONTEND` switch removed; missing-dist = honest 503, no fallback UI. Legacy-return regression guards added. |
+| `ec29e85` | Settings fixes: server-truth refetch after every pref write; optimistic companion reverted on failure; dead theme-pack selector removed. |
+| `13fdb67` | Decision record: UAT data discipline (standing rule). |
+| `bbd1b5f` | No immutable cache: explicit ETag revalidation + 304 + logging on all static files. |
 
 Verification state at handoff: backend **578 passed**, frontend **356
 passed**, e2e **43 passed** (incl. axe), framework validate **healthy**,
@@ -61,7 +61,7 @@ CI validate **success** on main. Legacy-UI guards: `TestLegacyUiCannotReturn`,
   (compose project `project-worlds-test`, host port **18080**, volume
   `project-worlds-test-data`, token in `./.env` chmod 600 — value never
   printed anywhere).
-- **Current image:** `ghcr.io/rylee-bee/personal-world:sha-aa5e2dabfd9caeafa1186721f91561f89e67246e`
+- **Current image:** `ghcr.io/rylee-bee/personal-world:sha-bbd1b5f0527b9c4facaf129595e3315c0010913e`
   (live-verified: healthz green, asset revalidation answers 304).
 - **State at handoff:** volume **wiped** per the standing rule; the
   container is up on a blank world (`setup_needed:true` proof above).

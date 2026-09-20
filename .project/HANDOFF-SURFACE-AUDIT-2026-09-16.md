@@ -2,7 +2,7 @@
 
 Auditor: code-trace audit (wiring-audit method), cross-checked against
 `docs/surfaces/MASTER-SURFACE-REGISTRY.md` and `docs/surfaces/ORPHANS.md`.
-Head: `d8b14f27` (main). Product: **Project Worlds** (identifiers `personal_world`).
+Head: `3accaeee` (main). Product: **Project Worlds** (identifiers `personal_world`).
 Status vocabulary: WIRED · PARTIAL · ORPHAN · DEAD · STUB · DUP.
 
 ---

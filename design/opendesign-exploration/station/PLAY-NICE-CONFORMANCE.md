@@ -2,7 +2,7 @@
 ## How the Personal Worlds Station is bound by adopted contracts
 
 **Adoption:** `.project/contracts/adoption.yaml` → `Rylee-Bee/play-nice-contracts`
-@ `79cadac` (v0.7.0). The Station design is human-facing UI work, so the
+@ `f825ffb` (v0.7.0). The Station design is human-facing UI work, so the
 `human-facing`, `ui`, and `design` trigger sets apply in full, plus all `always`
 contracts.
 

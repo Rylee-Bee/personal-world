@@ -1,8 +1,8 @@
 # Project Worlds — Unknowns Handoff (2026-09-17)
 
-**Repo state:** `Rylee-Bee/personal-world` `main @ a07fabb`, pushed, gates green
+**Repo state:** `Rylee-Bee/personal-world` `main @ 2a1f3e1`, pushed, gates green
 (backend pytest green w/ unavoidable skips, Playwright 25/1-skip, `framework
-validate` 0 violations). Only the dirty files listed in §1 remain. The alpha-remediation pass (merged via `b459cbc`) plus two earlier runs (`85ef92a` hardening/swarm, `a07fabb` UIX batch) are all on remote.
+validate` 0 violations). Only the dirty files listed in §1 remain. The alpha-remediation pass (merged via `2d530be`) plus two earlier runs (`cccd988` hardening/swarm, `2a1f3e1` UIX batch) are all on remote.
 
 ## 1. IDENTITY-LANE WIP — no brief exists (the thing I don't know)
 Working tree has 3 dirty files **no handoff owns**:
@@ -58,7 +58,7 @@ names the two scopes per row ("This browser · Your Project Worlds
 account", not synchronized) instead of silently binding;
 **UX-10** projects/page wired to real source-control read with honest
 states; **UX-09** fixed (single Needs-you panel under low demand).
-§1's identity-lane WIP was committed in `5a11c6d` (fail-closed corrupt
+§1's identity-lane WIP was committed in `1d725c6` (fail-closed corrupt
 users.json). §3's step-up proxy-secret documentation gap (`PW_PROXY_STEPUP_SECRET`
 env var + proxy expectation + fail-closed behavior) is **still open** —
 not in `env.example` nor `docs/oidc.md`; owner/ops to document before

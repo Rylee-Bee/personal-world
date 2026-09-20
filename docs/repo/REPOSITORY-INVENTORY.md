@@ -1,8 +1,8 @@
 # Repository Inventory — Project Worlds
 
-Verified against code at SHA `db6ca02` (the D1–D3 auth/authority
+Verified against code at SHA `60823ae` (the D1–D3 auth/authority
 checkpoint on branch `docs/repo-inventory-reorg`; that branch landed on
-`main` via PR #50, merge commit `8f061e7`). Read-only extraction; no
+`main` via PR #50, merge commit `1701476`). Read-only extraction; no
 runtime behavior was changed by this pass. Counts and per-file line
 references here are a dated snapshot at that SHA; where a claim here and
 the code disagree, the code wins.
@@ -11,7 +11,7 @@ the code disagree, the code wins.
 
 Findings that depend on branch/lane context are labelled explicitly:
 
-- **BASE** — true on the committed inventory base (`db6ca02`).
+- **BASE** — true on the committed inventory base (`60823ae`).
 - **KNOWN UNMERGED FIX** — another worktree/lane contains a fix that is
   not yet integrated into the base.
 - **CURRENT** — true in the authoritative branch being evaluated.
@@ -48,7 +48,7 @@ Companion docs:
 | Config | `config/` | Current | `connections.json` tracked (secret-free); prompts; examples. |
 | Deployment | `compose.yaml`, `compose.dev.yaml`, `compose.homelab.yaml`, `Dockerfile`, `.github/workflows/` | Current | `compose.homelab.yaml` has host-specific paths (non-portable). |
 | Project context | `.project/` | Current+historical | Current-state pointer, decisions, design authority, participants. |
-| Contracts | `.project/contracts/adoption.yaml` | Current | One adoption manifest (v0.6.0 @ `21b6841a`); `.contracts/` holds only ignored session artifacts. |
+| Contracts | `.project/contracts/adoption.yaml` | Current | One adoption manifest (v0.6.0 @ `0cee0652`); `.contracts/` holds only ignored session artifacts. |
 | Operator docs | `docs/` | Current + history | See [`../README.md`](../README.md). |
 | Scripts | `scripts/safe-commit.sh` | Current | Staging guard; tested. |
 | Generated | `frontend/src/tokens.css`, `docs/screenshots/*.png` | Generated | `tokens.css` from `design/tokens.json`; screenshots by e2e spec. |
@@ -108,7 +108,7 @@ No filename copy variants (`*-copy`, `*-final-final`, `(1)`) were found.
 
 | Subject | Canonical | Duplicate / legacy | Action |
 |---|---|---|---|
-| Play-Nice adoption manifest | `.project/contracts/adoption.yaml` (v0.6.0 @ `21b6841a`; declared by `.project/project.yaml`) | ~~`.contracts/adoption.yaml` (@ `88effb1`)~~ | **RESOLVED 2026-09-15.** The root duplicate was removed; `AGENT_CONTRACTS.md` now points at the declared manifest. See note below. |
+| Play-Nice adoption manifest | `.project/contracts/adoption.yaml` (v0.6.0 @ `0cee0652`; declared by `.project/project.yaml`) | ~~`.contracts/adoption.yaml` (@ `1c05de4`)~~ | **RESOLVED 2026-09-15.** The root duplicate was removed; `AGENT_CONTRACTS.md` now points at the declared manifest. See note below. |
 | Design tokens | `design/tokens.json` | `design/handoff/DESIGN_TOKENS.json` (0.1 archive); `frontend/src/tokens.css` (generated) | No action (archive is historical; CSS is generated). |
 | Capability vocabularies | `app.py::STANDARD_CAPABILITIES` (18) | `provider_schemas.py::CAPABILITY_SCHEMAS` (7); `api.py::_capability_description`; dead `framework.py::STANDARD_CAPABILITIES` (13) | Consolidate in wiring pass. |
 | Chat providers | `chat_registry.py` | `chat.py` (orphan copy) | Remove orphan. |
@@ -128,9 +128,9 @@ Play-Nice project-context framework itself uses (the library's worked
 example is `examples/project-context/.project/contracts/adoption.yaml`),
 it is the path declared by `.project/project.yaml` (`contracts.manifest`)
 and used by the documented session workflow in `.project/README.md`, and
-it carries the verified *released* pin (`21b6841a` = library VERSION
+it carries the verified *released* pin (`0cee0652` = library VERSION
 0.6.0). The root `.contracts/adoption.yaml` had been created later from
-the minimal standalone quickstart and pinned `88effb1`, ten post-release
+the minimal standalone quickstart and pinned `1c05de4`, ten post-release
 docs/profile commits on the same 0.6.0 line; it was not referenced by
 any code, test, CI, or script. The duplicate was deleted and every
 document now points at the single manifest. No contract text is copied

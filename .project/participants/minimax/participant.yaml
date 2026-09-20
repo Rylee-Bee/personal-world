@@ -66,9 +66,9 @@ profile:
 
   observed_tasks_this_session:
     - canonical-freshness-verification-before-writing
-      # session start: local HEAD 7bcd3bc was 21 commits behind origin/main
-      # (7937ce0); turn 2: another 1-commit drift detected and pulled;
-      # the project adoption pin (v0.6.0 @ 21b6841a) was honored unchanged
+      # session start: local HEAD 42389d0 was 21 commits behind origin/main
+      # (ec29e85); turn 2: another 1-commit drift detected and pulled;
+      # the project adoption pin (v0.6.0 @ 0cee0652) was honored unchanged
       # through both updates — repo freshness and contract freshness
       # treated as separate questions.
     - efficient-project-truth-discovery-from-a-bounded-file-set
@@ -249,7 +249,7 @@ attestation:
     two consecutive turns). It is NOT a self-attested acceptance gate.
     No canonical contracts were read or attested in this session —
     contractctl was not present and the adoption pin (v0.6.0 @
-    21b6841a) was honored without modification through two
+    0cee0652) was honored without modification through two
     repo-freshness updates. Any real mutation task still requires the
     full task-gate: RESOLVE, READ applicable canonical sources, VERIFY
     version/hash/receipt, TASK IMPACT, CONFLICT CHECK, ATTESTATION,
@@ -260,7 +260,7 @@ provenance:
   observed_at: 2026-09-12T17:46:01Z   # updated at turn 2 of this session
   observed_at_initial: 2026-09-12T17:33:48Z
   model_id: kilo/minimax/minimax-m3
-  source_revision: 21b6841a50a1b0d459a760861385e99679852430   # matches project adoption; unchanged across both turns
+  source_revision: 0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad   # matches project adoption; unchanged across both turns
   canonical_status: optional-non-authoritative
   import_method: >-
     First created 2026-09-12 during a Play-Nice onboarding experiment
@@ -333,10 +333,10 @@ claims:
   - id: adoption-pin-unchanged-across-session
     grade: observed
     observed_at: 2026-09-12T18:12:25Z
-    claim: .project/contracts/adoption.yaml revision pin (21b6841a, v0.6.0) was honored unchanged through two repo-freshness updates
+    claim: .project/contracts/adoption.yaml revision pin (0cee0652, v0.6.0) was honored unchanged through two repo-freshness updates
     evidence:
       command: git log -1 --format=%H -- .project/contracts/adoption.yaml
-      expected_hash_unchanged: 21b6841a50a1b0d459a760861385e99679852430
+      expected_hash_unchanged: 0cee0652fb6f13c440b1fd9cc5d78fd87cdca8ad
   - id: protected-packs-unchanged
     grade: observed
     observed_at: 2026-09-12T18:14:49Z

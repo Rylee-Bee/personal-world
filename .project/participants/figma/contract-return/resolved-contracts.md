@@ -2,7 +2,7 @@
 
 **Bundle receipt:** `nectar-heather-heather`  
 **Bundle sha256:** `c3262305dc1f84f3d3c2380fadedea750ab34a61c0978c501f95f9012228a1a1`  
-**Library:** burgeswe/play-nice-contracts @ `0c0ab7c5d03452fac1650260395b466305cdfa0a` (v0.3.0)  
+**Library:** burgeswe/play-nice-contracts @ `2bb60b4ab1765660d8565ae80f9b489adf91a286` (v0.3.0)  
 **Adoption manifest:** `.project/contracts/adoption.yaml` (revision-pinned)  
 **Resolution:** 15 of 62 contracts — chosen by the resolver for a design participant completing her contract gate (`--tag design --tag ui`), not hand-picked.
 

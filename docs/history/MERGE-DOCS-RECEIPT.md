@@ -7,11 +7,11 @@
 | Item | Value |
 |------|-------|
 | Feature branch | feat/workshop-v3-architecture |
-| Architecture PR | #42 (b720c82) |
-| CI fix PR | #43 (9c4cc99) |
+| Architecture PR | #42 (3405f60) |
+| CI fix PR | #43 (dc2eda7) |
 | Docs branch | docs/current-product-refresh |
-| Docs PR | #45 (fc2a805) |
-| Resulting main | fc2a805 |
+| Docs PR | #45 (cc6b6ed) |
+| Resulting main | cc6b6ed |
 
 ---
 

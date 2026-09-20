@@ -27,7 +27,7 @@ numbers look like current authority.
 | [`FINAL-RECEIPT.md`](FINAL-RECEIPT.md) | 2026-09-13 | Merge receipt; claimed 726 tests / 29 tools / 15 screens / 18 capabilities. |
 | [`FULL-SYSTEM-INVENTORY.md`](FULL-SYSTEM-INVENTORY.md) | 2026-09-13 | Earlier "generated from live codebase" inventory; claimed 663 tests / 19 read tools / 14 screens / 78 endpoints. Least current of the set. |
 | [`CONNECTIONS-RECEIPT.md`](CONNECTIONS-RECEIPT.md) | 2026-09-13 | Connections/Providers audit receipt (725 tests, 18 providers). |
-| [`RECONCILIATION-RECEIPT.md`](RECONCILIATION-RECEIPT.md) | 2026-09-13 | Post-Connections reconciliation receipt (HEAD `f871b2a`). |
+| [`RECONCILIATION-RECEIPT.md`](RECONCILIATION-RECEIPT.md) | 2026-09-13 | Post-Connections reconciliation receipt (HEAD `f73df40`). |
 | [`MERGE-DOCS-RECEIPT.md`](MERGE-DOCS-RECEIPT.md) | 2026-09-13 | Merge + issue closure + screenshots + docs refresh receipt (719 tests). |
 | [`WIRING-COMPLETION-HANDOFF.md`](WIRING-COMPLETION-HANDOFF.md) | 2026-09-13 | Pre-merge wiring handoff with 10 open questions; header notes all were resolved. |
 | [`API-WIRING-HANDOFF.md`](API-WIRING-HANDOFF.md) | 2026-09-13 | Endpoint-disposition handoff (68 endpoints, 19 tools). |

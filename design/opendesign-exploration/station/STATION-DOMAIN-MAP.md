@@ -1,5 +1,5 @@
 # STATION → REAL DOMAIN MAP
-## Internal orientation, 2026-09-16 (repo truth, SHA 5c46d7e)
+## Internal orientation, 2026-09-16 (repo truth, SHA c16a07c)
 
 Walked the repo per the technical orientation. This maps each Station
 neighborhood to the REAL capabilities behind it, so the design layers

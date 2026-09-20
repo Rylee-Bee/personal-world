@@ -19,7 +19,7 @@ no card-chrome composition drift on Today/Journal/Vault; the two
 previously-shipping accessibility bugs below are fixed everywhere, not
 just on the branch that found them.
 
-**Projects workspace v1 (2026-09-12, `35204b6` + `dff360f`):** the Projects
+**Projects workspace v1 (2026-09-12, `85067a7` + `f72f47c`):** the Projects
 section now renders the REAL repository table from the native
 source-control baseline (`GET /api/source-control/status`): one row
 per discovered repo with branch, dirty/ahead/behind, last commit; a
@@ -34,14 +34,14 @@ real git — no fabricated rows anywhere. Frontend type now mirrors the
 backend `repository_status()` exactly (9 previously-dropped fields
 recovered).
 
-**Journal audit trail (2026-09-12, `fd5c519`):** the Journal screen
+**Journal audit trail (2026-09-12, `b756f49`):** the Journal screen
 gained a lazy Level-4 "Audit trail" disclosure — the backend
 AuditRenderer's full technical log (provenance on every line), shown
 verbatim on request; zero fetches in the calm default view. Finishes
 the "understand exactly what happened" + nerd-mode transparency rows
 for journal.
 
-**Journal correction/supersede workflow (2026-09-12, `c563efd`,
+**Journal correction/supersede workflow (2026-09-12, `f86b1cc`,
 second propose→approve→act workflow):** any journal entry can be
 corrected without erasing it. "Correct this entry" opens an inline
 approval panel (original vs proposed, effect/risk/recovery, "Nothing
@@ -60,7 +60,7 @@ tests (6) + live 10-point browser walkthrough incl. keyboard, focus
 ring, 200% reflow, reduced motion.
 
 **Assistant-drafted journal correction proposals (2026-09-12,
-`b499a73` — assistant participation, suggestion is not authorization):**
+`04c9c76` — assistant participation, suggestion is not authorization):**
 Personal World can now PREPARE a Journal correction without any
 authority to apply one. The chat system prompt teaches ONE tiny
 fenced `PW-PROPOSAL journal_correction` block (entry_ts,
@@ -127,7 +127,7 @@ and its broken `.project/DECISIONS.md` link fixed by creating the
 file.
 
 **agent-sync as the project-status sensor (2026-09-12, slice
-`a217be9`–`9777876` — observation is not mutation):** Project Worlds
+`9d41bd6`–`42a6f8b` — observation is not mutation):** Project Worlds
 now consumes the SAME project truth Rylee sees from
 `agent-sync status --all --format json` — no second Git-state
 implementation exists inside Project Worlds. Architecture:
@@ -205,7 +205,7 @@ NO reset/rebase/merge/pull — the checkout is still behind 21
 commits, an owner decision; tree clean before/after, nothing
 absorbed). The estate now truthfully reports rylee_lore `behind`.
 The pre-existing play-nice-contracts `diverged` (remote moved to
-`72d605b` past the pinned `21b6841a`) is REAL divergence —
+`2036692` past the pinned `0cee0652`) is REAL divergence —
 preserved and reported, an owner decision. (2) Observation AGE
 surfacing: every project-status surface now distinguishes WHAT
 was observed from WHEN it was observed. agent-sync's own
@@ -273,7 +273,7 @@ docs (ARCHITECTURE, NATIVE-BASELINE, PROVIDERS, ROADMAP, AGENT_POLICY
 context) updated; NATIVE-BASELINE anti-pattern illustrations kept
 (conceptual, still truthful).
 
-**First propose→approve→act workflow (2026-09-12, `1152301`):**
+**First propose→approve→act workflow (2026-09-12, `f0f64e6`):**
 from a selected repository on Projects, the screen proposes a
 read-only status re-check and explains WHAT/WHY/TOOL/RISK/EXPECTED;
 nothing runs before the explicit "Approve and refresh" button. The
@@ -287,7 +287,7 @@ the FIRST approval workflow only — the pattern (not an engine) for
 later, higher-risk actions.
 
 **Context-aware World Assistant (2026-09-12, implementation run
-`ac9c18d`):** the Drawer-hosted assistant now knows which section it
+`ce23f3f`):** the Drawer-hosted assistant now knows which section it
 was opened from. The shell derives route/section (GET /api/sections
 registry supplies the label) and POST /api/chat accepts an optional
 `context` envelope rendered into the system prompt as observed UI
@@ -354,7 +354,7 @@ blindly rename all of them. Classification used:
   `AGENT_CONTRACTS.md`, `CONTRIBUTING.md`, `frontend/README.md`, current
   `design/` docs, issue templates, `compose.yaml` header comment). Each
   occurrence was classified first; rule/technical content is unchanged.
-- **Runtime brand pass COMPLETE (2026-09-12, `1152301`):** every
+- **Runtime brand pass COMPLETE (2026-09-12, `f0f64e6`):** every
   PRODUCT-BRAND runtime string now says "Project Worlds" — the shell
   brand lockup, login h1, setup headings + default world name ("My
   Project Worlds"), SPA/index titles, legacy dashboard titles and
@@ -449,7 +449,7 @@ code before changing.
 
 - Backend: 770 collected / 770 passed / 0 failed (with crypto)
 - Backend: 754 collected / 751 passed / 0 failed / 3 skipped (without crypto)
-- Baseline (main 72ee502): 717 collected / 717 passed / 0 failed
+- Baseline (main 0dca309): 717 collected / 717 passed / 0 failed
 - Delta: +53 tests (19 authorization + 14 vault + 14 secret ref
   + 6 reminder execution)
 - Frontend: 76 failed / 258 passed / 334 total (pre-existing on main)
@@ -470,4 +470,4 @@ code before changing.
   window + network + header), NOT fresh password/MFA verification.
   Genuine re-authentication is a remaining gap.
 - **Frontend test failures:** 76 pre-existing failures on main at
-  72ee502. Not caused by this pass.
+  0dca309. Not caused by this pass.

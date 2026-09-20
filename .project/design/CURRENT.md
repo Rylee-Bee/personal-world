@@ -22,7 +22,7 @@ answer, not a gap to fill.
 > design provenance; the Workshop v3 frame inventory remains design
 > evidence, not the current frontend.
 
-Evidence basis: git history at `8963dda`, README "What works today",
+Evidence basis: git history at `090d7d7`, README "What works today",
 CHANGELOG (Unreleased + 2026-09-07..09), docs/DESIGN-HANDOFF.md
 (V0.1 baseline note), docs/accessibility/* (canonical),
 design/handoff/FRAME_INDEX.md (archived), design/tokens.json,
@@ -73,7 +73,7 @@ evidence retrieved 2026-09-13 from the Figma desktop Dev Mode MCP server
   (default stays `legacy` server-rendered mode until parity).
 - Generated token layer: `frontend/src/tokens.css` from
   `design/tokens.json` (`npm run tokens:check` drift gate — passing at
-  8963dda). Self-hosted fonts/icons; no external font/icon requests.
+  090d7d7). Self-hosted fonts/icons; no external font/icon requests.
 - `frontend-v2/` (untracked) is an experiment; not implementation truth.
 - The backend (`src/personal_world/api.py`) remains the legacy UI baseline.
 
@@ -171,7 +171,7 @@ notes, reservation attachments, and superseded-iteration mapping is
     `~/.local/share/personal-world/uat/today-quiet-day-17-481/`
     (private; not in the repository).
 - **Question `17:6245`** (1440×1000, AMBIENT → ATTENTIVE/CURIOUS) —
-  **Implemented 2026-09-13** (commit `e682654`). Uncertainty-shaped
+  **Implemented 2026-09-13** (commit `f3be17a`). Uncertainty-shaped
   attention (digest warnings whose capability status is canonical
   `unknown`, the loop.py `{capability}: {status}` shape) renders the
   frame's curious-companion question region: heading 17:6298, canonical
@@ -187,7 +187,7 @@ notes, reservation attachments, and superseded-iteration mapping is
   the private multi-frame evidence set) — the live bridge was down at
   implementation time.
 - **Mobile Today `17:1929`** (390×844, AMBIENT/WARM) — **Implemented
-  2026-09-13** (commit `ed9b3b2`). The ≤599px phone-bucket composition
+  2026-09-13** (commit `b88f633`). The ≤599px phone-bucket composition
   of the implemented Quiet Day: greeting band (17:1937) via
   `.pw-today-greeting-band` (phone-bucket only; desktop keeps the flat
   canvas), 28px greeting scale (17:1939), compact health pill
@@ -203,7 +203,7 @@ notes, reservation attachments, and superseded-iteration mapping is
   D0–D3 PASS; **D4 PENDING_BUNDLED_UAT**. Same preserved-evidence
   provenance as Question.
 - **Vault `17:1014`**, **Login `17:1681`**, **Chat `17:2536`** —
-  **Implemented 2026-09-13** (commits `eee1ccf`, `c14c093`, `7e5982c`).
+  **Implemented 2026-09-13** (commits `600c3e4`, `02f6ee5`, `91560ff`).
   D0–D3 PASS; D4 PENDING_BUNDLED_UAT. Owner reservations: chat send
   button 36px vs 44px floor (floor won), login key icon (no canonical
   glyph), chat presence/thinking wording.
@@ -250,7 +250,7 @@ current reference until separately converged.
 
 ## IMPLEMENTED SCREENS (runtime truth)
 
-Routes in the React frontend (`frontend/src/App.tsx` at 8963dda):
+Routes in the React frontend (`frontend/src/App.tsx` at 090d7d7):
 `/` Today, `/interests`, `/media`, `/projects`, `/lab`, `/chat`, `/journal`,
 `/vault`, `/world`, `/settings`, plus `/login` and `/setup` (auth routes).
 README "What works today" confirms implemented pages: **Today, Chat, World,

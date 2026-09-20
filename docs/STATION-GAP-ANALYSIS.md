@@ -5,7 +5,7 @@ Companion reading: `docs/STATION-ALIVE-RESEARCH.md`,
 `.project/HANDOFF-UI-ORCHESTRATION-2026-09-17.md`, `docs/PERSONAL-WORLD-FINISH-LINE.md`.
 
 **Provenance.** Citations are to the current **dirty working tree** of
-`design/opendesign-exploration/station/` at HEAD `6659575`; line numbers may differ
+`design/opendesign-exploration/station/` at HEAD `d4c0fb3`; line numbers may differ
 from `origin/main`. Unverifiable claims are marked **UNKNOWN**.
 
 ---

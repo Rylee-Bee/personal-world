@@ -1,8 +1,8 @@
 # CONNECTIONS & PROVIDERS — RECEIPT (audited)
-# implementation commit: 3156443
-# receipt commit: 38c4895
-# audit fix commit: 7fffaaf
-# audited receipt commit: f871b2a
+# implementation commit: ee488b1
+# receipt commit: 353e04c
+# audit fix commit: 0e3d940
+# audited receipt commit: f73df40
 
 ---
 
@@ -124,9 +124,9 @@ Only Ollama has a live test. The other three have can_test=False so the UI does 
 
 | SHA | Description |
 |-----|-------------|
-| 7fffaaf | audit: fix can_test flags and test-result messaging |
-| 38c4895 | Connections & Providers receipt |
-| 3156443 | Connections & Providers control panel |
+| 0e3d940 | audit: fix can_test flags and test-result messaging |
+| 353e04c | Connections & Providers receipt |
+| ee488b1 | Connections & Providers control panel |
 
 ---
 

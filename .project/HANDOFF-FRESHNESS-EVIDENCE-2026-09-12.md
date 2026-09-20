@@ -10,12 +10,12 @@ Canonical Freshness rule. Nothing here changes any canonical contract.
 1. CONCURRENT PUSH ON MAIN (repo-level, this repo)
    - What: while implementing the lab wiring, `git push` failed
      non-fast-forward. Another participant (MiniMax/Kilo session) had
-     pushed 05aa727 (participant-pack validator + kilo/minimax packs)
+     pushed 4abc5f2 (participant-pack validator + kilo/minimax packs)
      to main during my work session.
    - Handling: fetched before re-pushing, verified zero file overlap
      (theirs .project/participants + src/personal_world/framework.py;
      mine frontend/), rebased the single local commit, re-ran
-     tests/test_framework.py (43 passed), then pushed (ce328c6).
+     tests/test_framework.py (43 passed), then pushed (0a1a622).
    - Significance: on-disk was present-but-not-current; the pre-push
      fetch caught it. Fast-forward-first would have missed it entirely.
 
@@ -56,8 +56,8 @@ Canonical Freshness rule. Nothing here changes any canonical contract.
      The wrapper defect itself belongs to the pickle project's repo.
 
 5. PLAY-NICE LIBRARY CHECKOUT AHEAD OF THE ADOPTION PIN (by design)
-   - What: /home/rylee/play-nice-contracts HEAD is 88effb1 (v0.6.0 +
-     3 later profile/onboarding commits); the project pin is 21b6841a
+   - What: /home/rylee/play-nice-contracts HEAD is 1c05de4 (v0.6.0 +
+     3 later profile/onboarding commits); the project pin is 0cee0652
      (v0.6.0). The contract SET is unchanged by those commits (docs/
      profiles only); validate PASSes at HEAD and the pinned set
      resolves identically.

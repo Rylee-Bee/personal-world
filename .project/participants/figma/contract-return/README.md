@@ -40,7 +40,7 @@ No material contract conflicts exist between you and this project.
    bundle: 15 contracts, receipt `nectar-heather-heather`,
    sha256 `c3262305dc1f84f3d3c2380fadedea750ab34a61c0978c501f95f9012228a1a1`,
    from `burgeswe/play-nice-contracts` v0.3.0 @
-   `0c0ab7c5d03452fac1650260395b466305cdfa0a`. Each contract lists its
+   `2bb60b4ab1765660d8565ae80f9b489adf91a286`. Each contract lists its
    exact id, version, receipt, and sha256. The machine-readable equivalent
    is `resolved-contracts.json`.
 2. **Verify** — the receipts and hashes let you prove you read the exact
