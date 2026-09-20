@@ -690,6 +690,57 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         target.record(kind=JournalKind.OBSERVATION, summary=text, source="user")
         return {"ok": True, "data": {"written": len(text)}}
 
+    # ── Journal DRAFTS — the lining rescue (owner D15: "Kept safe, synced") ──
+    # Debounced client writes land here so a stopped mid-thought day
+    # resumes on ANY device. Deliberate contract choices (spec:
+    # DRAFT-SYNC-SPEC-2026-09-20): NOT elevation-gated (a draft mutates
+    # nothing a publish doesn't), response NEVER echoes draft text,
+    # storage rides the single per-principal seam (decision #13).
+    _DRAFT_MAX = 100_000
+
+    def _draft_file(request: Request) -> Path:
+        return _scoped_path(request.state.principal, "journal_draft")
+
+    @app.put("/api/journal/draft", dependencies=[Depends(require_auth)])
+    async def journal_draft_put(request: Request) -> dict:
+        _require_person(getattr(request.state, "principal", None))
+        body = await request.json()
+        text = str((body or {}).get("text", ""))
+        if len(text) > _DRAFT_MAX:
+            raise HTTPException(status_code=422, detail="draft exceeds 100000 chars")
+        path = _draft_file(request)
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps({
+            "text": text,
+            "entry_id": str((body or {}).get("entry_id", ""))[:64],
+            "device": str((body or {}).get("device", ""))[:64],
+            "updated_at": stamp,
+        }))
+        tmp.chmod(0o600)
+        os.replace(tmp, path)  # atomic: a crash never leaves half a draft
+        return {"ok": True, "data": {"saved_at": stamp, "length": len(text)}}
+
+    @app.get("/api/journal/draft", dependencies=[Depends(require_auth)])
+    def journal_draft_get(request: Request) -> dict:
+        _require_person(getattr(request.state, "principal", None))
+        path = _draft_file(request)
+        if not path.exists():
+            return {"ok": True, "data": {"text": None, "updated_at": None}}
+        d = json.loads(path.read_text())
+        return {"ok": True, "data": {
+            "text": d["text"], "entry_id": d["entry_id"],
+            "device": d["device"], "updated_at": d["updated_at"],
+            "length": len(d["text"]),
+        }}
+
+    @app.delete("/api/journal/draft", dependencies=[Depends(require_auth)])
+    def journal_draft_delete(request: Request) -> dict:
+        _require_person(getattr(request.state, "principal", None))
+        _draft_file(request).unlink(missing_ok=True)
+        return {"ok": True, "data": {"cleared": True}}
+
     # ── Journal correction workflow (second propose→approve→act
     # workflow; same trust model as the repository-status refresh).
     # The UI proposes + explains + collects explicit approval BEFORE

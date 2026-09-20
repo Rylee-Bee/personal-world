@@ -269,6 +269,14 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         note="append-only correction",
     ),
     _e("API-008", "GET", "/api/journal/history", "journal", "read", "none"),
+    # journal drafts — lining rescue (D15 "kept safe, synced"); no elevation
+    # by design: a draft mutates nothing a publish doesn't already change.
+    _e("API-080", "PUT", "/api/journal/draft", "journal", "write", "none",
+       note="debounced client drafts; response never echoes text"),
+    _e("API-081", "GET", "/api/journal/draft", "journal", "read", "none",
+       note="resume-on-any-device read of the caller's own draft"),
+    _e("API-082", "DELETE", "/api/journal/draft", "journal", "write", "none",
+       note="cleared after confirmed publish"),
     _e("API-009", "GET", "/api/journal/audit", "journal", "read", "none"),
     _e("API-016", "GET", "/api/memory/search", "memory", "read", "none"),
     # Chat / brain.

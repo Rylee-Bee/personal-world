@@ -446,6 +446,9 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     "proposals": "proposals.json",
     "chat_history": "chat-history.ndjson",
     "discovery": "discovery.json",
+    # lining rescue (D15): journal drafts must survive devices; registered
+    # like every other kind so single/multi mode resolve identically.
+    "journal_draft": "journal-draft.json",
 }
 
 #: Legacy (single-user default) discovery config location. Matches
