@@ -3,15 +3,24 @@
  *
  * Sections:
  *   Profile (display name from GET /api/identity/principal)
- *   Preferences (server vocabulary from GET /api/prefs: motion,
- *                contrast, density, text_scale)
+ *   Reading & Interaction (SettingsRoom — rendered from the server's
+ *                own vocabulary via GET /api/prefs/schema; a11y
+ *                contract §9.2 names this section)
  *   Sections management (reorder/hide — PUT /api/sections takes
  *                {order: ids, hidden: ids}, the server's layout delta)
- *   Capabilities status (read-only from useStatus)
+ *   Capabilities status (read-only from GET /api/status)
  *   Brain/templates info
- *   Theme selection (presentation-only, lives on this device)
+ *   Theme selection (presentation-only, lives on this device — the
+ *                station has no theme-write endpoint, and the section
+ *                says so plainly)
  *
  * All writes require step-up auth (HTTP 403 → honest inline notice).
+ *
+ * Server envelopes arrive here as `unknown` bodies (the generated API
+ * types describe these responses as open objects because the server
+ * sends open objects). Nothing is cast to a fantasy type: every read
+ * goes through ./parse.ts runtime checks, and every value the check
+ * rejects degrades to an honest empty/unknown state.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -19,24 +28,24 @@ import {
   useStatus,
   useSession,
   usePrincipal,
-  usePrefs,
   useBrainTemplates,
   useManifest,
   useSections,
-  usePutPrefs,
   usePutSections,
   usePutPrincipal,
 } from "../../data/hooks";
-import type {
-  BrainTemplate,
-  CapabilityMap,
-  PrefsData as ServerPrefs,
-  PrincipalInfo,
-} from "../../data/contract";
 import { describeError } from "../../data/errors";
 import { STATUS_LABELS, toCapabilityStatus } from "../../data/types";
 import { WorldButton } from "../../components/WorldButton";
 import { THEMES, type ThemeName } from "../../generated/tokens";
+import { SettingsRoom } from "./SettingsRoom";
+import {
+  countManifestEndpoints,
+  principalDisplayName,
+  readBrainTemplates,
+  readCapabilityRows,
+  readSectionRows,
+} from "./parse";
 
 // ─── Themes ──────────────────────────────────────────────
 
@@ -63,12 +72,7 @@ function SaveNote({ message, tone }: { message: string; tone: "ok" | "error" }) 
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
-      className={[
-        "mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)]",
-        tone === "error"
-          ? "text-[var(--pw-accent-coral)]"
-          : "text-[var(--pw-text-secondary)]",
-      ].join(" ")}
+      className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
     >
       {message}
     </p>
@@ -128,28 +132,28 @@ function SettingsSection({
 function ProfileSection({
   authenticated,
   isSessionLoading,
-  principal,
+  displayName,
   isPrincipalLoading,
 }: {
   authenticated: boolean;
   isSessionLoading: boolean;
-  principal: PrincipalInfo | undefined;
+  displayName: string | null;
   isPrincipalLoading: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [displayName, setDisplayName] = useState("");
+  const [draftName, setDraftName] = useState("");
   const [saveMessage, setSaveMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const putPrincipal = usePutPrincipal();
 
   const beginEdit = useCallback(() => {
-    setDisplayName(principal?.display_name ?? "");
+    setDraftName(displayName ?? "");
     setSaveMessage(null);
     setEditing(true);
-  }, [principal?.display_name]);
+  }, [displayName]);
 
   const handleSave = useCallback(() => {
     setSaveMessage(null);
-    putPrincipal.mutate(displayName.trim(), {
+    putPrincipal.mutate(draftName.trim(), {
       onSuccess: () => {
         setEditing(false);
         setSaveMessage({ text: "Display name saved.", tone: "ok" });
@@ -162,13 +166,13 @@ function ProfileSection({
         });
       },
     });
-  }, [displayName, putPrincipal]);
+  }, [draftName, putPrincipal]);
 
   const handleCancel = useCallback(() => {
-    setDisplayName(principal?.display_name ?? "");
+    setDraftName(displayName ?? "");
     setEditing(false);
     setSaveMessage(null);
-  }, [principal?.display_name]);
+  }, [displayName]);
 
   if (isSessionLoading || (authenticated && isPrincipalLoading)) {
     return (
@@ -210,8 +214,8 @@ function ProfileSection({
             <input
               id="settings-display-name"
               type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
               className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
               aria-label="Display name"
             />
@@ -220,7 +224,7 @@ function ProfileSection({
             <WorldButton
               variant="primary"
               type="submit"
-              isDisabled={putPrincipal.isPending || !displayName.trim()}
+              isDisabled={putPrincipal.isPending || !draftName.trim()}
             >
               {putPrincipal.isPending ? "Saving…" : "Save"}
             </WorldButton>
@@ -240,7 +244,7 @@ function ProfileSection({
         <div className="flex items-center justify-between gap-[var(--pw-spacing-md)]">
           <div>
             <p className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
-              {principal?.display_name ?? "Unnamed"}
+              {displayName ?? "Not set"}
             </p>
             <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
               Display name
@@ -255,142 +259,6 @@ function ProfileSection({
           </WorldButton>
         </div>
       )}
-    </SettingsSection>
-  );
-}
-
-// ─── Preferences section ─────────────────────────────────
-
-/** The multipliers the server accepts (prefs.py TEXT_SCALE.allowed). */
-const TEXT_SCALES = [1, 1.25, 1.5] as const;
-
-function PreferencesSection({
-  prefs,
-  onChange,
-  onSaved,
-}: {
-  prefs: ServerPrefs;
-  onChange: (prefs: ServerPrefs) => void;
-  onSaved: () => void;
-}) {
-  const [saveMessage, setSaveMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
-  const putPrefs = usePutPrefs();
-
-  const handleSave = useCallback(() => {
-    setSaveMessage(null);
-    putPrefs.mutate(prefs, {
-      onSuccess: () => {
-        onSaved();
-        setSaveMessage({ text: "Preferences saved.", tone: "ok" });
-      },
-      onError: (err) =>
-        setSaveMessage({
-          text: describeError(err, "Could not save preferences."),
-          tone: "error",
-        }),
-    });
-  }, [prefs, putPrefs, onSaved]);
-
-  return (
-    <SettingsSection id="Preferences" titleId="settings-prefs-heading">
-      <div className="space-y-[var(--pw-spacing-lg)]">
-        {/* Motion — the server's accessibility floor vocabulary
-            (src/personal_world/prefs.py): off / reduced / subtle. */}
-        <div>
-          <label
-            htmlFor="pref-motion"
-            className="block mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]"
-          >
-            Motion
-          </label>
-          <select
-            id="pref-motion"
-            value={prefs.motion}
-            onChange={(e) =>
-              onChange({ ...prefs, motion: e.target.value as ServerPrefs["motion"] })
-            }
-            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
-          >
-            <option value="off">No motion</option>
-            <option value="reduced">Reduced motion</option>
-            <option value="subtle">Subtle motion</option>
-          </select>
-        </div>
-
-        {/* Contrast */}
-        <div>
-          <label
-            htmlFor="pref-contrast"
-            className="block mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]"
-          >
-            Contrast
-          </label>
-          <select
-            id="pref-contrast"
-            value={prefs.contrast}
-            onChange={(e) =>
-              onChange({ ...prefs, contrast: e.target.value as ServerPrefs["contrast"] })
-            }
-            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
-          >
-            <option value="comfortable">Comfortable</option>
-            <option value="high">High contrast</option>
-          </select>
-        </div>
-
-        {/* Density */}
-        <div>
-          <label
-            htmlFor="pref-density"
-            className="block mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]"
-          >
-            Density
-          </label>
-          <select
-            id="pref-density"
-            value={prefs.density}
-            onChange={(e) =>
-              onChange({ ...prefs, density: e.target.value as ServerPrefs["density"] })
-            }
-            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
-          >
-            <option value="comfortable">Comfortable</option>
-            <option value="compact">Compact</option>
-          </select>
-        </div>
-
-        {/* Text scale — numeric multipliers the server accepts (1 / 1.25 / 1.5) */}
-        <div>
-          <label
-            htmlFor="pref-text-scale"
-            className="block mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]"
-          >
-            Text size
-          </label>
-          <select
-            id="pref-text-scale"
-            value={String(prefs.text_scale)}
-            onChange={(e) => {
-              const value = Number(e.target.value);
-              const scale = TEXT_SCALES.find((s) => s === value);
-              // An unlisted multiplier is not applied — the select can
-              // only offer server-legal values anyway.
-              if (scale) onChange({ ...prefs, text_scale: scale });
-            }}
-            className="w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
-          >
-            <option value="1">Default</option>
-            <option value="1.25">Large</option>
-            <option value="1.5">Largest</option>
-          </select>
-        </div>
-
-        <WorldButton variant="primary" onPress={handleSave} isDisabled={putPrefs.isPending}>
-          {putPrefs.isPending ? "Saving…" : "Save preferences"}
-        </WorldButton>
-        {saveMessage && <SaveNote message={saveMessage.text} tone={saveMessage.tone} />}
-        <StepUpNote />
-      </div>
     </SettingsSection>
   );
 }
@@ -530,7 +398,7 @@ function CapabilitiesSection({
   capabilities,
   isStatusLoading,
 }: {
-  capabilities: CapabilityMap | undefined;
+  capabilities: ReturnType<typeof readCapabilityRows>;
   isStatusLoading: boolean;
 }) {
   if (isStatusLoading) {
@@ -543,9 +411,7 @@ function CapabilitiesSection({
     );
   }
 
-  const entries = Object.entries(capabilities ?? {});
-
-  if (entries.length === 0) {
+  if (capabilities.length === 0) {
     return (
       <SettingsSection id="Capabilities" titleId="settings-capabilities-heading">
         <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
@@ -557,25 +423,29 @@ function CapabilitiesSection({
 
   return (
     <SettingsSection id="Capabilities" titleId="settings-capabilities-heading">
+      <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        Read-only: capability state is reported by the station, not set from
+        this screen — there is no write endpoint to toggle it here.
+      </p>
       <ul className="space-y-[var(--pw-spacing-sm)]" role="list">
-        {entries.map(([id, cap]) => {
+        {capabilities.map((cap) => {
           const statusLabel = STATUS_LABELS[toCapabilityStatus(cap.status)];
-          const displayName = id
+          const displayName = cap.id
             .replace(/_/g, " ")
             .replace(/\b\w/g, (c) => c.toUpperCase());
 
           return (
             <li
-              key={id}
+              key={cap.id}
               className="flex items-center gap-[var(--pw-spacing-md)] p-[var(--pw-spacing-md)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)]"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
                   {displayName}
                 </p>
-                {cap.warnings.length > 0 && (
+                {cap.firstWarning !== null && (
                   <p className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] mt-1">
-                    {cap.warnings[0]}
+                    {cap.firstWarning}
                   </p>
                 )}
               </div>
@@ -601,7 +471,7 @@ function BrainSection({
   endpointCount,
   isManifestLoading,
 }: {
-  templates: BrainTemplate[];
+  templates: ReturnType<typeof readBrainTemplates>;
   isBrainLoading: boolean;
   endpointCount: number;
   isManifestLoading: boolean;
@@ -678,6 +548,15 @@ function ThemeSection({
     <SettingsSection id="Theme" titleId="settings-theme-heading">
       <fieldset>
         <legend className="sr-only">Select a theme</legend>
+        {/* Read-only honesty: this is a device preference, not a server
+            setting — the station publishes themes (GET /api/themes) but
+            has no endpoint that records which one you picked. Saying so
+            beats pretending the choice persists. */}
+        <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+          Read-only on the server: this station serves theme packs but has no
+          endpoint that stores a chosen theme, so this selection lives on this
+          device only and returns to the default on a new device.
+        </p>
         <div className="grid grid-cols-2 gap-[var(--pw-spacing-md)]">
           {THEME_NAMES.map((theme) => {
             const isActive = theme === currentTheme;
@@ -705,10 +584,9 @@ function ThemeSection({
                 </span>
                 {isActive && (
                   <span
-                    className="ml-auto text-[var(--pw-typography-size_micro)] text-[var(--pw-accent-teal)]"
-                    aria-hidden="true"
+                    className="ml-auto text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]"
                   >
-                    ● selected
+                    selected
                   </span>
                 )}
               </label>
@@ -722,38 +600,20 @@ function ThemeSection({
 
 // ─── Main Settings screen ────────────────────────────────
 
-const FALLBACK_PREFS: ServerPrefs = {
-  motion: "reduced",
-  contrast: "comfortable",
-  density: "comfortable",
-  text_scale: 1,
-  target_size: 44,
-  companion: "personal-world",
-  accent: "world-keeper",
-};
-
 export function Settings() {
   // Server state
   const { data: status, isLoading: isStatusLoading } = useStatus();
   const { data: session, isLoading: isSessionLoading } = useSession();
-  const { data: principal, isLoading: isPrincipalLoading } = usePrincipal();
-  const prefsQuery = usePrefs();
+  const principalQuery = usePrincipal();
   const { data: brain, isLoading: isBrainLoading } = useBrainTemplates();
   const { data: manifest, isLoading: isManifestLoading } = useManifest();
   const sectionsQuery = useSections();
 
-  // Preference draft: the server's values until the person edits; a
-  // successful save clears the draft so the next render re-reads the
-  // server truth (no effect-driven state sync).
-  const [prefDraft, setPrefDraft] = useState<ServerPrefs | null>(null);
-  const effectivePrefs = prefDraft ?? prefsQuery.data?.data ?? FALLBACK_PREFS;
+  const principalName = principalDisplayName(principalQuery.data);
 
   // Section ordering draft — derived from the server's resolved list,
   // overridden locally until a save lands.
-  const serverRows: SectionItem[] = (sectionsQuery.data?.data?.sections ?? [])
-    .slice()
-    .sort((a, b) => a.order - b.order)
-    .map((s) => ({ id: s.id, label: s.label, visible: s.visible }));
+  const serverRows: SectionItem[] = readSectionRows(sectionsQuery.data).rows;
   const [sectionDraft, setSectionDraft] = useState<SectionItem[] | null>(null);
   const editableSections = sectionDraft ?? serverRows;
 
@@ -809,34 +669,11 @@ export function Settings() {
         <ProfileSection
           authenticated={session?.ok === true}
           isSessionLoading={isSessionLoading}
-          principal={principal?.data}
-          isPrincipalLoading={isPrincipalLoading}
+          displayName={principalName}
+          isPrincipalLoading={principalQuery.isPending}
         />
 
-        {prefsQuery.isPending ? (
-          <SettingsSection id="Preferences" titleId="settings-prefs-heading">
-            <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
-              Loading…
-            </p>
-          </SettingsSection>
-        ) : prefsQuery.isError || prefsQuery.data?.data === undefined ? (
-          <SettingsSection id="Preferences" titleId="settings-prefs-heading">
-            <p
-              role="alert"
-              className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
-            >
-              {prefsQuery.error instanceof Error
-                ? prefsQuery.error.message
-                : "Preferences are unavailable on this station."}
-            </p>
-          </SettingsSection>
-        ) : (
-          <PreferencesSection
-            prefs={effectivePrefs}
-            onChange={setPrefDraft}
-            onSaved={() => setPrefDraft(null)}
-          />
-        )}
+        <SettingsRoom />
 
         <SectionsManager
           serverSections={editableSections}
@@ -846,14 +683,14 @@ export function Settings() {
         />
 
         <CapabilitiesSection
-          capabilities={status?.data?.capabilities}
+          capabilities={readCapabilityRows(status)}
           isStatusLoading={isStatusLoading}
         />
 
         <BrainSection
-          templates={brain?.data?.templates ?? []}
+          templates={readBrainTemplates(brain)}
           isBrainLoading={isBrainLoading}
-          endpointCount={manifest?.endpoints.length ?? 0}
+          endpointCount={countManifestEndpoints(manifest)}
           isManifestLoading={isManifestLoading}
         />
 
