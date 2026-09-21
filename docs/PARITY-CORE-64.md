@@ -76,9 +76,19 @@ a UI-traffic hit list.
 | GET | `/api/native-lab/health` | kept-with-row | API-046 verified | `require_auth` read; `NativeLabHealth` over the native inventory — no homelab dependency. |
 | GET | `/api/native-lab/inventory` | kept-with-row | API-045 verified | `require_auth` read; `NativeLabInventory.observe()`. |
 
-### A3 — routes 19–27
+### A3 — routes 19–27 (native-lab tail, reconciler, setup, source-control)
 
-_(appended by batch A3)_
+| Method | Path | Verdict | Row / action | Rationale |
+| --- | --- | --- | --- | --- |
+| GET | `/api/native-lab/resources` | kept-with-row | API-048 verified | `require_auth` read; `NativeLabResources.observe()`, no homelab dependency. |
+| GET | `/api/native-lab/settings` | kept-with-row | API-047 verified | `require_auth` read; `NativeLabSettings.observe()`. |
+| GET | `/api/reconciler/diff/{service}` | kept-with-row | API-059 verified | `require_auth` read; computes desired-vs-observed drift; body-less or invalid-JSON requests are treated as EMPTY observed state (`_observed_from_request`) — a structured degradation, not a 500. |
+| GET | `/api/reconciler/propose/{service}` | kept-with-row | API-060 verified | `require_auth` read; row note "propose only; never applies" verified — `NativeSettingsReconciler.apply()` exists as a separate method and is not routed. |
+| GET | `/api/reconciler/status` | kept-with-row | API-058 verified | `require_auth` read; native reconciler observation. |
+| POST | `/api/setup` | kept-with-row | API-002-run; row note enriched with the loopback fact | No auth dependency ⇒ `auth: public` is accurate; but the handler is fail-closed loopback-only (403 for remote peers) before the 409 marker check — clients need that in the manifest, so the note now says "loopback-only (403 otherwise)". |
+| GET | `/api/source-control/enrichment` | kept-with-row | API-036 verified | `require_auth` read; remote-side GitHub facts only, local git stays canonical; per-status quiet degradation (`unavailable` / `not_github` / `not_configured`) all trace to real branches in the handler. |
+| GET | `/api/source-control/history` | kept-with-row | API-034 verified; added missing handler docstring | `require_auth` read; native `git log`, newest-first; structured `not_configured` on unknown repo / empty search paths. |
+| POST | `/api/source-control/refresh` | kept-with-row | API-035 verified; added missing handler docstring | `require_step_up` in code ⇒ write/step-up row accurate; every outcome journals (act ⇒ PROVIDER_ACTION, rejection/error ⇒ FAILURE) per the handler branches. |
 
 ### A4 — routes 28–36
 

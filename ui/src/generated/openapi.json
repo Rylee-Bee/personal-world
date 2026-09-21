@@ -2802,6 +2802,7 @@
     },
     "/api/source-control/history": {
       "get": {
+        "description": "Newest-first commit history for ONE discovered repository\n(native git, read-only). Unconfigured search paths or an unknown\nrepo name answer not_configured — a structured miss, not a crash.",
         "operationId": "source_control_history_api_source_control_history_get",
         "parameters": [
           {
@@ -2853,6 +2854,7 @@
     },
     "/api/source-control/refresh": {
       "post": {
+        "description": "Act step of the propose→approve→act refresh: re-runs the native\nread-only git status for ONE named repository. Requires step-up\nelevation; every outcome is journaled (a completed act as\nPROVIDER_ACTION, a rejection or git error as FAILURE — repo name\nand state bits only, no secrets, no filesystem paths).",
         "operationId": "source_control_refresh_api_source_control_refresh_post",
         "responses": {
           "200": {

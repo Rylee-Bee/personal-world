@@ -141,7 +141,8 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "write",
         "none",
         "public",
-        "first-run bootstrap; 409 once the setup-complete marker exists",
+        "first-run bootstrap; loopback-only (403 otherwise); 409 once "
+        "the setup-complete marker exists",
     ),
     # Browser session (auth_routes.py; registry family AUTH-009).
     _e(

@@ -1823,6 +1823,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/source-control/history", dependencies=[Depends(require_auth)])
     async def source_control_history(repo: str, limit: int = 20) -> dict:
+        """Newest-first commit history for ONE discovered repository
+        (native git, read-only). Unconfigured search paths or an unknown
+        repo name answer not_configured — a structured miss, not a crash."""
         paths = _sc_paths()
         if not paths:
             return {
@@ -1863,6 +1866,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # PROVIDER_ACTION; no secrets, no paths beyond the repo name. ──
     @app.post("/api/source-control/refresh", dependencies=[Depends(require_step_up)])
     async def source_control_refresh(request: Request) -> dict:
+        """Act step of the propose→approve→act refresh: re-runs the native
+        read-only git status for ONE named repository. Requires step-up
+        elevation; every outcome is journaled (a completed act as
+        PROVIDER_ACTION, a rejection or git error as FAILURE — repo name
+        and state bits only, no secrets, no filesystem paths)."""
         try:
             body = await request.json()
         except ValueError:
