@@ -1,0 +1,162 @@
+import { test, expect, type Page } from "@playwright/test";
+import { expectKeyboardFocusRing, gotoArea } from "./helpers";
+
+/**
+ * C7 focus-ring contract + C2 undo-visible flow + C1 typed controls —
+ * e2e on the production preview build against the deterministic mock
+ * station (scripts/e2e-api.mjs).
+ *
+ * The focus assertions are the UI-side counterpart to
+ * tests/test_design_tokens.py's per-theme composition guard: that test
+ * proves the RING LITERAL composes to a valid 2px solid value per
+ * theme; this proves the rendered controls actually COMPUTE to it —
+ * reached by keyboard only (Tab), never by programmatic focus(), so
+ * the :focus-visible rule under test is the real rule.
+ */
+
+async function gotoSettings(page: Page) {
+  await gotoArea(page, "Settings");
+  await expect(
+    page.getByRole("heading", { name: "Settings", level: 1 }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Reading & Interaction" }),
+  ).toBeVisible();
+}
+
+const MOTION_WORDS: Record<string, string> = {
+  off: "No motion",
+  reduced: "Reduced motion",
+  subtle: "Subtle motion",
+};
+
+test.describe("Settings Room (C1/C2)", () => {
+  test("renders a typed control for every key the server schema describes", async ({
+    page,
+  }) => {
+    await gotoSettings(page);
+    for (const key of [
+      "accent",
+      "companion",
+      "contrast",
+      "density",
+      "motion",
+      "target_size",
+      "text_scale",
+    ]) {
+      await expect(page.locator(`#settings-room-${key}-control`)).toBeVisible();
+    }
+    // Only server-legal values are offered.
+    const options = await page
+      .locator("#settings-room-motion-control")
+      .locator("option")
+      .allTextContents();
+    expect(options).toEqual(["No motion", "Reduced motion", "Subtle motion"]);
+  });
+
+  test("nothing auto-persists: change previews with undo, Apply writes once, and the applied diff stays visible (C2)", async ({
+    page,
+  }) => {
+    await gotoSettings(page);
+    const motion = page.locator("#settings-room-motion-control");
+    const apply = page.getByRole("button", { name: /Apply changes/ });
+
+    // Value-aware so the flow is idempotent across reruns against the
+    // stateful mock store: move to whichever motion value is NOT live.
+    const before = await motion.inputValue();
+    const next = before === "subtle" ? "off" : "subtle";
+    const previewLine = `Motion: ${MOTION_WORDS[before]} → ${MOTION_WORDS[next]}`;
+
+    // Apply starts inert — there is nothing to apply.
+    await expect(apply).toBeDisabled();
+
+    await motion.selectOption(next);
+    await expect(page.getByText(previewLine)).toBeVisible();
+    await expect(apply).toBeEnabled();
+
+    // Undo is keyboard-operable and reverts the draft without any write.
+    const undo = page.getByRole("button", { name: "Undo change to Motion" });
+    await undo.focus();
+    await undo.press("Enter");
+    await expect(page.getByText(previewLine)).toHaveCount(0);
+    await expect(apply).toBeDisabled();
+
+    // Re-draft, then Apply once; the applied diff stays visible (C2).
+    await motion.selectOption(next);
+    await apply.click();
+    await expect(page.getByText("Saved 1 setting.")).toBeVisible();
+    await expect(
+      page.getByText(`Last apply changed 1 setting: motion ${before}→${next}`),
+    ).toBeVisible();
+
+    // The station actually kept it: a full reload (the SPA is
+    // state-routed — no URL yet, the deeplink gap C11 records) plus
+    // re-navigation must come up with the NEW value, not the default.
+    await page.reload();
+    await gotoArea(page, "Settings");
+    await expect(
+      page.getByRole("region", { name: "Reading & Interaction" }),
+    ).toBeVisible();
+    await expect(motion).toHaveValue(next);
+
+    // Restore the previous baseline through the same honest path.
+    await motion.selectOption(before);
+    await page.getByRole("button", { name: "Apply changes (1)" }).click();
+    await expect(page.getByText("Saved 1 setting.")).toBeVisible();
+  });
+
+  test("the C10 label lives in exactly one discoverable place (the settings preview panel)", async ({
+    page,
+  }) => {
+    await gotoSettings(page);
+    await expect(
+      page.getByText(/language dials — not yet wired/),
+    ).toHaveCount(1);
+    // Not scattered: navigating away shows none of it.
+    await gotoArea(page, "Today");
+    await expect(
+      page.getByText(/language dials — not yet wired/),
+    ).toHaveCount(0);
+  });
+
+  test("every Settings Room control shows the composed focus ring when reached by Tab (C7)", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await gotoSettings(page);
+    // Source order (§2.5): controls render sorted by key.
+    for (const key of [
+      "accent",
+      "companion",
+      "contrast",
+      "density",
+      "motion",
+      "target_size",
+      "text_scale",
+    ]) {
+      await expectKeyboardFocusRing(
+        page,
+        page.locator(`#settings-room-${key}-control`),
+        `focus ring on ${key}`,
+      );
+    }
+
+    // Draft one change, then reach the per-change Undo and Apply by Tab.
+    const motion = page.locator("#settings-room-motion-control");
+    const before = await motion.inputValue();
+    await motion.selectOption(before === "subtle" ? "off" : "subtle");
+    await expectKeyboardFocusRing(
+      page,
+      page.getByRole("button", { name: "Undo change to Motion" }),
+      "focus ring on Undo",
+    );
+    await expectKeyboardFocusRing(
+      page,
+      page.getByRole("button", { name: /Apply changes/ }),
+      "focus ring on Apply",
+    );
+
+    // Leave no draft behind.
+    await page.getByRole("button", { name: "Revert all changes" }).click();
+  });
+});

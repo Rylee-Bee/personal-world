@@ -388,7 +388,7 @@ export function SettingsRoom() {
       >
         {putPrefs.isPending
           ? "Saving…"
-          : `Apply change${changes.length === 1 ? "" : "s"}${changes.length ? ` (${changes.length})` : ""}`}
+          : `Apply changes${changes.length ? ` (${changes.length})` : ""}`}
       </WorldButton>
       <span className="ml-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
         Nothing is saved until this button is pressed.
