@@ -22,16 +22,22 @@
 /** Taxonomy size frozen at Staff Meeting #4 consult M4-2. */
 export const WARMTH_TAXONOMY_TOTAL_JOBS = 9 as const;
 
-/** What is NOT yet in the record — keep this honest until Sol's notes land. */
-export const WARMTH_TAXONOMY_GAP =
-  "6 of the 9 jobs are not transcribed in this repository; this union lists only the 3 named in Staff Meeting #4." as const;
-
 /**
  * Message kinds — one job per message (jobs are mutually exclusive;
- * Staff Meeting #4 consult M4-2). Only the three jobs named in the
- * repository record are enumerable today (see WARMTH_TAXONOMY_GAP).
+ * Staff Meeting #4 consult M4-2 + its 2026-09-21 addendum, which
+ * transcribed all nine from Sol's review into the repo record).
+ * Each line's comment is Sol's question, verbatim.
  */
-export type WarmthJob = "recover" | "guide" | "acknowledge";
+export type WarmthJob =
+  | "inform" // what happened?
+  | "explain" // what does this mean?
+  | "guide" // how do I do this?
+  | "ask" // what do you need from me?
+  | "warn" // what should I know before continuing?
+  | "recover" // something went wrong; now what?
+  | "reassure" // am I / is my stuff okay?
+  | "celebrate" // something good happened
+  | "acknowledge"; // recognize something important that happened
 
 /**
  * Situation tags, at most 2 active per render (consult M4-3). Contexts
