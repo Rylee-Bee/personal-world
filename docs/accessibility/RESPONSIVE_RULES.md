@@ -32,8 +32,8 @@ target and text preferences.
 Main padding is `1.5rem 1rem 2rem` below 900px and `1rem 0.75rem 2rem` below
 600px. Chat messages may use full width on phone. Tables use explicit scroll
 regions. Progressive disclosure uses native inline `details`/`summary`, including
-Today’s More from your world. There is no viewport-specific provenance drawer
-or World Assistant sheet implemented.
+Today’s More from your world. No viewport-specific provenance drawer
+or World Assistant sheet is implemented.
 
 Source defines display headings at `2.5rem`, section headings at `1.375rem`,
 and body at `calc(1rem * var(--pw-text-scale, 1))`; the older proposed per-device

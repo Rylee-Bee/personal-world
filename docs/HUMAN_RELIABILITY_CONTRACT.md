@@ -188,7 +188,7 @@ An agent should:
 - preserve uncertainty;
 - avoid performative busywork;
 - respect stop conditions;
-- make it easy for the human to say "done for now."
+- make it low-effort for the human to say "done for now."
 
 An agent MUST NOT imply that the human is obligated to continue merely
 because additional work is possible.
