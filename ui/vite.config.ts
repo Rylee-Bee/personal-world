@@ -15,6 +15,10 @@ const API_TARGET = process.env.VITE_API_PROXY_TARGET ?? "http://127.0.0.1:8000";
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
+  // Deploy-time URL prefix (e.g. PW_VITE_BASE=/vnext/ for the vNext
+  // station served behind a path prefix). Unset => served at root, so
+  // dev, Playwright e2e and `vite preview` are unaffected.
+  base: process.env.PW_VITE_BASE ?? "/",
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { WorldAssistant } from "../components/WorldAssistant";
-import { fn } from "@storybook/test";
+import { fn } from "storybook/test";
 
 const meta: Meta<typeof WorldAssistant> = {
   title: "Primitives/WorldAssistant",

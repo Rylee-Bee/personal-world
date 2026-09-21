@@ -22,17 +22,45 @@ export async function gotoArea(page: Page, name: string) {
  */
 
 /**
- * The composed ring literal for the ACTIVE production theme (station):
- * 2px solid #72b1b1 with 2px offset — the same composition
- * tests/test_design_tokens.py guards at the token layer
- * (docs/accessibility/ACCESSIBILITY_CONTRACT.md §2.4).
+ * The composed ring SHAPE for every production theme: 2px solid with
+ * 2px offset — the same composition tests/test_design_tokens.py guards
+ * at the token layer (docs/accessibility/ACCESSIBILITY_CONTRACT.md §2.4).
+ *
+ * The ring COLOR is deliberately NOT a literal here. world.css composes
+ * the ring from var(--pw-accent-primary), and that token differs per
+ * theme (station #72b1b1, moss #7AAA76, ocean #5AA8B8, starfield
+ * #D4A057). The old station hardcoding went permanently-red the moment
+ * starfield became the first-run default (L2) — a permanent-red test
+ * teaches people to ignore red. expectKeyboardFocusRing therefore
+ * resolves the ACTIVE theme's token at runtime, from the page itself.
  */
 export const RING = {
   width: "2px",
   style: "solid",
-  color: "rgb(114, 177, 177)",
   offset: "2px",
 };
+
+/**
+ * Resolve the ring colour the ACTIVE theme composes right now: a
+ * throwaway element carries the same `outline-color:
+ * var(--pw-accent-primary)` declaration world.css uses, and its
+ * computed style yields the browser-normalised rgb() — no hand-picked
+ * literals, no hex→rgb math to drift. (Under the OS
+ * prefers-contrast:more override world.css forces #FFFFFF; the e2e
+ * projects run with contrast no-preference, so the token is the
+ * contract under test.)
+ */
+export async function activeRingColor(locator: Locator): Promise<string> {
+  return locator.evaluate((el) => {
+    const probe = document.createElement("span");
+    probe.style.outlineColor = "var(--pw-accent-primary)";
+    const parent = el.parentElement ?? document.body;
+    parent.append(probe);
+    const color = getComputedStyle(probe).outlineColor;
+    probe.remove();
+    return color;
+  });
+}
 
 export async function focusRingOf(locator: Locator) {
   return locator.evaluate((el) => {
@@ -82,5 +110,5 @@ export async function expectKeyboardFocusRing(
       message: `${label ?? "focus ring"}: composed ring must arrive (a11y §2.4)`,
       timeout: 5_000,
     })
-    .toEqual(RING);
+    .toEqual({ ...RING, color: await activeRingColor(locator) });
 }

@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   applyPrefsToDocument,
   applyThemeToDocument,
+  DEFAULT_THEME,
   isThemeName,
   readStoredTheme,
   saveStoredTheme,
@@ -144,6 +145,17 @@ describe("theme (device-local — no server key exists)", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBe("starfield");
     applyThemeToDocument("station");
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
+  });
+
+  it("L2: a device that never chose a theme boots into starfield", () => {
+    // The boot expression App.tsx runs — a fresh device has no stored
+    // choice, and DEFAULT_THEME (not station) resolves it. Station is
+    // still reachable and still attribute-free; only the FIRST-RUN
+    // default moved.
+    expect(DEFAULT_THEME).toBe("starfield");
+    expect(readStoredTheme()).toBeNull();
+    applyThemeToDocument(readStoredTheme() ?? DEFAULT_THEME);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("starfield");
   });
 
   it("remembers this device's choice under the old chrome's storage key", () => {

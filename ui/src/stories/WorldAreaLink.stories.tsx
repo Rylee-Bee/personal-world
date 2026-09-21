@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { WorldAreaLink } from "../components/WorldAreaLink";
-import { fn } from "@storybook/test";
+import { fn } from "storybook/test";
 
 const meta: Meta<typeof WorldAreaLink> = {
   title: "Primitives/WorldAreaLink",

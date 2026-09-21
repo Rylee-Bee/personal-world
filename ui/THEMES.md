@@ -90,7 +90,11 @@ Or from JavaScript:
 document.documentElement.setAttribute("data-theme", "mytheme");
 ```
 
-The Station theme is the default (lives in `:root`).
+The Station theme is the CSS base (lives in `:root`). Since L2 the
+first-run **product** default is Starfield: with no stored device choice
+the app boots with `data-theme="starfield"` applied (`DEFAULT_THEME`,
+`ui/src/app/prefs-dom.ts`), and the Settings switcher can still pick any
+theme, remembered per device.
 
 ---
 

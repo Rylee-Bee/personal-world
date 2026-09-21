@@ -4,7 +4,8 @@
  * Accessibility contract §5.1 canonical DOM order:
  *   skip-link → navigation → main → complementary
  *
- * Theme: defaults to Station. Set data-theme="starfield" on <html> to switch.
+ * Theme: first run defaults to Starfield (DEFAULT_THEME in prefs-dom);
+ * any device choice wins and survives reloads via localStorage.
  * Atmosphere: starfield background + grid overlay from portfolio patterns.
  *
  * Status readouts are derived from the live /healthz probe — never hardcoded.
@@ -26,6 +27,7 @@ import { parsePrefsSchema, readPrefsValues } from "../screens/Settings/parse";
 import {
   applyPrefsToDocument,
   applyThemeToDocument,
+  DEFAULT_THEME,
   readStoredTheme,
 } from "./prefs-dom";
 
@@ -111,10 +113,10 @@ export function App() {
   useApplyPrefsChrome();
 
   // Theme: device-local by contract (the station has no theme-write
-  // endpoint) — restore what this device chose, like the old
-  // station.js did on every page load.
+  // endpoint) — restore what this device chose; a first run with no
+  // stored choice resolves to DEFAULT_THEME (starfield, L2).
   useEffect(() => {
-    applyThemeToDocument(readStoredTheme() ?? "station");
+    applyThemeToDocument(readStoredTheme() ?? DEFAULT_THEME);
   }, []);
 
   function renderScreen() {

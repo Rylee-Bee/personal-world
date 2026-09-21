@@ -176,18 +176,22 @@ test.describe("Settings Room (C1/C2)", () => {
     await gotoSettings(page);
     const root = page.locator("html");
 
-    await page.getByText("Starfield", { exact: true }).click();
-    await expect(root).toHaveAttribute("data-theme", "starfield");
+    // Ocean, not Starfield: clicking an already-active radio is a DOM
+    // no-op (no change event), and starfield is the first-run default
+    // since L2 — persistence can only be proven for a theme that
+    // differs from what boot applied.
+    await page.getByText("Ocean", { exact: true }).click();
+    await expect(root).toHaveAttribute("data-theme", "ocean");
     expect(
       await page.evaluate(() => window.localStorage.getItem("pw-station-theme")),
-    ).toBe("starfield");
+    ).toBe("ocean");
 
     // Reload lands on Today — the chrome still applies the stored
     // theme before anything is clicked.
     await page.reload();
-    await expect(root).toHaveAttribute("data-theme", "starfield");
+    await expect(root).toHaveAttribute("data-theme", "ocean");
 
-    // Back to the Station default (no data-theme attribute) for
+    // Back to the attribute-free Station theme (no data-theme) for
     // whatever spec runs next on this browser context.
     await gotoArea(page, "Settings");
     await page.getByText("Station", { exact: true }).click();

@@ -40,6 +40,7 @@ import { WorldButton } from "../../components/WorldButton";
 import { THEMES, type ThemeName } from "../../generated/tokens";
 import {
   applyThemeToDocument,
+  DEFAULT_THEME,
   readStoredTheme,
   saveStoredTheme,
 } from "../../app/prefs-dom";
@@ -68,13 +69,14 @@ const THEME_NAMES = Object.keys(THEMES) as Theme[];
 /** Read the theme this device actually chose (C12: same persistence
  *  model the old station.js chrome used — localStorage, not the
  *  server, because no theme-write endpoint exists), falling back to
- *  whatever is applied on <html>, then to the Station default. */
+ *  whatever is applied on <html>, then to the first-run default
+ *  (DEFAULT_THEME, starfield — L2). */
 function readInitialTheme(): Theme {
   const stored = readStoredTheme();
   if (stored) return stored;
   const active = document.documentElement.dataset.theme;
   const names = Object.keys(THEMES) as Theme[];
-  return names.includes(active as Theme) ? (active as Theme) : "station";
+  return names.includes(active as Theme) ? (active as Theme) : DEFAULT_THEME;
 }
 
 // ─── Inline save feedback ────────────────────────────────
