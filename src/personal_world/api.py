@@ -2961,9 +2961,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/companions/{name}.svg")
     async def companion_svg(name: str) -> Response:
-        # Approved companion source rigs, byte-identical copies of the
-        # design-owned artwork (see design/assets/companions/). Public:
-        # decorative identity, carries no world state.
+        """Serve one allowlisted companion SVG — byte-identical copies of
+        the design-owned rigs (see design/assets/companions/). UI asset
+        route: public like any browser-fetched art, carries no world
+        state, and is not part of the /api Lego box."""
         filename = _COMPANION_FILES.get(name)
         if filename is None or not companion_dir.exists():
             raise HTTPException(status_code=404, detail="unknown companion")
@@ -2976,11 +2977,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/today/{name}.svg")
     async def today_art(name: str, request: Request) -> Response:
-        # Frame-specific decorative exports for Today (Workshop v3,
-        # design/assets/today/): the quiet-day settle gesture and
-        # waterline. Public: decorative geometry, carries no world
-        # state. Allowlist pattern matches /fonts and /companions
-        # ({name}.svg binds the parameter WITHOUT the suffix).
+        """Serve one allowlisted Today artwork SVG — frame-specific
+        decorative exports for Today (Workshop v3, design/assets/today/):
+        the quiet-day settle gesture and waterline. UI asset route:
+        decorative geometry, carries no world state, and is not part of
+        the /api Lego box."""
+        # Allowlist pattern matches /fonts and /companions: {name}.svg
+        # binds the parameter WITHOUT the suffix.
         allowed = {
             "settle-gesture": "image/svg+xml",
             "waves-ladder": "image/svg+xml",
@@ -2995,8 +2998,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/icons/sprite.svg")
     async def icon_sprite() -> Response:
-        # 72-glyph production icon system (design/assets/icons/). Public:
-        # decorative geometry, stroke=currentColor, carries no world state.
+        """Serve the 72-glyph production icon sprite
+        (design/assets/icons/). UI asset route: decorative geometry,
+        stroke=currentColor, carries no world state, and is not part of
+        the /api Lego box."""
         path = static_dir / "icons" / "sprite.svg"
         if not path.exists():
             raise HTTPException(status_code=404, detail="sprite missing")
@@ -3004,9 +3009,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/fonts/{name}")
     async def webfont(name: str, request: Request) -> Response:
-        # Self-hosted Figma-export families (design/tokens.json
-        # font.expressive / font.interface). Public: OFL-licensed
-        # font binaries, no world state.
+        """Serve a self-hosted webfont from the allowlisted Figma-export
+        families (design/tokens.json font.expressive / font.interface).
+        UI asset route: OFL-licensed font binaries, carries no world
+        state, and is not part of the /api Lego box."""
         allowed = {
             "young-serif-latin.woff2": "font/woff2",
             "instrument-sans-var-latin.woff2": "font/woff2",

@@ -315,6 +315,16 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     _e("API-013", "GET", "/api/tools", "tools", "read", "none"),
     _e("API-077-templates", "GET", "/api/brain/templates", "brain", "read", "none"),
     _e("API-077-provenance", "GET", "/api/brain/provenance", "brain", "read", "none"),
+    _e(
+        "API-077-discovery",
+        "GET",
+        "/api/templates",
+        "brain",
+        "read",
+        "none",
+        note="public discovery view {id, surface, role, description} with "
+        "overrides applied; API-077-templates carries the full metadata",
+    ),
     # Proposals — the propose → approve → act lifecycle. The registry
     # has no API-nnn id for this family; PROP-* is minted here and is
     # the canonical machine id.

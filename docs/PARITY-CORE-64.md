@@ -90,9 +90,25 @@ a UI-traffic hit list.
 | GET | `/api/source-control/history` | kept-with-row | API-034 verified; added missing handler docstring | `require_auth` read; native `git log`, newest-first; structured `not_configured` on unknown repo / empty search paths. |
 | POST | `/api/source-control/refresh` | kept-with-row | API-035 verified; added missing handler docstring | `require_step_up` in code ⇒ write/step-up row accurate; every outcome journals (act ⇒ PROVIDER_ACTION, rejection/error ⇒ FAILURE) per the handler branches. |
 
-### A4 — routes 28–36
+### A4 — routes 28–36 (templates, updates, world writes, asset routes)
 
-_(appended by batch A4)_
+| Method | Path | Verdict | Row / action | Rationale |
+| --- | --- | --- | --- | --- |
+| GET | `/api/templates` | kept-with-row | **API-077-discovery added** (brain/read/none/authenticated) | Genuinely useful and documented elsewhere (`docs/brain-templates.md`, `docs/EXTERNAL-AGENT-HANDOFF.md` rely on it), only the curated row was missing. `list_public()` returns override-applied `{id, surface, role, description}` — distinct from API-077-templates' full metadata, so it is not a duplicate; the row note records the relation. |
+| GET | `/api/updates` | kept-with-row | API-029 verified | `require_auth` read; apply/rollback deliberately CLI-only (destructive-confirm path) — row note matches the handler. |
+| POST | `/api/world/fact` | kept-with-row | API-076-fact verified | `require_step_up` in code ⇒ write/step-up accurate. |
+| POST | `/api/world/intent` | kept-with-row | API-075 verified | `require_step_up` in code ⇒ write/step-up accurate. |
+| POST | `/api/world/policy` | kept-with-row | API-076-policy verified | `require_step_up`; `MutationDenied` on cemented policy → 409, matching the row note "cemented policies still refuse (409)". |
+| GET | `/companions/{name}.svg` | documented-internal | no manifest row (by design); added handler docstring (was comment-only) | UI asset surface, registry **ASSET-001 ACTIVE**; `docs/p1/FOUNDATION-SPEC.md` CompanionSlot specifies this exact URL as the artwork source ("existing routes, kept"). Non-`/api`, so outside the Lego box by design. |
+| GET | `/fonts/{name}` | documented-internal | no manifest row (by design); added handler docstring | Registry **ASSET-003 ACTIVE**; FOUNDATION-SPEC T5 plans `@font-face` via this route. No `@font-face` user in served CSS *today* (recorded in `docs/surfaces/ORPHANS.md` ASSET-008) — that pending wiring is the owner of the "unconsumed" flag, not deadness. |
+| GET | `/icons/sprite.svg` | documented-internal | no manifest row (by design); added handler docstring | Registry **ASSET-002 ACTIVE**; 72-glyph production sprite for frontend icons. |
+| GET | `/today/{name}.svg` | documented-internal | no manifest row (by design); added handler docstring | Registry **ASSET-004 ACTIVE** (consumer UI-001); allowlisted decorative exports only, no world state. |
+
+**All 36 judged; totals: 31 kept-with-row (1 row added, 1 note enriched), 5
+documented-internal, 0 deprecate-candidates.** Nothing on the list is truly
+dead: every route is registered, serves, and either carries a curated row or
+an ACTIVE registry/surface contract — so the honest fix was curation +
+docstrings, not retirement. No deletions (rail) and none needed.
 
 ## Full live-route spine
 

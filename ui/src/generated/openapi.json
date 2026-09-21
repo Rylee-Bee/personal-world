@@ -3408,6 +3408,7 @@
     },
     "/companions/{name}.svg": {
       "get": {
+        "description": "Serve one allowlisted companion SVG — byte-identical copies of\nthe design-owned rigs (see design/assets/companions/). UI asset\nroute: public like any browser-fetched art, carries no world\nstate, and is not part of the /api Lego box.",
         "operationId": "companion_svg_companions__name__svg_get",
         "parameters": [
           {
@@ -3445,6 +3446,7 @@
     },
     "/fonts/{name}": {
       "get": {
+        "description": "Serve a self-hosted webfont from the allowlisted Figma-export\nfamilies (design/tokens.json font.expressive / font.interface).\nUI asset route: OFL-licensed font binaries, carries no world\nstate, and is not part of the /api Lego box.",
         "operationId": "webfont_fonts__name__get",
         "parameters": [
           {
@@ -3502,6 +3504,7 @@
     },
     "/icons/sprite.svg": {
       "get": {
+        "description": "Serve the 72-glyph production icon sprite\n(design/assets/icons/). UI asset route: decorative geometry,\nstroke=currentColor, carries no world state, and is not part of\nthe /api Lego box.",
         "operationId": "icon_sprite_icons_sprite_svg_get",
         "responses": {
           "200": {
@@ -3518,6 +3521,7 @@
     },
     "/today/{name}.svg": {
       "get": {
+        "description": "Serve one allowlisted Today artwork SVG — frame-specific\ndecorative exports for Today (Workshop v3, design/assets/today/):\nthe quiet-day settle gesture and waterline. UI asset route:\ndecorative geometry, carries no world state, and is not part of\nthe /api Lego box.",
         "operationId": "today_art_today__name__svg_get",
         "parameters": [
           {
