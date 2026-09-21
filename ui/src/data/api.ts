@@ -1,8 +1,13 @@
 /**
  * PROJECT WORLDS — Typed API Client
  *
- * Uses openapi-fetch with generated types from the OpenAPI spec.
- * All API calls are type-checked at build time.
+ * Uses openapi-fetch with generated types from the OpenAPI spec plus
+ * the live-contract DTOs in src/data/contract.ts (E7 reconciliation,
+ * 2026-09-20): the shipped routes declare plain-dict responses and
+ * read raw `request.json()`, so the generated contract types them
+ * `{}` / no-body. Query and path parameters ARE declared and stay
+ * generated-type-checked; response and body shapes come from
+ * contract.ts, verified against the handlers.
  *
  * Every successful (HTTP 2xx) body below carries the server's own
  * envelope (`{ok, status, data, warnings}` where applicable); the
@@ -11,9 +16,48 @@
  */
 
 import createClient from "openapi-fetch";
-import type { components, paths } from "../generated/api-types";
-
-type Schemas = components["schemas"];
+import type { paths } from "../generated/api-types";
+import type {
+  Actor,
+  AppsUpdateRequest,
+  BrainTemplate,
+  ChatHistoryData,
+  ChatProvidersData,
+  ChatRequest,
+  ChatSendResponse,
+  ConnectionSaveRequest,
+  ConnectionTestRequest,
+  DailyResponse,
+  Envelope,
+  HealthzResponse,
+  JournalAuditData,
+  JournalEvent,
+  JournalHistoryData,
+  JournalNoteData,
+  JournalNoteRequest,
+  JournalSupersedeRequest,
+  LoginData,
+  LoginRequest,
+  ManifestResponse,
+  PrincipalInfo,
+  PrincipalPutRequest,
+  Reminder,
+  ReminderAddRequest,
+  ReminderPatchRequest,
+  SectionsData,
+  SectionsUpdateRequest,
+  SessionData,
+  SetupData,
+  StatusData,
+  UserCreateRequest,
+  VaultNamesData,
+  VaultSecretData,
+  VaultSetRequest,
+  VaultStatusData,
+  VaultUnlockRequest,
+  PrefsData,
+  PrefsUpdateRequest,
+} from "./contract";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -58,16 +102,27 @@ function bodyText(value: unknown): string | undefined {
   return undefined;
 }
 
+/** What openapi-fetch hands back for any route before unwrapping. */
+interface FetchResult {
+  data?: unknown;
+  error?: unknown;
+  response: Response;
+}
+
 /**
  * Typed response helper.
  *
  * An HTTP failure (declared error code OR any other non-2xx status —
  * FastAPI's 401/403/404/409/422 all arrive this way) must throw; a
  * silent `undefined` here is how a 404 once rendered as "Online".
+ *
+ * The one `as T` below is the deliberate single boundary of the data
+ * layer: the generated contract types these bodies `{}`/`unknown`
+ * because the server declares plain dicts, so the shape comes from
+ * contract.ts (verified against the handlers), never from a cast at
+ * a call-site.
  */
-async function unwrap<T>(
-  promise: Promise<{ data?: T; error?: unknown; response: Response }>,
-): Promise<T> {
+async function unwrap<T>(promise: Promise<FetchResult>): Promise<T> {
   const { data, error, response } = await promise;
 
   if (response.status === 401) {
@@ -105,238 +160,304 @@ async function unwrap<T>(
     );
   }
 
-  return data;
+  return data as T;
+}
+
+/**
+ * Body sender for routes whose handlers read raw `request.json()`.
+ *
+ * The generated contract types their `body` option as `undefined`
+ * (no declared requestBody) while the server accepts the JSON body —
+ * the mismatch is the E7 finding. openapi-fetch passes options through
+ * to fetch untouched; this adapter keeps that ONE documented boundary
+ * here instead of casting at every call-site. Runtime behavior is
+ * identical to calling `api.POST(path, { body })` directly.
+ */
+function sendBody(
+  method: "POST" | "PUT" | "PATCH",
+  path: string,
+  body: object,
+  params?: unknown,
+): Promise<FetchResult> {
+  const call = api[method] as (
+    p: string,
+    options: { body: unknown; params?: unknown },
+  ) => Promise<FetchResult>;
+  return call(path, params === undefined ? { body } : { body, params });
 }
 
 // ===== Typed API functions =====
 
 // Health
-export const healthz = () => unwrap(api.GET("/healthz", {}));
+export const healthz = () => unwrap<HealthzResponse>(api.GET("/healthz", {}));
 
 // Setup
-export const getSetupStatus = () => unwrap(api.GET("/api/setup/status", {}));
+export const getSetupStatus = () =>
+  unwrap<Envelope<SetupData>>(api.GET("/api/setup/status", {}));
 
 // World
-export const getStatus = () => unwrap(api.GET("/api/status", {}));
+export const getStatus = () =>
+  unwrap<Envelope<StatusData>>(api.GET("/api/status", {}));
 
-export const getDaily = () => unwrap(api.GET("/api/daily", {}));
+export const getDaily = () => unwrap<DailyResponse>(api.GET("/api/daily", {}));
 
 // Journal — server contract: {ok, data:[JournalEvent…]} current-events
 // list (query `n`, clamped 1..500 server-side); writes are {text};
 // supersede is {supersedes: ts, text, reason?}; history is one chain by ts.
 export const listJournal = (params?: { n?: number }) =>
-  unwrap(api.GET("/api/journal", { params: { query: params } }));
+  unwrap<Envelope<JournalEvent[]>>(
+    api.GET("/api/journal", { params: { query: params } }),
+  );
 
-export const writeJournal = (body: Schemas["JournalNoteRequest"]) =>
-  unwrap(api.POST("/api/journal", { body }));
+export const writeJournal = (body: JournalNoteRequest) =>
+  unwrap<Envelope<JournalNoteData>>(sendBody("POST", "/api/journal", body));
 
-export const supersedeJournal = (body: Schemas["JournalSupersedeRequest"]) =>
-  unwrap(api.POST("/api/journal/supersede", { body }));
+export const supersedeJournal = (body: JournalSupersedeRequest) =>
+  unwrap<Envelope>(sendBody("POST", "/api/journal/supersede", body));
 
 export const journalHistory = (params: { ts: string }) =>
-  unwrap(api.GET("/api/journal/history", { params: { query: params } }));
+  unwrap<Envelope<JournalHistoryData>>(
+    api.GET("/api/journal/history", { params: { query: params } }),
+  );
 
-export const journalAudit = () => unwrap(api.GET("/api/journal/audit", {}));
+export const journalAudit = () =>
+  unwrap<Envelope<JournalAuditData>>(api.GET("/api/journal/audit", {}));
 
 // Chat — the server picks the reasoning provider (no per-request
 // provider field). An unconfigured provider answers 200 + ok:false;
 // screens must read the envelope, not just the HTTP status.
-export const sendChat = (body: Schemas["ChatRequest"]) =>
-  unwrap(api.POST("/api/chat", { body }));
+export const sendChat = (body: ChatRequest) =>
+  unwrap<ChatSendResponse>(sendBody("POST", "/api/chat", body));
 
 export const listChatProviders = () =>
-  unwrap(api.GET("/api/chat/providers", {}));
+  unwrap<Envelope<ChatProvidersData>>(api.GET("/api/chat/providers", {}));
 
 export const chatHistory = (params?: { n?: number }) =>
-  unwrap(api.GET("/api/chat/history", { params: { query: params } }));
+  unwrap<Envelope<ChatHistoryData>>(
+    api.GET("/api/chat/history", { params: { query: params } }),
+  );
 
 // Proposals
-export const listProposals = () => unwrap(api.GET("/api/proposals", {}));
+export const listProposals = () => unwrap<Envelope<unknown[]>>(api.GET("/api/proposals", {}));
 
 export const getProposal = (id: string) =>
-  unwrap(
+  unwrap<Envelope>(
     api.GET("/api/proposals/{proposal_id}", { params: { path: { proposal_id: id } } }),
   );
 
 export const approveProposal = (id: string) =>
-  unwrap(
+  unwrap<Envelope>(
     api.POST("/api/proposals/{proposal_id}/approve", {
       params: { path: { proposal_id: id } },
     }),
   );
 
 export const rejectProposal = (id: string) =>
-  unwrap(
+  unwrap<Envelope>(
     api.POST("/api/proposals/{proposal_id}/reject", {
       params: { path: { proposal_id: id } },
     }),
   );
 
 export const executeProposal = (id: string) =>
-  unwrap(
+  unwrap<Envelope>(
     api.POST("/api/proposals/{proposal_id}/execute", {
       params: { path: { proposal_id: id } },
     }),
   );
 
-// Actors — {ok, data: Actor[]}: staff directory of connected PROVIDERS.
-export const listActors = () => unwrap(api.GET("/api/actors", {}));
+// Actors — {ok, data: Actor[]}: the staff directory of connected PROVIDERS.
+export const listActors = () =>
+  unwrap<Envelope<Actor[]>>(api.GET("/api/actors", {}));
 
 // Manifest
-export const getManifest = () => unwrap(api.GET("/api/manifest", {}));
+export const getManifest = () =>
+  unwrap<ManifestResponse>(api.GET("/api/manifest", {}));
 
 // Brain
 export const listBrainTemplates = () =>
-  unwrap(api.GET("/api/brain/templates", {}));
+  unwrap<Envelope<{ templates: BrainTemplate[] }>>(
+    api.GET("/api/brain/templates", {}),
+  );
 
-// Memory
-export const searchMemory = (q: string, limit?: number) =>
-  unwrap(api.GET("/api/memory/search", { params: { query: { q, limit } } }));
+// Memory — the server parameter is `top_k` (api.py memory_search); the
+// old client sent `limit`, which the server silently ignored. That real
+// mismatch is fixed here rather than papered over.
+export const searchMemory = (q: string, topK?: number) =>
+  unwrap<Envelope>(
+    api.GET("/api/memory/search", { params: { query: { q, top_k: topK } } }),
+  );
 
 // Tools
-export const listTools = () => unwrap(api.GET("/api/tools", {}));
+export const listTools = () => unwrap<Envelope>(api.GET("/api/tools", {}));
 
 // Auth
 export const login = (token: string) =>
-  unwrap(api.POST("/api/auth/login", { body: { token } }));
+  unwrap<Envelope<LoginData>>(
+    sendBody("POST", "/api/auth/login", { token } satisfies LoginRequest),
+  );
 
-export const logout = () => unwrap(api.POST("/api/auth/logout", {}));
+export const logout = () => unwrap<Envelope>(api.POST("/api/auth/logout", {}));
 
-export const getSession = () => unwrap(api.GET("/api/auth/session", {}));
-
-// Re-export types
-export type { paths } from "../generated/api-types";
-export type { components } from "../generated/api-types";
+export const getSession = () =>
+  unwrap<Envelope<SessionData>>(api.GET("/api/auth/session", {}));
 
 // ===== Vault =====
-export const getVaultStatus = () => unwrap(api.GET("/api/vault/status", {}));
+export const getVaultStatus = () =>
+  unwrap<Envelope<VaultStatusData>>(api.GET("/api/vault/status", {}));
 
 export const unlockVault = (passphrase: string) =>
-  unwrap(api.POST("/api/vault/unlock", { body: { passphrase } }));
+  unwrap<Envelope>(
+    sendBody("POST", "/api/vault/unlock", {
+      passphrase,
+    } satisfies VaultUnlockRequest),
+  );
 
-export const lockVault = () => unwrap(api.POST("/api/vault/lock", {}));
+export const lockVault = () => unwrap<Envelope>(api.POST("/api/vault/lock", {}));
 
-export const listVaultNames = () => unwrap(api.GET("/api/vault/names", {}));
+export const listVaultNames = () =>
+  unwrap<Envelope<VaultNamesData>>(api.GET("/api/vault/names", {}));
 
 export const setVaultSecret = (name: string, value: string) =>
-  unwrap(api.POST("/api/vault/set", { body: { name, value } }));
+  unwrap<Envelope<{ name: string }>>(
+    sendBody("POST", "/api/vault/set", { name, value } satisfies VaultSetRequest),
+  );
 
 export const getVaultSecret = (name: string) =>
-  unwrap(api.GET("/api/vault/{name}", { params: { path: { name } } }));
+  unwrap<Envelope<VaultSecretData>>(
+    api.GET("/api/vault/{name}", { params: { path: { name } } }),
+  );
 
 export const deleteVaultSecret = (name: string) =>
-  unwrap(api.DELETE("/api/vault/{name}", { params: { path: { name } } }));
+  unwrap<Envelope<{ name: string }>>(
+    api.DELETE("/api/vault/{name}", { params: { path: { name } } }),
+  );
 
 // ===== Prefs =====
-export const getPrefs = () => unwrap(api.GET("/api/prefs", {}));
+export const getPrefs = () => unwrap<Envelope<PrefsData>>(api.GET("/api/prefs", {}));
 
-export const putPrefs = (body: Schemas["PrefsUpdateRequest"]) =>
-  unwrap(api.PUT("/api/prefs", { body }));
+export const putPrefs = (body: PrefsUpdateRequest) =>
+  unwrap<Envelope<PrefsData>>(sendBody("PUT", "/api/prefs", body));
 
-export const getPrefsSchema = () => unwrap(api.GET("/api/prefs/schema", {}));
+export const getPrefsSchema = () => unwrap<Envelope>(api.GET("/api/prefs/schema", {}));
 
 // ===== Sections =====
 // GET answers {ok, data:{schema, sections}}; PUT accepts the layout
 // delta {order?, hidden?} of server-known section ids.
-export const getSections = () => unwrap(api.GET("/api/sections", {}));
+export const getSections = () =>
+  unwrap<Envelope<SectionsData>>(api.GET("/api/sections", {}));
 
-export const putSections = (body: Schemas["SectionsUpdateRequest"]) =>
-  unwrap(api.PUT("/api/sections", { body }));
+export const putSections = (body: SectionsUpdateRequest) =>
+  unwrap<Envelope<SectionsData>>(sendBody("PUT", "/api/sections", body));
 
 // ===== Reminders =====
-export const listReminders = () => unwrap(api.GET("/api/reminders", {}));
+export const listReminders = () =>
+  unwrap<Envelope<Reminder[]>>(api.GET("/api/reminders", {}));
 
 export const addReminder = (text: string) =>
-  unwrap(api.POST("/api/reminders", { body: { text } }));
+  unwrap<Envelope>(
+    sendBody("POST", "/api/reminders", { text } satisfies ReminderAddRequest),
+  );
 
 export const toggleReminder = (rid: string, enabled: boolean) =>
-  unwrap(
-    api.PATCH("/api/reminders/{rid}", { params: { path: { rid } }, body: { enabled } }),
+  unwrap<Envelope>(
+    sendBody(
+      "PATCH",
+      "/api/reminders/{rid}",
+      { enabled } satisfies ReminderPatchRequest,
+      { path: { rid } },
+    ),
   );
 
 export const deleteReminder = (rid: string) =>
-  unwrap(api.DELETE("/api/reminders/{rid}", { params: { path: { rid } } }));
+  unwrap<Envelope>(api.DELETE("/api/reminders/{rid}", { params: { path: { rid } } }));
 
 // ===== Apps =====
-export const listApps = () => unwrap(api.GET("/api/apps", {}));
+export const listApps = () => unwrap<Envelope<unknown[]>>(api.GET("/api/apps", {}));
 
-export const putApps = (body: Schemas["AppsUpdateRequest"]) =>
-  unwrap(api.PUT("/api/apps", { body }));
+export const putApps = (body: AppsUpdateRequest) =>
+  unwrap<Envelope>(sendBody("PUT", "/api/apps", body));
 
 // ===== Themes =====
-export const listThemes = () => unwrap(api.GET("/api/themes", {}));
+export const listThemes = () => unwrap<Envelope<unknown[]>>(api.GET("/api/themes", {}));
 
 export const getTheme = (name: string) =>
-  unwrap(api.GET("/api/themes/{name}", { params: { path: { name } } }));
+  unwrap<Envelope>(api.GET("/api/themes/{name}", { params: { path: { name } } }));
 
 // ===== Connections =====
-export const getConnectionSchemas = () =>
-  unwrap(api.GET("/api/connections/schemas", {}));
+export const getConnectionSchemas = () => unwrap<Envelope>(api.GET("/api/connections/schemas", {}));
 
 export const getConnectionSchema = (capability: string) =>
-  unwrap(
+  unwrap<Envelope>(
     api.GET("/api/connections/schema/{capability}", {
       params: { path: { capability } },
     }),
   );
 
 export const getConnectionsConfig = () =>
-  unwrap(api.GET("/api/connections/config", {}));
+  unwrap<Envelope>(api.GET("/api/connections/config", {}));
 
 export const getConnectionsOverview = () =>
-  unwrap(api.GET("/api/connections/overview", {}));
+  unwrap<Envelope<unknown[]>>(api.GET("/api/connections/overview", {}));
 
-export const listConnections = () => unwrap(api.GET("/api/connections", {}));
+export const listConnections = () => unwrap<Envelope<unknown[]>>(api.GET("/api/connections", {}));
 
-export const saveConnection = (body: Schemas["ConnectionSaveRequest"]) =>
-  unwrap(api.PUT("/api/connections", { body }));
+export const saveConnection = (body: ConnectionSaveRequest) =>
+  unwrap<Envelope<{ saved: boolean; name: string }>>(
+    sendBody("PUT", "/api/connections", body),
+  );
 
 export const deleteConnection = (name: string) =>
-  unwrap(api.DELETE("/api/connections/{name}", { params: { path: { name } } }));
+  unwrap<Envelope>(api.DELETE("/api/connections/{name}", { params: { path: { name } } }));
 
-export const testConnection = (body: Schemas["ConnectionTestRequest"]) =>
-  unwrap(api.POST("/api/connections/test", { body }));
+export const testConnection = (body: ConnectionTestRequest) =>
+  unwrap<Envelope>(sendBody("POST", "/api/connections/test", body));
 
-export const validateConnection = (body: Schemas["ConnectionTestRequest"]) =>
-  unwrap(api.POST("/api/connections/validate", { body }));
+export const validateConnection = (body: ConnectionTestRequest) =>
+  unwrap<Envelope>(sendBody("POST", "/api/connections/validate", body));
 
 // ===== Identity =====
-export const getPrincipal = () => unwrap(api.GET("/api/identity/principal", {}));
+export const getPrincipal = () =>
+  unwrap<Envelope<PrincipalInfo>>(api.GET("/api/identity/principal", {}));
 
 export const putPrincipal = (display_name: string) =>
-  unwrap(api.PUT("/api/identity/principal", { body: { display_name } }));
+  unwrap<Envelope<PrincipalInfo>>(
+    sendBody("PUT", "/api/identity/principal", {
+      display_name,
+    } satisfies PrincipalPutRequest),
+  );
 
-export const listUsers = () => unwrap(api.GET("/api/identity/users", {}));
+export const listUsers = () => unwrap<Envelope<unknown[]>>(api.GET("/api/identity/users", {}));
 
-export const createUser = (body: Schemas["UserCreateRequest"]) =>
-  unwrap(api.POST("/api/identity/users", { body }));
+export const createUser = (body: UserCreateRequest) =>
+  unwrap<Envelope>(sendBody("POST", "/api/identity/users", body));
 
-export const listAgents = () => unwrap(api.GET("/api/identity/agents", {}));
+export const listAgents = () => unwrap<Envelope<unknown[]>>(api.GET("/api/identity/agents", {}));
 
 // ===== Discovery =====
 export const getDiscoveryStatus = () =>
-  unwrap(api.GET("/api/discovery/status", {}));
+  unwrap<Envelope>(api.GET("/api/discovery/status", {}));
 
 export const listDiscoverySources = () =>
-  unwrap(api.GET("/api/discovery/sources", {}));
+  unwrap<Envelope<unknown[]>>(api.GET("/api/discovery/sources", {}));
 
 export const listDiscoveryInterests = () =>
-  unwrap(api.GET("/api/discovery/interests", {}));
+  unwrap<Envelope<unknown[]>>(api.GET("/api/discovery/interests", {}));
 
 export const triggerDiscovery = () =>
-  unwrap(api.GET("/api/discovery/discover", {}));
+  unwrap<Envelope>(api.GET("/api/discovery/discover", {}));
 
 // ===== Media =====
-export const getMediaStatus = () => unwrap(api.GET("/api/media/status", {}));
+export const getMediaStatus = () => unwrap<Envelope>(api.GET("/api/media/status", {}));
 
-export const getMediaLibrary = () => unwrap(api.GET("/api/media/library", {}));
+export const getMediaLibrary = () => unwrap<Envelope>(api.GET("/api/media/library", {}));
 
-export const getMediaRecent = () => unwrap(api.GET("/api/media/recent", {}));
+export const getMediaRecent = () => unwrap<Envelope>(api.GET("/api/media/recent", {}));
 
-export const getMediaActivity = () => unwrap(api.GET("/api/media/activity", {}));
+export const getMediaActivity = () => unwrap<Envelope>(api.GET("/api/media/activity", {}));
 
 export const searchMedia = (q: string) =>
-  unwrap(api.GET("/api/media/search", { params: { query: { q } } }));
+  unwrap<Envelope>(api.GET("/api/media/search", { params: { query: { q } } }));
 
 // ===== Endpoints the client does NOT call yet =====
 // /api/projects/status, /api/source-control/*, /api/lab/*,

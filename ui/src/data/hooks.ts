@@ -70,7 +70,14 @@ import {
   getMediaRecent,
   getMediaActivity,
 } from "./api";
-import type { components } from "../generated/api-types";
+import type {
+  Actor,
+  ChatHistoryEntry,
+  Envelope,
+  HealthzResponse,
+  JournalEvent,
+  SessionData,
+} from "./contract";
 import type {
   CapabilitySummary,
   Resident,
@@ -709,12 +716,14 @@ function getGreeting(): string {
 }
 
 // ===== Type exports =====
+// Shapes come from src/data/contract.ts (verified against the live
+// handlers — see that file's header for why not the generated types).
 export type WorldStatus = NonNullable<ReturnType<typeof useStatus>["data"]>;
 export type DailyDigest = NonNullable<ReturnType<typeof useDaily>["data"]>;
 export type JournalList = NonNullable<ReturnType<typeof useJournalList>["data"]>;
-export type JournalEntry = components["schemas"]["JournalEvent"];
-export type ChatEntry = components["schemas"]["ChatHistoryEntry"];
-export type Proposal = components["schemas"]["Proposal"];
-export type ProviderActor = components["schemas"]["Actor"];
-export type Healthz = components["schemas"]["Healthz"];
-export type Session = components["schemas"]["SessionResponse"];
+export type JournalEntry = JournalEvent;
+export type ChatEntry = ChatHistoryEntry;
+export type Proposal = Envelope;
+export type ProviderActor = Actor;
+export type Healthz = HealthzResponse;
+export type Session = Envelope<SessionData>;

@@ -74,7 +74,7 @@ import {
   useJournalList,
   queryKeys,
 } from "../data/hooks";
-import type { components } from "../generated/api-types";
+import type { JournalEvent } from "../data/contract";
 import * as api from "../data/api";
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -193,7 +193,7 @@ describe("hooks", () => {
 
   describe("useJournalList", () => {
     it("returns data after fetch", async () => {
-      const mockEvents: components["schemas"]["JournalEvent"][] = [
+      const mockEvents: JournalEvent[] = [
         {
           ts: "2026-09-19T12:00:00Z",
           kind: "observation",
@@ -223,7 +223,7 @@ describe("hooks", () => {
 
       expect(result.current.data).toBeDefined();
       expect(result.current.data!.data).toHaveLength(1);
-      expect(result.current.data!.data[0].ts).toBe("2026-09-19T12:00:00Z");
+      expect(result.current.data!.data?.[0]?.ts).toBe("2026-09-19T12:00:00Z");
     });
   });
 

@@ -4,273 +4,22 @@
  */
 
 export interface paths {
-    "/healthz": {
+    "/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Health check */
-        get: operations["healthz"];
+        /**
+         * Spa Root
+         * @description Entry point. Post-setup the **Station** is the product frontend
+         *     (owner decisions #11/#12). During first-run the setup wizard owns the
+         *     entry.
+         */
+        get: operations["spa_root__get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** World summary */
-        get: operations["getStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Setup status */
-        get: operations["getSetupStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/daily": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Daily digest */
-        get: operations["getDaily"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/journal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List journal entries */
-        get: operations["listJournal"];
-        put?: never;
-        /** Write personal journal note */
-        post: operations["writeJournal"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/journal/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Journal history */
-        get: operations["journalHistory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/journal/audit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Journal audit */
-        get: operations["journalAudit"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/journal/supersede": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Supersede journal entry */
-        post: operations["supersedeJournal"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/chat": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Send chat message */
-        post: operations["sendChat"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/chat/providers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List chat providers */
-        get: operations["listChatProviders"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/chat/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Chat history */
-        get: operations["chatHistory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/proposals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List proposals */
-        get: operations["listProposals"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/proposals/{proposal_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get proposal */
-        get: operations["getProposal"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/proposals/{proposal_id}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve proposal */
-        post: operations["approveProposal"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/proposals/{proposal_id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reject proposal */
-        post: operations["rejectProposal"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/proposals/{proposal_id}/execute": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Execute proposal */
-        post: operations["executeProposal"];
         delete?: never;
         options?: never;
         head?: never;
@@ -284,8 +33,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List actors */
-        get: operations["listActors"];
+        /** Actors */
+        get: operations["actors_api_actors_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -294,67 +43,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/manifest": {
+    "/api/apps": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Capability manifest */
-        get: operations["getManifest"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/brain/templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List brain templates */
-        get: operations["listBrainTemplates"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/memory/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Search memory */
-        get: operations["searchMemory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tools": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List tools */
-        get: operations["listTools"];
-        put?: never;
+        /**
+         * Apps List
+         * @description Services launcher registry (config/data/apps.json).
+         *
+         *     Each entry: {id, name, url, icon?, category?}. User-editable,
+         *     optional; absent file = empty list.
+         */
+        get: operations["apps_list_api_apps_get"];
+        /**
+         * Apps Put
+         * @description Replace the services registry (step-up gated, like prefs).
+         */
+        put: operations["apps_put_api_apps_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -371,8 +79,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Login */
-        post: operations["login"];
+        /**
+         * Auth Login
+         * @description Local/bootstrap login.
+         */
+        post: operations["auth_login_api_auth_login_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -388,8 +99,159 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Logout */
-        post: operations["logout"];
+        /**
+         * Auth Logout
+         * @description Logout: invalidate session.
+         *
+         *     For an OIDC-created session the response also carries the
+         *     provider's end-session URL, so a client can offer a real "sign
+         *     out everywhere" instead of silently leaving the IdP session
+         *     alive. The local session is gone either way.
+         */
+        post: operations["auth_logout_api_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Auth Oidc Callback
+         * @description Finish a sign-in: exchange the code, verify the id_token.
+         *
+         *     Trust order matters. The ``state`` cookie is checked first
+         *     (CSRF), then the authorization code is exchanged with the PKCE
+         *     verifier, then the id_token's signature is verified against the
+         *     provider's JWKS and its ``iss``/``aud``/``exp``/``nonce`` claims
+         *     are validated. Only then is the verified ``sub`` handed to
+         *     ``identity.py`` to resolve a Principal. Nothing about the
+         *     provider's assertion is trusted before it is verified, and no
+         *     id_token or access_token is ever stored.
+         */
+        get: operations["auth_oidc_callback_api_auth_oidc_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Auth Oidc Config
+         * @description Legacy alias of ``/api/auth/oidc/status``.
+         *
+         *     Same honest payload, plus the flat keys the earlier shape used.
+         *     ``/api/auth/oidc/login`` is the canonical entry point for a
+         *     browser: the server owns the discovery-derived authorize URL, so
+         *     no client needs to construct one (or to know PKCE exists).
+         */
+        get: operations["auth_oidc_config_api_auth_oidc_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Auth Oidc Login
+         * @description Start a sign-in: redirect to the provider's authorize URL.
+         *
+         *     Authorization-code flow with PKCE (S256) and a nonce. The
+         *     in-flight state — CSRF ``state``, PKCE verifier, nonce, and the
+         *     exact ``redirect_uri`` the token exchange must replay — is held
+         *     in a signed HttpOnly cookie, so the callback can verify the
+         *     attempt belongs to this browser without storing anything
+         *     server-side.
+         */
+        get: operations["auth_oidc_login_api_auth_oidc_login_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Auth Oidc Logout
+         * @description End the local session, then the provider session if it offers
+         *     RP-initiated logout.
+         *
+         *     The local session is always invalidated first, so a provider
+         *     that is unreachable can never leave a signed-in session behind.
+         *     We do not retain the id_token, so no ``id_token_hint`` is sent —
+         *     some providers then ask the person to confirm, which is the
+         *     honest cost of not storing a credential we do not need.
+         */
+        get: operations["auth_oidc_logout_api_auth_oidc_logout_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Auth Oidc Status
+         * @description Honest OIDC state for the login screen and the setup wizard.
+         *
+         *     Read-only and unauthenticated by necessity (it is consulted
+         *     before anyone can sign in), and therefore deliberately bounded:
+         *     it never accepts a target from the caller — the provider comes
+         *     from the operator's own ``config/oidc.json`` — and discovery
+         *     results are cached, success and failure alike, so an anonymous
+         *     caller cannot turn this into a probe loop against the IdP.
+         *
+         *     ``status`` is one of ``not_configured`` (no OIDC file; local
+         *     auth is the whole story — healthy, not broken), ``configured``
+         *     (usable), ``unreachable`` (provider did not answer), or
+         *     ``misconfigured`` (settings or provider metadata unusable).
+         *     Payload carries wiring and discovery metadata; the client secret
+         *     is represented only by the *name* of the env var that holds it
+         *     and a boolean saying whether that variable is set.
+         */
+        get: operations["auth_oidc_status_api_auth_oidc_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -403,8 +265,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get session */
-        get: operations["getSession"];
+        /**
+         * Auth Session
+         * @description Check current session.
+         *
+         *     Deliberately free of provider calls: the UI polls this endpoint,
+         *     so it must never block on an identity provider. Sign-in options
+         *     come from ``/api/auth/oidc/status``.
+         */
+        get: operations["auth_session_api_auth_session_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -422,23 +291,256 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Step-up auth */
-        post: operations["stepUp"];
+        /**
+         * Auth Step Up
+         * @description Elevate the current session for a bounded window.
+         *
+         *     Step-up is a credential event, not a bare flag: the caller must
+         *     re-present a credential (the instance token as a bearer header
+         *     or ``{"token": ...}`` in the body) that resolves to the same
+         *     principal the session belongs to. The resulting elevation is
+         *     time-bounded and bound to that principal; it is the grant
+         *     ``require_step_up`` consumes.
+         *
+         *     Unchanged by the OIDC work: an OIDC sign-in proves identity to
+         *     the provider but does not by itself mint a step-up grant. A
+         *     fresh OIDC round-trip as step-up remains unimplemented (see
+         *     docs/ARCHITECTURE.md "Known implementation/documentation
+         *     boundaries").
+         */
+        post: operations["auth_step_up_api_auth_step_up_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/connections/schemas": {
+    "/api/backup": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List connection schemas */
-        get: operations["getConnectionSchemas"];
+        /**
+         * Backup
+         * @description Full-state backup payload (world, journal, config) including
+         *     private state. Meant for the operator's own encryption step; it
+         *     is never shareable raw, and the API does not encrypt it.
+         */
+        get: operations["backup_api_backup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/brain/provenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Brain Provenance
+         * @description Report template provenance for Nerd Mode.
+         */
+        get: operations["brain_provenance_api_brain_provenance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/brain/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Brain Templates
+         * @description List all brain templates with metadata.
+         */
+        get: operations["brain_templates_api_brain_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Chat
+         * @description Conversational interface to Project Worlds.
+         *
+         *     Read-only: the model observes a rendered world snapshot and
+         *     returns text. No tool execution, no mutations. With no chat
+         *     provider configured the endpoint answers 'not_configured' so
+         *     the dashboard can degrade honestly.
+         */
+        post: operations["chat_api_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chat History View
+         * @description The caller's own persisted chat transcript, oldest first
+         *     (per-user, decision #13). Never another principal's.
+         */
+        get: operations["chat_history_view_api_chat_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chat Providers
+         * @description List available chat providers and which is active.
+         */
+        get: operations["chat_providers_api_chat_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Chat Test
+         * @description Quick chat test — sends a simple message to verify the provider
+         *     works. Authenticated: it spends provider quota and reveals which
+         *     provider is wired, so it is never a public probe.
+         */
+        post: operations["chat_test_api_chat_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Connections List
+         * @description Return all connections.
+         */
+        get: operations["connections_list_api_connections_get"];
+        /**
+         * Connections Save
+         * @description Save a connection (step-up required).
+         */
+        put: operations["connections_save_api_connections_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Connections Config
+         * @description Return the full merged connection configuration.
+         */
+        get: operations["connections_config_api_connections_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/config/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save Native Config
+         * @description Save native provider config (calendar, notifications, etc.).
+         */
+        post: operations["save_native_config_api_connections_config__key__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Connections Overview
+         * @description Return capability overview: status, config state, providers.
+         */
+        get: operations["connections_overview_api_connections_overview_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -454,8 +556,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Schema for one capability */
-        get: operations["getConnectionSchema"];
+        /**
+         * Connection Schema
+         * @description Return schema for a single capability.
+         */
+        get: operations["connection_schema_api_connections_schema__capability__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -464,15 +569,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/connections/config": {
+    "/api/connections/schemas": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Connection configuration */
-        get: operations["getConnectionsConfig"];
+        /**
+         * Connection Schemas
+         * @description Return all provider schemas for the Connections & Providers UI.
+         */
+        get: operations["connection_schemas_api_connections_schemas_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -481,35 +589,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/connections/overview": {
+    "/api/connections/test": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Overview of all connections */
-        get: operations["getConnectionsOverview"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Test Connection
+         * @description Test a connection configuration without saving it.
+         */
+        post: operations["test_connection_api_connections_test_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/connections": {
+    "/api/connections/validate": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List connections */
-        get: operations["listConnections"];
-        /** Save or update a connection */
-        put: operations["saveConnection"];
-        post?: never;
+        get?: never;
+        put?: never;
+        /**
+         * Validate Connection
+         * @description Validate connection config (alias for test).
+         */
+        post: operations["validate_connection_api_connections_validate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -526,143 +639,54 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove a connection */
-        delete: operations["deleteConnection"];
+        /**
+         * Connections Delete
+         * @description Delete a connection by name (step-up required).
+         */
+        delete: operations["connections_delete_api_connections__name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/connections/test": {
+    "/api/daily": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Daily View
+         * @description Present the daily digest. Read-only: a page view never
+         *     journals observations or records facts (that is the POST).
+         */
+        get: operations["daily_view_api_daily_get"];
         put?: never;
-        /** Test a connection */
-        post: operations["testConnection"];
+        /**
+         * Daily Run
+         * @description Run the daily loop for real: journal observations, record
+         *     capability facts, flag drift, save the world.
+         */
+        post: operations["daily_run_api_daily_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/connections/validate": {
+    "/api/discovery/discover": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Validate connection config */
-        post: operations["validateConnection"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/identity/principal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Current principal info */
-        get: operations["getIdentityPrincipal"];
-        /** Update display name */
-        put: operations["updateIdentityPrincipal"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/identity/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List users */
-        get: operations["listUsers"];
-        put?: never;
-        /** Create user */
-        post: operations["createUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/identity/agents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List agents */
-        get: operations["listAgents"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/identity/agents/{agent_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get agent details */
-        get: operations["getAgent"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/discovery/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Discovery status */
-        get: operations["getDiscoveryStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/discovery/sources": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List discovery sources */
-        get: operations["listDiscoverySources"];
+        /**
+         * Discovery Discover
+         * @description Discover content from sources.
+         */
+        get: operations["discovery_discover_api_discovery_discover_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -678,8 +702,59 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List interests */
-        get: operations["listDiscoveryInterests"];
+        /**
+         * Discovery Interests
+         * @description List interests.
+         */
+        get: operations["discovery_interests_api_discovery_interests_get"];
+        put?: never;
+        /**
+         * Discovery Add Interest
+         * @description Add an interest.
+         */
+        post: operations["discovery_add_interest_api_discovery_interests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discovery/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discovery Sources
+         * @description List discovery sources.
+         */
+        get: operations["discovery_sources_api_discovery_sources_get"];
+        put?: never;
+        /**
+         * Discovery Add Source
+         * @description Add a discovery source.
+         */
+        post: operations["discovery_add_source_api_discovery_sources_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discovery/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discovery Status
+         * @description Native Discovery status.
+         */
+        get: operations["discovery_status_api_discovery_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -688,15 +763,19 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/discovery/discover": {
+    "/api/exports/settings": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Trigger discovery */
-        get: operations["triggerDiscovery"];
+        /**
+         * Settings Export
+         * @description Shareable settings blueprint: capabilities, provider mappings,
+         *     packs, schedules — the bones of the installation, not the person.
+         */
+        get: operations["settings_export_api_exports_settings_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -705,15 +784,19 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/media/status": {
+    "/api/exports/story": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Media status */
-        get: operations["getMediaStatus"];
+        /**
+         * Story Export
+         * @description Human-readable journal story (entry summaries); private
+         *     entries are excluded from the rendering.
+         */
+        get: operations["story_export_api_exports_story_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -722,15 +805,21 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/media/library": {
+    "/api/exports/world": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Library listing */
-        get: operations["getMediaLibrary"];
+        /**
+         * World Export
+         * @description Portable personal configuration: world-classified state only;
+         *     raw secrets are structurally absent (they live in the secret
+         *     store, referenced by name at most). Treat the output as personal
+         *     data.
+         */
+        get: operations["world_export_api_exports_world_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -739,15 +828,421 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/media/recent": {
+    "/api/identity/agents": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Recent media */
-        get: operations["getMediaRecent"];
+        /**
+         * Agents List
+         * @description Mine (list) — agents owned by the caller; admins see all.
+         */
+        get: operations["agents_list_api_identity_agents_get"];
+        put?: never;
+        /**
+         * Agents Create
+         * @description Register an agent principal owned by the caller.
+         *
+         *     Body: {"agent_id", "display_name"?, "scopes"?}. Scopes subset
+         *     of read/write/journal/apps. Returns the token exactly once.
+         */
+        post: operations["agents_create_api_identity_agents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/identity/agents/{agent_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Agents Disable */
+        delete: operations["agents_disable_api_identity_agents__agent_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/identity/principal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Identity Principal
+         * @description Read-only: who is calling. Useful for diagnostics and for a
+         *     future onboarding / profiles surface.
+         */
+        get: operations["identity_principal_api_identity_principal_get"];
+        /**
+         * Identity Principal Update
+         * @description Set the caller's own display name. Persisted in private runtime
+         *     state (data/users.json), never in tracked config. Persons only.
+         */
+        put: operations["identity_principal_update_api_identity_principal_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/identity/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Users List */
+        get: operations["users_list_api_identity_users_get"];
+        put?: never;
+        /**
+         * Users Create
+         * @description Provision a person without touching internals.
+         *
+         *     Body: {"user_id", "display_name"?, "token"?"}. Token is
+         *     optional; if omitted the server generates one and returns it
+         *     exactly once. Never stored in the clear.
+         */
+        post: operations["users_create_api_identity_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/identity/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Users Disable
+         * @description Revoke access (disable). Data is preserved, not deleted.
+         */
+        delete: operations["users_disable_api_identity_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ingress/rollups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ingress Rollups
+         * @description Traefik ingress route rollups (read-only over LAN).
+         *
+         *     Optional provider: absent configuration is a known state, not
+         *     a crash — an unconfigured router answers not_configured with
+         *     context, matching the honest-degradation contract.
+         */
+        get: operations["ingress_rollups_api_ingress_rollups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Journal View */
+        get: operations["journal_view_api_journal_get"];
+        put?: never;
+        /** Journal Note */
+        post: operations["journal_note_api_journal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/journal/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Journal Audit */
+        get: operations["journal_audit_api_journal_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/journal/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Journal Draft Get */
+        get: operations["journal_draft_get_api_journal_draft_get"];
+        /** Journal Draft Put */
+        put: operations["journal_draft_put_api_journal_draft_put"];
+        post?: never;
+        /** Journal Draft Delete */
+        delete: operations["journal_draft_delete_api_journal_draft_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/journal/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Journal History
+         * @description Full correction chain for one entry (progressive disclosure
+         *     backing store): oldest → newest, with reasons.
+         */
+        get: operations["journal_history_api_journal_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/journal/supersede": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Journal Supersede */
+        post: operations["journal_supersede_api_journal_supersede_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab/deploy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Deploy
+         * @description Deploy status and history via lab CLI.
+         */
+        get: operations["lab_deploy_api_lab_deploy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Health
+         * @description Health check across all services via lab CLI.
+         */
+        get: operations["lab_health_api_lab_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Resources
+         * @description VM resource usage via lab CLI.
+         */
+        get: operations["lab_resources_api_lab_resources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab/secrets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Secrets
+         * @description Secret audit (names only, no values) via lab CLI.
+         */
+        get: operations["lab_secrets_api_lab_secrets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Settings
+         * @description Settings Reconciler status via lab CLI.
+         */
+        get: operations["lab_settings_api_lab_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab/settings/diff/{service}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Settings Diff
+         * @description Drift between desired and live state for a service.
+         */
+        get: operations["lab_settings_diff_api_lab_settings_diff__service__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab/settings/inspect/{service}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Settings Inspect
+         * @description Inspect desired state for a specific service.
+         */
+        get: operations["lab_settings_inspect_api_lab_settings_inspect__service__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab State
+         * @description Operator packet from the homelab Lab CLI (lab-lowbw/1).
+         *
+         *     Presentation-only: the packet is produced by the lab layer;
+         *     this route never derives homelab state itself.
+         */
+        get: operations["lab_state_api_lab_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Manifest
+         * @description Machine-readable capability manifest (framework contract:
+         *     see docs/NATIVE-BASELINE-AND-ENRICHMENT.md) plus the endpoint
+         *     manifest (product decision #17: the API is the Lego box, so it
+         *     has to be discoverable).
+         *
+         *     ``data`` stays exactly the capability/provider manifest its
+         *     existing consumers expect; ``endpoints`` is additive. It is
+         *     curated in one place (``api_manifest.py``) and verified against
+         *     the live route table, so it can never advertise a route that is
+         *     not registered.
+         */
+        get: operations["manifest_api_manifest_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -763,8 +1258,42 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Media activity */
-        get: operations["getMediaActivity"];
+        /** Media Activity */
+        get: operations["media_activity_api_media_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/media/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Media Library */
+        get: operations["media_library_api_media_library_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/media/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Media Recent */
+        get: operations["media_recent_api_media_recent_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -780,8 +1309,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search media */
-        get: operations["searchMedia"];
+        /** Media Search */
+        get: operations["media_search_api_media_search_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -790,15 +1319,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vault/status": {
+    "/api/media/status": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Vault status */
-        get: operations["getVaultStatus"];
+        /** Media Status */
+        get: operations["media_status_api_media_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -807,7 +1336,220 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vault/unlock": {
+    "/api/memory/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Memory Search
+         * @description Semantic recall through the memory provider. Private data
+         *     class: results are personal context, never settings-exportable.
+         */
+        get: operations["memory_search_api_memory_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/native-lab/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Native Lab Health
+         * @description Native Lab health monitoring.
+         */
+        get: operations["native_lab_health_api_native_lab_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/native-lab/inventory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Native Lab Inventory
+         * @description Native Lab service inventory.
+         */
+        get: operations["native_lab_inventory_api_native_lab_inventory_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/native-lab/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Native Lab Resources
+         * @description Native Lab resource monitoring.
+         */
+        get: operations["native_lab_resources_api_native_lab_resources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/native-lab/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Native Lab Settings
+         * @description Native Lab settings inspection.
+         */
+        get: operations["native_lab_settings_api_native_lab_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prefs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prefs Get */
+        get: operations["prefs_get_api_prefs_get"];
+        /** Prefs Put */
+        put: operations["prefs_put_api_prefs_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prefs/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Prefs Schema
+         * @description Read-only preference vocabulary (spec §2.5): the Settings
+         *     surface can only offer values the server accepts.
+         */
+        get: operations["prefs_schema_api_prefs_schema_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Projects Status
+         * @description Project-estate status from the agent-sync sensor (read-only).
+         *
+         *     agent-sync (the pickle project's adapter layer) is
+         *     AUTHORITATIVE for repository publication state: it invokes
+         *     this one `agent-sync status --all --format json` observation
+         *     per call and normalizes the documented
+         *     `play-nice/repo-status-v1` records. Project Worlds adds no
+         *     Git-state computation of its own. Quiet degradation is the
+         *     contract: command absent / timeout / malformed output each
+         *     return an honest 'unavailable' envelope — Project Worlds
+         *     stays fully useful without the sensor. The observation carries
+         *     agent-sync's own `observed_at` so it stays visibly a dated
+         *     observation, never timeless truth.
+         */
+        get: operations["projects_status_api_projects_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Proposals List
+         * @description List the CALLER's proposals, optionally filtered by status
+         *     (per-user trees, decision #13).
+         */
+        get: operations["proposals_list_api_proposals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/proposals/{proposal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Proposals Get
+         * @description Get a single proposal by ID from the caller's own tree.
+         */
+        get: operations["proposals_get_api_proposals__proposal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/proposals/{proposal_id}/approve": {
         parameters: {
             query?: never;
             header?: never;
@@ -816,8 +1558,561 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Unlock vault */
-        post: operations["unlockVault"];
+        /**
+         * Proposals Approve
+         * @description Approve a pending proposal. Step-up gated.
+         *
+         *     This is the trusted owner approval path. The model cannot
+         *     call this endpoint — it requires step-up authorization. The
+         *     approval is recorded in (and only reaches) the caller's own
+         *     proposal tree, and journals to the caller's own journal.
+         */
+        post: operations["proposals_approve_api_proposals__proposal_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/proposals/{proposal_id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proposals Execute
+         * @description Execute an approved proposal. Step-up gated.
+         *
+         *     Only proposals that have been approved through the trusted
+         *     owner path can be executed. The approval evidence is checked
+         *     server-side — the model cannot forge it. Execution mutates the
+         *     CALLER's own world/journal/reminders tree.
+         */
+        post: operations["proposals_execute_api_proposals__proposal_id__execute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/proposals/{proposal_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proposals Reject
+         * @description Reject a pending proposal. Step-up gated.
+         */
+        post: operations["proposals_reject_api_proposals__proposal_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reconciler/diff/{service}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reconciler Diff
+         * @description Compute drift between desired and observed state.
+         */
+        get: operations["reconciler_diff_api_reconciler_diff__service__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reconciler/propose/{service}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reconciler Propose
+         * @description Propose reconciliation actions.
+         */
+        get: operations["reconciler_propose_api_reconciler_propose__service__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reconciler/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reconciler Status
+         * @description Native Reconciler status.
+         */
+        get: operations["reconciler_status_api_reconciler_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reminders List
+         * @description List the caller's own reminders (per-user, decision #13).
+         */
+        get: operations["reminders_list_api_reminders_get"];
+        put?: never;
+        /**
+         * Reminders Add
+         * @description Add a reminder to the caller's own tree.
+         *     Body: {id, text, cron_hour, cron_minute, cron_day}.
+         */
+        post: operations["reminders_add_api_reminders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/{rid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Reminders Delete
+         * @description Delete one of the caller's own reminders.
+         */
+        delete: operations["reminders_delete_api_reminders__rid__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Reminders Toggle
+         * @description Toggle one of the caller's own reminders. Body: {enabled: bool}.
+         */
+        patch: operations["reminders_toggle_api_reminders__rid__patch"];
+        trace?: never;
+    };
+    "/api/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sections Get */
+        get: operations["sections_get_api_sections_get"];
+        /** Sections Put */
+        put: operations["sections_put_api_sections_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Setup
+         * @description First-run setup: create API token and vault passphrase.
+         *
+         *     Loopback-only (fail closed): this endpoint mints the instance
+         *     credential, so a remote peer cannot take over a fresh,
+         *     unauthenticated instance through this route. GET state routes
+         *     stay readable.
+         */
+        post: operations["setup_api_setup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup-wizard/auth-choice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Wizard Auth Choice */
+        post: operations["wizard_auth_choice_api_setup_wizard_auth_choice_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup-wizard/comfort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Wizard Comfort */
+        post: operations["wizard_comfort_api_setup_wizard_comfort_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup-wizard/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Wizard Finish */
+        post: operations["wizard_finish_api_setup_wizard_finish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup-wizard/provision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Wizard Provision */
+        post: operations["wizard_provision_api_setup_wizard_provision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup-wizard/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Wizard State */
+        get: operations["wizard_state_api_setup_wizard_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup-wizard/test-oidc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Wizard Test Oidc */
+        post: operations["wizard_test_oidc_api_setup_wizard_test_oidc_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Setup Status
+         * @description Check if first-run setup is needed (missing marker, or a
+         *     deliberate FORCE_SETUP=1 re-open).
+         */
+        get: operations["setup_status_api_setup_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/source-control/enrichment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Source Control Enrichment
+         * @description GitHub enrichment for ONE repository (remote-side facts
+         *     local Git cannot know: canonical identity, open PRs, open
+         *     issues, default branch, last remote push).
+         *
+         *     Local Git stays canonical — this only ADDS remote facts; the
+         *     native status shape is unchanged. Quiet degradation is the
+         *     contract: gh missing / unauthenticated / offline / non-GitHub
+         *     remote each return their own honest status ('unavailable',
+         *     'not_github', 'not_configured'), never a crash and never a
+         *     guessed field. Read-only; no credentials are read, stored, or
+         *     logged here — the gh CLI's own session is used as-is.
+         */
+        get: operations["source_control_enrichment_api_source_control_enrichment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/source-control/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Source Control History
+         * @description Newest-first commit history for ONE discovered repository
+         *     (native git, read-only). Unconfigured search paths or an unknown
+         *     repo name answer not_configured — a structured miss, not a crash.
+         */
+        get: operations["source_control_history_api_source_control_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/source-control/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Source Control Refresh
+         * @description Act step of the propose→approve→act refresh: re-runs the native
+         *     read-only git status for ONE named repository. Requires step-up
+         *     elevation; every outcome is journaled (a completed act as
+         *     PROVIDER_ACTION, a rejection or git error as FAILURE — repo name
+         *     and state bits only, no secrets, no filesystem paths).
+         */
+        post: operations["source_control_refresh_api_source_control_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/source-control/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Source Control Status */
+        get: operations["source_control_status_api_source_control_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status */
+        get: operations["status_api_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Templates List
+         * @description Read-only template discovery (first-class brain templates).
+         *
+         *     One row per loaded template: ``{id, surface, role, description}``
+         *     (role is the template kind: core/persona/surface/task/format).
+         *     Templates are plain markdown under ``config/prompts/`` with
+         *     optional private overrides in ``config/prompts.local/`` — see
+         *     docs/brain-templates.md. Editing them never requires code
+         *     changes; this endpoint reflects the current tree on every call.
+         */
+        get: operations["templates_list_api_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/themes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Themes List
+         * @description List available theme packs.
+         */
+        get: operations["themes_list_api_themes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/themes/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Themes Get
+         * @description Get a specific theme pack manifest.
+         */
+        get: operations["themes_get_api_themes__name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tools
+         * @description List tools the brain can invoke at runtime.
+         *
+         *     Returns the actual callable tool registry, not just capability descriptions.
+         *     Each tool has: id, capability, operation, description, read/write,
+         *     parameters schema, availability, approval requirement.
+         *     Wiring is scoped to the caller (decision #13), mirroring the
+         *     chat handler: same world/journal/reminders/proposals/interests.
+         */
+        get: operations["tools_api_tools_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Updates View
+         * @description Read-only check + status overview. API is check/status only:
+         *     apply/rollback are CLI-only, deliberately -- destructive actions
+         *     need the explicit-confirm CLI path with its visible exit codes.
+         */
+        get: operations["updates_view_api_updates_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -833,8 +2128,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Lock vault */
-        post: operations["lockVault"];
+        /**
+         * Vault Lock
+         * @description Lock the vault, clearing secrets from memory.
+         */
+        post: operations["vault_lock_api_vault_lock_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -848,8 +2146,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List vault secret names */
-        get: operations["listVaultNames"];
+        /**
+         * Vault Names
+         * @description List secret names (never values). Requires unlocked vault.
+         */
+        get: operations["vault_names_api_vault_names_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -867,8 +2168,53 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Store a secret */
-        post: operations["setVaultSecret"];
+        /**
+         * Vault Set
+         * @description Store a secret. Body: {name, value}. Step-up gated (owner decision).
+         */
+        post: operations["vault_set_api_vault_set_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vault Status
+         * @description Vault status: locked/unlocked, secret count. Never values.
+         *
+         *     Reports actual encryption capability — not a hardcoded claim.
+         */
+        get: operations["vault_status_api_vault_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vault Unlock
+         * @description Unlock the vault with a master passphrase.
+         */
+        post: operations["vault_unlock_api_vault_unlock_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -882,89 +2228,31 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read a secret (loopback-only) */
-        get: operations["getVaultSecret"];
+        /**
+         * Vault Get
+         * @description Read a single secret value. True-loopback-host-only AND
+         *     person-only: the requester must be a local person — requests
+         *     from a non-loopback Remote-Addr are refused (RFC1918/Docker
+         *     bridge addresses included), and agent principals are refused
+         *     even on loopback — keeping secret-value extraction a local,
+         *     human-owner operation (browser/keys never cross the wire to
+         *     another host or an agent). Each retrieval audited to the
+         *     journal with the NAME only.
+         */
+        get: operations["vault_get_api_vault__name__get"];
         put?: never;
         post?: never;
-        /** Delete a secret */
-        delete: operations["deleteVaultSecret"];
+        /**
+         * Vault Delete
+         * @description Delete a secret by name. Step-up gated (owner decision).
+         */
+        delete: operations["vault_delete_api_vault__name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/prefs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get preferences */
-        get: operations["getPrefs"];
-        /** Update preferences */
-        put: operations["updatePrefs"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/prefs/schema": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Preference vocabulary */
-        get: operations["getPrefsSchema"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/sections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get section layout */
-        get: operations["getSections"];
-        /** Update section layout */
-        put: operations["updateSections"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/reminders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List reminders */
-        get: operations["listReminders"];
-        put?: never;
-        /** Add reminder */
-        post: operations["addReminder"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/reminders/{rid}": {
+    "/api/world/fact": {
         parameters: {
             query?: never;
             header?: never;
@@ -973,42 +2261,83 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
-        /** Delete reminder */
-        delete: operations["deleteReminder"];
-        options?: never;
-        head?: never;
-        /** Toggle reminder */
-        patch: operations["toggleReminder"];
-        trace?: never;
-    };
-    "/api/apps": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List apps */
-        get: operations["listApps"];
-        /** Update apps registry */
-        put: operations["updateApps"];
-        post?: never;
+        /**
+         * Record Fact
+         * @description Record a fact. Body: {key, value}.
+         */
+        post: operations["record_fact_api_world_fact_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/themes": {
+    "/api/world/intent": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List theme packs */
-        get: operations["listThemes"];
+        get?: never;
+        put?: never;
+        /**
+         * Set Intent
+         * @description Set an intent. Body: {key, value}.
+         */
+        post: operations["set_intent_api_world_intent_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Policy
+         * @description Add a policy. Body: {key, effect}.
+         */
+        post: operations["add_policy_api_world_policy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/backup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Worlds Backup */
+        post: operations["worlds_backup_api_worlds_backup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/backup/download/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Worlds Backup Download */
+        get: operations["worlds_backup_download_api_worlds_backup_download__token__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1017,15 +2346,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/themes/{name}": {
+    "/api/worlds/restore": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get theme pack */
-        get: operations["getTheme"];
+        get?: never;
+        put?: never;
+        /** Worlds Restore */
+        post: operations["worlds_restore_api_worlds_restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/companions/{name}.svg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Companion Svg
+         * @description Serve one allowlisted companion SVG — byte-identical copies of
+         *     the design-owned rigs (see design/assets/companions/). UI asset
+         *     route: public like any browser-fetched art, carries no world
+         *     state, and is not part of the /api Lego box.
+         */
+        get: operations["companion_svg_companions__name__svg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fonts/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Webfont
+         * @description Serve a self-hosted webfont from the allowlisted Figma-export
+         *     families (design/tokens.json font.expressive / font.interface).
+         *     UI asset route: OFL-licensed font binaries, carries no world
+         *     state, and is not part of the /api Lego box.
+         */
+        get: operations["webfont_fonts__name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Healthz */
+        get: operations["healthz_healthz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/icons/sprite.svg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Icon Sprite
+         * @description Serve the 72-glyph production icon sprite
+         *     (design/assets/icons/). UI asset route: decorative geometry,
+         *     stroke=currentColor, carries no world state, and is not part of
+         *     the /api Lego box.
+         */
+        get: operations["icon_sprite_icons_sprite_svg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/today/{name}.svg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Today Art
+         * @description Serve one allowlisted Today artwork SVG — frame-specific
+         *     decorative exports for Today (Workshop v3, design/assets/today/):
+         *     the quiet-day settle gesture and waterline. UI asset route:
+         *     decorative geometry, carries no world state, and is not part of
+         *     the /api Lego box.
+         */
+        get: operations["today_art_today__name__svg_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1038,780 +2477,55 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        Healthz: {
-            ok: boolean;
-            auth_configured?: boolean;
-            setup_needed?: boolean;
-            dev_bypass?: boolean;
-        };
-        /** @description GET /api/setup/status → {ok, data:{complete}}. */
-        SetupStatus: {
-            ok: boolean;
-            data: {
-                complete: boolean;
-            };
-        };
-        /** @description GET /api/status → Result envelope. */
-        StatusResponse: {
-            ok: boolean;
-            status: string;
-            data: components["schemas"]["StatusData"];
-        };
-        /** @description world.summary() — src/personal_world/world.py. */
-        WorldSummary: {
-            facts: number;
-            intents: number;
-            policies: number;
-            cemented_policies: number;
-            lore: {
-                [key: string]: number;
-            };
-            declared_capabilities: number;
-            providers: number;
-            packs: number;
-        };
-        CapabilityMap: {
-            [key: string]: components["schemas"]["CapabilityObservation"];
-        };
-        /** @description model.JournalEvent (pydantic dump; every key always present). */
-        JournalEvent: {
-            /** Format: date-time */
-            ts: string;
-            kind: components["schemas"]["JournalKind"];
-            summary: string;
-            provenance: components["schemas"]["Provenance"];
-            classification: components["schemas"]["Classification"];
-            /** Format: date-time */
-            supersedes: string | null;
-            supersede_reason: string | null;
-        };
-        /** @description GET /api/journal → {ok, data: [current events]}. */
-        JournalListResponse: {
-            ok: boolean;
-            data: components["schemas"]["JournalEvent"][];
-        };
-        /** @description GET /api/journal/history?ts= → one correction chain, oldest→newest. */
-        JournalHistoryResponse: {
-            ok: boolean;
-            status: string;
-            warnings?: string[];
-            data?: {
-                entries: components["schemas"]["JournalEvent"][];
-            };
-        };
-        /** @description GET /api/journal/audit → {ok, data:{text}} (rendered audit). */
-        JournalAuditResponse: {
-            ok: boolean;
-            data: {
-                text: string;
-            };
-        };
-        /** @description POST /api/chat body. The server picks the reasoning provider; there is no per-request provider field. */
-        ChatRequest: {
-            message: string;
-            history?: {
-                role: string;
-                content: string;
-            }[];
-            /** @description Where in the UI the person is (provenance, not truth). */
-            context?: {
-                route?: string;
-                section_id?: string;
-                entity?: string;
-                label?: string;
-            };
-        };
-        /** @description POST /api/chat → Result dump; data keys are provider-dependent ({reply, provider, usage, proposal?}). */
-        ChatResponse: {
-            ok: boolean;
-            status: string;
-            changed?: boolean;
-            warnings?: string[];
-            actions?: string[];
-            /** @description Provider-dependent result payload. */
-            data?: {
-                reply?: string;
-                provider?: string;
-                usage?: {
-                    [key: string]: unknown;
-                };
-                proposal?: unknown;
-            };
-        };
-        /** @description GET /api/chat/providers → {ok, data:{providers, active}}. */
-        ChatProvidersResponse: {
-            ok: boolean;
-            data: {
-                providers: components["schemas"]["ChatProviderInfo"][];
-                active: string | null;
-            };
-        };
-        /** @description GET /api/chat/history → {ok, data:{entries, count}}. */
-        ChatHistoryResponse: {
-            ok: boolean;
-            data: {
-                entries: components["schemas"]["ChatHistoryEntry"][];
-                count: number;
-            };
-        };
-        Proposal: {
-            id: string;
-            kind: string;
-            summary: string;
-            /** @enum {string} */
-            status: "pending" | "approved" | "rejected" | "executed";
-            /** Format: date-time */
-            created_at?: string;
-            actor?: string;
-            detail?: Record<string, never>;
-        };
-        ProposalListResponse: {
-            proposals?: components["schemas"]["Proposal"][];
-            total?: number;
-        };
-        /** @description model.Actor — staff-directory entry for a connected PROVIDER (not a companion). */
-        Actor: {
-            name: string;
-            role: string;
-            provider: string | null;
-            capabilities: string[];
-            status: string;
-            secrets: string;
-            writes: string;
-        };
-        /** @description GET /api/actors → {ok, data: Actor[]}. */
-        ActorsResponse: {
-            ok: boolean;
-            data: components["schemas"]["Actor"][];
-        };
-        /** @description GET /api/manifest → {ok, data: capability manifest, endpoints: [...]} (api_manifest.py). */
-        ManifestResponse: {
-            ok: boolean;
-            data: {
-                [key: string]: unknown;
-            };
-            endpoints: components["schemas"]["ManifestEndpoint"][];
-        };
-        /** @description GET /api/brain/templates → {ok, data:{templates}}. */
-        BrainTemplatesResponse: {
-            ok: boolean;
-            data: {
-                templates: components["schemas"]["BrainTemplate"][];
-            };
-        };
-        MemorySearchResponse: {
-            results?: {
-                text?: string;
-                score?: number;
-                source?: string;
-            }[];
-            total?: number;
-        };
-        ToolsResponse: {
-            tools?: {
-                id?: string;
-                name?: string;
-                kind?: string;
-            }[];
-        };
-        /** @description GET /api/daily → full Result dump. */
-        DailyResponse: {
-            ok: boolean;
-            status: string;
-            changed: boolean;
-            warnings: string[];
-            actions: string[];
-            data: components["schemas"]["DailyDigest"];
-        };
-        LoginRequest: {
-            token: string;
-        };
-        LoginResponse: {
-            session_id?: string;
-            principal?: string;
-        };
-        /** @description GET /api/auth/session (auth_routes.py): ok:false + status when not signed in. */
-        SessionResponse: {
-            ok: boolean;
-            /** @enum {string} */
-            status?: "unauthenticated" | "expired";
-            data?: {
-                principal_id: string;
-                auth_method: string;
-                has_step_up: boolean;
-            };
-        };
-        /** @description A single configuration field for a provider. */
-        ConfigField: {
-            key: string;
-            label: string;
-            /** @enum {string} */
-            type: "text" | "url" | "secret" | "select" | "boolean";
-            /** @default false */
-            required: boolean;
-            /** @default  */
-            description: string;
-            /** @default  */
-            placeholder: string;
-            /** @default [] */
-            options: {
-                value?: string;
-                label?: string;
-            }[];
-            /** @default false */
-            secret_ref: boolean;
-        };
-        /** @description Configuration schema for a provider/adapter. */
-        ProviderSchema: {
-            id: string;
-            display_name: string;
-            capability: string;
-            description: string;
-            adapter_type: string;
-            config_fields?: components["schemas"]["ConfigField"][];
-            /** @default true */
-            can_test: boolean;
-            /** @default true */
-            multiple: boolean;
-        };
-        /** @description Full schema for a capability: available providers, active config. */
-        CapabilitySchema: {
-            capability: string;
-            display_name: string;
-            description: string;
-            icon: string;
-            providers: components["schemas"]["ProviderSchema"][];
-            /** @default false */
-            needs_setup: boolean;
-            /** @default  */
-            help_text: string;
-        };
-        ConnectionSchemasResponse: {
-            ok: boolean;
-            data: components["schemas"]["CapabilitySchema"][];
-        };
-        ConnectionSchemaResponse: {
-            ok: boolean;
-            data: components["schemas"]["CapabilitySchema"];
-        };
-        /** @description Full merged connection configuration (connections.json + connections.local.json). */
-        ConnectionsConfigResponse: {
-            ok: boolean;
-            data: Record<string, never>;
-        };
-        /** @description Per-capability overview for the Connections & Providers UI. */
-        ConnectionOverviewEntry: {
-            capability: string;
-            display_name: string;
-            description: string;
-            icon: string;
-            status: string;
-            ok: boolean;
-            configured: boolean;
-            needs_setup: boolean;
-            help_text: string;
-            providers: components["schemas"]["ProviderSchema"][];
-        };
-        ConnectionsOverviewResponse: {
-            ok: boolean;
-            data: components["schemas"]["ConnectionOverviewEntry"][];
-        };
-        /** @description A saved connection record. */
-        ConnectionEntry: {
-            name: string;
-            type?: string;
-            capability?: string;
-            adapter_type?: string;
-            config?: Record<string, never>;
-        };
-        ConnectionsListResponse: {
-            ok: boolean;
-            data: components["schemas"]["ConnectionEntry"][];
-        };
-        /** @description Save or update a connection (step-up required). */
-        ConnectionSaveRequest: {
-            name: string;
-            type?: string;
-            capability?: string;
-            adapter_type?: string;
-            config?: Record<string, never>;
-        };
-        ConnectionSaveResponse: {
-            ok: boolean;
-            data: {
-                saved?: boolean;
-                name?: string;
-            };
-        };
-        ConnectionDeleteResponse: {
-            ok: boolean;
-            data: {
-                deleted?: boolean;
-            };
-        };
-        /** @description Test or validate a connection configuration without saving. */
-        ConnectionTestRequest: {
-            capability: string;
-            adapter_type: string;
-            config: Record<string, never>;
-        };
-        /** @description Result of a connection test/probe. */
-        ConnectionTestResult: {
-            /** @enum {string} */
-            status: "healthy" | "unavailable" | "invalid_configuration" | "validated" | "unknown";
-            detail?: string;
-            code?: number;
-            redirected?: boolean;
-        };
-        ConnectionTestResponse: {
-            ok: boolean;
-            data: components["schemas"]["ConnectionTestResult"];
-        };
-        /** @description Who is calling (resolved principal). */
-        PrincipalInfo: {
-            id: string;
-            /** @enum {string} */
-            kind: "person" | "agent";
-            display_name: string;
-            scopes: string[];
-            source: string;
-        };
-        PrincipalResponse: {
-            ok: boolean;
-            data: components["schemas"]["PrincipalInfo"];
-        };
-        /** @description Update the caller's display name. */
-        PrincipalUpdateRequest: {
-            display_name: string;
-        };
-        /** @description A user record from the identity store. */
-        IdentityUser: {
-            user_id: string;
-            display_name?: string;
-            enabled?: boolean;
-            /** @enum {string} */
-            kind?: "person" | "agent";
-            scopes?: string[];
-            owner_id?: string;
-        };
-        UsersListResponse: {
-            ok: boolean;
-            data: components["schemas"]["IdentityUser"][];
-        };
-        /** @description Create a new person (admin only, step-up required). */
-        UserCreateRequest: {
-            user_id: string;
-            display_name?: string;
-            token?: string;
-        };
-        UserCreateResponse: {
-            ok: boolean;
-            data: {
-                user_id?: string;
-                display_name?: string;
-                token?: string;
-            };
-        };
-        /** @description An agent record from the identity store. */
-        AgentRecord: {
-            user_id: string;
-            display_name?: string;
-            owner_id?: string;
-            scopes?: string[];
-            enabled?: boolean;
-            /** @enum {string} */
-            kind?: "person" | "agent";
-        };
-        AgentsListResponse: {
-            ok: boolean;
-            data: components["schemas"]["AgentRecord"][];
-        };
-        AgentDetailResponse: {
-            ok: boolean;
-            data: components["schemas"]["AgentRecord"];
-        };
-        /** @description Native Discovery status (from NativeDiscovery.observe()). */
-        DiscoveryStatusResponse: {
-            ok: boolean;
-            status: string;
-            data?: Record<string, never>;
-            warnings?: string[];
-        };
-        /** @description An RSS discovery source. */
-        DiscoverySource: {
-            id: string;
-            name: string;
-            url: string;
-            tags?: string[];
-        };
-        DiscoverySourcesResponse: {
-            ok: boolean;
-            data: {
-                sources?: components["schemas"]["DiscoverySource"][];
-            };
-        };
-        /** @description A tracked interest for content discovery. */
-        DiscoveryInterest: {
-            id: string;
-            name: string;
-            category?: string | null;
-            /** @default 1 */
-            weight: number;
-        };
-        DiscoveryInterestsResponse: {
-            ok: boolean;
-            data: {
-                interests?: components["schemas"]["DiscoveryInterest"][];
-            };
-        };
-        /** @description Result of a discovery run. */
-        DiscoveryDiscoverResponse: {
-            ok: boolean;
-            status: string;
-            data?: Record<string, never>;
-            warnings?: string[];
-        };
-        /** @description Media engine status. */
-        MediaStatusResponse: {
-            ok: boolean;
-            status: string;
-            data?: Record<string, never>;
-            warnings?: string[];
-        };
-        /** @description Media library listing. */
-        MediaLibraryResponse: {
-            ok: boolean;
-            status: string;
-            data?: Record<string, never>;
-            warnings?: string[];
-        };
-        /** @description Recently added/played media. */
-        MediaRecentResponse: {
-            ok: boolean;
-            status: string;
-            data?: Record<string, never>;
-            warnings?: string[];
-        };
-        /** @description Media activity feed. */
-        MediaActivityResponse: {
-            ok: boolean;
-            status: string;
-            data?: Record<string, never>;
-            warnings?: string[];
-        };
-        /** @description Media search results. */
-        MediaSearchResponse: {
-            ok: boolean;
-            status: string;
-            data?: Record<string, never>;
-            warnings?: string[];
-        };
-        VaultStatusResponse: {
-            ok?: boolean;
-            data?: {
-                locked?: boolean;
-                encrypted?: boolean;
-                warning?: string;
-            };
-        };
-        VaultUnlockRequest: {
-            passphrase: string;
-        };
-        /** @description POST /api/vault/unlock — all four keys always present; data may be null. */
-        VaultActionResponse: {
-            ok: boolean;
-            status: string;
-            data?: unknown;
-            warnings: string[];
-        };
-        VaultLockResponse: {
-            ok?: boolean;
-            data?: {
-                locked?: boolean;
-            };
-        };
-        VaultNamesResponse: {
-            ok?: boolean;
-            data?: {
-                names?: string[];
-            };
-        };
-        VaultSetRequest: {
-            name: string;
-            value: string;
-        };
-        VaultSetResponse: {
-            ok?: boolean;
-            data?: {
-                name?: string;
-            };
-            warnings?: string[];
-        };
-        VaultGetResponse: {
-            ok?: boolean;
-            data?: {
-                name?: string;
-                value?: string;
-            };
-        };
-        VaultDeleteResponse: {
-            ok?: boolean;
-            data?: {
-                name?: string;
-            };
-            warnings?: string[];
-        };
-        PrefsResponse: {
-            ok: boolean;
-            data: components["schemas"]["PrefsData"];
-        };
-        PrefsSchemaResponse: {
-            ok?: boolean;
-            data?: {
-                [key: string]: {
-                    /** @enum {string} */
-                    type?: "number" | "enum";
-                    default?: unknown;
-                    floor?: unknown;
-                    allowed?: unknown[] | null;
-                    integer?: boolean;
-                    unit?: string;
-                };
-            };
-        };
-        SectionsResponse: {
-            ok: boolean;
-            data: {
-                schema: string;
-                sections: components["schemas"]["Section"][];
-            };
-        };
-        Section: {
-            id: string;
-            label: string;
-            icon: string;
-            order: number;
-            visible: boolean;
-            pinned: boolean;
-            /** @enum {string} */
-            kind: "core" | "transitional" | "extension";
-            status: string | null;
-            configured: boolean;
-        };
-        Reminder: {
-            id?: string;
-            text?: string;
-            cron_hour?: number | null;
-            cron_minute?: number | null;
-            cron_day?: string | null;
-            enabled?: boolean;
-            last_fired?: number | null;
-            created_at?: number;
-        };
-        RemindersResponse: {
-            ok?: boolean;
-            data?: components["schemas"]["Reminder"][];
-        };
-        ReminderCreateRequest: {
-            id?: string;
-            text: string;
-            cron_hour?: number | null;
-            cron_minute?: number | null;
-            cron_day?: string | null;
-        };
-        ReminderActionResponse: {
-            ok?: boolean;
-            data?: Record<string, never>;
-            warnings?: string[];
-        };
-        AppEntry: {
-            id?: string;
-            name?: string;
-            url?: string;
-            icon?: string;
-            category?: string;
-        };
-        AppsResponse: {
-            ok?: boolean;
-            data?: components["schemas"]["AppEntry"][];
-        };
-        AppsUpdateRequest: {
-            apps: components["schemas"]["AppEntry"][];
-        };
-        ThemePack: {
-            name?: string;
-            display_name?: string;
-            author?: string;
-            version?: string;
-            companion?: Record<string, never>;
-            animation?: Record<string, never> | null;
-            accent?: {
-                [key: string]: string;
-            };
-            companion_palette?: {
-                [key: string]: string;
-            };
-            favicon?: string | null;
-            service_icons?: string | null;
-        };
-        ThemesResponse: {
-            ok?: boolean;
-            data?: components["schemas"]["ThemePack"][];
-        };
-        ThemeDetailResponse: {
-            ok?: boolean;
-            data?: components["schemas"]["ThemePack"];
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
         };
         /**
-         * @description Server Status enum (src/personal_world/status.py) — the shared status vocabulary.
-         * @enum {string}
+         * WorldsBackupRequest
+         * @description Passphrase as SecretStr: redacted from reprs and any accidental
+         *     log line. Travels in the request body only — never a query string.
          */
-        CapabilityStatus: "healthy" | "warning" | "needs_attention" | "unavailable" | "stale" | "disabled" | "not_configured" | "unknown";
-        /** @enum {string} */
-        Classification: "world" | "private" | "secret";
-        /** @enum {string} */
-        JournalKind: "observation" | "health" | "drift" | "recommendation" | "approval" | "reconciliation" | "provider_action" | "failure" | "pack_change" | "settings_change" | "security" | "discovery";
-        Provenance: {
-            source: string;
-            /** Format: date-time */
-            observed_at: string;
-            provider: string | null;
-            /** @enum {string} */
-            authority: "observed" | "reported" | "inferred";
+        WorldsBackupRequest: {
+            /**
+             * Include Vault
+             * @default false
+             */
+            include_vault: boolean;
+            /**
+             * Passphrase
+             * Format: password
+             */
+            passphrase: string;
         };
-        /** @description registry.status_map() value. */
-        CapabilityObservation: {
-            ok: boolean;
-            status: components["schemas"]["CapabilityStatus"];
-            warnings: string[];
-            /** Format: date-time */
-            last_observed: string;
-        };
-        /** @description GET /api/status data = world.summary() + capabilities + actors. */
-        StatusData: {
-            facts: number;
-            intents: number;
-            policies: number;
-            cemented_policies: number;
-            lore: {
-                [key: string]: number;
-            };
-            declared_capabilities: number;
-            providers: number;
-            packs: number;
-            capabilities: components["schemas"]["CapabilityMap"];
-            actors: components["schemas"]["Actor"][];
-        };
-        /** @description loop.daily() digest. */
-        DailyDigest: {
-            world: components["schemas"]["WorldSummary"];
-            capabilities: components["schemas"]["CapabilityMap"];
-            attention: string[];
-        };
-        /** @description POST /api/journal body {text}. Stored as an observation. */
-        JournalNoteRequest: {
-            text: string;
-        };
-        /** @description POST /api/journal → {ok, data:{written: chars}}. */
-        JournalNoteResponse: {
-            ok: boolean;
-            data: {
-                written: number;
-            };
-        };
-        /** @description POST /api/journal/supersede body. */
-        JournalSupersedeRequest: {
-            /** @description ts of the entry being replaced */
-            supersedes: string;
-            text: string;
-            reason?: string;
-            /** @enum {string} */
-            drafted_by?: "the Journal screen" | "Personal World (assistant draft)";
-        };
-        JournalSupersedeResponse: {
-            ok: boolean;
-            status: string;
-            warnings?: string[];
-            data?: {
-                current: components["schemas"]["JournalEvent"];
-                superseded: components["schemas"]["JournalEvent"];
-                audit?: components["schemas"]["JournalEvent"];
-                already_applied: boolean;
-            };
-        };
-        /** @description ChatHistory NDJSON line — ts is unix epoch SECONDS (float). */
-        ChatHistoryEntry: {
-            ts: number;
-            role: string;
-            content: string;
-            provider?: string;
-        };
-        ChatProviderInfo: {
-            name: string;
-            display_name: string;
-            status: string;
-            ok: boolean;
-        };
-        ManifestEndpoint: {
-            id: string;
-            method: string;
-            path: string;
-            capability: string;
-            kind: string;
-            gate: string;
-            auth: string;
-            note: string | null;
-        };
-        /** @description TemplateRegistry.list_templates() row (Template.to_dict + has_override). */
-        BrainTemplate: {
-            id: string;
-            version: string;
-            kind: string;
-            surface: string | null;
-            max_tokens: number;
-            source: string;
-            description: string;
-            content_length: number;
-            has_override: boolean;
-        };
-        /** @description prefs.normalize_prefs() — every key always present (defaults fill in). */
-        PrefsData: {
-            /** @enum {string} */
-            motion: "off" | "reduced" | "subtle";
-            /** @enum {string} */
-            contrast: "comfortable" | "high";
-            /** @enum {number} */
-            text_scale: 1 | 1.25 | 1.5;
-            /** @enum {string} */
-            density: "comfortable" | "compact";
-            /** @enum {integer} */
-            target_size: 44 | 56;
-            /** @enum {string} */
-            companion: "personal-world" | "mermaid" | "robot" | "world-tree-squirrel" | "taco-news-truck";
-            /** @enum {string} */
-            accent: "world-keeper" | "rylee";
-        };
-        /** @description PUT /api/prefs — partial update; unknown keys or below-floor values fail 400 as a whole. */
-        PrefsUpdateRequest: {
-            /** @enum {string} */
-            motion?: "off" | "reduced" | "subtle";
-            /** @enum {string} */
-            contrast?: "comfortable" | "high";
-            /** @enum {number} */
-            text_scale?: 1 | 1.25 | 1.5;
-            /** @enum {string} */
-            density?: "comfortable" | "compact";
-            /** @enum {integer} */
-            target_size?: 44 | 56;
-            /** @enum {string} */
-            companion?: "personal-world" | "mermaid" | "robot" | "world-tree-squirrel" | "taco-news-truck";
-            /** @enum {string} */
-            accent?: "world-keeper" | "rylee";
-        };
-        /** @description PUT /api/sections body — sections.validate_layout_update(): {order?, hidden?} id lists. */
-        SectionsUpdateRequest: {
-            order?: string[];
-            hidden?: string[];
+        /** WorldsRestoreRequest */
+        WorldsRestoreRequest: {
+            /** Archive B64 */
+            archive_b64: string;
+            /**
+             * Overwrite
+             * @default false
+             */
+            overwrite: boolean;
+            /**
+             * Passphrase
+             * Format: password
+             */
+            passphrase: string;
         };
     };
     responses: never;
@@ -1822,7 +2536,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    healthz: {
+    spa_root__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1831,18 +2545,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Healthz"];
+                    "text/html": string;
                 };
             };
         };
     };
-    getStatus: {
+    actors_api_actors_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1851,18 +2565,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["StatusResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getSetupStatus: {
+    apps_list_api_apps_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1871,18 +2587,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SetupStatus"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getDaily: {
+    apps_put_api_apps_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -1891,18 +2609,322 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DailyResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    listJournal: {
+    auth_login_api_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    auth_logout_api_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    auth_oidc_callback_api_auth_oidc_callback_get: {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+                error_description?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_oidc_config_api_auth_oidc_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    auth_oidc_login_api_auth_oidc_login_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    auth_oidc_logout_api_auth_oidc_logout_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    auth_oidc_status_api_auth_oidc_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    auth_session_api_auth_session_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    auth_step_up_api_auth_step_up_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    backup_api_backup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    brain_provenance_api_brain_provenance_get: {
+        parameters: {
+            query?: {
+                surface?: string | null;
+                task?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    brain_templates_api_brain_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    chat_api_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    chat_history_view_api_chat_history_get: {
         parameters: {
             query?: {
                 n?: number;
@@ -1913,65 +2935,29 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JournalListResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
-        };
-    };
-    writeJournal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["JournalNoteRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JournalNoteResponse"];
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    journalHistory: {
-        parameters: {
-            query: {
-                /** @description Timestamp of the entry whose chain to show */
-                ts: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JournalHistoryResponse"];
-                };
-            };
-        };
-    };
-    journalAudit: {
+    chat_providers_api_chat_providers_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1980,66 +2966,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JournalAuditResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    supersedeJournal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["JournalSupersedeRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JournalSupersedeResponse"];
-                };
-            };
-        };
-    };
-    sendChat: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChatRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatResponse"];
-                };
-            };
-        };
-    };
-    listChatProviders: {
+    chat_test_api_chat_test_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2048,40 +2988,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChatProvidersResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    chatHistory: {
-        parameters: {
-            query?: {
-                n?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatHistoryResponse"];
-                };
-            };
-        };
-    };
-    listProposals: {
+    connections_list_api_connections_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2090,100 +3010,97 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProposalListResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getProposal: {
+    connections_save_api_connections_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    connections_config_api_connections_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    save_native_config_api_connections_config__key__post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                proposal_id: string;
+                key: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Proposal"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
-        };
-    };
-    approveProposal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                proposal_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
-            };
-        };
-    };
-    rejectProposal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                proposal_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
-                content?: never;
             };
         };
     };
-    executeProposal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                proposal_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    listActors: {
+    connections_overview_api_connections_overview_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2192,201 +3109,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ActorsResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getManifest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ManifestResponse"];
-                };
-            };
-        };
-    };
-    listBrainTemplates: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BrainTemplatesResponse"];
-                };
-            };
-        };
-    };
-    searchMemory: {
-        parameters: {
-            query: {
-                q: string;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MemorySearchResponse"];
-                };
-            };
-        };
-    };
-    listTools: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ToolsResponse"];
-                };
-            };
-        };
-    };
-    login: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponse"];
-                };
-            };
-        };
-    };
-    logout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionResponse"];
-                };
-            };
-        };
-    };
-    stepUp: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getConnectionSchemas: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConnectionSchemasResponse"];
-                };
-            };
-        };
-    };
-    getConnectionSchema: {
+    connection_schema_api_connections_schema__capability__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2397,25 +3133,29 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConnectionSchemaResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
-            /** @description Unknown capability */
-            404: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
-    getConnectionsConfig: {
+    connection_schemas_api_connections_schemas_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2424,18 +3164,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConnectionsConfigResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getConnectionsOverview: {
+    test_connection_api_connections_test_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2444,18 +3186,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConnectionsOverviewResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    listConnections: {
+    validate_connection_api_connections_validate_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2464,42 +3208,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConnectionsListResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    saveConnection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConnectionSaveRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConnectionSaveResponse"];
-                };
-            };
-        };
-    };
-    deleteConnection: {
+    connections_delete_api_connections__name__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2510,66 +3232,29 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConnectionDeleteResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
-        };
-    };
-    testConnection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConnectionTestRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConnectionTestResponse"];
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    validateConnection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConnectionTestRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConnectionTestResponse"];
-                };
-            };
-        };
-    };
-    getIdentityPrincipal: {
+    daily_view_api_daily_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2578,42 +3263,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrincipalResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    updateIdentityPrincipal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrincipalUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrincipalResponse"];
-                };
-            };
-        };
-    };
-    listUsers: {
+    daily_run_api_daily_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2622,42 +3285,53 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UsersListResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    createUser: {
+    discovery_discover_api_discovery_discover_get: {
         parameters: {
-            query?: never;
+            query?: {
+                source?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UserCreateRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserCreateResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    listAgents: {
+    discovery_interests_api_discovery_interests_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2666,18 +3340,218 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentsListResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getAgent: {
+    discovery_add_interest_api_discovery_interests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    discovery_sources_api_discovery_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    discovery_add_source_api_discovery_sources_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    discovery_status_api_discovery_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    settings_export_api_exports_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    story_export_api_exports_story_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    world_export_api_exports_world_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    agents_list_api_identity_agents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    agents_create_api_identity_agents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    agents_disable_api_identity_agents__agent_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2688,18 +3562,29 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentDetailResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    getDiscoveryStatus: {
+    identity_principal_api_identity_principal_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2708,18 +3593,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DiscoveryStatusResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    listDiscoverySources: {
+    identity_principal_update_api_identity_principal_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -2728,18 +3615,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DiscoverySourcesResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    listDiscoveryInterests: {
+    users_list_api_identity_users_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2748,21 +3637,100 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DiscoveryInterestsResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    triggerDiscovery: {
+    users_create_api_identity_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    users_disable_api_identity_users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingress_rollups_api_ingress_rollups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    journal_view_api_journal_get: {
         parameters: {
             query?: {
-                source?: string;
+                n?: number;
             };
             header?: never;
             path?: never;
@@ -2770,18 +3738,29 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DiscoveryDiscoverResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    getMediaStatus: {
+    journal_note_api_journal_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2790,18 +3769,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MediaStatusResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getMediaLibrary: {
+    journal_audit_api_journal_audit_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2810,18 +3791,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MediaLibraryResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getMediaRecent: {
+    journal_draft_get_api_journal_draft_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2830,18 +3813,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MediaRecentResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getMediaActivity: {
+    journal_draft_put_api_journal_draft_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -2850,18 +3835,377 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MediaActivityResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    searchMedia: {
+    journal_draft_delete_api_journal_draft_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    journal_history_api_journal_history_get: {
+        parameters: {
+            query: {
+                ts: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    journal_supersede_api_journal_supersede_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    lab_deploy_api_lab_deploy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    lab_health_api_lab_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    lab_resources_api_lab_resources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    lab_secrets_api_lab_secrets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    lab_settings_api_lab_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    lab_settings_diff_api_lab_settings_diff__service__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_settings_inspect_api_lab_settings_inspect__service__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_state_api_lab_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    manifest_api_manifest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    media_activity_api_media_activity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    media_library_api_media_library_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    media_recent_api_media_recent_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    media_search_api_media_search_get: {
         parameters: {
             query?: {
                 q?: string;
@@ -2872,18 +4216,27 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MediaSearchResponse"];
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    getVaultStatus: {
+    media_status_api_media_status_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2892,42 +4245,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VaultStatusResponse"];
+                    "application/json": unknown;
                 };
             };
         };
     };
-    unlockVault: {
+    memory_search_api_memory_search_get: {
         parameters: {
-            query?: never;
+            query: {
+                q: string;
+                top_k?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VaultUnlockRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VaultActionResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    lockVault: {
+    native_lab_health_api_native_lab_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2936,18 +4299,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VaultLockResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    listVaultNames: {
+    native_lab_inventory_api_native_lab_inventory_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2956,86 +4321,383 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VaultNamesResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    setVaultSecret: {
+    native_lab_resources_api_native_lab_resources_get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VaultSetRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VaultSetResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getVaultSecret: {
+    native_lab_settings_api_native_lab_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    prefs_get_api_prefs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    prefs_put_api_prefs_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    prefs_schema_api_prefs_schema_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    projects_status_api_projects_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    proposals_list_api_proposals_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proposals_get_api_proposals__proposal_id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                name: string;
+                proposal_id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VaultGetResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    deleteVaultSecret: {
+    proposals_approve_api_proposals__proposal_id__approve_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                name: string;
+                proposal_id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VaultDeleteResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    getPrefs: {
+    proposals_execute_api_proposals__proposal_id__execute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proposals_reject_api_proposals__proposal_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconciler_diff_api_reconciler_diff__service__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconciler_propose_api_reconciler_propose__service__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconciler_status_api_reconciler_status_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3044,42 +4706,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrefsResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    updatePrefs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrefsUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrefsResponse"];
-                };
-            };
-        };
-    };
-    getPrefsSchema: {
+    reminders_list_api_reminders_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3088,18 +4728,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrefsSchemaResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getSections: {
+    reminders_add_api_reminders_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3108,86 +4750,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SectionsResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    updateSections: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SectionsUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SectionsResponse"];
-                };
-            };
-        };
-    };
-    listReminders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RemindersResponse"];
-                };
-            };
-        };
-    };
-    addReminder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReminderCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReminderActionResponse"];
-                };
-            };
-        };
-    };
-    deleteReminder: {
+    reminders_delete_api_reminders__rid__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -3198,18 +4774,29 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReminderActionResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    toggleReminder: {
+    reminders_toggle_api_reminders__rid__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -3218,26 +4805,31 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": {
-                    enabled: boolean;
-                };
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReminderActionResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    listApps: {
+    sections_get_api_sections_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3246,42 +4838,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppsResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    updateApps: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AppsUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AppsResponse"];
-                };
-            };
-        };
-    };
-    listThemes: {
+    sections_put_api_sections_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -3290,18 +4860,371 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ThemesResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    getTheme: {
+    setup_api_setup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    wizard_auth_choice_api_setup_wizard_auth_choice_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    wizard_comfort_api_setup_wizard_comfort_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    wizard_finish_api_setup_wizard_finish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    wizard_provision_api_setup_wizard_provision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    wizard_state_api_setup_wizard_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    wizard_test_oidc_api_setup_wizard_test_oidc_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    setup_status_api_setup_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    source_control_enrichment_api_source_control_enrichment_get: {
+        parameters: {
+            query?: {
+                repo?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    source_control_history_api_source_control_history_get: {
+        parameters: {
+            query: {
+                repo: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    source_control_refresh_api_source_control_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    source_control_status_api_source_control_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    status_api_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    templates_list_api_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    themes_list_api_themes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    themes_get_api_themes__name__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3312,13 +5235,546 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ThemeDetailResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tools_api_tools_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    updates_view_api_updates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    vault_lock_api_vault_lock_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    vault_names_api_vault_names_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    vault_set_api_vault_set_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    vault_status_api_vault_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    vault_unlock_api_vault_unlock_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    vault_get_api_vault__name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vault_delete_api_vault__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_fact_api_world_fact_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    set_intent_api_world_intent_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    add_policy_api_world_policy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    worlds_backup_api_worlds_backup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorldsBackupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    worlds_backup_download_api_worlds_backup_download__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    worlds_restore_api_worlds_restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorldsRestoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    companion_svg_companions__name__svg_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    webfont_fonts__name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    healthz_healthz_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    icon_sprite_icons_sprite_svg_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    today_art_today__name__svg_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

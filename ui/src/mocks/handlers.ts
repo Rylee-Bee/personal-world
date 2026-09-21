@@ -649,6 +649,47 @@ function buildSettingsHandlers(): RequestHandler[] {
       }),
     ),
     http.get("/api/prefs", () => HttpResponse.json({ ok: true, data: PREFS_BASE })),
+    // GET /api/prefs/schema — mirrors api.py prefs_schema(): enum rows
+    // carry {type, default, floor, allowed}; number rows additionally
+    // carry {integer, unit}. Values are the real prefs.py vocabulary.
+    http.get("/api/prefs/schema", () =>
+      HttpResponse.json({
+        ok: true,
+        data: {
+          motion: {
+            type: "enum", default: "reduced", floor: "off",
+            allowed: ["off", "reduced", "subtle"],
+          },
+          contrast: {
+            type: "enum", default: "comfortable", floor: "comfortable",
+            allowed: ["comfortable", "high"],
+          },
+          text_scale: {
+            type: "number", default: 1.0, floor: 1.0,
+            allowed: [1.0, 1.25, 1.5], integer: false, unit: "",
+          },
+          density: {
+            type: "enum", default: "comfortable", floor: "compact",
+            allowed: ["comfortable", "compact"],
+          },
+          target_size: {
+            type: "number", default: 44, floor: 44,
+            allowed: [44, 56], integer: true, unit: "px",
+          },
+          companion: {
+            type: "enum", default: "personal-world", floor: "personal-world",
+            allowed: [
+              "personal-world", "mermaid", "robot",
+              "world-tree-squirrel", "taco-news-truck",
+            ],
+          },
+          accent: {
+            type: "enum", default: "world-keeper", floor: "world-keeper",
+            allowed: ["world-keeper", "rylee"],
+          },
+        },
+      }),
+    ),
     http.put("/api/prefs", async ({ request }) => {
       const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
       return HttpResponse.json({ ok: true, data: { ...PREFS_BASE, ...body } });

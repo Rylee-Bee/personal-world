@@ -49,7 +49,7 @@ export function Chat() {
   const providers = useChatProviders();
   const sendChat = useSendChat();
 
-  const messages = normaliseMessages(history.data?.data.entries);
+  const messages = normaliseMessages(history.data?.data?.entries);
   const isLoadingHistory = history.isLoading;
   const isSending = sendChat.isPending;
 

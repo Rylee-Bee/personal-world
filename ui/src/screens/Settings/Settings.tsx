@@ -27,14 +27,16 @@ import {
   usePutSections,
   usePutPrincipal,
 } from "../../data/hooks";
-import type { components } from "../../generated/api-types";
+import type {
+  BrainTemplate,
+  CapabilityMap,
+  PrefsData as ServerPrefs,
+  PrincipalInfo,
+} from "../../data/contract";
 import { describeError } from "../../data/errors";
 import { STATUS_LABELS, toCapabilityStatus } from "../../data/types";
 import { WorldButton } from "../../components/WorldButton";
 import { THEMES, type ThemeName } from "../../generated/tokens";
-
-type PrincipalInfo = components["schemas"]["PrincipalInfo"];
-type ServerPrefs = components["schemas"]["PrefsData"];
 
 // ─── Themes ──────────────────────────────────────────────
 
@@ -528,7 +530,7 @@ function CapabilitiesSection({
   capabilities,
   isStatusLoading,
 }: {
-  capabilities: components["schemas"]["CapabilityMap"] | undefined;
+  capabilities: CapabilityMap | undefined;
   isStatusLoading: boolean;
 }) {
   if (isStatusLoading) {
@@ -599,7 +601,7 @@ function BrainSection({
   endpointCount,
   isManifestLoading,
 }: {
-  templates: components["schemas"]["BrainTemplate"][];
+  templates: BrainTemplate[];
   isBrainLoading: boolean;
   endpointCount: number;
   isManifestLoading: boolean;
