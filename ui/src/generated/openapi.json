@@ -2599,7 +2599,7 @@
     },
     "/api/setup": {
       "post": {
-        "description": "First-run setup: create API token and vault passphrase.\n\nLoopback-only (fail closed): this endpoint mints the instance\ncredential, so a remote peer must never be able to take over a\nfresh, unauthenticated instance. GET state routes stay readable.",
+        "description": "First-run setup: create API token and vault passphrase.\n\nLoopback-only (fail closed): this endpoint mints the instance\ncredential, so a remote peer cannot take over a fresh,\nunauthenticated instance through this route. GET state routes\nstay readable.",
         "operationId": "setup_api_setup_post",
         "responses": {
           "200": {

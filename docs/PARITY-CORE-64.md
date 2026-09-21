@@ -110,6 +110,22 @@ dead: every route is registered, serves, and either carries a curated row or
 an ACTIVE registry/surface contract — so the honest fix was curation +
 docstrings, not retirement. No deletions (rail) and none needed.
 
+## A9 — docstring modality & certainty sweep (36 judged handlers)
+
+Method: AST-extracted every docstring of the 36 judged handlers and screened
+for certainty inflation (`guaranteed` / `always works` / `never fails` /
+`100%` / `foolproof` / `cannot fail`) and may↔must↔will modality errors;
+every surviving `never` / `cannot` claim was verified against its enforcing
+code before being kept (chat_test's gate, backup's module contract,
+lab_state's pass-through, enrichment's `_api` "never raises").
+
+- Certainty-inflation hits: **0**.
+- Modality corrections: **1** — `POST /api/setup` said "a remote peer **must
+  never be able to** take over a fresh instance", an unscoped capability
+  guarantee; the code proves only that non-loopback requests are refused
+  here. Reworded to "cannot take over … **through this route**" — same
+  meaning, true claim. Spec description re-synced.
+
 ## Full live-route spine (A5)
 
 Ground truth at this commit: `create_app()` registers **123 paths / 143 method-paths**; curated table = **115 rows, all present (0 ghost rows)**; live `/api/*` routes still without a curated row = **11** (setup-wizard first-run flow, worlds backup/restore, OIDC logout/status — all consumed by the vnext UI, deliberately left for morning curation so mid-run Track C door-rendering stays stable). Spec: `ui/src/generated/openapi.json`, regenerated in sync.

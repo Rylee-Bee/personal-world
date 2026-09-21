@@ -500,8 +500,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """First-run setup: create API token and vault passphrase.
 
         Loopback-only (fail closed): this endpoint mints the instance
-        credential, so a remote peer must never be able to take over a
-        fresh, unauthenticated instance. GET state routes stay readable.
+        credential, so a remote peer cannot take over a fresh,
+        unauthenticated instance through this route. GET state routes
+        stay readable.
         """
         if not _is_true_loopback(request):
             raise HTTPException(
