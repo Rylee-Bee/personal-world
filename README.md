@@ -35,7 +35,7 @@ labelled on the surface — they never pretend to be your data:
   the Journal page lists your real journal entries (`API-005
   GET /api/journal`); Settings renders your real stored preferences
   (`API-030/031`). `/login` and `/setup` are server-rendered.
-- **Partially wired.** The Journal page keeps a clearly labelled
+- **Partially wired.** The Journal page keeps a plainly labelled
   specimen content view beside the real list; several Settings
   controls write to the device only while the preferences table is
   live — `real-data.js` documents exactly how far each control
