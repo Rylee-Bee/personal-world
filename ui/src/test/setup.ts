@@ -10,3 +10,22 @@ if (typeof window !== "undefined") {
     writable: true,
   });
 }
+
+// jsdom implements no matchMedia. Tests that exercise the applied-prefs
+// path need a deterministic, environment-independent floor answer:
+// "no OS reduced-motion preference" (firewall behaviour itself is
+// covered by explicit ApplyPrefsOptions in prefs-dom.test.ts and by
+// the Playwright reduced-motion spec, where a real browser emulates
+// the media query).
+if (typeof window !== "undefined" && !window.matchMedia) {
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    dispatchEvent: () => false,
+  });
+}

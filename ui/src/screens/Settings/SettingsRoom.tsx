@@ -42,6 +42,7 @@ import {
 import { describeError } from "../../data/errors";
 import type { PrefsUpdateRequest } from "../../data/contract";
 import { WorldButton } from "../../components/WorldButton";
+import { applyPrefsToDocument } from "../../app/prefs-dom";
 import {
   WARMTH_UNWIRED,
   WARMTH_UNWIRED_LABEL,
@@ -52,6 +53,7 @@ import {
 
 import {
   diffPrefs,
+  isRecord,
   parsePrefsSchema,
   prefKeyLabel,
   prefValueLabel,
@@ -156,6 +158,9 @@ function PrefsControl({
         Floor: {prefValueLabel(entry, entry.floor)}
         {entry.key === "target_size" && " (44px minimum — WCAG 2.5.5)"}
         {entry.key === "motion" && " — your system's reduced-motion setting always wins over this."}
+        {/* Read-only honesty for the one stored key this surface does
+            not render through (C12): saying so beats faking an effect. */}
+        {entry.key === "accent" && " — the station stores this; no view here changes its look yet."}
       </p>
     </div>
   );
@@ -221,13 +226,21 @@ export function SettingsRoom() {
     // 400 + reason) — this body is a runtime vocabulary, not a
     // statically-keyed object, so it crosses the boundary once, here.
     putPrefs.mutate(patch as PrefsUpdateRequest, {
-      onSuccess: () => {
+      onSuccess: (res) => {
         setDraft(null);
         setLastApplied(changes);
         setNote({
           text: `Saved ${changes.length === 1 ? "1 setting" : `${changes.length} settings`}.`,
           tone: "ok",
         });
+        // C12 — the applied values must actually LAND on the surface.
+        // PUT /api/prefs answers with the full effective table (api.py
+        // returns set_prefs' result), so the write response is server
+        // truth; apply it now instead of waiting for the invalidated
+        // GET. An unrecognisable body changes no DOM (never a guess).
+        if (isRecord(res) && isRecord(res["data"])) {
+          applyPrefsToDocument(readPrefsValues(res, parsedSchema.entries));
+        }
       },
       onError: (err) =>
         setNote({
@@ -235,7 +248,7 @@ export function SettingsRoom() {
           tone: "error",
         }),
     });
-  }, [changes, putPrefs]);
+  }, [changes, putPrefs, parsedSchema.entries]);
 
   // ── Honest states (§1.5: static, worded) ──
   if (prefsQuery.isPending || schemaQuery.isPending) {

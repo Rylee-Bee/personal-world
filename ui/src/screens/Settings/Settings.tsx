@@ -38,6 +38,11 @@ import { describeError } from "../../data/errors";
 import { STATUS_LABELS, toCapabilityStatus } from "../../data/types";
 import { WorldButton } from "../../components/WorldButton";
 import { THEMES, type ThemeName } from "../../generated/tokens";
+import {
+  applyThemeToDocument,
+  readStoredTheme,
+  saveStoredTheme,
+} from "../../app/prefs-dom";
 import { SettingsRoom } from "./SettingsRoom";
 import {
   countManifestEndpoints,
@@ -60,10 +65,16 @@ const THEME_LABELS: Record<Theme, string> = {
 
 const THEME_NAMES = Object.keys(THEMES) as Theme[];
 
-/** Read the theme actually applied to <html> so the picker tells the truth. */
+/** Read the theme this device actually chose (C12: same persistence
+ *  model the old station.js chrome used — localStorage, not the
+ *  server, because no theme-write endpoint exists), falling back to
+ *  whatever is applied on <html>, then to the Station default. */
 function readInitialTheme(): Theme {
+  const stored = readStoredTheme();
+  if (stored) return stored;
   const active = document.documentElement.dataset.theme;
-  return THEME_NAMES.includes(active as Theme) ? (active as Theme) : "station";
+  const names = Object.keys(THEMES) as Theme[];
+  return names.includes(active as Theme) ? (active as Theme) : "station";
 }
 
 // ─── Inline save feedback ────────────────────────────────
@@ -554,8 +565,8 @@ function ThemeSection({
             beats pretending the choice persists. */}
         <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Read-only on the server: this station serves theme packs but has no
-          endpoint that stores a chosen theme, so this selection lives on this
-          device only and returns to the default on a new device.
+          endpoint that stores a chosen theme, so this selection is remembered
+          on this device only — it returns to the default on a new device.
         </p>
         <div className="grid grid-cols-2 gap-[var(--pw-spacing-md)]">
           {THEME_NAMES.map((theme) => {
@@ -640,7 +651,8 @@ export function Settings() {
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    applyThemeToDocument(theme);
+    saveStoredTheme(theme);
   }, [theme]);
 
   return (

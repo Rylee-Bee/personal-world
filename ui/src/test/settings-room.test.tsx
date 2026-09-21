@@ -63,10 +63,20 @@ const PREFS_BODY = {
 const { mutate, mocks } = vi.hoisted(() => {
   const mutate = vi.fn(
     (
-      _body: unknown,
-      options?: { onSuccess?: () => void; onError?: (e: Error) => void },
+      body: Record<string, string | number>,
+      options?: {
+        onSuccess?: (res: unknown) => void;
+        onError?: (e: Error) => void;
+      },
     ) => {
-      options?.onSuccess?.();
+      // Same response shape as api.py prefs_put: the FULL effective
+      // table after the write (this is what the room applies to the
+      // document — C12).
+      options?.onSuccess?.({
+        ok: true,
+        status: "healthy",
+        data: { ...PREFS_BODY, ...body },
+      });
     },
   );
   const mocks = {
@@ -112,6 +122,34 @@ import {
 // cleanup does not register — unmount explicitly between tests.
 afterEach(() => {
   cleanup();
+  // C12: applies mutate <html> (prefs.py vocabulary). Reset it so no
+  // DOM truth leaks between tests.
+  const root = document.documentElement;
+  for (const attr of [
+    "data-pw-motion",
+    "data-pw-contrast",
+    "data-pw-text-scale",
+    "data-pw-density",
+    "data-pw-target-size",
+    "data-pw-companion",
+    "data-pw-accent",
+    "data-theme",
+  ]) {
+    root.removeAttribute(attr);
+  }
+  for (const name of [
+    "--pw-motion",
+    "--pw-contrast",
+    "--pw-text-scale",
+    "--pw-density",
+    "--pw-target-size",
+    "--pw-companion",
+    "--pw-accent",
+    "--pw-motion-duration",
+    "--pw-motion-ambient",
+  ]) {
+    root.style.removeProperty(name);
+  }
 });
 
 beforeEach(() => {
@@ -287,6 +325,67 @@ describe("SettingsRoom", () => {
         "Last apply changed 2 settings: density comfortable→compact · motion reduced→subtle",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("applying a pref lands on the document: prefs.py data-attrs and --pw-* vars follow the write (C12)", async () => {
+    const user = userEvent.setup();
+    renderRoom();
+    // Nothing has been applied yet — the room alone must not touch the DOM.
+    expect(document.documentElement.getAttribute("data-pw-motion")).toBeNull();
+
+    await user.selectOptions(screen.getByLabelText(/Motion/i), "subtle");
+    await user.click(screen.getByRole("button", { name: /Apply changes \(1\)/ }));
+    expect(await screen.findByText(/Saved 1 setting\./)).toBeInTheDocument();
+
+    const root = document.documentElement;
+    // The write response IS the server's effective table (api.py):
+    // every key of it reaches the document, under prefs.py's names.
+    expect(root.getAttribute("data-pw-motion")).toBe("subtle");
+    expect(root.style.getPropertyValue("--pw-motion")).toBe("subtle");
+    expect(root.style.getPropertyValue("--pw-motion-duration")).toBe("200ms");
+    expect(root.getAttribute("data-pw-density")).toBe("comfortable");
+    expect(root.getAttribute("data-pw-target-size")).toBe("44");
+    expect(root.style.getPropertyValue("--pw-target-size")).toBe("44px");
+  });
+
+  it("applying 'Reduced motion' marks the document with the reduced tier — no motion budget left", async () => {
+    // Start from a NON-reduced server value so this apply is a real
+    // change, exactly as the owner would do it.
+    mocks.prefsState = {
+      isPending: false,
+      isError: false,
+      error: null,
+      data: { ok: true, data: { ...PREFS_BODY, motion: "subtle" } },
+    };
+    const user = userEvent.setup();
+    renderRoom();
+    await user.selectOptions(screen.getByLabelText(/Motion/i), "reduced");
+    await user.click(screen.getByRole("button", { name: /Apply changes \(1\)/ }));
+    expect(await screen.findByText(/Saved 1 setting\./)).toBeInTheDocument();
+
+    const root = document.documentElement;
+    expect(root.getAttribute("data-pw-motion")).toBe("reduced");
+    expect(root.style.getPropertyValue("--pw-motion-duration")).toBe("0ms");
+    expect(root.style.getPropertyValue("--pw-motion-ambient")).toBe("0");
+  });
+
+  it("a refused write changes nothing on the document — application is never faked", async () => {
+    mutate.mockImplementationOnce(
+      (_body: Record<string, string | number>, options?: { onError?: (e: Error) => void }) => {
+        options?.onError?.(new Error("Saving settings requires re-authentication."));
+      },
+    );
+    const user = userEvent.setup();
+    renderRoom();
+    await user.selectOptions(screen.getByLabelText(/Motion/i), "off");
+    await user.click(screen.getByRole("button", { name: /Apply changes \(1\)/ }));
+    expect(
+      await screen.findByText(/requires re-authentication/),
+    ).toBeInTheDocument();
+    expect(document.documentElement.getAttribute("data-pw-motion")).toBeNull();
+    expect(
+      document.documentElement.style.getPropertyValue("--pw-motion"),
+    ).toBe("");
   });
 
   it("without step-up the room says why it is read-only — no fake write affordance", () => {

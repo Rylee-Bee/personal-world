@@ -10,7 +10,7 @@
  * Status readouts are derived from the live /healthz probe — never hardcoded.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Today } from "../screens/Today/Today";
 import { Journal } from "../screens/Journal/Journal";
 import { Vault } from "../screens/Vault/Vault";
@@ -19,9 +19,15 @@ import { Interests } from "../screens/Interests/Interests";
 import { Chat } from "../screens/Chat/Chat";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
-import { useHealthz, useSections } from "../data/hooks";
+import { useHealthz, usePrefs, usePrefsSchema, useSections } from "../data/hooks";
 import { WORLD_AREAS } from "../data/types";
 import type { WorldArea, WorldAreaId } from "../data/types";
+import { parsePrefsSchema, readPrefsValues } from "../screens/Settings/parse";
+import {
+  applyPrefsToDocument,
+  applyThemeToDocument,
+  readStoredTheme,
+} from "./prefs-dom";
 
 type HealthWord = "Checking" | "Online" | "Degraded" | "Unreachable";
 
@@ -59,10 +65,57 @@ function useWorldAreas(): WorldArea[] {
   }, [serverSections]);
 }
 
+/** Server-truth presentation prefs, applied to <html> as the
+ *  data-pw-* attributes + --pw-* variables that prefs.py defines and
+ *  that the world.css prefs layer consumes. Re-applied whenever the
+ *  query settles (boot, refetch, Settings apply) — so a reload comes
+ *  up honoring the stored values before anything is clicked, exactly
+ *  the station.js behaviour this rebuild was missing (C11's
+ *  "prefs editable but not applied" row). */
+function useApplyPrefsChrome(): void {
+  const prefsQuery = usePrefs();
+  const schemaQuery = usePrefsSchema();
+
+  const values = useMemo(() => {
+    if (
+      prefsQuery.isPending ||
+      prefsQuery.isError ||
+      schemaQuery.isPending ||
+      schemaQuery.isError
+    ) {
+      return null;
+    }
+    const { entries } = parsePrefsSchema(schemaQuery.data);
+    if (entries.length === 0) return null; // nothing describable → touch nothing
+    return readPrefsValues(prefsQuery.data, entries);
+  }, [
+    prefsQuery.isPending,
+    prefsQuery.isError,
+    prefsQuery.data,
+    schemaQuery.isPending,
+    schemaQuery.isError,
+    schemaQuery.data,
+  ]);
+
+  useEffect(() => {
+    if (values) applyPrefsToDocument(values);
+  }, [values]);
+}
+
 export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeArea, setActiveArea] = useState<WorldAreaId>("today");
   const areas = useWorldAreas();
+
+  // Prefs chrome: server truth lands on the document (C12).
+  useApplyPrefsChrome();
+
+  // Theme: device-local by contract (the station has no theme-write
+  // endpoint) — restore what this device chose, like the old
+  // station.js did on every page load.
+  useEffect(() => {
+    applyThemeToDocument(readStoredTheme() ?? "station");
+  }, []);
 
   function renderScreen() {
     switch (activeArea) {

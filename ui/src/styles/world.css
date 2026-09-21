@@ -87,12 +87,89 @@ html[data-pw-safe-area-pin] {
   }
 }
 
+/* ── Applied prefs — the station honouring its own settings ─────────
+   prefs.py pairs every preference with a data-* attribute and a --pw-*
+   custom property; prefs-dom.ts writes them onto <html> from server
+   truth and this layer consumes them — the same vocabulary the
+   server-rendered dashboard gets via prefs_style_block().
+
+   ORDER IS LOAD-BEARING: the prefers-reduced-motion override must stay
+   the LAST rule of this layer. Staff Meeting #4 item 2 /
+   ACCESSIBILITY_CONTRACT §6.2: an explicit motion pref may only
+   REDUCE motion; the OS floor always wins. It has to win here too —
+   the tier rules below use !important, so only a later !important
+   block can overrule them (this mirrors how prefs_style_block ends
+   with its OS override, unconditionally and last). */
+
+/* density — compact tightens spacing one step. It never touches
+   --pw-targets-minimum (hit areas), text sizes, or layout order:
+   §9.2's floor ("these tune an already-accessible product"). */
+[data-pw-density="compact"] {
+  --pw-spacing-md: 8px;
+  --pw-spacing-lg: 12px;
+  --pw-spacing-xl: 16px;
+  --pw-spacing-2xl: 24px;
+}
+
+/* target_size — up only, never down: max(44px, …) re-applies the
+   WCAG 2.5.5 floor even if a value ever arrived below it
+   (prefs_to_css_variables clamps the same way). */
+[data-pw-target-size] {
+  --pw-targets-minimum: max(44px, var(--pw-target-size));
+}
+
+/* contrast — "high" raises quiet borders and muted text one rung each,
+   by luminance only (§2.3: no hue carries meaning here). */
+[data-pw-contrast="high"] {
+  --pw-border-subtle: var(--pw-border-strong);
+  --pw-text-muted: var(--pw-text-secondary);
+}
+
+/* motion tiers — verbatim semantics from prefs_style_block():
+   off = nothing animates or transitions; reduced = no animation,
+   state changes instant; subtle = transitions capped at
+   --pw-motion-duration (200ms), nothing infinite. */
+[data-pw-motion="off"] * {
+  animation: none !important;
+  transition: none !important;
+}
+[data-pw-motion="reduced"] * {
+  animation: none !important;
+  transition-duration: 0s !important;
+}
+[data-pw-motion="subtle"] * {
+  transition-duration: var(--pw-motion-duration) !important;
+  animation-iteration-count: 1 !important;
+}
+
+/* The OS floor, LAST: prefers-reduced-motion beats every tier above,
+   including "subtle" — and prefs-dom.ts additionally clamps
+   --pw-motion-duration/--pw-motion-ambient to the motionless values,
+   because inline custom properties on <html> cannot be overridden by
+   a stylesheet rule. Two independent enforcement points; the pref
+   can only ever reduce. */
+@media (prefers-reduced-motion: reduce) {
+  [data-pw-motion] {
+    --pw-motion-duration: 0ms;
+    --pw-motion-ambient: 0;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* Base reset */
 html {
   background-color: var(--pw-surface-canvas);
   color: var(--pw-text-primary);
   font-family: var(--pw-typography-font_sans);
-  font-size: var(--pw-typography-size_body);
+  /* text_scale pref (--pw-text-scale, applied by prefs-dom.ts from
+     server truth, floor 1.0) scales the root size off the body token.
+     Unset → multiplier 1 → identical to the themed default. */
+  font-size: calc(var(--pw-typography-size_body) * var(--pw-text-scale, 1));
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;

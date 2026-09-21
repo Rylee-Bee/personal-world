@@ -405,6 +405,14 @@ function envelopeHandlers(world: WorldState): RequestHandler[] {
     http.get("/api/prefs", () =>
       HttpResponse.json({ ok: true, data: { ...PREFS_BASE, companion: world.companion } }),
     ),
+    // GET /api/prefs/schema — static server vocabulary (api.py
+    // prefs_schema, built from prefs.py PREFS). The App chrome applies
+    // prefs document-wide from C12, so every world state — not just
+    // the Settings builder — must answer this or the shell bypasses
+    // to a real network.
+    http.get("/api/prefs/schema", () =>
+      HttpResponse.json({ ok: true, data: PREFS_SCHEMA }),
+    ),
   ];
 }
 

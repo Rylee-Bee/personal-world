@@ -105,6 +105,95 @@ test.describe("Settings Room (C1/C2)", () => {
     await expect(page.getByText("Saved 1 setting.")).toBeVisible();
   });
 
+  /**
+   * C12 — the blocker C11 named: settings were EDITABLE (C1/C2) but
+   * never APPLIED. Applying now mutates <html> with prefs.py's own
+   * data-pw-* attributes / --pw-* variables, the computed styles
+   * follow (world.css prefs layer), and a reload re-applies from
+   * server truth with no user interaction.
+   */
+  test("applied prefs land on the document — and a reload re-applies them from server truth (C12)", async ({
+    page,
+  }) => {
+    await gotoSettings(page);
+    const motion = page.locator("#settings-room-motion-control");
+    const root = page.locator("html");
+    const applyButton = page.getByRole("button", { name: /Apply changes/ });
+    const before = await motion.inputValue();
+
+    const transitionDuration = () =>
+      page
+        .locator("button:has-text('Apply changes')")
+        .evaluate((el) => getComputedStyle(el).transitionDuration);
+
+    // 1) "Subtle motion" applied → the tier's 200ms budget shows up in
+    //    computed style (the browser project emulates NO OS
+    //    reduced-motion preference, so this is purely the pref).
+    if (before !== "subtle") {
+      await motion.selectOption("subtle");
+      await applyButton.click();
+      await expect(page.getByText("Saved 1 setting.")).toBeVisible();
+    }
+    await expect(root).toHaveAttribute("data-pw-motion", "subtle");
+    expect(await transitionDuration()).toBe("0.2s");
+
+    // 2) "Reduced motion" applied → attribute flips, transitions go
+    //    instant. A pref may reduce; that is the whole product.
+    await motion.selectOption("reduced");
+    await applyButton.click();
+    await expect(page.getByText("Saved 1 setting.")).toBeVisible();
+    await expect(root).toHaveAttribute("data-pw-motion", "reduced");
+    expect(await transitionDuration()).toBe("0s");
+
+    // 3) Full reload: the document is marked again from the server's
+    //    GET /api/prefs — before anyone touches Settings.
+    await page.reload();
+    await expect(root).toHaveAttribute("data-pw-motion", "reduced");
+    expect(
+      await page
+        .getByRole("banner")
+        .evaluate((el) => getComputedStyle(el).transitionDuration),
+    ).toBe("0s");
+
+    // 4) Leave the shared mock store as it was found.
+    if (before !== "reduced") {
+      await gotoArea(page, "Settings");
+      await motion.selectOption(before);
+      await page.getByRole("button", { name: /Apply changes \(1\)/ }).click();
+      await expect(page.getByText("Saved 1 setting.")).toBeVisible();
+    }
+  });
+
+  /**
+   * Theme is the one presentation key with no server write endpoint
+   * (GET /api/themes serves packs; nothing stores a choice) — so it is
+   * device truth: localStorage + data-theme, exactly the old
+   * station.js chrome's model, and the Theme section says so plainly.
+   */
+  test("the chosen theme survives a reload on this device — device-local, as stated (C12)", async ({
+    page,
+  }) => {
+    await gotoSettings(page);
+    const root = page.locator("html");
+
+    await page.getByText("Starfield", { exact: true }).click();
+    await expect(root).toHaveAttribute("data-theme", "starfield");
+    expect(
+      await page.evaluate(() => window.localStorage.getItem("pw-station-theme")),
+    ).toBe("starfield");
+
+    // Reload lands on Today — the chrome still applies the stored
+    // theme before anything is clicked.
+    await page.reload();
+    await expect(root).toHaveAttribute("data-theme", "starfield");
+
+    // Back to the Station default (no data-theme attribute) for
+    // whatever spec runs next on this browser context.
+    await gotoArea(page, "Settings");
+    await page.getByText("Station", { exact: true }).click();
+    await expect.poll(() => root.evaluate((el) => el.hasAttribute("data-theme"))).toBe(false);
+  });
+
   test("the C10 label lives in exactly one discoverable place (the settings preview panel)", async ({
     page,
   }) => {
