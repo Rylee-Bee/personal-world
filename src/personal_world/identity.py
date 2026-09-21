@@ -449,6 +449,9 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     # lining rescue (D15): journal drafts must survive devices; registered
     # like every other kind so single/multi mode resolve identically.
     "journal_draft": "journal-draft.json",
+    # edit-pair capture v0 (B5, DRAFT-SYNC-SPEC §capture lineage): one
+    # BOT→Rylee edit pair per NDJSON line, per principal, same seam.
+    "journal_edit_pairs": "journal-edit-pairs.ndjson",
 }
 
 #: Legacy (single-user default) discovery config location. Matches

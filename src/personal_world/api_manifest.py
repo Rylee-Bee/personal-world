@@ -278,6 +278,9 @@ ENDPOINTS: tuple[Endpoint, ...] = (
        note="resume-on-any-device read of the caller's own draft"),
     _e("API-082", "DELETE", "/api/journal/draft", "journal", "write", "none",
        note="cleared after confirmed publish"),
+    _e("API-083", "POST", "/api/journal/edit-pair", "journal", "write", "none",
+       note="edit-pair capture v0 (§capture lineage); response never "
+            "echoes content"),
     _e("API-009", "GET", "/api/journal/audit", "journal", "read", "none"),
     _e("API-016", "GET", "/api/memory/search", "memory", "read", "none"),
     # Chat / brain.

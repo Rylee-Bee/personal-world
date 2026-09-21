@@ -742,6 +742,87 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         _draft_file(request).unlink(missing_ok=True)
         return {"ok": True, "data": {"cleared": True}}
 
+    # ── Journal EDIT-PAIR capture v0 (B5; lineage: DRAFT-SYNC-SPEC
+    # §capture, Meeting #4 §B11 — Sol's nine fields). The capture
+    # ENDPOINT only, no UI: one BOT→Rylee edit pair per NDJSON line on
+    # the same per-principal scoped seam as drafts. Same rules as the
+    # draft seam: the response reports {stored} and NEVER echoes
+    # content, capture is automatic and therefore NOT an elevation
+    # event (gate: none beyond authentication), and every field rides a
+    # size cap so one render cannot bloat a personal store.
+    _PAIR_TEXT_MAX = 20_000
+    _PAIR_TAG_MAX = 64
+    _PAIR_TAGS_MAX = 32
+
+    @app.post("/api/journal/edit-pair", dependencies=[Depends(require_auth)])
+    async def journal_edit_pair(request: Request) -> dict:
+        _require_person(getattr(request.state, "principal", None))
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="body must be JSON")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="body must be an object")
+
+        def _text(value: object) -> str:
+            return str(value or "")[:_PAIR_TEXT_MAX]
+
+        original = str(body.get("original") or "")
+        edited = str(body.get("edited") or "")
+        if not original.strip() or not edited.strip():
+            raise HTTPException(
+                status_code=422, detail="original and edited are required"
+            )
+        if (
+            len(original) > _PAIR_TEXT_MAX
+            or len(edited) > _PAIR_TEXT_MAX
+            or len(str(body.get("diff") or "")) > _PAIR_TEXT_MAX
+        ):
+            raise HTTPException(
+                status_code=422, detail=f"text fields exceed {_PAIR_TEXT_MAX} chars"
+            )
+
+        def _tags(value: object) -> list[str]:
+            if value is None:
+                return []
+            if not isinstance(value, list) or len(value) > _PAIR_TAGS_MAX:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"tag lists must be arrays of at most {_PAIR_TAGS_MAX} strings",
+                )
+            return [str(t)[:_PAIR_TAG_MAX] for t in value]
+
+        warmth = body.get("warmth")
+        if warmth is not None:
+            if not isinstance(warmth, int) or isinstance(warmth, bool) \
+                    or not 1 <= warmth <= 7:
+                raise HTTPException(
+                    status_code=422, detail="warmth must be an integer 1-7"
+                )
+
+        provenance = body.get("model_provenance")
+        record = {
+            # Exactly the nine §capture lineage fields, in spec order.
+            # Absent optionals stay honest: null / [] — never invented.
+            "original": original,
+            "edited": edited,
+            "diff": _text(body.get("diff")) or None,
+            "timestamp": str(body.get("timestamp") or "")[:64]
+            or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "message_kind": str(body.get("message_kind") or "")[:64] or None,
+            "context": _tags(body.get("context")),
+            "active_packs": _tags(body.get("active_packs")),
+            "warmth": warmth,
+            "model_provenance": str(provenance)[:128] if provenance else None,
+        }
+        path = _scoped_path(request.state.principal, "journal_edit_pairs")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        path.chmod(0o600)  # personal data, private bits (same rule as drafts)
+        # Anti-echo, the draft-seam rule: report, never quote.
+        return {"ok": True, "data": {"stored": True}}
+
     # ── Journal correction workflow (second propose→approve→act
     # workflow; same trust model as the repository-status refresh).
     # The UI proposes + explains + collects explicit approval BEFORE

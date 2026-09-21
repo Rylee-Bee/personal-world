@@ -1021,6 +1021,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/journal/edit-pair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Journal Edit Pair */
+        post: operations["journal_edit_pair_api_journal_edit_pair_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/journal/history": {
         parameters: {
             query?: never;
@@ -3849,6 +3866,28 @@ export interface operations {
         };
     };
     journal_draft_delete_api_journal_draft_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    journal_edit_pair_api_journal_edit_pair_post: {
         parameters: {
             query?: never;
             header?: never;

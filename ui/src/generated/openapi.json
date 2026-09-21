@@ -1504,6 +1504,26 @@
         "summary": "Journal Draft Put"
       }
     },
+    "/api/journal/edit-pair": {
+      "post": {
+        "operationId": "journal_edit_pair_api_journal_edit_pair_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Edit Pair Api Journal Edit Pair Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Edit Pair"
+      }
+    },
     "/api/journal/history": {
       "get": {
         "description": "Full correction chain for one entry (progressive disclosure\nbacking store): oldest → newest, with reasons.",
