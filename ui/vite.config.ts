@@ -54,6 +54,10 @@ export default defineConfig({
       test: {
         name: 'unit',
         environment: 'jsdom',
+        // undici's Request (what jsdom tests get) cannot resolve a
+        // relative baseUrl, so the typed client needs an absolute one
+        // here. (The browser/storybook projects stay same-origin "".)
+        env: { VITE_API_URL: 'http://station.test' },
         setupFiles: ['./src/test/setup.ts'],
         include: ['src/test/**/*.test.{ts,tsx}'],
       }

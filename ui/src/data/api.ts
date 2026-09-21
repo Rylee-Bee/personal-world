@@ -31,6 +31,10 @@ import type {
   Envelope,
   HealthzResponse,
   JournalAuditData,
+  JournalDraftClearedData,
+  JournalDraftData,
+  JournalDraftPutRequest,
+  JournalDraftSavedData,
   JournalEvent,
   JournalHistoryData,
   JournalNoteData,
@@ -222,6 +226,22 @@ export const journalHistory = (params: { ts: string }) =>
 
 export const journalAudit = () =>
   unwrap<Envelope<JournalAuditData>>(api.GET("/api/journal/audit", {}));
+
+// Journal drafts — the lining rescue (api.py journal_draft_*). The PUT
+// body rides the sendBody adapter (raw-JSON route); the PUT response
+// never echoes draft text.
+export const putJournalDraft = (body: JournalDraftPutRequest) =>
+  unwrap<Envelope<JournalDraftSavedData>>(
+    sendBody("PUT", "/api/journal/draft", body),
+  );
+
+export const getJournalDraft = () =>
+  unwrap<Envelope<JournalDraftData>>(api.GET("/api/journal/draft", {}));
+
+export const deleteJournalDraft = () =>
+  unwrap<Envelope<JournalDraftClearedData>>(
+    api.DELETE("/api/journal/draft", {}),
+  );
 
 // Chat — the server picks the reasoning provider (no per-request
 // provider field). An unconfigured provider answers 200 + ok:false;
