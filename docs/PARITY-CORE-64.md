@@ -54,9 +54,27 @@ is dead: every one is registered and serves; **zero deletions tonight (rail)**.
 | GET | `/api/exports/world` | kept-with-row | API-026 verified; added missing handler docstring | `require_auth` read; portable personal config, raw secrets structurally absent (vault-stored), output still personal data — all three claims trace to `export.world_export`. |
 | GET | `/api/ingress/rollups` | kept-with-row | API-078 verified | `require_auth` read over the optional Traefik provider; unconfigured ⇒ honest `not_configured`, no crash (contract already in the docstring). |
 
-### A2 — routes 10–18
+### A2 — routes 10–18 (lab + native-lab reads)
 
-_(appended by batch A2)_
+All nine are registered `GET` routes with `dependencies=[Depends(require_auth)]`,
+matching their curated rows exactly; the payloads ride on read-only providers
+that shell out to the external `lab` CLI or observe native state — none of them
+mutate. Consumer note: none is on the CORE-64 consumed list (they serve the
+homelab/Lab screens), which is why they surfaced as "unconsumed" — they stay on
+the surface because the manifest contract (decision #17) is the Lego box, not
+a UI-traffic hit list.
+
+| Method | Path | Verdict | Row / action | Rationale |
+| --- | --- | --- | --- | --- |
+| GET | `/api/lab/deploy` | kept-with-row | API-042 verified | `require_auth` read; `LabDeploy.observe()` via lab CLI — deploy status/history, no mutation. |
+| GET | `/api/lab/health` | kept-with-row | API-041 verified | `require_auth` read; `LabHealth.observe()` across services. |
+| GET | `/api/lab/resources` | kept-with-row | API-044 verified | `require_auth` read; `LabResources.observe()` (VM usage). |
+| GET | `/api/lab/secrets` | kept-with-row | API-043 verified | `require_auth` read; provider returns audit metadata/counts only — row note "names/metadata only; never resolved values" is true in code. |
+| GET | `/api/lab/settings` | kept-with-row | API-038 verified | `require_auth` read; docstring "Settings Reconciler status via lab CLI" matches `LabSettings.observe()` (`lab settings status --json`). |
+| GET | `/api/lab/settings/diff/{service}` | kept-with-row | API-040 verified | `require_auth` read; desired-vs-live drift for one service via `lab settings diff`. |
+| GET | `/api/lab/state` | kept-with-row | API-037 verified | `require_auth` read; presentation-only operator packet from the lab layer (`lab-lowbw/1`). |
+| GET | `/api/native-lab/health` | kept-with-row | API-046 verified | `require_auth` read; `NativeLabHealth` over the native inventory — no homelab dependency. |
+| GET | `/api/native-lab/inventory` | kept-with-row | API-045 verified | `require_auth` read; `NativeLabInventory.observe()`. |
 
 ### A3 — routes 19–27
 
