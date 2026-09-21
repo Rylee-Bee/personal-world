@@ -48,12 +48,14 @@ const wire = vi.hoisted(() => {
 import {
   DRAFT_IDLE_MS,
   DRAFT_QUEUE_MAX,
+  clearLocalMirror,
   createDraftSync,
   draftStatusLine,
   flushLegacyDrafts,
   liveTransport,
   readLocalMirror,
   resolveResume,
+  writeLocalMirror,
   LOCAL_MIRROR_KEY,
   type DraftServerCopy,
   type DraftTransport,
@@ -121,6 +123,17 @@ describe("draft-sync B1 — debounce", () => {
     expect(put).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(DRAFT_IDLE_MS);
     expect(put).toHaveBeenCalledTimes(1);
+    sync.destroy();
+  });
+
+  it("a confirmed PUT exposes its saved_at stamp to the panel (conflict math)", async () => {
+    const put = vi.fn().mockResolvedValue({ saved_at: "2026-09-20T04:11:00Z" });
+    const { t } = fakeTransport(put);
+    const sync = createDraftSync(t);
+    expect(sync.lastSavedAt()).toBeNull();
+    sync.notify({ text: "stamp me" });
+    await vi.advanceTimersByTimeAsync(DRAFT_IDLE_MS);
+    expect(sync.lastSavedAt()).toBe("2026-09-20T04:11:00Z");
     sync.destroy();
   });
 
@@ -302,6 +315,22 @@ describe("draft-sync B3 — resolveResume", () => {
 
   it("a corrupt local mirror reads as absent (never crashes resume)", () => {
     expect(readLocalMirror(fakeStorage({ [LOCAL_MIRROR_KEY]: "‹garbage›" }))).toBeNull();
+  });
+
+  it("the mirror round-trips and clears (panel-side persistence)", () => {
+    const store = fakeStorage();
+    writeLocalMirror(store, {
+      text: "typing here",
+      editedAt: "2026-09-20T04:10:00Z",
+      serverStamp: null,
+    });
+    expect(readLocalMirror(store)).toEqual({
+      text: "typing here",
+      editedAt: "2026-09-20T04:10:00Z",
+      serverStamp: null,
+    });
+    clearLocalMirror(store);
+    expect(readLocalMirror(store)).toBeNull();
   });
 });
 

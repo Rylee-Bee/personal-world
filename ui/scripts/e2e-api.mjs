@@ -64,6 +64,8 @@ function journalEvent(ts, summary, extra = {}) {
 
 // In-memory journal (current versions; superseded originals stay
 // reachable through the chain endpoint, like the append-only server).
+let DRAFT = null; // the lining rescue: /api/journal/draft (api.py journal_draft_*)
+
 const CURRENT = [
   journalEvent("2026-09-19T16:00:00Z", "Correction noted: the database choice was wrong before — local storage is SQLite.", {
     supersedes: "2026-09-19T10:30:00Z",
@@ -310,6 +312,35 @@ const server = http.createServer(async (req, res) => {
     const ts = new Date().toISOString();
     CURRENT.unshift(journalEvent(ts, text));
     return json(res, 200, { ok: true, data: { written: text.length } });
+  }
+  // Journal drafts — mirrors api.py journal_draft_* exactly: the PUT
+  // response reports {saved_at, length} and NEVER echoes text.
+  if (method === "PUT" && p === "/api/journal/draft") {
+    const body = await readBody(req);
+    const text = String(body?.text ?? "");
+    if (text.length > 100_000) {
+      return json(res, 422, { detail: "draft exceeds 100000 chars" });
+    }
+    const stamp = new Date().toISOString();
+    DRAFT = {
+      text,
+      entry_id: String(body?.entry_id ?? ""),
+      device: String(body?.device ?? ""),
+      updated_at: stamp,
+    };
+    return json(res, 200, { ok: true, data: { saved_at: stamp, length: text.length } });
+  }
+  if (method === "GET" && p === "/api/journal/draft") {
+    return json(res, 200, {
+      ok: true,
+      data: DRAFT
+        ? { ...DRAFT, length: DRAFT.text.length }
+        : { text: null, updated_at: null },
+    });
+  }
+  if (method === "DELETE" && p === "/api/journal/draft") {
+    DRAFT = null;
+    return json(res, 200, { ok: true, data: { cleared: true } });
   }
   if (method === "POST" && p === "/api/journal/supersede") {
     const body = await readBody(req);

@@ -37,8 +37,9 @@ export type DraftServerCopy = JournalDraftData;
 
 /** Injected so tests (and Storybook) drive the transport directly. */
 export interface DraftTransport {
-  /** Resolves only on a 200 envelope; rejects WITHOUT draft content. */
-  put(snapshot: DraftSnapshot): Promise<void>;
+  /** Resolves only on a 200 envelope; rejects WITHOUT draft content.
+   * Resolves with the server's saved_at stamp (never text). */
+  put(snapshot: DraftSnapshot): Promise<{ saved_at: string } | undefined>;
   get(): Promise<DraftServerCopy | null>;
   remove(): Promise<void>;
 }
@@ -48,7 +49,8 @@ export const liveTransport: DraftTransport = {
     // putJournalDraft throws ApiError whose message comes from the
     // server's {detail} — the draft routes never echo text, so an
     // ApiError here cannot carry draft content by construction.
-    await putJournalDraft(snapshot);
+    const res = await putJournalDraft(snapshot);
+    return res.data ? { saved_at: res.data.saved_at } : undefined;
   },
   async get() {
     const res = await getJournalDraft();
@@ -74,6 +76,8 @@ export interface DraftSync {
   /** Undelivered writes currently held (B7 queue depth). */
   pending(): number;
   status(): DraftStatus;
+  /** Newest saved_at the server has confirmed to this instance. */
+  lastSavedAt(): string | null;
   subscribe(listener: (status: DraftStatus) => void): () => void;
   /** Detach timers and the "online" listener. */
   destroy(): void;
@@ -103,6 +107,7 @@ export function createDraftSync(
 ): DraftSync {
   const queue: DraftSnapshot[] = [];
   let current: DraftStatus = "idle";
+  let lastSaved: string | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let draining = false;
   const listeners = new Set<(status: DraftStatus) => void>();
@@ -135,7 +140,8 @@ export function createDraftSync(
     queue.length = 0;
     setStatus("syncing");
     try {
-      await transport.put(newest);
+      const ack = await transport.put(newest);
+      if (ack?.saved_at) lastSaved = ack.saved_at;
       setStatus("saved");
     } catch {
       // The failure carries no draft text (B4); we retain no error
@@ -175,6 +181,7 @@ export function createDraftSync(
     },
     pending: () => queue.length,
     status: () => current,
+    lastSavedAt: () => lastSaved,
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -297,6 +304,19 @@ export function readLocalMirror(
   } catch {
     return null;
   }
+}
+
+export function writeLocalMirror(
+  storage: Pick<Storage, "setItem">,
+  mirror: LocalMirror,
+): void {
+  storage.setItem(LOCAL_MIRROR_KEY, JSON.stringify(mirror));
+}
+
+export function clearLocalMirror(
+  storage: Pick<Storage, "removeItem">,
+): void {
+  storage.removeItem(LOCAL_MIRROR_KEY);
 }
 
 export type ResumeDecision =

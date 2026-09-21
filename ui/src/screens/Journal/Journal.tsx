@@ -18,7 +18,7 @@
  * operable, native dialog semantics (WorldDrawer).
  */
 
-import { useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useJournalList,
   useWriteJournal,
@@ -29,6 +29,18 @@ import {
 import { journalKindLabel } from "../../data/types";
 import { WorldButton } from "../../components/WorldButton";
 import { WorldDrawer } from "../../components/WorldDrawer";
+import {
+  clearLocalMirror,
+  createDraftSync,
+  draftStatusLine,
+  flushLegacyDrafts,
+  liveTransport,
+  readLocalMirror,
+  resolveResume,
+  writeLocalMirror,
+  type DraftStatus,
+  type DraftSync,
+} from "../../data/draft-sync";
 
 // ─── Kind badge ──────────────────────────────────────────
 
@@ -112,10 +124,147 @@ function EntryCard({ entry, onSupersede, onShowHistory }: EntryCardProps) {
 
 // ─── Write form ──────────────────────────────────────────
 
+interface DraftConflict {
+  /** The world's newer text, and the stamp that proves it newer. */
+  serverText: string;
+  serverStamp: string;
+  /** This device's text the person may choose to keep. */
+  localText: string;
+}
+
+/**
+ * Write form — the journal panel that RESUMES (B8: her visible face
+ * of the draft-sync client; DRAFT-SYNC-SPEC-2026-09-20):
+ *   • keystroke pauses put the draft to /api/journal/draft (B1/B7),
+ *   • legacy pw-journal-entries flush once on load (B2),
+ *   • GET-on-open resumes; a newer world copy offers a two-option
+ *     chooser instead of clobbering either side (B3),
+ *   • the one honest status line carries sync state (spec cadence),
+ *   • after a CONFIRMED publish the draft is cleared (DELETE),
+ *   • no draft text ever reaches console or error surfaces (B4).
+ */
 function WriteForm() {
   const writeMutation = useWriteJournal();
   const [content, setContent] = useState("");
+  const [draftStatus, setDraftStatus] = useState<DraftStatus>("idle");
+  const [conflict, setConflict] = useState<DraftConflict | null>(null);
+  const [resumeNote, setResumeNote] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const syncRef = useRef<DraftSync | null>(null);
+  const conflictRef = useRef<DraftConflict | null>(null);
+  conflictRef.current = conflict;
+
+  // ── Open the panel: legacy flush, then GET-on-open (B2 + B3) ──
+  useEffect(() => {
+    const sync = createDraftSync();
+    syncRef.current = sync;
+    const unsubscribe = sync.subscribe(setDraftStatus);
+    const onPageHide = (): void => {
+      void sync.flush();
+    };
+    window.addEventListener("pagehide", onPageHide);
+    let cancelled = false;
+
+    void (async () => {
+      // Legacy notes first: if this device still holds old-Station
+      // keys, the world should hold them before we offer anything.
+      await flushLegacyDrafts(window.localStorage, liveTransport).catch(
+        () => undefined, // deferred keys stay put; next load retries
+      );
+      if (cancelled) return;
+      const local = readLocalMirror(window.localStorage);
+      let server;
+      try {
+        server = await liveTransport.get();
+      } catch {
+        // Offline at open: resume from this device's own mirror.
+        if (local && local.text.trim() !== "") {
+          setContent(local.text);
+          setResumeNote("Offline — showing this device's draft.");
+        }
+        return;
+      }
+      if (cancelled || server === null) return;
+      const decision = resolveResume(server, local);
+      switch (decision.kind) {
+        case "take-server":
+          if (decision.text !== null && decision.text.trim() !== "") {
+            setContent(decision.text);
+            setResumeNote("Resumed your unsaved draft.");
+          }
+          break;
+        case "offer-local":
+          if (local) {
+            setContent(local.text);
+            // The world has nothing newer: our copy is the next save.
+            sync.notify({ text: local.text });
+          }
+          break;
+        case "agree":
+          // Quietly resume: the same words live on both sides, and
+          // THIS is the draft she was writing.
+          if (server.text !== null) setContent(server.text);
+          break;
+        case "conflict":
+          setConflict({
+            serverText: decision.server.text ?? "",
+            serverStamp: decision.server.updated_at ?? "",
+            localText: decision.local.text,
+          });
+          break;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pagehide", onPageHide);
+      void sync.flush();
+      unsubscribe();
+      sync.destroy();
+      syncRef.current = null;
+    };
+  }, []);
+
+  // Keep the chooser keyboard-first: focus lands on its first option
+  // (WorldButton renders no ref, so the focus-by-id seam stays DOM-level).
+  useEffect(() => {
+    if (conflict !== null) {
+      document.getElementById("draft-conflict-server")?.focus();
+    }
+  }, [conflict]);
+
+  const handleChange = useCallback((value: string) => {
+    setContent(value);
+    const sync = syncRef.current;
+    if (sync === null || conflictRef.current !== null) return;
+    writeLocalMirror(window.localStorage, {
+      text: value,
+      editedAt: new Date().toISOString(),
+      serverStamp: sync.lastSavedAt(),
+    });
+    sync.notify({ text: value });
+  }, []);
+
+  const chooseServerCopy = useCallback(() => {
+    if (conflict === null) return;
+    setContent(conflict.serverText);
+    writeLocalMirror(window.localStorage, {
+      text: conflict.serverText,
+      editedAt: new Date().toISOString(),
+      serverStamp: conflict.serverStamp || null,
+    });
+    setConflict(null);
+    setResumeNote("Continuing from the world's copy.");
+  }, [conflict]);
+
+  const keepLocalCopy = useCallback(() => {
+    if (conflict === null) return;
+    setConflict(null);
+    setContent(conflict.localText);
+    // Explicit human choice: this device's words go up next.
+    syncRef.current?.notify({ text: conflict.localText });
+    setResumeNote("Keeping this device's draft.");
+  }, [conflict]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +275,11 @@ function WriteForm() {
       {
         onSuccess: () => {
           setContent("");
+          // Spec: the client clears the draft only after the publish
+          // was CONFIRMED — then both copies are safe.
+          clearLocalMirror(window.localStorage);
+          void liveTransport.remove().catch(() => undefined);
+          setResumeNote(null);
           textareaRef.current?.focus();
         },
       },
@@ -134,6 +288,41 @@ function WriteForm() {
 
   return (
     <section aria-label="Write journal entry">
+      {conflict !== null && (
+        <div
+          role="alertdialog"
+          aria-labelledby="draft-conflict-title"
+          className="mb-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-md)]"
+        >
+          <p
+            id="draft-conflict-title"
+            className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
+          >
+            Two unsaved drafts are alive
+          </p>
+          <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+            The world holds a draft that changed after this device last
+            saved. Nothing is overwritten until you choose.
+          </p>
+          <div className="mt-[var(--pw-spacing-md)] flex flex-wrap gap-[var(--pw-spacing-md)]">
+            <WorldButton
+              id="draft-conflict-server"
+              variant="primary"
+              onPress={chooseServerCopy}
+              aria-label="Continue from the world's copy"
+            >
+              Continue from the world's copy
+            </WorldButton>
+            <WorldButton
+              variant="ghost"
+              onPress={keepLocalCopy}
+              aria-label="Keep this device's draft"
+            >
+              Keep this device's draft
+            </WorldButton>
+          </div>
+        </div>
+      )}
       <form onSubmit={handleSubmit}>
         <label
           htmlFor="journal-write-content"
@@ -145,11 +334,17 @@ function WriteForm() {
           ref={textareaRef}
           id="journal-write-content"
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
           rows={4}
           className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           placeholder="Write your thoughts…"
-          aria-describedby={writeMutation.isError ? "write-error" : undefined}
+          aria-describedby={
+            writeMutation.isError
+              ? "write-error"
+              : resumeNote
+                ? "draft-resume-note"
+                : undefined
+          }
         />
         <div className="mt-[var(--pw-spacing-sm)] flex items-center gap-[var(--pw-spacing-md)]">
           <WorldButton
@@ -172,6 +367,14 @@ function WriteForm() {
             </p>
           )}
         </div>
+        {/* One honest state line (spec §write cadence) — text never
+            echoes here, only status words. */}
+        <p
+          aria-live="polite"
+          className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]"
+        >
+          {resumeNote ?? draftStatusLine(draftStatus)}
+        </p>
       </form>
     </section>
   );
