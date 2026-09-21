@@ -15,6 +15,7 @@ import { Today } from "../screens/Today/Today";
 import { Journal } from "../screens/Journal/Journal";
 import { Vault } from "../screens/Vault/Vault";
 import { Settings } from "../screens/Settings/Settings";
+import { Interests } from "../screens/Interests/Interests";
 import { Chat } from "../screens/Chat/Chat";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
@@ -75,6 +76,8 @@ export function App() {
         return <Settings />;
       case "news":
         return <Chat />;
+      case "interests":
+        return <Interests />;
       default: {
         const label = areas.find((a) => a.id === activeArea)?.label ?? activeArea;
         return (

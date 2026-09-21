@@ -92,6 +92,93 @@ const PREFS = {
   accent: "world-keeper",
 };
 
+// GET /api/prefs/schema — mirrors api.py prefs_schema() built from
+// prefs.py PREFS (keys, vocabularies, floors). The Settings Room
+// renders ONLY from this table, so the mock must be exact.
+const PREFS_SCHEMA = {
+  motion: {
+    type: "enum", default: "reduced", floor: "off",
+    allowed: ["off", "reduced", "subtle"],
+  },
+  contrast: {
+    type: "enum", default: "comfortable", floor: "comfortable",
+    allowed: ["comfortable", "high"],
+  },
+  text_scale: {
+    type: "number", default: 1.0, floor: 1.0,
+    allowed: [1.0, 1.25, 1.5], integer: false, unit: "",
+  },
+  density: {
+    type: "enum", default: "comfortable", floor: "compact",
+    allowed: ["comfortable", "compact"],
+  },
+  target_size: {
+    type: "number", default: 44, floor: 44,
+    allowed: [44, 56], integer: true, unit: "px",
+  },
+  companion: {
+    type: "enum", default: "personal-world", floor: "personal-world",
+    allowed: [
+      "personal-world", "mermaid", "robot",
+      "world-tree-squirrel", "taco-news-truck",
+    ],
+  },
+  accent: {
+    type: "enum", default: "world-keeper", floor: "world-keeper",
+    allowed: ["world-keeper", "rylee"],
+  },
+};
+
+// ── Discovery fixtures (Track C · Interests view) ────────────────────
+// Shapes mirror providers/native_discovery.py: observe() data =
+// {sources, interests, items, *_count}; discover() data =
+// {items, count, sources_queried} with engine provenance
+// {engine, source_type} exactly as _discover_engine writes it.
+
+const DISCOVERY_SOURCES = [
+  {
+    id: "pw-releases",
+    name: "Project Worlds releases",
+    source_type: "github_releases",
+    config: {},
+    enabled: true,
+  },
+  {
+    id: "lab-feed",
+    name: "Lab news feed",
+    source_type: "rss",
+    config: { url: "https://example.invalid/feed.xml", tags: [] },
+    enabled: false,
+  },
+];
+
+const DISCOVERY_INTERESTS = [
+  {
+    id: "self-hosting",
+    name: "self-hosting",
+    category: "software",
+    weight: 1.0,
+    created_at: "2026-09-18T12:00:00+00:00",
+  },
+];
+
+const DISCOVERY_FINDS = [
+  {
+    id: "pw-releases:v1.4.0",
+    title: "Project Worlds v1.4.0 published",
+    source: "Project Worlds releases",
+    content_type: "update",
+    url: "https://example.invalid/releases/pw-v1.4.0",
+    description: null,
+    tags: [],
+    discovered_at: "2026-09-20T08:55:00+00:00",
+    provenance: {
+      engine: "candy-dispenser discovery (vendored)",
+      source_type: "github_releases",
+    },
+  },
+];
+
 const SECTIONS = [
   { id: "today", label: "Today", icon: "navigation--today", order: 0, visible: true, pinned: true, kind: "core", configured: true, status: null },
   { id: "journal", label: "Journal & Memory", icon: "navigation--journal", order: 1, visible: true, pinned: false, kind: "core", configured: true, status: null },
@@ -162,10 +249,50 @@ const server = http.createServer(async (req, res) => {
   if (method === "GET" && p === "/api/prefs") {
     return json(res, 200, ok("healthy", PREFS));
   }
+  if (method === "GET" && p === "/api/prefs/schema") {
+    return json(res, 200, ok("healthy", PREFS_SCHEMA));
+  }
   if (method === "PUT" && p === "/api/prefs") {
     const body = await readBody(req);
     if (body === null) return json(res, 400, { detail: "body must be JSON" });
-    return json(res, 200, ok("healthy", { ...PREFS, ...body }));
+    // Same discipline as prefs.set_prefs: unknown keys or values
+    // outside the server vocabulary answer 400 with every reason;
+    // nothing applies unless the whole body validates.
+    const errors = [];
+    for (const [key, value] of Object.entries(body)) {
+      const spec = PREFS_SCHEMA[key];
+      if (!spec) {
+        errors.push(`unknown preference '${key}'`);
+        continue;
+      }
+      if (!spec.allowed.includes(value)) {
+        errors.push(`${key}: ${JSON.stringify(value)} is not an allowed value`);
+        continue;
+      }
+    }
+    if (errors.length > 0) {
+      return json(res, 400, { detail: errors.join("; ") });
+    }
+    Object.assign(PREFS, body);
+    return json(res, 200, ok("healthy", { ...PREFS }));
+  }
+  if (method === "GET" && p === "/api/discovery/status") {
+    return json(res, 200, ok("healthy", {
+      sources: DISCOVERY_SOURCES,
+      interests: DISCOVERY_INTERESTS,
+      items: [],
+      source_count: DISCOVERY_SOURCES.length,
+      interest_count: DISCOVERY_INTERESTS.length,
+      item_count: 0,
+    }));
+  }
+  if (method === "GET" && p === "/api/discovery/discover") {
+    const enabled = DISCOVERY_SOURCES.filter((s) => s.enabled).length;
+    return json(res, 200, ok("healthy", {
+      items: DISCOVERY_FINDS,
+      count: DISCOVERY_FINDS.length,
+      sources_queried: enabled,
+    }));
   }
   if (p === "/api/sections" && (method === "GET" || method === "PUT")) {
     return json(res, 200, ok("healthy", { schema: "sections.v1", sections: SECTIONS }));

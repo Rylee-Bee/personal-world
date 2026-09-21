@@ -117,6 +117,63 @@ const PREFS_BASE = {
   accent: "world-keeper",
 };
 
+// The Settings Room (Track C) renders from GET /api/prefs/schema, so
+// the mock mirrors src/personal_world/prefs.py PREFS exactly — same
+// keys, same closed vocabularies, same floors. The PUT handler below
+// validates against this table the way prefs.set_prefs does.
+
+type PrefKey =
+  | "motion"
+  | "contrast"
+  | "text_scale"
+  | "density"
+  | "target_size"
+  | "companion"
+  | "accent";
+
+interface PrefSpec {
+  type: "enum" | "number";
+  default: string | number;
+  floor: string | number;
+  allowed: Array<string | number>;
+  integer?: boolean;
+  unit?: string;
+}
+
+const PREFS_SCHEMA: Record<PrefKey, PrefSpec> = {
+  motion: {
+    type: "enum", default: "reduced", floor: "off",
+    allowed: ["off", "reduced", "subtle"],
+  },
+  contrast: {
+    type: "enum", default: "comfortable", floor: "comfortable",
+    allowed: ["comfortable", "high"],
+  },
+  text_scale: {
+    type: "number", default: 1.0, floor: 1.0,
+    allowed: [1.0, 1.25, 1.5], integer: false, unit: "",
+  },
+  density: {
+    type: "enum", default: "comfortable", floor: "compact",
+    allowed: ["comfortable", "compact"],
+  },
+  target_size: {
+    type: "number", default: 44, floor: 44,
+    allowed: [44, 56], integer: true, unit: "px",
+  },
+  companion: {
+    type: "enum", default: "personal-world", floor: "personal-world",
+    allowed: [
+      "personal-world", "mermaid", "robot",
+      "world-tree-squirrel", "taco-news-truck",
+    ],
+  },
+  accent: {
+    type: "enum", default: "world-keeper", floor: "world-keeper",
+    allowed: ["world-keeper", "rylee"],
+  },
+};
+
 interface WorldState {
   capabilities: CapMap;
   attention: string[];
@@ -551,6 +608,9 @@ function buildVaultHandlers(initial: {
 
 function buildSettingsHandlers(): RequestHandler[] {
   let sections = [...SERVER_SECTIONS];
+  // Session-persistent prefs, like the server's world store: PUT writes
+  // here, GET reads back what was actually saved.
+  const prefsLive: Record<PrefKey, string | number> = { ...PREFS_BASE };
   const resolve = (order: string[] | undefined, hidden: string[]) => {
     const byId = new Map(sections.map((s) => [s.id, s]));
     const finalIds = [
@@ -648,51 +708,41 @@ function buildSettingsHandlers(): RequestHandler[] {
         ],
       }),
     ),
-    http.get("/api/prefs", () => HttpResponse.json({ ok: true, data: PREFS_BASE })),
+    http.get("/api/prefs", () => HttpResponse.json({ ok: true, data: { ...prefsLive } })),
     // GET /api/prefs/schema — mirrors api.py prefs_schema(): enum rows
     // carry {type, default, floor, allowed}; number rows additionally
     // carry {integer, unit}. Values are the real prefs.py vocabulary.
     http.get("/api/prefs/schema", () =>
-      HttpResponse.json({
-        ok: true,
-        data: {
-          motion: {
-            type: "enum", default: "reduced", floor: "off",
-            allowed: ["off", "reduced", "subtle"],
-          },
-          contrast: {
-            type: "enum", default: "comfortable", floor: "comfortable",
-            allowed: ["comfortable", "high"],
-          },
-          text_scale: {
-            type: "number", default: 1.0, floor: 1.0,
-            allowed: [1.0, 1.25, 1.5], integer: false, unit: "",
-          },
-          density: {
-            type: "enum", default: "comfortable", floor: "compact",
-            allowed: ["comfortable", "compact"],
-          },
-          target_size: {
-            type: "number", default: 44, floor: 44,
-            allowed: [44, 56], integer: true, unit: "px",
-          },
-          companion: {
-            type: "enum", default: "personal-world", floor: "personal-world",
-            allowed: [
-              "personal-world", "mermaid", "robot",
-              "world-tree-squirrel", "taco-news-truck",
-            ],
-          },
-          accent: {
-            type: "enum", default: "world-keeper", floor: "world-keeper",
-            allowed: ["world-keeper", "rylee"],
-          },
-        },
-      }),
+      HttpResponse.json({ ok: true, data: PREFS_SCHEMA }),
     ),
+    // PUT /api/prefs — same discipline as prefs.set_prefs: unknown keys
+    // or out-of-vocabulary values answer 400 + detail with every
+    // reason; nothing applies unless the whole body validates. On
+    // success the merged prefs persist for this mock session, like the
+    // server's world store — a story remount resets to defaults.
     http.put("/api/prefs", async ({ request }) => {
       const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-      return HttpResponse.json({ ok: true, data: { ...PREFS_BASE, ...body } });
+      const next: Record<PrefKey, string | number> = { ...prefsLive };
+      const errors: string[] = [];
+      for (const [key, value] of Object.entries(body)) {
+        const spec = PREFS_SCHEMA[key as PrefKey];
+        if (!spec) {
+          errors.push(`unknown preference '${key}'`);
+          continue;
+        }
+        if (!spec.allowed.includes(value as string & number)) {
+          errors.push(`${key}: ${JSON.stringify(value)} is not an allowed value`);
+          continue;
+        }
+        next[key as PrefKey] = value as string | number;
+      }
+      if (errors.length > 0) {
+        return HttpResponse.json({ detail: errors.join("; ") }, { status: 400 });
+      }
+      for (const key of Object.keys(next) as PrefKey[]) {
+        prefsLive[key] = next[key];
+      }
+      return HttpResponse.json({ ok: true, data: { ...prefsLive } });
     }),
     http.get("/api/sections", () =>
       HttpResponse.json({ ok: true, data: { schema: "sections.v1", sections } }),
@@ -803,6 +853,145 @@ function buildUnreachableHandlers(): RequestHandler[] {
   ];
 }
 
+// ─── Discovery / Interests fixtures (Track C) ────────────────────────
+// Shapes mirror providers/native_discovery.py exactly:
+//   observe()  → {sources, interests, items(=in-memory, always empty
+//                on a fresh engine), source_count, interest_count,
+//                item_count}
+//   discover() → {items, count, sources_queried}; engine-backed items
+//   carry provenance {engine, source_type} (see _discover_engine).
+
+interface FixtureSource {
+  id: string;
+  name: string;
+  source_type: string;
+  config: Record<string, unknown>;
+  enabled: boolean;
+}
+
+function discoverySource(
+  id: string,
+  name: string,
+  source_type: string,
+  enabled: boolean,
+  config: Record<string, unknown> = {},
+): FixtureSource {
+  return { id, name, source_type, config, enabled };
+}
+
+function discoveryInterest(id: string, name: string, category: string | null) {
+  return {
+    id,
+    name,
+    category,
+    weight: 1.0,
+    created_at: "2026-09-18T12:00:00+00:00",
+  };
+}
+
+/** Engine find — provenance exactly as _discover_engine writes it. */
+function engineFind(
+  id: string,
+  title: string,
+  sourceName: string,
+  sourceType: string,
+  url: string | null,
+) {
+  return {
+    id,
+    title,
+    source: sourceName,
+    content_type: "update",
+    url,
+    description: null,
+    tags: [],
+    discovered_at: "2026-09-20T08:55:00+00:00",
+    provenance: {
+      engine: "candy-dispenser discovery (vendored)",
+      source_type: sourceType,
+    },
+  };
+}
+
+type DiscoveryVariant = "populated" | "noSources" | "captureOff" | "nothingMatched";
+
+function buildDiscoveryHandlers(variant: DiscoveryVariant): RequestHandler[] {
+  const sources: FixtureSource[] =
+    variant === "populated"
+      ? [
+          discoverySource("pw-releases", "Project Worlds releases", "github_releases", true),
+          discoverySource("lab-feed", "Lab news feed", "rss", false, {
+            url: "https://example.invalid/feed.xml",
+            tags: [],
+          }),
+        ]
+      : variant === "captureOff"
+        ? [
+            discoverySource("pw-releases", "Project Worlds releases", "github_releases", false),
+            discoverySource("music-feed", "Music blog feed", "rss", false, {
+              url: "https://example.invalid/music.xml",
+              tags: [],
+            }),
+          ]
+        : variant === "nothingMatched"
+          ? [discoverySource("pw-releases", "Project Worlds releases", "github_releases", true)]
+          : [];
+
+  const interests =
+    variant === "populated" || variant === "nothingMatched"
+      ? [discoveryInterest("self-hosting", "self-hosting", "software")]
+      : [];
+
+  const finds = variant === "populated" ? [
+    engineFind(
+      "pw-releases:v1.4.0",
+      "Project Worlds v1.4.0 published",
+      "Project Worlds releases",
+      "github_releases",
+      "https://example.invalid/releases/pw-v1.4.0",
+    ),
+    engineFind(
+      "pw-releases:v1.3.2",
+      "Project Worlds v1.3.2 published",
+      "Project Worlds releases",
+      "github_releases",
+      "https://example.invalid/releases/pw-v1.3.2",
+    ),
+  ] : [];
+
+  return [
+    ...baselineHandlers(),
+    ...envelopeHandlers(WORLD_STATES.quiet),
+    http.get("/api/discovery/status", () =>
+      HttpResponse.json({
+        ok: true,
+        status: "healthy",
+        data: {
+          sources,
+          interests,
+          items: [],
+          source_count: sources.length,
+          interest_count: interests.length,
+          item_count: 0,
+        },
+        warnings: [],
+      }),
+    ),
+    http.get("/api/discovery/discover", () =>
+      HttpResponse.json({
+        ok: true,
+        status: "healthy",
+        data: {
+          items: finds,
+          count: finds.length,
+          sources_queried: sources.filter((s) => s.enabled).length,
+        },
+        warnings: [],
+      }),
+    ),
+  ];
+}
+
 // ─── Named handler sets ──────────────────────────────────────────────
 
 type SetBuilder = () => RequestHandler[];
@@ -831,6 +1020,12 @@ const builders = {
 
   // Settings screen states
   settingsDefault: () => buildSettingsHandlers(),
+
+  // Interests screen states (Track C) — engine finds, honest empties
+  interestsPopulated: () => buildDiscoveryHandlers("populated"),
+  interestsNoSources: () => buildDiscoveryHandlers("noSources"),
+  interestsCaptureOff: () => buildDiscoveryHandlers("captureOff"),
+  interestsNothingMatched: () => buildDiscoveryHandlers("nothingMatched"),
 
   // Shell states — /healthz down, everything else fails
   unreachable: () => buildUnreachableHandlers(),
