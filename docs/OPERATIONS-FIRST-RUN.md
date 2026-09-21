@@ -9,8 +9,8 @@ local files.
 > [Architecture](ARCHITECTURE.md) first. The tracked `compose.yaml` is the
 > portable image-only base; host-specific mounts live in the opt-in
 > `compose.homelab.yaml` override, and source builds in `compose.dev.yaml`.
-> No container name, timezone, backup job, or external provider is
-> guaranteed on a fresh install. Confirm which configuration files
+> No container name, timezone, backup job, or external provider should be
+> assumed present on a fresh install. Confirm which configuration files
 > `app.py::build_registry` actually reads before adding provider wiring.
 > `/setup-wizard` now exists; optional depth-limited Git discovery also exists.
 > Vault reset loses secrets and requires an explicit recovery decision; the
