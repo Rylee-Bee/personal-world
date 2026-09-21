@@ -17,7 +17,7 @@ Code: [`src/personal_world/oidc.py`](../src/personal_world/oidc.py)
 ## When OIDC is absent
 
 Nothing changes. Local bearer/session auth is the built-in default, and
-`config/oidc.json` simply not existing is a healthy state reported as
+`config/oidc.json` not existing is a healthy state reported as
 `not_configured` — never an error, never a degraded world.
 
 ## Configuration

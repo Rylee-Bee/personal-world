@@ -3,7 +3,7 @@
 > One encrypted file. One passphrase. Enough to be the same instance
 > again on a fresh machine.
 
-If the box dies, the container rots, or you simply want to move house:
+If the box dies, the container rots, or you just want to move house:
 `personal-world worlds backup` writes a **single encrypted archive** of
 everything durable, and `personal-world worlds restore` imports it into
 a fresh build. Nothing else is required but the archive file and the
