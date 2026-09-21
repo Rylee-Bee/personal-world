@@ -92,7 +92,7 @@ interface SectionItem {
 function StepUpNote() {
   return (
     <p
-      className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] italic"
+      className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)] italic"
       role="note"
     >
       This action requires step-up authentication
@@ -118,7 +118,7 @@ function SettingsSection({
     >
       <h2
         id={titleId}
-        className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]"
+        className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
       >
         {id}
       </h2>
@@ -177,7 +177,7 @@ function ProfileSection({
   if (isSessionLoading || (authenticated && isPrincipalLoading)) {
     return (
       <SettingsSection id="Profile" titleId="settings-profile-heading">
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Loading…
         </p>
       </SettingsSection>
@@ -187,7 +187,7 @@ function ProfileSection({
   if (!authenticated) {
     return (
       <SettingsSection id="Profile" titleId="settings-profile-heading">
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Not authenticated
         </p>
       </SettingsSection>
@@ -246,7 +246,7 @@ function ProfileSection({
             <p className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
               {displayName ?? "Not set"}
             </p>
-            <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+            <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
               Display name
             </p>
           </div>
@@ -325,7 +325,7 @@ function SectionsManager({
   if (serverSections.length === 0) {
     return (
       <SettingsSection id="Sections" titleId="settings-sections-heading">
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           No sections available
         </p>
       </SettingsSection>
@@ -364,7 +364,7 @@ function SectionsManager({
               {section.label}
             </span>
             <label className="flex items-center gap-[var(--pw-spacing-sm)] cursor-pointer">
-              <span className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+              <span className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
                 {section.visible ? "Visible" : "Hidden"}
               </span>
               <input
@@ -404,7 +404,7 @@ function CapabilitiesSection({
   if (isStatusLoading) {
     return (
       <SettingsSection id="Capabilities" titleId="settings-capabilities-heading">
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Loading…
         </p>
       </SettingsSection>
@@ -414,7 +414,7 @@ function CapabilitiesSection({
   if (capabilities.length === 0) {
     return (
       <SettingsSection id="Capabilities" titleId="settings-capabilities-heading">
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           No capabilities reported
         </p>
       </SettingsSection>
@@ -423,7 +423,7 @@ function CapabilitiesSection({
 
   return (
     <SettingsSection id="Capabilities" titleId="settings-capabilities-heading">
-      <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+      <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
         Read-only: capability state is reported by the station, not set from
         this screen — there is no write endpoint to toggle it here.
       </p>
@@ -444,7 +444,7 @@ function CapabilitiesSection({
                   {displayName}
                 </p>
                 {cap.firstWarning !== null && (
-                  <p className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] mt-1">
+                  <p className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)] mt-1">
                     {cap.firstWarning}
                   </p>
                 )}
@@ -479,7 +479,7 @@ function BrainSection({
   if (isBrainLoading || isManifestLoading) {
     return (
       <SettingsSection id="Brain & Templates" titleId="settings-brain-heading">
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Loading…
         </p>
       </SettingsSection>
@@ -489,7 +489,7 @@ function BrainSection({
   if (templates.length === 0 && endpointCount === 0) {
     return (
       <SettingsSection id="Brain & Templates" titleId="settings-brain-heading">
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           No brain templates configured
         </p>
       </SettingsSection>
@@ -518,7 +518,7 @@ function BrainSection({
                 <p className="text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
                   {t.id}
                 </p>
-                <div className="flex gap-[var(--pw-spacing-md)] mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+                <div className="flex gap-[var(--pw-spacing-md)] mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
                   <span>Kind: {t.kind}</span>
                   {t.surface !== null && <span>Surface: {t.surface}</span>}
                 </div>
@@ -527,7 +527,7 @@ function BrainSection({
           </ul>
         </>
       ) : (
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           No templates available
         </p>
       )}
@@ -552,7 +552,7 @@ function ThemeSection({
             setting — the station publishes themes (GET /api/themes) but
             has no endpoint that records which one you picked. Saying so
             beats pretending the choice persists. */}
-        <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Read-only on the server: this station serves theme packs but has no
           endpoint that stores a chosen theme, so this selection lives on this
           device only and returns to the default on a new device.
@@ -647,7 +647,7 @@ export function Settings() {
     <>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-[var(--pw-spacing-md)] focus:left-[var(--pw-spacing-md)] focus:z-50 focus:px-[var(--pw-spacing-lg)] focus:py-[var(--pw-spacing-sm)] focus:bg-[var(--pw-surface-panel)] focus:text-[var(--pw-accent-teal)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)] focus:rounded-[var(--pw-radius-sm)]"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-[var(--pw-spacing-md)] focus:left-[var(--pw-spacing-md)] focus:z-50 focus:px-[var(--pw-spacing-lg)] focus:py-[var(--pw-spacing-sm)] focus:bg-[var(--pw-surface-panel)] focus:text-[var(--pw-accent-primary)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)] focus:rounded-[var(--pw-radius-sm)]"
       >
         Skip to main content
       </a>
@@ -661,7 +661,7 @@ export function Settings() {
           <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
             Settings
           </h1>
-          <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+          <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             Configure your environment
           </p>
         </header>

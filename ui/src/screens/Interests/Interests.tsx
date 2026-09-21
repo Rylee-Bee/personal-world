@@ -95,7 +95,7 @@ function FindingItem({ finding }: { finding: DiscoveryFinding }) {
         </p>
       )}
       {/* Provenance line: where + when, in one sentence (§1.4). */}
-      <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+      <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
         From <strong>{finding.source}</strong>
         {" · "}kind: {finding.content_type}
         {typeof finding.provenance["engine"] === "string" && (
@@ -120,7 +120,7 @@ function FindingItem({ finding }: { finding: DiscoveryFinding }) {
         )}
       </p>
       {/* Capture-mode note: what happened to this item, plainly. */}
-      <p className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+      <p className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
         {captureModeNote(finding)}
       </p>
     </li>
@@ -218,14 +218,14 @@ export function Interests() {
           <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
             Interests
           </h1>
-          <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+          <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             What the station's discovery engine turns up, and what it follows.
           </p>
         </header>
 
         {/* Loading / failure of the status read — never hidden (§1.5 static). */}
         {statusQuery.isPending && (
-          <p role="status" className="mb-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+          <p role="status" className="mb-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             Loading…
           </p>
         )}
@@ -245,7 +245,7 @@ export function Interests() {
         >
           <h2
             id="interests-finds-heading"
-            className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]"
+            className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
           >
             Engine finds
           </h2>
@@ -260,7 +260,7 @@ export function Interests() {
               {check.kind === "checking" ? "Checking…" : "Check sources now"}
             </WorldButton>
             {check.kind === "checking" && (
-              <p role="status" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+              <p role="status" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
                 Asking the enabled sources — this reads the network and may take a moment.
               </p>
             )}
@@ -285,7 +285,7 @@ export function Interests() {
                 {findings.label}
               </p>
               {findings.detail !== null && (
-                <p className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+                <p className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
                   {findings.detail}
                 </p>
               )}
@@ -293,7 +293,7 @@ export function Interests() {
           )}
 
           {check.kind === "done" && check.run.skippedRows > 0 && (
-            <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+            <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
               {plural(check.run.skippedRows, "row", "rows")} came back in a
               shape this view does not understand and was left out rather
               than guessed at.
@@ -302,7 +302,7 @@ export function Interests() {
 
           {/* Source roster — words about what would be checked (§1.4). */}
           {status.sources.length > 0 && (
-            <p className="mt-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+            <p className="mt-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
               Sources on this station:{" "}
               {status.sources
                 .map((s) => `${s.name} (${s.enabled ? "on" : "off"})`)
@@ -319,7 +319,7 @@ export function Interests() {
         >
           <h2
             id="interests-following-heading"
-            className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]"
+            className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
           >
             What you follow
           </h2>
@@ -339,13 +339,13 @@ export function Interests() {
                   >
                     {interest.name}
                     {interest.category !== null && (
-                      <span className="text-[var(--pw-text-muted)]">
+                      <span className="text-[var(--pw-text-secondary)]">
                         {" "}
                         · category: {interest.category}
                       </span>
                     )}
                     {followed !== null && (
-                      <span className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+                      <span className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
                         {" "}
                         · followed since{" "}
                         {followed.valid ? (
@@ -362,13 +362,13 @@ export function Interests() {
               })}
             </ul>
           )}
-          <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+          <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
             Read-only here: adding an interest is a step-up write
             (POST /api/discovery/interests) that this view deliberately
             does not fake.
           </p>
           {status.skippedRows > 0 && (
-            <p className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+            <p className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
               {plural(status.skippedRows, "row", "rows")} in the status
               reply were not in a shape this view understands and were
               skipped.

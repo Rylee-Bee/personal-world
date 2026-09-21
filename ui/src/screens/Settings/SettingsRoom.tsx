@@ -109,7 +109,7 @@ function PrefsControl({
           aria-describedby={hintId}
           className={CONTROL_CLASS}
         />
-        <p id={hintId} className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+        <p id={hintId} className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
           Minimum {String(entry.floor)}
           {entry.unit} — set by the accessibility floor, never offered below it.
         </p>
@@ -152,7 +152,7 @@ function PrefsControl({
           </option>
         ))}
       </select>
-      <p id={hintId} className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+      <p id={hintId} className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
         Floor: {prefValueLabel(entry, entry.floor)}
         {entry.key === "target_size" && " (44px minimum — WCAG 2.5.5)"}
         {entry.key === "motion" && " — your system's reduced-motion setting always wins over this."}
@@ -241,10 +241,10 @@ export function SettingsRoom() {
   if (prefsQuery.isPending || schemaQuery.isPending) {
     return (
       <section aria-labelledby="settings-room-heading" className="mb-[var(--pw-spacing-2xl)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
-        <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+        <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]">
           Reading &amp; Interaction
         </h2>
-        <p role="status" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p role="status" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Loading…
         </p>
       </section>
@@ -257,7 +257,7 @@ export function SettingsRoom() {
   ) {
     return (
       <section aria-labelledby="settings-room-heading" className="mb-[var(--pw-spacing-2xl)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
-        <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+        <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]">
           Reading &amp; Interaction
         </h2>
         <p role="alert" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
@@ -276,12 +276,12 @@ export function SettingsRoom() {
     >
       <h2
         id="settings-room-heading"
-        className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]"
+        className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
       >
         Reading &amp; Interaction
       </h2>
       {/* §9.2: these preferences tune an already-accessible product. */}
-      <p className="mb-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+      <p className="mb-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
         Every value below comes from the station itself — the options shown are the
         options the server accepts. Nothing saves until you apply it.
       </p>
@@ -390,7 +390,7 @@ export function SettingsRoom() {
           ? "Saving…"
           : `Apply changes${changes.length ? ` (${changes.length})` : ""}`}
       </WorldButton>
-      <span className="ml-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+      <span className="ml-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
         Nothing is saved until this button is pressed.
       </span>
 
@@ -419,13 +419,13 @@ export function SettingsRoom() {
         Language dials
       </h3>
       {WARMTH_UNWIRED ? (
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {WARMTH_UNWIRED_LABEL}. The shape is decided (job, up to two context
           tags, low-bandwidth, warmth 1–7); no station message is rendered
           through it yet, and no control here changes anything.
         </p>
       ) : (
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Language dials are wired — controls appear above.
         </p>
       )}
