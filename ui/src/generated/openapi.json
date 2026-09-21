@@ -410,6 +410,7 @@
     },
     "/api/backup": {
       "get": {
+        "description": "Full-state backup payload (world, journal, config) including\nprivate state. Meant for the operator's own encryption step; it\nis never shareable raw, and the API does not encrypt it.",
         "operationId": "backup_api_backup_get",
         "responses": {
           "200": {
@@ -1083,6 +1084,7 @@
     },
     "/api/exports/settings": {
       "get": {
+        "description": "Shareable settings blueprint: capabilities, provider mappings,\npacks, schedules — the bones of the installation, not the person.",
         "operationId": "settings_export_api_exports_settings_get",
         "responses": {
           "200": {
@@ -1103,6 +1105,7 @@
     },
     "/api/exports/story": {
       "get": {
+        "description": "Human-readable journal story (entry summaries); private\nentries are excluded from the rendering.",
         "operationId": "story_export_api_exports_story_get",
         "responses": {
           "200": {
@@ -1123,6 +1126,7 @@
     },
     "/api/exports/world": {
       "get": {
+        "description": "Portable personal configuration: world-classified state only;\nraw secrets are structurally absent (they live in the secret\nstore, referenced by name at most). Treat the output as personal\ndata.",
         "operationId": "world_export_api_exports_world_get",
         "responses": {
           "200": {
@@ -1442,6 +1446,62 @@
           }
         },
         "summary": "Journal Audit"
+      }
+    },
+    "/api/journal/draft": {
+      "delete": {
+        "operationId": "journal_draft_delete_api_journal_draft_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Draft Delete Api Journal Draft Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Draft Delete"
+      },
+      "get": {
+        "operationId": "journal_draft_get_api_journal_draft_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Draft Get Api Journal Draft Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Draft Get"
+      },
+      "put": {
+        "operationId": "journal_draft_put_api_journal_draft_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Draft Put Api Journal Draft Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Draft Put"
       }
     },
     "/api/journal/history": {

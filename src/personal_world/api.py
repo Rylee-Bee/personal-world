@@ -1639,20 +1639,31 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/exports/settings", dependencies=[Depends(require_auth)])
     async def settings_export() -> dict:
+        """Shareable settings blueprint: capabilities, provider mappings,
+        packs, schedules — the bones of the installation, not the person."""
         world, _ = _state()
         return {"ok": True, "data": export.settings_export(world)}
 
     @app.get("/api/exports/world", dependencies=[Depends(require_auth)])
     async def world_export() -> dict:
+        """Portable personal configuration: world-classified state only;
+        raw secrets are structurally absent (they live in the secret
+        store, referenced by name at most). Treat the output as personal
+        data."""
         world, _ = _state()
         return {"ok": True, "data": export.world_export(world)}
 
     @app.get("/api/exports/story", dependencies=[Depends(require_auth)])
     async def story_export() -> dict:
+        """Human-readable journal story (entry summaries); private
+        entries are excluded from the rendering."""
         return {"ok": True, "data": {"text": export.story_export(journal)}}
 
     @app.get("/api/backup", dependencies=[Depends(require_auth)])
     async def backup() -> dict:
+        """Full-state backup payload (world, journal, config) including
+        private state. Meant for the operator's own encryption step; it
+        is never shareable raw, and the API does not encrypt it."""
         world, _ = _state()
         return {"ok": True, "data": export.backup_payload(world, journal)}
 
