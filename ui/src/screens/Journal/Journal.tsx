@@ -346,7 +346,10 @@ function WriteForm() {
                 : undefined
           }
         />
-        <div className="mt-[var(--pw-spacing-sm)] flex items-center gap-[var(--pw-spacing-md)]">
+        <div
+          id="journal-write-actions"
+          className="mt-[var(--pw-spacing-sm)] flex items-center gap-[var(--pw-spacing-md)] pb-[var(--pw-safe-area-inset-bottom)]"
+        >
           <WorldButton
             type="submit"
             variant="primary"

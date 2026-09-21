@@ -170,7 +170,10 @@ export function Today({ onOpenAssistant }: TodayProps) {
         </div>
       </section>
 
-      <div className="fixed bottom-[var(--pw-spacing-xl)] right-[var(--pw-spacing-xl)] z-30">
+      {/* Floating assistant trigger — lifted clear of the home-indicator
+          band and the notch side on notched devices (§2.7); its 44px+
+          target never sits under an inset. */}
+      <div className="fixed bottom-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-bottom))] right-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-right))] z-30">
         <WorldAssistant onOpen={onOpenAssistant} residentName={summary.resident?.name} />
       </div>
     </main>

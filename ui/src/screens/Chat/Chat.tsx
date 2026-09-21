@@ -233,7 +233,7 @@ export function Chat() {
       )}
 
       {/* Input area */}
-      <div className="border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-xl)] py-[var(--pw-spacing-lg)]">
+      <div className="border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] pt-[var(--pw-spacing-lg)] pb-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-bottom))] pl-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-left))] pr-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-right))]">
         <div className="mx-auto flex max-w-[720px] items-end gap-[var(--pw-spacing-md)]">
           <textarea
             ref={inputRef}

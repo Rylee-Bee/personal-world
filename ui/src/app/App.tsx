@@ -109,10 +109,12 @@ export function App() {
         Skip to main content
       </a>
 
-      {/* §5.1: navigation — topbar pattern from starfield */}
-      <header className="relative z-20 sticky top-0 flex items-center gap-[var(--pw-spacing-lg)] px-[var(--pw-spacing-lg)] min-h-[56px] border-b border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/90 backdrop-blur-md">
+      {/* §5.1: navigation — topbar pattern from starfield. The padding
+          keeps chrome clear of notches and the home indicator (§2.7):
+          top inset + the usual spacing on the inline sides. */}
+      <header className="relative z-20 sticky top-0 flex items-center gap-[var(--pw-spacing-lg)] pt-[var(--pw-safe-area-inset-top)] pl-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-left))] pr-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-right))] min-h-[56px] border-b border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/90 backdrop-blur-md">
         {/* Brand */}
-        <div className="flex items-center gap-[var(--pw-spacing-sm)]">
+        <div className="flex items-center gap-[var(--pw-spacing-sm)] shrink-0">
           <div className="w-8 h-8 rounded-full bg-[var(--pw-accent-primary)]/10 border border-[var(--pw-accent-primary)]/30 flex items-center justify-center">
             <span className="text-[var(--pw-accent-primary)] text-sm">✦</span>
           </div>
@@ -126,9 +128,11 @@ export function App() {
           </div>
         </div>
 
-        {/* Nav */}
-        <nav aria-label="World navigation" className="flex-1">
-          <ul className="flex gap-[var(--pw-spacing-xs)] overflow-x-auto">
+        {/* Nav — flex items get min-w-0 so the row can shrink to the
+            viewport and scroll instead of widening the layout on phones
+            (the mobile.css lesson: `.shell-main > * { min-width: 0 }`). */}
+        <nav aria-label="World navigation" className="flex-1 min-w-0">
+          <ul className="flex gap-[var(--pw-spacing-xs)] overflow-x-auto overscroll-x-contain min-w-0">
             {areas.map((area) => (
               <li key={area.id}>
                 <WorldAreaLink
@@ -214,7 +218,7 @@ function StatusStrip() {
         : "bg-[var(--pw-accent-warm)]";
 
   return (
-    <footer className="relative z-20 sticky bottom-0 flex items-center gap-4 px-[var(--pw-spacing-lg)] py-2 border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/90 backdrop-blur-md">
+    <footer className="relative z-20 sticky bottom-0 flex items-center gap-4 pt-[var(--pw-spacing-sm)] pb-[calc(var(--pw-spacing-sm)_+_var(--pw-safe-area-inset-bottom))] pl-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-left))] pr-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-right))] border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/90 backdrop-blur-md">
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <span
           className={`h-2 w-2 rounded-full shrink-0 ${dotColor}`}

@@ -606,7 +606,7 @@ export function Vault() {
           e.preventDefault();
           closeDeleteDialog();
         }}
-        className="hidden open:grid fixed inset-0 z-50 m-0 h-full max-h-full w-full max-w-full place-items-center bg-black/60 p-[var(--pw-spacing-xl)] text-[var(--pw-text-primary)]"
+        className="hidden open:grid fixed inset-0 z-50 m-0 h-full max-h-full w-full max-w-full place-items-center bg-black/60 pt-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-top))] pr-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-right))] pb-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-bottom))] pl-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-left))] text-[var(--pw-text-primary)]"
       >
         <div
           className="w-full max-w-md rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-xl)] mx-[var(--pw-spacing-xl)]"

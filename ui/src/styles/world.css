@@ -32,6 +32,37 @@
   src: url('/assets/fonts/fraunces-1.woff2') format('woff2');
 }
 
+/* ── Safe-area inset tokens — accessibility contract §2.7 (notched /
+   edge-to-edge phones) ───────────────────────────────────────────────────
+   Same consumption pattern as the generated --pw-* tokens (Tailwind
+   arbitrary values + plain CSS), but authored here in world.css because
+   src/generated/tokens.css is generated from design/tokens.json and a
+   runtime env() value cannot live in that static vocabulary.
+
+   These are padding/offset inputs for sticky and fixed chrome (App header
+   + status strip, Journal WriteForm action bar, Today's floating
+   assistant, WorldDrawer, the Chat composer, Vault's modal dialog).
+   viewport-fit=cover in index.html is what makes the env() values real.
+
+   Deterministic pin for E2E (and for any future non-env surface): set
+   [data-pw-safe-area-pin] on <html> together with --pw-safe-area-pin:
+   <length>; every inset then resolves to that one value, so tests can
+   compute exact expected geometry without device insets that headless
+   Chromium cannot provide. */
+:root {
+  --pw-safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --pw-safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --pw-safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --pw-safe-area-inset-left: env(safe-area-inset-left, 0px);
+}
+
+html[data-pw-safe-area-pin] {
+  --pw-safe-area-inset-top: var(--pw-safe-area-pin, 0px);
+  --pw-safe-area-inset-right: var(--pw-safe-area-pin, 0px);
+  --pw-safe-area-inset-bottom: var(--pw-safe-area-pin, 0px);
+  --pw-safe-area-inset-left: var(--pw-safe-area-pin, 0px);
+}
+
 /* Accessibility contract §2.4 — focus ring */
 :focus-visible {
   outline: 2px solid var(--pw-accent-primary);

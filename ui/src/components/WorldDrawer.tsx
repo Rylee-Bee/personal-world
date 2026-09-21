@@ -72,7 +72,7 @@ export function WorldDrawer({
       ref={dialogRef}
       aria-labelledby="world-drawer-title"
       tabIndex={-1}
-      className="fixed right-0 top-0 z-40 m-0 h-full max-h-full w-full max-w-md overflow-y-auto border-l border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-xl)] text-[var(--pw-text-primary)] shadow-[var(--pw-shadow-soft)] open:flex open:flex-col"
+      className="fixed right-0 top-0 z-40 m-0 h-full max-h-full w-full max-w-md overflow-y-auto border-l border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] pt-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-top))] pr-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-right))] pb-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-bottom))] pl-[var(--pw-spacing-xl)] text-[var(--pw-text-primary)] shadow-[var(--pw-shadow-soft)] open:flex open:flex-col"
     >
       <div className="mb-[var(--pw-spacing-lg)] flex items-center justify-between">
         <h2

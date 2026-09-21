@@ -34,6 +34,25 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      // The safe-area contract is a phone-emulation story; it owns the
+      // mobile project below and never needs to run twice.
+      testIgnore: /safe-area\.spec\.ts/,
+    },
+    {
+      // §2.7 mobile safe areas: chromium on a phone-sized viewport with
+      // isMobile emulation. Headless Chromium reports env(safe-area-inset-*)
+      // as 0, so the spec pins the insets through the deterministic
+      // data-pw-safe-area-pin hook in world.css and asserts geometry
+      // computed from the pinned value — no flaky device geometry.
+      name: "chromium-mobile",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 2,
+      },
+      testMatch: /safe-area\.spec\.ts/,
     },
   ],
   webServer: [
