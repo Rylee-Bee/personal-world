@@ -76,6 +76,7 @@ type Theme = ThemeName;
 const THEME_LABELS: Record<Theme, string> = {
   moss: "Moss",
   ocean: "Ocean",
+  plain: "Plain",
   starfield: "Starfield",
   station: "Station",
 };
@@ -86,7 +87,7 @@ const THEME_NAMES = Object.keys(THEMES) as Theme[];
  *  model the old station.js chrome used — localStorage, not the
  *  server, because no theme-write endpoint exists), falling back to
  *  whatever is applied on <html>, then to the first-run default
- *  (DEFAULT_THEME, starfield — L2). */
+ *  (DEFAULT_THEME, plain — D2). */
 function readInitialTheme(): Theme {
   const stored = readStoredTheme();
   if (stored) return stored;

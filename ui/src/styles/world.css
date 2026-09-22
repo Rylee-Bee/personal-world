@@ -5,8 +5,8 @@
  * Visual identity via CSS custom properties from tokens.css.
  * Tailwind may implement layout; it must NOT replace semantic tokens.
  *
- * Theme switching: set [data-theme="starfield"] on <html> to override defaults.
- * The Station theme is the default (lives in :root).
+ * Theme switching: set [data-theme="…"] on <html> to override defaults.
+ * Station lives in :root; Plain is the first-run default (DEFAULT_THEME).
  */
 
 /* Fonts */
@@ -30,6 +30,25 @@
   font-weight: 400 700;
   font-display: swap;
   src: url('/assets/fonts/fraunces-1.woff2') format('woff2');
+}
+/* Plain's faces — self-hosted (staged in the 0.1 pack as
+   font.interface / font.expressive; files carried in
+   src/personal_world/static/fonts since deb0477). Instrument Sans is
+   the variable cut; Young Serif ships one weight (browsers synthesize
+   bold on strong headings). */
+@font-face {
+  font-family: 'Instrument Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/assets/fonts/instrument-sans-var-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Young Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/assets/fonts/young-serif-latin.woff2') format('woff2');
 }
 
 /* ── Safe-area inset tokens — accessibility contract §2.7 (notched /
@@ -178,6 +197,19 @@ html {
 body {
   margin: 0;
   min-height: 100dvh;
+}
+
+/* Plain (first-release default) — display headings carry the soft
+   serif identity (owner decision 2026-09-22: "keep Young Serif
+   headings"). Scoped to [data-theme="plain"] so every other theme
+   keeps its own voice. */
+[data-theme="plain"] h1,
+[data-theme="plain"] h2,
+[data-theme="plain"] h3,
+[data-theme="plain"] h4,
+[data-theme="plain"] h5,
+[data-theme="plain"] h6 {
+  font-family: var(--pw-typography-font_serif);
 }
 
 /* Skip link — accessibility contract §2.6 */

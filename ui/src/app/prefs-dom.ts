@@ -151,14 +151,15 @@ export function osPrefersReducedMotion(): boolean {
 /** The old station.js chrome's key; kept for continuity. */
 const THEME_STORAGE_KEY = "pw-station-theme";
 
-/** L2: the first-run theme, applied when this device has never chosen
- *  one. Chosen as the default surface for new visits; the Settings
- *  switcher still offers every theme and any device choice overrides
- *  this. Note that "default theme" and "the theme hosted by `:root`"
- *  are separate facts: `:root` in tokens.css remains station (the
- *  generated cascade is untouched), so booting into starfield means
- *  explicitly setting data-theme="starfield". */
-export const DEFAULT_THEME: ThemeName = "starfield";
+/** L2 → D2 (owner decision 2026-09-22): the first-run theme, applied
+ *  when this device has never chosen one. Chosen as the default
+ *  surface for new visits; the Settings switcher still offers every
+ *  theme and any device choice overrides this. Note that "default
+ *  theme" and "the theme hosted by `:root`" are separate facts:
+ *  `:root` in tokens.css remains station (the generated cascade is
+ *  untouched), so booting into plain means explicitly setting
+ *  data-theme="plain". */
+export const DEFAULT_THEME: ThemeName = "plain";
 
 export function isThemeName(value: unknown): value is ThemeName {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(THEMES, value);
@@ -166,7 +167,7 @@ export function isThemeName(value: unknown): value is ThemeName {
 
 /** Station is the theme `:root` hosts in tokens.css, so it is expressed
  *  as *no data-theme attribute*; every other theme — including
- *  DEFAULT_THEME (starfield) on a first run — sets its own attribute.
+ *  DEFAULT_THEME (plain) on a first run — sets its own attribute.
  *  This is exactly how the generated cascade documents the override. */
 export function applyThemeToDocument(theme: ThemeName): void {
   const root = document.documentElement;

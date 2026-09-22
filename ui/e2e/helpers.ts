@@ -45,11 +45,12 @@ export async function navButtonLabels(page: Page): Promise<string[]> {
  *
  * The ring COLOR is deliberately NOT a literal here. world.css composes
  * the ring from var(--pw-accent-primary), and that token differs per
- * theme (station #72b1b1, moss #7AAA76, ocean #5AA8B8, starfield
- * #D4A057). The old station hardcoding went permanently-red the moment
- * starfield became the first-run default (L2) — a permanent-red test
- * teaches people to ignore red. expectKeyboardFocusRing therefore
- * resolves the ACTIVE theme's token at runtime, from the page itself.
+ * theme (station #72b1b1, moss #7AAA76, ocean #5AA8B8, plain #72B1B1,
+ * starfield #D4A057). The old station hardcoding went permanently-red
+ * the moment the first-run default stopped being station (L2, then D2)
+ * — a permanent-red test teaches people to ignore red.
+ * expectKeyboardFocusRing therefore resolves the ACTIVE theme's token
+ * at runtime, from the page itself.
  */
 export const RING = {
   width: "2px",

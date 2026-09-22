@@ -177,15 +177,16 @@ warmth gradients · shadows · typography · density).
   character art, and a light sci-fi feeling. Only the **full Station skin** (map-as-navigation + its own room
   vocabulary) is a later theme package; it never defines the stable skeleton.
 
-**Default pack (owner pick 2026-09-21):** **`starfield`** — deep-navy canvas + warm amber (`#D4A057`) +
-teal (`#5AA8B8`) + warm-white text — a complete, WCAG-validated full palette (it is, functionally, the
-amber+teal warm-dark direction hand-specified elsewhere, but already complete and passing). **The
-`"Adapted from the constellation portfolio"` provenance line is an internal lineage note only** — the palette
-carries no lore, no companion, no star-map navigation. Adopting the palette does **not** reintroduce the
-Station experience; the star-map/constellation *navigation* ban (above) stands regardless of palette choice.
+**Default pack (owner pick 2026-09-21; superseded by D2, owner decision 2026-09-22):** **`plain`** —
+warm-neutral charcoal surfaces + teal primary (`#72B1B1`) + amber (`#D4A057`) as the rare highlight +
+warm-white text + Young Serif display headings — a complete, WCAG-validated full palette
+(`lab design theme validate` PASS, fails 0; body AA min 7.76:1), dark-warm only for the first release.
+`starfield` (deep-navy + warm amber) is demoted to a switchable optional pack; its `"Adapted from the
+constellation portfolio"` provenance line is an internal lineage note only — the palette carries no lore,
+no companion, no star-map navigation. Neither default reintroduces the Station experience; the
+star-map/constellation *navigation* ban (above) stands regardless of palette choice.
 The other full packs (`ocean` · `moss` · `aurora-garden` · `copper-kitchen`) ship alongside as switchable
-color options, all validated. Reversible at any time. (Decide later: keep the `starfield` name for the
-default, or retitle to `Worlds` + neutralize the provenance line — cosmetic, non-blocking.)
+color options, all validated. Reversible at any time.
 
 ---
 

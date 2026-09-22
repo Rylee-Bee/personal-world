@@ -1,9 +1,16 @@
-# Plain Default Theme — DRAFT (evolve the generic, don't start a lineage)
+# Plain Default Theme — shipped default (evolve the generic, don't start a lineage)
 
-**Status:** DRAFT for owner reaction — **not** canonical tokens. On approval it becomes a validated pack
-(`design/themes/plain.json` + a `themes.json` registry row, status `canonical`/default) and the first-release
-default. Canonical design truth stays `design/tokens.json` until then (design-to-code guardrail: no canonical
-change without evidence + approval).
+**Status:** APPROVED + IMPLEMENTED 2026-09-22 (owner queue item 2 / D2). `design/themes/plain.json` is a
+validated pack and the first-release default (`DEFAULT_THEME` in `ui/src/app/prefs-dom.ts`; first-run boot
+sets `data-theme="plain"`); `starfield` is demoted to a switchable optional pack. This supersedes the
+2026-09-21 starfield-default line (see `docs/PRODUCT-LANGUAGE.md`) and DECISIONS C8's "plain.json deleted"
+note. The registry is `design/themes/*.json` consumed by `ui/scripts/generate-tokens.mjs` (there is no
+separate `themes.json` file — the `ThemeName` union in `src/generated/tokens.ts` is the registry row).
+Canonical design truth stays `design/tokens.json`; this pack layers over it — no canonical token changed.
+**Owner answers to the four open questions (2026-09-22):** (1) teal `#72B1B1` primary, amber `#D4A057`
+kept as the rare highlight — the draft's Q1 flip; (2) warm-neutral charcoal surfaces as proposed;
+(3) keep Young Serif headings (wired via `[data-theme="plain"] h1–h6` in `world.css`, woff2 self-hosted);
+(4) dark-warm only for the first release — no light variant yet.
 **Owner direction (2026-09-21):** dark-warm by default · plain may carry a recognizable Worlds identity ·
 lore/companions/strongly-themed illustration belong to optional packs · evolve the existing generic-theme
 work, **no seventh/eighth lineage** · must pass the contrast validator.
@@ -44,13 +51,13 @@ generic direction, warmed.
 | `text.secondary` | `#C2BBB1` |
 | `text.muted` | `#98918A` |
 
-### Accent — amber warmth + calm teal (the recognizable Worlds pairing)
-| Token | Value | Role |
+### Accent — teal identity + amber highlight (owner flipped Q1 on 2026-09-22)
+| Token | Shipped value | Role |
 |---|---|---|
-| `accent.primary` | `#D4A057` | warm amber — identity, emphasis, active |
-| `accent.on_primary` | `#2A1F0E` | text on amber |
-| `accent.secondary` | `#72B1B1` | calm teal — links, focus, info |
-| `accent.on_secondary` | `#0C2A2A` | text on teal |
+| `accent.primary` | `#72B1B1` | calm teal — identity, emphasis, active, focus, links |
+| `accent.on_primary` | `#0C2A2A` | text on teal |
+| `accent.secondary` / `accent.warm` | `#D4A057` | warm amber — the RARE highlight: primary CTAs, warm glows |
+| ~~draft proposal: amber primary / teal secondary~~ | ~~`#D4A057` / `#72B1B1`~~ | flipped by owner decision 2026-09-22 (Q1) |
 
 ### Borders / focus
 - `border.subtle` `rgba(236,231,223,0.10)` · `border.strong` `rgba(236,231,223,0.18)`
@@ -77,13 +84,17 @@ disabled → not_configured`).
 
 ---
 
-## Gates it must pass (no claim until run)
+## Gates it must pass — RUN 2026-09-22, all green
 
-- `lab design theme validate` → **fails: 0** (body AA ≥ 4.5:1, large ≥ 3:1). *Contrast values here are
-  proposed, not yet validated — the harness is the authority.* (Reference: the `moss` pack validates at
-  min_body 5.84 / fails 0.)
+- `lab design theme validate design/themes/plain.json` → **PASS, fails: 0** — body AA min **7.76:1**
+  (12/12), muted floor 5.21:1, accent-as-large 6.07:1, label-on-accent 6.26:1, **zero warnings**.
+  (Reference: the `moss` pack validates at min_body 5.84 / fails 0.)
+- `ui/scripts/contrast-audit.mjs` → 70 pairs · 0 failing (plain included automatically).
+- `npx vitest run` → 168 passed · `npm run lint` → 0 · `tsc -b` → clean.
+- `npm run test:e2e` (Playwright, axe with color-contrast ENABLED) → 67 passed.
+- Backend `pytest --timeout=30` → 1356 passed, 7 skipped · `framework validate` → violations 0.
 - Luminance-only status · visible focus · reduced-motion · 44px targets · stable layout (per
-  `docs/accessibility/ACCESSIBILITY_CONTRACT.md`).
+  `docs/accessibility/ACCESSIBILITY_CONTRACT.md`) — unchanged; the pack only fills color/typography slots.
 
 ## Recognizable Worlds identity (allowed) vs lore (NOT in the plain default)
 
@@ -94,11 +105,13 @@ disabled → not_configured`).
 
 ---
 
-## Open questions for the owner (react, don't agonize)
+## Open questions for the owner — ANSWERED 2026-09-22 (see Status above)
 
 1. **Amber `#D4A057` as the identity accent** — right warmth, or too gold? (Cooler alternative: lean on teal
-   `#72B1B1` as primary and keep amber as a rare highlight.)
+   `#72B1B1` as primary and keep amber as a rare highlight.) → **CHOSEN: the cooler alternative.**
 2. **Surfaces** — warm-neutral charcoal (faint umber, proposed) vs keep them truly neutral gray? How warm
-   should the darks feel?
+   should the darks feel? → **CHOSEN: warm-neutral charcoal, as proposed.**
 3. **Serif headings (`Young Serif`)** in the plain default — keep for identity, or stay all-sans until packs?
+   → **CHOSEN: keep Young Serif headings.**
 4. **Light-warm option** — build a light variant now, or dark-warm only for the first release?
+   → **CHOSEN: dark-warm only for v1.**

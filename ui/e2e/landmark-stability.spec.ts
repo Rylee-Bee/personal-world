@@ -44,15 +44,15 @@ async function mockSections(page: Page, sections: unknown[]) {
 }
 
 test.describe("landmark stability (C3/Δ3)", () => {
-  test("a fresh load — no stored state — shows the starfield and the four landmarks in order", async ({
+  test("a fresh load — no stored state — shows plain and the four landmarks in order", async ({
     page,
   }) => {
     // A new browser context has empty localStorage by construction:
-    // this is the first-run path (DEFAULT_THEME = starfield, L2).
+    // this is the first-run path (DEFAULT_THEME = plain, D2).
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute(
       "data-theme",
-      "starfield",
+      "plain",
     );
     await expect
       .poll(async () => (await navButtonLabels(page)).slice(0, 4))

@@ -122,7 +122,7 @@ export function App() {
 
   // Theme: device-local by contract (the station has no theme-write
   // endpoint) — restore what this device chose; a first run with no
-  // stored choice resolves to DEFAULT_THEME (starfield, L2).
+  // stored choice resolves to DEFAULT_THEME (plain, D2).
   useEffect(() => {
     applyThemeToDocument(readStoredTheme() ?? DEFAULT_THEME);
   }, []);

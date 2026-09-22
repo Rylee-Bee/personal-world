@@ -212,6 +212,69 @@
 
 }
 
+[data-theme="plain"] {
+  --pw-surface-void: #0D0C0B;
+  --pw-surface-canvas: #141211;
+  --pw-surface-hull: #181514;
+  --pw-surface-panel: #1C1917;
+  --pw-surface-elevated: #23201D;
+  --pw-surface-raised: #2C2724;
+
+  --pw-accent-primary: #72B1B1;
+  --pw-accent-on_primary: #0C2A2A;
+  --pw-accent-secondary: #D4A057;
+  --pw-accent-warm: #D4A057;
+  --pw-accent-warm_soft: rgba(212, 160, 87, 0.14);
+  --pw-accent-gold: #C9A227;
+  --pw-accent-gold_soft: rgba(201, 162, 39, 0.14);
+  --pw-accent-green: #6A9A66;
+  --pw-accent-green_soft: rgba(106, 154, 102, 0.16);
+  --pw-accent-coral: #C47D6D;
+  --pw-accent-coral_soft: rgba(196, 125, 109, 0.14);
+  --pw-accent-teal: #72B1B1;
+  --pw-accent-teal_soft: rgba(114, 177, 177, 0.14);
+  --pw-accent-lavender: #9B8EC4;
+  --pw-accent-lavender_soft: rgba(155, 142, 196, 0.14);
+
+  --pw-text-primary: #ECE7DF;
+  --pw-text-secondary: #C2BBB1;
+  --pw-text-muted: #98918A;
+
+  --pw-border-subtle: rgba(236, 231, 223, 0.10);
+  --pw-border-strong: rgba(236, 231, 223, 0.18);
+  --pw-border-hover: rgba(236, 231, 223, 0.22);
+
+  --pw-spacing-xs: 4px;
+  --pw-spacing-sm: 8px;
+  --pw-spacing-md: 12px;
+  --pw-spacing-lg: 16px;
+  --pw-spacing-xl: 24px;
+  --pw-spacing-2xl: 32px;
+  --pw-spacing-3xl: 48px;
+  --pw-spacing-4xl: 64px;
+
+  --pw-radius-sm: 10px;
+  --pw-radius-md: 14px;
+  --pw-radius-lg: 24px;
+  --pw-radius-full: 9999px;
+
+  --pw-shadow-soft: 0 10px 30px rgba(0,0,0,0.28), 0 0 28px rgba(212,160,87,0.06);
+  --pw-shadow-warm: 0 4px 24px rgba(212,160,87,0.10), 0 0 60px rgba(212,160,87,0.05);
+  --pw-shadow-glow: 0 0 20px rgba(212,160,87,0.18), 0 0 40px rgba(212,160,87,0.06);
+
+  --pw-typography-font_sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --pw-typography-font_serif: 'Young Serif', Georgia, serif;
+  --pw-typography-font_mono: 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+  --pw-typography-size_h1: clamp(30px, 4.4vw, 44px);
+  --pw-typography-size_lead: 18px;
+  --pw-typography-size_body: 16px;
+  --pw-typography-size_small: 14px;
+  --pw-typography-size_micro: 12px;
+  --pw-typography-size_label: 12.5px;
+
+
+}
+
 [data-theme="starfield"] {
   --pw-surface-void: #0C0D14;
   --pw-surface-canvas: #0F1119;

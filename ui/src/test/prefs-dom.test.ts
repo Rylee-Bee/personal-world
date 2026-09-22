@@ -147,15 +147,16 @@ describe("theme (device-local — no server key exists)", () => {
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
 
-  it("L2: a device that never chose a theme boots into starfield", () => {
+  it("D2: a device that never chose a theme boots into plain", () => {
     // The boot expression App.tsx runs — a fresh device has no stored
     // choice, and DEFAULT_THEME (not station) resolves it. Station is
     // still reachable and still attribute-free; only the FIRST-RUN
-    // default moved.
-    expect(DEFAULT_THEME).toBe("starfield");
+    // default moved (starfield demoted to an optional pack, owner
+    // decision 2026-09-22).
+    expect(DEFAULT_THEME).toBe("plain");
     expect(readStoredTheme()).toBeNull();
     applyThemeToDocument(readStoredTheme() ?? DEFAULT_THEME);
-    expect(document.documentElement.getAttribute("data-theme")).toBe("starfield");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("plain");
   });
 
   it("remembers this device's choice under the old chrome's storage key", () => {
