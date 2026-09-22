@@ -155,16 +155,36 @@ export function capabilityDisplayName(id: string): string {
   return CAPABILITY_NAMES[id] ?? humanizeId(id);
 }
 
+/** Display names that read as PLURAL — attention sentences must agree
+ *  with them ("Notifications are unavailable", never "Notifications
+ *  is"). Unknown ids default to singular grammar. */
+const PLURAL_CAPABILITIES = new Set([
+  "deployment",
+  "secrets",
+  "service_validation",
+  "update_discovery",
+  "notifications",
+  "scheduler",
+  "homelab_settings",
+  "homelab_secrets",
+  "homelab_resources",
+]);
+
 /** One honest sentence per degraded status — no cheerleading, and no
- *  failure softened into "looks fine" (contract principle 3). */
-const ATTENTION_STATUS_PHRASES: Record<string, (name: string) => string> = {
-  needs_attention: (name) => `${name} needs your attention.`,
-  warning: (name) => `${name} is reporting a warning.`,
-  unavailable: (name) => `${name} is unavailable.`,
-  stale: (name) => `The latest word from ${name} is out of date.`,
-  unknown: (name) => `The state of ${name} is unknown.`,
-  disabled: (name) => `${name} is turned off.`,
-  not_configured: (name) => `${name} is not set up yet.`,
+ *  failure softened into "looks fine" (contract principle 3). The
+ *  `stale`/`unknown` heads ("word", "state") are singular regardless
+ *  of the name and need no agreement. */
+const ATTENTION_STATUS_PHRASES: Record<
+  string,
+  (name: string, plural: boolean) => string
+> = {
+  needs_attention: (n, p) => `${n} ${p ? "need" : "needs"} your attention.`,
+  warning: (n, p) => `${n} ${p ? "are" : "is"} reporting a warning.`,
+  unavailable: (n, p) => `${n} ${p ? "are" : "is"} unavailable.`,
+  stale: (n) => `The latest word from ${n} is out of date.`,
+  unknown: (n) => `The state of ${n} is unknown.`,
+  disabled: (n, p) => `${n} ${p ? "are" : "is"} turned off.`,
+  not_configured: (n, p) => `${n} ${p ? "are" : "is"} not set up yet.`,
 };
 
 /**
@@ -211,7 +231,7 @@ export function plainAttention(text: string): PlainAttention {
   const extra = note ? note[2] : "";
   const phrase =
     (id === "reasoning" ? REASONING_PHRASES[status] : undefined) ??
-    ATTENTION_STATUS_PHRASES[status]?.(name);
+    ATTENTION_STATUS_PHRASES[status]?.(name, PLURAL_CAPABILITIES.has(id));
   if (phrase) {
     const headline = extra
       ? `${phrase.replace(/\.$/, "")} — ${extra}${/[.!?]$/.test(extra) ? "" : "."}`

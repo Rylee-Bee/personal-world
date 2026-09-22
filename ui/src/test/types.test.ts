@@ -275,6 +275,22 @@ describe("types constants", () => {
       });
     });
 
+    it("agrees with plural capability names — never 'Notifications is'", () => {
+      expect(plainAttention("notifications: unavailable").headline).toBe(
+        "Notifications are unavailable.",
+      );
+      expect(plainAttention("secrets: not_configured").headline).toBe(
+        "Secrets are not set up yet.",
+      );
+      expect(plainAttention("scheduler: needs_attention").headline).toBe(
+        "Scheduled tasks need your attention.",
+      );
+      // singular names keep singular grammar
+      expect(plainAttention("calendar: unavailable").headline).toBe(
+        "Calendar is unavailable.",
+      );
+    });
+
     it("states the honest fact for the optional assistant", () => {
       const plain = plainAttention("reasoning: unavailable");
       expect(plain.headline).toBe("The assistant is off — nothing depends on it.");
