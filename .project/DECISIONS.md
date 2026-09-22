@@ -530,6 +530,12 @@ dated entry superseding the old one (append-only, like the journal).
     pack renders per the D2 calls above with contrast validated AND (2) the
     workbench demo has been run; then one sitting: "does this feel like
     mine?" R6 remains the only final gate before v1.0.
+    - **Re-asked and GREEN-LIT 2026-09-22**: both triggers met (plain pack
+      `e08ce5c` — `lab design theme validate` PASS fails:0, contrast-audit
+      70/0, e2e 67/67 with axe contrast on; workbench demo run pre-merge,
+      `472850f`). Owner: "start it now" — orchestrator prepares the eyes-on
+      packet autonomously; the taste judgment itself stays the owner's one
+      sitting (she is pinged only when there is something worth her eyes).
   Reason: these were the plan's standing owner queue — recorded here so
   every implementing lane cites written truth rather than a chat log.
   Supersessions called out inline per the append-only rule.
