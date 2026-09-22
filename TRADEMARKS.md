@@ -52,8 +52,9 @@ your own name and identity in your fork.
 ## Play-Nice acknowledgement
 
 If your fork or downstream project is informed by Play-Nice
-contracts, see `https://github.com/Rylee-Bee/play-nice-contracts`
-for the voluntary acknowledgement trail. Acknowledgement is
+contracts, see [`ACKNOWLEDGEMENT.md`](ACKNOWLEDGEMENT.md) for the
+voluntary acknowledgement trail (it links the canonical Play-Nice
+repository). Acknowledgement is
 informational and never implies endorsement by Rylee.
 
 ## Privacy boundary

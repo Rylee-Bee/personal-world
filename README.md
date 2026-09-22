@@ -117,8 +117,9 @@ world. External services only when they earn their existence.**
 
 ## A Play-Nice product
 
-This project adopts [Play-Nice Contracts](https://github.com/Rylee-Bee/play-nice-contracts)
-as its shared cooperation and engineering constitution.
+This project adopts [Play-Nice Contracts](.project/contracts/adoption.yaml)
+(`Rylee-Bee/play-nice-contracts`) as its shared cooperation and
+engineering constitution.
 
 Play-Nice governs how the four sides of Project Worlds cooperate:
 **Rylee** (the owner), **Personal World** (the companion), the **agents
