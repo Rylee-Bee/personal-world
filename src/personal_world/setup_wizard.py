@@ -280,6 +280,11 @@ def save_auth_choice(data_dir: Path, config_dir: Path, body: dict) -> dict:
     var NAME for the client secret is stored; never a secret value."""
     choice = str(body.get("choice", "")).strip().lower()
     warnings: list[str] = []
+    # Blocking = the next step genuinely won't work as chosen (owner
+    # decision 2026-09-22): the wizard pauses for an explicit
+    # "Continue anyway". Informational notes stay in `warnings` and
+    # never pause. See docs: .project/DECISIONS.md owner queue.
+    blocking: list[str] = []
     record: dict[str, Any] = {"auth_choice": choice}
 
     if choice == "local":
@@ -310,7 +315,7 @@ def save_auth_choice(data_dir: Path, config_dir: Path, body: dict) -> dict:
             "client_secret_env": secret_env,
         }
         if not os.environ.get(secret_env):
-            warnings.append(
+            blocking.append(
                 f"The environment variable {secret_env} is not set on "
                 "this server right now. SSO sign-in will not complete "
                 "until it holds your client secret (set it in your "
@@ -318,10 +323,11 @@ def save_auth_choice(data_dir: Path, config_dir: Path, body: dict) -> dict:
             )
         oidc_path = Path(config_dir) / "oidc.json"
         if oidc_path.exists():
-            warnings.append(
+            blocking.append(
                 "An SSO configuration file already exists on this "
                 "server, so we left it untouched. Your answers were "
-                "saved to the setup record only."
+                "saved to the setup record only — sign-in will keep "
+                "using the existing file."
             )
         else:
             oidc_path.parent.mkdir(parents=True, exist_ok=True)
@@ -346,7 +352,7 @@ def save_auth_choice(data_dir: Path, config_dir: Path, body: dict) -> dict:
         raise ValueError("Please choose how you want to sign in.")
 
     _save_choices(data_dir, record)
-    return {"auth_choice": choice, "warnings": warnings}
+    return {"auth_choice": choice, "warnings": warnings, "blocking": blocking}
 
 
 def apply_comfort(data_dir: Path, body: dict) -> dict:
@@ -565,6 +571,7 @@ def register_setup_wizard(
             "ok": True,
             "data": {"auth_choice": result["auth_choice"]},
             "warnings": result["warnings"],
+            "blocking": result["blocking"],
         }
 
     @app.post("/api/setup-wizard/comfort")

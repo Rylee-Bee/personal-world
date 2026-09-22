@@ -127,6 +127,29 @@
     box.hidden = false;
   }
 
+  /* Blocking findings pause the flow for an explicit "Continue
+     anyway" (owner decision 2026-09-22); informational notes never
+     pause — showAuthWarnings above handles those. */
+  function showAuthBlocking(blocking) {
+    var box = $("auth-blocking");
+    var list = $("auth-blocking-list");
+    list.textContent = "";
+    if (!blocking || !blocking.length) {
+      box.hidden = true;
+      return;
+    }
+    blocking.forEach(function (text) {
+      var li = document.createElement("li");
+      li.textContent = text;
+      list.appendChild(li);
+    });
+    box.hidden = false;
+    box.querySelector("h3, .alert-heading").setAttribute("tabindex", "-1");
+    box.querySelector("h3, .alert-heading").focus();
+    $("live").textContent = "Needs your attention before you continue: " +
+      blocking.join(" ");
+  }
+
   function runTestConnection() {
     var issuer = $("oidc-issuer").value;
     var box = $("oidc-test-result");
@@ -170,7 +193,7 @@
         verdict.textContent = "✗ Test could not run";
         var detail = document.createElement("p");
         detail.textContent =
-          "This page could not talk to the Project Worlds server. " +
+          "This page could not talk to the Worlds server. " +
           "Reload the page and try again.";
         box.appendChild(verdict);
         box.appendChild(detail);
@@ -188,12 +211,16 @@
     postJSON("/api/setup-wizard/auth-choice", body).then(function (r) {
       $("btn-auth-next").disabled = false;
       if (r.status === 200 && r.data && r.data.ok) {
+        showAuthBlocking(r.data.blocking);
         showAuthWarnings(r.data.warnings);
         if (r.data.warnings && r.data.warnings.length) {
-          // Surface the honest notes, but keep moving: none of them
-          // block setup (e.g. the secret env var can be set later).
+          // Informational notes, kept moving: none of them block
+          // setup (e.g. the secret env var can be set later).
           $("live").textContent = "Saved. Notes: " + r.data.warnings.join(" ");
         }
+        // Pause only when blocking: the person must explicitly
+        // continue; notes alone never stop the flow.
+        if (r.data.blocking && r.data.blocking.length) { return; }
         showStep(3);
         return;
       }
@@ -292,6 +319,16 @@
     syncAuthFields();
     $("btn-test-oidc").addEventListener("click", runTestConnection);
     $("btn-auth-back").addEventListener("click", function () { showStep(0); });
+    $("btn-auth-back-from-block").addEventListener("click", function () {
+      $("auth-blocking").hidden = true;
+      showStep(0);
+    });
+    $("btn-auth-continue").addEventListener("click", function () {
+      // The choice was already saved (ok:true) — this only clears the
+      // pause, exactly the explicit "Continue anyway" the owner chose.
+      $("auth-blocking").hidden = true;
+      showStep(3);
+    });
     $("btn-auth-next").addEventListener("click", submitAuthChoice);
 
     $("btn-comfort-back").addEventListener("click", function () { showStep(2); });

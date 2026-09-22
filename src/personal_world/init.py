@@ -108,9 +108,10 @@ def init_world(data_dir: Path, config_dir: Path) -> Result:
     # initialization IS first-run setup for the zero-provider world,
     # so satisfying the marker here means `personal-world init` +
     # launch opens the app without manual sentinel surgery. The
-    # wizard's richer bootstrap (token + vault) stays available at
-    # /setup-wizard-time; init only fulfills the marker contract and
-    # never overwrites an existing world.
+    # wizard's richer bootstrap (token + stores + search index — no
+    # vault step, by owner decision 2026-09-22) stays available at
+    # /setup; init only fulfills the marker contract and never
+    # overwrites an existing world.
     marker_path = data_dir / "setup-complete"
     if marker_path.exists():
         skipped.append("setup-complete marker exists")

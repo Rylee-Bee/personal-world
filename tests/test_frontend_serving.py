@@ -80,6 +80,10 @@ class TestLoginPage:
         assert 'id="token"' in r.text
         assert "Access code" in r.text
         assert "/api/auth/login" in r.text
+        # First-run naming (owner decision 2026-09-22): "Worlds" on
+        # the threshold surfaces; "Project Worlds" stays docs-only.
+        assert ">Worlds<" in r.text
+        assert "Project Worlds" not in r.text
 
     def test_login_page_is_not_cached(self, tmp_path, monkeypatch):
         client = _app(tmp_path, monkeypatch)

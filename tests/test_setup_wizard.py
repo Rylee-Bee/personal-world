@@ -60,7 +60,8 @@ class TestFirstRunGating:
         r = client.get("/setup")
         assert r.status_code == 200
         assert r.headers["content-type"].startswith("text/html")
-        assert "Set up Project Worlds" in r.text
+        assert "Set up Worlds" in r.text
+        assert "Project Worlds" not in r.text
         # Landmarks + skip link are part of the a11y floor.
         assert 'href="#main"' in r.text
         assert "<main" in r.text
@@ -213,8 +214,13 @@ class TestAuthChoice:
         )
         body = r.json()
         assert body["ok"] is True
-        # Honest warning: the env var is not set yet.
-        assert any("MY_SSO_SECRET" in w and "not set" in w for w in body["warnings"])
+        # Blocking finding (owner decision 2026-09-22): the wizard
+        # pauses for "Continue anyway" — env var not set qualifies
+        # (SSO sign-in genuinely will not complete).
+        assert any("MY_SSO_SECRET" in w and "not set" in w for w in body["blocking"])
+        # The restart note stays informational — it never pauses.
+        assert any("next restart" in w for w in body["warnings"])
+        assert not any("not set" in w for w in body["warnings"])
         cfg = json.loads((config_dir / "oidc.json").read_text())
         assert cfg["issuer"] == "https://sso.example.invalid"
         assert cfg["client_id"] == "project-worlds"
@@ -245,7 +251,9 @@ class TestAuthChoice:
             "client_secret_env": "C_D",
         }
         r = client.post("/api/setup-wizard/auth-choice", json=second)
-        assert any("left it untouched" in w for w in r.json()["warnings"])
+        # Blocking: the existing oidc.json wins — the new answers are
+        # record-only, so sign-in will NOT match what was just typed.
+        assert any("left it untouched" in w for w in r.json()["blocking"])
         cfg = json.loads((config_dir / "oidc.json").read_text())
         assert cfg["issuer"] == "https://first.example.invalid"
 

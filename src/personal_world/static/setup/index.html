@@ -4,26 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Set up Project Worlds</title>
+<title>Set up Worlds</title>
 <link rel="stylesheet" href="/setup/styles.css">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
 
 <header class="site-header">
-  <p class="brand">Project Worlds</p>
+  <p class="brand">Worlds</p>
   <p class="brand-note">first-time setup</p>
 </header>
 
 <main id="main">
-  <h1>Set up Project Worlds</h1>
+  <h1>Set up Worlds</h1>
   <p id="progress" class="progress">Step 1 of 5: Welcome</p>
   <p id="live" class="visually-hidden" role="status" aria-live="polite"></p>
 
   <!-- Step 1: welcome -->
   <section class="step" id="step-welcome" aria-labelledby="h-welcome">
     <h2 id="h-welcome">Welcome</h2>
-    <p>Project Worlds is a self-hosted home for your projects, journal, tools, and connected services.
+    <p>Worlds is a self-hosted home for your projects, journal, tools, and connected services.
       It keeps track of your projects, journals what happens, and can connect to the
       services you already run — all on <strong>your</strong> server.
       Setup information stays on this server. Services you connect later may
@@ -100,7 +100,7 @@
         <input type="text" id="oidc-client-id" name="oidc-client-id"
                autocomplete="off" aria-describedby="oidc-client-id-help">
         <p class="help" id="oidc-client-id-help">The identifier your
-          sign-in server gave to Project Worlds when you registered
+          sign-in server gave to Worlds when you registered
           it.</p>
       </div>
       <div class="field">
@@ -117,6 +117,15 @@
         <button type="button" class="btn" id="btn-test-oidc">Test connection</button>
       </div>
       <div id="oidc-test-result" class="test-result" role="status" hidden></div>
+    </div>
+
+    <div id="auth-blocking" class="alert problem" hidden>
+      <p class="alert-heading"><span aria-hidden="true">⚠</span> Needs your attention before you continue</p>
+      <ul id="auth-blocking-list"></ul>
+      <div class="actions">
+        <button type="button" class="btn" id="btn-auth-back-from-block">Back</button>
+        <button type="button" class="btn primary" id="btn-auth-continue">Continue anyway</button>
+      </div>
     </div>
 
     <div id="auth-warnings" class="alert note" hidden>
@@ -181,7 +190,7 @@
     </div>
     <div class="actions" id="finish-actions">
       <button type="button" class="btn" id="btn-finish-back">Back</button>
-      <button type="button" class="btn primary" id="btn-finish">Finish and enter Project Worlds</button>
+      <button type="button" class="btn primary" id="btn-finish">Finish and enter Worlds</button>
     </div>
   </section>
 </main>
