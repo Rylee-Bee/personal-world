@@ -18,6 +18,10 @@ interface WorldSignalProps {
   level: WorldSignalLevel;
   title: string;
   description?: string;
+  /** Raw server string behind an honest detail disclosure — the
+   * technical depth is on demand, never forced (PRODUCT-LANGUAGE.md),
+   * and never hidden: it stays one tap away on the card itself. */
+  technical?: string;
 }
 
 const levelStyles: Record<WorldSignalLevel, string> = {
@@ -38,7 +42,7 @@ const rankDot: Record<WorldSignalLevel, string> = {
   critical: "bg-white/80",
 };
 
-export function WorldSignal({ level, title, description }: WorldSignalProps) {
+export function WorldSignal({ level, title, description, technical }: WorldSignalProps) {
   return (
     <div
       className={`rounded-[var(--pw-radius-md)] border p-[var(--pw-spacing-lg)] ${levelStyles[level]}`}
@@ -59,6 +63,16 @@ export function WorldSignal({ level, title, description }: WorldSignalProps) {
             <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
               {description}
             </p>
+          )}
+          {technical && (
+            <details className="mt-2">
+              <summary className="inline-block cursor-pointer text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]">
+                Technical detail
+              </summary>
+              <code className="mt-1 block break-all font-mono text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
+                {technical}
+              </code>
+            </details>
           )}
         </div>
       </div>

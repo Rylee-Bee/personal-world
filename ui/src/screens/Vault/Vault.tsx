@@ -33,7 +33,11 @@ import {
   useDeleteVaultSecret,
 } from "../../data/hooks";
 import { describeError } from "../../data/errors";
-import { STATUS_LABELS, toCapabilityStatus } from "../../data/types";
+import {
+  capabilityDisplayName,
+  STATUS_LABELS,
+  toCapabilityStatus,
+} from "../../data/types";
 
 // ─── Button classes (shared by the screen; motion guarded per §6.2) ──────
 
@@ -236,7 +240,7 @@ export function VaultTool() {
   const capabilities = statusQuery.data?.data
     ? Object.entries(statusQuery.data.data.capabilities ?? {}).map(([id, cap]) => ({
         id,
-        name: id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        name: capabilityDisplayName(id),
         status: toCapabilityStatus(cap.status),
         warnings: cap.warnings,
       }))

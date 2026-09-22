@@ -12,6 +12,9 @@ import {
   SKELETON_AREA_IDS,
   derivePersonalAreas,
   COMPANION_RESIDENTS,
+  CAPABILITY_NAMES,
+  capabilityDisplayName,
+  plainAttention,
   toCapabilityStatus,
   journalKindLabel,
 } from "../data/types";
@@ -261,6 +264,75 @@ describe("types constants", () => {
 
     it("degrades an unseen kind to a quiet generic label", () => {
       expect(journalKindLabel("alien_kind")).toBe("Journal entry");
+    });
+  });
+
+  describe("plainAttention — the attention cards' plain language", () => {
+    it("translates a known capability + status, keeping the wire string reachable", () => {
+      expect(plainAttention("source_control: needs_attention")).toEqual({
+        headline: "Source control needs your attention.",
+        technical: "source_control: needs_attention",
+      });
+    });
+
+    it("states the honest fact for the optional assistant", () => {
+      const plain = plainAttention("reasoning: unavailable");
+      expect(plain.headline).toBe("The assistant is off — nothing depends on it.");
+      expect(plain.technical).toBe("reasoning: unavailable");
+    });
+
+    it("carries an em-dash note through the translation", () => {
+      expect(
+        plainAttention(
+          "source_control: needs_attention — reply to the digest proposal",
+        ).headline,
+      ).toBe(
+        "Source control needs your attention — reply to the digest proposal.",
+      );
+    });
+
+    it("degrades an unknown id to a readable sentence, never a bare snake_case token", () => {
+      const plain = plainAttention("vault_backup: stale");
+      expect(plain.headline).toBe("The latest word from Vault Backup is out of date.");
+      expect(plain.headline).not.toMatch(/[a-z]_[a-z]/);
+    });
+
+    it("keeps the station's own words for free-text tails, humanizing only the id", () => {
+      expect(plainAttention("journal: stale digest")).toEqual({
+        headline: "Journal: stale digest",
+        technical: "journal: stale digest",
+      });
+    });
+
+    it("passes through prose that carries no id at all", () => {
+      expect(plainAttention("the loop found nothing to say")).toEqual({
+        headline: "the loop found nothing to say",
+      });
+    });
+
+    it("renders no bare status token for any known capability × degraded status", () => {
+      const statuses = [
+        "needs_attention", "warning", "unavailable", "stale",
+        "unknown", "disabled", "not_configured",
+      ];
+      for (const id of Object.keys(CAPABILITY_NAMES)) {
+        for (const status of statuses) {
+          const { headline } = plainAttention(`${id}: ${status}`);
+          expect(headline.length).toBeGreaterThan(0);
+          expect(headline).not.toMatch(/[a-z]_[a-z]/);
+        }
+      }
+    });
+  });
+
+  describe("capabilityDisplayName", () => {
+    it("names curated ids with their human words", () => {
+      expect(capabilityDisplayName("source_control")).toBe("Source control");
+      expect(capabilityDisplayName("reasoning")).toBe("The assistant");
+    });
+
+    it("humanizes an unknown id instead of leaking the token", () => {
+      expect(capabilityDisplayName("foo_bar")).toBe("Foo Bar");
     });
   });
 });

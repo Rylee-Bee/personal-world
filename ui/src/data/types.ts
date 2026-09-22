@@ -109,6 +109,121 @@ export const COMPANION_RESIDENTS: Record<string, Resident> = {
   "taco-news-truck": { id: "burrito", name: "Burrito Journalism", role: "Stories & city life" },
 };
 
+// ─── Attention language (Overview cards) ─────────────────
+//
+// The daily digest's attention list carries server strings shaped like
+// "source_control: needs_attention" — src/personal_world/loop.py builds
+// them as `${capability}: ${status}`, sometimes with an em-dash note
+// after the status, and mixes in already-prose action lines. The UI
+// must never hand a person a bare snake_case token (PRODUCT-LANGUAGE.md
+// — "warm in tone, exact in facts"; technical depth on demand, not
+// forced). plainAttention translates what it can and degrades honestly
+// what it can't; the raw string always stays reachable behind the
+// card's detail disclosure.
+
+/**
+ * Human display names for the station's capability ids — mirrors
+ * STANDARD_CAPABILITIES in src/personal_world/app.py. An id the UI has
+ * never heard of degrades to its words, humanized (never the raw
+ * token), the way journalKindLabel degrades an unknown kind.
+ */
+export const CAPABILITY_NAMES: Record<string, string> = {
+  source_control: "Source control",
+  deployment: "Deployments",
+  secrets: "Secrets",
+  calendar: "Calendar",
+  discovery: "Discovery",
+  settings_validation: "Settings validation",
+  service_validation: "Service checks",
+  update_discovery: "Update checks",
+  memory: "Memory search",
+  journal: "Journal",
+  reasoning: "The assistant",
+  notifications: "Notifications",
+  scheduler: "Scheduled tasks",
+  homelab_settings: "Homelab settings",
+  homelab_health: "Homelab health",
+  homelab_deploy: "Homelab deployments",
+  homelab_secrets: "Homelab secrets",
+  homelab_resources: "Homelab resources",
+};
+
+/** The human name for any capability id — the curated one when the
+ *  station advertises a capability the UI knows, a readable humanized
+ *  version of the id when it does not. Never a bare snake_case token. */
+export function capabilityDisplayName(id: string): string {
+  return CAPABILITY_NAMES[id] ?? humanizeId(id);
+}
+
+/** One honest sentence per degraded status — no cheerleading, and no
+ *  failure softened into "looks fine" (contract principle 3). */
+const ATTENTION_STATUS_PHRASES: Record<string, (name: string) => string> = {
+  needs_attention: (name) => `${name} needs your attention.`,
+  warning: (name) => `${name} is reporting a warning.`,
+  unavailable: (name) => `${name} is unavailable.`,
+  stale: (name) => `The latest word from ${name} is out of date.`,
+  unknown: (name) => `The state of ${name} is unknown.`,
+  disabled: (name) => `${name} is turned off.`,
+  not_configured: (name) => `${name} is not set up yet.`,
+};
+
+/**
+ * `reasoning` is optional by contract — "Memory opens instantly with
+ * every model turned off" — so every degraded assistant line states
+ * that fact plainly alongside the status, instead of reading like a
+ * failure that matters.
+ */
+const REASONING_PHRASES: Record<string, string> = {
+  needs_attention:
+    "The assistant needs your attention — nothing depends on it.",
+  warning: "The assistant is reporting a warning — nothing depends on it.",
+  unavailable: "The assistant is off — nothing depends on it.",
+  stale: "The assistant's last word is out of date — nothing depends on it.",
+  unknown: "The assistant's state is unknown — nothing depends on it.",
+  disabled: "The assistant is off — nothing depends on it.",
+  not_configured: "There is no assistant set up — nothing depends on it.",
+};
+
+/** A line shaped like "<id>: <rest>" — what the loop's warnings are. */
+const ATTENTION_LINE = /^([a-z][a-z0-9_]*): (.+)$/;
+/** "<status> — <note>": a status carrying the loop's extra words. */
+const ATTENTION_STATUS_NOTE = /^([a-z_]+) [—–] (.+)$/;
+
+function humanizeId(id: string): string {
+  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export interface PlainAttention {
+  /** The human sentence rendered on the card — never a bare id. */
+  headline: string;
+  /** The raw server string, kept reachable behind the card's detail
+   * disclosure whenever the headline is a translation. */
+  technical?: string;
+}
+
+export function plainAttention(text: string): PlainAttention {
+  const line = ATTENTION_LINE.exec(text);
+  if (!line) return { headline: text };
+  const [, id, rest] = line;
+  const name = CAPABILITY_NAMES[id] ?? humanizeId(id);
+  const note = ATTENTION_STATUS_NOTE.exec(rest);
+  const status = note ? note[1] : rest;
+  const extra = note ? note[2] : "";
+  const phrase =
+    (id === "reasoning" ? REASONING_PHRASES[status] : undefined) ??
+    ATTENTION_STATUS_PHRASES[status]?.(name);
+  if (phrase) {
+    const headline = extra
+      ? `${phrase.replace(/\.$/, "")} — ${extra}${/[.!?]$/.test(extra) ? "" : "."}`
+      : phrase;
+    return { headline, technical: text };
+  }
+  // Free-text tail ("stale digest", a prose action line): keep the
+  // station's own words; only swap a machine id for its human name.
+  const headline = name === id ? text : `${name}: ${rest}`;
+  return headline === text ? { headline } : { headline, technical: text };
+}
+
 // ─── World Area ─────────────────────────────────────────
 //
 // The navigation model is the owner-approved skeleton from
@@ -269,6 +384,9 @@ export interface WorldSignal {
   level: WorldSignalLevel;
   title: string;
   description?: string;
+  /** Raw server string, rendered behind the card's detail disclosure
+   * only when the title is a plain-language translation of it. */
+  technical?: string;
 }
 
 export interface CapabilitySummary {

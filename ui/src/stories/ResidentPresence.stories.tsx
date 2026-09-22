@@ -55,3 +55,16 @@ export const Large: Story = {
     size: "lg",
   },
 };
+
+// A resident with no artwork on disk gets the honest initial-letter
+// medallion — never a broken-image glyph, never borrowed art. (The
+// id here is a fallback demo, not companion canon.)
+export const NoArtworkMedallion: Story = {
+  args: {
+    resident: {
+      id: "no-art-demo",
+      name: "Nyx",
+      role: "No artwork yet",
+    },
+  },
+};

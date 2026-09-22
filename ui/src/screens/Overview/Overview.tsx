@@ -135,7 +135,13 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
           </h2>
           <div className="space-y-[var(--pw-spacing-md)]">
             {summary.signals.map((signal) => (
-              <WorldSignal key={signal.id} level={signal.level} title={signal.title} description={signal.description} />
+              <WorldSignal
+                key={signal.id}
+                level={signal.level}
+                title={signal.title}
+                description={signal.description}
+                technical={signal.technical}
+              />
             ))}
           </div>
         </section>

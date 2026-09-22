@@ -45,6 +45,7 @@ import {
 } from "../../data/hooks";
 import { describeError } from "../../data/errors";
 import {
+  capabilityDisplayName,
   PERSONAL_AREAS,
   SKELETON_AREAS,
   STATUS_LABELS,
@@ -469,9 +470,7 @@ function CapabilitiesSection({
       <ul className="space-y-[var(--pw-spacing-sm)]" role="list">
         {capabilities.map((cap) => {
           const statusLabel = STATUS_LABELS[toCapabilityStatus(cap.status)];
-          const displayName = cap.id
-            .replace(/_/g, " ")
-            .replace(/\b\w/g, (c) => c.toUpperCase());
+          const displayName = capabilityDisplayName(cap.id);
 
           return (
             <li

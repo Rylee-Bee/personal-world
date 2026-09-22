@@ -185,9 +185,86 @@ describe("hooks", () => {
       expect(result.current.data!.capabilities[0].status).toBe("healthy");
       // The companion preference — not /api/actors — names the resident.
       expect(result.current.data!.resident?.name).toBe("Renai");
-      // Attention strings become signals.
+      // Attention strings become signals: the card carries plain
+      // language, and the exact wire string stays as technical detail.
       expect(result.current.data!.signals).toHaveLength(1);
-      expect(result.current.data!.signals[0].description).toBe("journal: stale digest");
+      expect(result.current.data!.signals[0].title).toBe("Journal: stale digest");
+      expect(result.current.data!.signals[0].technical).toBe("journal: stale digest");
+      expect(result.current.data!.signals[0].description).toBeUndefined();
+    });
+
+    it("never puts a raw 'id: status' token in a signal title", async () => {
+      vi.mocked(api.getStatus).mockResolvedValue({
+        ok: true,
+        status: "healthy",
+        data: {
+          facts: 0,
+          intents: 0,
+          policies: 0,
+          cemented_policies: 0,
+          lore: { confirmed: 0, derived: 0, suggested: 0, ephemeral: 0 },
+          declared_capabilities: 0,
+          providers: 0,
+          packs: 0,
+          capabilities: {},
+          actors: [],
+        },
+      } as Awaited<ReturnType<typeof api.getStatus>>);
+
+      vi.mocked(api.getDaily).mockResolvedValue({
+        ok: true,
+        status: "healthy",
+        changed: false,
+        warnings: [],
+        actions: [],
+        data: {
+          world: {
+            facts: 0,
+            intents: 0,
+            policies: 0,
+            cemented_policies: 0,
+            lore: { confirmed: 0, derived: 0, suggested: 0, ephemeral: 0 },
+            declared_capabilities: 0,
+            providers: 0,
+            packs: 0,
+          },
+          capabilities: {},
+          attention: [
+            "source_control: needs_attention",
+            "reasoning: unavailable",
+            "vault_backup: stale",
+          ],
+        },
+      } as Awaited<ReturnType<typeof api.getDaily>>);
+
+      vi.mocked(api.getPrefs).mockResolvedValue({
+        ok: true,
+        data: { companion: "mermaid" },
+      } as Awaited<ReturnType<typeof api.getPrefs>>);
+
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useTodaySummary(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const signals = result.current.data!.signals;
+      expect(signals.map((s) => s.title)).toEqual([
+        "Source control needs your attention.",
+        "The assistant is off — nothing depends on it.",
+        "The latest word from Vault Backup is out of date.",
+      ]);
+      // No bare snake_case token survives on the visible line…
+      for (const s of signals) {
+        expect(s.title).not.toMatch(/[a-z]+_[a-z_]+/);
+      }
+      // …while the exact wire strings stay reachable as detail.
+      expect(signals.map((s) => s.technical)).toEqual([
+        "source_control: needs_attention",
+        "reasoning: unavailable",
+        "vault_backup: stale",
+      ]);
     });
   });
 

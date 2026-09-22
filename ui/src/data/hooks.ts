@@ -84,7 +84,12 @@ import type {
   TodaySummary,
   WorldSignal,
 } from "./types";
-import { COMPANION_RESIDENTS, toCapabilityStatus } from "./types";
+import {
+  capabilityDisplayName,
+  COMPANION_RESIDENTS,
+  plainAttention,
+  toCapabilityStatus,
+} from "./types";
 
 // ===== Query Keys =====
 export const queryKeys = {
@@ -669,7 +674,7 @@ export function useTodaySummary(): {
     status.data.data.capabilities ?? {},
   ).map(([id, cap]) => ({
     id,
-    name: id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    name: capabilityDisplayName(id),
     // Wire status is the server Status vocabulary; anything unseen
     // degrades to "unknown" at this boundary (never cast).
     status: toCapabilityStatus(cap.status),
@@ -680,14 +685,20 @@ export function useTodaySummary(): {
   // loop deemed worth surfacing. Not alarms: "A small update".
   // (WorldSignalLevel has no "info" tier; adding one would touch
   // labels + styles without a real urgency difference.)
+  // The raw "id: status" wire strings are translated to human
+  // sentences by plainAttention (src/data/types.ts); the exact wire
+  // string stays reachable behind the card's detail disclosure.
   const signals: WorldSignal[] = (daily.data.data.attention ?? [])
     .slice(0, 3)
-    .map((text, i) => ({
-      id: `attention-${i}`,
-      level: "update" as const,
-      title: "Attention",
-      description: text,
-    }));
+    .map((text, i) => {
+      const plain = plainAttention(text);
+      return {
+        id: `attention-${i}`,
+        level: "update" as const,
+        title: plain.headline,
+        technical: plain.technical,
+      };
+    });
 
   const companion = prefs.data?.data?.companion;
   const resident: Resident | undefined = companion

@@ -41,3 +41,14 @@ export const Critical: Story = {
     description: "Cannot reach encryption service. Secrets are safe but inaccessible.",
   },
 };
+
+// What the Overview attention cards actually show: a plain-language
+// headline, with the exact wire string kept one tap away behind the
+// "Technical detail" disclosure (never a bare snake_case token).
+export const TranslatedAttention: Story = {
+  args: {
+    level: "update",
+    title: "Source control needs your attention.",
+    technical: "source_control: needs_attention",
+  },
+};

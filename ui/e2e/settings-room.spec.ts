@@ -30,6 +30,15 @@ const MOTION_WORDS: Record<string, string> = {
   subtle: "Subtle motion",
 };
 
+// The C2 and C12 flows both toggle the SHARED motion pref in the
+// stateful mock store (scripts/e2e-api.mjs, one process for the whole
+// run). Under fullyParallel they land on different workers and race:
+// C12's "reduced" apply could overwrite C2's "subtle" apply between
+// C2's write and its reload-verify (observed ~50% at d3e6999, pre-
+// existing). Serial within the file — same remedy journal-draft.spec
+// and vault-in-settings.spec already carry for the same store.
+test.describe.configure({ mode: "serial" });
+
 test.describe("Settings Room (C1/C2)", () => {
   test("renders a typed control for every key the server schema describes", async ({
     page,
