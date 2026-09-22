@@ -232,7 +232,7 @@ sound never as a beep. Nothing pings. What arrives is **told, or it is written**
 and never a chime.
 
 **Everyone builds their own tools.** The resident of a deck doesn't just use it —
-they *make* it, in the medium of their own nature. So the dialect (§4) is not a
+they *make* it, in the medium of their own nature. The dialect (§4) is not a
 skin: it is the maker's **native language**, and the instrument is shaped by who
 built it. A visitor recognises the maker by the tool.
 

@@ -233,7 +233,7 @@ patch and a proper repair, and will tell you which one he is doing.
 **Visual design highlights.** Retired paladin dwarf — short, broad, solid
 silhouette, with a large expressive beard, possibly braided. Same navy crew
 uniform with gold trim; engineering adaptation: heavy work coat, smith-style
-apron, durable gloves; crew combadge clearly visible. Tool belt with practical
+apron, durable gloves; crew combadge plainly visible. Tool belt with practical
 tools. Old paladin details subtly in buckles, shoulder pieces, or tools; optional
 old shield repurposed as workshop equipment; a signature tool blending a war
 hammer and engineering wrench. Clothing and tools cared-for and well-used, not
@@ -331,7 +331,7 @@ what they mean.
 **Visual design highlights.** Young woman astronomer/investigator; a distinct
 human silhouette from Renai and the non-human crew. Same navy crew uniform with
 gold trim adapted into a practical observatory jacket or short coat; combadge
-clearly visible; comfortable trousers or practical skirt/tunic. Small cross-body
+plainly visible; comfortable trousers or practical skirt/tunic. Small cross-body
 notebook satchel; multiple notebooks, index cards, bookmarks, pencils, folded
 star maps; telescope eyepiece, compact spyglass, or portable observing lens; hair
 clip / headband / star pins for silhouette. Slightly rumpled in an endearing
@@ -349,7 +349,7 @@ she forgot.
 
 ## 10. The two voices
 
-There are two voices, and they must not be confused.
+Two voices live here, and they must not be confused.
 
 **(1) The World's voice.** Human, clear, warm, capable, calm, technically honest,
 accessible. Meaning first, ordinary words, short sentences, no invented certainty,

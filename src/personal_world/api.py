@@ -511,8 +511,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """First-run setup: create API token and vault passphrase.
 
         Loopback-only (fail closed): this endpoint mints the instance
-        credential, so a remote peer must never be able to take over a
-        fresh, unauthenticated instance. GET state routes stay readable.
+        credential, so a remote peer cannot take over a fresh,
+        unauthenticated instance through this route. GET state routes
+        stay readable.
         """
         if not _is_true_loopback(request):
             raise HTTPException(
@@ -700,6 +701,138 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         target = journal if uj == journal.path else Journal(uj)
         target.record(kind=JournalKind.OBSERVATION, summary=text, source="user")
         return {"ok": True, "data": {"written": len(text)}}
+
+    # ── Journal DRAFTS — the lining rescue (owner D15: "Kept safe, synced") ──
+    # Debounced client writes land here so a stopped mid-thought day
+    # resumes on ANY device. Deliberate contract choices (spec:
+    # DRAFT-SYNC-SPEC-2026-09-20): NOT elevation-gated (a draft mutates
+    # nothing a publish doesn't), response NEVER echoes draft text,
+    # storage rides the single per-principal seam (decision #13).
+    _DRAFT_MAX = 100_000
+
+    def _draft_file(request: Request) -> Path:
+        return _scoped_path(request.state.principal, "journal_draft")
+
+    @app.put("/api/journal/draft", dependencies=[Depends(require_auth)])
+    async def journal_draft_put(request: Request) -> dict:
+        _require_person(getattr(request.state, "principal", None))
+        body = await request.json()
+        text = str((body or {}).get("text", ""))
+        if len(text) > _DRAFT_MAX:
+            raise HTTPException(status_code=422, detail="draft exceeds 100000 chars")
+        path = _draft_file(request)
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps({
+            "text": text,
+            "entry_id": str((body or {}).get("entry_id", ""))[:64],
+            "device": str((body or {}).get("device", ""))[:64],
+            "updated_at": stamp,
+        }))
+        tmp.chmod(0o600)
+        os.replace(tmp, path)  # atomic: a crash never leaves half a draft
+        return {"ok": True, "data": {"saved_at": stamp, "length": len(text)}}
+
+    @app.get("/api/journal/draft", dependencies=[Depends(require_auth)])
+    def journal_draft_get(request: Request) -> dict:
+        _require_person(getattr(request.state, "principal", None))
+        path = _draft_file(request)
+        if not path.exists():
+            return {"ok": True, "data": {"text": None, "updated_at": None}}
+        d = json.loads(path.read_text())
+        return {"ok": True, "data": {
+            "text": d["text"], "entry_id": d["entry_id"],
+            "device": d["device"], "updated_at": d["updated_at"],
+            "length": len(d["text"]),
+        }}
+
+    @app.delete("/api/journal/draft", dependencies=[Depends(require_auth)])
+    def journal_draft_delete(request: Request) -> dict:
+        _require_person(getattr(request.state, "principal", None))
+        _draft_file(request).unlink(missing_ok=True)
+        return {"ok": True, "data": {"cleared": True}}
+
+    # ── Journal EDIT-PAIR capture v0 (B5; lineage: DRAFT-SYNC-SPEC
+    # §capture, Meeting #4 §B11 — Sol's nine fields). The capture
+    # ENDPOINT only, no UI: one BOT→Rylee edit pair per NDJSON line on
+    # the same per-principal scoped seam as drafts. Same rules as the
+    # draft seam: the response reports {stored} and NEVER echoes
+    # content, capture is automatic and therefore NOT an elevation
+    # event (gate: none beyond authentication), and every field rides a
+    # size cap so one render cannot bloat a personal store.
+    _PAIR_TEXT_MAX = 20_000
+    _PAIR_TAG_MAX = 64
+    _PAIR_TAGS_MAX = 32
+
+    @app.post("/api/journal/edit-pair", dependencies=[Depends(require_auth)])
+    async def journal_edit_pair(request: Request) -> dict:
+        _require_person(getattr(request.state, "principal", None))
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="body must be JSON")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="body must be an object")
+
+        def _text(value: object) -> str:
+            return str(value or "")[:_PAIR_TEXT_MAX]
+
+        original = str(body.get("original") or "")
+        edited = str(body.get("edited") or "")
+        if not original.strip() or not edited.strip():
+            raise HTTPException(
+                status_code=422, detail="original and edited are required"
+            )
+        if (
+            len(original) > _PAIR_TEXT_MAX
+            or len(edited) > _PAIR_TEXT_MAX
+            or len(str(body.get("diff") or "")) > _PAIR_TEXT_MAX
+        ):
+            raise HTTPException(
+                status_code=422, detail=f"text fields exceed {_PAIR_TEXT_MAX} chars"
+            )
+
+        def _tags(value: object) -> list[str]:
+            if value is None:
+                return []
+            if not isinstance(value, list) or len(value) > _PAIR_TAGS_MAX:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"tag lists must be arrays of at most {_PAIR_TAGS_MAX} strings",
+                )
+            return [str(t)[:_PAIR_TAG_MAX] for t in value]
+
+        warmth = body.get("warmth")
+        if warmth is not None:
+            if not isinstance(warmth, int) or isinstance(warmth, bool) \
+                    or not 1 <= warmth <= 7:
+                raise HTTPException(
+                    status_code=422, detail="warmth must be an integer 1-7"
+                )
+
+        provenance = body.get("model_provenance")
+        record = {
+            # Exactly the nine §capture lineage fields, in spec order.
+            # Absent optionals stay honest: null / [] — never invented.
+            "original": original,
+            "edited": edited,
+            "diff": _text(body.get("diff")) or None,
+            "timestamp": str(body.get("timestamp") or "")[:64]
+            or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "message_kind": str(body.get("message_kind") or "")[:64] or None,
+            "context": _tags(body.get("context")),
+            "active_packs": _tags(body.get("active_packs")),
+            "warmth": warmth,
+            "model_provenance": str(provenance)[:128] if provenance else None,
+        }
+        path = _scoped_path(request.state.principal, "journal_edit_pairs")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        path.chmod(0o600)  # personal data, private bits (same rule as drafts)
+        # Anti-echo, the draft-seam rule: report, never quote.
+        return {"ok": True, "data": {"stored": True}}
 
     # ── Journal correction workflow (second propose→approve→act
     # workflow; same trust model as the repository-status refresh).
@@ -1810,20 +1943,31 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/exports/settings", dependencies=[Depends(require_auth)])
     async def settings_export() -> dict:
+        """Shareable settings blueprint: capabilities, provider mappings,
+        packs, schedules — the bones of the installation, not the person."""
         world, _ = _state()
         return {"ok": True, "data": export.settings_export(world)}
 
     @app.get("/api/exports/world", dependencies=[Depends(require_auth)])
     async def world_export() -> dict:
+        """Portable personal configuration: world-classified state only;
+        raw secrets are structurally absent (they live in the secret
+        store, referenced by name at most). Treat the output as personal
+        data."""
         world, _ = _state()
         return {"ok": True, "data": export.world_export(world)}
 
     @app.get("/api/exports/story", dependencies=[Depends(require_auth)])
     async def story_export() -> dict:
+        """Human-readable journal story (entry summaries); private
+        entries are excluded from the rendering."""
         return {"ok": True, "data": {"text": export.story_export(journal)}}
 
     @app.get("/api/backup", dependencies=[Depends(require_auth)])
     async def backup() -> dict:
+        """Full-state backup payload (world, journal, config) including
+        private state. Meant for the operator's own encryption step; it
+        is never shareable raw, and the API does not encrypt it."""
         world, _ = _state()
         return {"ok": True, "data": export.backup_payload(world, journal)}
 
@@ -1983,6 +2127,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/source-control/history", dependencies=[Depends(require_auth)])
     async def source_control_history(repo: str, limit: int = 20) -> dict:
+        """Newest-first commit history for ONE discovered repository
+        (native git, read-only). Unconfigured search paths or an unknown
+        repo name answer not_configured — a structured miss, not a crash."""
         paths = _sc_paths()
         if not paths:
             return {
@@ -2023,6 +2170,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # PROVIDER_ACTION; no secrets, no paths beyond the repo name. ──
     @app.post("/api/source-control/refresh", dependencies=[Depends(require_step_up)])
     async def source_control_refresh(request: Request) -> dict:
+        """Act step of the propose→approve→act refresh: re-runs the native
+        read-only git status for ONE named repository. Requires step-up
+        elevation; every outcome is journaled (a completed act as
+        PROVIDER_ACTION, a rejection or git error as FAILURE — repo name
+        and state bits only, no secrets, no filesystem paths)."""
         try:
             body = await request.json()
         except ValueError:
@@ -3113,9 +3265,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/companions/{name}.svg")
     async def companion_svg(name: str) -> Response:
-        # Approved companion source rigs, byte-identical copies of the
-        # design-owned artwork (see design/assets/companions/). Public:
-        # decorative identity, carries no world state.
+        """Serve one allowlisted companion SVG — byte-identical copies of
+        the design-owned rigs (see design/assets/companions/). UI asset
+        route: public like any browser-fetched art, carries no world
+        state, and is not part of the /api Lego box."""
         filename = _COMPANION_FILES.get(name)
         if filename is None or not companion_dir.exists():
             raise HTTPException(status_code=404, detail="unknown companion")
@@ -3128,11 +3281,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/today/{name}.svg")
     async def today_art(name: str, request: Request) -> Response:
-        # Frame-specific decorative exports for Today (Workshop v3,
-        # design/assets/today/): the quiet-day settle gesture and
-        # waterline. Public: decorative geometry, carries no world
-        # state. Allowlist pattern matches /fonts and /companions
-        # ({name}.svg binds the parameter WITHOUT the suffix).
+        """Serve one allowlisted Today artwork SVG — frame-specific
+        decorative exports for Today (Workshop v3, design/assets/today/):
+        the quiet-day settle gesture and waterline. UI asset route:
+        decorative geometry, carries no world state, and is not part of
+        the /api Lego box."""
+        # Allowlist pattern matches /fonts and /companions: {name}.svg
+        # binds the parameter WITHOUT the suffix.
         allowed = {
             "settle-gesture": "image/svg+xml",
             "waves-ladder": "image/svg+xml",
@@ -3147,8 +3302,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/icons/sprite.svg")
     async def icon_sprite() -> Response:
-        # 72-glyph production icon system (design/assets/icons/). Public:
-        # decorative geometry, stroke=currentColor, carries no world state.
+        """Serve the 72-glyph production icon sprite
+        (design/assets/icons/). UI asset route: decorative geometry,
+        stroke=currentColor, carries no world state, and is not part of
+        the /api Lego box."""
         path = static_dir / "icons" / "sprite.svg"
         if not path.exists():
             raise HTTPException(status_code=404, detail="sprite missing")
@@ -3156,9 +3313,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/fonts/{name}")
     async def webfont(name: str, request: Request) -> Response:
-        # Self-hosted Figma-export families (design/tokens.json
-        # font.expressive / font.interface). Public: OFL-licensed
-        # font binaries, no world state.
+        """Serve a self-hosted webfont from the allowlisted Figma-export
+        families (design/tokens.json font.expressive / font.interface).
+        UI asset route: OFL-licensed font binaries, carries no world
+        state, and is not part of the /api Lego box."""
         allowed = {
             "young-serif-latin.woff2": "font/woff2",
             "instrument-sans-var-latin.woff2": "font/woff2",

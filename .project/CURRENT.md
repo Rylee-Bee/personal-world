@@ -8,6 +8,20 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
+## 2026-09-20 — Station surface FROZEN (owner decision)
+
+The served Station UI (`design/opendesign-exploration/station/`) is frozen
+**bug-fix only**, effective now: a from-scratch rebuild targets the
+`/api/manifest` contract as the single source of endpoint truth, and the
+cutover deletes the old surface (an `archive/*` annotated tag is the
+rollback — the 2026-09-16 precedent). No new features, no new wiring, no
+anchoring. The API is a starting contract, not a shrine: where the rebuild
+exposes an awkward seam, the contract gets fixed with evidence. Device-local
+stores (map structure, positions, regions, companion/mood, journal
+notes) are inventoried for export BEFORE flip — real user data currently
+lives browser-side. Decision record: Project Worlds orchestrator ledger,
+2026-09-20.
+
 ## 2026-09-17 — current state
 
 Single source of truth for NOW; everything below this section is

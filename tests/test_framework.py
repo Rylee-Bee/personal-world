@@ -12,6 +12,7 @@ Plus init conformance and validator conformance.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -646,16 +647,23 @@ class TestDesignToolIndependence:
     def test_canonical_tokens_exist_and_parse(self):
         repo_root = Path(__file__).parent.parent
         tokens = json.loads((repo_root / "design" / "tokens.json").read_text())
+        # re-anchored 2026-09-20 to the names/values split: color VALUES moved
+        # to theme packs and the status vocabulary moved to code (where it
+        # functionally lives) — the semantic NAME groups below are the contract.
         for required in (
-            "color",
-            "status_vocabulary",
-            "spacing",
-            "targets",
-            "motion",
-            "focus",
-            "typography",
+            "surface", "accent", "text", "border",
+            "spacing", "radius", "shadow", "typography",
+            "density", "targets", "focus", "motion",
         ):
             assert required in tokens, f"tokens.json missing {required}"
+        # the two moved citizens are asserted at their new homes:
+        hexfree = not re.search(r"#[0-9A-Fa-f]{6}", json.dumps(
+            {k: v for k, v in tokens.items()}))
+        assert hexfree, "tokens.json must carry NAMES only — literal colors belong in themes"
+        import personal_world.status as _st
+        assert getattr(_st.Status, "HEALTHY", None) is not None and _st.RANK, (
+            "status vocabulary (formerly a tokens group) must exist in code where it operates"
+        )
 
     def test_tokens_are_semantic_not_tool_internal(self):
         """Token names are semantic concepts (surface.canvas,

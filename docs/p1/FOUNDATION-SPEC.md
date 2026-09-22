@@ -75,7 +75,7 @@ Chromatic, `@tanstack/react-query`, `class-variance-authority`,
 cruft. `oxlint` stays only if `npm run lint` is wired into CI in T4;
 otherwise removed.
 
-Data access = one typed fetch client (§1.5) + ordinary hooks. A tiny
+Data access = one typed fetch client (§1.5) + ordinary hooks. A small
 `lib/cache.ts` (`Map` keyed by URL, TTL, `invalidate(prefix)`) may be
 added only where a screen demonstrably re-fetches the same resource. Any
 later proposal to add React Query (or similar) must be a bounded task
@@ -127,7 +127,7 @@ SECTIONS = (
 **Pinning (owner decision 1):** only `settings` is pinned — it is the
 recovery/configuration surface and must always be reachable. `today` is
 visible by default and strongly preferred but may be hidden or reordered
-like any other user-facing section. Settings exposes an obvious
+like any other user-facing section. Settings exposes a plainly labeled
 **"Restore default sections"** action (`PUT {"order": [], "hidden": []}`).
 Nothing may ever make every section hideable such that the recovery path
 disappears; the pinned rule is enforced server-side (400).

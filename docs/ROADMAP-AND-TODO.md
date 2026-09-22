@@ -26,7 +26,7 @@ The backend is daily-use capable and the Station is the product UI.
   (source-control reads), and interests; chat send posts to the real
   /api/chat route (no streaming yet); the browser-local journal is
   labelled "Notes on this device" and remaining specimen blocks are
-  clearly labelled and stay honest until real data exists.
+  plainly labelled and stay honest until real data exists.
 
 ## Honest gaps today
 
