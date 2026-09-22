@@ -171,6 +171,10 @@ class JournalKind(str, Enum):
     SETTINGS_CHANGE = "settings_change"
     SECURITY = "security"
     DISCOVERY = "discovery"
+    # ADR-0006 (workbench spike): Tasks (and later Agent operations)
+    # are vocabulary over the one journal — this kind names the
+    # subject, the envelope fields below carry the task state.
+    TASK = "task"
 
 
 class JournalEvent(BaseModel):
@@ -191,6 +195,22 @@ class JournalEvent(BaseModel):
     # Kept on the new entry so history answers "why" where the
     # correction is read.
     supersede_reason: str | None = None
+    # ── Task/event envelope (ADR-0006, workbench spike). Additive and
+    # optional so every pre-existing row validates unchanged — the same
+    # pattern as the supersede block above. The envelope maps
+    # one-to-one onto the journal row; nothing here names a transport
+    # (WS/HTTP framing stays out, per ADR-0006 Decision 3):
+    #   event_id      -> this field (uuid4; who wrote it can always be
+    #                    re-derived from provenance.source)
+    #   timestamp     -> ts (existing)
+    #   source        -> provenance.source (existing)
+    #   subject/type  -> kind (existing; JournalKind.TASK)
+    #   task_id/state/payload/correlation_id -> the durable task fields
+    event_id: str | None = None
+    task_id: str | None = None
+    state: str | None = None
+    payload: dict[str, Any] | None = None
+    correlation_id: str | None = None
 
 
 class Pack(BaseModel):
