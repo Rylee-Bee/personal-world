@@ -58,6 +58,7 @@ STANDARD_CAPS = {
     "homelab_deploy",
     "homelab_secrets",
     "homelab_resources",
+    "workbench",
 }
 
 

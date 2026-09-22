@@ -35,6 +35,7 @@ from .providers.lab_resources import LabResources
 from .providers.lab_secrets import LabSecrets
 from .providers.lab_settings import LabSettings
 from .providers.registry import Contract, Registry, StatusContract
+from .providers.workbench import WorkbenchPodman, workbench_enabled
 from .source_control import NativeGit, configured_search_paths
 from .world import World
 
@@ -60,6 +61,7 @@ STANDARD_CAPABILITIES: list[tuple[str, str, bool]] = [
     ("homelab_deploy", "Homelab deployment status", False),
     ("homelab_secrets", "Homelab secret management", False),
     ("homelab_resources", "Homelab VM resource monitoring", False),
+    ("workbench", "Attach container workspaces (podman/distrobox)", False),
 ]
 
 
@@ -586,6 +588,30 @@ def build_registry(
         mode=ProviderMode.NATIVE,
         required=False,
     )
+
+    # workbench: podman/distrobox attached environments (ADR-0003
+    # spike). OFF BY DEFAULT — PW_WORKBENCH=1 registers the provider;
+    # without it the capability honestly reports not_configured
+    # (zero-provider boot preserved). run_task fails closed unless an
+    # allowlist is configured (connections.json "workbench" or
+    # PW_WORKBENCH_CONTAINERS). Findings: docs/adr/WORKBENCH-SPIKE-FINDINGS.md.
+    if workbench_enabled():
+        workbench = WorkbenchPodman(
+            config=_read_extra_config(config_dir, "workbench"),
+            journal=journal,
+        )
+        registry.register(
+            "workbench",
+            "workbench-podman",
+            workbench,
+            # the honest status lives in observe() (not_configured /
+            # unavailable / healthy); a failing health check here would
+            # mask the specific reason with a generic 'unavailable'
+            health_check=lambda: True,
+            writes="exec",
+            mode=ProviderMode.ENRICHMENT,
+            required=False,
+        )
 
     # Execution Viewer: captures bounded executions from providers/agents
     from .execution_viewer import ExecutionViewer
