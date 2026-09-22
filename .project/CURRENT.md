@@ -8,7 +8,48 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
-## 2026-09-20 — Station surface FROZEN (owner decision)
+## 2026-09-22 — THE FLIP: the rebuild IS the interface (current)
+
+Owner directive 2026-09-22: publish the React rebuild (`ui/`) as the
+default and only interface — no side-by-side, no env-var gate, no
+localhost. Verified state:
+
+- **Serving:** `/` serves the production build, auth-gated (no
+  setup-complete → `/setup`, unauthenticated → `/login`), assets from a
+  boot allowlist, SPA fallback that never swallows the reserved API
+  namespaces. `/station*` and `/vnext*` are 307 → `/`. The vanilla
+  Station and the old `frontend/` suite are **deleted from the tree**
+  (git history is the archive); `scripts/build-app.sh` replaces
+  build-vnext.sh for checkout dev.
+- **Image:** the Dockerfile's node stage builds `ui/` into
+  `src/personal_world/static/app/` with a build-time existence assertion
+  — a fresh clone produces a complete shippable container, zero manual
+  staging. Deployed live on this box at `:8000` (`personal-world:dev`,
+  multi-stage build) and curl-verified: `/` 303 → login, asset 200,
+  `/station/` 307.
+- **Commits:** `b7e07fc` (the flip + owner doctrine docs), `ab6dfda`
+  (the six binding contract docs the refs cited but were never
+  committed — caught by the `test_docs` link gate on CI).
+- **Evidence:** backend 1325 passed / 7 skipped · ui vitest 168/168 ·
+  playwright 67/67 (incl. 4 axe gates) · lint 0/0 · contrast 56 pairs
+  clean · GitHub `ui-ci` green on main.
+- **Known flake, not hidden:** the storybook browser project
+  intermittently drops an iframe under full-suite parallel load (passes
+  in isolation and on re-run; the deterministic Memory-story killer —
+  unmocked `/api/journal/draft` → live 401 → frame navigation — is
+  fixed at the class level: mock draft routes + 401 redirect only in
+  the top frame).
+- **Session 400s (OpenCode, this box):** root cause = no `limit`
+  declared for the token-plan models, so no proactive compaction; fixed
+  in `~/.config/opencode/opencode.json` (context 200k / output 16k on
+  `alibaba-token-plan/qwen3.8-flash` + `bailian-cli/qwen3.8-max`;
+  backup `opencode.json.bak-2026-09-22`).
+
+Alpha scoreboard and owner queue: `WORLDS-DELIVERY-ORCHESTRATION-PLAN-2026-09-21.md`.
+The 2026-09-20 freeze note below is **superseded** — the cutover it
+planned has happened.
+
+## 2026-09-20 — Station surface FROZEN (owner decision; superseded 2026-09-22 by the flip above)
 
 The served Station UI (`design/opendesign-exploration/station/`) is frozen
 **bug-fix only**, effective now: a from-scratch rebuild targets the
