@@ -40,7 +40,7 @@ Do not publish tokens in URLs, screenshots, shell transcripts or public issues.
 The core rejects protected requests with no configured token and compares supplied
 tokens in constant time. Forwarded identity headers do not bypass this check.
 
-The browser also has `/setup-wizard`, `/setup`, and `/login` entry points.
+The browser also has `/setup` and `/login` entry points.
 First-run setup (`POST /api/setup`) is unauthenticated only until the
 setup-complete marker exists — it is also loopback-only (a non-loopback
 peer gets 403) and rejects repeats with 409 once the marker exists.
@@ -52,7 +52,7 @@ It is not verified SSO/MFA re-authentication.
 
 ### Token reconciliation at boot (setup-created tokens survive restarts)
 
-The setup wizard writes the access code you create to `<data_dir>/.env`.
+The setup wizard writes the access code it generates to `<data_dir>/.env`.
 At boot the app prefers that file over the compose/supplied
 `PW_API_TOKEN` environment value when both exist and differ, so the
 credential a human created survives a container restart. To return

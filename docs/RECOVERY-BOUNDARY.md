@@ -89,11 +89,13 @@ Restored byte-identical (data/config/home members):
    `WORLDS-BACKUP.md` should adopt step 3.
 2. **Silent exclusion of unknown data subtrees.** The drill's
    `data/media/photo.bin` was neither archived nor listed as excluded.
-   Anything a future feature writes elsewhere under `data/` will
-   vanish from SOS backups **without a word in the report**. Today no
-   known local media store exists under `data/`, so nothing durable is
-   provably lost — but the boundary is allow-listed and the report
-   only narrates *named* exclusions. Tracked for the orchestrator:
+   Anything a future feature writes elsewhere under `data/` would
+   vanish from SOS backups without a word in the report. **RESOLVED
+   (bc65f40):** `worlds_backup` now appends an explicit "NOT recognized
+   by the backup boundary — not archived" note for any top-level `data/`
+   entry outside the allow-list, so a future local store surfaces in
+   every report instead of vanishing silently. Regression test pinned.
+   Tracked for the orchestrator:
    consider a report line for unrecognised top-level entries under
    the data dir. (src behaviour left untouched by this drill, per
    lane rules.)
@@ -124,8 +126,9 @@ personal-world --data-dir ./data --config-dir ./config \
 # 3. FIRST-RUN PASS (the found-gap step): satisfy the boot marker and
 #    mint a fresh credential. Either the CLI:
 personal-world --data-dir ./data --config-dir ./config init
-# ...or open the app and complete the /setup wizard (recommended:
-# sets token + vault passphrase together). init is create-if-absent:
+# ...or open the app and complete the /setup wizard (it mints this
+# box's own token; the vault passphrase is set in the app afterwards,
+# not in the wizard). init is create-if-absent:
 # it never overwrites the restored world.
 
 # 4. Boot and work:

@@ -111,7 +111,10 @@
   <h1>Sign in</h1>
 
   <p id="error" class="error" role="alert" hidden></p>
-  <p id="error-detail" class="hint" hidden></p>
+  <details id="error-detail" class="code-block" hidden>
+    <summary class="hint">Operator detail</summary>
+    <span class="hint" id="error-detail-code"></span>
+  </details>
 
   <!-- Passkey-first: shown when this world has SSO configured. -->
   <div id="oidc-block" hidden>
@@ -168,7 +171,9 @@
     var detail = document.getElementById("error-detail");
     error.textContent = message;
     if (operatorCode) {
-      detail.textContent = "Operator detail: " + operatorCode;
+      // Collapsed by default: the human sentence carries the meaning,
+      // the raw code stays reachable for whoever runs the server.
+      document.getElementById("error-detail-code").textContent = operatorCode;
       detail.hidden = false;
     }
   }

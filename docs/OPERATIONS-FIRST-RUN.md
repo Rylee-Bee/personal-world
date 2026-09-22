@@ -12,7 +12,8 @@ local files.
 > No container name, timezone, backup job, or external provider is
 > guaranteed on a fresh install. Confirm which configuration files
 > `app.py::build_registry` actually reads before adding provider wiring.
-> `/setup-wizard` now exists; optional depth-limited Git discovery also exists.
+> `/setup` is the live wizard route (an older `/setup-wizard` alias is
+> gone); optional depth-limited Git discovery also exists.
 > Vault reset loses secrets and requires an explicit recovery decision; the
 > historical reset command below is not a required installation step.
 > Accessibility defaults are `motion: reduced` and comfortable contrast;
@@ -48,8 +49,9 @@ rm .env-tmp
 
 ## 4. Vault unlock on first login
 
-- the appliance serves `/setup` once; set a vault passphrase
-  there. Passphrase is never stored; losing it requires deleting
+- the appliance serves `/setup` once for the token; the **vault
+  passphrase is set in the app** (Settings → Advanced → Vault), not in
+  the wizard. Passphrase is never stored; losing it requires deleting
   `/data/vault.enc` (you lose the stored secrets, not the world).
 - `/data` volume holds world.json + journal.ndjson +
   reminders.json + repos/ + vault.enc; a rebuild preserves all.

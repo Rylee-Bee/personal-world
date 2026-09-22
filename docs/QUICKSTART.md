@@ -9,7 +9,10 @@ It looks like a calm star-map you drift into — not a dashboard, not a feed,
 not a wall of red badges. It stays quiet until something genuinely needs you,
 and it never tells you how to feel.
 
-It runs on **your own machine** (or a friend's server). Your data stays yours.
+It runs on **your own machine** — or on a server you reach over SSH:
+setup writes are loopback-only by design, so on a remote box open an
+SSH tunnel first (`ssh -L 8000:127.0.0.1:8000 you@server`) and use
+`http://127.0.0.1:8000/` locally. Your data stays yours.
 
 ---
 
@@ -60,11 +63,16 @@ still a bug we want — not your fault.
 
 ## Where your stuff lives · how to not lose it
 - Everything lives in one place on your machine (the `world-data` volume).
-- **Back it up encrypted, any time:**
-  `personal-world worlds backup ~/my-worlds-backup.pwb`
-  (or the "Back up my world" button in Settings). You choose a passphrase;
-  it is never stored anywhere. Keep the passphrase somewhere safe.
-- Restore on a fresh machine: `personal-world worlds restore <file>`.
+- **Back it up encrypted, any time:** the **"Back up my world" button in
+  Settings** (step-up gated), or from the command line on a compose
+  install:
+  `docker compose exec core personal-world worlds backup ~/my-worlds-backup.pwbackup`
+  You choose a passphrase; it is never stored anywhere. Keep the
+  passphrase somewhere safe.
+- Restore on a fresh machine:
+  `docker compose exec core personal-world worlds restore <file>` — then
+  run the normal first-run setup once (it mints this box's own token;
+  your restored world is left byte-identical around it).
 
 ---
 

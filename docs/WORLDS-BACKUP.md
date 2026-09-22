@@ -141,10 +141,10 @@ whitelist walks that cannot carry private-classified data. The rule
 stands: what you share is exported; what you *are* is backed up —
 encrypted, and only ever restored by someone holding the passphrase.
 
-## HTTP routes (designed, not yet wired)
+## HTTP routes (wired, step-up gated)
 
-`worlds_backup.register_worlds_backup(app, ...)` exposes the API seam;
-the orchestrator wires it when `api.py` settles. Intended routes, all
+`worlds_backup.register_worlds_backup(app, ...)` is mounted in `api.py`;
+the Settings page carries the "Back up my world" control. All routes are
 **step-up gated** (backup/restore hand over or replace the whole world,
 so a fresh session must re-prove identity first):
 

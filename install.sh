@@ -38,7 +38,6 @@ echo ">> using $BIN"
 if [ ! -f .env ] || ! grep -q '^PW_API_TOKEN=..*' .env 2>/dev/null; then
 	TOK="$(python3 -c 'import secrets;print(secrets.token_urlsafe(32))' 2>/dev/null ||
 		openssl rand -base64 32 2>/dev/null | tr -d '=+/' | cut -c1-43)"
-	printf 'PW_API_TOKEN=%s\n' "$TK" >/dev/null 2>&1 || true # never echo the token
 	printf 'PW_API_TOKEN=%s\n' "$TOK" >.env
 	chmod 600 .env
 	echo ">> created .env with a fresh API token (kept private, 0600)"
