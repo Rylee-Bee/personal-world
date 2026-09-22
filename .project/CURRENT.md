@@ -8,7 +8,25 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
-## 2026-09-22 — THE FLIP: the rebuild IS the interface (current)
+## 2026-09-22 — TRUE-NORTH re-vision (current)
+
+Owner-directed re-focus interview (3 rounds, 18 taps + typed answers, after
+a 24-product research pass) → **`docs/TRUE-NORTH.md` is the canonical
+direction**, approved with four refinements. North star: the calm hub —
+reach everything without hunting. The daily home loop (orient · remember ·
+resume · discover), one voice with selectable tone registers, World Keeper =
+the heartbeat, skeleton-only depth (Overview · Memory · Chat · Settings) +
+one small discovery card. Parked: specimen surfaces, Workbench (behind
+flag), ci-harness. Continues: Node limb (ADRs 0003–0007), contracts, the
+Workshop portal (estate infrastructure — her async window into agent work).
+Alpha gates recut to nine (G-ritual leads; G-recover preconditioned on the
+Vault-portability decision). Delivery plan + finish line + ROADMAP carry
+superseded banners; DECISIONS history stays append-only. Cadence: daily
+lanes + one digest/day to the portal (`worlds/daily-digest/<date>`),
+time-off pace. Wave 1 lanes: A Overview loop · B voice unification ·
+C Memory deep · D doctrine collapse (this commit).
+
+## 2026-09-22 — THE FLIP: the rebuild IS the interface (serving state)
 
 Owner directive 2026-09-22: publish the React rebuild (`ui/`) as the
 default and only interface — no side-by-side, no env-var gate, no

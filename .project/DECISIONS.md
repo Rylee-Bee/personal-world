@@ -539,3 +539,43 @@ dated entry superseding the old one (append-only, like the journal).
   Reason: these were the plan's standing owner queue — recorded here so
   every implementing lane cites written truth rather than a chat log.
   Supersessions called out inline per the append-only rule.
+
+## TRUE-NORTH re-vision — 2026-09-22 (owner interview + approval)
+
+- **2026-09-22 — Owner-directed re-focus: `docs/TRUE-NORTH.md` is the
+  canonical direction** (human, Rylee; three interview rounds — 18 taps +
+  typed answers — after a 24-product research pass across personal
+  dashboards, AI companions, git forges, alert-management games, and
+  discovery systems). Rulings: north star = **the calm hub, reach
+  everything without hunting** (the product sentence stands, narrowed not
+  rewritten) · first audience = Rylee, built shareable · **one voice with
+  selectable tone registers**; residents + the two-voice system demote to
+  an optional personality pack (CHARACTER-HANDBOOK + COMPANION-CANON stay
+  as pack canon) · **World Keeper = the one heartbeat** · scope =
+  **skeleton-only depth** (Overview · Memory · Chat · Settings) + one
+  small "brought to you" discovery card inside Overview ("I love
+  interests… if it's not too hard") · specimen surfaces
+  (Interests/Map/Media-Music) park honest · Projects parks as a surface
+  but Overview project status keeps a deterministic source→details path,
+  agent-sync authoritative · Workbench paused behind `PW_WORKBENCH` ·
+  **Node/Headscale limb continues** (ADRs 0003–0007 live) · ci-harness
+  parked, Play-Nice contracts kept · Workshop portal stays live as estate
+  infrastructure with an owner-stated mission (agent work → Rylee's eyes,
+  any device, her timeframe) · alpha gates **recut to nine** (G-ritual
+  leads; G-shape retired done; G-workbench parked; G-onboard + G-trial
+  moved to beta) · cadence = daily autonomous lanes + one digest/day to
+  the portal (`worlds/daily-digest/<date>`) · time-off pace. Approved
+  with four refinements: (1) the ritual is the **daily home loop**
+  (orient · remember · resume · discover), not morning-exclusive;
+  (2) the Projects ruling above; (3) G-fast measurement definitions ship
+  as code with the gate, and the **Vault-portability decision must close
+  before G-recover may claim green**; (4) append-only decision history
+  preserved — TRUE-NORTH owns direction only; ADRs + contracts retain
+  their own authority. Owner philosophy recorded verbatim in TRUE-NORTH:
+  "Worlds should help you recover your place in your own life."
+  Supersedes: the 2026-09-21 delivery plan (banner added; historical),
+  and the finish line + ROADMAP **as direction** (banners added; bodies
+  kept as detail). Reason: 16 days of sprawl accreted around the founding
+  idea ("the companion IS the world"); the owner re-centered the product
+  on one daily loop before any scope expansion ("I want to experience the
+  actual daily loop before we expand scope again").

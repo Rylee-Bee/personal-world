@@ -44,10 +44,16 @@ agent's WIP into its commit. The rules:
 - **Current architecture:** `docs/ARCHITECTURE.md`. World model and
   invariants: `docs/NATIVE-BASELINE-AND-ENRICHMENT.md` (normative,
   enforced by `personal-world framework validate`).
-- **Current product finish line:** `docs/PERSONAL-WORLD-FINISH-LINE.md`.
-  Use it to determine what “finished enough to live in every day” means;
-  it outranks speculative roadmap items but does not override architecture,
-  security, accessibility, or human-reliability contracts.
+- **Canonical direction:** `docs/TRUE-NORTH.md` (owner-approved 2026-09-22).
+  Vision, five commitments, the daily home loop, scope rulings, and the
+  recut alpha gates. It owns **direction only** — ADRs and the contract
+  system retain their own authority, and `.project/DECISIONS.md` remains
+  the append-only decision history.
+- **Product finish line (historical target):**
+  `docs/PERSONAL-WORLD-FINISH-LINE.md` — superseded as direction by
+  `docs/TRUE-NORTH.md` (2026-09-22); remains the target-experience detail
+  where TRUE-NORTH is silent. It does not override architecture, security,
+  accessibility, or human-reliability contracts.
 - **First-release product language & IA:** `docs/PRODUCT-LANGUAGE.md`
   (owner-approved 2026-09-21). Canonical product-facing vocabulary, the stable
   skeleton (`Overview · Memory · Chat · Settings`), the personal-section model, the
@@ -99,10 +105,10 @@ agent's WIP into its commit. The rules:
 - **Trunk:** `origin/main`. A local `main` ref can lag it by many
   commits; check `git rev-list --left-right --count main...origin/main`
   before comparing against "main".
-- **Where future plans live:** `ROADMAP.md` (direction, not
-  promises). Do not treat roadmap items as commitments or
-  authorization. The Finish Line defines the desired completion target;
-  current implementation evidence determines what remains to be built.
+- **Where future plans live:** `docs/TRUE-NORTH.md` owns direction;
+  `ROADMAP.md` is the historical horizon record (superseded 2026-09-22).
+  Do not treat roadmap items as commitments or authorization; current
+  implementation evidence determines what remains to be built.
 
 ## Workbench & Node direction (rules)
 

@@ -1,5 +1,10 @@
 # Roadmap
 
+> **Superseded as direction by [`docs/TRUE-NORTH.md`](./docs/TRUE-NORTH.md)
+> (owner-approved 2026-09-22).** TRUE-NORTH owns current direction; this
+> file remains as the historical horizon record. Git history preserves all
+> prior content.
+
 Direction, not promises. Project Worlds is developed by one human with
 an AI-agent workflow; items move between horizons freely and nothing
 here is a delivery commitment. Dates exist only where a milestone has

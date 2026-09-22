@@ -1,5 +1,11 @@
 # Project Worlds — Finish Line
 
+> **Superseded as direction by [`TRUE-NORTH.md`](./TRUE-NORTH.md)
+> (owner-approved 2026-09-22).** TRUE-NORTH owns the vision, scope, and
+> recut alpha gates; this finish line remains the target-experience detail
+> where TRUE-NORTH is silent. It still does not override architecture,
+> security, accessibility, or human-reliability contracts.
+
 (Formerly "Personal World" — product renamed 2026-09-12; the filename and
 cross-links keep the historical identifier. Technical identifiers unchanged.)
 
