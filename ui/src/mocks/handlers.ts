@@ -427,6 +427,8 @@ function buildWorldHandlers(stateName: keyof typeof WORLD_STATES | string): Requ
   return [
     ...baselineHandlers(),
     ...envelopeHandlers(world),
+    // Overview's Pinned feed reads the Records capability too.
+    ...buildRecordsHandlers(),
     // The App shell consumes section order; the world sets keep the
     // default ordering so readouts match the story name.
     http.get("/api/sections", () =>
@@ -444,6 +446,9 @@ function buildJournalHandlers(events: JournalEvent[]): RequestHandler[] {
   return [
     ...baselineHandlers(),
     ...envelopeHandlers(WORLD_STATES.quiet),
+    // Memory hosts Records: the panel browses /api/records* while
+    // stories are mounted (stateful per mount, like the journal).
+    ...buildRecordsHandlers(),
     http.get("/api/journal", ({ request }) => {
       const url = new URL(request.url);
       const n = Number(url.searchParams.get("n") ?? 20);
@@ -1074,6 +1079,256 @@ function buildDiscoveryHandlers(variant: DiscoveryVariant): RequestHandler[] {
       }),
     ),
   ];
+}
+
+// ─── Records fixtures (Memory → Records + Overview Pinned) ─────────
+// Mirrors src/personal_world/records.py + docs/RECORDS-API.md exactly:
+// category rows {slug,name,locked,count,pinned-count}, record values
+// {id,category,category_name,title,fields,pinned,created,updated},
+// the 409 {status:"locked"} read refusal until step-up is granted,
+// and ok:false not_found envelopes for missing targets. Fiction only —
+// "Passport number Z999" is fixture material, never a real document.
+
+function buildRecordsHandlers(): RequestHandler[] {
+  type Cat = { slug: string; name: string; locked: boolean };
+  type Rec = {
+    id: string;
+    category: string;
+    category_name: string;
+    title: string;
+    fields: Record<string, string | number | boolean | null>;
+    pinned: boolean;
+    created: string;
+    updated: string;
+  };
+  const cats: Cat[] = [
+    { slug: "medical", name: "Medical", locked: false },
+    { slug: "identity-documents", name: "Identity documents", locked: true },
+  ];
+  const recs: Rec[] = [
+    {
+      id: "allergy-list-f1e2d3",
+      category: "medical",
+      category_name: "Medical",
+      title: "Allergy list",
+      fields: { severe: "Penicillin", noted: "2026-03-14" },
+      pinned: true,
+      created: "2026-09-18T10:00:00+00:00",
+      updated: "2026-09-18T10:00:00+00:00",
+    },
+    {
+      id: "clinic-address-a4b5c6",
+      category: "medical",
+      category_name: "Medical",
+      title: "Clinic address",
+      fields: { line: "42 Harbour Rd" },
+      pinned: false,
+      created: "2026-09-19T08:00:00+00:00",
+      updated: "2026-09-19T08:00:00+00:00",
+    },
+    {
+      id: "passport-number-d7e8f9",
+      category: "identity-documents",
+      category_name: "Identity documents",
+      title: "Passport number",
+      fields: { number: "Z999-FIXTURE" },
+      pinned: false,
+      created: "2026-09-17T12:00:00+00:00",
+      updated: "2026-09-17T12:00:00+00:00",
+    },
+  ];
+  // The elevation seam: POST /api/auth/step-up grants it; the locked
+  // read consumes it. Seeded granted so default stories browse every
+  // category (like a loopback session on the real station); a story
+  // or test can exercise the invitation via a route override.
+  let granted = true;
+
+  const slugOf = (value: string): string =>
+    value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+  const categoryRows = () =>
+    cats
+      .map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        locked: c.locked,
+        count: recs.filter((r) => r.category === c.slug).length,
+        pinned: recs.filter((r) => r.category === c.slug && r.pinned).length,
+      }))
+      .sort((a, b) => (a.slug < b.slug ? -1 : 1));
+
+  const isLocked = (slug: string) =>
+    cats.find((c) => c.slug === slug)?.locked ?? false;
+
+  return [
+    http.get("/api/records/categories", () =>
+      HttpResponse.json({
+        ok: true,
+        status: "healthy",
+        data: { categories: categoryRows() },
+      }),
+    ),
+    http.get("/api/records", ({ request }) => {
+      const url = new URL(request.url);
+      const category = url.searchParams.get("category");
+      const pinned = url.searchParams.get("pinned") === "true";
+      if (category !== null) {
+        const slug = slugOf(category);
+        if (isLocked(slug) && !granted) {
+          return HttpResponse.json(
+            {
+              ok: false,
+              status: "locked",
+              category: slug,
+              warnings: [
+                `category '${slug}' is locked: step-up required to read`,
+              ],
+            },
+            { status: 409 },
+          );
+        }
+        const list = recs
+          .filter((r) => r.category === slug && (!pinned || r.pinned))
+          .sort((a, b) => (a.created < b.created ? -1 : 1));
+        return HttpResponse.json({
+          ok: true,
+          status: "healthy",
+          data: {
+            category: slug,
+            locked: isLocked(slug),
+            records: list,
+          },
+        });
+      }
+      if (pinned) {
+        // Locked categories are never aggregated into the feed.
+        const list = recs
+          .filter((r) => r.pinned && !isLocked(r.category))
+          .sort((a, b) => (a.updated > b.updated ? -1 : 1));
+        return HttpResponse.json({
+          ok: true,
+          status: "healthy",
+          data: { records: list },
+        });
+      }
+      const list = recs
+        .filter((r) => !isLocked(r.category))
+        .sort((a, b) => (a.created > b.created ? -1 : 1));
+      return HttpResponse.json({ ok: true, status: "healthy", data: { records: list } });
+    }),
+    http.post("/api/auth/step-up", async ({ request }) => {
+      const body = (await request.json().catch(() => ({}))) as { token?: unknown };
+      if (typeof body.token !== "string" || body.token.trim() === "") {
+        return HttpResponse.json(
+          { detail: "step-up credential invalid" },
+          { status: 403 },
+        );
+      }
+      granted = true;
+      return HttpResponse.json({
+        ok: true,
+        data: { has_step_up: true, expires_in: 300, principal_id: "person:rylee" },
+      });
+    }),
+    http.post("/api/records", async ({ request }) => {
+      const body = (await request.json().catch(() => null)) as {
+        id?: string;
+        category?: string;
+        title?: string;
+        fields?: Record<string, string | number | boolean | null>;
+        locked?: boolean;
+      } | null;
+      if (body === null || typeof body !== "object") {
+        // The server's exact refusal for a non-object body (api.py).
+        return HttpResponse.json(
+          { detail: "body must be an object" },
+          { status: 400 },
+        );
+      }
+      const title = (body.title ?? "").trim();
+      const category = (body.category ?? "").trim();
+      if (title === "") {
+        return HttpResponse.json({ detail: "title is required" }, { status: 422 });
+      }
+      if (category === "") {
+        return HttpResponse.json({ detail: "category is required" }, { status: 422 });
+      }
+      const slug = slugOf(category);
+      let cat = cats.find((c) => c.slug === slug);
+      if (!cat) {
+        cat = { slug, name: category.slice(0, 80), locked: false };
+        cats.push(cat);
+      }
+      if (typeof body.locked === "boolean") cat.locked = body.locked;
+      const iso = new Date().toISOString();
+      const existing = body.id ? recs.find((r) => r.id === body.id) : undefined;
+      if (existing) {
+        existing.title = title;
+        existing.fields = body.fields ?? existing.fields;
+        existing.category = slug;
+        existing.category_name = cat.name;
+        existing.updated = iso;
+        return HttpResponse.json({ ok: true, status: "healthy", data: { ...existing } });
+      }
+      const rec: Rec = {
+        id: `${slugOf(title).slice(0, 40) || "record"}-${recs.length}${Date.now() % 1000}`,
+        category: slug,
+        category_name: cat.name,
+        title,
+        fields: body.fields ?? {},
+        pinned: false,
+        created: iso,
+        updated: iso,
+      };
+      recs.push(rec);
+      return HttpResponse.json({ ok: true, status: "healthy", data: { ...rec } });
+    }),
+    http.post("/api/records/pin", async ({ request }) =>
+      setFixturePin(await readTarget(request), true),
+    ),
+    http.post("/api/records/unpin", async ({ request }) =>
+      setFixturePin(await readTarget(request), false),
+    ),
+    http.delete("/api/records", async ({ request }) => {
+      const target = await readTarget(request);
+      const slug = slugOf(target.category ?? "");
+      const i = recs.findIndex((r) => r.category === slug && r.id === target.id);
+      if (i === -1) {
+        return HttpResponse.json({
+          ok: false,
+          status: "not_found",
+          warnings: ["no such record"],
+        });
+      }
+      recs.splice(i, 1);
+      return HttpResponse.json({ ok: true, status: "healthy", data: { deleted: true } });
+    }),
+  ];
+
+  async function readTarget(request: Request): Promise<{ category?: string; id?: string }> {
+    const body = (await request.json().catch(() => ({}))) as unknown;
+    return body && typeof body === "object"
+      ? (body as { category?: string; id?: string })
+      : {};
+  }
+
+  function setFixturePin(
+    target: { category?: string; id?: string },
+    pinned: boolean,
+  ) {
+    const slug = slugOf(target.category ?? "");
+    const rec = recs.find((r) => r.category === slug && r.id === target.id);
+    if (!rec) {
+      return HttpResponse.json({
+        ok: false,
+        status: "not_found",
+        warnings: ["no such record"],
+      });
+    }
+    rec.pinned = pinned;
+    rec.updated = new Date().toISOString();
+    return HttpResponse.json({ ok: true, status: "healthy", data: { ...rec } });
+  }
 }
 
 // ─── Named handler sets ──────────────────────────────────────────────

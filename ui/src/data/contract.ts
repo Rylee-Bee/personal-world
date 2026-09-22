@@ -229,6 +229,86 @@ export interface SessionData {
   has_step_up: boolean;
 }
 
+// ─── Records (api.py records_* + records.py; docs/RECORDS-API.md) ─
+// Structured person data inside Memory. A category row is
+// {slug, name, locked, count, pinned-count}; a record is a World Fact
+// value {id, category, category_name, title, fields, pinned, created,
+// updated}. Field VALUES are JSON scalars (records._clean_fields
+// rejects anything richer). Soft refusals ride the envelope: the
+// degraded state is {ok:false, status:"unavailable", warnings:["no
+// memory provider"]}; a not_found pin/delete is {ok:false,
+// status:"not_found"}. The locked read is the one HARD refusal: HTTP
+// 409 + {ok:false, status:"locked", category, warnings:[…]}.
+
+export interface RecordCategoryRow {
+  slug: string;
+  name: string;
+  locked: boolean;
+  count: number;
+  pinned: number;
+}
+
+export interface RecordFieldMap {
+  [key: string]: string | number | boolean | null;
+}
+
+export interface RecordItem {
+  id: string;
+  category: string;
+  category_name: string;
+  title: string;
+  fields: RecordFieldMap;
+  pinned: boolean;
+  created: string;
+  updated: string;
+}
+
+export interface RecordCategoriesData {
+  categories: RecordCategoryRow[];
+}
+
+/** GET /api/records: ?category= adds {category, locked}; the pinned
+ * feed and aggregate browse answer {records} only. So category and
+ * locked are optional here — whatever the server actually echoed. */
+export interface RecordsListData {
+  category?: string;
+  locked?: boolean;
+  records: RecordItem[];
+}
+
+/** POST /api/records body (raw request.json(); create when `id` is
+ * absent; `locked`, when present, sets the category lock in the same
+ * step-up-gated write). */
+export interface RecordWriteRequest {
+  id?: string;
+  category: string;
+  title: string;
+  fields?: RecordFieldMap;
+  locked?: boolean;
+}
+
+/** POST /api/records/pin | /unpin and DELETE /api/records bodies. */
+export interface RecordTargetRequest {
+  category: string;
+  id: string;
+}
+
+// ─── Step-up elevation (auth_routes.py auth_step_up) ──────
+// POST /api/auth/step-up re-presents a credential and mints the
+// time-bounded grant require_step_up consumes. 403 = the credential
+// did not match this session's principal (fail-closed, never says
+// which half failed).
+
+export interface StepUpRequest {
+  token: string;
+}
+
+export interface StepUpData {
+  has_step_up: true;
+  expires_in: number;
+  principal_id: string;
+}
+
 // ─── Vault (api.py vault_*; never values in status/names) ─
 
 export interface VaultStatusData {

@@ -1696,6 +1696,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Records List
+         * @description List records. With a category: a locked category yields an honest
+         *     409 'locked' envelope unless THIS request carries fresh step-up.
+         *     Without a category: the unlocked browse view; ``?pinned=true`` narrows
+         *     it to the Overview feed. A locked category is never aggregated in.
+         */
+        get: operations["records_list_api_records_get"];
+        put?: never;
+        /**
+         * Records Write
+         * @description Create or update a record. Step-up gated (the human-approval ACT,
+         *     same seam as /api/world/fact and PUT /api/sections). Optional
+         *     ``locked`` sets the category's lock in the same authorized write;
+         *     records are stored as World Facts on the caller's own world.json.
+         */
+        post: operations["records_write_api_records_post"];
+        /**
+         * Records Delete
+         * @description Delete a record. Same approval discipline as every Records write:
+         *     step-up gated and caller-scoped.
+         */
+        delete: operations["records_delete_api_records_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Records Categories
+         * @description Names, counts, and the locked flag for every category. A locked
+         *     category is LISTED (name + count + locked) without exposing contents
+         *     — so a person always knows what to unlock.
+         */
+        get: operations["records_categories_api_records_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Records Pin
+         * @description Pin a record for the Overview. Step-up gated, caller-scoped.
+         */
+        post: operations["records_pin_api_records_pin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/unpin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Records Unpin
+         * @description Remove a record's pin. Step-up gated, caller-scoped.
+         */
+        post: operations["records_unpin_api_records_unpin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reminders": {
         parameters: {
             query?: never;
@@ -4737,6 +4834,150 @@ export interface operations {
         };
     };
     reconciler_status_api_reconciler_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    records_list_api_records_get: {
+        parameters: {
+            query?: {
+                category?: string | null;
+                pinned?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    records_write_api_records_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    records_delete_api_records_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    records_categories_api_records_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    records_pin_api_records_pin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    records_unpin_api_records_unpin_post: {
         parameters: {
             query?: never;
             header?: never;

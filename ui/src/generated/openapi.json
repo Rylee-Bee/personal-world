@@ -2457,6 +2457,167 @@
         "summary": "Reconciler Status"
       }
     },
+    "/api/records": {
+      "delete": {
+        "description": "Delete a record. Same approval discipline as every Records write:\nstep-up gated and caller-scoped.",
+        "operationId": "records_delete_api_records_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Delete Api Records Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Delete"
+      },
+      "get": {
+        "description": "List records. With a category: a locked category yields an honest\n409 'locked' envelope unless THIS request carries fresh step-up.\nWithout a category: the unlocked browse view; ``?pinned=true`` narrows\nit to the Overview feed. A locked category is never aggregated in.",
+        "operationId": "records_list_api_records_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pinned",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Pinned",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records List Api Records Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Records List"
+      },
+      "post": {
+        "description": "Create or update a record. Step-up gated (the human-approval ACT,\nsame seam as /api/world/fact and PUT /api/sections). Optional\n``locked`` sets the category's lock in the same authorized write;\nrecords are stored as World Facts on the caller's own world.json.",
+        "operationId": "records_write_api_records_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Write Api Records Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Write"
+      }
+    },
+    "/api/records/categories": {
+      "get": {
+        "description": "Names, counts, and the locked flag for every category. A locked\ncategory is LISTED (name + count + locked) without exposing contents\n— so a person always knows what to unlock.",
+        "operationId": "records_categories_api_records_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Categories Api Records Categories Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Categories"
+      }
+    },
+    "/api/records/pin": {
+      "post": {
+        "description": "Pin a record for the Overview. Step-up gated, caller-scoped.",
+        "operationId": "records_pin_api_records_pin_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Pin Api Records Pin Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Pin"
+      }
+    },
+    "/api/records/unpin": {
+      "post": {
+        "description": "Remove a record's pin. Step-up gated, caller-scoped.",
+        "operationId": "records_unpin_api_records_unpin_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Unpin Api Records Unpin Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Unpin"
+      }
+    },
     "/api/reminders": {
       "get": {
         "description": "List the caller's own reminders (per-user, decision #13).",

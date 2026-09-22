@@ -187,6 +187,231 @@ const SECTIONS = [
   { id: "settings", label: "Settings", icon: "navigation--settings", order: 2, visible: true, pinned: true, kind: "core", configured: true, status: null },
 ];
 
+// ── Records fixtures (Lane R-FE, 2026-09-21) ─────────────────────────
+// Envelope shapes copied verbatim from docs/RECORDS-API.md and
+// tests/test_records.py + api.py records_*: category rows are
+// {slug,name,locked,count,pinned-count}; record values are
+// {id,category,category_name,title,fields,pinned,created,updated};
+// a locked read without fresh step-up is the HARD 409
+// {ok:false,status:"locked",category,warnings:[…]}; not_found writes
+// are 200 + {ok:false,status:"not_found"}; and with no provider the
+// whole surface answers 200 + {ok:false,status:"unavailable",
+// warnings:["no memory provider"]}. Fiction only — Z999 is fixture
+// material, never a real document.
+const RECORD_CATS = [
+  { slug: "medical", name: "Medical", locked: false },
+  { slug: "identity-documents", name: "Identity documents", locked: true },
+];
+const RECORD_ITEMS = [
+  {
+    id: "allergy-list-f1e2d3",
+    category: "medical",
+    category_name: "Medical",
+    title: "Allergy list",
+    fields: { severe: "Penicillin", noted: "2026-03-14" },
+    pinned: true,
+    created: "2026-09-18T10:00:00+00:00",
+    updated: "2026-09-18T10:00:00+00:00",
+  },
+  {
+    id: "clinic-address-a4b5c6",
+    category: "medical",
+    category_name: "Medical",
+    title: "Clinic address",
+    fields: { line: "42 Harbour Rd" },
+    pinned: false,
+    created: "2026-09-19T08:00:00+00:00",
+    updated: "2026-09-19T08:00:00+00:00",
+  },
+  {
+    id: "passport-number-d7e8f9",
+    category: "identity-documents",
+    category_name: "Identity documents",
+    title: "Passport number",
+    fields: { number: "Z999-FIXTURE" },
+    pinned: false,
+    created: "2026-09-17T12:00:00+00:00",
+    updated: "2026-09-17T12:00:00+00:00",
+  },
+];
+// The elevation seam (mirrors _step_up_authorized's session-grant
+// mechanism). Seeded granted like a loopback session on the real
+// station; specs exercise the 409 invitation through page.route
+// overrides so parallel workers never race this flag.
+let RECORD_STEP_UP_GRANTED = true;
+let recordSeq = 0;
+
+const categorySlug = (value) =>
+  String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+function recordCategoryRows() {
+  return RECORD_CATS.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    locked: c.locked,
+    count: RECORD_ITEMS.filter((r) => r.category === c.slug).length,
+    pinned: RECORD_ITEMS.filter((r) => r.category === c.slug && r.pinned).length,
+  })).sort((a, b) => (a.slug < b.slug ? -1 : 1));
+}
+
+function recordsRoutes(req, res, url, method) {
+  const cat = (slug) => RECORD_CATS.find((c) => c.slug === slug);
+
+  if (method === "GET" && url.pathname === "/api/records/categories") {
+    return json(res, 200, ok("healthy", { categories: recordCategoryRows() }));
+  }
+
+  if (url.pathname === "/api/records") {
+    if (method === "GET") {
+      const category = url.searchParams.get("category");
+      const pinned = url.searchParams.get("pinned") === "true";
+      if (category !== null) {
+        const slug = categorySlug(category);
+        if (!slug) return json(res, 422, { detail: "category is required" });
+        const c = cat(slug);
+        if (c && c.locked && !RECORD_STEP_UP_GRANTED) {
+          // The honest HARD refusal — 409, never a softened 200.
+          return json(res, 409, {
+            ok: false,
+            status: "locked",
+            category: slug,
+            warnings: [`category '${slug}' is locked: step-up required to read`],
+          });
+        }
+        let recs = RECORD_ITEMS.filter((r) => r.category === slug).sort((a, b) =>
+          a.created < b.created ? -1 : 1,
+        );
+        if (pinned) recs = recs.filter((r) => r.pinned);
+        return json(res, 200, ok("healthy", {
+          category: slug,
+          locked: Boolean(c && c.locked),
+          records: recs,
+        }));
+      }
+      if (pinned) {
+        // The Overview feed never aggregates locked categories.
+        return json(res, 200, ok("healthy", {
+          records: RECORD_ITEMS.filter((r) => r.pinned && !cat(r.category)?.locked).sort(
+            (a, b) => (a.updated > b.updated ? -1 : 1),
+          ),
+        }));
+      }
+      return json(res, 200, ok("healthy", {
+        records: RECORD_ITEMS.filter((r) => !cat(r.category)?.locked).sort(
+          (a, b) => (a.created > b.created ? -1 : 1),
+        ),
+      }));
+    }
+
+    if (method === "POST") {
+      // Create/update — the step-up ACT (mock session is elevated).
+      return readBody(req).then((body) => {
+        if (body === null) return json(res, 400, { detail: "body must be JSON" });
+        if (typeof body !== "object" || Array.isArray(body)) {
+          return json(res, 400, { detail: "body must be an object" });
+        }
+        if (!("title" in body)) return json(res, 422, { detail: "title is required" });
+        const title = String(body.title ?? "").trim();
+        const slug = categorySlug(body.category);
+        if (!title || title.length > 200) {
+          return json(res, 422, { detail: "title must be 1-200 chars" });
+        }
+        if (!slug) return json(res, 422, { detail: "category is required" });
+        let c = cat(slug);
+        if (!c) {
+          c = { slug, name: String(body.category).trim().slice(0, 80), locked: false };
+          RECORD_CATS.push(c);
+        }
+        if (body.locked !== undefined) {
+          if (typeof body.locked !== "boolean") {
+            return json(res, 422, { detail: "locked must be a boolean" });
+          }
+          c.locked = body.locked;
+        }
+        if (body.fields !== undefined && body.fields !== null) {
+          if (typeof body.fields !== "object" || Array.isArray(body.fields)) {
+            return json(res, 422, { detail: "fields must be an object of key -> value" });
+          }
+          for (const [k, v] of Object.entries(body.fields)) {
+            const bad =
+              v !== null &&
+              typeof v !== "string" &&
+              typeof v !== "number" &&
+              typeof v !== "boolean";
+            if (bad) {
+              return json(res, 422, { detail: `field '${k}' must be a scalar (string, number, bool, or null)` });
+            }
+          }
+        }
+        const iso = new Date().toISOString();
+        const existing = body.id
+          ? RECORD_ITEMS.find((r) => r.id === String(body.id))
+          : undefined;
+        if (existing) {
+          existing.title = title;
+          existing.fields = body.fields ?? existing.fields;
+          existing.category = slug;
+          existing.category_name = c.name;
+          existing.updated = iso;
+          return json(res, 200, ok("healthy", { ...existing }));
+        }
+        const rec = {
+          id: `${slugOfTitle(title)}-e2e${(recordSeq += 1)}`,
+          category: slug,
+          category_name: c.name,
+          title,
+          fields: body.fields ?? {},
+          pinned: false,
+          created: iso,
+          updated: iso,
+        };
+        RECORD_ITEMS.push(rec);
+        return json(res, 200, ok("healthy", rec));
+      });
+    }
+
+    if (method === "DELETE") {
+      return readBody(req).then((body) => {
+        if (body === null) return json(res, 400, { detail: "body must be JSON" });
+        const slug = categorySlug(body.category);
+        const i = RECORD_ITEMS.findIndex((r) => r.category === slug && r.id === body.id);
+        if (i === -1) {
+          return json(res, 200, {
+            ok: false,
+            status: "not_found",
+            warnings: ["no such record"],
+          });
+        }
+        RECORD_ITEMS.splice(i, 1);
+        return json(res, 200, ok("healthy", { deleted: true }));
+      });
+    }
+  }
+
+  if ((method === "POST") && (url.pathname === "/api/records/pin" || url.pathname === "/api/records/unpin")) {
+    const pinned = url.pathname.endsWith("/pin");
+    return readBody(req).then((body) => {
+      if (body === null) return json(res, 400, { detail: "body must be JSON" });
+      const slug = categorySlug(body.category);
+      const rec = RECORD_ITEMS.find((r) => r.category === slug && r.id === body.id);
+      if (!rec) {
+        return json(res, 200, {
+          ok: false,
+          status: "not_found",
+          warnings: ["no such record"],
+        });
+      }
+      rec.pinned = pinned;
+      rec.updated = new Date().toISOString();
+      return json(res, 200, ok("healthy", { ...rec }));
+    });
+  }
+
+  return null;
+}
+
+const slugOfTitle = (title) => categorySlug(title).slice(0, 40) || "record";
+
 let vaultLocked = true;
 // In-memory secret store (fixture fiction, like the journal): the
 // names list and per-name routes read/write THIS, so set/delete
@@ -440,8 +665,27 @@ const server = http.createServer(async (req, res) => {
   if (method === "GET" && p === "/api/auth/session") {
     return json(res, 200, {
       ok: true,
-      data: { principal_id: "person:operator", auth_method: "instance-token", has_step_up: true },
+      data: { principal_id: "person:operator", auth_method: "instance-token", has_step_up: RECORD_STEP_UP_GRANTED },
     });
+  }
+  // POST /api/auth/step-up — auth_routes.py auth_step_up verbatim:
+  // a credential event (empty token fails closed 403), a bounded
+  // grant, and NO status key on success ({ok, data} only).
+  if (method === "POST" && p === "/api/auth/step-up") {
+    const body = await readBody(req);
+    const token = String(body?.token ?? "").trim();
+    if (!token) return json(res, 403, { detail: "step-up credential invalid" });
+    RECORD_STEP_UP_GRANTED = true;
+    return json(res, 200, {
+      ok: true,
+      data: { has_step_up: true, expires_in: 300, principal_id: "person:operator" },
+    });
+  }
+  // Records — Memory's structured half (docs/RECORDS-API.md). The
+  // router returns null only when no route matched.
+  {
+    const handled = recordsRoutes(req, res, url, method);
+    if (handled !== null) return handled;
   }
   if ((method === "GET" || method === "PUT") && p === "/api/identity/principal") {
     return json(res, 200, ok("healthy", {

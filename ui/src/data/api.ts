@@ -48,10 +48,17 @@ import type {
   Reminder,
   ReminderAddRequest,
   ReminderPatchRequest,
+  RecordCategoriesData,
+  RecordItem,
+  RecordTargetRequest,
+  RecordWriteRequest,
+  RecordsListData,
   SectionsData,
   SectionsUpdateRequest,
   SessionData,
   SetupData,
+  StepUpData,
+  StepUpRequest,
   StatusData,
   UserCreateRequest,
   VaultNamesData,
@@ -178,7 +185,7 @@ async function unwrap<T>(promise: Promise<FetchResult>): Promise<T> {
  * identical to calling `api.POST(path, { body })` directly.
  */
 function sendBody(
-  method: "POST" | "PUT" | "PATCH",
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
   body: object,
   params?: unknown,
@@ -308,6 +315,42 @@ export const searchMemory = (q: string, topK?: number) =>
     api.GET("/api/memory/search", { params: { query: { q, top_k: topK } } }),
   );
 
+// ===== Records (structured person data inside Memory) =====
+// Contract: personal-world docs/RECORDS-API.md + api.py records_* —
+// verified 2026-09-21. Reads are person-authenticated; every write is
+// require_step_up gated (403 "write requires step-up auth" when the
+// session carries no fresh grant). Reading a LOCKED category without
+// fresh step-up answers the hard 409 envelope {status:"locked"} —
+// unwrap throws it as ApiError(409), and the Records panel renders it
+// as the step-up invitation, never as a dead end. With no memory
+// provider the whole surface answers the 200 soft envelope
+// {ok:false, status:"unavailable", warnings:["no memory provider"]}.
+
+export const listRecordCategories = () =>
+  unwrap<Envelope<RecordCategoriesData>>(api.GET("/api/records/categories", {}));
+
+export const listRecords = (params?: { category?: string; pinned?: boolean }) =>
+  unwrap<Envelope<RecordsListData>>(
+    api.GET("/api/records", { params: { query: params } }),
+  );
+
+/** Create (no `id`) or update (`id`) one record. Step-up gated. */
+export const writeRecord = (body: RecordWriteRequest) =>
+  unwrap<Envelope<RecordItem>>(sendBody("POST", "/api/records", body));
+
+export const pinRecord = (body: RecordTargetRequest) =>
+  unwrap<Envelope<RecordItem>>(sendBody("POST", "/api/records/pin", body));
+
+export const unpinRecord = (body: RecordTargetRequest) =>
+  unwrap<Envelope<RecordItem>>(sendBody("POST", "/api/records/unpin", body));
+
+/** DELETE /api/records reads raw request.json() like the other
+ * body-carrying writes — hence sendBody, not a params-only call. */
+export const deleteRecord = (body: RecordTargetRequest) =>
+  unwrap<Envelope<{ deleted: boolean }>>(
+    sendBody("DELETE", "/api/records", body),
+  );
+
 // Tools
 export const listTools = () => unwrap<Envelope>(api.GET("/api/tools", {}));
 
@@ -321,6 +364,14 @@ export const logout = () => unwrap<Envelope>(api.POST("/api/auth/logout", {}));
 
 export const getSession = () =>
   unwrap<Envelope<SessionData>>(api.GET("/api/auth/session", {}));
+
+/** Re-present a credential to mint the time-bounded grant that
+ * require_step_up consumes (auth_routes.py auth_step_up). Wrong or
+ * absent credential fails closed: 403 "step-up credential invalid". */
+export const stepUp = (token: string) =>
+  unwrap<Envelope<StepUpData>>(
+    sendBody("POST", "/api/auth/step-up", { token } satisfies StepUpRequest),
+  );
 
 // ===== Vault =====
 export const getVaultStatus = () =>

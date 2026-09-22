@@ -30,6 +30,13 @@ import {
   listActors,
   getManifest,
   searchMemory,
+  listRecordCategories,
+  listRecords,
+  writeRecord,
+  pinRecord,
+  unpinRecord,
+  deleteRecord,
+  stepUp,
   listBrainTemplates,
   listTools,
   getSession,
@@ -110,6 +117,7 @@ export const queryKeys = {
   session: ["session"] as const,
   setup: ["setup"] as const,
   prefs: ["prefs"] as const,
+  records: ["records"] as const,
 } as const;
 
 // ===== Health =====
@@ -296,6 +304,113 @@ export function useMemorySearch(q: string, enabled = true) {
     queryFn: () => searchMemory(q),
     enabled: enabled && q.length > 0,
     staleTime: 60_000,
+  });
+}
+
+// ===== Records (structured person data inside Memory) =====
+//
+// Contract: docs/RECORDS-API.md. Reads answer person-authenticated;
+// the 409 "locked" refusal on a locked-category read PROPAGATES as an
+// ApiError (query error state) so the panel can render the step-up
+// invitation — it is never flattened into a fake success. The
+// degraded no-provider state is a 200 + ok:false envelope: that is
+// data, and screens read it honestly.
+
+/** Names + counts + locked flags for every category (contents never
+ * included — a locked category is still listed so a person knows
+ * what to unlock). */
+export function useRecordCategories() {
+  return useQuery({
+    queryKey: [...queryKeys.records, "categories"],
+    queryFn: listRecordCategories,
+  });
+}
+
+/** One category's records. The 409 locked refusal arrives as an error
+ * (isLockedRefusal) — by design, not by accident. */
+export function useRecordsInCategory(category: string | null) {
+  return useQuery({
+    queryKey: [...queryKeys.records, "category", category],
+    queryFn: () => listRecords({ category: category ?? undefined }),
+    enabled: category !== null && category !== "",
+  });
+}
+
+/** The Overview feed: pinned records across every UNLOCKED category. */
+export function usePinnedRecords() {
+  return useQuery({
+    queryKey: [...queryKeys.records, "pinned"],
+    queryFn: () => listRecords({ pinned: true }),
+    staleTime: 60_000,
+  });
+}
+
+/** Records actions answer 200 with `{ok:false, status:"not_found"|
+ *  "unavailable", warnings}` on refusal — throw, never render holes. */
+async function recordsAction<
+  T extends { ok?: boolean; status?: string; warnings?: string[] },
+>(fn: () => Promise<T>, fallback: string): Promise<T> {
+  const res = await fn();
+  if (res.ok === false) {
+    throw new Error(res.warnings?.[0] || res.status || fallback);
+  }
+  return res;
+}
+
+function invalidateRecords(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: queryKeys.records });
+}
+
+/** Create (no id) or update (id). Step-up gated: a 403 surfaces as an
+ * ApiError the panel turns into the honest "elevate first" notice. */
+export function useWriteRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof writeRecord>[0]) =>
+      recordsAction(() => writeRecord(body), "Could not save the record"),
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+export function useSetRecordPinned() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      category,
+      id,
+      pinned,
+    }: { category: string; id: string; pinned: boolean }) =>
+      recordsAction(
+        () =>
+          pinned
+            ? pinRecord({ category, id })
+            : unpinRecord({ category, id }),
+        pinned ? "Could not pin the record" : "Could not unpin the record",
+      ),
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+export function useDeleteRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ category, id }: { category: string; id: string }) =>
+      recordsAction(() => deleteRecord({ category, id }), "Could not delete the record"),
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+/** POST /api/auth/step-up — the credential event that mints the
+ * grant every Records write consumes. On success the session query
+ * re-reads so lock states visibly update. */
+export function useStepUp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) => stepUp(token),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.session });
+      invalidateRecords(qc);
+    },
   });
 }
 

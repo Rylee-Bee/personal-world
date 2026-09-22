@@ -58,6 +58,13 @@ vi.mock("../data/api", () => ({
   deleteConnection: vi.fn(),
   getPrincipal: vi.fn(),
   putPrincipal: vi.fn(),
+  listRecordCategories: vi.fn(),
+  listRecords: vi.fn(),
+  writeRecord: vi.fn(),
+  pinRecord: vi.fn(),
+  unpinRecord: vi.fn(),
+  deleteRecord: vi.fn(),
+  stepUp: vi.fn(),
   listUsers: vi.fn(),
   listAgents: vi.fn(),
   getDiscoveryStatus: vi.fn(),
@@ -72,6 +79,11 @@ vi.mock("../data/api", () => ({
 import {
   useTodaySummary,
   useJournalList,
+  useRecordCategories,
+  useRecordsInCategory,
+  useSetRecordPinned,
+  useWriteRecord,
+  useStepUp,
   queryKeys,
 } from "../data/hooks";
 import type { JournalEvent } from "../data/contract";
@@ -331,6 +343,114 @@ describe("hooks", () => {
       const base = queryKeys.journal;
       const withParams = [...base, { limit: 5 }];
       expect(withParams).toEqual(["journal", { limit: 5 }]);
+    });
+  });
+
+  // ===== Records (Lane R-FE wiring) =====
+  describe("useRecordCategories", () => {
+    it("passes the healthy envelope through untouched", async () => {
+      vi.mocked(api.listRecordCategories).mockResolvedValue({
+        ok: true,
+        status: "healthy",
+        data: {
+          categories: [
+            { slug: "medical", name: "Medical", locked: false, count: 2, pinned: 1 },
+          ],
+        },
+      });
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useRecordCategories(), { wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data?.data?.categories[0]).toEqual({
+        slug: "medical",
+        name: "Medical",
+        locked: false,
+        count: 2,
+        pinned: 1,
+      });
+    });
+
+    it("degradation is envelope DATA (ok:false), never a thrown failure", async () => {
+      // The server answers 200 + {ok:false,status:"unavailable",
+      // warnings:["no memory provider"]} — the screen must SEE that
+      // truth, not an error state.
+      vi.mocked(api.listRecordCategories).mockResolvedValue({
+        ok: false,
+        status: "unavailable",
+        warnings: ["no memory provider"],
+      });
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useRecordCategories(), { wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data?.ok).toBe(false);
+      expect(result.current.data?.warnings).toEqual(["no memory provider"]);
+    });
+  });
+
+  describe("useRecordsInCategory", () => {
+    it("stays disabled with no category — no doomed request", () => {
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useRecordsInCategory(null), { wrapper });
+      expect(result.current.isPending).toBe(true);
+      expect(api.listRecords).not.toHaveBeenCalled();
+    });
+
+    it("the 409 locked refusal PROPAGATES as an error (isLockedRefusal), never a fake empty", async () => {
+      vi.mocked(api.listRecords).mockRejectedValue(
+        Object.assign(new Error("category 'x' is locked: step-up required to read"), {
+          name: "ApiError",
+          status: 409,
+        }),
+      );
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useRecordsInCategory("x"), { wrapper });
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      const err = result.current.error as { status?: number };
+      expect(err.status).toBe(409);
+    });
+  });
+
+  describe("Records mutations", () => {
+    it("a not_found pin envelope throws with the server's word", async () => {
+      vi.mocked(api.pinRecord).mockResolvedValue({
+        ok: false,
+        status: "not_found",
+        warnings: ["no such record"],
+      });
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useSetRecordPinned(), { wrapper });
+      result.current.mutate({ category: "medical", id: "gone", pinned: true });
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.error?.message).toBe("no such record");
+    });
+
+    it("a 403 write refusal surfaces as the step-up gate, not silence", async () => {
+      vi.mocked(api.writeRecord).mockRejectedValue(
+        Object.assign(new Error("write requires step-up auth"), {
+          name: "ApiError",
+          status: 403,
+        }),
+      );
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useWriteRecord(), { wrapper });
+      result.current.mutate({ category: "medical", title: "Anything" });
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect((result.current.error as { status?: number }).status).toBe(403);
+    });
+  });
+
+  describe("useStepUp", () => {
+    it("carries the credential and resolves the grant envelope", async () => {
+      vi.mocked(api.stepUp).mockResolvedValue({
+        ok: true,
+        data: { has_step_up: true, expires_in: 300, principal_id: "person:operator" },
+      });
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useStepUp(), { wrapper });
+      result.current.mutate("fixture-credential");
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(api.stepUp).toHaveBeenCalledWith("fixture-credential");
+      expect(result.current.data?.data?.has_step_up).toBe(true);
     });
   });
 });

@@ -16,7 +16,7 @@
  * MSW provides mock data in Storybook/testing.
  */
 
-import { useTodaySummary } from "../../data/hooks";
+import { usePinnedRecords, useTodaySummary } from "../../data/hooks";
 import { WorldSignal } from "../../components/WorldSignal";
 import { ResidentPresence } from "../../components/ResidentPresence";
 import { WorldAssistant } from "../../components/WorldAssistant";
@@ -48,6 +48,61 @@ interface OverviewProps {
   /** State-driven activation, identical to the nav buttons. */
   onOpenArea: (id: WorldAreaId) => void;
   onOpenAssistant: () => void;
+}
+
+/**
+ * The Overview feed of pinned Records. Nothing renders unless the
+ * server answers ok:true with at least one record — pinned records
+ * are headlines, and a headline surface shows true headlines: an
+ * empty list, a no-provider envelope, or a failure all render zero
+ * DOM, never a placeholder lie. (Memory → Records carries the full
+ * honest state for the same capability.)
+ */
+function PinnedSection({ onOpenMemory }: { onOpenMemory: () => void }) {
+  const pinned = usePinnedRecords();
+  const envelope = pinned.data;
+  const records = envelope?.ok === true ? envelope.data?.records : undefined;
+  if (
+    pinned.isPending ||
+    pinned.isError ||
+    records === undefined ||
+    records.length === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <section aria-label="Pinned" className="mb-[var(--pw-spacing-2xl)]">
+      <div className="mb-[var(--pw-spacing-md)] flex items-baseline justify-between gap-[var(--pw-spacing-md)]">
+        <h2 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-accent-primary)]">
+          Pinned
+        </h2>
+        <button
+          type="button"
+          onClick={onOpenMemory}
+          className="min-h-[var(--pw-targets-minimum)] text-[var(--pw-typography-size_small)] text-[var(--pw-accent-primary)] underline focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+          aria-label="Open Memory to see all records"
+        >
+          Open Memory
+        </button>
+      </div>
+      <ul role="list" className="space-y-[var(--pw-spacing-sm)]">
+        {records.map((rec) => (
+          <li
+            key={rec.id}
+            className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-md)]"
+          >
+            <p className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
+              {rec.title}
+            </p>
+            <p className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+              Pinned record · {rec.category_name}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) {
@@ -146,6 +201,17 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
           </div>
         </section>
       )}
+
+      {/* Pinned — the Memory feed (GET /api/records?pinned=true).
+          Rendered ONLY when the capability is present and holds a
+          true non-zero: a degraded station (no memory provider →
+          ok:false envelope) or a query error answers "there is no
+          Memory headline right now", and Overview — as the headlines
+          surface — says nothing rather than inventing a dead card.
+          The honest "no source yet" words live on Memory → Records,
+          where the person goes looking for them. Locked categories
+          never appear here (server rule, RECORDS-API §Locking). */}
+      <PinnedSection onOpenMemory={() => onOpenArea("memory")} />
 
       {/* World areas — every reachable destination, activated the same
           way the nav bar activates it. Overview is the tap-through
