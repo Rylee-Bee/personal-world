@@ -51,6 +51,26 @@ covered/not-covered boundary lives in `docs/RECOVERY-BOUNDARY.md`.)
 Non-interactive recovery (scripts, systemd) can set
 `PW_BACKUP_PASSPHRASE` per-command instead of answering the prompt.
 
+### Compose appliance: the volumes, not host paths
+
+The tracked `compose.yaml` keeps everything in named volumes
+(`world-data` at `/data`, `config-data` at `/config` — SSO/provider
+config added 2026-09-22, `ollama-data` for models). Named volumes have
+no host path to archive from, so on the appliance run the backup from
+**inside the core container** (where `data/` and `config/` are real
+directories), for example:
+
+```bash
+docker compose exec core personal-world \
+  --data-dir /data --config-dir /config \
+  worlds backup /tmp/my-world.pwbackup
+```
+
+then copy the file out (`docker compose cp` or `cat`). The
+`config-data` volume matters most after an image update: without it,
+`oidc.json` died with the container while `setup-complete` survived —
+sign-in broke with no wizard to re-run it.
+
 ## Why the passphrase is never a command-line flag
 
 A value in argv is visible to every process on the machine (`ps`),

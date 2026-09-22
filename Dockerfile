@@ -55,6 +55,7 @@ ENV PW_DATA_DIR=/data \
 # responsive, with the starfield color system).
 
 VOLUME /data
+VOLUME /config
 
 EXPOSE 8000
 

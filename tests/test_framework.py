@@ -132,6 +132,22 @@ class TestCoreOnly:
         result = validate_compose_file(repo_root / "compose.yaml", {"gitea"})
         assert result.ok, [str(v) for v in result.violations]
 
+    def test_compose_persists_config_volume(self):
+        """Owner decision 2026-09-22: /config must be a named volume in
+        the portable base — wizard-seeded oidc.json dies with the
+        container otherwise, while setup-complete (world-data) survives,
+        leaving sign-in silently broken with no re-runnable wizard."""
+        import yaml
+
+        repo_root = Path(__file__).parent.parent
+        compose = yaml.safe_load((repo_root / "compose.yaml").read_text())
+        core_vols = compose["services"]["core"]["volumes"]
+        assert "config-data:/config" in core_vols, core_vols
+        assert "config-data" in compose["volumes"]
+        # Portable-base rule (2026-09-12): no host paths in the base.
+        for v in core_vols:
+            assert not v.startswith(("./", "/", "../")), v
+
     def test_api_works_with_zero_providers(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
         from personal_world.api import create_app

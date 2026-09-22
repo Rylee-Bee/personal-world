@@ -10,6 +10,7 @@
 #
 # Persistent volumes:
 #   world-data  — your world, journal, prefs, vault, secrets
+#   config-data — server config (SSO details, provider connections)
 #   ollama-data — downloaded LLM models (survives restarts)
 #
 # Required:
@@ -36,7 +37,8 @@ services:
   #
   # To swap models later:
   #   1. docker compose exec ollama ollama pull <model>
-  #   2. Update config/connections.json with the new model name
+  #   2. Edit config/connections.json inside the core container
+  #      (the config-data volume) with the new model name
   #
   # To use a different reasoning provider (OpenAI, Anthropic, etc.),
   # remove the ollama entry from connections.json and add your own.
@@ -106,7 +108,8 @@ services:
 
       # ── Optional: OIDC / SSO ─────────────────────────────────
       # Only needed if using an OIDC provider (e.g. Authelia).
-      # Copy config/oidc.example.json to config/oidc.json and fill in.
+      # The setup wizard writes SSO details to the config-data
+      # volume automatically; a manual file goes to /config/oidc.json.
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
 
       # ── Optional: Lab CLI path ────────────────────────────────
@@ -114,6 +117,12 @@ services:
       # PW_LAB_CLI: /opt/scripts/lab
     volumes:
       - world-data:/data
+      # /config must survive container recreation: the setup wizard
+      # writes SSO details there, and setup-complete (in world-data)
+      # prevents re-running the wizard — without this volume, an image
+      # update silently breaks sign-in. Named volume (no host paths):
+      # keeps the portable-base rule of the 2026-09-12 decision.
+      - config-data:/config
     healthcheck:
       test: ["CMD", "python", "-c",
              "import urllib.request,sys,json; \
@@ -131,9 +140,16 @@ services:
 #              preferences, vault, sections, reminders.
 #              This is your data. Back it up.
 #
+# config-data: Server config the wizard or you write to /config —
+#              oidc.json (SSO), connections.json (providers).
+#              Backup note: lives inside a named volume, so back it
+#              up from inside the container (see docs/WORLDS-BACKUP.md),
+#              not from a host path.
+#
 # ollama-data: Downloaded LLM models. Safe to delete if you want
 #              to reclaim disk space (models re-download on next boot).
 #
 volumes:
   world-data:
+  config-data:
   ollama-data:
