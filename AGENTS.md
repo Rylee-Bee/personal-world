@@ -48,6 +48,12 @@ agent's WIP into its commit. The rules:
   Use it to determine what “finished enough to live in every day” means;
   it outranks speculative roadmap items but does not override architecture,
   security, accessibility, or human-reliability contracts.
+- **First-release product language & IA:** `docs/PRODUCT-LANGUAGE.md`
+  (owner-approved 2026-09-21). Canonical product-facing vocabulary, the stable
+  skeleton (`Overview · Memory · Chat · Settings`), the personal-section model, the
+  Records-vs-Vault distinction, plain dark-warm theme principles, and the theme
+  boundary. It refines the finish line's older section names for the first release;
+  where they differ, it is the current product language.
 - **Design truth:** `design/tokens.json` and
   `docs/DESIGN-HANDOFF.md` are canonical for the V0.1/current-baseline
   design. `docs/PERSONAL-WORLD-FINISH-LINE.md` defines the target
@@ -97,3 +103,44 @@ agent's WIP into its commit. The rules:
   promises). Do not treat roadmap items as commitments or
   authorization. The Finish Line defines the desired completion target;
   current implementation evidence determines what remains to be built.
+
+## Workbench & Node direction (rules)
+
+Owner direction 2026-09-21 (D21–D24); rationale in `docs/adr/0003`–`0007` and
+`.project/DECISIONS.md`. These extend ADR-0001 to the primary-viewport limb; they do not
+replace any contract above.
+
+- **Worlds owns the experience; tools provide mechanics.** Prefer wrapping a stable CLI /
+  documented API / open protocol over embedding another product's web UI. Adopt mechanics,
+  own semantics (projects, context, authorization, orchestration, relationships, UX).
+- **CLI/API-first dependencies.** Between equivalent dependencies, prefer the one with a
+  stable CLI, documented API, or open protocol and the smallest permanent operational footprint.
+- **No core paid gate.** No core Worlds capability may require a commercial/Enterprise-only
+  feature. Commercial hosting/support around an open tool is fine; an essential capability
+  behind a paid gate is not suitable as foundational infrastructure.
+- **Licensing floor.** A foundational dependency must provide every capability Worlds relies on
+  in its self-hosted open-source distribution under an OSI-recognized license. Copyleft
+  (AGPL/GPL) is acceptable **only as an external service behind a clean API boundary** — never
+  linked into or absorbed by Worlds.
+- **Replaceable adapters.** External infrastructure sits behind a Worlds-owned contract
+  wherever practical (e.g. `NetworkOverlay` → `HeadscaleAdapter`).
+- **No duplicate infrastructure.** Do not create new storage, identity, secrets, networking,
+  build, or remote-access systems when an existing project or the homelab estate already
+  provides the mechanics (OpenBao/SOPS, Authelia, Traefik, restic, AmneziaWG, `ai-distrobox`).
+- **Containers are replaceable.** Persist valuable state explicitly; runtime containers are
+  reproducible and disposable.
+- **Terminal/exec broker boundary.** Workbench terminal/exec go through a capability-scoped
+  broker (allow-listed commands, scoped workdir, container-confined) — never a raw
+  Podman/Docker socket, never arbitrary host shell. "Open Host Shell" is an explicit,
+  separate privileged path.
+- **Remote degrades honestly.** Loss of a remote Node, edge VPS, or external capability must
+  not break Worlds Core; surface `unavailable`/`stale` honestly (Play-Nice
+  `failure-and-degradation`).
+- **The Agent is the enabler, not the product.** The Workbench / primary-viewport experience
+  is the product direction; the Node/Agent/network layer extends it and must not turn Worlds
+  into an RMM.
+- **The frontend is Worlds; Station is a theme.** The stable skeleton (`Overview · Memory · Chat ·
+  Settings` + personal sections) is the navigation — **not** a star-map/constellation drill (that model
+  belongs to the later Station theme package; Station is kept, never deleted). The default is a
+  **complete existing theme pack** (full color — plain means calm structure, not colorless), never a
+  hand-built partial shell or the aubergine station palette. See `docs/PRODUCT-LANGUAGE.md`.

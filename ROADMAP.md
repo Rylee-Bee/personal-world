@@ -19,6 +19,23 @@ Current context: the repo is single-branch `main`; the **Station**
 `design/opendesign-exploration/station/`) is the product UI; the
 superseded React SPA was removed 2026-09-16.
 
+## Direction — the primary-viewport limb (owner D21–D24, 2026-09-21)
+
+"Worlds as primary viewport" is a **named lighthouse on the single Road-to-1.0** (studio
+`ROADMAP.md`). The Workbench/Node/Agent work is a **limb over the existing homelab estate**, not a
+second platform. Canonical direction: studio `ROADMAP.md` lighthouse + `docs/adr/0003`–`0007`
+(proposed) + `.project/DECISIONS.md` (2026-09-21) + the rules in `AGENTS.md` § "Workbench & Node
+direction". Sequencing: **Station flip first** (foundation); the thin Workbench slice (attach the
+existing `ai-distrobox` → terminal → build → stream → preview → artifacts + one host capability)
+follows. **Headscale + Tailscale** (BSD-3, fully open; NetBird dropped — open-core/enterprise gate) is the
+preferred Node-networking overlay; **tailcat** (BSD-3) is a complementary point-to-point tool, not the
+coordinator. None is a dependency of the first slice.
+
+The first-release **product language & interaction contract** (owner-approved 2026-09-21) lives at
+[`docs/PRODUCT-LANGUAGE.md`](docs/PRODUCT-LANGUAGE.md): the stable skeleton (`Overview · Memory · Chat ·
+Settings`) + personal sections, Records-vs-Vault, the plain **dark-warm** default theme, and the theme
+boundary (restyle, never rename/relocate).
+
 ## Now
 
 Gaps that are real and verifiable in the current tree:

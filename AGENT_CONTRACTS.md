@@ -80,6 +80,21 @@ Regression gate: `tests/test_public_safety.py`.
 
 Rationale: [`docs/adr/0001-capabilities-core-owned-providers-optional.md`](docs/adr/0001-capabilities-core-owned-providers-optional.md).
 
+### Workbench & Node direction (the primary-viewport limb)
+
+- **Applies when:** Work touches the Workbench (terminal/exec/build/preview/artifacts), a Node
+  or Worlds Agent, the network overlay, the task/event envelope, or brokered credentials.
+- **Purpose:** Keeps the limb a *capability over the existing estate*, not a second platform:
+  Worlds owns experience/semantics, replaceable open tools provide mechanics, no core paid
+  gate, terminal/exec only through a scoped broker, the Agent is the enabler not the product.
+- **Contract:** [`AGENTS.md` § "Workbench & Node direction (rules)"](./AGENTS.md) — the rules;
+  rationale and detail in [`docs/adr/0003`](docs/adr/0003-workbench-core-owned-capability.md),
+  [`0004`](docs/adr/0004-node-agent-capability-model.md),
+  [`0005`](docs/adr/0005-network-overlay-netbird.md),
+  [`0006`](docs/adr/0006-event-task-envelope.md),
+  [`0007`](docs/adr/0007-vault-openbao-scoped-credentials.md) (all **proposed**, review-only).
+  Owner direction recorded in [`.project/DECISIONS.md`](.project/DECISIONS.md) (2026-09-21).
+
 ### Play-Nice Contracts (shared library)
 
 - **Applies when:** Work touches any governed surface — UI, API,

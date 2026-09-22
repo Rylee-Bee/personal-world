@@ -7,6 +7,12 @@ This document defines what “finished enough to live in every day” means for 
 
 It is product intent, not a promise that every future idea belongs in the current release. When planning toward completion, this finish line outranks speculative roadmap items. Existing architecture, security, accessibility, and human-reliability contracts still apply.
 
+> **First-release product language:** the section vocabulary below (Today, Journal, Vault, …) is refined for
+> the first release by [`docs/PRODUCT-LANGUAGE.md`](./PRODUCT-LANGUAGE.md) (owner-approved 2026-09-21):
+> *Today → Overview*, *Journal/Notes → Memory*, and **Records** (user information inside Memory) is distinct
+> from **Vault** (secrets infrastructure). This finish line remains the target-experience authority; that
+> contract is the current first-release language.
+
 ## Product goal
 
 Project Worlds should be the place Rylee can stay in all day for the ordinary parts of her digital life.

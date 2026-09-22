@@ -198,3 +198,253 @@ dated entry superseding the old one (append-only, like the journal).
   see is leftover state; a confusing slate is a trust failure, and
   Rylee's real data is too valuable to rest in a system whose
   persistence and auth seams are still being walked.
+
+## Workbench & Node direction — the primary-viewport limb (owner update)
+
+- **2026-09-21 — "Worlds as primary viewport" is a named lighthouse on the single Road-to-1.0; the
+  Workbench/Node/Agent work is a limb over the existing homelab estate, not a second infrastructure
+  platform.** Owner decisions D21–D24 (human, all-hands #7, `STAFF-MEETING-7-ALL-HANDS-REAL-WORLD-2026-09-21.md`):
+  - **D21 (merge):** one canonical direction. The studio `ROADMAP.md` (Road-to-1.0) is the single roadmap;
+    "Worlds as primary viewport" is a lighthouse on it. The architecture handoff, the owner-direction
+    update, and `WORLDS-DIRECTION-ALIGNMENT-2026-09-21.md` are **folded into** this entry + ADR-0003…0007 +
+    the roadmap lighthouse. Staff-meeting and handoff minutes remain **historical records**, not live
+    sources of direction.
+  - **D22 (flip-first):** the next real implementation proof is the **Station rebuild flip** (foundation).
+    ADR/rule alignment proceeds **review-only in parallel**; the Workbench *build* starts after the flip
+    lands. The thin slice = attach the existing `ai-distrobox` → Terminal → task/build → streaming →
+    preview → artifacts, plus **one** genuine host capability, all on one event envelope.
+  - **D23 (consolidate):** canonical direction lives in `ROADMAP.md` + `docs/PERSONAL-WORLD-FINISH-LINE.md`
+    + `docs/ARCHITECTURE.md` + `docs/adr/` + this file. Strategy docs are records.
+  - **D24 (NetBird, with owner clarification):** NetBird is the **preferred leading prototype** for the
+    eventual Node networking layer — **not** a dependency of the first thin slice. Preserved architecture:
+    `Worlds Node` = one user-facing install (Worlds Agent + NetBird client as separate cooperating
+    components); NetBird = mesh/routing/DNS/relay; Worlds Agent = identity/capabilities/orchestration/
+    host-controls/task-events/desktop-brokerage/step-up; Worlds owns a generic `NetworkOverlay` contract
+    (never coupled to NetBird's data model); NetBird replaceable; **no core capability on an
+    Enterprise/paid-only feature.** Pin the Community/Enterprise + API split before ADR-0005 is accepted.
+  - **Governing emphasis (owner, verbatim intent):** *the Workbench is not secondary to the Node/Agent
+    work; Worlds is the place I work directly, other machines are attached resources; the Agent/network
+    layer extends that environment and must not turn Worlds into an RMM.*
+  Reason: the direction had sprawled across parallel documents; this entry + the ADRs are the one canonical
+  record so future work grows toward it instead of fighting it. Rationale and detail: ADR-0003 (Workbench
+  capability), ADR-0004 (Node/Agent), ADR-0005 (NetworkOverlay/NetBird), ADR-0006 (event envelope),
+  ADR-0007 (Vault→OpenBao).
+
+## Product language & interaction contract — owner-approved
+
+- **2026-09-21 — The first-release product language and interaction contract is approved (human, owner
+  round table).** Canonical home: [`docs/PRODUCT-LANGUAGE.md`](../docs/PRODUCT-LANGUAGE.md). It refines the
+  finish line's older section vocabulary for the first release: **Today → Overview** (the front-page /
+  headlines surface, not a competing section) · **Journal/Notes → Memory** (a deterministic place with
+  recognizable, assignable icon+word categories, usable with every model off). **Records** (structured user
+  information inside Memory; sensitive records lockable; *not* a separate top-level area) is distinct from
+  **Vault** (secrets infrastructure) — *Records is not the friendly name for Vault.* Stable skeleton =
+  `Overview · Memory · Chat · Settings`; everything else is personal/pinnable sections (owner's own:
+  Projects pinned, Music folded into Interests). **Setup/Customize is structural and model-optional**
+  ("Customize" inside Settings; "Customize Worlds" as a button elsewhere). Vocabulary: **Run** (not Job) ·
+  **Output** (not Result) · **Services** stays · **Computer** (never "Node" in the UI) · "Worlds Agent" is the
+  technical name, install language is human ("Connect this computer to Worlds"). Plain default theme:
+  **dark-warm**, may carry a recognizable Worlds identity, but lore/companions/strongly-themed illustration
+  belong to optional theme packs; **evolve the existing generic-theme work, no new lineage.** Theme boundary:
+  themes restyle + add personality but never rename nav / move controls / relocate information / change
+  required actions or accessibility semantics — switching themes must not require relearning Worlds.
+  Governing principles: *customizable enough to become yours while accessible whether you have a lot or a
+  little to give*; *customization must never cost low-capacity recoverability.* **Preserve ≠ promote**; the
+  first release is **plain, not tiny.** Reason: the product language had sprawled across competing terms and
+  earlier subtraction passes over-cut real spine (Overview, Setup, theme machinery); one approved contract
+  aligns presentation without flattening the existing product. The round-table interview is the historical
+  source; this entry + `docs/PRODUCT-LANGUAGE.md` are canonical.
+
+## Network overlay — NetBird dropped; Headscale + Tailscale preferred
+
+- **2026-09-21 — NetBird is dropped as the Node networking overlay; Headscale + Tailscale is the preferred
+  fully-open alternative (human owner decision + research-desk pin).** Supersedes the "NetBird = preferred
+  prototype" line in the Workbench & Node entry above; ADR-0005 rewritten accordingly. Trigger: the owner
+  rule *"no core Worlds capability may depend on a paid/Enterprise-only feature."* Pin (2026-09-21, primary
+  sources): NetBird self-hosted is **open-core** — a free Community Edition *plus* a **Commercial/Enterprise
+  tier** gating advanced features (a 2026 trade article cites ~€2,000/yr "Commercial Starter"); NetBird also
+  relicensed BSD-3 → **AGPLv3** (their announcement, 2025-08-04). That trips the no-paid-gate rule → out.
+  Replacement: **Headscale** (`juanfont/headscale`, **BSD-3**) — the open-source self-hosted **Tailscale
+  control server / coordinator**, acknowledged by Tailscale for single-tailnet self-hosting — + **Tailscale
+  clients** (BSD-3). Architecture fit (owner intent): a **cloud VPS ("Worlds Edge") runs the Headscale
+  coordinator** (+ optional self-hosted DERP relay + Caddy ingress), **managed through Worlds** via the
+  `NetworkOverlay` → `HeadscaleAdapter` contract; any overlay stays replaceable behind it.
+- **Tailcat** (`tailscale/tailcat`, **BSD-3**, open-sourced Aug 2026) is recorded as a **complementary
+  point-to-point tool, not the coordinator**: "Tailscale without Tailscale" — netcat over WireGuard with
+  **no control plane** (metadata exchanged out of band). Strong candidate for the lightweight remote
+  **terminal / file-drop / port-forward** capabilities (ADR-0004). Caveat: **no API/CLI/wire stability
+  promises** (young) → pin versions, avoid deep coupling.
+- Scoped legal note: the "Tailscale + Headscale enterprise legal concern" is about **reselling a commercial
+  service** on the protocol/brand, not personal self-hosted use (BSD-3, unrestricted). The first Workbench
+  thin slice still uses **no overlay** (SSH + the existing `lab` CLI); Headscale is sequenced behind it.
+  Reason: preserves the no-paid-gate + replaceable-adapter rules and the owner's "easy, fully open,
+  coordinator-on-a-VPS-controlled-through-Worlds" intent.
+
+## Frontend is Worlds; Station is a theme (navigation reframe)
+
+- **2026-09-21 — "The frontend is Worlds. Station is a theme" (owner, human).** The **stable skeleton**
+  (`Overview · Memory · Chat · Settings` + personal sections) is the real, deterministic navigation. The whole
+  **star-map / constellation navigation model** (map-as-frontend, seven constellations, drill-through,
+  companion orbs, "fly the map to reach a place") moves **out of the core** and into the **later Station theme
+  package**. A person must never have to use a spatial map to find something — that was a theme assumption
+  that had become load-bearing. **Supersedes master-handoff decision 11 ("Station map = the frontend",
+  2026-09-16).**
+  - **Station is kept, not deleted** — its palettes, art, companions, and map views remain selectable
+    theme/experience packs. Rejected is Station as *default, baseline palette, or required vocabulary.*
+  - **Default theme = a complete existing pack, not a hand-built shell.** "Plain" means the **structure**
+    (calm, predictable, accessible, low cognitive load) — **not colorless.** Project Worlds ships a **full
+    multi-color pack** (all `--pw-*` tokens; the existing set already passes `lab design theme validate`).
+    Do **not** author a partial `plain.json` shell (that forces "all the other work" later). Reuse a full
+    pack, or generate one via `lab design theme make` only if none feels like home. **The aubergine "station"
+    pack is not the default.** **Starting-default pack = `starfield`** (owner, human, 2026-09-21) — a complete,
+    validated full palette (deep-navy + warm amber + teal), functionally the amber+teal warm-dark direction,
+    already full. Its provenance note "adapted from the constellation portfolio" is an internal lineage tag
+    **only** — a *palette carries no lore / companion / star-map navigation*, so choosing it does not
+    reintroduce Station; the constellation-*navigation* ban stands independently of palette. (Optional later:
+    retitle the default to `Worlds` and neutralize the provenance line — cosmetic.) Other full packs
+    (`ocean` / `moss` / `aurora-garden` / `copper-kitchen`) ship as switchable color options. Canonical
+    language: `docs/PRODUCT-LANGUAGE.md`.
+    Reason: earlier over-subtraction treated real spine as hypothetical and conflated *plain* with *colorless*
+    and hand-built a shell; this corrects both and makes the frontend/navigation unambiguously Worlds, with
+    Station as one theme among several.
+
+## The rebuild is the shippable product (supersedes D6 "React parked for beta")
+
+- **2026-09-21 — The `pw-vnext-station/ui/` React rebuild is promoted to *the* shippable product; the
+  currently-served vanilla `/station/` is experimental and will be retired, not polished (owner, human).**
+  Reverses the 2026-09-20 D6 framing ("plain Station centers v1; React spike PARKED as beta candidate —
+  no energy until beta"). Reason (owner): "the settings never really worked right on the last one due to
+  web inconsistencies… this should be cleaner… wire in the new stuff properly and that's our shippable
+  product. current is still experimental after all." The rebuild already has the schema-driven Settings Room
+  (prefs→DOM, motion firewall proven both directions, zero-error pipeline); the finicky surface is the one
+  we were serving.
+- **Definition of done for "shippable" (owner bar, in her words):** *"everything wired to* ***something***,
+  and understandable."* Concretely — no floating/dangling piece; every control hits a real endpoint or an
+  **honest empty/not-configured state**; no fabricated data or dead buttons; a newcomer (or Rylee on a low
+  day) can read any screen and know what it does and where its data comes from. **usable > ceremony** — not
+  "hit parity with the throwaway."
+- **Consequences:**
+  - The D14 big-bang flip gate was a *parity checklist against the served (now-experimental) surface*. With
+    the rebuild as the product, that parity is no longer the bar — **re-aim it** to: "does the rebuild wire to
+    real/honest endpoints and read as understandable?" Reuse the contract-triage CORE as a *coverage* map, not
+    a *parity* jail.
+  - **Rylee greenlights rebuilding the API interface if it serves wiring + understandability** — but API/contract
+    changes are core-owned + Play-Nice governed with real blast radius (tests, `/api/manifest`, docs). Decide
+    them deliberately (route-by-route as wiring demands), not as a speculative rewrite.
+  - The genuinely-new *build* work is small and already named in STATE: give `ui/` a real **serve path** in the
+    product image (the named flip gap) + fix the **npm peer-dep / storybook version-skew** tree break. Wire the
+    rest to the existing backend (the "Lego box" stays; reads open, writes gated).
+- **Honest state:** build/serve of the rebuild is **UNVERIFIED this session** — last-verified 2026-09-20
+  (preview deployed on a fresh volume, gates green), *not* re-run today; first action is a live grounding pass,
+  not assertion.
+
+## Product Council Δ-record (C1–C12) — 2026-09-21, appended per the append-only rule
+
+- **2026-09-21 — The two-week product council ran C1–C12 and changed the product record.
+  Full minutes:** `WORLDS-PRODUCT-COUNCIL-2026-09-21.md`. **The plan it produced:**
+  `WORLDS-DELIVERY-ORCHESTRATION-PLAN-2026-09-21.md` (supersedes
+  `WORLDS-FRIEND-UAT-PLAN-2026-09-21.md` as the *live* delivery plan; the UAT-plan
+  file remains as record of Phase-B lanes). Reason: earlier drafts front-loaded the
+  friend gate; C2+C7 corrected the sequence to Phase A (Rylee's home, with L-WB)
+  → Phase B (friend-safe trial, L12–L16) → Phase C (v2 personality themes on
+  stable bones).
+  - **C1 (Research Desk):** the only live fact base is `docs/repo/WIRING-READINESS.md`
+    (SHA `60823ae`) + this session's read-only probe; earlier prose (STATE, the
+    2026-09-16 master handoff) is *context*, not evidence. L16 real friends can
+    fail the plan and that's the point; budget goodwill.
+  - **C2:** the product's four human moments (Morning / Working / Stressed /
+    Curious) are the acceptance frame.
+  - **C3:** two new artifacts added as **gates** — the **landmark-stability rule**
+    (four skeleton landmarks stay reachable under any customization/theme) and an
+    **interruption/resumption fixture** on synthetic data.
+  - **C4:** named the **blocking set** for Phase A (three frontend REDs + serve
+    path / build repair), the **sequenced** set (registry convergence, chat wiring),
+    and the **deferred** set (streaming, tool-calling, overlay/mesh/desktop).
+    "Serve today" ≠ "the decided product" — L1 re-cut is required to make the
+    frontend match the stable-skeleton contract.
+  - **C5:** trust floor before any trial: vault step-up + true-loopback-only + per-instance
+    isolation (lab-box multi-instance still shares host) + tear-down-after as an enforced
+    lifecycle (not a promise). `vault.enc` portability is an open decision, not a default.
+  - **C6:** two more gates added — a tested **degraded-mode state matrix**
+    (model-off / provider-dead / node-offline / disk-full → each cell tested, no fake
+    green) and a **timed restore drill** that actually brings identities + world +
+    journal + vault (after the portability decision) + apps back on a clean box.
+  - **C8 (Boring Council):** subtraction pass ran — no new storage/identity/secrets/
+    network/CI/mesh enters the friend path. L-WB scope is **hard** (attach `ai-distrobox`,
+    one host capability, one journal envelope); drift toward Podman-socket or full RMM
+    re-convenes the Council. The `plain.json` shell stays deleted.
+  - **C9:** Headscale (BSD-3) chosen over NetBird (AGPLv3 + Commercial tier). Two items
+    recorded as **UNVERIFIED → to run** before their lane merges: a live build/serve pass,
+    and NetBird's Community-vs-Enterprise split. `starfield`'s "constellation portfolio"
+    line is internal provenance; the palette itself carries no lore.
+  - **C10:** the **acceptance gates** are named (G-shape · G-real · G-safe · G-memory ·
+    G-a11y · G-recover · G-degrade · G-workbench · G-onboard · G-trial) and they become
+    the plan's definition of done.
+  - **C11:** the friend-UAT (L16) is a consented research instrument with
+    feedback→decision routing, *not* a rubber-stamp; the two friends are real people.
+  - **C12 (synthesis):** the net product delta is the 4-verb record — **refined**
+    (roadmap order: home→friend→v2) · **expanded** (four new gates: stability ·
+    resumption · degraded-matrix · timed-restore) · **optimized** (lane split + reuse
+    of existing machinery) · **shrunk** (`plain.json` deleted, streaming/mesh
+    deferred to Phase C, Workbench is the *one* new capability in Phase A). The
+    owner-decision queue at the end of the plan is the live to-do for Rylee.
+
+  Reason: a two-week council should *change* the record. This entry is that change.
+
+## Shared CI harness — 2026-09-21 (L-CI)
+
+- **2026-09-21 — Pipeline plumbing becomes shared machinery; check semantics stay
+  repo-owned.** Owner-approved ("I want every part of this to be really clean").
+  New lane **L-CI** in `WORLDS-DELIVERY-ORCHESTRATION-PLAN-2026-09-21.md`: a
+  private-first `ci-harness` repo exposing `workflow_call` templates
+  (python-uv / node-vite / container-smoke) and the single action-SHA-pinning
+  source; adopting repos keep a ~15-line contract workflow declaring *their*
+  checks (public-safety, lore determinism, contrast-audit stay local concerns).
+  Reason (evidence from the same-day estate recon): ~1,829 lines of hand-written
+  workflow YAML across four repos with drifted action pins (`checkout@v4.2.2` in
+  rylee_lore vs `@v7.0.1` elsewhere), uv-setup re-written per job, homelab
+  validate.yml at 699 lines — copy-paste plumbing, not divergent requirements.
+  Constraints: the word *harness* in play-nice-contracts already means the
+  behavioral-research ledger — naming collision is explicit, README disambiguates;
+  homelab and rylee_lore migrations are a later wave (pilot = personal-world via
+  draft PR only, never lane-merged); validation requires a **real green GitHub
+  run**, actionlint-clean is necessary-not-sufficient; `lab ci` wrapper only if
+  it stays cheap. Doctrine applied: adopt the mechanics, own the semantics; keep
+  machinery boring; one canonical owner per concern.
+
+## Alpha/beta/RC definitions — 2026-09-22 (roundtable)
+
+- **2026-09-22 — Release vocabulary fixed against the plan's gates** (owner asked
+  the team where the project stands on the road to alpha; the roundtable ruled the
+  question undefined until mapped, so): **alpha** = all ten G-gates green
+  (shape · real · safe · memory · a11y · recover · degrade · workbench · onboard ·
+  trial-launcher-safe) AND Rylee uses Worlds as her daily home for a week;
+  **beta** = friend-hosted trial passed (G3, real humans + consent);
+  **RC** = R6 owner taste-pass ("does this feel like mine?"). Current verified
+  state at this entry: G-shape done (d3e6999, eyes-on via Steel browser);
+  G-safe backend done (step-up/loopback/isolation, 1218 backend tests green);
+  remainder ~35% with critical path Renai-art-fix → L4 → L7 → L-WB → L8 → L11 →
+  owner daily-use week. Reason: a percentage without a defined yardstick is
+  morale, not engineering. Simulated roundtable; owner authority intact.
+
+## Correctness over preservation + the interface cutover — 2026-09-22
+
+- **2026-09-22 — Owner doctrine adopted as governing rule**: correctness over
+  preservation; broken work is deleted or replaced, not patched around; fail
+  closed; evidence before completion; existing tests are evidence, not
+  authority. Reason: three prior UI pushes each said "done" while the old
+  interface kept shipping — completion claims measured artifacts (tests,
+  commits), never the user-visible outcome.
+- **2026-09-22 — The React rebuild IS the interface, published.** Owner
+  directive: no side-by-side, no env-var gate, no localhost. `/` serves the
+  rebuild from the container image (node stage builds ui/ → static/app);
+  the retired vanilla Station and the frontend/ test suite are deleted from
+  the tree (git history preserves them); /station and /vnext only redirect.
+  The old suite's axe gate was PORTED, not dropped: axe runs on all four
+  landmarks and found three real contrast failures (starfield/ocean/moss
+  muted tokens) plus a Tailwind class-slot collision (`text-[var(--pw-…)]`
+  compiling font-sizes as invalid colors app-wide) — all fixed; contrast
+  audit grew 44→56 pairs to cover the blind spot. Evidence: backend 1325
+  green; ui 168/168 + 67/67 e2e + lint 0/0; live container on :8000
+  verified by curl AND screenshot. Supersedes the side-by-side policy in the
+  2026-09-21 serve entry.
