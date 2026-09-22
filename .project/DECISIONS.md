@@ -448,3 +448,88 @@ dated entry superseding the old one (append-only, like the journal).
   green; ui 168/168 + 67/67 e2e + lint 0/0; live container on :8000
   verified by curl AND screenshot. Supersedes the side-by-side policy in the
   2026-09-21 serve entry.
+
+## Owner decision queue — items 1–9 resolved — 2026-09-22
+
+- **2026-09-22 — The full owner decision queue from the delivery plan was
+  walked one item at a time (human, Rylee; 9/9 answered).** Execution order
+  agreed: record → workbench demo+merge → wizard pass (3+5) → compose volume
+  (4) → docs sweep (6) → plain pack (2); items 8–9 deferred to their triggers.
+  Nobody commits but the orchestrator; explicit paths only.
+
+  - **Workbench spike (lane `workbench-spike`), three calls:**
+    (1) **attach mechanism = (a)** — keep `run_task` synchronous argv-in/
+    argv-out as built and tested for the demo; the (b) start-event /
+    (c) TTY-attach choice is deferred to the broker contract's first clause
+    (crossing the ADR-0006-4 durable/streams trigger knowingly, later).
+    (2) **default allowlist = `ai-distrobox` only** on this machine;
+    edits to `PW_WORKBENCH_CONTAINERS` / `allowed_containers` are
+    step-up-class authorization config, never free UI input;
+    per-container command allowlists are broker-contract material, absent
+    today. (3) **envelope fit = spike's shape approved as-is** — 5 additive
+    optional fields + `JournalKind.TASK` (flat, precedent-following), NOT a
+    nested `TaskEnvelope`; `ExecutionViewer` stays its own executions view
+    for now (store convergence = a later named call); `payload` keys stay
+    minimal (artifacts/workdir/timing unfreeze = later). Merge of the spike
+    branch is gated on the live demo being run first.
+  - **D2 plain theme (draft `design/PLAIN-DEFAULT-THEME-DRAFT.md`),
+    approved with one flip:** **accent = teal `#72B1B1` primary, amber
+    `#D4A057` rare highlight** (supersedes the draft's "amber primary"
+    proposal — the draft doc's Q1 answer is stale until updated by the
+    implementing lane) · surfaces = warm charcoal (faint umber, as drafted)
+    · headings keep **Young Serif** serif · **dark-warm only** for the first
+    release (light-warm = Phase C) · on validation passing (`lab design
+    theme validate`, fails:0 — proposed contrast values are NOT yet
+    validated), **`design/themes/plain.json` becomes the first-release
+    default pack; `starfield` demotes to a switchable optional pack.**
+    **Supersedes** the 2026-09-21 "Starting-default pack = starfield" line
+    above and the C8 "the `plain.json` shell stays deleted" note: the shell
+    prohibition was against a *partial, colorless* plain — this is a full
+    validated pack evolving the generic-theme work (no new lineage), per
+    the product-language contract. Same a11y floor: luminance-only status,
+    44px, focus ring, reduced-motion.
+  - **Setup wizard behavior:** warnings **pause only when blocking** —
+    a warning that means the next step genuinely won't work (SSO client-
+    secret env var unset; existing `oidc.json` conflict) requires an
+    explicit "continue anyway"; informational notes (search index build,
+    "available after restart") keep flowing without pause. **No vault step
+    in the wizard** — vault setup stays in Settings behind step-up; the
+    `init.py` comment claiming "the wizard's richer bootstrap (token +
+    vault)" is drift and gets corrected to match the code (token + stores +
+    search index only).
+  - **Compose config persistence:** the portable base gains a
+    **`config-data:/config` named volume** (keeps the 2026-09-12
+    "image-only, no host paths" rule intact — no bind mount in the base),
+    so wizard-seeded `oidc.json` and `connections.json` survive container
+    recreation instead of silently breaking SSO while `setup-complete`
+    survives in `world-data`. The two misleading `compose.yaml` config
+    comments ("Update config/connections.json", "Copy … oidc.example.json")
+    are fixed in the same change; `docs/WORLDS-BACKUP.md` gains the
+    in-container note for the new volume. Verification owed: write
+    `oidc.json` → `compose down`/`up` → file survives.
+  - **First-run naming:** `/setup` and `/login` say **"Worlds"** everywhere
+    (title, brand, H1, finish button) — matches the approved
+    `PRODUCT-LANGUAGE.md` voice; "Project Worlds" remains the formal name
+    in docs/README only.
+  - **L13 link collapse: proceed now, scoped as found** (the "owner pending
+    doc commit" collision is moot — that work landed as `766d85d`/
+    `b7e07fc`/`331b800`/`ab6dfda`). Collapse decorative cross-repo URLs to
+    a single safe pointer and **collapse `STATUS.md` and `.agent/STATE.md`
+    to one-line pointers** at `.project/CURRENT.md` in the same sweep.
+    Security boundary holds: the collapse target carries no private
+    topology. Gate: `tests/test_docs.py`.
+  - **Five UAT tasks: confirmed as written** (WORLDS-FRIEND-UAT-PLAN §1:
+    make it theirs via wizard · add something real · ask AI + model-off
+    parity · find by browsing, deterministic · leave-and-come-back).
+    No-coaching protocol and the per-task pass/fail/blocked evidence rule
+    stand.
+  - **Two friends for L16: deferred, not yet named** — re-ask trigger =
+    **L14 clean-box passing** (nothing blocked; L16 gates behind L14
+    anyway). Real humans, real consent, no rush.
+  - **R6 taste-pass: deferred with a trigger** — re-ask when (1) the plain
+    pack renders per the D2 calls above with contrast validated AND (2) the
+    workbench demo has been run; then one sitting: "does this feel like
+    mine?" R6 remains the only final gate before v1.0.
+  Reason: these were the plan's standing owner queue — recorded here so
+  every implementing lane cites written truth rather than a chat log.
+  Supersessions called out inline per the append-only rule.
