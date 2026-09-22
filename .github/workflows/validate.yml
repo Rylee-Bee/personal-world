@@ -6,21 +6,25 @@ name: validate
 # *semantics*: which checks gate merges and with what arguments.
 #
 # Job-for-job parity with the previous hand-written pipeline:
-#   test / compose / browser / security-gates / framework-gates.
+#   test / compose / browser / security-gates / framework-gates — plus the
+#   new contract-freshness gate (no pre-existing equivalent; it watches
+#   the ratified Play-Nice pin).
 # The compose job intentionally stays inline here: the compose-config check
-# fits none of the three templates, and contorting a template to host it
+# fits none of the four templates, and contorting a template to host it
 # would be dishonest plumbing. See ci-harness README for adoption.
 
 on:
   push:
     branches: [main]
   pull_request:
+  # Heartbeat for the Play-Nice pin (the heart): weekly off-peak check
+  # that the ratified adoption pin still reads CURRENT upstream. GitHub
+  # fires schedules only on the default branch; PRs re-check the same job
+  # on every push. push/pull_request carry no paths filter, so a change to
+  # .project/contracts/adoption.yaml already fires this workflow — adding
+  # an explicit paths list would narrow existing triggers, so none was.
   schedule:
-    # Heartbeat for the Play-Nice pin (the heart): weekly Monday check
-    # that the adoption pin still reads CURRENT against upstream. GitHub
-    # fires schedules only on the default branch; PRs re-check the same
-    # job on every push. Detection automated, pin movement manual.
-    - cron: "17 6 * * 1"
+    - cron: '17 6 * * 1'
 
 permissions:
   contents: read
@@ -72,10 +76,13 @@ jobs:
       pytest-args: "--timeout=30 tests/test_framework.py -v"
       post-test-commands: "uv run personal-world framework validate --json"
 
-  # The heart, kept honest automatically: fails closed whenever the
-  # ratified adoption pin drifts from Rylee-Bee/play-nice-contracts
-  # (see .project/contracts/adoption.yaml bump history — movement is a
-  # manual, attested ritual, never a sync).
+  # The heart, kept honest automatically: Play-Nice contract currency —
+  # is the ratified v0.10.0 pin in .project/contracts/adoption.yaml still
+  # the current remote revision? Fails closed (green only on CURRENT;
+  # BEHIND/DIVERGED exit 1; UNREACHABLE/UNKNOWN exit 2). Detection is
+  # automated; re-pinning source.revision stays a manual, attested ritual
+  # — never a sync job. This job going red after upstream moved is a
+  # correct alarm, not a malfunction.
   contract-freshness:
     uses: Rylee-Bee/ci-harness/.github/workflows/reusable-contract-freshness.yml@main
     with:
