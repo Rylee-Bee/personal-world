@@ -18,10 +18,10 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import export, prefs
+from . import export, prefs, records as records_mod
 from .connection_manager import ConnectionManager
 from .provider_schemas import (
     get_capability_schemas,
@@ -836,6 +836,217 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             }
         result = impl.search(q, limit=top_k)
         return result.model_dump(mode="json")
+
+    # ── Records: structured person data living INSIDE Memory ────────────
+    # PRODUCT-LANGUAGE §Records ≠ Vault. Records are user information
+    # (medical, work history, identity documents, …), NOT secrets — they
+    # never touch vault.py. They are stored as World Facts on the caller's
+    # own world.json (the core's existing structured-state store; see
+    # records.py for the full rationale) and audited through the caller's
+    # own append-only journal, so per-principal isolation and the
+    # supersession/owner-approval machinery are reused, not re-invented.
+    #
+    # Backing: Records are a Memory feature, so every route checks the SAME
+    # memory-capability provider /api/memory/search checks, and degrades to
+    # the identical honest "no memory provider" envelope when it is absent —
+    # never a fake-empty success (capability-grid truth: off / no provider).
+    #
+    # Writes: gated with require_step_up — the repo's human-approval seam —
+    # matching /api/world/fact and PUT /api/sections (the two closest
+    # structured-state writers) and the journal supersede ACT. The elevation
+    # is enforced server-side (_step_up_authorized), never from client trust;
+    # agents are refused (person-only, like the journal/prefs surfaces).
+
+    def _records_person_guard(request: Request):
+        """Person-only + the Memory backing-provider check shared by every
+        Records route. Returns ``(world, registry, uj, uw, degrade)``; when
+        ``degrade`` is not None the caller returns it verbatim."""
+        _require_person(getattr(request.state, "principal", None))
+        world, registry, uj = _state_for(request)
+        if registry.provider_for("memory") is None:
+            return None, None, None, None, {
+                "ok": False,
+                "status": "unavailable",
+                "warnings": ["no memory provider"],
+            }
+        uw, _uj = _user_paths(request)
+        return world, registry, uj, uw, None
+
+    def _records_audit(uj, summary: str) -> None:
+        """Append a private, content-free audit line to the CALLER's own
+        journal (shared journal in single mode). Field values are never
+        copied here — the record content lives in world.json, not the
+        journal; the audit names the action and category only."""
+        target = journal if uj == journal.path else Journal(uj)
+        target.record(
+            kind=JournalKind.SETTINGS_CHANGE,
+            summary=summary,
+            source="records",
+        )
+
+    @app.get("/api/records/categories", dependencies=[Depends(require_auth)])
+    async def records_categories(request: Request) -> dict:
+        """Names, counts, and the locked flag for every category. A locked
+        category is LISTED (name + count + locked) without exposing contents
+        — so a person always knows what to unlock."""
+        world, _registry, _uj, _uw, degrade = _records_person_guard(request)
+        if degrade is not None:
+            return degrade
+        cats = records_mod.list_categories(world)
+        return {"ok": True, "status": "healthy", "data": {"categories": cats}}
+
+    @app.get("/api/records", dependencies=[Depends(require_auth)])
+    async def records_list(
+        request: Request, category: str | None = None, pinned: bool = False
+    ) -> dict:
+        """List records. With a category: a locked category yields an honest
+        409 'locked' envelope unless THIS request carries fresh step-up.
+        Without a category: the unlocked browse view; ``?pinned=true`` narrows
+        it to the Overview feed. A locked category is never aggregated in."""
+        world, _registry, _uj, _uw, degrade = _records_person_guard(request)
+        if degrade is not None:
+            return degrade
+        if category is not None:
+            slug = records_mod.category_slug(category)
+            if not slug:
+                raise HTTPException(status_code=422, detail="category is required")
+            cat = records_mod.get_category(world, slug)
+            if cat and cat["locked"] and not _step_up_authorized(
+                request, getattr(request.state, "principal", None)
+            ):
+                return JSONResponse(
+                    status_code=409,
+                    content={
+                        "ok": False,
+                        "status": "locked",
+                        "category": slug,
+                        "warnings": [
+                            f"category '{slug}' is locked: step-up required to read"
+                        ],
+                    },
+                )
+            recs = records_mod.list_records(world, slug)
+            if pinned:
+                recs = [r for r in recs if r.get("pinned")]
+            return {
+                "ok": True,
+                "status": "healthy",
+                "data": {
+                    "category": slug,
+                    "locked": bool(cat and cat["locked"]),
+                    "records": recs,
+                },
+            }
+        # Aggregate browse view: never surfaces locked-category contents. The
+        # pinned Overview feed is owned by records.pinned_records (same rule).
+        if pinned:
+            return {
+                "ok": True,
+                "status": "healthy",
+                "data": {"records": records_mod.pinned_records(world)},
+            }
+        out: list[dict] = []
+        for c in records_mod.list_categories(world):
+            if c["locked"]:
+                continue
+            out.extend(records_mod.list_records(world, c["slug"]))
+        out.sort(key=lambda r: str(r.get("created", "")), reverse=True)
+        return {"ok": True, "status": "healthy", "data": {"records": out}}
+
+    @app.post("/api/records", dependencies=[Depends(require_step_up)])
+    async def records_write(request: Request) -> dict:
+        """Create or update a record. Step-up gated (the human-approval ACT,
+        same seam as /api/world/fact and PUT /api/sections). Optional
+        ``locked`` sets the category's lock in the same authorized write;
+        records are stored as World Facts on the caller's own world.json."""
+        _world, _registry, uj, uw, degrade = _records_person_guard(request)
+        if degrade is not None:
+            return degrade
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="body must be JSON")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="body must be an object")
+        if "title" not in body:
+            raise HTTPException(status_code=422, detail="title is required")
+        locked = body.get("locked")
+        if locked is not None and not isinstance(locked, bool):
+            raise HTTPException(status_code=422, detail="locked must be a boolean")
+        try:
+            rec = records_mod.upsert_record(
+                _world,
+                category=body.get("category"),
+                title=body.get("title"),
+                fields=body.get("fields"),
+                record_id=body.get("id"),
+                locked=locked,
+                source="records",
+            )
+        except records_mod.RecordError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        save_world(_world, uw)
+        _records_audit(uj, f"record updated in category '{rec['category']}'")
+        return {"ok": True, "status": "healthy", "data": rec}
+
+    @app.post("/api/records/pin", dependencies=[Depends(require_step_up)])
+    async def records_pin(request: Request) -> dict:
+        """Pin a record for the Overview. Step-up gated, caller-scoped."""
+        return await _records_pin_or_unpin(request, True)
+
+    @app.post("/api/records/unpin", dependencies=[Depends(require_step_up)])
+    async def records_unpin(request: Request) -> dict:
+        """Remove a record's pin. Step-up gated, caller-scoped."""
+        return await _records_pin_or_unpin(request, False)
+
+    async def _records_pin_or_unpin(request: Request, pinned: bool) -> dict:
+        _world, _registry, uj, uw, degrade = _records_person_guard(request)
+        if degrade is not None:
+            return degrade
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="body must be JSON")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="body must be an object")
+        rec = records_mod.set_pinned(
+            _world, body.get("category"), body.get("id"), pinned
+        )
+        if rec is None:
+            return {
+                "ok": False,
+                "status": "not_found",
+                "warnings": ["no such record"],
+            }
+        save_world(_world, uw)
+        verb = "pinned" if pinned else "unpinned"
+        _records_audit(uj, f"record {verb} in category '{rec['category']}'")
+        return {"ok": True, "status": "healthy", "data": rec}
+
+    @app.delete("/api/records", dependencies=[Depends(require_step_up)])
+    async def records_delete(request: Request) -> dict:
+        """Delete a record. Same approval discipline as every Records write:
+        step-up gated and caller-scoped."""
+        _world, _registry, uj, uw, degrade = _records_person_guard(request)
+        if degrade is not None:
+            return degrade
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="body must be JSON")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="body must be an object")
+        slug = records_mod.category_slug(body.get("category"))
+        removed = records_mod.delete_record(_world, body.get("category"), body.get("id"))
+        if not removed:
+            return {
+                "ok": False,
+                "status": "not_found",
+                "warnings": ["no such record"],
+            }
+        save_world(_world, uw)
+        _records_audit(uj, f"record deleted from category '{slug}'")
+        return {"ok": True, "status": "healthy", "data": {"deleted": True}}
 
     # The tool-calling chat loop lives in ``chat.chat_with_tools_loop``
     # (ONE loop for every provider; lenient small-model argument
