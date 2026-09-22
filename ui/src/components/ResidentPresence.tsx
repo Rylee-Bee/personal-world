@@ -98,7 +98,7 @@ export function ResidentPresence({
           {resident.name}
         </p>
         {resident.role && (
-          <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+          <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
             {resident.role}
           </p>
         )}

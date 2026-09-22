@@ -121,7 +121,7 @@ export function Chat() {
         className="relative z-10 flex h-full flex-col p-[var(--pw-spacing-xl)]"
       >
         <SkipLink />
-        <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+        <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
           Chat
         </h1>
         <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-muted)]">
@@ -140,13 +140,13 @@ export function Chat() {
         className="relative z-10 flex h-full flex-col p-[var(--pw-spacing-xl)]"
       >
         <SkipLink />
-        <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+        <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
           Chat
         </h1>
         <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-secondary)]">
           Unable to load your conversation.
         </p>
-        <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
           {history.error.message}
         </p>
         <div className="mt-[var(--pw-spacing-lg)]">
@@ -169,13 +169,13 @@ export function Chat() {
 
       {/* Header + provider selector */}
       <header className="flex items-center justify-between border-b border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-xl)] py-[var(--pw-spacing-lg)]">
-        <h1 className="text-[var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
+        <h1 className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
           Chat
         </h1>
 
         {providerInfo && providerInfo.providers.length > 0 && (
           <p
-            className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
+            className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
             role="note"
           >
             {activeProvider
@@ -202,7 +202,7 @@ export function Chat() {
 
             {isSending && (
               <p
-                className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
+                className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
                 aria-live="polite"
               >
                 Thinking…
@@ -218,7 +218,7 @@ export function Chat() {
           role="alert"
           className="border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-xl)] py-[var(--pw-spacing-md)]"
         >
-          <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             {sendChat.error?.message || "Failed to send message."}
           </p>
           <WorldButton
@@ -243,7 +243,7 @@ export function Chat() {
             aria-label="Message input"
             placeholder="Type a message…"
             rows={1}
-            className="flex-1 resize-none rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-elevated)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+            className="flex-1 resize-none rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-elevated)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           />
           <WorldButton
             variant="primary"
@@ -277,7 +277,7 @@ function SkipLink() {
 function EmptyState() {
   return (
     <div className="flex flex-1 items-center justify-center py-[var(--pw-spacing-3xl)]">
-      <p className="text-center text-[var(--pw-typography-size_body)] text-[var(--pw-text-muted)]">
+      <p className="text-center text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-muted)]">
         Start a conversation with your world assistant.
       </p>
     </div>
@@ -296,7 +296,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       <div
         className={[
           "max-w-[85%] rounded-[var(--pw-radius-md)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)]",
-          "text-[var(--pw-typography-size_body)] leading-relaxed",
+          "text-[length:var(--pw-typography-size_body)] leading-relaxed",
           isUser
             ? "bg-[var(--pw-accent-primary)] text-[var(--pw-accent-on_primary)]"
             : "bg-[var(--pw-surface-elevated)] text-[var(--pw-text-primary)]",

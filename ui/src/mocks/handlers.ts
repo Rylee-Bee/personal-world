@@ -443,7 +443,29 @@ function buildWorldHandlers(stateName: keyof typeof WORLD_STATES | string): Requ
 function buildJournalHandlers(events: JournalEvent[]): RequestHandler[] {
   // Mutable copy so writes/supersedes behave live within a story mount.
   let current = [...events];
+  // The journal draft is part of the journal world (api.py journal_draft_*):
+  // without these routes the Memory story's draft-sync GET bypasses MSW,
+  // hits the live auth-gated backend through the proxy, and its 401 used to
+  // navigate the story iframe away (2026-09-22 flake, found by vitest).
+  let draft: { text: string; updated_at: string } | null = null;
   return [
+    http.get("/api/journal/draft", () =>
+      HttpResponse.json({
+        ok: true,
+        data: draft
+          ? { ...draft, length: draft.text.length }
+          : { text: null, updated_at: null },
+      }),
+    ),
+    http.put("/api/journal/draft", async ({ request }) => {
+      const body = (await request.json().catch(() => ({}))) as { text?: string };
+      draft = { text: String(body.text ?? ""), updated_at: new Date().toISOString() };
+      return HttpResponse.json({ ok: true, data: { ...draft, length: draft.text.length } });
+    }),
+    http.delete("/api/journal/draft", () => {
+      draft = null;
+      return HttpResponse.json({ ok: true, data: { removed: true } });
+    }),
     ...baselineHandlers(),
     ...envelopeHandlers(WORLD_STATES.quiet),
     // Memory hosts Records: the panel browses /api/records* while

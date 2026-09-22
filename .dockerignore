@@ -4,20 +4,19 @@ venv
 **/__pycache__
 **/node_modules
 **/dist
-# `**/dist` drops raw Vite build dirs (e.g. ui/dist in sibling checkouts) —
-# it must never drop the STAGED React build. scripts/build-vnext.sh copies
-# that to src/personal_world/static/vnext/ (no `dist` segment), and the
-# Dockerfile's `COPY src` ships it so the app can serve /vnext/. Any new
-# rule added here must not match that path.
-# recursive: a frontend/.env would be read by Vite at build time and
-# inlined into the public bundle — it must never enter the build context
+# The image builds the interface itself (Dockerfile ui-build stage).
+# A locally staged src/personal_world/static/app/ must NOT ride in via
+# `COPY src` — a stale local build layering under the stage output would
+# mix two builds into one image. The stage is the only source.
+src/personal_world/static/app/
+# recursive: a ui/.env would be read by Vite at build time and inlined
+# into the public bundle — it must never enter the build context
 **/.env
 **/.env.*
 data/
 config/*.local.json
 config/principal.json
 config.local/
-frontend-v2/
 design/exports/
 *.log
 .pytest_cache

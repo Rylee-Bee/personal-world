@@ -95,9 +95,10 @@ class TestFirstRunGating:
         assert client.post("/api/setup-wizard/provision").status_code == 404
         assert client.post("/api/setup-wizard/finish").status_code == 404
         assert client.get("/api/setup-wizard/state").status_code == 404
-        # / no longer hijacks into the wizard
+        # / no longer hijacks into the wizard (it may gate to /login —
+        # that is the interface's own gate, not a setup redirect)
         root = client.get("/", follow_redirects=False)
-        assert root.status_code != 303
+        assert root.headers.get("location") != "/setup"
 
     def test_force_setup_reopens_wizard(self, tmp_path, monkeypatch):
         client, data_dir, _ = _client(tmp_path, monkeypatch)

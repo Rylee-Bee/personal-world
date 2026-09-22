@@ -138,8 +138,12 @@ async function unwrap<T>(promise: Promise<FetchResult>): Promise<T> {
 
   if (response.status === 401) {
     clearAuthToken();
-    window.location.href = "/login";
-    throw new ApiError(401, "Unauthorized — redirecting to login");
+    // Only the top frame may hijack navigation to /login. A nested frame
+    // (Storybook's iframe) has no business replacing itself with the login
+    // page — and an unmocked call there must surface as the thrown error
+    // below, loudly, not as a dead iframe.
+    if (window.top === window.self) window.location.href = "/login";
+    throw new ApiError(401, "Unauthorized");
   }
 
   if (response.status === 503) {

@@ -66,11 +66,11 @@ import {
 const CONTROL_CLASS =
   "w-full min-h-[var(--pw-targets-minimum)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] " +
   "rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] " +
-  "text-[var(--pw-text-primary)] text-[var(--pw-typography-size_body)] " +
+  "text-[var(--pw-text-primary)] text-[length:var(--pw-typography-size_body)] " +
   "focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
 
 const LABEL_CLASS =
-  "block mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-medium " +
+  "block mb-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] font-medium " +
   "text-[var(--pw-text-primary)]";
 
 // ─── One typed control per schema entry ──────────────────────────────
@@ -111,7 +111,7 @@ function PrefsControl({
           aria-describedby={hintId}
           className={CONTROL_CLASS}
         />
-        <p id={hintId} className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
+        <p id={hintId} className="mt-1 text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
           Minimum {String(entry.floor)}
           {entry.unit} — set by the accessibility floor, never offered below it.
         </p>
@@ -154,7 +154,7 @@ function PrefsControl({
           </option>
         ))}
       </select>
-      <p id={hintId} className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
+      <p id={hintId} className="mt-1 text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
         Floor: {prefValueLabel(entry, entry.floor)}
         {entry.key === "target_size" && " (44px minimum — WCAG 2.5.5)"}
         {entry.key === "motion" && " — your system's reduced-motion setting always wins over this."}
@@ -254,10 +254,10 @@ export function SettingsRoom() {
   if (prefsQuery.isPending || schemaQuery.isPending) {
     return (
       <section aria-labelledby="settings-room-heading" className="mb-[var(--pw-spacing-2xl)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
-        <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]">
+        <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]">
           Customize
         </h2>
-        <p role="status" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <p role="status" className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Loading…
         </p>
       </section>
@@ -270,10 +270,10 @@ export function SettingsRoom() {
   ) {
     return (
       <section aria-labelledby="settings-room-heading" className="mb-[var(--pw-spacing-2xl)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
-        <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]">
+        <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]">
           Customize
         </h2>
-        <p role="alert" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <p role="alert" className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {schemaQuery.isError
             ? "The station could not describe its settings, so nothing is offered for editing here. Nothing has been changed."
             : "The station reported no renderable settings. Nothing is offered, and nothing has been changed."}
@@ -289,12 +289,12 @@ export function SettingsRoom() {
     >
       <h2
         id="settings-room-heading"
-        className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
+        className="mb-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
       >
         Customize
       </h2>
       {/* §9.2: these preferences tune an already-accessible product. */}
-      <p className="mb-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+      <p className="mb-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
         Every value below comes from the station itself — the options shown are the
         options the server accepts. Nothing saves until you apply it.
       </p>
@@ -306,10 +306,10 @@ export function SettingsRoom() {
           key={key}
           className="mb-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] p-[var(--pw-spacing-md)]"
         >
-          <p className="text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
+          <p className="text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
             {prefKeyLabel(key)}
           </p>
-          <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             Read-only: the station described this setting in a shape this view
             does not understand, and showing a guessed control would be worse
             than showing none.
@@ -335,7 +335,7 @@ export function SettingsRoom() {
         >
           <h3
             id="settings-room-changes-heading"
-            className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-semibold text-[var(--pw-text-primary)]"
+            className="mb-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] font-semibold text-[var(--pw-text-primary)]"
           >
             Waiting to be applied ({changes.length})
           </h3>
@@ -348,7 +348,7 @@ export function SettingsRoom() {
                   key={change.key}
                   className="flex flex-wrap items-center gap-[var(--pw-spacing-md)]"
                 >
-                  <span className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-primary)]">
+                  <span className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-primary)]">
                     {/* One sentence, one text node: the whole change
                         reads at once by screen reader and by test. */}
                     {`${prefKeyLabel(change.key)}: ${
@@ -382,7 +382,7 @@ export function SettingsRoom() {
       )}
 
       {lastApplied.length > 0 && changes.length === 0 && (
-        <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <p className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           <span>
             {`Last apply changed ${lastApplied.length} ${
               lastApplied.length === 1 ? "setting" : "settings"
@@ -403,13 +403,13 @@ export function SettingsRoom() {
           ? "Saving…"
           : `Apply changes${changes.length ? ` (${changes.length})` : ""}`}
       </WorldButton>
-      <span className="ml-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+      <span className="ml-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
         Nothing is saved until this button is pressed.
       </span>
 
       {/* Read-only honesty: the write gate is server truth. */}
       {!hasStepUp && (
-        <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <p className="mt-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {stepUpKnown
             ? "Read-only right now: saving settings requires re-authentication (step-up), which this session has not been granted. The values above can still be previewed; the station will not accept the write."
             : "Read-only right now: this view cannot confirm whether saving is permitted in this session, so Apply stays unavailable rather than pretending."}
@@ -420,7 +420,7 @@ export function SettingsRoom() {
         <p
           role={note.tone === "error" ? "alert" : "status"}
           aria-live="polite"
-          className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+          className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
         >
           {note.text}
         </p>
@@ -428,17 +428,17 @@ export function SettingsRoom() {
 
       {/* C10 — the one discoverable home of the honest unwired label.
           Settings preview panel only; never scattered. */}
-      <h3 className="mt-[var(--pw-spacing-xl)] mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-semibold text-[var(--pw-text-primary)]">
+      <h3 className="mt-[var(--pw-spacing-xl)] mb-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] font-semibold text-[var(--pw-text-primary)]">
         Language dials
       </h3>
       {WARMTH_UNWIRED ? (
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {WARMTH_UNWIRED_LABEL}. The shape is decided (job, up to two context
           tags, low-bandwidth, warmth 1–7); no station message is rendered
           through it yet, and no control here changes anything.
         </p>
       ) : (
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Language dials are wired — controls appear above.
         </p>
       )}

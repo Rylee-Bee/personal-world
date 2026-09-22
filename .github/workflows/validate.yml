@@ -57,9 +57,10 @@ jobs:
   browser:
     uses: Rylee-Bee/ci-harness/.github/workflows/reusable-node.yml@main
     with:
-      working-directory: "frontend"
+      working-directory: "ui"
       setup-python: true
       sync-args: "--extra test"
+      build-command: "npm run build"
       test-command: "npx playwright install --with-deps chromium && npx playwright test"
       upload-dist: false
 

@@ -1,5 +1,20 @@
 # TODO: pin by digest after the first build is validated
 
+# --- interface build stage ---------------------------------------------
+# The React rebuild IS the product frontend (owner decision 2026-09-22).
+# The image builds it from ui/ in this repo — a fresh clone can produce a
+# complete, shippable container with no sibling checkouts and no manual
+# staging step. The build reads design/tokens.json + design/themes/*.json
+# (token generation is cross-directory by design), so both trees are in
+# the stage.
+FROM node:24-slim AS ui-build
+WORKDIR /src
+COPY ui/package.json ui/package-lock.json ./ui/
+RUN cd ui && npm ci --no-audit --no-fund
+COPY design/ ./design/
+COPY ui/ ./ui/
+RUN cd ui && npm run build
+
 # --- runtime stage ----------------------------------------------------
 # TODO: pin by digest after the first build is validated
 FROM python:3.12-slim-bookworm
@@ -17,51 +32,27 @@ RUN pip install --no-cache-dir uv \
     && rm -rf ~/.cache
 
 COPY src ./src
-# --- Station vNext (React UI) packaging -------------------------------
-# The vNext build is staged into src/personal_world/static/vnext/ BEFORE
-# `docker build` runs; the `COPY src` above carries it into the image.
-# It is build output, not source: .gitignore keeps it out of git on
-# purpose, while .dockerignore's `**/dist` drops only raw Vite output
-# dirs — never the staged copy (no `dist` segment in that path).
-# Canonical staging command, run from this repo root with a local
-# pw-vnext-station checkout (no machine-specific path is baked into
-# any tracked file; the value is supplied by the operator):
-#
-#   VNEXT_SOURCE=<path to pw-vnext-station checkout> bash scripts/build-vnext.sh
-#
-# If staging was skipped the build still succeeds and /vnext/ serves the
-# honest "not installed" page (station_ui.vnext_router); the check below
-# makes that case loud in the build log instead of silent.
-RUN if [ -f src/personal_world/static/vnext/index.html ]; then \
-      echo 'vnext build staged at src/personal_world/static/vnext:' \
-      && ls src/personal_world/static/vnext; \
-    else \
-      echo 'WARNING: no vnext build staged — /vnext/ will serve the "not' \
-      'installed" page. Run scripts/build-vnext.sh before docker build' \
-      'to ship the React UI.' >&2; \
-    fi
-# The Station is the product frontend (decision #11). Package it at the path
-# default_station_dir() resolves to inside the image (/app/design/...), so
-# /station/ works same-origin with no machine-specific path and no env override.
-COPY design/opendesign-exploration/station ./design/opendesign-exploration/station
+# Stage the built interface where app_router() reads it. This is build
+# output, not source: .gitignore keeps static/app/ out of git, while
+# .dockerignore's `**/dist` drops only raw Vite dirs from the context —
+# the COPY --from below is what puts the build into the image.
+COPY --from=ui-build /src/ui/dist ./src/personal_world/static/app
+RUN test -f src/personal_world/static/app/index.html \
+    && echo "interface staged into image: $(ls src/personal_world/static/app | tr '\n' ' ')"
 # NOTE on the install dance below: `uv run` (CMD) re-syncs the project
 # editable at boot, so `import personal_world` resolves to /app/src/... —
-# that is what makes the staged, gitignored static/vnext visible in the
-# container (the non-editable wheel excludes it, and only site-packages
-# copies would break default_station_dir()'s /app/design path). Do not
-# delete the src tree from the image; both frontends depend on it.
+# that is what makes the staged, gitignored static/app visible in the
+# container (the non-editable wheel excludes it). Do not delete the src
+# tree from the image.
 RUN uv pip install --no-cache-dir .
 
 ENV PW_DATA_DIR=/data \
     PW_CONFIG_DIR=/config
-# What this image serves: the vanilla Station at /station/ (product
-# frontend, ships via COPY above), the Station vNext React build side-by-side
-# at /vnext/ when staged (see above), and server-rendered /login and /setup.
-# Cutover policy: promoting vNext from /vnext/ to /station/ — retiring the
-# vanilla Station — happens ONLY after the navigation skeleton is accepted
-# by the owner. It is NOT done here; when it is, gate the flip behind an
-# env var (e.g. PW_FRONTEND_TARGET) defaulting to the current side-by-side
-# behavior, so /station/ never changes silently.
+# What this image serves: the interface at / (built above), the API at
+# /api/*, and server-rendered /login and /setup. The retired /station and
+# /vnext paths only redirect to /. The vanilla Station is no longer
+# packaged (owner decision 2026-09-22 — one interface, plain and
+# responsive, with the starfield color system).
 
 VOLUME /data
 

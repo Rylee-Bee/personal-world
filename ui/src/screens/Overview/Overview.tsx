@@ -74,13 +74,13 @@ function PinnedSection({ onOpenMemory }: { onOpenMemory: () => void }) {
   return (
     <section aria-label="Pinned" className="mb-[var(--pw-spacing-2xl)]">
       <div className="mb-[var(--pw-spacing-md)] flex items-baseline justify-between gap-[var(--pw-spacing-md)]">
-        <h2 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-accent-primary)]">
+        <h2 className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-accent-primary)]">
           Pinned
         </h2>
         <button
           type="button"
           onClick={onOpenMemory}
-          className="min-h-[var(--pw-targets-minimum)] text-[var(--pw-typography-size_small)] text-[var(--pw-accent-primary)] underline focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+          className="min-h-[var(--pw-targets-minimum)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-accent-primary)] underline focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           aria-label="Open Memory to see all records"
         >
           Open Memory
@@ -92,10 +92,10 @@ function PinnedSection({ onOpenMemory }: { onOpenMemory: () => void }) {
             key={rec.id}
             className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-md)]"
           >
-            <p className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
+            <p className="text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
               {rec.title}
             </p>
-            <p className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+            <p className="mt-1 text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
               Pinned record · {rec.category_name}
             </p>
           </li>
@@ -111,13 +111,13 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
   if (error) {
     return (
       <main id="main-content" aria-label="Overview" className="relative z-10 p-[var(--pw-spacing-xl)]">
-        <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+        <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
           Overview
         </h1>
         <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-secondary)]">
           Unable to load your world right now.
         </p>
-        <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
           {error.message}
         </p>
       </main>
@@ -127,7 +127,7 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
   if (isLoading || !summary) {
     return (
       <main id="main-content" aria-label="Overview" className="relative z-10 p-[var(--pw-spacing-xl)]">
-        <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+        <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
           Overview
         </h1>
         <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-muted)]">
@@ -149,12 +149,12 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
     <main id="main-content" aria-label="Overview" className="relative z-10 p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)] max-w-[720px]">
       {/* Greeting */}
       <header className="mb-[var(--pw-spacing-2xl)]">
-        <p className="text-[var(--pw-typography-size_label)] font-medium uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-1">
+        <p className="text-[length:var(--pw-typography-size_label)] font-medium uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-1">
           {new Date().toLocaleDateString("en-US", {
             weekday: "long", year: "numeric", month: "long", day: "numeric",
           })}
         </p>
-        <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)] leading-tight">
+        <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)] leading-tight">
           {summary.greeting}, <span className="text-[var(--pw-accent-primary)]">Operator</span>
         </h1>
         {summary.resident && (
@@ -166,16 +166,16 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
 
       {/* Health summary */}
       <div className="mb-[var(--pw-spacing-2xl)] p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]">
-        <p className="text-[var(--pw-typography-size_lead)] font-medium text-[var(--pw-text-primary)]">
+        <p className="text-[length:var(--pw-typography-size_lead)] font-medium text-[var(--pw-text-primary)]">
           Your world looks{" "}
           {needsAttention.length === 0 ? (
             <span className="text-[var(--pw-accent-green)]">healthy</span>
           ) : (
             <span className="text-[var(--pw-accent-warm)]">busy</span>
           )}
-          <span className="text-[var(--pw-accent-primary)]"> ·</span>
+          .
         </p>
-        <div className="mt-2 flex flex-wrap gap-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <div className="mt-2 flex flex-wrap gap-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           <span><span className="text-[var(--pw-accent-green)]">●</span> {summary.capabilities.filter((c) => c.status === "healthy").length} connected</span>
           <span><span className="text-[var(--pw-accent-warm)]">●</span> {needsAttention.length} need attention</span>
           <span><span className="text-[var(--pw-text-muted)]">●</span> {summary.capabilities.filter((c) => c.status === "disabled" || c.status === "not_configured").length} offline</span>
@@ -185,7 +185,7 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
       {/* Signals */}
       {summary.signals.length > 0 && (
         <section aria-label="Attention" className="mb-[var(--pw-spacing-2xl)]">
-          <h2 className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-accent-warm)]">
+          <h2 className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-accent-warm)]">
             Attention
           </h2>
           <div className="space-y-[var(--pw-spacing-md)]">
@@ -217,7 +217,7 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
           way the nav bar activates it. Overview is the tap-through
           surface, so this grid mirrors the nav's truth exactly. */}
       <section aria-label="World areas" className="mb-[var(--pw-spacing-2xl)]">
-        <h2 className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+        <h2 className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
           Explore
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-[var(--pw-spacing-md)]">
@@ -228,7 +228,7 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
               onClick={() => onOpenArea(area.id)}
               className="group flex flex-col items-center gap-[var(--pw-spacing-sm)] p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] min-h-[var(--pw-targets-minimum)] transition-colors motion-reduce:transition-none hover:border-[var(--pw-accent-primary)] hover:bg-[var(--pw-surface-elevated)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
             >
-              <span className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)] group-hover:text-[var(--pw-accent-primary)]">
+              <span className="text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)] group-hover:text-[var(--pw-accent-primary)]">
                 {area.label}
               </span>
             </button>
@@ -238,22 +238,22 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
 
       {/* Capabilities */}
       <section aria-label="Capabilities" className="mb-[var(--pw-spacing-2xl)]">
-        <h2 className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+        <h2 className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
           Your World
         </h2>
         <div className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
           {summary.capabilities.length === 0 ? (
-            <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">No capabilities connected yet.</p>
+            <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">No capabilities connected yet.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--pw-spacing-md)]">
               {summary.capabilities.map((cap) => (
                 <div key={cap.id} className="flex items-center gap-[var(--pw-spacing-md)] p-[var(--pw-spacing-md)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)]">
                   <span className={["h-2 w-2 rounded-full shrink-0", cap.status === "healthy" ? "bg-[var(--pw-accent-green)]" : cap.status === "needs_attention" ? "bg-[var(--pw-accent-warm)]" : "bg-[var(--pw-text-muted)]"].join(" ")} aria-hidden="true" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)] truncate">{cap.name}</p>
-                    {cap.summary && <p className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] truncate">{cap.summary}</p>}
+                    <p className="text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)] truncate">{cap.name}</p>
+                    {cap.summary && <p className="text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] truncate">{cap.summary}</p>}
                   </div>
-                  <span className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] shrink-0">
+                  <span className="text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] shrink-0">
                     {statusWord(cap.status)}
                   </span>
                 </div>

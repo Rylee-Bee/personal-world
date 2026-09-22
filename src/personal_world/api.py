@@ -369,11 +369,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .vault import Vault
 
     _vault = Vault(data_dir / "vault.enc")
-    # Serving boundary: the **Station** is the product frontend (owner
-    # decisions #11/#12). `/` redirects to `/station/` post-setup; `/login`
-    # and `/setup` are server-rendered (login_page.py / setup_wizard.py).
-    # The superseded React SPA and its dist pipeline were removed
-    # 2026-09-16 in the single-branch cutover.
+    # Serving boundary: the React rebuild IS the interface (owner
+    # decision 2026-09-22). It is served at `/` by app_router (mounted at
+    # the END of create_app, after every API route); the retired vanilla
+    # Station and the /vnext side-by-side are gone — those paths only
+    # redirect. `/login` and `/setup` stay server-rendered
+    # (login_page.py / setup_wizard.py).
 
     # Identity seam state (issue #8 phase 0/1, per multi-user review
     # 2026-09-09): local users as trust root, PW_IDENTITY_MODE picks
@@ -437,30 +438,15 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     )
 
     # --- Sign-in page (server-rendered, dependency-free) ---
-    # The Station has no sign-in view of its own, and the superseded React
-    # SPA no longer serves one; login_page.py replaces it. Registered before
-    # the Station so an unauthenticated /station/ redirect lands here.
+    # The interface has no sign-in view of its own; login_page.py serves
+    # it. Registered before the interface router so an unauthenticated
+    # visit to / lands here.
     from .login_page import register_login_page
 
     register_login_page(app, data_dir=data_dir)
 
-    # --- Station map UI (product decision #12): served same-origin so the
-    # browser session authenticates its API calls with no CORS anywhere.
-    # Registered BEFORE the SPA fallback so /station/* wins by order.
-    from .station_ui import station_router
-
-    app.include_router(station_router(data_dir))
-
-    # --- Station vNext (React UI): served side-by-side at /vnext/ so the
-    # production Station at /station/ stays live while the React rewrite
-    # is tested. Same auth gate (same require_auth credential seam).
-    # The build artifacts live at src/personal_world/static/vnext/ — they
-    # are copied from the sibling pw-vnext-station repo's `ui/dist/`.
-    # When this UI is promoted to /station/, the /vnext/ mount can be
-    # removed. Until then: both run, neither blocks the other.
-    from .station_ui import vnext_router
-
-    app.include_router(vnext_router(data_dir))
+    # (The interface itself is mounted at the end of create_app —
+    # app_router must come last so it never shadows an API route.)
 
     # --- Encrypted worlds backup/restore (SOS hatch, owner decision #4) ---
     # Step-up gated; fails closed without the crypto extra. Registered after
@@ -3241,18 +3227,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "data": {"key": key, "effect": effect}}
 
     # --- Entry point ---
-    # /setup and /login are server-rendered (setup_wizard.py / login_page.py).
-
-    @app.get("/", response_class=HTMLResponse)
-    async def spa_root() -> HTMLResponse:
-        """Entry point. Post-setup the **Station** is the product frontend
-        (owner decisions #11/#12). During first-run the setup wizard owns the
-        entry."""
-        from .setup_wizard import setup_needed as _setup_needed
-
-        if _setup_needed(data_dir):
-            return RedirectResponse("/setup", status_code=303)
-        return RedirectResponse("/station/", status_code=302)
+    # `/` is served by app_router (the React interface), mounted at the
+    # very end of create_app. /setup and /login are server-rendered
+    # (setup_wizard.py / login_page.py) and win by registration order.
 
     companion_dir = Path(__file__).parent / "static" / "companions"
     _COMPANION_FILES = {
@@ -3328,5 +3305,14 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         if not path.exists():
             raise HTTPException(status_code=404, detail="font missing")
         return _cached_file(request, path, ctype)
+
+    # --- The interface (owner decision 2026-09-22: the React rebuild IS
+    # the product frontend). Mounted LAST so its SPA fallback can never
+    # shadow an API route; it serves / and the staged build, redirects the
+    # retired /station and /vnext paths, and answers reserved namespaces
+    # with JSON 404. Same auth seam as every other route.
+    from .station_ui import app_router
+
+    app.include_router(app_router(data_dir))
 
     return app

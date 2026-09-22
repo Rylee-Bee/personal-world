@@ -7,7 +7,7 @@ large-text exemption), **3:1** for the focus-ring/underline non-text pairs.
 All four theme packs are audited, because the Settings theme picker lets the
 person move the whole surface into any of them.
 
-**Result: PASS — 0 failing pairs (44 pairs = 11 × 4 themes)**
+**Result: PASS — 0 failing pairs (56 pairs = 14 × 4 themes)**
 
 ## station
 
@@ -19,6 +19,9 @@ person move the whole surface into any of them.
 | `#CDC6B8` #CDC6B8 | `#1E2636` #1E2636 | 8.92 | 4.5 | yes | notes, saved/applied lines, descriptions, empty-state sentences, ghost-button text, section eyebrows, hints, provenance lines |
 | `#CDC6B8` #CDC6B8 | `#0C101C` #0C101C | 11.18 | 4.5 | yes | error/notice lines that sit directly on the page background |
 | `#CDC6B8` #CDC6B8 | `#131926` #131926 | 10.35 | 4.5 | yes | secondary copy over input grounds |
+| `#A29A8C` #A29A8C | `#0C101C` #0C101C | 6.81 | 4.5 | yes | micro/small helper copy on the page background (added 2026-09-22: axe found the starfield muted token failing here — the audit's blind spot, not axe's) |
+| `#A29A8C` #A29A8C | `#1E2636` #1E2636 | 5.44 | 4.5 | yes | muted copy inside cards (Records hints, category meta) |
+| `#A29A8C` #A29A8C | `#273144` #273144 | 4.68 | 4.5 | yes | muted copy on elevated chips/bubbles (chat timestamps, shrunk meta lines) |
 | `#080B14` #080B14 | `#D4A057` #D4A057 | 8.39 | 4.5 | yes | Apply / Check primary-button label |
 | `#72b1b1` #72b1b1 | `#1E2636` #1E2636 | 6.23 | 4.5 | yes | skip-link revealed text on its panel ground |
 | `#72b1b1` #72b1b1 | `#131926` #131926 | 7.23 | 3 | yes | focus ring over input fills (§2.4) |
@@ -35,6 +38,9 @@ person move the whole surface into any of them.
 | `#A0B898` #A0B898 | `#1A281E` #1A281E | 7.18 | 4.5 | yes | notes, saved/applied lines, descriptions, empty-state sentences, ghost-button text, section eyebrows, hints, provenance lines |
 | `#A0B898` #A0B898 | `#0C120E` #0C120E | 8.84 | 4.5 | yes | error/notice lines that sit directly on the page background |
 | `#A0B898` #A0B898 | `#141E16` #141E16 | 7.99 | 4.5 | yes | secondary copy over input grounds |
+| `#85a080` #85a080 | `#0C120E` #0C120E | 6.62 | 4.5 | yes | micro/small helper copy on the page background (added 2026-09-22: axe found the starfield muted token failing here — the audit's blind spot, not axe's) |
+| `#85a080` #85a080 | `#1A281E` #1A281E | 5.37 | 4.5 | yes | muted copy inside cards (Records hints, category meta) |
+| `#85a080` #85a080 | `#203024` #203024 | 4.86 | 4.5 | yes | muted copy on elevated chips/bubbles (chat timestamps, shrunk meta lines) |
 | `#080D0A` #080D0A | `#A8B85A` #A8B85A | 9.02 | 4.5 | yes | Apply / Check primary-button label |
 | `#7AAA76` #7AAA76 | `#1A281E` #1A281E | 5.74 | 4.5 | yes | skip-link revealed text on its panel ground |
 | `#7AAA76` #7AAA76 | `#141E16` #141E16 | 6.39 | 3 | yes | focus ring over input fills (§2.4) |
@@ -51,6 +57,9 @@ person move the whole surface into any of them.
 | `#A0B8C8` #A0B8C8 | `#152030` #152030 | 7.95 | 4.5 | yes | notes, saved/applied lines, descriptions, empty-state sentences, ghost-button text, section eyebrows, hints, provenance lines |
 | `#A0B8C8` #A0B8C8 | `#0A1219` #0A1219 | 9.15 | 4.5 | yes | error/notice lines that sit directly on the page background |
 | `#A0B8C8` #A0B8C8 | `#0F1923` #0F1923 | 8.6 | 4.5 | yes | secondary copy over input grounds |
+| `#7d97a8` #7d97a8 | `#0A1219` #0A1219 | 6.16 | 4.5 | yes | micro/small helper copy on the page background (added 2026-09-22: axe found the starfield muted token failing here — the audit's blind spot, not axe's) |
+| `#7d97a8` #7d97a8 | `#152030` #152030 | 5.36 | 4.5 | yes | muted copy inside cards (Records hints, category meta) |
+| `#7d97a8` #7d97a8 | `#1A2838` #1A2838 | 4.89 | 4.5 | yes | muted copy on elevated chips/bubbles (chat timestamps, shrunk meta lines) |
 | `#060D14` #060D14 | `#5AA8B8` #5AA8B8 | 7.19 | 4.5 | yes | Apply / Check primary-button label |
 | `#5AA8B8` #5AA8B8 | `#152030` #152030 | 6.03 | 4.5 | yes | skip-link revealed text on its panel ground |
 | `#5AA8B8` #5AA8B8 | `#0F1923` #0F1923 | 6.53 | 3 | yes | focus ring over input fills (§2.4) |
@@ -67,6 +76,9 @@ person move the whole surface into any of them.
 | `#B8B2A6` #B8B2A6 | `#1A1D2A` #1A1D2A | 7.95 | 4.5 | yes | notes, saved/applied lines, descriptions, empty-state sentences, ghost-button text, section eyebrows, hints, provenance lines |
 | `#B8B2A6` #B8B2A6 | `#0F1119` #0F1119 | 8.93 | 4.5 | yes | error/notice lines that sit directly on the page background |
 | `#B8B2A6` #B8B2A6 | `#141620` #141620 | 8.54 | 4.5 | yes | secondary copy over input grounds |
+| `#a29a8c` #a29a8c | `#0F1119` #0F1119 | 6.76 | 4.5 | yes | micro/small helper copy on the page background (added 2026-09-22: axe found the starfield muted token failing here — the audit's blind spot, not axe's) |
+| `#a29a8c` #a29a8c | `#1A1D2A` #1A1D2A | 6.01 | 4.5 | yes | muted copy inside cards (Records hints, category meta) |
+| `#a29a8c` #a29a8c | `#222636` #222636 | 5.39 | 4.5 | yes | muted copy on elevated chips/bubbles (chat timestamps, shrunk meta lines) |
 | `#0C0D14` #0C0D14 | `#D4A057` #D4A057 | 8.28 | 4.5 | yes | Apply / Check primary-button label |
 | `#D4A057` #D4A057 | `#1A1D2A` #1A1D2A | 7.15 | 4.5 | yes | skip-link revealed text on its panel ground |
 | `#D4A057` #D4A057 | `#141620` #141620 | 7.69 | 3 | yes | focus ring over input fills (§2.4) |

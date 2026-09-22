@@ -45,7 +45,7 @@ const BTN_BASE =
   "inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium " +
   "transition-colors duration-150 motion-reduce:transition-none " +
   "min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] " +
-  "py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)]";
+  "py-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)]";
 
 const BTN_PLAIN =
   `${BTN_BASE} px-[var(--pw-spacing-lg)] bg-[var(--pw-surface-panel)] text-[var(--pw-text-primary)] ` +
@@ -65,7 +65,7 @@ const BTN_CORAL =
 
 const INPUT_BASE =
   "w-full rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] " +
-  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] " +
+  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] " +
   "text-[var(--pw-text-primary)] min-h-[var(--pw-targets-minimum)] " +
   "focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
 
@@ -251,7 +251,7 @@ export function VaultTool() {
   if (vaultStatusQuery.isPending) {
     return (
       <section className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]" aria-label="Vault">
-        <h2 className="text-[var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
+        <h2 className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
           Vault
         </h2>
         <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-text-muted)]">Loading…</p>
@@ -262,13 +262,13 @@ export function VaultTool() {
   if (vaultStatusQuery.isError) {
     return (
       <section className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]" aria-label="Vault">
-        <h2 className="text-[var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
+        <h2 className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
           Vault
         </h2>
         <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-text-secondary)]">
           Unable to load vault.
         </p>
-        <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
           {describeError(vaultStatusQuery.error, "Vault status request failed.")}
         </p>
       </section>
@@ -287,10 +287,10 @@ export function VaultTool() {
       >
         {/* Header */}
         <header className="mb-[var(--pw-spacing-2xl)]">
-          <h2 className="text-[var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
+          <h2 className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
             Vault
           </h2>
-          <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             Secrets and provider credentials — tokens, keys, step-up
             material. This is infrastructure, not your own records:
             durable personal information lives in Memory under Records.
@@ -304,10 +304,10 @@ export function VaultTool() {
         >
           <div className="flex flex-col gap-[var(--pw-spacing-md)] sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
-              <p className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
+              <p className="text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
                 {vaultLocked ? "Vault locked" : "Vault unlocked"}
               </p>
-              <div className="flex flex-wrap gap-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+              <div className="flex flex-wrap gap-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
                 <span>
                   {encrypted ? "Encrypted" : "Not encrypted"}
                 </span>
@@ -361,7 +361,7 @@ export function VaultTool() {
             )}
           </div>
           {vaultStatusQuery.data?.data?.warning && (
-            <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]" role="note">
+            <p className="mt-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]" role="note">
               {vaultStatusQuery.data.data.warning}
             </p>
           )}
@@ -371,7 +371,7 @@ export function VaultTool() {
         {listNotice && (
           <p
             role="alert"
-            className="mb-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+            className="mb-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
           >
             {listNotice}
             <button
@@ -387,7 +387,7 @@ export function VaultTool() {
         {/* Secrets section */}
         <section aria-label="Secrets" className="mb-[var(--pw-spacing-2xl)]">
           <div className="flex items-center justify-between mb-[var(--pw-spacing-md)]">
-            <h3 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+            <h3 className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
               Secrets
             </h3>
             {!vaultLocked && (
@@ -405,28 +405,28 @@ export function VaultTool() {
           {vaultLocked ? (
             /* Locked state */
             <div className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] text-center">
-              <p className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]">
+              <p className="text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]">
                 Unlock the vault to view secrets.
               </p>
             </div>
           ) : namesQuery.isLoading ? (
             /* Loading state */
             <div className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]">
-              <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
                 Loading…
               </p>
             </div>
           ) : namesQuery.isError ? (
             /* Error state */
             <div className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]">
-              <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
                 {describeError(namesQuery.error, "Failed to load secret names")}
               </p>
             </div>
           ) : secretNames.length === 0 ? (
             /* Empty state */
             <div className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] text-center">
-              <p className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-muted)]">
+              <p className="text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-muted)]">
                 Your vault is empty. Add secrets to get started.
               </p>
             </div>
@@ -439,7 +439,7 @@ export function VaultTool() {
                     key={name}
                     className="flex items-center gap-[var(--pw-spacing-md)] p-[var(--pw-spacing-md)]"
                   >
-                    <span className="min-w-0 flex-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-primary)] truncate">
+                    <span className="min-w-0 flex-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-primary)] truncate">
                       {name}
                     </span>
                     <button
@@ -474,7 +474,7 @@ export function VaultTool() {
             aria-label={editingName ? "Edit secret" : "Add secret"}
             className="mb-[var(--pw-spacing-2xl)] p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]"
           >
-            <h3 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-[var(--pw-spacing-md)]">
+            <h3 className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-[var(--pw-spacing-md)]">
               {editingName ? "Edit secret" : "Add secret"}
             </h3>
             <form onSubmit={handleFormSubmit}>
@@ -482,7 +482,7 @@ export function VaultTool() {
                 <div>
                   <label
                     htmlFor="vault-secret-name"
-                    className="block text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)] mb-1"
+                    className="block text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)] mb-1"
                   >
                     Name
                   </label>
@@ -502,7 +502,7 @@ export function VaultTool() {
                 <div>
                   <label
                     htmlFor="vault-secret-value"
-                    className="block text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)] mb-1"
+                    className="block text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)] mb-1"
                   >
                     Value
                   </label>
@@ -518,7 +518,7 @@ export function VaultTool() {
                   />
                 </div>
                 {formError && (
-                  <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-accent-coral)]" role="alert">
+                  <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-accent-coral)]" role="alert">
                     {formError}
                   </p>
                 )}
@@ -542,7 +542,7 @@ export function VaultTool() {
                   </button>
                 </div>
                 <p
-                  className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] italic"
+                  className="text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] italic"
                   role="note"
                 >
                   Saving a secret requires step-up authentication
@@ -554,16 +554,16 @@ export function VaultTool() {
 
         {/* Provider configuration */}
         <section aria-label="Provider configuration">
-          <h3 className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+          <h3 className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
             Providers
           </h3>
           <div className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
             {statusQuery.isLoading ? (
-              <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
                 Loading…
               </p>
             ) : capabilities.length === 0 ? (
-              <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
                 No providers configured.
               </p>
             ) : (
@@ -578,17 +578,17 @@ export function VaultTool() {
                       aria-hidden="true"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)] truncate">
+                      <p className="text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)] truncate">
                         {cap.name}
                       </p>
                       {cap.warnings && cap.warnings.length > 0 && (
-                        <p className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] truncate">
+                        <p className="text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] truncate">
                           {cap.warnings[0]}
                         </p>
                       )}
                     </div>
                     <span
-                      className="text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] shrink-0"
+                      className="text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] shrink-0"
                       aria-label={`Status: ${STATUS_LABELS[cap.status]}`}
                     >
                       {STATUS_LABELS[cap.status]}
@@ -621,13 +621,13 @@ export function VaultTool() {
         >
           <h2
             id="delete-dialog-title"
-            className="text-[var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)]"
+            className="text-[length:var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)]"
           >
             Delete secret
           </h2>
           <p
             id="delete-dialog-desc"
-            className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+            className="mt-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
           >
             Are you sure you want to delete{" "}
             <span className="font-medium text-[var(--pw-text-primary)]">{deleteTarget}</span>?

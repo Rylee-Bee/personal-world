@@ -142,11 +142,14 @@ The canonical adoption lives at
 canonical current state at [`.project/CURRENT.md`](.project/CURRENT.md);
 durable decisions at [`.project/DECISIONS.md`](.project/DECISIONS.md).
 
-## The Station
+## The interface
 
-The product UI is the **Station**, served same-origin at `/station/` by
-the backend (source: `design/opendesign-exploration/station/`).
-`/login` and `/setup` are server-rendered.
+The product UI is the **React rebuild** (`ui/`), served same-origin at
+`/` by the backend. The container image builds it itself (node stage →
+`src/personal_world/static/app/`); for a source checkout run
+`bash scripts/build-app.sh`. `/login` and `/setup` are server-rendered.
+The retired vanilla Station is no longer served or packaged; `/station`
+and `/vnext` only redirect to `/`.
 
 Sign-in is **provider-neutral OIDC** — point it at your own IdP
 ([docs/oidc.md](docs/oidc.md)). With an IdP configured the login page is

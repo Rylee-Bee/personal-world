@@ -79,8 +79,8 @@ id_ed25519
 .project/contracts/.contracts/
 
 # Station vNext React build output — generated, never tracked.
-# Rebuild with: scripts/build-vnext.sh
-src/personal_world/static/vnext/
+# Rebuild with: scripts/build-app.sh
+src/personal_world/static/app/
 
 # Owner-local Figma export drop: unsorted PNG/SVG exports, a large PDF,
 # and Figma share links. Approved exports are curated into design/screens/

@@ -1,16 +1,16 @@
-"""Serving boundary — Station-only cutover (2026-09-16).
+"""Serving boundary — the rebuild IS the interface (owner decision 2026-09-22).
 
-The **Station** is the product frontend; `/` redirects to `/station/`, and
-`/login` + `/setup` are server-rendered. The superseded React SPA, its
-catch-all fallback, and its dist pipeline are gone.
-
-Guards: unknown paths are honest 404s (never a resurrected interface), API
-and static routes keep winning, traversal cannot escape, and no private
-value is echoed into any served HTML.
+`/` serves the React interface (app_router, mounted last); `/login` +
+`/setup` stay server-rendered; the retired `/station` and `/vnext` paths
+only redirect. Guards here: API and static routes keep winning over the
+SPA fallback, reserved namespaces never fall back, and no private value
+is echoed into any served HTML.
 """
 
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -28,6 +28,10 @@ def _app(tmp_path, monkeypatch, setup_done=True):
     monkeypatch.setenv("PW_IDENTITY_MODE", "single")
     monkeypatch.setenv("PW_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("PW_CONFIG_DIR", str(tmp_path))
+    # Deterministic regardless of whether a build happens to be staged
+    # in the checkout: point the interface at an empty directory. Tests
+    # that want a build stage one themselves (see test_station_ui.py).
+    monkeypatch.setenv("PW_APP_DIST", str(tmp_path / "no-app-staged"))
     init_world(tmp_path, tmp_path)
     marker = tmp_path / "setup-complete"
     marker.write_text("ok")
@@ -37,11 +41,11 @@ def _app(tmp_path, monkeypatch, setup_done=True):
 
 
 class TestEntryPoint:
-    def test_root_redirects_to_station(self, tmp_path, monkeypatch):
+    def test_root_redirects_to_login_when_unauthenticated(self, tmp_path, monkeypatch):
         client = _app(tmp_path, monkeypatch)
         r = client.get("/", follow_redirects=False)
-        assert r.status_code == 302
-        assert r.headers["location"] == "/station/"
+        assert r.status_code == 303
+        assert r.headers["location"] == "/login"
 
     def test_first_run_root_redirects_to_setup(self, tmp_path, monkeypatch):
         client = _app(tmp_path, monkeypatch, setup_done=False)
@@ -49,16 +53,21 @@ class TestEntryPoint:
         assert r.status_code == 303
         assert r.headers["location"] == "/setup"
 
-    def test_legacy_react_route_is_gone(self, tmp_path, monkeypatch):
+    def test_missing_build_reports_honestly_when_authenticated(self, tmp_path, monkeypatch):
         client = _app(tmp_path, monkeypatch)
-        assert client.get("/legacy-react").status_code == 404
+        r = client.get("/", headers=AUTH)
+        assert r.status_code == 503
+        assert "not built" in r.text.lower()
+        assert str(tmp_path) not in r.text
 
-    def test_unknown_page_is_an_honest_404(self, tmp_path, monkeypatch):
+    @pytest.mark.parametrize(
+        "path", ["/station", "/station/", "/station/map", "/vnext", "/vnext/deep"]
+    )
+    def test_retired_paths_only_redirect(self, tmp_path, monkeypatch, path):
         client = _app(tmp_path, monkeypatch)
-        # There is no SPA catch-all any more: an unknown document path is
-        # a 404, never a silently served retired interface.
-        for path in ("/no/such/page", "/setup-wizard", "/projects/vefr"):
-            assert client.get(path).status_code == 404, path
+        r = client.get(path, follow_redirects=False)
+        assert r.status_code == 307
+        assert r.headers["location"] == "/"
 
 
 class TestLoginPage:

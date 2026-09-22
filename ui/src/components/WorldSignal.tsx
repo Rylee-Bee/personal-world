@@ -55,21 +55,21 @@ export function WorldSignal({ level, title, description, technical }: WorldSigna
           aria-hidden="true"
         />
         <div className="min-w-0 flex-1">
-          <p className="text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
+          <p className="text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
             <span className="sr-only">{SIGNAL_LABELS[level]}: </span>
             {title}
           </p>
           {description && (
-            <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+            <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
               {description}
             </p>
           )}
           {technical && (
             <details className="mt-2">
-              <summary className="inline-block cursor-pointer text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]">
+              <summary className="inline-block cursor-pointer text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]">
                 Technical detail
               </summary>
-              <code className="mt-1 block break-all font-mono text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
+              <code className="mt-1 block break-all font-mono text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
                 {technical}
               </code>
             </details>

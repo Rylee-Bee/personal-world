@@ -703,15 +703,13 @@ class TestDesignToolIndependence:
         assert Accessibility.model_fields["motion"] is not None
 
     def test_frontend_is_repo_native(self):
-        """The executable design reference is the Station, served from
-        repo design sources — no design tool needed (updated at the
-        Station-only cutover: the React SPA and the legacy HTML constants
-        are gone)."""
+        """The executable design reference is the interface (the React
+        rebuild in ui/), served from repo sources — no design tool needed
+        (updated at the 2026-09-22 cutover: the retired vanilla Station
+        and the legacy HTML constants are gone)."""
         repo_root = Path(__file__).parent.parent
-        station = (
-            repo_root / "design" / "opendesign-exploration" / "station" / "index.html"
-        )
-        assert station.is_file()
+        assert (repo_root / "ui" / "index.html").is_file()
+        assert (repo_root / "ui" / "src" / "main.tsx").is_file()
         html = (repo_root / "src" / "personal_world" / "api.py").read_text()
         assert "DASHBOARD_HTML" not in html
         assert ".fig" not in html

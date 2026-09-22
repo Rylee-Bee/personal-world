@@ -50,7 +50,7 @@ status vocabulary (Canonical / Normative / Spec / Archived).
 | Contracts (shared library) | `.project/contracts/` | The one Play-Nice adoption manifest (`.project/contracts/adoption.yaml`); `.contracts/` holds only ignored session artifacts, never a second manifest. |
 | Runtime | `src/personal_world/` | FastAPI app, CLI, providers, domain modules. |
 | Browser gate | `frontend/e2e/`, `frontend/package.json` | Playwright + axe specs for the Station (the React SPA source was removed 2026-09-16). |
-| Station UI (product) | `design/opendesign-exploration/station/` | Static HTML/JS/CSS Station, served same-origin at `/station/` by the backend. |
+| Station UI (product) | `ui/` | React rebuild, built into the image and served same-origin at `/` by the backend (`station_ui.app_router`). |
 | Design art | `design/` | Tokens, frames, companions, icons. `design/handoff/` is archived (do not edit). |
 
 ## Working rules

@@ -55,7 +55,7 @@ function KindBadge({ kind }: { kind: string }) {
   const label = journalKindLabel(kind);
   return (
     <span
-      className="inline-flex items-center rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] px-[var(--pw-spacing-sm)] py-[var(--pw-spacing-xs)] text-[var(--pw-typography-size_small)] font-medium text-[var(--pw-text-secondary)]"
+      className="inline-flex items-center rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] px-[var(--pw-spacing-sm)] py-[var(--pw-spacing-xs)] text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-secondary)]"
       aria-label={`Kind: ${label}`}
     >
       {label}
@@ -88,25 +88,25 @@ function EntryCard({ entry, onSupersede, onShowHistory }: EntryCardProps) {
         <KindBadge kind={entry.kind} />
         <time
           dateTime={entry.ts}
-          className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+          className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
         >
           {formatted}
         </time>
         {entry.supersedes !== null && (
-          <span className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+          <span className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
             Corrects an earlier entry
           </span>
         )}
       </div>
-      <p className="whitespace-pre-wrap text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
+      <p className="whitespace-pre-wrap text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
         {entry.summary}
       </p>
       {entry.supersede_reason !== null && (
-        <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
           Reason: {entry.supersede_reason}
         </p>
       )}
-      <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+      <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
         Source: {entry.provenance.source}
       </p>
       <div className="mt-[var(--pw-spacing-md)] flex flex-wrap gap-[var(--pw-spacing-md)]">
@@ -309,11 +309,11 @@ function WriteForm() {
         >
           <p
             id="draft-conflict-title"
-            className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
+            className="text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
           >
             Two unsaved drafts are alive
           </p>
-          <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             The world holds a draft that changed after this device last
             saved. Nothing is overwritten until you choose.
           </p>
@@ -339,7 +339,7 @@ function WriteForm() {
       <form onSubmit={handleSubmit}>
         <label
           htmlFor="journal-write-content"
-          className="mb-[var(--pw-spacing-sm)] block text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
+          className="mb-[var(--pw-spacing-sm)] block text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
         >
           New entry
         </label>
@@ -349,7 +349,7 @@ function WriteForm() {
           value={content}
           onChange={(e) => handleChange(e.target.value)}
           rows={4}
-          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           placeholder="Write your thoughts…"
           aria-describedby={
             writeMutation.isError
@@ -374,7 +374,7 @@ function WriteForm() {
           {writeMutation.isError && (
             <p
               id="write-error"
-              className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+              className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
               role="alert"
             >
               {writeMutation.error instanceof Error
@@ -387,7 +387,7 @@ function WriteForm() {
             echoes here, only status words. */}
         <p
           aria-live="polite"
-          className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]"
+          className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]"
         >
           {resumeNote ?? draftStatusLine(draftStatus)}
         </p>
@@ -443,7 +443,7 @@ function SupersedeDrawer({ entry, onClose }: SupersedeDrawerProps) {
       <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
         <label
           htmlFor="supersede-text"
-          className="mb-[var(--pw-spacing-sm)] block text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
+          className="mb-[var(--pw-spacing-sm)] block text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
         >
           Corrected entry
         </label>
@@ -453,14 +453,14 @@ function SupersedeDrawer({ entry, onClose }: SupersedeDrawerProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={4}
-          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           placeholder="What should this entry say instead?"
           aria-describedby={supersedeMutation.isError ? "supersede-error" : undefined}
           autoFocus
         />
         <label
           htmlFor="supersede-reason"
-          className="mb-[var(--pw-spacing-sm)] mt-[var(--pw-spacing-md)] block text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
+          className="mb-[var(--pw-spacing-sm)] mt-[var(--pw-spacing-md)] block text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
         >
           Reason for superseding (optional)
         </label>
@@ -469,7 +469,7 @@ function SupersedeDrawer({ entry, onClose }: SupersedeDrawerProps) {
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={2}
-          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+          className="w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           placeholder="Why is this entry being superseded?"
         />
         <div className="mt-[var(--pw-spacing-sm)] flex items-center gap-[var(--pw-spacing-md)]">
@@ -492,7 +492,7 @@ function SupersedeDrawer({ entry, onClose }: SupersedeDrawerProps) {
         {supersedeMutation.isError && (
           <p
             id="supersede-error"
-            className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+            className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
             role="alert"
           >
             {supersedeMutation.error instanceof Error
@@ -518,14 +518,14 @@ function HistoryDrawer({ ts, onClose }: HistoryDrawerProps) {
   return (
     <WorldDrawer isOpen={ts !== null} onClose={onClose} title="Correction history">
       {chainQuery.isPending && ts !== null && (
-        <p className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-muted)]">
+        <p className="text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-muted)]">
           Loading…
         </p>
       )}
       {chainQuery.isError && (
         <p
           role="alert"
-          className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]"
+          className="text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]"
         >
           {chainQuery.error instanceof Error
             ? chainQuery.error.message
@@ -543,16 +543,16 @@ function HistoryDrawer({ ts, onClose }: HistoryDrawerProps) {
                 <KindBadge kind={e.kind} />
                 <time
                   dateTime={e.ts}
-                  className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+                  className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
                 >
                   {formatTs(e.ts)}
                 </time>
               </div>
-              <p className="whitespace-pre-wrap text-[var(--pw-typography-size_small)] text-[var(--pw-text-primary)]">
+              <p className="whitespace-pre-wrap text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-primary)]">
                 {e.summary}
               </p>
               {e.supersede_reason !== null && (
-                <p className="mt-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+                <p className="mt-1 text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
                   Reason: {e.supersede_reason}
                 </p>
               )}
@@ -584,11 +584,11 @@ export function JournalRoom() {
         <header>
           <h2
             id="memory-journal-heading"
-            className="text-[var(--pw-typography-size_h2)] font-semibold text-[var(--pw-text-primary)]"
+            className="text-[length:var(--pw-typography-size_h2)] font-semibold text-[var(--pw-text-primary)]"
           >
             Journal
           </h2>
-          <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             The append-only spine of Memory. Corrections supersede an
             entry — the original is never rewritten.
           </p>
@@ -600,7 +600,7 @@ export function JournalRoom() {
         {/* Status */}
         {listQuery.isPending && (
           <p
-            className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]"
+            className="text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]"
             aria-live="polite"
           >
             Loading…
@@ -612,10 +612,10 @@ export function JournalRoom() {
             className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
             role="alert"
           >
-            <p className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
+            <p className="text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
               Unable to load journal
             </p>
-            <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+            <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
               {listQuery.error instanceof Error
                 ? listQuery.error.message
                 : "An unexpected error occurred while loading journal entries."}
@@ -631,7 +631,7 @@ export function JournalRoom() {
             className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
             role="alert"
           >
-            <p className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]">
+            <p className="text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]">
               The journal did not answer cleanly — showing nothing rather
               than guessing.
             </p>
@@ -643,7 +643,7 @@ export function JournalRoom() {
             className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-xl)] text-center"
             aria-label="Empty state"
           >
-            <p className="text-[var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]">
+            <p className="text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]">
               No journal entries yet. Start writing to capture your thoughts.
             </p>
           </div>

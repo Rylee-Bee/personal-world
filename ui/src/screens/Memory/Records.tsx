@@ -53,7 +53,7 @@ const BTN_PLAIN_SM =
   "inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium " +
   "transition-colors duration-150 motion-reduce:transition-none " +
   "min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] " +
-  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] " +
+  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] " +
   "bg-[var(--pw-surface-panel)] text-[var(--pw-text-primary)] " +
   "border border-[var(--pw-border-subtle)] hover:bg-[var(--pw-surface-elevated)] active:bg-[var(--pw-surface-hull)]";
 
@@ -61,7 +61,7 @@ const BTN_WARM =
   "inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium " +
   "transition-colors duration-150 motion-reduce:transition-none " +
   "min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] " +
-  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] " +
+  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] " +
   "bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)] " +
   "hover:brightness-110 active:brightness-90";
 
@@ -69,13 +69,13 @@ const BTN_CORAL =
   "inline-flex items-center justify-center rounded-[var(--pw-radius-sm)] font-medium " +
   "transition-colors duration-150 motion-reduce:transition-none " +
   "min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] " +
-  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] " +
+  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] " +
   "bg-[var(--pw-accent-coral)] text-[var(--pw-surface-void)] " +
   "hover:brightness-110 active:brightness-90";
 
 const INPUT_BASE =
   "w-full rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] " +
-  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] " +
+  "px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] " +
   "text-[var(--pw-text-primary)] min-h-[var(--pw-targets-minimum)] " +
   "focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
 
@@ -169,7 +169,7 @@ function StepUpInvite({
     >
       <p
         role="note"
-        className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)] italic"
+        className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)] italic"
       >
         {reason}
       </p>
@@ -180,7 +180,7 @@ function StepUpInvite({
         <div className="flex-1 min-w-[200px]">
           <label
             htmlFor="records-step-up-credential"
-            className="mb-[var(--pw-spacing-sm)] block text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
+            className="mb-[var(--pw-spacing-sm)] block text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
           >
             Re-present your credential
           </label>
@@ -200,7 +200,7 @@ function StepUpInvite({
       {outcome !== null && (
         <p
           role="alert"
-          className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+          className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
         >
           {outcome}
         </p>
@@ -330,14 +330,14 @@ function RecordForm({
       aria-label={editing ? "Edit record" : "New record"}
       className="space-y-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
     >
-      <h3 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+      <h3 className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
         {editing ? "Edit record" : "New record"}
       </h3>
 
       <div>
         <label
           htmlFor="records-form-title"
-          className="mb-[var(--pw-spacing-sm)] block text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
+          className="mb-[var(--pw-spacing-sm)] block text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
         >
           Title
         </label>
@@ -355,7 +355,7 @@ function RecordForm({
       <div>
         <label
           htmlFor="records-form-category"
-          className="mb-[var(--pw-spacing-sm)] block text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
+          className="mb-[var(--pw-spacing-sm)] block text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
         >
           Category
         </label>
@@ -389,7 +389,7 @@ function RecordForm({
       </div>
 
       <fieldset className="space-y-[var(--pw-spacing-sm)]">
-        <legend className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
+        <legend className="text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
           Fields
         </legend>
         {form.rows.map((row, i) => (
@@ -439,7 +439,7 @@ function RecordForm({
         </button>
       </fieldset>
 
-      <label className="flex items-center gap-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
+      <label className="flex items-center gap-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
         <input
           type="checkbox"
           checked={form.locked}
@@ -452,7 +452,7 @@ function RecordForm({
       {(error !== null || gate !== null) && (
         <p
           role="alert"
-          className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+          className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
         >
           {error ?? gate}
         </p>
@@ -495,11 +495,11 @@ function RecordCard({
   return (
     <li className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
       <div className="flex flex-wrap items-start justify-between gap-[var(--pw-spacing-md)]">
-        <h4 className="text-[var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)]">
+        <h4 className="text-[length:var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)]">
           {record.title}
         </h4>
         {record.pinned && (
-          <span className="rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] px-2 py-1 text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
+          <span className="rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] px-2 py-1 text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
             Pinned to Overview
           </span>
         )}
@@ -507,7 +507,7 @@ function RecordCard({
       {entries.length > 0 ? (
         <dl className="mt-[var(--pw-spacing-sm)] space-y-1">
           {entries.map(([key, value]) => (
-            <div key={key} className="flex gap-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)]">
+            <div key={key} className="flex gap-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)]">
               <dt className="font-medium text-[var(--pw-text-secondary)]">{key}</dt>
               <dd className="min-w-0 flex-1 break-words text-[var(--pw-text-primary)]">
                 {value === null ? "—" : String(value)}
@@ -516,11 +516,11 @@ function RecordCard({
           ))}
         </dl>
       ) : (
-        <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
           No fields stored on this record.
         </p>
       )}
-      <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+      <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
         {record.category_name}
         {" · updated "}
         <time dateTime={record.updated}>{formatTs(record.updated)}</time>
@@ -568,7 +568,7 @@ function RecordCard({
       {actionError !== null && (
         <p
           role="alert"
-          className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+          className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
         >
           {actionError}
         </p>
@@ -686,11 +686,11 @@ export function RecordsPanel() {
       <header>
         <h2
           id="memory-records-heading"
-          className="text-[var(--pw-typography-size_h2)] font-semibold text-[var(--pw-text-primary)]"
+          className="text-[length:var(--pw-typography-size_h2)] font-semibold text-[var(--pw-text-primary)]"
         >
           Records
         </h2>
-        <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Structured information this world keeps about you — durable,
           searchable, never invented. Records are not the Vault:
           credentials, tokens, and other secrets live in the Vault,
@@ -701,7 +701,7 @@ export function RecordsPanel() {
       {/* ── Categories: the browsable half of Memory ─────────────── */}
       <section aria-label="Record categories" className="space-y-[var(--pw-spacing-md)]">
         <div className="flex flex-wrap items-center justify-between gap-[var(--pw-spacing-md)]">
-          <h3 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+          <h3 className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
             Categories
           </h3>
           <button
@@ -715,7 +715,7 @@ export function RecordsPanel() {
         </div>
 
         {categoriesQuery.isPending && (
-          <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+          <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
             Loading…
           </p>
         )}
@@ -723,7 +723,7 @@ export function RecordsPanel() {
         {categoriesQuery.isError && (
           <p
             role="alert"
-            className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+            className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
           >
             The records source did not answer.{" "}
             {describeError(categoriesQuery.error, "")}
@@ -734,7 +734,7 @@ export function RecordsPanel() {
           /* Honest degradation, per the contract: with no memory
              provider the whole Records surface has no source — say
              the server's word, invent nothing. */
-          <p role="note" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <p role="note" className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             No source yet for records on this station —{" "}
             {degradedWarning ?? "the memory capability is not configured"}.
             Names, counts, and contents will appear as soon as a
@@ -743,7 +743,7 @@ export function RecordsPanel() {
         )}
 
         {!degraded && !categoriesQuery.isPending && !categoriesQuery.isError && categories.length === 0 && (
-          <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+          <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
             No record categories yet — this world holds none. Creating
             the first record makes one.
           </p>
@@ -772,18 +772,18 @@ export function RecordsPanel() {
                     aria-label={`Category ${cat.name}`}
                   >
                     <span className="flex flex-wrap items-center gap-[var(--pw-spacing-sm)]">
-                      <span className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
+                      <span className="text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]">
                         {cat.name}
                       </span>
                       {cat.locked && (
                         /* Word first, glyph as adornment — status is
                            never carried by color or icon alone (§2.2). */
-                        <span className="inline-flex items-center gap-1 rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] px-2 py-[2px] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
+                        <span className="inline-flex items-center gap-1 rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] px-2 py-[2px] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
                           <span aria-hidden="true">🔒</span> Locked
                         </span>
                       )}
                     </span>
-                    <span className="mt-1 block text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+                    <span className="mt-1 block text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
                       {cat.count === 1 ? "1 record" : `${cat.count} records`}
                       {cat.pinned > 0 &&
                         ` · ${cat.pinned} pinned to Overview`}
@@ -796,7 +796,7 @@ export function RecordsPanel() {
         )}
 
         {!selectedRow && !degraded && categories.length > 0 && !categoriesQuery.isPending && !categoriesQuery.isError && (
-          <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+          <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
             Pick a category to browse its records.
           </p>
         )}
@@ -809,7 +809,7 @@ export function RecordsPanel() {
           className="space-y-[var(--pw-spacing-md)]"
         >
           <div className="flex flex-wrap items-center justify-between gap-[var(--pw-spacing-sm)]">
-            <h3 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+            <h3 className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
               {selectedRow.name}
             </h3>
             <button
@@ -823,7 +823,7 @@ export function RecordsPanel() {
           </div>
 
           {recordsQuery.isPending && (
-            <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+            <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
               Loading…
             </p>
           )}
@@ -849,7 +849,7 @@ export function RecordsPanel() {
           {recordsError !== null && (
             <p
               role="alert"
-              className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+              className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
             >
               {recordsError}
             </p>
@@ -863,7 +863,7 @@ export function RecordsPanel() {
           )}
 
           {!recordsQuery.isPending && !recordsQuery.isError && records.length === 0 && (
-            <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+            <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
               This category holds no records yet — a true zero, not a
               missing source. Add the first one above.
             </p>
@@ -907,7 +907,7 @@ export function RecordsPanel() {
         <p
           role="status"
           aria-live="polite"
-          className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+          className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
         >
           {notice}
         </p>
@@ -926,7 +926,7 @@ export function RecordsPanel() {
         <div className="flex-1 min-w-[200px]">
           <label
             htmlFor="memory-records-query"
-            className="mb-[var(--pw-spacing-sm)] block text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
+            className="mb-[var(--pw-spacing-sm)] block text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
           >
             Search records
           </label>
@@ -936,7 +936,7 @@ export function RecordsPanel() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="What do you remember storing?"
-            className="w-full min-h-[var(--pw-targets-minimum)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+            className="w-full min-h-[var(--pw-targets-minimum)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] px-[var(--pw-spacing-md)] py-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           />
         </div>
         <WorldButton
@@ -950,7 +950,7 @@ export function RecordsPanel() {
       </form>
 
       {query === "" && (
-        <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+        <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
           Searching reads the memory index directly — with every model
           turned off, this stays a plain, deterministic query.
         </p>
@@ -959,7 +959,7 @@ export function RecordsPanel() {
       {query !== "" && search.isError && (
         <p
           role="alert"
-          className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+          className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
         >
           The memory source did not answer.{" "}
           {search.error instanceof Error ? search.error.message : ""}
@@ -967,7 +967,7 @@ export function RecordsPanel() {
       )}
 
       {query !== "" && search.isSuccess && search.data?.ok === false && (
-        <p role="note" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <p role="note" className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {search.data.warnings?.[0] ?? "No memory source is available on this station."}
         </p>
       )}
@@ -978,7 +978,7 @@ export function RecordsPanel() {
         parseRecordHits(search.data?.data).length === 0 && (
           <p
             aria-label="Empty state"
-            className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
+            className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
           >
             Nothing stored matches “{query}”.
           </p>
@@ -992,10 +992,10 @@ export function RecordsPanel() {
                 key={hit.id}
                 className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
               >
-                <p className="whitespace-pre-wrap text-[var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
+                <p className="whitespace-pre-wrap text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
                   {hit.text}
                 </p>
-                <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+                <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
                   {hit.kind !== "" ? journalKindLabel(hit.kind) : "Record"}
                   {hit.timestamp !== null && (
                     <>
@@ -1031,13 +1031,13 @@ export function RecordsPanel() {
         <div className="w-full max-w-md rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-xl)] mx-[var(--pw-spacing-xl)]">
           <h3
             id="records-delete-title"
-            className="text-[var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)]"
+            className="text-[length:var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)]"
           >
             Delete record
           </h3>
           <p
             id="records-delete-desc"
-            className="mt-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+            className="mt-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
           >
             Are you sure you want to delete{" "}
             <span className="font-medium text-[var(--pw-text-primary)]">

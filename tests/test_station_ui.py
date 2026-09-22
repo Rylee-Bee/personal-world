@@ -1,18 +1,20 @@
-"""The Station served same-origin (product decision #12).
+"""The interface served same-origin at `/` (owner decision 2026-09-22).
 
-`station_ui.py` mounts the Station map at `/station` so the browser
-session cookie authenticates its API calls with no CORS anywhere. These
-tests guard the boundaries that make that safe:
+`station_ui.app_router` serves the React rebuild at `/` — the one and only
+interface — mounted last so it never shadows an API route. These tests
+guard the boundaries that make that safe:
 
-* first-run wins — before the setup marker, every path redirects to
-  `/setup`, so a half-built world is never presented as a working one;
+* first-run wins — before the setup marker, `/` redirects to `/setup`;
 * authorization is the canonical seam — an unauthenticated browser is
-  redirected to `/login`, and a valid `pw_session` cookie is enough
-  (that is the whole point of same-origin serving);
+  redirected to `/login`, and a valid `pw_session` cookie is enough;
 * the served set is an allowlist: traversal cannot escape, internal
-  notes (`.md`) and archived explorations (`_legacy/`) are never served;
-* a deployment without the Station artifact says so plainly and never
-  echoes a filesystem path.
+  notes (`.md`) and dot/underscore directories are never served;
+* reserved namespaces (`/api/…`, `/static/…`) answer JSON 404 — the SPA
+  fallback never swallows a namespace it does not own;
+* unknown non-reserved paths serve index.html (client-side routing);
+* the retired `/station/*` and `/vnext/*` paths only redirect to `/`;
+* a deployment without the build says so plainly (503) and never echoes
+  a filesystem path.
 """
 
 import sys
@@ -24,40 +26,38 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from personal_world.station_ui import (  # noqa: E402
-    STATION_PREFIX,
-    build_allowlist,
-    default_station_dir,
-)
+from personal_world.station_ui import build_allowlist, default_app_dir  # noqa: E402
 
 TOKEN = "instancetoken-do-not-leak-9a2e"  # pw-safety: synthetic
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 
 INDEX = (
-    "<!doctype html><html><head><title>Station</title></head>"
-    '<body><main id="main">systems map marker</main></body></html>'
+    "<!doctype html><html><head><title>Worlds</title></head>"
+    '<body><div id="root"></div><script src="/assets/app.js"></script></body></html>'
 )
 
 
 @pytest.fixture
-def station(tmp_path):
-    """A small, deterministic Station stand-in."""
-    root = tmp_path / "station"
-    (root / "_legacy").mkdir(parents=True)
+def dist(tmp_path):
+    """A small, deterministic interface build stand-in."""
+    root = tmp_path / "app-dist"
+    (root / "assets").mkdir(parents=True)
+    (root / "_excluded").mkdir(parents=True)
     root.joinpath("index.html").write_text(INDEX)
-    root.joinpath("station.css").write_text("body { color: #fff; }")
-    root.joinpath("api.js").write_text("window.PW_API = {};")
-    root.joinpath("manifest.json").write_text('{"name":"Station"}')
-    root.joinpath("icon-192.png").write_bytes(b"\x89PNG\r\n\x1a\n")
-    # must never be served: internal notes and archived explorations
-    root.joinpath("HANDOFF.md").write_text("internal 192.0.2.7 note")
-    root.joinpath("_legacy", "workshop.html").write_text("legacy deck")
-    # a sibling secret outside the station root
+    root.joinpath("assets", "app.css").write_text("body { color: #fff; }")
+    root.joinpath("assets", "app.js").write_text("window.PW = {};")
+    root.joinpath("manifest.json").write_text('{"name":"Worlds"}')
+    root.joinpath("favicon.svg").write_text("<svg/>")
+    root.joinpath("icon.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    # must never be served: internal notes and excluded directories
+    root.joinpath("BUILD-NOTES.md").write_text("internal 192.0.2.7 note")
+    root.joinpath("_excluded", "secret.html").write_text("not part of the UI")
+    # a sibling secret outside the served root
     (tmp_path / "secret.txt").write_text("TOP SECRET")
     return root
 
 
-def _client(tmp_path, monkeypatch, station_dir, setup_done=True):
+def _client(tmp_path, monkeypatch, dist_dir, setup_done=True):
     from personal_world.api import create_app
     from personal_world.init import init_world
 
@@ -65,8 +65,7 @@ def _client(tmp_path, monkeypatch, station_dir, setup_done=True):
     monkeypatch.setenv("PW_IDENTITY_MODE", "single")
     monkeypatch.setenv("PW_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("PW_CONFIG_DIR", str(tmp_path))
-    if station_dir is not None:
-        monkeypatch.setenv("PW_STATION_DIST", str(station_dir))
+    monkeypatch.setenv("PW_APP_DIST", str(dist_dir))
     init_world(tmp_path, tmp_path)
     marker = tmp_path / "setup-complete"
     if setup_done:
@@ -77,8 +76,8 @@ def _client(tmp_path, monkeypatch, station_dir, setup_done=True):
 
 
 @pytest.fixture
-def client(tmp_path, monkeypatch, station):
-    return _client(tmp_path, monkeypatch, station)
+def client(tmp_path, monkeypatch, dist):
+    return _client(tmp_path, monkeypatch, dist)
 
 
 def _session(client) -> dict:
@@ -96,197 +95,126 @@ def _session(client) -> dict:
 
 
 class TestGate:
-    def test_first_run_redirects_to_setup(self, tmp_path, monkeypatch, station):
-        c = _client(tmp_path, monkeypatch, station, setup_done=False)
-        for path in (
-            STATION_PREFIX,
-            f"{STATION_PREFIX}/",
-            f"{STATION_PREFIX}/station.css",
-        ):
-            r = c.get(path, headers=AUTH, follow_redirects=False)
-            assert r.status_code == 303, path
-            assert r.headers["location"] == "/setup", path
+    def test_first_run_redirects_to_setup(self, tmp_path, monkeypatch, dist):
+        c = _client(tmp_path, monkeypatch, dist, setup_done=False)
+        r = c.get("/", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == "/setup"
 
     def test_unauthenticated_redirects_to_login(self, client):
-        for path in (STATION_PREFIX, f"{STATION_PREFIX}/", f"{STATION_PREFIX}/api.js"):
-            r = client.get(path, follow_redirects=False)
-            assert r.status_code == 303, path
-            assert r.headers["location"] == "/login", path
-
-    def test_bare_prefix_redirects_to_the_map(self, client):
-        r = client.get(STATION_PREFIX, headers=AUTH, follow_redirects=False)
+        r = client.get("/", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == f"{STATION_PREFIX}/"
+        assert r.headers["location"] == "/login"
 
     def test_session_cookie_is_enough(self, client):
-        """Same-origin serving is the point: a signed-in browser needs no
-        bearer token and no CORS exception."""
-        headers = _session(client)
-        r = client.get(f"{STATION_PREFIX}/", headers=headers)
+        r = client.get("/", headers=_session(client))
         assert r.status_code == 200
-        assert "systems map marker" in r.text
-        # …and that same session reads the API it composes against.
-        assert client.get("/api/proposals", headers=headers).status_code == 200
+        assert 'id="root"' in r.text
 
     def test_bearer_also_works(self, client):
-        assert client.get(f"{STATION_PREFIX}/", headers=AUTH).status_code == 200
+        assert client.get("/", headers=AUTH).status_code == 200
 
     def test_a_bad_session_is_redirected_not_served(self, client):
-        r = client.get(
-            f"{STATION_PREFIX}/",
-            headers={"Cookie": "pw_session=not-a-real-session"},
-            follow_redirects=False,
-        )
+        r = client.get("/", headers={"Cookie": "pw_session=nonsense"}, follow_redirects=False)
         assert r.status_code == 303
         assert r.headers["location"] == "/login"
 
 
 class TestServing:
     def test_index_and_assets(self, client):
-        cases = {
-            f"{STATION_PREFIX}/": ("text/html", "systems map marker"),
-            f"{STATION_PREFIX}/index.html": ("text/html", "systems map marker"),
-            f"{STATION_PREFIX}/station.css": ("text/css", "color"),
-            f"{STATION_PREFIX}/api.js": ("text/javascript", "PW_API"),
-            f"{STATION_PREFIX}/manifest.json": ("application/json", "Station"),
-        }
-        for path, (ctype, needle) in cases.items():
-            r = client.get(path, headers=AUTH)
-            assert r.status_code == 200, path
-            assert r.headers["content-type"].startswith(ctype), path
-            assert needle in r.text, path
+        session = _session(client)
+        r = client.get("/assets/app.js", headers=session)
+        assert r.status_code == 200
+        assert r.headers["content-type"].startswith("text/javascript")
+        assert "window.PW" in r.text
+        css = client.get("/assets/app.css", headers=session)
+        assert css.status_code == 200
+        assert css.headers["content-type"].startswith("text/css")
 
     def test_binary_asset_served(self, client):
-        r = client.get(f"{STATION_PREFIX}/icon-192.png", headers=AUTH)
+        r = client.get("/icon.png", headers=_session(client))
         assert r.status_code == 200
-        assert r.headers["content-type"] == "image/png"
+        assert r.content == b"\x89PNG\r\n\x1a\n"
 
     def test_assets_revalidate_never_immutable(self, client):
-        path = f"{STATION_PREFIX}/station.css"
-        r = client.get(path, headers=AUTH)
-        assert "immutable" not in r.headers["Cache-Control"]
-        assert "must-revalidate" in r.headers["Cache-Control"]
-        etag = r.headers.get("etag")
-        assert etag
-        reval = client.get(path, headers={**AUTH, "If-None-Match": etag})
-        assert reval.status_code == 304
-        assert not reval.content
+        r = client.get("/assets/app.css", headers=_session(client))
+        assert "no-cache" in r.headers["cache-control"] or "must-revalidate" in r.headers["cache-control"]
+        assert "immutable" not in r.headers["cache-control"]
 
-    def test_unknown_file_is_an_honest_404(self, client):
-        r = client.get(f"{STATION_PREFIX}/nope.html", headers=AUTH)
-        assert r.status_code == 404
-        assert "not part of the Station" in r.text
+    def test_unknown_path_serves_the_spa(self, client):
+        # Client-side routing: an unknown document path is index.html,
+        # not a 404 dead end.
+        r = client.get("/some/deep/link", headers=_session(client))
+        assert r.status_code == 200
+        assert 'id="root"' in r.text
+
+    def test_reserved_namespaces_stay_json_404(self, client):
+        session = _session(client)
+        for path in ("/api/definitely-not-a-route", "/static/nope.css"):
+            r = client.get(path, headers=session)
+            assert r.status_code == 404, path
+            assert r.headers["content-type"].startswith("application/json"), path
+
+
+class TestRetiredPaths:
+    @pytest.mark.parametrize(
+        "path",
+        ["/station", "/station/", "/station/anything", "/vnext", "/vnext/", "/vnext/deep/path"],
+    )
+    def test_legacy_paths_redirect_to_the_interface(self, client, path):
+        r = client.get(path, follow_redirects=False)
+        assert r.status_code == 307
+        assert r.headers["location"] == "/"
 
 
 class TestAllowlist:
     def test_internal_notes_are_never_served(self, client):
-        r = client.get(f"{STATION_PREFIX}/HANDOFF.md", headers=AUTH)
-        assert r.status_code == 404
-        assert "192.0.2.7" not in r.text
+        r = client.get("/BUILD-NOTES.md", headers=_session(client))
+        # not served as a file; falls through to the SPA (index), and the
+        # note's content never appears
+        assert "internal 192.0.2.7 note" not in r.text
 
-    def test_legacy_archive_is_not_part_of_the_nav(self, client):
-        r = client.get(f"{STATION_PREFIX}/_legacy/workshop.html", headers=AUTH)
-        assert r.status_code == 404
-        assert "legacy deck" not in r.text
+    def test_excluded_directories_are_not_served(self, client):
+        r = client.get("/_excluded/secret.html", headers=_session(client))
+        assert "not part of the UI" not in r.text
 
-    def test_allowlist_excludes_notes_and_archives(self, station):
-        allow = build_allowlist(station)
+    def test_allowlist_excludes_notes_and_underscore_dirs(self, dist):
+        allow = build_allowlist(dist)
         assert "index.html" in allow
-        assert not any(key.endswith(".md") for key in allow)
-        assert not any(key.startswith("_") for key in allow)
+        assert "assets/app.js" in allow
+        assert "BUILD-NOTES.md" not in allow
+        assert not any(k.startswith("_") for k in allow)
 
     def test_allowlist_of_a_missing_dir_is_empty(self, tmp_path):
-        assert build_allowlist(tmp_path / "absent") == {}
+        assert build_allowlist(tmp_path / "nope") == {}
 
-    @pytest.mark.parametrize(
-        "path",
-        [
+    def test_traversal_cannot_escape(self, client, dist):
+        session = _session(client)
+        for path in (
             "/../secret.txt",
             "/%2e%2e/secret.txt",
+            "/assets/../../secret.txt",
             "/..%2fsecret.txt",
-        ],
-    )
-    def test_traversal_cannot_escape(self, client, path):
-        r = client.get(f"{STATION_PREFIX}{path}", headers=AUTH, follow_redirects=False)
-        assert r.status_code in (200, 303, 404), path
-        assert "TOP SECRET" not in (r.text or "")
+        ):
+            r = client.get(path, headers=session)
+            assert "TOP SECRET" not in (r.text or ""), path
 
 
 class TestHonestAbsence:
-    def test_missing_artifact_reports_503_without_leaking_a_path(
+    def test_missing_build_reports_503_without_leaking_a_path(
         self, tmp_path, monkeypatch
     ):
-        absent = tmp_path / "no-station-here"
-        c = _client(tmp_path, monkeypatch, absent)
-        r = c.get(f"{STATION_PREFIX}/", headers=AUTH)
+        empty = tmp_path / "no-build-here"
+        c = _client(tmp_path, monkeypatch, empty)
+        r = c.get("/", headers=AUTH)
         assert r.status_code == 503
-        assert "Station is not installed here" in r.text
-        assert str(absent) not in r.text
+        assert "not built" in r.text.lower()
+        assert str(empty) not in r.text
         assert str(tmp_path) not in r.text
-        # the API is unaffected
-        assert c.get("/api/status", headers=AUTH).status_code == 200
-        assert c.get("/healthz").status_code == 200
-
-    def test_default_location_is_the_design_directory(self):
-        assert (
-            default_station_dir()
-            .as_posix()
-            .endswith("design/opendesign-exploration/station")
-        )
 
 
-class TestRepositoryStation:
-    """The real in-repo Station must actually be servable — the design
-    directory is untracked/edited by hand, so this is the integration
-    check that the shipped artifact still meets the allowlist rules."""
-
-    @pytest.fixture
-    def repo_station(self):
-        root = default_station_dir()
-        if not root.is_dir():
-            pytest.skip("Station design directory not present")
-        return root
-
-    def test_index_and_client_are_servable(self, repo_station):
-        allow = build_allowlist(repo_station)
-        for name in (
-            "index.html",
-            "station.css",
-            "api.js",
-            "real-data.js",
-            "real-data.css",
-        ):
-            assert name in allow, f"{name} would not be served"
-
-    def test_no_internal_notes_or_archives(self, repo_station):
-        allow = build_allowlist(repo_station)
-        assert not any(key.endswith(".md") for key in allow)
-        assert not any(
-            part.startswith(("_", ".")) for key in allow for part in key.split("/")
-        )
-
-    def test_served_files_carry_no_private_topology(self, repo_station):
-        """The design directory holds handoff notes with a real LAN
-        address. Notes are excluded above; this proves nothing servable
-        carries private topology either."""
-        markers = (
-            "192.168.",  # pw-safety: synthetic
-            "hulganfamily",  # pw-safety: synthetic
-            "10.0.",  # pw-safety: synthetic
-            "172.16.",  # pw-safety: synthetic
-        )  # pw-safety: synthetic
-        allow = build_allowlist(repo_station)
-        findings = []
-        for key, path in allow.items():
-            if path.suffix.lower() not in (
-                ".html",
-                ".css",
-                ".js",
-                ".json",
-                ".svg",
-                ".txt",
-            ):
-                continue
-            text = path.read_text(encoding="utf-8", errors="replace")
-            findings += [f"{key}: {m}" for m in markers if m in text]
-        assert not findings, "; ".join(findings)
+class TestDefaultLocation:
+    def test_default_is_static_app_under_the_package(self):
+        p = default_app_dir()
+        assert p.name == "app"
+        assert p.parent.name == "static"

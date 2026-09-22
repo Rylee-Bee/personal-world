@@ -77,7 +77,7 @@ export function WorldDrawer({
       <div className="mb-[var(--pw-spacing-lg)] flex items-center justify-between">
         <h2
           id="world-drawer-title"
-          className="text-[var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]"
+          className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]"
         >
           {title}
         </h2>

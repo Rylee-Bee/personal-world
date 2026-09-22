@@ -13,7 +13,7 @@
 ## The seams (swap these; keep everything else)
 | Seam | Where | Swap it for |
 |---|---|---|
-| Frontend | `design/opendesign-exploration/station/` (static, served at `/station/`) | any UI that speaks the API |
+| Frontend | `ui/` (React rebuild, served at `/`) | any UI that speaks the API |
 | API surface | `/api/manifest` (the "Lego box") | your own client |
 | Capabilities | `src/personal_world/providers/` + registry | any backend/external service |
 | Brain | `reasoning` capability (local Ollama default) | any model that can tool-call |

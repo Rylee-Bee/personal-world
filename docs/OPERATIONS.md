@@ -65,18 +65,23 @@ storage in a local install. The Dockerfile already installs the crypto extra.
 Without it the vault fails closed — `unlock` reports `unavailable`, no secret is
 stored, and status reports encryption unavailable. There is no base64 fallback.
 
-### Frontend serving (Station-only since 2026-09-16)
+### Frontend serving (rebuild-only since 2026-09-22)
 
-The **Station** is the product frontend, served same-origin at `/station/`
-from `design/opendesign-exploration/station/`. `/login` and `/setup` are
-server-rendered (`login_page.py` / `setup_wizard.py`); `/` redirects to
-`/station/` once setup is complete.
+The **React rebuild** is the product frontend, served same-origin at `/`
+by `station_ui.app_router` from the staged build
+(`src/personal_world/static/app/`, produced by the image's node stage or
+`scripts/build-app.sh`). `/login` and `/setup` are server-rendered
+(`login_page.py` / `setup_wizard.py`). The retired vanilla Station and
+the `/vnext` side-by-side are gone: `/station*` and `/vnext*` only
+redirect to `/`.
 
-The superseded React SPA, its `/legacy-react` route, its catch-all SPA
-fallback, and the `PW_FRONTEND_DIST` build pipeline were removed in the
-single-branch cutover. A stray `PW_FRONTEND` value in the environment is
-inert, and an unknown document path is an honest `404` — never a silently
-served retired interface.
+The former vanilla Station (`design/opendesign-exploration/station/`) and
+its `/station` router were retired 2026-09-22: not served, not packaged,
+removed from the tree (git history preserves them). Unknown document
+paths serve the interface shell (client-side routing owns them); unknown
+paths under reserved namespaces (`/api`, `/static`, asset routes) answer
+JSON `404`. A stray `PW_FRONTEND`/`PW_STATION_DIST` value in the
+environment is inert.
 
 ## Sign-in with your own SSO (OIDC)
 

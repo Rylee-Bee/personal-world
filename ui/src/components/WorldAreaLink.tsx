@@ -21,7 +21,7 @@ interface WorldAreaLinkProps {
 
 export function WorldAreaLink({ area, isActive = false, onClick }: WorldAreaLinkProps) {
   const classes = [
-    "flex items-center gap-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] font-medium",
+    "flex items-center gap-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] font-medium",
     "min-h-[var(--pw-targets-minimum)]",
     "transition-colors duration-150 motion-reduce:transition-none",
     isActive

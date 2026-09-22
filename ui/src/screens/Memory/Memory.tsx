@@ -42,10 +42,10 @@ export function Memory() {
         className="mx-auto max-w-2xl space-y-[var(--pw-spacing-2xl)] p-[var(--pw-spacing-lg)]"
       >
         <header>
-          <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+          <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
             Memory
           </h1>
-          <p className="mt-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             One predictable place for what this world keeps: your
             journal, your records, and the searches that find them
             without any model in the loop. Chat can recall things for

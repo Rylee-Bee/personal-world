@@ -3,14 +3,13 @@ name: ui-ci
 # CI for the Station vNext UI (ui/, React + Vite + Vitest + oxlint).
 #
 # Why this exists: validate.yml (same repo) gates the Python backend,
-# docker compose, the legacy frontend/ Playwright suite, and the
-# security/framework suites — but it never typechecks, lints, tests, or
-# builds ui/. This workflow closes that gap; it does not replace
-# validate.yml.
+# docker compose, the interface's Playwright suite (ui/e2e via the
+# browser job), and the security/framework suites — but it never
+# typechecks, lints, unit-tests, or builds ui/ on every PR. This
+# workflow closes that gap; it does not replace validate.yml.
 #
-# STATUS: authored, not armed. It only runs on GitHub once this branch is
-# pushed and a PR opened or it lands on main. Activation is an owner
-# decision — nothing here enables it beyond its own trigger rules.
+# STATUS: armed — ui/ lives on main since the 2026-09-22 merge; this runs
+# on every PR touching ui/ and every push to main.
 
 on:
   pull_request:

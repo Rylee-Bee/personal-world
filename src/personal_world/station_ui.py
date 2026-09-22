@@ -1,11 +1,15 @@
-"""Same-origin serving for the Station map UI (product decision #12).
+"""Same-origin serving for the Project Worlds interface.
 
-Decision #12 (`docs/PRODUCT-VISION-HANDOFF.md`, round-2 answers) makes the
-Station map the product frontend. Serving it from this process — rather
-than from a separate static host — is what makes the browser session
-work: the ``pw_session`` cookie is same-origin, so every ``fetch`` the
-Station makes carries credentials with no CORS exception anywhere, and
-the API needs no browser-only token path.
+Owner decision, 2026-09-22: the React rebuild IS the interface. It is
+served at ``/`` — the primary path — and there is exactly one. The
+predecessor vanilla Station is retired: not mounted, not packaged, not
+shipped. Old paths (``/station/*``, ``/vnext/*``) redirect to ``/`` so
+bookmarks land on the product instead of a 404.
+
+Serving it from this process — rather than a separate static host — is
+what makes the browser session work: the ``pw_session`` cookie is
+same-origin, so every ``fetch`` the UI makes carries credentials with no
+CORS exception anywhere, and the API needs no browser-only token path.
 
 Boundaries this module keeps:
 
@@ -14,22 +18,22 @@ Boundaries this module keeps:
   maps its verdict onto a browser-appropriate response (a redirect to
   ``/login``) instead of a JSON 401.
 * **First-run wins.** Before the ``setup-complete`` marker exists, every
-  Station path redirects to ``/setup``; a half-built world is never
+  interface path redirects to ``/setup``; a half-built world is never
   presented as a working one.
 * **No user-controlled filesystem paths.** The served set is an allowlist
-  built once at app start (the same pattern as the SPA dist allowlist in
-  ``api.py``): a relative POSIX path → a resolved absolute ``Path``.
-  Traversal cannot escape because it simply misses the dict. Newly added
-  files are picked up on restart; edited files are re-read per request
-  and revalidated by ETag.
+  built once at app start: a relative POSIX path → a resolved absolute
+  ``Path``. Traversal cannot escape because it simply misses the dict.
+  Newly added files are picked up on restart; edited files are re-read
+  per request and revalidated by ETag.
+* **Reserved namespaces stay 404, never HTML.** An unknown path under
+  ``/api`` or ``/static`` answers JSON 404 like any unrouted API call —
+  the SPA fallback never swallows a namespace it does not own.
 * **Only web assets, never documentation.** ``.md`` files are excluded on
-  purpose: the design directory carries internal handoff notes that are
-  not part of the served UI, and ``_``-prefixed directories (``_legacy/``)
-  stay out of the primary navigation.
-* **Honest absence.** The packaged container image ships ``src/`` and the
-  Station files (``design/opendesign-exploration/station`` is COPY'd in).
-  When the Station is not installed the route says so plainly (503) and
-  never echoes a filesystem path.
+  purpose; ``_``-prefixed directories stay out entirely.
+* **Honest absence.** When the build is not staged, ``/`` says so plainly
+  (503) with the operator's actual fix, and never echoes a filesystem
+  path. The container image builds the UI itself, so a missing build
+  means a broken image build, not a silent hole.
 """
 
 from __future__ import annotations
@@ -39,17 +43,13 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.responses import Response
 
 _logger = logging.getLogger("personal_world.station_ui")
 
-#: Mount point. The Station's own HTML links relatively
-#: (``station.css``, ``interests.html``), so one prefix is enough.
-STATION_PREFIX = "/station"
-
-#: Web assets the Station may serve. Anything else (notably ``.md``
-#: internal handoff notes) is not part of the UI and is never served.
+#: Web assets the interface may serve. Anything else (notably ``.md``
+#: internal notes) is not part of the UI and is never served.
 SERVED_SUFFIXES = frozenset(
     {
         ".html",
@@ -87,23 +87,40 @@ CONTENT_TYPES = {
 #: Directory segments that are never served (archives, tooling, dotdirs).
 SKIPPED_PREFIXES = ("_", ".")
 
+#: First path segments owned by the API/server, never by the SPA. An
+#: unknown path under one of these answers JSON 404, not index.html.
+RESERVED_TOP_LEVEL = frozenset(
+    {
+        "api",
+        "login",
+        "logout",
+        "setup",
+        "healthz",
+        "static",
+        "openapi.json",
+        "docs",
+        "redoc",
+        # server-owned asset namespaces (allowlisted art/sprites): a miss
+        # there is a 404, never a silently served SPA shell
+        "today",
+        "companions",
+        "icons",
+    }
+)
 
-def default_station_dir() -> Path:
-    """The in-repo Station, or ``PW_STATION_DIST`` when set.
+#: Retired interface paths. They redirect to / so nothing ever 404s on a
+#: bookmark — and so the old surfaces are unreachable, not just unlinked.
+LEGACY_PREFIXES = ("station", "vnext")
 
-    The env override exists for deployments that ship the Station
-    somewhere other than the source tree; the default is the design
-    directory this repo actually maintains.
-    """
-    override = os.environ.get("PW_STATION_DIST")
+
+def default_app_dir() -> Path:
+    """Where the built interface lives: ``static/app``, or
+    ``PW_APP_DIST`` when a deployment stages it elsewhere (tests use the
+    override)."""
+    override = os.environ.get("PW_APP_DIST")
     if override:
         return Path(override)
-    return (
-        Path(__file__).resolve().parents[2]
-        / "design"
-        / "opendesign-exploration"
-        / "station"
-    )
+    return Path(__file__).resolve().parent / "static" / "app"
 
 
 def build_allowlist(root: Path) -> dict[str, Path]:
@@ -127,171 +144,38 @@ def build_allowlist(root: Path) -> dict[str, Path]:
     return allowlist
 
 
-STATION_NOT_INSTALLED_HTML = """<!doctype html>
+APP_NOT_INSTALLED_HTML = """<!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Project Worlds — Station not installed</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Project Worlds — interface not built</title></head>
 <body>
 <main id="main-content">
-<h1>The Station is not installed here</h1>
-<p>This Project Worlds installation does not include the Station
-interface. The API is still available; nothing else is affected.</p>
-<p>Operator details: point <code>PW_STATION_DIST</code> at a directory
-containing the Station files and restart. (The standard container image
-already ships the Station files, so this page normally means the files
-were removed or the override points nowhere.)</p>
-
-</main>
-</body>
-</html>"""
-
-STATION_NOT_FOUND_HTML = """<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Project Worlds — page not found</title></head>
-<body>
-<main id="main-content">
-<h1>That page is not part of the Station</h1>
-<p><a href="/station/">Return to the systems map</a>.</p>
-<p>Files added to the Station directory are served after a restart; only web
-assets are served, never internal notes.</p>
+<h1>The interface is not built here</h1>
+<p>This Project Worlds instance has no interface build staged, so there is
+nothing to show. The API is running normally; nothing else is affected.</p>
+<p>Operator details: the container image builds the interface itself, so a
+fresh <code>docker compose build</code> fixes a broken image. For a source
+checkout, run <code>npm ci &amp;&amp; npm run build</code> in <code>ui/</code>
+and then <code>bash scripts/build-app.sh</code> to stage it, and restart.</p>
 </main>
 </body>
 </html>"""
 
 
-def station_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
-    """Build the ``/station`` router.
+def app_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
+    """Build the interface router. Mount it LAST so it never shadows a
+    real route.
 
     ``data_dir`` supplies the first-run marker; ``dist`` overrides the
-    Station directory (tests, or a deployment that ships it elsewhere).
+    build directory (tests, or a deployment that stages the build
+    elsewhere).
     """
-    root = (dist or default_station_dir()).resolve()
+    root = (dist or default_app_dir()).resolve()
     allowlist = build_allowlist(root)
     if not allowlist:
         _logger.warning(
-            "Station interface not installed (%s); %s will report it "
+            "interface build not installed (%s); / will report it "
             "honestly instead of serving",
             root.name or "unset",
-            STATION_PREFIX,
-        )
-
-    router = APIRouter()
-    data_dir = Path(data_dir)
-
-    async def _gate(request: Request) -> Response | None:
-        """Answer 'may this browser see the Station?' — or redirect.
-
-        The authorization decision belongs to ``api.require_auth`` (the
-        single credential seam: bearer, session, or the opt-in loopback
-        dev bypass). This only translates a refusal into a navigation a
-        human can follow, because a JSON 401 is not a usable answer to a
-        browser that asked for a page.
-        """
-        from .api import require_auth  # local import: api.py mounts us
-
-        if not (data_dir / "setup-complete").exists():
-            return RedirectResponse(url="/setup", status_code=303)
-        try:
-            await require_auth(request)
-        except HTTPException:
-            return RedirectResponse(url="/login", status_code=303)
-        return None
-
-    def _serve(request: Request, rel: str) -> Response:
-        from .api import _cached_file  # canonical static-file revalidation
-
-        path = allowlist.get(rel)
-        if path is None or not path.is_file():
-            return HTMLResponse(
-                STATION_NOT_FOUND_HTML,
-                status_code=404,
-                headers={"Cache-Control": "no-store"},
-            )
-        ctype = CONTENT_TYPES.get(path.suffix.lower())
-        return _cached_file(request, path, ctype)
-
-    @router.get(STATION_PREFIX, include_in_schema=False)
-    async def station_root(request: Request):
-        blocked = await _gate(request)
-        if blocked is not None:
-            return blocked
-        if not allowlist:
-            return HTMLResponse(
-                STATION_NOT_INSTALLED_HTML,
-                status_code=503,
-                headers={"Cache-Control": "no-store"},
-            )
-        # A bare /station is the map's front door.
-        return RedirectResponse(url=f"{STATION_PREFIX}/", status_code=303)
-
-    @router.get(STATION_PREFIX + "/", include_in_schema=False)
-    async def station_index(request: Request):
-        blocked = await _gate(request)
-        if blocked is not None:
-            return blocked
-        if not allowlist:
-            return HTMLResponse(
-                STATION_NOT_INSTALLED_HTML,
-                status_code=503,
-                headers={"Cache-Control": "no-store"},
-            )
-        return _serve(request, "index.html")
-
-    @router.get(STATION_PREFIX + "/{full_path:path}", include_in_schema=False)
-    async def station_asset(full_path: str, request: Request):
-        blocked = await _gate(request)
-        if blocked is not None:
-            return blocked
-        if not allowlist:
-            return HTMLResponse(
-                STATION_NOT_INSTALLED_HTML,
-                status_code=503,
-                headers={"Cache-Control": "no-store"},
-            )
-        return _serve(request, full_path)
-
-    return router
-
-
-# ── Station vNext (React UI) ────────────────────────────────────────
-# Served side-by-side with the Station at /vnext/ while the React
-# rewrite is tested. Same auth gate (same require_auth credential
-# seam), same allowlist pattern, same content types. Until this UI is
-# promoted to /station/, this mount is additive — the production
-# Station keeps running at /station/.
-VNEXT_PREFIX = "/vnext"
-
-VNEXT_NOT_INSTALLED_HTML = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Station vNext not installed</title></head>
-<body><main><h1>Station vNext not installed</h1>
-<p>The React UI build was not packaged with this server. Run
-<code>npm run build</code> in <code>pw-vnext-station/ui</code> and copy
-<code>dist/*</code> to <code>src/personal_world/static/vnext/</code>.
-The vanilla Station UI at <a href="/station/">/station/</a> is unaffected.</p>
-</main></body></html>"""
-
-
-def default_vnext_dir() -> Path:
-    """The in-repo Station vNext React build."""
-    override = os.environ.get("PW_VNEXT_DIST")
-    if override:
-        return Path(override)
-    return Path(__file__).resolve().parent / "static" / "vnext"
-
-
-def vnext_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
-    """Build the ``/vnext`` router for the React rewrite.
-
-    ``data_dir`` supplies the first-run marker; ``dist`` overrides the
-    build directory (tests, or a deployment that ships the build elsewhere).
-    """
-    root = (dist or default_vnext_dir()).resolve()
-    allowlist = build_allowlist(root)
-    if not allowlist:
-        _logger.warning(
-            "Station vNext build not installed (%s); %s will report it "
-            "honestly instead of serving",
-            root.name or "unset",
-            VNEXT_PREFIX,
         )
 
     router = APIRouter()
@@ -308,62 +192,61 @@ def vnext_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
             return RedirectResponse(url="/login", status_code=303)
         return None
 
-    def _serve(request: Request, rel: str) -> Response:
+    def _index(request: Request) -> Response:
         from .api import _cached_file
 
-        path = allowlist.get(rel)
+        path = allowlist.get("index.html")
         if path is None or not path.is_file():
-            # React SPAs: missing path = serve index.html so client-side
-            # routing can take over. Bare 404s break /vnext/* deep links.
-            path = allowlist.get("index.html")
-            if path is None:
-                return HTMLResponse(
-                    VNEXT_NOT_INSTALLED_HTML,
-                    status_code=503,
-                    headers={"Cache-Control": "no-store"},
-                )
+            return HTMLResponse(
+                APP_NOT_INSTALLED_HTML,
+                status_code=503,
+                headers={"Cache-Control": "no-store"},
+            )
+        return _cached_file(request, path, CONTENT_TYPES[".html"])
+
+    def _file(request: Request, rel: str) -> Response:
+        from .api import _cached_file
+
+        path = allowlist[rel]
         ctype = CONTENT_TYPES.get(path.suffix.lower())
         return _cached_file(request, path, ctype)
 
-    @router.get(VNEXT_PREFIX, include_in_schema=False)
-    async def vnext_root(request: Request):
-        blocked = await _gate(request)
-        if blocked is not None:
-            return blocked
-        if not allowlist:
-            return HTMLResponse(
-                VNEXT_NOT_INSTALLED_HTML,
-                status_code=503,
-                headers={"Cache-Control": "no-store"},
-            )
-        return _serve(request, "index.html")
+    # --- retired paths: redirect, never serve --------------------------
+    @router.get("/station", include_in_schema=False)
+    @router.get("/station/", include_in_schema=False)
+    @router.get("/vnext", include_in_schema=False)
+    @router.get("/vnext/", include_in_schema=False)
+    async def _retired_root(request: Request):
+        return RedirectResponse(url="/", status_code=307)
 
-    @router.get(VNEXT_PREFIX + "/", include_in_schema=False)
-    async def vnext_index(request: Request):
-        blocked = await _gate(request)
-        if blocked is not None:
-            return blocked
-        if not allowlist:
-            return HTMLResponse(
-                VNEXT_NOT_INSTALLED_HTML,
-                status_code=503,
-                headers={"Cache-Control": "no-store"},
-            )
-        return _serve(request, "index.html")
+    @router.get("/station/{rest:path}", include_in_schema=False)
+    @router.get("/vnext/{rest:path}", include_in_schema=False)
+    async def _retired_deep(rest: str, request: Request):
+        return RedirectResponse(url="/", status_code=307)
 
-    @router.get(VNEXT_PREFIX + "/{full_path:path}", include_in_schema=False)
-    async def vnext_asset(full_path: str, request: Request):
+    # --- the interface itself ------------------------------------------
+    @router.get("/", include_in_schema=False)
+    async def interface_root(request: Request):
         blocked = await _gate(request)
         if blocked is not None:
             return blocked
-        if not allowlist:
-            return HTMLResponse(
-                VNEXT_NOT_INSTALLED_HTML,
-                status_code=503,
-                headers={"Cache-Control": "no-store"},
-            )
-        # SPA fallback: any path that isn't a real file becomes index.html.
-        # This is how Vite's preview/Vercel/etc. serve a React build.
-        return _serve(request, full_path)
+        return _index(request)
+
+    # --- assets and SPA fallback (must come last) ----------------------
+    @router.get("/{full_path:path}", include_in_schema=False)
+    async def interface_asset(full_path: str, request: Request):
+        top = full_path.split("/", 1)[0]
+        if top in RESERVED_TOP_LEVEL:
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        path = allowlist.get(full_path)
+        if path is not None and path.is_file():
+            return _file(request, full_path)
+        # React SPA: any other unknown path is client-side routing —
+        # serve index so deep links work. A missing build still reports
+        # honestly through _index.
+        blocked = await _gate(request)
+        if blocked is not None:
+            return blocked
+        return _index(request)
 
     return router

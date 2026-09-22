@@ -157,7 +157,7 @@ export function App() {
             aria-label={label}
             className="relative z-10 p-[var(--pw-spacing-xl)]"
           >
-            <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+            <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
               {label}
             </h1>
             <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-muted)]">
@@ -272,7 +272,7 @@ function HealthReadout() {
         : "text-[var(--pw-accent-warm)]";
 
   return (
-    <div className="hidden md:flex items-center gap-0 text-[var(--pw-typography-size_micro)] font-mono uppercase tracking-[0.14em]">
+    <div className="hidden md:flex items-center gap-0 text-[length:var(--pw-typography-size_micro)] font-mono uppercase tracking-[0.14em]">
       <div className="px-3 border-l border-[var(--pw-border-subtle)]">
         <p className="text-[var(--pw-text-muted)]">Status</p>
         <p className={wordColor} role="status" aria-live="polite">
@@ -315,11 +315,11 @@ function StatusStrip() {
           className={`h-2 w-2 rounded-full shrink-0 ${dotColor}`}
           aria-hidden="true"
         />
-        <p className="text-[var(--pw-typography-size_micro)] font-mono text-[var(--pw-text-secondary)] truncate">
+        <p className="text-[length:var(--pw-typography-size_micro)] font-mono text-[var(--pw-text-secondary)] truncate">
           {line}
         </p>
       </div>
-      <div className="hidden sm:flex gap-4 text-[var(--pw-typography-size_micro)] font-mono uppercase tracking-[0.14em] text-[var(--pw-text-muted)]">
+      <div className="hidden sm:flex gap-4 text-[length:var(--pw-typography-size_micro)] font-mono uppercase tracking-[0.14em] text-[var(--pw-text-muted)]">
         <span>Project Worlds</span>
       </div>
     </footer>
