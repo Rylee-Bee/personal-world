@@ -37,10 +37,16 @@ personal-world --data-dir ./data --config-dir ./config \
   worlds restore ~/sos/my-world.pwbackup
 ```
 
-Then restart the app so registries reload the restored state. That's
-it. Add `--overwrite` only if the fresh instance already has files you
-want replaced — by default restore fills in what's missing and reports
-what it skipped.
+Then restart the app so registries reload the restored state.
+
+One honest step an earlier version of this doc skipped: the archive
+carries user state, NOT the instance's own credentials or first-run
+marker. On a truly fresh box you must still run the normal first-run
+setup (`personal-world init` / the setup wizard) to mint `PW_API_TOKEN`
+and write `setup-complete` — the restore fills the world back in around
+them. A restore into an already-initialized instance needs no extra
+step. (Corrected 2026-09-22 from the timed restore drill; the full
+covered/not-covered boundary lives in `docs/RECOVERY-BOUNDARY.md`.)
 
 Non-interactive recovery (scripts, systemd) can set
 `PW_BACKUP_PASSPHRASE` per-command instead of answering the prompt.

@@ -109,6 +109,12 @@ HOME_BOUNDARY_TREES = ("reconciler/desired", "lab/desired")
 NEVER_NAMES = frozenset({"sessions.json", "updates-session.json"})
 NEVER_PREFIXES = ("memory.fts5.db",)
 
+# Operational instance files that are always present and intentionally
+# outside the boundary: credentials and the first-run marker. The module
+# docstring accounts for them, so they need no per-backup report line —
+# unlike UNRECOGNIZED entries, which must never stay silent.
+OPERATIONAL_NAMES = frozenset({".env", "setup-complete"})
+
 # Keys whose VALUES must never enter an archive even if an operator
 # hand-edited them into a config-only file. *_env / *_ref indirection
 # keys are the allowed shape and pass through.
@@ -130,6 +136,35 @@ def default_home_config_dir() -> Path:
 
 def _is_never(name: str) -> bool:
     return name in NEVER_NAMES or name.startswith(NEVER_PREFIXES)
+
+
+def _unrecognized_data_entries(data_dir: Path) -> list[str]:
+    """Top-level data-dir entries the boundary never mentions.
+
+    These are REPORTED, not silently dropped: a future local store under
+    ``data/`` must show up in every backup report as NOT archived.
+    Vanishing from an "SOS backup" without a word is how a backup turns
+    into a lie (lane B restore drill finding, 2026-09-22). Operational
+    and never-archived names are exempt — the module docstring already
+    accounts for them, and re-listing them every run is noise, not
+    honesty.
+    """
+    covered = set(DATA_BOUNDARY_FILES) | set(DATA_BOUNDARY_TREES) | {"vault.enc"}
+    notes: list[str] = []
+    try:
+        top = sorted(data_dir.iterdir())
+    except OSError:
+        return notes
+    for path in top:
+        name = path.name
+        if name in covered or name in OPERATIONAL_NAMES or _is_never(name):
+            continue
+        notes.append(
+            f"data/{name} (NOT recognized by the backup boundary — not "
+            "archived; if this is user state, add it to DATA_BOUNDARY_* "
+            "and extend the restore tests)"
+        )
+    return notes
 
 
 def _is_secret_key(key: str) -> bool:
@@ -263,7 +298,7 @@ def _collect_members(
         for tree in HOME_BOUNDARY_TREES:
             want_tree(home_config_dir / tree, f"home/{tree}")
 
-    return members, excluded
+    return members, excluded + _unrecognized_data_entries(data_dir)
 
 
 def _build_tar(members: list[tuple[str, bytes | Path]]) -> bytes:

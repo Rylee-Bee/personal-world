@@ -298,6 +298,21 @@ def test_tracked_config_connections_json_not_archived(instance, tmp_path):
     assert "config/connections.json" not in result.data["included"]
 
 
+def test_unrecognized_data_entries_are_reported_not_silently_dropped(instance, tmp_path):
+    """Lane B drill finding (2026-09-22): a data/ subtree outside the
+    boundary must show up in the report as NOT archived — vanishing from
+    an SOS backup without a word is how a backup becomes a lie."""
+    data, _, _ = instance
+    (data / "media").mkdir()
+    (data / "media" / "photo.bin").write_bytes(b"not in any boundary")
+    result, _ = _backup(instance, tmp_path)
+    assert not any(n.startswith("data/media") for n in result.data["included"])
+    notes = [e for e in result.data["excluded"] if "data/media" in e]
+    assert notes and "NOT recognized" in notes[0]
+    # Documented operational names stay silent — honesty, not noise.
+    assert not any(".env" in e or "setup-complete" in e for e in result.data["excluded"])
+
+
 # ── overwrite semantics ───────────────────────────────────────────────
 
 
