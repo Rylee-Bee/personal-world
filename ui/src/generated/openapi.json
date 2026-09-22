@@ -1,0 +1,3742 @@
+{
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WorldsBackupRequest": {
+        "description": "Passphrase as SecretStr: redacted from reprs and any accidental\nlog line. Travels in the request body only — never a query string.",
+        "properties": {
+          "include_vault": {
+            "default": false,
+            "title": "Include Vault",
+            "type": "boolean"
+          },
+          "passphrase": {
+            "format": "password",
+            "title": "Passphrase",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "passphrase"
+        ],
+        "title": "WorldsBackupRequest",
+        "type": "object"
+      },
+      "WorldsRestoreRequest": {
+        "properties": {
+          "archive_b64": {
+            "title": "Archive B64",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          },
+          "passphrase": {
+            "format": "password",
+            "title": "Passphrase",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "passphrase",
+          "archive_b64"
+        ],
+        "title": "WorldsRestoreRequest",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Project Worlds",
+    "version": "0.2.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Entry point. Post-setup the **Station** is the product frontend\n(owner decisions #11/#12). During first-run the setup wizard owns the\nentry.",
+        "operationId": "spa_root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Spa Root"
+      }
+    },
+    "/api/actors": {
+      "get": {
+        "operationId": "actors_api_actors_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Actors Api Actors Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Actors"
+      }
+    },
+    "/api/apps": {
+      "get": {
+        "description": "Services launcher registry (config/data/apps.json).\n\nEach entry: {id, name, url, icon?, category?}. User-editable,\noptional; absent file = empty list.",
+        "operationId": "apps_list_api_apps_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Apps List Api Apps Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Apps List"
+      },
+      "put": {
+        "description": "Replace the services registry (step-up gated, like prefs).",
+        "operationId": "apps_put_api_apps_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Apps Put Api Apps Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Apps Put"
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "description": "Local/bootstrap login.",
+        "operationId": "auth_login_api_auth_login_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Login"
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "description": "Logout: invalidate session.\n\nFor an OIDC-created session the response also carries the\nprovider's end-session URL, so a client can offer a real \"sign\nout everywhere\" instead of silently leaving the IdP session\nalive. The local session is gone either way.",
+        "operationId": "auth_logout_api_auth_logout_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Logout"
+      }
+    },
+    "/api/auth/oidc/callback": {
+      "get": {
+        "description": "Finish a sign-in: exchange the code, verify the id_token.\n\nTrust order matters. The ``state`` cookie is checked first\n(CSRF), then the authorization code is exchanged with the PKCE\nverifier, then the id_token's signature is verified against the\nprovider's JWKS and its ``iss``/``aud``/``exp``/``nonce`` claims\nare validated. Only then is the verified ``sub`` handed to\n``identity.py`` to resolve a Principal. Nothing about the\nprovider's assertion is trusted before it is verified, and no\nid_token or access_token is ever stored.",
+        "operationId": "auth_oidc_callback_api_auth_oidc_callback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Code",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "State",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Error",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error_description",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Error Description",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Auth Oidc Callback"
+      }
+    },
+    "/api/auth/oidc/config": {
+      "get": {
+        "description": "Legacy alias of ``/api/auth/oidc/status``.\n\nSame honest payload, plus the flat keys the earlier shape used.\n``/api/auth/oidc/login`` is the canonical entry point for a\nbrowser: the server owns the discovery-derived authorize URL, so\nno client needs to construct one (or to know PKCE exists).",
+        "operationId": "auth_oidc_config_api_auth_oidc_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Auth Oidc Config Api Auth Oidc Config Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Oidc Config"
+      }
+    },
+    "/api/auth/oidc/login": {
+      "get": {
+        "description": "Start a sign-in: redirect to the provider's authorize URL.\n\nAuthorization-code flow with PKCE (S256) and a nonce. The\nin-flight state — CSRF ``state``, PKCE verifier, nonce, and the\nexact ``redirect_uri`` the token exchange must replay — is held\nin a signed HttpOnly cookie, so the callback can verify the\nattempt belongs to this browser without storing anything\nserver-side.",
+        "operationId": "auth_oidc_login_api_auth_oidc_login_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Oidc Login"
+      }
+    },
+    "/api/auth/oidc/logout": {
+      "get": {
+        "description": "End the local session, then the provider session if it offers\nRP-initiated logout.\n\nThe local session is always invalidated first, so a provider\nthat is unreachable can never leave a signed-in session behind.\nWe do not retain the id_token, so no ``id_token_hint`` is sent —\nsome providers then ask the person to confirm, which is the\nhonest cost of not storing a credential we do not need.",
+        "operationId": "auth_oidc_logout_api_auth_oidc_logout_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Oidc Logout"
+      }
+    },
+    "/api/auth/oidc/status": {
+      "get": {
+        "description": "Honest OIDC state for the login screen and the setup wizard.\n\nRead-only and unauthenticated by necessity (it is consulted\nbefore anyone can sign in), and therefore deliberately bounded:\nit never accepts a target from the caller — the provider comes\nfrom the operator's own ``config/oidc.json`` — and discovery\nresults are cached, success and failure alike, so an anonymous\ncaller cannot turn this into a probe loop against the IdP.\n\n``status`` is one of ``not_configured`` (no OIDC file; local\nauth is the whole story — healthy, not broken), ``configured``\n(usable), ``unreachable`` (provider did not answer), or\n``misconfigured`` (settings or provider metadata unusable).\nPayload carries wiring and discovery metadata; the client secret\nis represented only by the *name* of the env var that holds it\nand a boolean saying whether that variable is set.",
+        "operationId": "auth_oidc_status_api_auth_oidc_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Auth Oidc Status Api Auth Oidc Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Oidc Status"
+      }
+    },
+    "/api/auth/session": {
+      "get": {
+        "description": "Check current session.\n\nDeliberately free of provider calls: the UI polls this endpoint,\nso it must never block on an identity provider. Sign-in options\ncome from ``/api/auth/oidc/status``.",
+        "operationId": "auth_session_api_auth_session_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Auth Session Api Auth Session Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Session"
+      }
+    },
+    "/api/auth/step-up": {
+      "post": {
+        "description": "Elevate the current session for a bounded window.\n\nStep-up is a credential event, not a bare flag: the caller must\nre-present a credential (the instance token as a bearer header\nor ``{\"token\": ...}`` in the body) that resolves to the same\nprincipal the session belongs to. The resulting elevation is\ntime-bounded and bound to that principal; it is the grant\n``require_step_up`` consumes.\n\nUnchanged by the OIDC work: an OIDC sign-in proves identity to\nthe provider but does not by itself mint a step-up grant. A\nfresh OIDC round-trip as step-up remains unimplemented (see\ndocs/ARCHITECTURE.md \"Known implementation/documentation\nboundaries\").",
+        "operationId": "auth_step_up_api_auth_step_up_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Auth Step Up Api Auth Step Up Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Step Up"
+      }
+    },
+    "/api/backup": {
+      "get": {
+        "description": "Full-state backup payload (world, journal, config) including\nprivate state. Meant for the operator's own encryption step; it\nis never shareable raw, and the API does not encrypt it.",
+        "operationId": "backup_api_backup_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Backup Api Backup Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Backup"
+      }
+    },
+    "/api/brain/provenance": {
+      "get": {
+        "description": "Report template provenance for Nerd Mode.",
+        "operationId": "brain_provenance_api_brain_provenance_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Surface"
+            }
+          },
+          {
+            "in": "query",
+            "name": "task",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Brain Provenance Api Brain Provenance Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Brain Provenance"
+      }
+    },
+    "/api/brain/templates": {
+      "get": {
+        "description": "List all brain templates with metadata.",
+        "operationId": "brain_templates_api_brain_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Brain Templates Api Brain Templates Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Brain Templates"
+      }
+    },
+    "/api/chat": {
+      "post": {
+        "description": "Conversational interface to Project Worlds.\n\nRead-only: the model observes a rendered world snapshot and\nreturns text. No tool execution, no mutations. With no chat\nprovider configured the endpoint answers 'not_configured' so\nthe dashboard can degrade honestly.",
+        "operationId": "chat_api_chat_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Chat Api Chat Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Chat"
+      }
+    },
+    "/api/chat/history": {
+      "get": {
+        "description": "The caller's own persisted chat transcript, oldest first\n(per-user, decision #13). Never another principal's.",
+        "operationId": "chat_history_view_api_chat_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "n",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "N",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Chat History View Api Chat History Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat History View"
+      }
+    },
+    "/api/chat/providers": {
+      "get": {
+        "description": "List available chat providers and which is active.",
+        "operationId": "chat_providers_api_chat_providers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Chat Providers Api Chat Providers Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Chat Providers"
+      }
+    },
+    "/api/chat/test": {
+      "post": {
+        "description": "Quick chat test — sends a simple message to verify the provider\nworks. Authenticated: it spends provider quota and reveals which\nprovider is wired, so it is never a public probe.",
+        "operationId": "chat_test_api_chat_test_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Chat Test Api Chat Test Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Chat Test"
+      }
+    },
+    "/api/connections": {
+      "get": {
+        "description": "Return all connections.",
+        "operationId": "connections_list_api_connections_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Connections List Api Connections Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Connections List"
+      },
+      "put": {
+        "description": "Save a connection (step-up required).",
+        "operationId": "connections_save_api_connections_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Connections Save Api Connections Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Connections Save"
+      }
+    },
+    "/api/connections/config": {
+      "get": {
+        "description": "Return the full merged connection configuration.",
+        "operationId": "connections_config_api_connections_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Connections Config Api Connections Config Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Connections Config"
+      }
+    },
+    "/api/connections/config/{key}": {
+      "post": {
+        "description": "Save native provider config (calendar, notifications, etc.).",
+        "operationId": "save_native_config_api_connections_config__key__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Save Native Config Api Connections Config  Key  Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Native Config"
+      }
+    },
+    "/api/connections/overview": {
+      "get": {
+        "description": "Return capability overview: status, config state, providers.",
+        "operationId": "connections_overview_api_connections_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Connections Overview Api Connections Overview Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Connections Overview"
+      }
+    },
+    "/api/connections/schema/{capability}": {
+      "get": {
+        "description": "Return schema for a single capability.",
+        "operationId": "connection_schema_api_connections_schema__capability__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "capability",
+            "required": true,
+            "schema": {
+              "title": "Capability",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Connection Schema Api Connections Schema  Capability  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Connection Schema"
+      }
+    },
+    "/api/connections/schemas": {
+      "get": {
+        "description": "Return all provider schemas for the Connections & Providers UI.",
+        "operationId": "connection_schemas_api_connections_schemas_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Connection Schemas Api Connections Schemas Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Connection Schemas"
+      }
+    },
+    "/api/connections/test": {
+      "post": {
+        "description": "Test a connection configuration without saving it.",
+        "operationId": "test_connection_api_connections_test_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Test Connection Api Connections Test Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Test Connection"
+      }
+    },
+    "/api/connections/validate": {
+      "post": {
+        "description": "Validate connection config (alias for test).",
+        "operationId": "validate_connection_api_connections_validate_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Validate Connection Api Connections Validate Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Validate Connection"
+      }
+    },
+    "/api/connections/{name}": {
+      "delete": {
+        "description": "Delete a connection by name (step-up required).",
+        "operationId": "connections_delete_api_connections__name__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Connections Delete Api Connections  Name  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Connections Delete"
+      }
+    },
+    "/api/daily": {
+      "get": {
+        "description": "Present the daily digest. Read-only: a page view never\njournals observations or records facts (that is the POST).",
+        "operationId": "daily_view_api_daily_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Daily View Api Daily Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Daily View"
+      },
+      "post": {
+        "description": "Run the daily loop for real: journal observations, record\ncapability facts, flag drift, save the world.",
+        "operationId": "daily_run_api_daily_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Daily Run Api Daily Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Daily Run"
+      }
+    },
+    "/api/discovery/discover": {
+      "get": {
+        "description": "Discover content from sources.",
+        "operationId": "discovery_discover_api_discovery_discover_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Discovery Discover Api Discovery Discover Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Discovery Discover"
+      }
+    },
+    "/api/discovery/interests": {
+      "get": {
+        "description": "List interests.",
+        "operationId": "discovery_interests_api_discovery_interests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Discovery Interests Api Discovery Interests Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Discovery Interests"
+      },
+      "post": {
+        "description": "Add an interest.",
+        "operationId": "discovery_add_interest_api_discovery_interests_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Discovery Add Interest Api Discovery Interests Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Discovery Add Interest"
+      }
+    },
+    "/api/discovery/sources": {
+      "get": {
+        "description": "List discovery sources.",
+        "operationId": "discovery_sources_api_discovery_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Discovery Sources Api Discovery Sources Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Discovery Sources"
+      },
+      "post": {
+        "description": "Add a discovery source.",
+        "operationId": "discovery_add_source_api_discovery_sources_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Discovery Add Source Api Discovery Sources Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Discovery Add Source"
+      }
+    },
+    "/api/discovery/status": {
+      "get": {
+        "description": "Native Discovery status.",
+        "operationId": "discovery_status_api_discovery_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Discovery Status Api Discovery Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Discovery Status"
+      }
+    },
+    "/api/exports/settings": {
+      "get": {
+        "description": "Shareable settings blueprint: capabilities, provider mappings,\npacks, schedules — the bones of the installation, not the person.",
+        "operationId": "settings_export_api_exports_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Settings Export Api Exports Settings Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Settings Export"
+      }
+    },
+    "/api/exports/story": {
+      "get": {
+        "description": "Human-readable journal story (entry summaries); private\nentries are excluded from the rendering.",
+        "operationId": "story_export_api_exports_story_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Story Export Api Exports Story Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Story Export"
+      }
+    },
+    "/api/exports/world": {
+      "get": {
+        "description": "Portable personal configuration: world-classified state only;\nraw secrets are structurally absent (they live in the secret\nstore, referenced by name at most). Treat the output as personal\ndata.",
+        "operationId": "world_export_api_exports_world_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response World Export Api Exports World Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "World Export"
+      }
+    },
+    "/api/identity/agents": {
+      "get": {
+        "description": "Mine (list) — agents owned by the caller; admins see all.",
+        "operationId": "agents_list_api_identity_agents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Agents List Api Identity Agents Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Agents List"
+      },
+      "post": {
+        "description": "Register an agent principal owned by the caller.\n\nBody: {\"agent_id\", \"display_name\"?, \"scopes\"?}. Scopes subset\nof read/write/journal/apps. Returns the token exactly once.",
+        "operationId": "agents_create_api_identity_agents_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Agents Create Api Identity Agents Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Agents Create"
+      }
+    },
+    "/api/identity/agents/{agent_id}": {
+      "delete": {
+        "operationId": "agents_disable_api_identity_agents__agent_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agent_id",
+            "required": true,
+            "schema": {
+              "title": "Agent Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Agents Disable Api Identity Agents  Agent Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Agents Disable"
+      }
+    },
+    "/api/identity/principal": {
+      "get": {
+        "description": "Read-only: who is calling. Useful for diagnostics and for a\nfuture onboarding / profiles surface.",
+        "operationId": "identity_principal_api_identity_principal_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Identity Principal Api Identity Principal Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Identity Principal"
+      },
+      "put": {
+        "description": "Set the caller's own display name. Persisted in private runtime\nstate (data/users.json), never in tracked config. Persons only.",
+        "operationId": "identity_principal_update_api_identity_principal_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Identity Principal Update Api Identity Principal Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Identity Principal Update"
+      }
+    },
+    "/api/identity/users": {
+      "get": {
+        "operationId": "users_list_api_identity_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Users List Api Identity Users Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Users List"
+      },
+      "post": {
+        "description": "Provision a person without touching internals.\n\nBody: {\"user_id\", \"display_name\"?, \"token\"?\"}. Token is\noptional; if omitted the server generates one and returns it\nexactly once. Never stored in the clear.",
+        "operationId": "users_create_api_identity_users_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Users Create Api Identity Users Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Users Create"
+      }
+    },
+    "/api/identity/users/{user_id}": {
+      "delete": {
+        "description": "Revoke access (disable). Data is preserved, not deleted.",
+        "operationId": "users_disable_api_identity_users__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Users Disable Api Identity Users  User Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Users Disable"
+      }
+    },
+    "/api/ingress/rollups": {
+      "get": {
+        "description": "Traefik ingress route rollups (read-only over LAN).\n\nOptional provider: absent configuration is a known state, not\na crash — an unconfigured router answers not_configured with\ncontext, matching the honest-degradation contract.",
+        "operationId": "ingress_rollups_api_ingress_rollups_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Ingress Rollups Api Ingress Rollups Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ingress Rollups"
+      }
+    },
+    "/api/journal": {
+      "get": {
+        "operationId": "journal_view_api_journal_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "n",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "N",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal View Api Journal Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Journal View"
+      },
+      "post": {
+        "operationId": "journal_note_api_journal_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Note Api Journal Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Note"
+      }
+    },
+    "/api/journal/audit": {
+      "get": {
+        "operationId": "journal_audit_api_journal_audit_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Audit Api Journal Audit Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Audit"
+      }
+    },
+    "/api/journal/draft": {
+      "delete": {
+        "operationId": "journal_draft_delete_api_journal_draft_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Draft Delete Api Journal Draft Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Draft Delete"
+      },
+      "get": {
+        "operationId": "journal_draft_get_api_journal_draft_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Draft Get Api Journal Draft Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Draft Get"
+      },
+      "put": {
+        "operationId": "journal_draft_put_api_journal_draft_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Draft Put Api Journal Draft Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Draft Put"
+      }
+    },
+    "/api/journal/edit-pair": {
+      "post": {
+        "operationId": "journal_edit_pair_api_journal_edit_pair_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Edit Pair Api Journal Edit Pair Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Edit Pair"
+      }
+    },
+    "/api/journal/history": {
+      "get": {
+        "description": "Full correction chain for one entry (progressive disclosure\nbacking store): oldest → newest, with reasons.",
+        "operationId": "journal_history_api_journal_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ts",
+            "required": true,
+            "schema": {
+              "title": "Ts",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal History Api Journal History Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Journal History"
+      }
+    },
+    "/api/journal/supersede": {
+      "post": {
+        "operationId": "journal_supersede_api_journal_supersede_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Supersede Api Journal Supersede Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Supersede"
+      }
+    },
+    "/api/lab/deploy": {
+      "get": {
+        "description": "Deploy status and history via lab CLI.",
+        "operationId": "lab_deploy_api_lab_deploy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lab Deploy Api Lab Deploy Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lab Deploy"
+      }
+    },
+    "/api/lab/health": {
+      "get": {
+        "description": "Health check across all services via lab CLI.",
+        "operationId": "lab_health_api_lab_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lab Health Api Lab Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lab Health"
+      }
+    },
+    "/api/lab/resources": {
+      "get": {
+        "description": "VM resource usage via lab CLI.",
+        "operationId": "lab_resources_api_lab_resources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lab Resources Api Lab Resources Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lab Resources"
+      }
+    },
+    "/api/lab/secrets": {
+      "get": {
+        "description": "Secret audit (names only, no values) via lab CLI.",
+        "operationId": "lab_secrets_api_lab_secrets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lab Secrets Api Lab Secrets Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lab Secrets"
+      }
+    },
+    "/api/lab/settings": {
+      "get": {
+        "description": "Settings Reconciler status via lab CLI.",
+        "operationId": "lab_settings_api_lab_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lab Settings Api Lab Settings Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lab Settings"
+      }
+    },
+    "/api/lab/settings/diff/{service}": {
+      "get": {
+        "description": "Drift between desired and live state for a service.",
+        "operationId": "lab_settings_diff_api_lab_settings_diff__service__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "title": "Service",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lab Settings Diff Api Lab Settings Diff  Service  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lab Settings Diff"
+      }
+    },
+    "/api/lab/settings/inspect/{service}": {
+      "get": {
+        "description": "Inspect desired state for a specific service.",
+        "operationId": "lab_settings_inspect_api_lab_settings_inspect__service__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "title": "Service",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lab Settings Inspect Api Lab Settings Inspect  Service  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lab Settings Inspect"
+      }
+    },
+    "/api/lab/state": {
+      "get": {
+        "description": "Operator packet from the homelab Lab CLI (lab-lowbw/1).\n\nPresentation-only: the packet is produced by the lab layer;\nthis route never derives homelab state itself.",
+        "operationId": "lab_state_api_lab_state_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lab State Api Lab State Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lab State"
+      }
+    },
+    "/api/manifest": {
+      "get": {
+        "description": "Machine-readable capability manifest (framework contract:\nsee docs/NATIVE-BASELINE-AND-ENRICHMENT.md) plus the endpoint\nmanifest (product decision #17: the API is the Lego box, so it\nhas to be discoverable).\n\n``data`` stays exactly the capability/provider manifest its\nexisting consumers expect; ``endpoints`` is additive. It is\ncurated in one place (``api_manifest.py``) and verified against\nthe live route table, so it can never advertise a route that is\nnot registered.",
+        "operationId": "manifest_api_manifest_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Manifest Api Manifest Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Manifest"
+      }
+    },
+    "/api/media/activity": {
+      "get": {
+        "operationId": "media_activity_api_media_activity_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Media Activity"
+      }
+    },
+    "/api/media/library": {
+      "get": {
+        "operationId": "media_library_api_media_library_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Media Library"
+      }
+    },
+    "/api/media/recent": {
+      "get": {
+        "operationId": "media_recent_api_media_recent_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Media Recent"
+      }
+    },
+    "/api/media/search": {
+      "get": {
+        "operationId": "media_search_api_media_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Media Search"
+      }
+    },
+    "/api/media/status": {
+      "get": {
+        "operationId": "media_status_api_media_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Media Status"
+      }
+    },
+    "/api/memory/search": {
+      "get": {
+        "description": "Semantic recall through the memory provider. Private data\nclass: results are personal context, never settings-exportable.",
+        "operationId": "memory_search_api_memory_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top_k",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "title": "Top K",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Memory Search Api Memory Search Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Memory Search"
+      }
+    },
+    "/api/native-lab/health": {
+      "get": {
+        "description": "Native Lab health monitoring.",
+        "operationId": "native_lab_health_api_native_lab_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Native Lab Health Api Native Lab Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Native Lab Health"
+      }
+    },
+    "/api/native-lab/inventory": {
+      "get": {
+        "description": "Native Lab service inventory.",
+        "operationId": "native_lab_inventory_api_native_lab_inventory_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Native Lab Inventory Api Native Lab Inventory Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Native Lab Inventory"
+      }
+    },
+    "/api/native-lab/resources": {
+      "get": {
+        "description": "Native Lab resource monitoring.",
+        "operationId": "native_lab_resources_api_native_lab_resources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Native Lab Resources Api Native Lab Resources Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Native Lab Resources"
+      }
+    },
+    "/api/native-lab/settings": {
+      "get": {
+        "description": "Native Lab settings inspection.",
+        "operationId": "native_lab_settings_api_native_lab_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Native Lab Settings Api Native Lab Settings Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Native Lab Settings"
+      }
+    },
+    "/api/prefs": {
+      "get": {
+        "operationId": "prefs_get_api_prefs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Prefs Get Api Prefs Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Prefs Get"
+      },
+      "put": {
+        "operationId": "prefs_put_api_prefs_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Prefs Put Api Prefs Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Prefs Put"
+      }
+    },
+    "/api/prefs/schema": {
+      "get": {
+        "description": "Read-only preference vocabulary (spec §2.5): the Settings\nsurface can only offer values the server accepts.",
+        "operationId": "prefs_schema_api_prefs_schema_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Prefs Schema Api Prefs Schema Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Prefs Schema"
+      }
+    },
+    "/api/projects/status": {
+      "get": {
+        "description": "Project-estate status from the agent-sync sensor (read-only).\n\nagent-sync (the pickle project's adapter layer) is\nAUTHORITATIVE for repository publication state: it invokes\nthis one `agent-sync status --all --format json` observation\nper call and normalizes the documented\n`play-nice/repo-status-v1` records. Project Worlds adds no\nGit-state computation of its own. Quiet degradation is the\ncontract: command absent / timeout / malformed output each\nreturn an honest 'unavailable' envelope — Project Worlds\nstays fully useful without the sensor. The observation carries\nagent-sync's own `observed_at` so it stays visibly a dated\nobservation, never timeless truth.",
+        "operationId": "projects_status_api_projects_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Projects Status Api Projects Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Projects Status"
+      }
+    },
+    "/api/proposals": {
+      "get": {
+        "description": "List the CALLER's proposals, optionally filtered by status\n(per-user trees, decision #13).",
+        "operationId": "proposals_list_api_proposals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Proposals List Api Proposals Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Proposals List"
+      }
+    },
+    "/api/proposals/{proposal_id}": {
+      "get": {
+        "description": "Get a single proposal by ID from the caller's own tree.",
+        "operationId": "proposals_get_api_proposals__proposal_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Proposals Get Api Proposals  Proposal Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Proposals Get"
+      }
+    },
+    "/api/proposals/{proposal_id}/approve": {
+      "post": {
+        "description": "Approve a pending proposal. Step-up gated.\n\nThis is the trusted owner approval path. The model cannot\ncall this endpoint — it requires step-up authorization. The\napproval is recorded in (and only reaches) the caller's own\nproposal tree, and journals to the caller's own journal.",
+        "operationId": "proposals_approve_api_proposals__proposal_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Proposals Approve Api Proposals  Proposal Id  Approve Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Proposals Approve"
+      }
+    },
+    "/api/proposals/{proposal_id}/execute": {
+      "post": {
+        "description": "Execute an approved proposal. Step-up gated.\n\nOnly proposals that have been approved through the trusted\nowner path can be executed. The approval evidence is checked\nserver-side — the model cannot forge it. Execution mutates the\nCALLER's own world/journal/reminders tree.",
+        "operationId": "proposals_execute_api_proposals__proposal_id__execute_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Proposals Execute Api Proposals  Proposal Id  Execute Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Proposals Execute"
+      }
+    },
+    "/api/proposals/{proposal_id}/reject": {
+      "post": {
+        "description": "Reject a pending proposal. Step-up gated.",
+        "operationId": "proposals_reject_api_proposals__proposal_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Proposals Reject Api Proposals  Proposal Id  Reject Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Proposals Reject"
+      }
+    },
+    "/api/reconciler/diff/{service}": {
+      "get": {
+        "description": "Compute drift between desired and observed state.",
+        "operationId": "reconciler_diff_api_reconciler_diff__service__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "title": "Service",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reconciler Diff Api Reconciler Diff  Service  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reconciler Diff"
+      }
+    },
+    "/api/reconciler/propose/{service}": {
+      "get": {
+        "description": "Propose reconciliation actions.",
+        "operationId": "reconciler_propose_api_reconciler_propose__service__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "title": "Service",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reconciler Propose Api Reconciler Propose  Service  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reconciler Propose"
+      }
+    },
+    "/api/reconciler/status": {
+      "get": {
+        "description": "Native Reconciler status.",
+        "operationId": "reconciler_status_api_reconciler_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reconciler Status Api Reconciler Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reconciler Status"
+      }
+    },
+    "/api/records": {
+      "delete": {
+        "description": "Delete a record. Same approval discipline as every Records write:\nstep-up gated and caller-scoped.",
+        "operationId": "records_delete_api_records_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Delete Api Records Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Delete"
+      },
+      "get": {
+        "description": "List records. With a category: a locked category yields an honest\n409 'locked' envelope unless THIS request carries fresh step-up.\nWithout a category: the unlocked browse view; ``?pinned=true`` narrows\nit to the Overview feed. A locked category is never aggregated in.",
+        "operationId": "records_list_api_records_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pinned",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Pinned",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records List Api Records Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Records List"
+      },
+      "post": {
+        "description": "Create or update a record. Step-up gated (the human-approval ACT,\nsame seam as /api/world/fact and PUT /api/sections). Optional\n``locked`` sets the category's lock in the same authorized write;\nrecords are stored as World Facts on the caller's own world.json.",
+        "operationId": "records_write_api_records_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Write Api Records Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Write"
+      }
+    },
+    "/api/records/categories": {
+      "get": {
+        "description": "Names, counts, and the locked flag for every category. A locked\ncategory is LISTED (name + count + locked) without exposing contents\n— so a person always knows what to unlock.",
+        "operationId": "records_categories_api_records_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Categories Api Records Categories Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Categories"
+      }
+    },
+    "/api/records/pin": {
+      "post": {
+        "description": "Pin a record for the Overview. Step-up gated, caller-scoped.",
+        "operationId": "records_pin_api_records_pin_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Pin Api Records Pin Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Pin"
+      }
+    },
+    "/api/records/unpin": {
+      "post": {
+        "description": "Remove a record's pin. Step-up gated, caller-scoped.",
+        "operationId": "records_unpin_api_records_unpin_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Records Unpin Api Records Unpin Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records Unpin"
+      }
+    },
+    "/api/reminders": {
+      "get": {
+        "description": "List the caller's own reminders (per-user, decision #13).",
+        "operationId": "reminders_list_api_reminders_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reminders List Api Reminders Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reminders List"
+      },
+      "post": {
+        "description": "Add a reminder to the caller's own tree.\nBody: {id, text, cron_hour, cron_minute, cron_day}.",
+        "operationId": "reminders_add_api_reminders_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reminders Add Api Reminders Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reminders Add"
+      }
+    },
+    "/api/reminders/{rid}": {
+      "delete": {
+        "description": "Delete one of the caller's own reminders.",
+        "operationId": "reminders_delete_api_reminders__rid__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rid",
+            "required": true,
+            "schema": {
+              "title": "Rid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reminders Delete Api Reminders  Rid  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reminders Delete"
+      },
+      "patch": {
+        "description": "Toggle one of the caller's own reminders. Body: {enabled: bool}.",
+        "operationId": "reminders_toggle_api_reminders__rid__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rid",
+            "required": true,
+            "schema": {
+              "title": "Rid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reminders Toggle Api Reminders  Rid  Patch",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reminders Toggle"
+      }
+    },
+    "/api/sections": {
+      "get": {
+        "operationId": "sections_get_api_sections_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Sections Get Api Sections Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sections Get"
+      },
+      "put": {
+        "operationId": "sections_put_api_sections_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Sections Put Api Sections Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sections Put"
+      }
+    },
+    "/api/setup": {
+      "post": {
+        "description": "First-run setup: create API token and vault passphrase.\n\nLoopback-only (fail closed): this endpoint mints the instance\ncredential, so a remote peer cannot take over a fresh,\nunauthenticated instance through this route. GET state routes\nstay readable.",
+        "operationId": "setup_api_setup_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Setup Api Setup Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Setup"
+      }
+    },
+    "/api/setup-wizard/auth-choice": {
+      "post": {
+        "operationId": "wizard_auth_choice_api_setup_wizard_auth_choice_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Wizard Auth Choice Api Setup Wizard Auth Choice Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Wizard Auth Choice"
+      }
+    },
+    "/api/setup-wizard/comfort": {
+      "post": {
+        "operationId": "wizard_comfort_api_setup_wizard_comfort_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Wizard Comfort Api Setup Wizard Comfort Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Wizard Comfort"
+      }
+    },
+    "/api/setup-wizard/finish": {
+      "post": {
+        "operationId": "wizard_finish_api_setup_wizard_finish_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Wizard Finish Api Setup Wizard Finish Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Wizard Finish"
+      }
+    },
+    "/api/setup-wizard/provision": {
+      "post": {
+        "operationId": "wizard_provision_api_setup_wizard_provision_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Wizard Provision Api Setup Wizard Provision Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Wizard Provision"
+      }
+    },
+    "/api/setup-wizard/state": {
+      "get": {
+        "operationId": "wizard_state_api_setup_wizard_state_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Wizard State Api Setup Wizard State Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Wizard State"
+      }
+    },
+    "/api/setup-wizard/test-oidc": {
+      "post": {
+        "operationId": "wizard_test_oidc_api_setup_wizard_test_oidc_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Wizard Test Oidc Api Setup Wizard Test Oidc Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Wizard Test Oidc"
+      }
+    },
+    "/api/setup/status": {
+      "get": {
+        "description": "Check if first-run setup is needed (missing marker, or a\ndeliberate FORCE_SETUP=1 re-open).",
+        "operationId": "setup_status_api_setup_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Setup Status Api Setup Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Setup Status"
+      }
+    },
+    "/api/source-control/enrichment": {
+      "get": {
+        "description": "GitHub enrichment for ONE repository (remote-side facts\nlocal Git cannot know: canonical identity, open PRs, open\nissues, default branch, last remote push).\n\nLocal Git stays canonical — this only ADDS remote facts; the\nnative status shape is unchanged. Quiet degradation is the\ncontract: gh missing / unauthenticated / offline / non-GitHub\nremote each return their own honest status ('unavailable',\n'not_github', 'not_configured'), never a crash and never a\nguessed field. Read-only; no credentials are read, stored, or\nlogged here — the gh CLI's own session is used as-is.",
+        "operationId": "source_control_enrichment_api_source_control_enrichment_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "repo",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Repo",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Source Control Enrichment Api Source Control Enrichment Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Control Enrichment"
+      }
+    },
+    "/api/source-control/history": {
+      "get": {
+        "description": "Newest-first commit history for ONE discovered repository\n(native git, read-only). Unconfigured search paths or an unknown\nrepo name answer not_configured — a structured miss, not a crash.",
+        "operationId": "source_control_history_api_source_control_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "title": "Repo",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Source Control History Api Source Control History Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Control History"
+      }
+    },
+    "/api/source-control/refresh": {
+      "post": {
+        "description": "Act step of the propose→approve→act refresh: re-runs the native\nread-only git status for ONE named repository. Requires step-up\nelevation; every outcome is journaled (a completed act as\nPROVIDER_ACTION, a rejection or git error as FAILURE — repo name\nand state bits only, no secrets, no filesystem paths).",
+        "operationId": "source_control_refresh_api_source_control_refresh_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Source Control Refresh Api Source Control Refresh Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Source Control Refresh"
+      }
+    },
+    "/api/source-control/status": {
+      "get": {
+        "operationId": "source_control_status_api_source_control_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Source Control Status Api Source Control Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Source Control Status"
+      }
+    },
+    "/api/status": {
+      "get": {
+        "operationId": "status_api_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Status Api Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Status"
+      }
+    },
+    "/api/templates": {
+      "get": {
+        "description": "Read-only template discovery (first-class brain templates).\n\nOne row per loaded template: ``{id, surface, role, description}``\n(role is the template kind: core/persona/surface/task/format).\nTemplates are plain markdown under ``config/prompts/`` with\noptional private overrides in ``config/prompts.local/`` — see\ndocs/brain-templates.md. Editing them never requires code\nchanges; this endpoint reflects the current tree on every call.",
+        "operationId": "templates_list_api_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Templates List Api Templates Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Templates List"
+      }
+    },
+    "/api/themes": {
+      "get": {
+        "description": "List available theme packs.",
+        "operationId": "themes_list_api_themes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Themes List Api Themes Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Themes List"
+      }
+    },
+    "/api/themes/{name}": {
+      "get": {
+        "description": "Get a specific theme pack manifest.",
+        "operationId": "themes_get_api_themes__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Themes Get Api Themes  Name  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Themes Get"
+      }
+    },
+    "/api/tools": {
+      "get": {
+        "description": "List tools the brain can invoke at runtime.\n\nReturns the actual callable tool registry, not just capability descriptions.\nEach tool has: id, capability, operation, description, read/write,\nparameters schema, availability, approval requirement.\nWiring is scoped to the caller (decision #13), mirroring the\nchat handler: same world/journal/reminders/proposals/interests.",
+        "operationId": "tools_api_tools_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Tools Api Tools Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Tools"
+      }
+    },
+    "/api/updates": {
+      "get": {
+        "description": "Read-only check + status overview. API is check/status only:\napply/rollback are CLI-only, deliberately -- destructive actions\nneed the explicit-confirm CLI path with its visible exit codes.",
+        "operationId": "updates_view_api_updates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Updates View Api Updates Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Updates View"
+      }
+    },
+    "/api/vault/lock": {
+      "post": {
+        "description": "Lock the vault, clearing secrets from memory.",
+        "operationId": "vault_lock_api_vault_lock_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Vault Lock Api Vault Lock Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Vault Lock"
+      }
+    },
+    "/api/vault/names": {
+      "get": {
+        "description": "List secret names (never values). Requires unlocked vault.",
+        "operationId": "vault_names_api_vault_names_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Vault Names Api Vault Names Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Vault Names"
+      }
+    },
+    "/api/vault/set": {
+      "post": {
+        "description": "Store a secret. Body: {name, value}. Step-up gated (owner decision).",
+        "operationId": "vault_set_api_vault_set_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Vault Set Api Vault Set Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Vault Set"
+      }
+    },
+    "/api/vault/status": {
+      "get": {
+        "description": "Vault status: locked/unlocked, secret count. Never values.\n\nReports actual encryption capability — not a hardcoded claim.",
+        "operationId": "vault_status_api_vault_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Vault Status Api Vault Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Vault Status"
+      }
+    },
+    "/api/vault/unlock": {
+      "post": {
+        "description": "Unlock the vault with a master passphrase.",
+        "operationId": "vault_unlock_api_vault_unlock_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Vault Unlock Api Vault Unlock Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Vault Unlock"
+      }
+    },
+    "/api/vault/{name}": {
+      "delete": {
+        "description": "Delete a secret by name. Step-up gated (owner decision).",
+        "operationId": "vault_delete_api_vault__name__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Vault Delete Api Vault  Name  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Vault Delete"
+      },
+      "get": {
+        "description": "Read a single secret value. True-loopback-host-only AND\nperson-only: the requester must be a local person — requests\nfrom a non-loopback Remote-Addr are refused (RFC1918/Docker\nbridge addresses included), and agent principals are refused\neven on loopback — keeping secret-value extraction a local,\nhuman-owner operation (browser/keys never cross the wire to\nanother host or an agent). Each retrieval audited to the\njournal with the NAME only.",
+        "operationId": "vault_get_api_vault__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Vault Get Api Vault  Name  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Vault Get"
+      }
+    },
+    "/api/world/fact": {
+      "post": {
+        "description": "Record a fact. Body: {key, value}.",
+        "operationId": "record_fact_api_world_fact_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Record Fact Api World Fact Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Record Fact"
+      }
+    },
+    "/api/world/intent": {
+      "post": {
+        "description": "Set an intent. Body: {key, value}.",
+        "operationId": "set_intent_api_world_intent_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Set Intent Api World Intent Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Set Intent"
+      }
+    },
+    "/api/world/policy": {
+      "post": {
+        "description": "Add a policy. Body: {key, effect}.",
+        "operationId": "add_policy_api_world_policy_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Add Policy Api World Policy Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Add Policy"
+      }
+    },
+    "/api/worlds/backup": {
+      "post": {
+        "operationId": "worlds_backup_api_worlds_backup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorldsBackupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Worlds Backup Api Worlds Backup Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Worlds Backup"
+      }
+    },
+    "/api/worlds/backup/download/{token}": {
+      "get": {
+        "operationId": "worlds_backup_download_api_worlds_backup_download__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Worlds Backup Download"
+      }
+    },
+    "/api/worlds/restore": {
+      "post": {
+        "operationId": "worlds_restore_api_worlds_restore_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorldsRestoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Worlds Restore Api Worlds Restore Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Worlds Restore"
+      }
+    },
+    "/companions/{name}.svg": {
+      "get": {
+        "description": "Serve one allowlisted companion SVG — byte-identical copies of\nthe design-owned rigs (see design/assets/companions/). UI asset\nroute: public like any browser-fetched art, carries no world\nstate, and is not part of the /api Lego box.",
+        "operationId": "companion_svg_companions__name__svg_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Companion Svg"
+      }
+    },
+    "/fonts/{name}": {
+      "get": {
+        "description": "Serve a self-hosted webfont from the allowlisted Figma-export\nfamilies (design/tokens.json font.expressive / font.interface).\nUI asset route: OFL-licensed font binaries, carries no world\nstate, and is not part of the /api Lego box.",
+        "operationId": "webfont_fonts__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Webfont"
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Healthz Healthz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Healthz"
+      }
+    },
+    "/icons/sprite.svg": {
+      "get": {
+        "description": "Serve the 72-glyph production icon sprite\n(design/assets/icons/). UI asset route: decorative geometry,\nstroke=currentColor, carries no world state, and is not part of\nthe /api Lego box.",
+        "operationId": "icon_sprite_icons_sprite_svg_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Icon Sprite"
+      }
+    },
+    "/today/{name}.svg": {
+      "get": {
+        "description": "Serve one allowlisted Today artwork SVG — frame-specific\ndecorative exports for Today (Workshop v3, design/assets/today/):\nthe quiet-day settle gesture and waterline. UI asset route:\ndecorative geometry, carries no world state, and is not part of\nthe /api Lego box.",
+        "operationId": "today_art_today__name__svg_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Today Art"
+      }
+    }
+  }
+}

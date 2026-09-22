@@ -24,30 +24,63 @@ _OUTLINE_SHORTHAND = re.compile(
 
 
 def test_focus_ring_matches_accessibility_contract():
+    """Re-anchored 2026-09-20 to the names/values split (TOKEN-REANCHOR-BRIEF).
+
+    Original intent preserved in full (2026-09-11 regression): the focus ring
+    must resolve to a literal, valid CSS `outline` shorthand — width separate
+    from offset forever, never an unresolved token reference, never folded
+    together. Where the truth lives now:
+      - STRUCTURE: design/tokens.json focus group (immutable 2px width,
+        distinct offset token)
+      - VALUES: design/themes/*.json accent/primary per theme
+      - HIGH CONTRAST: docs/accessibility/ACCESSIBILITY_CONTRACT.md §2.4
+        (teal comfortable / #FFFFFF high-contrast) until HC ships as a real
+        theme pack, at which point this test must move that assertion there.
+    """
     repo_root = Path(__file__).parent.parent
     tokens = json.loads((repo_root / "design" / "tokens.json").read_text())
     focus = tokens["focus"]
-    ring = focus["focus.ring"]
-    ring_hc = focus["focus.ring_high_contrast"]
 
-    # Must be a real, resolved CSS `outline` shorthand value — not a
-    # dotted token reference, and not `outline-offset` folded in (that
-    # is a separate property, applied independently in index.css).
-    assert _OUTLINE_SHORTHAND.match(ring), (
-        f"focus.ring must be a literal '2px solid #rrggbb' outline value, "
-        f"got {ring!r} (unresolved token references or extra components "
-        f"like ', offset 2px' make the CSS `outline` declaration invalid "
-        f"and browsers silently drop it — see 2026-09-11 provenance note "
-        f"above and design/tokens.json)"
+    width = focus["ring_width"]["_value"]
+    assert width == "2px", f"ring_width must stay 2px, got {width!r}"
+    assert focus["ring_width"].get("_immutable") is True, (
+        "ring_width lost its _immutable flag — the 2026-09-11 class of bug "
+        "returns the moment a theme can shrink the indicator to invisible"
     )
-    assert _OUTLINE_SHORTHAND.match(ring_hc), (
-        f"focus.ring_high_contrast must be a literal outline value, got {ring_hc!r}"
+    assert "ring_offset" in focus and focus["ring_offset"]["_value"] == "2px", (
+        "offset must remain a SEPARATE token, applied independently — folding "
+        "it into the outline shorthand is what made browsers drop the rule"
     )
 
-    # A11y §2.4: comfortable mode is teal (#72b1b1); high contrast is white.
-    assert ring == "2px solid #72b1b1"
-    assert ring_hc == "2px solid #FFFFFF"
+    # every theme pack (present AND future) must compose a valid literal ring
+    themes = sorted((repo_root / "design" / "themes").glob("*.json"))
+    assert themes, "no theme packs found to check"
+    for tf in themes:
+        theme = json.loads(tf.read_text())
+        accent = theme["accent"]["primary"]
+        composed = f"{width} solid {accent}"
+        assert _OUTLINE_SHORTHAND.match(composed), (
+            f"{tf.name}: focus ring resolves to invalid outline {composed!r}"
+        )
 
-    # The resolved color must match design/tokens.json's own
-    # `color.accent.primary` — the two must never drift apart.
-    assert tokens["color"]["accent.primary"] == "#72b1b1"
+    # comfortable = teal, and the ACTIVE production theme is station
+    station = json.loads((repo_root / "design" / "themes" / "station.json").read_text())
+    assert station["accent"]["primary"] == "#72b1b1", "station accent drifted from §2.4"
+
+    # high contrast lives in the contract doc until an HC theme pack exists
+    hc_doc = (repo_root / "docs" / "accessibility" / "ACCESSIBILITY_CONTRACT.md").read_text()
+    assert "#FFFFFF" in hc_doc and "high-contrast" in hc_doc.lower(), (
+        "§2.4 high-contrast white ring vanished from the accessibility "
+        "contract — if this moved to a theme file, update this assertion's home"
+    )
+
+    # the served surface must still ship the literal (no build-time surprise)
+    css_all = "".join(
+        f.read_text() for f in (repo_root / "design" / "opendesign-exploration" / "station").glob("*.css")
+    )
+    assert "outline: 2px solid #72b1b1" in css_all, (
+        "station CSS no longer contains the literal resolved ring — the exact "
+        "silent-drop failure this test was born from"
+    )
+
+

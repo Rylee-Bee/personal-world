@@ -19,7 +19,7 @@
 - **Protected attention** — the world asks only when it truly needs you, and quiet is a valid rendered state (`PLAY-NICE-CONFORMANCE.md` attention-and-focus, quiet-when-healthy). Optimise for maximum warmth per unit of attention, not maximum cute (`docs/STATION-ALIVE-RESEARCH.md` Part 1).
 - **Inclusion** — themes, companions, and sections are user-owned and swappable; the Station is "a home people add to, not a product imposed on them" (`PLAY-NICE-CONFORMANCE.md` themes-and-personalization).
 
-**Corrected misreading:** there is no Star Trek / Deep Space Nine framing. The crew is not a bridge crew with ranks and stations — the crew is simply *together*, and that togetherness is the point. Any brief reaching for franchise roles is wrong.
+**Corrected misreading:** there is no Star Trek / Deep Space Nine framing. The crew is not a bridge crew with ranks and stations — the crew is only *together*, and that togetherness is the point. Any brief reaching for franchise roles is wrong.
 
 ---
 

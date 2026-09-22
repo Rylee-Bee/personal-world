@@ -141,7 +141,8 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "write",
         "none",
         "public",
-        "first-run bootstrap; 409 once the setup-complete marker exists",
+        "first-run bootstrap; loopback-only (403 otherwise); 409 once "
+        "the setup-complete marker exists",
     ),
     # Browser session (auth_routes.py; registry family AUTH-009).
     _e(
@@ -269,6 +270,17 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         note="append-only correction",
     ),
     _e("API-008", "GET", "/api/journal/history", "journal", "read", "none"),
+    # journal drafts — lining rescue (D15 "kept safe, synced"); no elevation
+    # by design: a draft mutates nothing a publish doesn't already change.
+    _e("API-080", "PUT", "/api/journal/draft", "journal", "write", "none",
+       note="debounced client drafts; response never echoes text"),
+    _e("API-081", "GET", "/api/journal/draft", "journal", "read", "none",
+       note="resume-on-any-device read of the caller's own draft"),
+    _e("API-082", "DELETE", "/api/journal/draft", "journal", "write", "none",
+       note="cleared after confirmed publish"),
+    _e("API-083", "POST", "/api/journal/edit-pair", "journal", "write", "none",
+       note="edit-pair capture v0 (§capture lineage); response never "
+            "echoes content"),
     _e("API-009", "GET", "/api/journal/audit", "journal", "read", "none"),
     _e("API-016", "GET", "/api/memory/search", "memory", "read", "none"),
     # Chat / brain.
@@ -306,6 +318,16 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     _e("API-013", "GET", "/api/tools", "tools", "read", "none"),
     _e("API-077-templates", "GET", "/api/brain/templates", "brain", "read", "none"),
     _e("API-077-provenance", "GET", "/api/brain/provenance", "brain", "read", "none"),
+    _e(
+        "API-077-discovery",
+        "GET",
+        "/api/templates",
+        "brain",
+        "read",
+        "none",
+        note="public discovery view {id, surface, role, description} with "
+        "overrides applied; API-077-templates carries the full metadata",
+    ),
     # Proposals — the propose → approve → act lifecycle. The registry
     # has no API-nnn id for this family; PROP-* is minted here and is
     # the canonical machine id.

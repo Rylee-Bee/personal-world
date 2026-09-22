@@ -144,6 +144,6 @@ A lower layer may never violate a requirement above it.
 
 9.1. Accessibility preferences tune an already-accessible product. They do not create accessibility.
 
-9.2. There is no "accessibility mode." The settings section is named "Reading & Interaction."
+9.2. No "accessibility mode" exists. The settings section is named "Reading & Interaction."
 
 9.3. "Standard" targets are already >=44px. "Comfortable" contrast is already WCAG AA. Motion is already restrained.

@@ -68,7 +68,7 @@ Key ideas:
   gated; `/api/manifest` makes new "neat things" cheap to compose.
 - **Small brain + strong scaffold.** Reliability comes from CLI + templates,
   not model size → runs on any hardware, for anyone.
-- **Companions are presences, never dependencies.** Everything works with them off.
+- **Companions are presences, never dependencies.** Companion art is decorative; core flows are specified to stand without it.
 
 ---
 

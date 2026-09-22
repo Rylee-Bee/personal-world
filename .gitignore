@@ -15,6 +15,7 @@ htmlcov/
 # Env / secrets — never commit
 .env
 .env.*
+!.env.example
 *.key
 *.age
 secrets/**
@@ -22,6 +23,7 @@ secrets/**
 
 # State / data — runtime, not source
 data/
+!ui/src/data/
 *.db
 *.sqlite
 *.sqlite3
@@ -44,6 +46,7 @@ Thumbs.db
 .bcode/
 .mimocode/
 # Fossil code-index cache: regenerable, keyed by absolute home paths
+# disposable analysis cache (public-safety: never tracked, paths are machine-local)
 .fossil/
 
 # Local provider configuration, credentials and diagnostic output
@@ -92,5 +95,4 @@ design/owner/
 data/content.db
 **/data/content.db
 
-# disposable analysis cache (public-safety: never tracked, paths are machine-local)
-.fossil/
+

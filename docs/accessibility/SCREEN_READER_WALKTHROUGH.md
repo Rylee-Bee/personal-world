@@ -48,7 +48,7 @@ h1 **Today**, date/state text, then:
    is in a focusable region named **Capabilities table**.
 
 Data depends on the configured world/providers. Calendar/email examples in
-older design material are not guaranteed native integrations. Current detail
+older design material are not confirmed native integrations. Current detail
 uses inline `details`/`summary`; attention rows are not universally buttons
 opening a provenance drawer.
 

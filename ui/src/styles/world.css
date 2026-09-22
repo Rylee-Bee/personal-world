@@ -1,0 +1,224 @@
+/*
+ * PROJECT WORLDS — Base Styles
+ *
+ * Layout and composition via Tailwind.
+ * Visual identity via CSS custom properties from tokens.css.
+ * Tailwind may implement layout; it must NOT replace semantic tokens.
+ *
+ * Theme switching: set [data-theme="starfield"] on <html> to override defaults.
+ * The Station theme is the default (lives in :root).
+ */
+
+/* Fonts */
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/assets/fonts/AtkinsonHyperlegibleNext-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/assets/fonts/AtkinsonHyperlegibleNext-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/assets/fonts/fraunces-1.woff2') format('woff2');
+}
+
+/* ── Safe-area inset tokens — accessibility contract §2.7 (notched /
+   edge-to-edge phones) ───────────────────────────────────────────────────
+   Same consumption pattern as the generated --pw-* tokens (Tailwind
+   arbitrary values + plain CSS), but authored here in world.css because
+   src/generated/tokens.css is generated from design/tokens.json and a
+   runtime env() value cannot live in that static vocabulary.
+
+   These are padding/offset inputs for sticky and fixed chrome (App header
+   + status strip, Journal WriteForm action bar, Today's floating
+   assistant, WorldDrawer, the Chat composer, Vault's modal dialog).
+   viewport-fit=cover in index.html is what makes the env() values real.
+
+   Deterministic pin for E2E (and for any future non-env surface): set
+   [data-pw-safe-area-pin] on <html> together with --pw-safe-area-pin:
+   <length>; every inset then resolves to that one value, so tests can
+   compute exact expected geometry without device insets that headless
+   Chromium cannot provide. */
+:root {
+  --pw-safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --pw-safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --pw-safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --pw-safe-area-inset-left: env(safe-area-inset-left, 0px);
+}
+
+html[data-pw-safe-area-pin] {
+  --pw-safe-area-inset-top: var(--pw-safe-area-pin, 0px);
+  --pw-safe-area-inset-right: var(--pw-safe-area-pin, 0px);
+  --pw-safe-area-inset-bottom: var(--pw-safe-area-pin, 0px);
+  --pw-safe-area-inset-left: var(--pw-safe-area-pin, 0px);
+}
+
+/* Accessibility contract §2.4 — focus ring */
+:focus-visible {
+  outline: 2px solid var(--pw-accent-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-contrast: more) {
+  :focus-visible {
+    outline-color: #FFFFFF;
+  }
+}
+
+/* Accessibility contract §6.2 — reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Applied prefs — the station honouring its own settings ─────────
+   prefs.py pairs every preference with a data-* attribute and a --pw-*
+   custom property; prefs-dom.ts writes them onto <html> from server
+   truth and this layer consumes them — the same vocabulary the
+   server-rendered dashboard gets via prefs_style_block().
+
+   ORDER IS LOAD-BEARING: the prefers-reduced-motion override must stay
+   the LAST rule of this layer. Staff Meeting #4 item 2 /
+   ACCESSIBILITY_CONTRACT §6.2: an explicit motion pref may only
+   REDUCE motion; the OS floor always wins. It has to win here too —
+   the tier rules below use !important, so only a later !important
+   block can overrule them (this mirrors how prefs_style_block ends
+   with its OS override, unconditionally and last). */
+
+/* density — compact tightens spacing one step. It never touches
+   --pw-targets-minimum (hit areas), text sizes, or layout order:
+   §9.2's floor ("these tune an already-accessible product"). */
+[data-pw-density="compact"] {
+  --pw-spacing-md: 8px;
+  --pw-spacing-lg: 12px;
+  --pw-spacing-xl: 16px;
+  --pw-spacing-2xl: 24px;
+}
+
+/* target_size — up only, never down: max(44px, …) re-applies the
+   WCAG 2.5.5 floor even if a value ever arrived below it
+   (prefs_to_css_variables clamps the same way). */
+[data-pw-target-size] {
+  --pw-targets-minimum: max(44px, var(--pw-target-size));
+}
+
+/* contrast — "high" raises quiet borders and muted text one rung each,
+   by luminance only (§2.3: no hue carries meaning here). */
+[data-pw-contrast="high"] {
+  --pw-border-subtle: var(--pw-border-strong);
+  --pw-text-muted: var(--pw-text-secondary);
+}
+
+/* motion tiers — verbatim semantics from prefs_style_block():
+   off = nothing animates or transitions; reduced = no animation,
+   state changes instant; subtle = transitions capped at
+   --pw-motion-duration (200ms), nothing infinite. */
+[data-pw-motion="off"] * {
+  animation: none !important;
+  transition: none !important;
+}
+[data-pw-motion="reduced"] * {
+  animation: none !important;
+  transition-duration: 0s !important;
+}
+[data-pw-motion="subtle"] * {
+  transition-duration: var(--pw-motion-duration) !important;
+  animation-iteration-count: 1 !important;
+}
+
+/* The OS floor, LAST: prefers-reduced-motion beats every tier above,
+   including "subtle" — and prefs-dom.ts additionally clamps
+   --pw-motion-duration/--pw-motion-ambient to the motionless values,
+   because inline custom properties on <html> cannot be overridden by
+   a stylesheet rule. Two independent enforcement points; the pref
+   can only ever reduce. */
+@media (prefers-reduced-motion: reduce) {
+  [data-pw-motion] {
+    --pw-motion-duration: 0ms;
+    --pw-motion-ambient: 0;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Base reset */
+html {
+  background-color: var(--pw-surface-canvas);
+  color: var(--pw-text-primary);
+  font-family: var(--pw-typography-font_sans);
+  /* text_scale pref (--pw-text-scale, applied by prefs-dom.ts from
+     server truth, floor 1.0) scales the root size off the body token.
+     Unset → multiplier 1 → identical to the themed default. */
+  font-size: calc(var(--pw-typography-size_body) * var(--pw-text-scale, 1));
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+/* Skip link — accessibility contract §2.6 */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--pw-surface-elevated);
+  color: var(--pw-accent-primary);
+  border: 2px solid var(--pw-accent-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Starfield atmosphere — subtle, non-distracting */
+.starfield-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 800px 500px at 25% 25%, rgba(90, 168, 184, 0.06), transparent 65%),
+    radial-gradient(ellipse 700px 450px at 75% 75%, rgba(155, 142, 196, 0.04), transparent 65%),
+    radial-gradient(ellipse 900px 600px at 50% 50%, rgba(100, 160, 180, 0.03), transparent 75%);
+}
+
+/* Grid overlay — faint, structural */
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image:
+    linear-gradient(rgba(90, 168, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90, 168, 184, 0.04) 1px, transparent 1px);
+  background-size: 80px 80px;
+}

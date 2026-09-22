@@ -15,7 +15,7 @@ name: validate
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/station-vnext-foundation]
   pull_request:
   # Heartbeat for the Play-Nice pin (the heart): weekly off-peak check
   # that the ratified adoption pin still reads CURRENT upstream. GitHub

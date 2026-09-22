@@ -20,6 +20,8 @@ from typing import Any
 from ..envelope import Result, fail, ok
 from ..status import Status
 from .registry import Contract, StatusContract
+from ..discovery.sources import SOURCE_TYPES as _ENGINE_SOURCE_TYPES
+from ..discovery.world_run import run_world
 
 
 class ContentItem:
@@ -202,7 +204,38 @@ class NativeDiscovery(StatusContract):
             return self._discover_rss(source)
         elif source.source_type == "api":
             return self._discover_api(source)
+        elif source.source_type in _ENGINE_SOURCE_TYPES:
+            return self._discover_engine(source)
         return []
+
+    def _discover_engine(self, source: DiscoverySource) -> list[ContentItem]:
+        """Engine-backed sources (github_releases, …) run through the
+        vendored per-world seam: per-source state, capture mode (the world
+        surfaces finds natively — no push channel required), the engine's
+        own dedup/cap/isolation guarantees preserved."""
+        state_path = self.config_path.parent / f"{self.config_path.name}.{source.id}.engine.json"
+        world = {
+            "name": source.id,
+            "sources": {"s": {"type": source.source_type, "enabled": True, **source.config}},
+        }
+        try:
+            res = run_world(world, state_path)
+        except Exception:  # noqa: BLE001 — a dead source must not break the view
+            return []
+        items = []
+        for d in res["discovered"]:
+            items.append(ContentItem(
+                id=f"{source.id}:{d['id']}",
+                title=d["title"],
+                source=source.name,
+                content_type=source.config.get("content_type", "update"),
+                url=d.get("url"),
+                provenance={
+                    "engine": "candy-dispenser discovery (vendored)",
+                    "source_type": source.source_type,
+                },
+            ))
+        return items
 
     def _discover_rss(self, source: DiscoverySource) -> list[ContentItem]:
         """Discover from RSS feed."""
