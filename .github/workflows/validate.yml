@@ -1,9 +1,30 @@
 name: validate
 
+# Contract workflow — pipeline *mechanics* live in Rylee-Bee/ci-harness
+# (workflow_call reusable templates; every action SHA is pinned in exactly
+# one place: ci-harness/pins/ACTIONS.md). This file owns only this repo's
+# *semantics*: which checks gate merges and with what arguments.
+#
+# Job-for-job parity with the previous hand-written pipeline:
+#   test / compose / browser / security-gates / framework-gates — plus the
+#   new contract-freshness gate (no pre-existing equivalent; it watches
+#   the ratified Play-Nice pin).
+# The compose job intentionally stays inline here: the compose-config check
+# fits none of the four templates, and contorting a template to host it
+# would be dishonest plumbing. See ci-harness README for adoption.
+
 on:
   push:
     branches: [main]
   pull_request:
+  # Heartbeat for the Play-Nice pin (the heart): weekly off-peak check
+  # that the ratified adoption pin still reads CURRENT upstream. GitHub
+  # fires schedules only on the default branch; PRs re-check the same job
+  # on every push. push/pull_request carry no paths filter, so a change to
+  # .project/contracts/adoption.yaml already fires this workflow — adding
+  # an explicit paths list would narrow existing triggers, so none was.
+  schedule:
+    - cron: '17 6 * * 1'
 
 permissions:
   contents: read
@@ -14,25 +35,16 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        run: pip install uv==0.11.28
-      - name: Sync deps
-        run: uv sync --frozen --extra test --extra crypto
-      - name: Pytest
-        run: uv run pytest --timeout=30
+    uses: Rylee-Bee/ci-harness/.github/workflows/reusable-python.yml@main
+    with:
+      sync-args: "--extra test --extra crypto"
+      pytest-args: "--timeout=30"
 
   compose:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        # pin managed by ci-harness/pins/ACTIONS.md
         with:
           persist-credentials: false
       - name: Compose config validates
@@ -43,59 +55,35 @@ jobs:
         run: docker build -t personal-world:ci .
 
   browser:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "22"
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-      - name: Install uv (the e2e server boots the real app via uvicorn)
-        run: pip install uv==0.11.28
-      - name: Sync python deps (personal_world importable for uvicorn)
-        run: uv sync --frozen --extra test
-      - name: Install Playwright harness deps + Chromium
-        run: |
-          cd frontend
-          npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
-      - name: Playwright Station a11y / honest-state / keyboard / motion (real server)
-        run: cd frontend && npx playwright test
+    uses: Rylee-Bee/ci-harness/.github/workflows/reusable-node.yml@main
+    with:
+      working-directory: "frontend"
+      setup-python: true
+      sync-args: "--extra test"
+      test-command: "npx playwright install --with-deps chromium && npx playwright test"
+      upload-dist: false
 
   security-gates:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        run: pip install uv==0.11.28
-      - name: Sync deps
-        run: uv sync --frozen --extra test
-      - name: Leakage + cemented-policy + read-safety gates
-        run: uv run pytest --timeout=30 tests/test_core.py -k "SettingsExportSafety or CementedPolicy or TestJournal or WorldExport" -v
+    uses: Rylee-Bee/ci-harness/.github/workflows/reusable-python.yml@main
+    with:
+      sync-args: "--extra test"
+      pytest-args: '--timeout=30 tests/test_core.py -k "SettingsExportSafety or CementedPolicy or TestJournal or WorldExport" -v'
 
   framework-gates:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        run: pip install uv==0.11.28
-      - name: Sync deps
-        run: uv sync --frozen --extra test
-      - name: Framework conformance (native baseline + optional enrichment)
-        run: uv run pytest --timeout=30 tests/test_framework.py -v
-      - name: Repo config passes its own framework validator
-        run: uv run personal-world framework validate --json
+    uses: Rylee-Bee/ci-harness/.github/workflows/reusable-python.yml@main
+    with:
+      sync-args: "--extra test"
+      pytest-args: "--timeout=30 tests/test_framework.py -v"
+      post-test-commands: "uv run personal-world framework validate --json"
+
+  # The heart, kept honest automatically: Play-Nice contract currency —
+  # is the ratified v0.10.0 pin in .project/contracts/adoption.yaml still
+  # the current remote revision? Fails closed (green only on CURRENT;
+  # BEHIND/DIVERGED exit 1; UNREACHABLE/UNKNOWN exit 2). Detection is
+  # automated; re-pinning source.revision stays a manual, attested ritual
+  # — never a sync job. This job going red after upstream moved is a
+  # correct alarm, not a malfunction.
+  contract-freshness:
+    uses: Rylee-Bee/ci-harness/.github/workflows/reusable-contract-freshness.yml@main
+    with:
+      manifest-path: ".project/contracts/adoption.yaml"
