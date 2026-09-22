@@ -18,15 +18,22 @@ import { test, expect, type Page } from "@playwright/test";
 
 async function gotoSettings(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Settings" }).click();
+  // Nav-scoped — Overview's Explore tiles also say "Settings".
+  await page
+    .getByRole("navigation", { name: "World navigation" })
+    .getByRole("button", { name: "Settings" })
+    .click();
   await expect(
-    page.getByRole("region", { name: "Reading & Interaction" }),
+    page.getByRole("region", { name: "Customize" }),
   ).toBeVisible();
 }
 
 async function gotoInterests(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Interests" }).click();
+  await page
+    .getByRole("navigation", { name: "World navigation" })
+    .getByRole("button", { name: "Interests" })
+    .click();
   await expect(
     page.getByRole("region", { name: "Engine finds" }),
   ).toBeVisible();

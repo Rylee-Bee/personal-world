@@ -4,6 +4,19 @@
  * Accessibility contract §5.1 canonical DOM order:
  *   skip-link → navigation → main → complementary
  *
+ * Navigation is the contract's stable skeleton: the four landmarks
+ * (Overview · Memory · Chat · Settings) render first, in a fixed
+ * order, always — no theme, no server layout, and no personal
+ * customization can move or hide them (PRODUCT-LANGUAGE.md, C3/Δ3).
+ * Below them sit the person's own sections, ordered/hidden through
+ * the existing GET /api/sections mechanism (see derivePersonalAreas,
+ * src/data/types.ts).
+ *
+ * The shell is state-routed: no router exists, so every destination
+ * activates through setActiveArea — nav buttons and Overview's
+ * Explore tiles share that one path. There are no hrefs to URLs
+ * nothing serves.
+ *
  * Theme: first run defaults to Starfield (DEFAULT_THEME in prefs-dom);
  * any device choice wins and survives reloads via localStorage.
  * Atmosphere: starfield background + grid overlay from portfolio patterns.
@@ -12,16 +25,15 @@
  */
 
 import { useMemo, useState, useEffect } from "react";
-import { Today } from "../screens/Today/Today";
-import { Journal } from "../screens/Journal/Journal";
-import { Vault } from "../screens/Vault/Vault";
-import { Settings } from "../screens/Settings/Settings";
+import { Overview } from "../screens/Overview/Overview";
+import { Memory } from "../screens/Memory/Memory";
 import { Interests } from "../screens/Interests/Interests";
 import { Chat } from "../screens/Chat/Chat";
+import { Settings } from "../screens/Settings/Settings";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
 import { useHealthz, usePrefs, usePrefsSchema, useSections } from "../data/hooks";
-import { WORLD_AREAS } from "../data/types";
+import { SKELETON_AREAS, derivePersonalAreas } from "../data/types";
 import type { WorldArea, WorldAreaId } from "../data/types";
 import { parsePrefsSchema, readPrefsValues } from "../screens/Settings/parse";
 import {
@@ -44,27 +56,23 @@ function healthWord(state: {
   return "Online";
 }
 
-/** Server-ordered world areas; falls back to the default set until (and
- * unless) /api/sections returns something that maps onto known areas. */
-function useWorldAreas(): WorldArea[] {
+/**
+ * The two-tier navigation truth:
+ *   skeleton — the fixed landmarks, a module constant by contract;
+ *   personal — derived from the server's /api/sections layout, with
+ *              known destinations tail-appended so navigation is
+ *              never silently lost when the server goes quiet.
+ * Before (and without) any server answer, personal falls back to the
+ * default set in registry order.
+ */
+function useWorldAreas(): { skeleton: readonly WorldArea[]; personal: WorldArea[] } {
   const sectionsQuery = useSections();
   const serverSections = sectionsQuery.data?.data?.sections;
-  return useMemo(() => {
-    if (!serverSections || serverSections.length === 0) return WORLD_AREAS;
-    const byId = new Map<string, WorldArea>(WORLD_AREAS.map((a) => [a.id, a]));
-    const ordered = [...serverSections]
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .flatMap((s) => {
-        // Server ids the UI has no destination for (media, lab, vault,
-        // chat) are skipped; the tail-append below guarantees no known
-        // area is ever silently lost.
-        const area = byId.get(s.id);
-        return area && s.visible !== false ? [area] : [];
-      });
-    // Never silently lose navigation destinations the server hasn't seen.
-    const seen = new Set(ordered.map((a) => a.id));
-    return [...ordered, ...WORLD_AREAS.filter((a) => !seen.has(a.id))];
-  }, [serverSections]);
+  const personal = useMemo(
+    () => derivePersonalAreas(serverSections),
+    [serverSections],
+  );
+  return { skeleton: SKELETON_AREAS, personal };
 }
 
 /** Server-truth presentation prefs, applied to <html> as the
@@ -106,8 +114,8 @@ function useApplyPrefsChrome(): void {
 
 export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeArea, setActiveArea] = useState<WorldAreaId>("today");
-  const areas = useWorldAreas();
+  const [activeArea, setActiveArea] = useState<WorldAreaId>("overview");
+  const { skeleton, personal } = useWorldAreas();
 
   // Prefs chrome: server truth lands on the document (C12).
   useApplyPrefsChrome();
@@ -121,20 +129,28 @@ export function App() {
 
   function renderScreen() {
     switch (activeArea) {
-      case "today":
-        return <Today onOpenAssistant={() => setDrawerOpen(true)} />;
-      case "journal":
-        return <Journal />;
-      case "records":
-        return <Vault />;
+      case "overview":
+        return (
+          <Overview
+            areas={[...skeleton, ...personal]}
+            onOpenArea={setActiveArea}
+            onOpenAssistant={() => setDrawerOpen(true)}
+          />
+        );
+      case "memory":
+        return <Memory />;
+      case "chat":
+        return <Chat />;
       case "settings":
         return <Settings />;
-      case "news":
-        return <Chat />;
       case "interests":
         return <Interests />;
       default: {
-        const label = areas.find((a) => a.id === activeArea)?.label ?? activeArea;
+        // Honest placeholders for destinations whose screens the
+        // station does not back yet (projects, systems).
+        const label =
+          [...skeleton, ...personal].find((a) => a.id === activeArea)?.label ??
+          activeArea;
         return (
           <main
             id="main-content"
@@ -153,6 +169,16 @@ export function App() {
     }
   }
 
+  const navButton = (area: WorldArea) => (
+    <li key={area.id}>
+      <WorldAreaLink
+        area={area}
+        isActive={area.id === activeArea}
+        onClick={() => setActiveArea(area.id)}
+      />
+    </li>
+  );
+
   return (
     <div className="min-h-screen bg-[var(--pw-surface-canvas)]">
       {/* Atmosphere layers — aria-hidden, decorative */}
@@ -168,7 +194,8 @@ export function App() {
           keeps chrome clear of notches and the home indicator (§2.7):
           top inset + the usual spacing on the inline sides. */}
       <header className="relative z-20 sticky top-0 flex items-center gap-[var(--pw-spacing-lg)] pt-[var(--pw-safe-area-inset-top)] pl-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-left))] pr-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-right))] min-h-[56px] border-b border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/90 backdrop-blur-md">
-        {/* Brand */}
+        {/* Brand — "The frontend is Worlds. Station is a theme." The
+            old "Station vNext" chrome label retired with that rule. */}
         <div className="flex items-center gap-[var(--pw-spacing-sm)] shrink-0">
           <div className="w-8 h-8 rounded-full bg-[var(--pw-accent-primary)]/10 border border-[var(--pw-accent-primary)]/30 flex items-center justify-center">
             <span className="text-[var(--pw-accent-primary)] text-sm">✦</span>
@@ -177,27 +204,36 @@ export function App() {
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--pw-text-primary)]">
               Project Worlds
             </p>
-            <p className="text-[var(--pw-typography-size_micro)] uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
-              Station vNext
-            </p>
           </div>
         </div>
 
         {/* Nav — flex items get min-w-0 so the row can shrink to the
             viewport and scroll instead of widening the layout on phones
-            (the mobile.css lesson: `.shell-main > * { min-width: 0 }`). */}
+            (the mobile.css lesson: `.shell-main > * { min-width: 0 }`).
+            Two lists, one bar: the pinned skeleton first, then the
+            person's own sections behind a visible divider. */}
         <nav aria-label="World navigation" className="flex-1 min-w-0">
-          <ul className="flex gap-[var(--pw-spacing-xs)] overflow-x-auto overscroll-x-contain min-w-0">
-            {areas.map((area) => (
-              <li key={area.id}>
-                <WorldAreaLink
-                  area={area}
-                  isActive={area.id === activeArea}
-                  onClick={() => setActiveArea(area.id)}
-                />
-              </li>
-            ))}
-          </ul>
+          {/* One horizontally scrollable row (the original min-w-0
+              lesson: a nav that cannot shrink widens the layout on
+              phones). The landmark group and the personal group are
+              separate lists INSIDE that scroller — the divider
+              between them is a boundary, not a second scrollbar. */}
+          <div className="flex items-center gap-[var(--pw-spacing-md)] min-w-0 overflow-x-auto overscroll-x-contain">
+            <ul
+              aria-label="World landmarks"
+              className="flex gap-[var(--pw-spacing-xs)] shrink-0"
+            >
+              {skeleton.map(navButton)}
+            </ul>
+            {personal.length > 0 && (
+              <ul
+                aria-label="Personal sections"
+                className="flex gap-[var(--pw-spacing-xs)] shrink-0 border-l border-[var(--pw-border-subtle)] pl-[var(--pw-spacing-md)]"
+              >
+                {personal.map(navButton)}
+              </ul>
+            )}
+          </div>
         </nav>
 
         {/* Readout cells */}
@@ -285,7 +321,6 @@ function StatusStrip() {
       </div>
       <div className="hidden sm:flex gap-4 text-[var(--pw-typography-size_micro)] font-mono uppercase tracking-[0.14em] text-[var(--pw-text-muted)]">
         <span>Project Worlds</span>
-        <span>Station vNext</span>
       </div>
     </footer>
   );

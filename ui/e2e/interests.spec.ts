@@ -10,7 +10,12 @@ import { expectKeyboardFocusRing } from "./helpers";
 
 async function gotoInterests(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Interests" }).click();
+  // Nav-scoped: Overview's Explore tiles carry the same word, and
+  // strict mode would rather not guess which door you meant.
+  await page
+    .getByRole("navigation", { name: "World navigation" })
+    .getByRole("button", { name: "Interests" })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Interests", level: 1 }),
   ).toBeVisible();

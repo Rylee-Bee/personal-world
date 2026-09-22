@@ -7,11 +7,15 @@ import { describe, it, expect } from "vitest";
 import {
   STATUS_LABELS,
   SIGNAL_LABELS,
-  WORLD_AREAS,
+  SKELETON_AREAS,
+  PERSONAL_AREAS,
+  SKELETON_AREA_IDS,
+  derivePersonalAreas,
   COMPANION_RESIDENTS,
   toCapabilityStatus,
   journalKindLabel,
 } from "../data/types";
+import type { ServerSectionLike } from "../data/types";
 
 describe("types constants", () => {
   describe("STATUS_LABELS", () => {
@@ -56,38 +60,148 @@ describe("types constants", () => {
     });
   });
 
-  describe("WORLD_AREAS", () => {
-    it("has all 8 expected areas", () => {
-      expect(WORLD_AREAS).toHaveLength(8);
+  describe("SKELETON_AREAS — the stable skeleton (PRODUCT-LANGUAGE.md)", () => {
+    it("is exactly the four contract landmarks, in the contract order", () => {
+      expect(SKELETON_AREAS.map((a) => a.id)).toEqual([
+        "overview",
+        "memory",
+        "chat",
+        "settings",
+      ]);
+      expect(SKELETON_AREAS.map((a) => a.label)).toEqual([
+        "Overview",
+        "Memory",
+        "Chat",
+        "Settings",
+      ]);
     });
 
-    it("has unique ids", () => {
-      const ids = WORLD_AREAS.map((a) => a.id);
-      expect(new Set(ids).size).toBe(ids.length);
+    it("names no retired area (today/news/records/journal are gone)", () => {
+      const ids = SKELETON_AREAS.map((a) => a.id);
+      for (const retired of ["today", "news", "records", "journal"]) {
+        expect(ids).not.toContain(retired);
+      }
     });
 
-    it("matches expected ids in order", () => {
-      const ids = WORLD_AREAS.map((a) => a.id);
-      expect(ids).toEqual([
-        "today",
-        "systems",
-        "projects",
-        "journal",
-        "news",
+    it("carries no href — activation is state-driven, never a fake URL", () => {
+      for (const area of [...SKELETON_AREAS, ...PERSONAL_AREAS]) {
+        expect(area).not.toHaveProperty("href");
+      }
+    });
+  });
+
+  describe("PERSONAL_AREAS", () => {
+    it("holds the person-shapable destinations and none of the landmarks", () => {
+      const ids = PERSONAL_AREAS.map((a) => a.id);
+      expect(ids).toEqual(["interests", "projects", "systems"]);
+      for (const id of SKELETON_AREA_IDS) {
+        expect(ids).not.toContain(id);
+      }
+    });
+
+    it("uses the contract word for the attached machine (Computer, not Systems/Node)", () => {
+      const systems = PERSONAL_AREAS.find((a) => a.id === "systems");
+      expect(systems?.label).toBe("Computers");
+      expect(systems?.label).not.toMatch(/node/i);
+    });
+
+    it("every area has a non-empty label", () => {
+      for (const area of [...SKELETON_AREAS, ...PERSONAL_AREAS]) {
+        expect(area.label).toBeTruthy();
+      }
+    });
+  });
+
+  describe("derivePersonalAreas — landmark stability (C3/Δ3) at the data layer", () => {
+    const row = (
+      id: string,
+      order: number,
+      visible = true,
+    ): ServerSectionLike => ({ id, order, visible });
+
+    it("falls back to the registry order when the server has said nothing", () => {
+      expect(derivePersonalAreas(undefined).map((a) => a.id)).toEqual([
         "interests",
-        "records",
+        "projects",
+        "systems",
+      ]);
+      expect(derivePersonalAreas([]).map((a) => a.id)).toEqual([
+        "interests",
+        "projects",
+        "systems",
+      ]);
+    });
+
+    it("orders personal sections by the server layout", () => {
+      const areas = derivePersonalAreas([
+        row("projects", 0),
+        row("interests", 1),
+      ]);
+      expect(areas.map((a) => a.id)).toEqual(["projects", "interests", "systems"]);
+    });
+
+    it("hides a personal section the server says is hidden", () => {
+      const areas = derivePersonalAreas([
+        row("interests", 0, true),
+        row("projects", 1, false),
+      ]);
+      expect(areas.map((a) => a.id)).toEqual(["interests", "systems"]);
+    });
+
+    it("a server that hides and scrambles EVERYTHING still yields the untouched landmark set", () => {
+      // The C3/Δ3 invariant at the data layer: whatever the layout
+      // says, derivation only ever produces personal sections. The
+      // four landmarks live in SKELETON_AREAS, which this function
+      // cannot rewrite — App renders them unconditionally.
+      const hostile: ServerSectionLike[] = [
+        row("settings", 0, false),
+        row("journal", 1, false),
+        row("chat", 2, false),
+        row("today", 3, false),
+        row("interests", 4, false),
+        row("projects", 5, false),
+        row("systems", 6, false),
+      ];
+      const personal = derivePersonalAreas(hostile);
+      for (const id of SKELETON_AREA_IDS) {
+        expect(personal.map((a) => a.id)).not.toContain(id);
+      }
+      // Every hidden personal section simply drops away; the
+      // landmark list is untouched by construction.
+      expect(personal).toHaveLength(0);
+      expect(SKELETON_AREAS.map((a) => a.id)).toEqual([
+        "overview",
+        "memory",
+        "chat",
         "settings",
       ]);
     });
 
-    it("every area has label and href", () => {
-      for (const area of WORLD_AREAS) {
-        expect(area.label).toBeTruthy();
-        expect(area.href).toBeTruthy();
-        expect(area.href.startsWith("/")).toBe(true);
-      }
+    it("server rows for skeleton-era ids (today/journal) cannot enter personal nav", () => {
+      const areas = derivePersonalAreas([row("today", 0), row("journal", 1)]);
+      const ids = areas.map((a) => a.id);
+      expect(ids).not.toContain("today");
+      expect(ids).not.toContain("journal");
+      // …and no known destination is ever silently lost:
+      expect(ids).toEqual(["interests", "projects", "systems"]);
+    });
+
+    it("skips server ids the UI has no destination for without dropping known ones", () => {
+      const areas = derivePersonalAreas([
+        row("media", 0),
+        row("interests", 1),
+        row("lab", 2),
+        row("vault", 3),
+      ]);
+      expect(areas.map((a) => a.id)).toEqual(["interests", "projects", "systems"]);
+    });
+
+    it("deduplicates repeated server rows", () => {
+      const areas = derivePersonalAreas([row("interests", 0), row("interests", 1)]);
+      expect(areas.filter((a) => a.id === "interests")).toHaveLength(1);
     });
   });
+
 
   describe("toCapabilityStatus", () => {
     it("passes the server vocabulary through unchanged", () => {

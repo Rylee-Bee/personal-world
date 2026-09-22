@@ -2,6 +2,14 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { WorldAreaLink } from "../components/WorldAreaLink";
 import { fn } from "storybook/test";
 
+/**
+ * WorldAreaLink — navigation destination button.
+ *
+ * The shell is state-routed: activation is always the callback, and
+ * destinations carry no href (the old "/today"-style URLs pointed at
+ * nothing the app serves).
+ */
+
 const meta: Meta<typeof WorldAreaLink> = {
   title: "Primitives/WorldAreaLink",
   component: WorldAreaLink,
@@ -13,28 +21,22 @@ type Story = StoryObj<typeof WorldAreaLink>;
 
 export const Default: Story = {
   args: {
-    area: { id: "today", label: "Today", href: "/today" },
+    area: { id: "overview", label: "Overview" },
+    onClick: fn(),
   },
 };
 
 export const Active: Story = {
   args: {
-    area: { id: "systems", label: "Systems", href: "/systems" },
+    area: { id: "memory", label: "Memory" },
     isActive: true,
-  },
-};
-
-export const WithOnClick: Story = {
-  args: {
-    area: { id: "projects", label: "Projects", href: "/projects" },
     onClick: fn(),
   },
 };
 
-export const ActiveWithOnClick: Story = {
+export const PersonalSection: Story = {
   args: {
-    area: { id: "journal", label: "Journal", href: "/journal" },
-    isActive: true,
+    area: { id: "interests", label: "Interests" },
     onClick: fn(),
   },
 };

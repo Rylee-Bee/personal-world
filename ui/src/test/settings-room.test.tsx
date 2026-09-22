@@ -257,7 +257,7 @@ function renderRoom() {
 }
 
 function section() {
-  return screen.getByRole("region", { name: "Reading & Interaction" });
+  return screen.getByRole("region", { name: "Customize" });
 }
 
 describe("SettingsRoom", () => {

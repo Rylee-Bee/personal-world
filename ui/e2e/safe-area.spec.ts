@@ -82,10 +82,10 @@ test.describe("mobile safe areas (§2.7)", () => {
     await pinInsets(page);
     expect(await computedCss(page, "header", "padding-top")).toBe(`${PIN}px`);
 
-    const today = page
+    const overview = page
       .getByRole("navigation", { name: "World navigation" })
-      .getByRole("button", { name: "Today" });
-    const box = await today.boundingBox();
+      .getByRole("button", { name: "Overview" });
+    const box = await overview.boundingBox();
     expect(box).not.toBeNull();
     // Named control fully below the pinned inset band, and still a 44px+
     // touch target (mobile.css re-affirmed that floor; the rebuild must
@@ -131,7 +131,7 @@ test.describe("mobile safe areas (§2.7)", () => {
   test("pinned insets: journal WriteForm action bar pads by the bottom inset", async ({
     page,
   }) => {
-    await gotoArea(page, "Journal");
+    await gotoArea(page, "Memory");
     await pinInsets(page);
     const actions = page.locator("#journal-write-actions");
     await expect(actions).toBeVisible();

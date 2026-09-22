@@ -1,5 +1,12 @@
 /**
- * Journal screen — the station's append-only memory.
+ * JournalRoom — the journal spine INSIDE the Memory screen.
+ *
+ * docs/PRODUCT-LANGUAGE.md makes Memory one deterministic place, and
+ * the journal is its spine: this is the former standalone Journal
+ * screen, re-flowed as a section of Memory (write, entry list,
+ * supersede and per-entry history all unchanged). Memory owns the
+ * <main>, the skip link and the h1; this file keeps its own two
+ * drawers mounted at the fragment level like before.
  *
  * Server contract (src/personal_world/api.py, verified 2026-09-20):
  *   GET  /api/journal?n          → {ok, data: JournalEvent[]} — each
@@ -13,7 +20,7 @@
  *        not loud). There is no "all history" endpoint; history is per
  *        entry, so the affordance is per entry too.
  *
- * Accessibility contract: skip-to-main first, 44×44 hit areas, visible
+ * Accessibility contract (as in Memory): 44×44 hit areas, visible
  * focus, status by text never color alone, no animation, keyboard
  * operable, native dialog semantics (WorldDrawer).
  */
@@ -151,8 +158,6 @@ function WriteForm() {
   const [resumeNote, setResumeNote] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const syncRef = useRef<DraftSync | null>(null);
-  const conflictRef = useRef<DraftConflict | null>(null);
-  conflictRef.current = conflict;
 
   // ── Open the panel: legacy flush, then GET-on-open (B2 + B3) ──
   useEffect(() => {
@@ -233,17 +238,25 @@ function WriteForm() {
     }
   }, [conflict]);
 
-  const handleChange = useCallback((value: string) => {
-    setContent(value);
-    const sync = syncRef.current;
-    if (sync === null || conflictRef.current !== null) return;
-    writeLocalMirror(window.localStorage, {
-      text: value,
-      editedAt: new Date().toISOString(),
-      serverStamp: sync.lastSavedAt(),
-    });
-    sync.notify({ text: value });
-  }, []);
+  // `conflict` is a plain dependency, not a ref: while the chooser is
+  // open, keystrokes update content only — no mirror write, no sync
+  // notify until the person has chosen a side. (The old ref-carrier
+  // version assigned ref.current during render, the exact pattern
+  // oxlint's React refs rule flags; state-in-deps is the fix.)
+  const handleChange = useCallback(
+    (value: string) => {
+      setContent(value);
+      const sync = syncRef.current;
+      if (sync === null || conflict !== null) return;
+      writeLocalMirror(window.localStorage, {
+        text: value,
+        editedAt: new Date().toISOString(),
+        serverStamp: sync.lastSavedAt(),
+      });
+      sync.notify({ text: value });
+    },
+    [conflict],
+  );
 
   const chooseServerCopy = useCallback(() => {
     if (conflict === null) return;
@@ -553,7 +566,7 @@ function HistoryDrawer({ ts, onClose }: HistoryDrawerProps) {
 
 // ─── Main screen ─────────────────────────────────────────
 
-export function Journal() {
+export function JournalRoom() {
   const [supersedeEntry, setSupersedeEntry] = useState<JournalEntry | null>(
     null,
   );
@@ -564,22 +577,22 @@ export function Journal() {
 
   return (
     <>
-      {/* Skip-to-main-content — first focusable element */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-[var(--pw-radius-sm)] focus:bg-[var(--pw-surface-panel)] focus:p-[var(--pw-spacing-md)] focus:text-[var(--pw-text-primary)] focus:ring-2 focus:ring-[var(--pw-accent-teal)]"
+      <section
+        aria-labelledby="memory-journal-heading"
+        className="space-y-[var(--pw-spacing-lg)]"
       >
-        Skip to main content
-      </a>
-
-      <main
-        id="main-content"
-        aria-label="Journal"
-        className="mx-auto max-w-2xl space-y-[var(--pw-spacing-xl)] p-[var(--pw-spacing-lg)]"
-      >
-        <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
-          Journal
-        </h1>
+        <header>
+          <h2
+            id="memory-journal-heading"
+            className="text-[var(--pw-typography-size_h2)] font-semibold text-[var(--pw-text-primary)]"
+          >
+            Journal
+          </h2>
+          <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+            The append-only spine of Memory. Corrections supersede an
+            entry — the original is never rewritten.
+          </p>
+        </header>
 
         {/* Write form */}
         <WriteForm />
@@ -651,7 +664,7 @@ export function Journal() {
             </ul>
           </section>
         )}
-      </main>
+      </section>
 
       {/* Supersede drawer */}
       <SupersedeDrawer

@@ -532,6 +532,30 @@ function buildJournalHandlers(events: JournalEvent[]): RequestHandler[] {
         data: { entries: chain },
       });
     }),
+    // GET /api/memory/search — the native provider indexes journal
+    // entries (providers/native_memory.py), so this fixture searches
+    // the same in-memory current list. Memory's Records panel reads
+    // ONLY this; no invented rows anywhere.
+    http.get("/api/memory/search", ({ request }) => {
+      const url = new URL(request.url);
+      const q = url.searchParams.get("q") ?? "";
+      const topK = Math.min(Math.max(Number(url.searchParams.get("top_k") ?? 5), 1), 50);
+      const needle = q.toLowerCase();
+      const results = current
+        .filter((e) => e.summary.toLowerCase().includes(needle))
+        .slice(0, topK)
+        .map((e) => ({
+          id: `journal:${e.ts}`,
+          kind: e.kind,
+          text: e.summary,
+          timestamp: e.ts,
+        }));
+      return HttpResponse.json({
+        ok: true,
+        status: "healthy",
+        data: { results, query: q, count: results.length },
+      });
+    }),
   ];
 }
 
@@ -619,6 +643,16 @@ function buildSettingsHandlers(): RequestHandler[] {
   // Session-persistent prefs, like the server's world store: PUT writes
   // here, GET reads back what was actually saved.
   const prefsLive: Record<PrefKey, string | number> = { ...PREFS_BASE };
+  // The Vault tool is embedded in Settings now (contract: secrets are
+  // infrastructure, under Advanced) — so the Settings world must serve
+  // /api/vault/* too, in its documented locked start state. Without
+  // this the unhandled request bypasses MSW and the story falls
+  // through to whatever real station answers the proxy (401 → a hard
+  // /login redirect that kills the story iframe).
+  let vaultLocked = true;
+  let secretNames: string[] = [...SECRET_NAMES_SEED];
+  const vaultLockedResponse = () =>
+    HttpResponse.json({ detail: "vault is locked" }, { status: 409 });
   const resolve = (order: string[] | undefined, hidden: string[]) => {
     const byId = new Map(sections.map((s) => [s.id, s]));
     const finalIds = [
@@ -790,6 +824,48 @@ function buildSettingsHandlers(): RequestHandler[] {
           source: "instance-token",
         },
       });
+    }),
+    // Vault tool handlers (Settings → Advanced) — same locked-start
+    // fiction and refusal shapes as buildVaultHandlers.
+    http.get("/api/vault/status", () =>
+      HttpResponse.json({ ok: true, data: { locked: vaultLocked, encrypted: true } }),
+    ),
+    http.get("/api/vault/names", () => {
+      if (vaultLocked) return vaultLockedResponse();
+      return HttpResponse.json({ ok: true, data: { names: secretNames } });
+    }),
+    http.post("/api/vault/unlock", async ({ request }) => {
+      const body = (await request.json().catch(() => ({}))) as { passphrase?: string };
+      if (!body.passphrase) {
+        return HttpResponse.json({ detail: "passphrase required" }, { status: 400 });
+      }
+      vaultLocked = false;
+      return HttpResponse.json({ ok: true, status: "unlocked", data: null, warnings: [] });
+    }),
+    http.post("/api/vault/lock", () => {
+      vaultLocked = true;
+      return HttpResponse.json({ ok: true, data: { locked: true } });
+    }),
+    http.post("/api/vault/set", async ({ request }) => {
+      if (vaultLocked) return vaultLockedResponse();
+      const body = (await request.json().catch(() => ({}))) as {
+        name?: string;
+        value?: string;
+      };
+      if (!body.name || body.value === undefined) {
+        return HttpResponse.json(
+          { detail: "name and value required" },
+          { status: 400 },
+        );
+      }
+      if (!secretNames.includes(body.name)) secretNames = [...secretNames, body.name];
+      return HttpResponse.json({ ok: true, data: { name: body.name } });
+    }),
+    http.delete("/api/vault/:name", ({ params }) => {
+      if (vaultLocked) return vaultLockedResponse();
+      const name = String(params.name ?? "");
+      secretNames = secretNames.filter((n) => n !== name);
+      return HttpResponse.json({ ok: true, data: { name } });
     }),
   ];
 }

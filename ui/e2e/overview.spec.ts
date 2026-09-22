@@ -1,6 +1,17 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Today screen", () => {
+/**
+ * Overview screen — the headlines surface (the re-cut "Today").
+ *
+ * Formerly today.spec.ts. Assertions moved with the contract: the
+ * main landmark is named "Overview", and the Explore tiles are
+ * ACTIVATION BUTTONS sharing the nav's state-driven path — the old
+ * spec asserted anchor links whose hrefs pointed at URLs nothing
+ * served (the fake-URL trap this pass fixed; a link here is now the
+ * regression).
+ */
+
+test.describe("Overview screen", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
   });
@@ -11,14 +22,22 @@ test.describe("Today screen", () => {
     await expect(greeting).toBeVisible();
   });
 
-  test("world areas section exists", async ({ page }) => {
+  test("world areas section exists and activates destinations by state, not URL", async ({
+    page,
+  }) => {
     const section = page.getByRole("region", { name: "World areas" });
     await expect(section).toBeVisible();
 
-    // Should contain navigation links to other areas
-    const links = section.getByRole("link");
-    const count = await links.count();
-    expect(count).toBeGreaterThan(0);
+    // Buttons, never dead anchors.
+    expect(await section.getByRole("link").count()).toBe(0);
+    const buttons = section.getByRole("button");
+    expect(await buttons.count()).toBeGreaterThan(0);
+
+    // Tapping a tile lands on the same screen the nav would: Memory.
+    await section.getByRole("button", { name: "Memory", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Memory", level: 1 }),
+    ).toBeVisible();
   });
 
   test("capabilities section exists", async ({ page }) => {

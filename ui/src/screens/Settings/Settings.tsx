@@ -3,16 +3,25 @@
  *
  * Sections:
  *   Profile (display name from GET /api/identity/principal)
- *   Reading & Interaction (SettingsRoom — rendered from the server's
+ *   Customize (SettingsRoom — rendered from the server's
  *                own vocabulary via GET /api/prefs/schema; a11y
  *                contract §9.2 names this section)
- *   Sections management (reorder/hide — PUT /api/sections takes
- *                {order: ids, hidden: ids}, the server's layout delta)
+ *   Personal sections management (reorder/hide — PUT /api/sections
+ *                takes {order: ids, hidden: ids}, the server's layout
+ *                delta. The skeleton landmarks are NOT offered here:
+ *                Overview · Memory · Chat · Settings are fixed by the
+ *                product contract, and a toggle that cannot move them
+ *                would only lie.)
  *   Capabilities status (read-only from GET /api/status)
  *   Brain/templates info
  *   Theme selection (presentation-only, lives on this device — the
  *                station has no theme-write endpoint, and the section
  *                says so plainly)
+ *   Advanced — the secrets Vault tool (VaultTool), relocated here per
+ *                docs/PRODUCT-LANGUAGE.md: security infrastructure
+ *                "rarely needs a direct user-facing presence", while
+ *                Records — the person's own structured information —
+ *                live inside Memory. All vault behaviour preserved.
  *
  * All writes require step-up auth (HTTP 403 → honest inline notice).
  *
@@ -35,8 +44,14 @@ import {
   usePutPrincipal,
 } from "../../data/hooks";
 import { describeError } from "../../data/errors";
-import { STATUS_LABELS, toCapabilityStatus } from "../../data/types";
+import {
+  PERSONAL_AREAS,
+  SKELETON_AREAS,
+  STATUS_LABELS,
+  toCapabilityStatus,
+} from "../../data/types";
 import { WorldButton } from "../../components/WorldButton";
+import { VaultTool } from "../Vault/Vault";
 import { THEMES, type ThemeName } from "../../generated/tokens";
 import {
   applyThemeToDocument,
@@ -335,18 +350,29 @@ function SectionsManager({
     );
   }, [serverSections, putSections, onSaved]);
 
+  const landmarkWords = SKELETON_AREAS.map((a) => a.label).join(" · ");
+
   if (serverSections.length === 0) {
     return (
-      <SettingsSection id="Sections" titleId="settings-sections-heading">
+      <SettingsSection id="Personal sections" titleId="settings-sections-heading">
+        <p className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          No personal sections are advertised as reorderable.
+        </p>
         <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-          No sections available
+          The landmarks {landmarkWords} are fixed by design and stay in
+          the bar above no matter what is reordered or hidden here.
         </p>
       </SettingsSection>
     );
   }
 
   return (
-    <SettingsSection id="Sections" titleId="settings-sections-heading">
+    <SettingsSection id="Personal sections" titleId="settings-sections-heading">
+      <p className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        Order or hide your personal sections here. The landmarks{" "}
+        {landmarkWords} always come first and can never be moved or
+        hidden — so the way home never changes.
+      </p>
       <ul className="space-y-[var(--pw-spacing-sm)]" role="list">
         {serverSections.map((section, index) => (
           <li
@@ -625,8 +651,20 @@ export function Settings() {
   const principalName = principalDisplayName(principalQuery.data);
 
   // Section ordering draft — derived from the server's resolved list,
-  // overridden locally until a save lands.
-  const serverRows: SectionItem[] = readSectionRows(sectionsQuery.data).rows;
+  // overridden locally until a save lands. Only PERSONAL destinations
+  // are offered: the station's registry may advertise more (media,
+  // lab, vault…), the skeleton landmarks are fixed by the product
+  // contract, and a toggle that could not actually move Overview or
+  // Memory would be a lie with a checkbox. Labels come from the
+  // client registry — the contract pins UI words, not the server.
+  const personalIds = new Set<string>(PERSONAL_AREAS.map((a) => a.id));
+  const serverRows: SectionItem[] = readSectionRows(sectionsQuery.data).rows
+    .filter((r) => personalIds.has(r.id))
+    .map((r) => ({
+      id: r.id,
+      label: PERSONAL_AREAS.find((a) => a.id === r.id)?.label ?? r.label,
+      visible: r.visible,
+    }));
   const [sectionDraft, setSectionDraft] = useState<SectionItem[] | null>(null);
   const editableSections = sectionDraft ?? serverRows;
 
@@ -709,6 +747,27 @@ export function Settings() {
         />
 
         <ThemeSection currentTheme={theme} onSelect={setTheme} />
+
+        {/* Advanced — the secrets Vault, relocated from the old
+            top-level "Records" nav slot per the contract's Records vs
+            Vault rule. Full tool, unchanged behaviour. */}
+        <section
+          aria-labelledby="settings-advanced-heading"
+          className="mb-[var(--pw-spacing-2xl)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+        >
+          <h2
+            id="settings-advanced-heading"
+            className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
+          >
+            Advanced
+          </h2>
+          <p className="mb-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+            Tools that rarely need a direct visit, kept reachable
+            anyway. Your own structured information is Records, inside
+            Memory — the Vault below holds credentials and secrets.
+          </p>
+          <VaultTool />
+        </section>
       </main>
     </>
   );

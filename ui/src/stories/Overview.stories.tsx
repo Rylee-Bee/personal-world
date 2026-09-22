@@ -1,17 +1,22 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "storybook/test";
 import { QueryProvider } from "../app/QueryProvider";
-import { Today } from "../screens/Today/Today";
+import { Overview } from "../screens/Overview/Overview";
+import { SKELETON_AREAS, PERSONAL_AREAS } from "../data/types";
 
 /**
- * Today — The primary Project Worlds screen.
+ * Overview — the front page / headlines surface of Worlds (was
+ * "Today"; docs/PRODUCT-LANGUAGE.md names the product term).
  *
  * MSW handlers provide reproducible API states.
  * Switch between stories to see: quiet, attention, offline, empty.
+ * The Explore tiles are callback-driven (no router), so the stories
+ * pass a spy for onOpenArea.
  */
 
-const meta: Meta<typeof Today> = {
-  title: "Screens/Today",
-  component: Today,
+const meta: Meta<typeof Overview> = {
+  title: "Screens/Overview",
+  component: Overview,
   tags: ["autodocs"],
   decorators: [
     (Story) => (
@@ -23,10 +28,17 @@ const meta: Meta<typeof Today> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof Today>;
+type Story = StoryObj<typeof Overview>;
+
+const sharedArgs = {
+  areas: [...SKELETON_AREAS, ...PERSONAL_AREAS],
+  onOpenArea: fn(),
+  onOpenAssistant: fn(),
+};
 
 export const Quiet: Story = {
   name: "Quiet Day — All Healthy",
+  args: sharedArgs,
   parameters: {
     msw: {
       handlers: {
@@ -38,6 +50,7 @@ export const Quiet: Story = {
 
 export const Waiting: Story = {
   name: "Waiting — Needs Attention",
+  args: sharedArgs,
   parameters: {
     msw: {
       handlers: {
@@ -49,6 +62,7 @@ export const Waiting: Story = {
 
 export const Stale: Story = {
   name: "Stale — Capability Drift",
+  args: sharedArgs,
   parameters: {
     msw: {
       handlers: {
@@ -60,6 +74,7 @@ export const Stale: Story = {
 
 export const Unavailable: Story = {
   name: "Unavailable — Service Down",
+  args: sharedArgs,
   parameters: {
     msw: {
       handlers: {
@@ -71,6 +86,7 @@ export const Unavailable: Story = {
 
 export const Offline: Story = {
   name: "Offline — Nothing Connected",
+  args: sharedArgs,
   parameters: {
     msw: {
       handlers: {
@@ -82,6 +98,7 @@ export const Offline: Story = {
 
 export const Empty: Story = {
   name: "Empty — Fresh Install",
+  args: sharedArgs,
   parameters: {
     msw: {
       handlers: {

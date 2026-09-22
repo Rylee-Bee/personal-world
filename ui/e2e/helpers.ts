@@ -14,6 +14,23 @@ export async function gotoArea(page: Page, name: string) {
 }
 
 /**
+ * The live nav-bar button labels, top to bottom.
+ *
+ * ONE synchronous allTextContents read, not a nth(i) loop: the
+ * personal sections can change count while /api/sections settles,
+ * and a per-index locator would then hang waiting for a row that no
+ * longer exists. Pair with expect.poll to assert the settled order
+ * without racing the query.
+ */
+export async function navButtonLabels(page: Page): Promise<string[]> {
+  const labels = await page
+    .getByRole("navigation", { name: "World navigation" })
+    .getByRole("button")
+    .allTextContents();
+  return labels.map((t) => t.trim());
+}
+
+/**
  * Shared e2e helpers for Track C specs (C7 focus ring / keyboard
  * paths). Kept honest to the a11y contract: rings are asserted only
  * after KEYBOARD arrival (Tab), because :focus-visible is a

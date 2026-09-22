@@ -1,7 +1,18 @@
 /**
- * Today — The primary Project Worlds screen.
+ * Overview — the front page / headlines surface of Worlds.
  *
- * Uses TanStack Query hooks for server state.
+ * Per docs/PRODUCT-LANGUAGE.md the product-facing word is Overview
+ * (was "Today"); it answers "what matters right now?" by aggregating
+ * each enabled section's headline state, and is NOT a competing
+ * content section. The implementation concepts underneath stay:
+ * useTodaySummary still reads GET /api/status + /api/daily +
+ * /api/prefs — server truth, never invented headlines.
+ *
+ * The Explore tiles activate destinations through the same
+ * state-driven path as the nav buttons (onOpenArea). They used to be
+ * <a href="/journal">-style anchors pointing at URLs nothing serves —
+ * dead doors. No more.
+ *
  * MSW provides mock data in Storybook/testing.
  */
 
@@ -9,8 +20,7 @@ import { useTodaySummary } from "../../data/hooks";
 import { WorldSignal } from "../../components/WorldSignal";
 import { ResidentPresence } from "../../components/ResidentPresence";
 import { WorldAssistant } from "../../components/WorldAssistant";
-import { WORLD_AREAS } from "../../data/types";
-import type { CapabilityStatus } from "../../data/types";
+import type { CapabilityStatus, WorldArea, WorldAreaId } from "../../data/types";
 
 /** One honest word per status — text carries the signal, not color. */
 function statusWord(status: CapabilityStatus): string {
@@ -31,18 +41,23 @@ function statusWord(status: CapabilityStatus): string {
   }
 }
 
-interface TodayProps {
+interface OverviewProps {
+  /** Every reachable destination (skeleton landmarks + visible
+   *  personal sections) — the same truth the nav bar renders. */
+  areas: WorldArea[];
+  /** State-driven activation, identical to the nav buttons. */
+  onOpenArea: (id: WorldAreaId) => void;
   onOpenAssistant: () => void;
 }
 
-export function Today({ onOpenAssistant }: TodayProps) {
+export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) {
   const { data: summary, isLoading, error } = useTodaySummary();
 
   if (error) {
     return (
-      <main id="main-content" aria-label="Today" className="relative z-10 p-[var(--pw-spacing-xl)]">
+      <main id="main-content" aria-label="Overview" className="relative z-10 p-[var(--pw-spacing-xl)]">
         <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
-          Today
+          Overview
         </h1>
         <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-secondary)]">
           Unable to load your world right now.
@@ -56,9 +71,9 @@ export function Today({ onOpenAssistant }: TodayProps) {
 
   if (isLoading || !summary) {
     return (
-      <main id="main-content" aria-label="Today" className="relative z-10 p-[var(--pw-spacing-xl)]">
+      <main id="main-content" aria-label="Overview" className="relative z-10 p-[var(--pw-spacing-xl)]">
         <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
-          Today
+          Overview
         </h1>
         <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-muted)]">
           Loading your world…
@@ -76,7 +91,7 @@ export function Today({ onOpenAssistant }: TodayProps) {
   );
 
   return (
-    <main id="main-content" aria-label="Today" className="relative z-10 p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)] max-w-[720px]">
+    <main id="main-content" aria-label="Overview" className="relative z-10 p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)] max-w-[720px]">
       {/* Greeting */}
       <header className="mb-[var(--pw-spacing-2xl)]">
         <p className="text-[var(--pw-typography-size_label)] font-medium uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-1">
@@ -126,19 +141,25 @@ export function Today({ onOpenAssistant }: TodayProps) {
         </section>
       )}
 
-      {/* World areas */}
+      {/* World areas — every reachable destination, activated the same
+          way the nav bar activates it. Overview is the tap-through
+          surface, so this grid mirrors the nav's truth exactly. */}
       <section aria-label="World areas" className="mb-[var(--pw-spacing-2xl)]">
         <h2 className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
           Explore
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-[var(--pw-spacing-md)]">
-          {WORLD_AREAS.filter((a) => a.id !== "today").map((area) => (
-            <a key={area.id} href={area.href}
-              className="group flex flex-col items-center gap-[var(--pw-spacing-sm)] p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] min-h-[var(--pw-targets-minimum)] no-underline transition-colors motion-reduce:transition-none hover:border-[var(--pw-accent-primary)] hover:bg-[var(--pw-surface-elevated)]">
+          {areas.filter((a) => a.id !== "overview").map((area) => (
+            <button
+              key={area.id}
+              type="button"
+              onClick={() => onOpenArea(area.id)}
+              className="group flex flex-col items-center gap-[var(--pw-spacing-sm)] p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] min-h-[var(--pw-targets-minimum)] transition-colors motion-reduce:transition-none hover:border-[var(--pw-accent-primary)] hover:bg-[var(--pw-surface-elevated)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+            >
               <span className="text-[var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)] group-hover:text-[var(--pw-accent-primary)]">
                 {area.label}
               </span>
-            </a>
+            </button>
           ))}
         </div>
       </section>

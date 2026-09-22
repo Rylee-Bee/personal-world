@@ -20,7 +20,7 @@ async function gotoSettings(page: Page) {
     page.getByRole("heading", { name: "Settings", level: 1 }),
   ).toBeVisible();
   await expect(
-    page.getByRole("region", { name: "Reading & Interaction" }),
+    page.getByRole("region", { name: "Customize" }),
   ).toBeVisible();
 }
 
@@ -95,7 +95,7 @@ test.describe("Settings Room (C1/C2)", () => {
     await page.reload();
     await gotoArea(page, "Settings");
     await expect(
-      page.getByRole("region", { name: "Reading & Interaction" }),
+      page.getByRole("region", { name: "Customize" }),
     ).toBeVisible();
     await expect(motion).toHaveValue(next);
 
@@ -206,7 +206,7 @@ test.describe("Settings Room (C1/C2)", () => {
       page.getByText(/language dials — not yet wired/),
     ).toHaveCount(1);
     // Not scattered: navigating away shows none of it.
-    await gotoArea(page, "Today");
+    await gotoArea(page, "Overview");
     await expect(
       page.getByText(/language dials — not yet wired/),
     ).toHaveCount(0);

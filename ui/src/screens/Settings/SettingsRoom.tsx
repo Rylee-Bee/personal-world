@@ -255,7 +255,7 @@ export function SettingsRoom() {
     return (
       <section aria-labelledby="settings-room-heading" className="mb-[var(--pw-spacing-2xl)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
         <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]">
-          Reading &amp; Interaction
+          Customize
         </h2>
         <p role="status" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           Loading…
@@ -271,7 +271,7 @@ export function SettingsRoom() {
     return (
       <section aria-labelledby="settings-room-heading" className="mb-[var(--pw-spacing-2xl)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
         <h2 id="settings-room-heading" className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]">
-          Reading &amp; Interaction
+          Customize
         </h2>
         <p role="alert" className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {schemaQuery.isError
@@ -291,7 +291,7 @@ export function SettingsRoom() {
         id="settings-room-heading"
         className="mb-[var(--pw-spacing-sm)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
       >
-        Reading &amp; Interaction
+        Customize
       </h2>
       {/* §9.2: these preferences tune an already-accessible product. */}
       <p className="mb-[var(--pw-spacing-lg)] text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">

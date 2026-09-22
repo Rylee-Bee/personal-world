@@ -1,5 +1,14 @@
 /**
- * Vault — Secret and provider configuration screen.
+ * VaultTool — Secrets and provider-credentials tool, embedded in
+ * Settings (the contract's "advanced area").
+ *
+ * docs/PRODUCT-LANGUAGE.md: Vault is security/secrets INFRASTRUCTURE
+ * — credentials, tokens, keys, step-up-protected material — and
+ * "rarely needs a direct user-facing presence". It is not Memory's
+ * Records, and it lost its top-level navigation slot with that
+ * distinction. Nothing else about it changed: every endpoint
+ * (status / names / secret read / unlock / lock / set / delete) and
+ * the whole lock UX work exactly as they did as a standalone screen.
  *
  * All data flows through the typed hook layer (src/data/hooks.ts →
  * src/data/api.ts → generated OpenAPI contract). The contract for
@@ -58,7 +67,7 @@ const INPUT_BASE =
 
 // ─── Component ────────────────────────────────────────────
 
-export function Vault() {
+export function VaultTool() {
   const statusQuery = useStatus();
   const vaultStatusQuery = useVaultStatus();
   const vaultLocked = vaultStatusQuery.data?.data?.locked ?? true;
@@ -237,28 +246,28 @@ export function Vault() {
 
   if (vaultStatusQuery.isPending) {
     return (
-      <main id="main-content" className="relative z-10 p-[var(--pw-spacing-xl)]" aria-label="Vault">
-        <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+      <section className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]" aria-label="Vault">
+        <h2 className="text-[var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
           Vault
-        </h1>
-        <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-muted)]">Loading…</p>
-      </main>
+        </h2>
+        <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-text-muted)]">Loading…</p>
+      </section>
     );
   }
 
   if (vaultStatusQuery.isError) {
     return (
-      <main id="main-content" className="relative z-10 p-[var(--pw-spacing-xl)]" aria-label="Vault">
-        <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+      <section className="p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]" aria-label="Vault">
+        <h2 className="text-[var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
           Vault
-        </h1>
-        <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-secondary)]">
+        </h2>
+        <p className="mt-[var(--pw-spacing-md)] text-[var(--pw-text-secondary)]">
           Unable to load vault.
         </p>
         <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
           {describeError(vaultStatusQuery.error, "Vault status request failed.")}
         </p>
-      </main>
+      </section>
     );
   }
 
@@ -266,26 +275,21 @@ export function Vault() {
 
   return (
     <>
-      {/* Skip to main content */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-[var(--pw-radius-sm)] focus:bg-[var(--pw-surface-panel)] focus:p-[var(--pw-spacing-md)] focus:text-[var(--pw-text-primary)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
-      >
-        Skip to main content
-      </a>
-
-      <main
-        id="main-content"
-        className="relative z-10 p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)] max-w-[720px]"
+      {/* Embedded in Settings: no skip link and no <main> of its own —
+          Settings owns the landmark order; this is a named region. */}
+      <section
+        className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-lg)]"
         aria-label="Vault"
       >
         {/* Header */}
         <header className="mb-[var(--pw-spacing-2xl)]">
-          <h1 className="text-[var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+          <h2 className="text-[var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
             Vault
-          </h1>
+          </h2>
           <p className="mt-1 text-[var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-            Manage secrets and provider configurations
+            Secrets and provider credentials — tokens, keys, step-up
+            material. This is infrastructure, not your own records:
+            durable personal information lives in Memory under Records.
           </p>
         </header>
 
@@ -379,9 +383,9 @@ export function Vault() {
         {/* Secrets section */}
         <section aria-label="Secrets" className="mb-[var(--pw-spacing-2xl)]">
           <div className="flex items-center justify-between mb-[var(--pw-spacing-md)]">
-            <h2 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+            <h3 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
               Secrets
-            </h2>
+            </h3>
             {!vaultLocked && (
               <button
                 type="button"
@@ -466,9 +470,9 @@ export function Vault() {
             aria-label={editingName ? "Edit secret" : "Add secret"}
             className="mb-[var(--pw-spacing-2xl)] p-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)]"
           >
-            <h2 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-[var(--pw-spacing-md)]">
+            <h3 className="text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-[var(--pw-spacing-md)]">
               {editingName ? "Edit secret" : "Add secret"}
-            </h2>
+            </h3>
             <form onSubmit={handleFormSubmit}>
               <div className="space-y-[var(--pw-spacing-md)]">
                 <div>
@@ -546,9 +550,9 @@ export function Vault() {
 
         {/* Provider configuration */}
         <section aria-label="Provider configuration">
-          <h2 className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+          <h3 className="mb-[var(--pw-spacing-md)] text-[var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
             Providers
-          </h2>
+          </h3>
           <div className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
             {statusQuery.isLoading ? (
               <p className="text-[var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
@@ -591,7 +595,7 @@ export function Vault() {
             )}
           </div>
         </section>
-      </main>
+      </section>
 
       {/* Delete confirmation — native modal dialog (§3.3). Hidden until
           showModal(); open:grid restores the centered layout while open. */}

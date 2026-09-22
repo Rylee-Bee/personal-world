@@ -1,30 +1,50 @@
 /**
- * Journal draft save-resume flow (B8; DRAFT-SYNC-SPEC-2026-09-20).
+ * Journal draft save-resume flow (B8; DRAFT-SYNC-SPEC-2026-09-20) —
+ * and the C3/Δ3 interruption/resumption proof.
  *
  * Against the deterministic e2e mock API (scripts/e2e-api.mjs, whose
  * draft trio mirrors api.py journal_draft_* exactly — the write
  * response reports, never echoes). Serial mode: the mock holds one
  * in-memory draft, like the single per-principal slot on the server.
+ *
+ * The journal now lives INSIDE the Memory landmark (the re-cut moved
+ * the screen, not the behaviour). The reload tests are the contract
+ * proof that an interrupted person resumes: after a reload the app
+ * lands on a clearly predictable place (Overview — never a silently
+ * lost state), and the unsaved draft is still there when they return
+ * to Memory.
  */
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 
-async function resetDraft(page: import("@playwright/test").Page) {
+async function resetDraft(page: Page) {
   await page.request.delete("http://127.0.0.1:4174/api/journal/draft");
 }
 
-async function openJournal(page: import("@playwright/test").Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Journal" }).click();
+/** Open Memory from wherever the app currently is (nav-scoped click —
+ *  Overview's Explore tiles carry the same label, so no loose ends). */
+async function openMemory(page: Page) {
+  await page
+    .getByRole("navigation", { name: "World navigation" })
+    .getByRole("button", { name: "Memory", exact: true })
+    .click();
   await expect(
-    page.getByRole("heading", { name: "Journal", level: 1 }),
+    page.getByRole("heading", { name: "Memory", level: 1 }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Journal", level: 2 }),
+  ).toBeVisible();
+}
+
+async function gotoMemoryDraft(page: Page) {
+  await page.goto("/");
+  await openMemory(page);
 }
 
 test("keystroke pause saves the draft to the world", async ({ page }) => {
   await resetDraft(page);
-  await openJournal(page);
+  await gotoMemoryDraft(page);
   const box = page.getByLabel("New entry");
   await box.click();
   await box.pressSequentially("a draft that must survive", { delay: 15 });
@@ -39,19 +59,31 @@ test("keystroke pause saves the draft to the world", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("reload resumes the unsaved draft into the panel", async ({ page }) => {
+test("interruption/resumption: reload → predictable landing → the draft is back", async ({
+  page,
+}) => {
   await resetDraft(page);
-  await openJournal(page);
+  await gotoMemoryDraft(page);
   const box = page.getByLabel("New entry");
   await box.fill("half a thought, unsaved");
   await page.request.put("http://127.0.0.1:4174/api/journal/draft", {
-      data: { text: "half a thought, unsaved" },
-    });
+    data: { text: "half a thought, unsaved" },
+  });
+
+  // THE INTERRUPTION.
   await page.reload();
-  await page.getByRole("button", { name: "Journal" }).click();
+
+  // Δ3 floor: the reload lands somewhere CLEARLY PREDICTABLE — the
+  // Overview landmark, the first thing the skeleton pins. Never a
+  // silently lost or random screen.
+  await expect(page.getByRole("main")).toHaveAttribute("aria-label", "Overview");
   await expect(
-    page.getByRole("heading", { name: "Journal", level: 1 }),
+    page.getByRole("heading", { name: /Operator/i, level: 1 }),
   ).toBeVisible();
+
+  // And the way back is one landmark click — after which the words
+  // she was writing are WAITING, not gone.
+  await openMemory(page);
   await expect(page.getByLabel("New entry")).toHaveValue(
     "half a thought, unsaved",
   );
@@ -61,21 +93,21 @@ test("a newer world copy offers the chooser — never clobbers silently", async 
   page,
 }) => {
   await resetDraft(page);
-  await openJournal(page);
+  await gotoMemoryDraft(page);
   const box = page.getByLabel("New entry");
   // This device settles its own copy first (mirror + server agree).
   await box.fill("this device's words");
   await page.request.put("http://127.0.0.1:4174/api/journal/draft", {
-      data: { text: "this device's words" },
-    });
+    data: { text: "this device's words" },
+  });
   await page.waitForTimeout(1_400); // let the debounce confirm saved_at
   // Another device saves over it while this tab idles…
   await page.request.put("http://127.0.0.1:4174/api/journal/draft", {
-      data: { text: "another device wrote something newer" },
-    });
+    data: { text: "another device wrote something newer" },
+  });
   // …this panel opens fresh and must ASK, not choose for her.
   await page.reload();
-  await page.getByRole("button", { name: "Journal" }).click();
+  await openMemory(page);
   const chooser = page.getByRole("alertdialog");
   await expect(chooser).toBeVisible({ timeout: 5_000 });
   await expect(
@@ -97,7 +129,7 @@ test("publishing clears the draft only after the confirmed write", async ({
   page,
 }) => {
   await resetDraft(page);
-  await openJournal(page);
+  await gotoMemoryDraft(page);
   const box = page.getByLabel("New entry");
   await box.fill("ready to publish");
   await page.waitForTimeout(1_400); // one save lands first

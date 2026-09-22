@@ -1,17 +1,22 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { QueryProvider } from "../app/QueryProvider";
-import { Vault } from "../screens/Vault/Vault";
+import { VaultTool } from "../screens/Vault/Vault";
 
 /**
- * Vault — Secret and provider configuration screen.
+ * VaultTool — secrets and provider-configuration tool.
+ *
+ * Since the navigation re-cut this is an EMBEDDED section (it renders
+ * its own region, not a <main>): Settings mounts it under "Advanced"
+ * per docs/PRODUCT-LANGUAGE.md — Vault is security infrastructure,
+ * rarely user-facing. The stories render it standalone for review.
  *
  * MSW handlers provide reproducible API states.
  * Switch between stories to see: locked, unlocked with secrets, unlocked empty.
  */
 
-const meta: Meta<typeof Vault> = {
-  title: "Screens/Vault",
-  component: Vault,
+const meta: Meta<typeof VaultTool> = {
+  title: "Screens/Settings/VaultTool",
+  component: VaultTool,
   tags: ["autodocs"],
   decorators: [
     (Story) => (
@@ -23,7 +28,7 @@ const meta: Meta<typeof Vault> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof Vault>;
+type Story = StoryObj<typeof VaultTool>;
 
 export const Locked: Story = {
   name: "Locked — Vault Sealed",

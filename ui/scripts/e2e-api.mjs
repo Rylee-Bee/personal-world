@@ -188,6 +188,10 @@ const SECTIONS = [
 ];
 
 let vaultLocked = true;
+// In-memory secret store (fixture fiction, like the journal): the
+// names list and per-name routes read/write THIS, so set/delete
+// behave like the server's _vault within a run.
+const SECRETS = new Map([["E2E_FIXTURE_TOKEN", "fixture-value-not-a-secret"]]);
 
 function json(res, status, body) {
   const payload = JSON.stringify(body);
@@ -388,6 +392,24 @@ const server = http.createServer(async (req, res) => {
   if (method === "GET" && p === "/api/journal/audit") {
     return json(res, 200, { ok: true, data: { text: "journal audit (e2e fixture)" } });
   }
+  // Memory search — mirrors api.py memory_search + native_memory.py
+  // search(): the provider indexes JOURNAL ENTRIES and answers
+  // {ok, status, data:{results:[{id,kind,text,timestamp}], query,
+  // count}}. The fixture search is a plain substring scan over the
+  // same in-memory journal (the real engine is SQLite FTS — same
+  // contract shape, less machinery). Refusal shape (ok:false,
+  // warnings) is what the server answers when no memory provider is
+  // configured; the fixture provider is configured, so results.
+  if (method === "GET" && p === "/api/memory/search") {
+    const q = url.searchParams.get("q") ?? "";
+    const topK = Math.min(Math.max(Number(url.searchParams.get("top_k") ?? 5), 1), 50);
+    if (!q) return json(res, 422, { detail: "q is required" });
+    const needle = q.toLowerCase();
+    const results = CURRENT.filter((e) => e.summary.toLowerCase().includes(needle))
+      .slice(0, topK)
+      .map((e) => ({ id: `journal:${e.ts}`, kind: e.kind, text: e.summary, timestamp: e.ts }));
+    return json(res, 200, ok("healthy", { results, query: q, count: results.length }));
+  }
   if (method === "POST" && p === "/api/chat") {
     const body = await readBody(req);
     const message = String(body?.message ?? "").trim();
@@ -444,7 +466,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (method === "GET" && p === "/api/vault/names") {
     if (vaultLocked) return json(res, 409, { detail: "vault is locked" });
-    return json(res, 200, { ok: true, data: { names: ["E2E_FIXTURE_TOKEN"] } });
+    return json(res, 200, { ok: true, data: { names: [...SECRETS.keys()] } });
   }
   if (method === "POST" && p === "/api/vault/unlock") {
     const body = await readBody(req);
@@ -462,7 +484,23 @@ const server = http.createServer(async (req, res) => {
     if (!body?.name || body.value === undefined) {
       return json(res, 400, { detail: "name and value required" });
     }
+    SECRETS.set(body.name, String(body.value));
     return json(res, 200, { ok: true, data: { name: body.name } });
+  }
+  // Per-name routes (api.py vault_get / vault_delete). Fixture
+  // fiction only: values live in this process, never persisted.
+  if (p.startsWith("/api/vault/") && p !== "/api/vault/set") {
+    const name = decodeURIComponent(p.slice("/api/vault/".length));
+    if (method === "GET") {
+      if (vaultLocked) return json(res, 409, { detail: "vault is locked" });
+      if (!SECRETS.has(name)) return notFound(res);
+      return json(res, 200, { ok: true, data: { name, value: SECRETS.get(name) } });
+    }
+    if (method === "DELETE") {
+      if (vaultLocked) return json(res, 409, { detail: "vault is locked" });
+      SECRETS.delete(name);
+      return json(res, 200, { ok: true, data: { deleted: name } });
+    }
   }
   if (method === "OPTIONS" && (p.startsWith("/api") || p === "/healthz")) {
     res.writeHead(204, {
