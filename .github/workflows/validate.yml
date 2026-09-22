@@ -15,6 +15,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Heartbeat for the Play-Nice pin (the heart): weekly Monday check
+    # that the adoption pin still reads CURRENT against upstream. GitHub
+    # fires schedules only on the default branch; PRs re-check the same
+    # job on every push. Detection automated, pin movement manual.
+    - cron: "17 6 * * 1"
 
 permissions:
   contents: read
@@ -65,3 +71,12 @@ jobs:
       sync-args: "--extra test"
       pytest-args: "--timeout=30 tests/test_framework.py -v"
       post-test-commands: "uv run personal-world framework validate --json"
+
+  # The heart, kept honest automatically: fails closed whenever the
+  # ratified adoption pin drifts from Rylee-Bee/play-nice-contracts
+  # (see .project/contracts/adoption.yaml bump history — movement is a
+  # manual, attested ritual, never a sync).
+  contract-freshness:
+    uses: Rylee-Bee/ci-harness/.github/workflows/reusable-contract-freshness.yml@main
+    with:
+      manifest-path: ".project/contracts/adoption.yaml"
