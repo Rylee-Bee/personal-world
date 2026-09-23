@@ -42,6 +42,8 @@ class TestDefaultsSatisfyFloor:
             "target_size": 44,
             "companion": "personal-world",
             "accent": "world-keeper",
+            "tone": "warm",
+            "personality_pack": "off",
         }
 
     def test_every_spec_default_equals_normalize(self):

@@ -247,6 +247,7 @@ def build_chat_messages(
     history: list[dict[str, str]] | None = None,
     tool_descriptions: str | None = None,
     persona: str | None = None,
+    tone: str | None = None,
 ) -> list[dict[str, str]]:
     """System prompt + optional short history + the new user message.
 
@@ -262,6 +263,14 @@ def build_chat_messages(
     guaranteed floor (truth rules, status vocabulary, proposal
     contract) so an empty or malformed template tree can never remove
     the safety text.
+
+    ``tone`` selects the register of the ONE voice (TRUE-NORTH § Voice;
+    ``voice.tone_instruction``): warm (default) · concise · playful ·
+    formal. The tone block sits between the persona and the identity
+    floor and changes phrasing only — an unknown or absent tone adds no
+    block, and no tone can remove or weaken the floor. With the
+    personality pack off (the default), the caller passes no companion
+    persona, so tone + the one voice floor is the whole identity.
 
     SUGGESTIONS, not authority: the prompt teaches ONE tiny fenced
     proposal block the assistant MAY use when it notices a Journal
@@ -283,16 +292,29 @@ def build_chat_messages(
     persona_block = ""
     if persona and persona.strip():
         persona_block = persona.strip() + "\n\n"
+    # The one voice's tone register (TRUE-NORTH § Voice). Unknown or
+    # absent tones produce no block: the identity floor below is
+    # register-neutral, so the reply stays honest rather than adopting
+    # an invented register.
+    from .voice import tone_instruction
+
+    tone_block = ""
+    tone_text = tone_instruction(tone)
+    if tone_text:
+        tone_block = tone_text + "\n\n"
     system = (
         persona_block
+        + tone_block
         + "You are the Project Worlds assistant: a calm, factual companion "
         "embedded in a personal control plane. You answer questions "
         "about the state of the world using ONLY the context block below. "
         "If the context does not contain the answer, say so plainly "
         "instead of inventing status, names, or numbers. Status vocabulary "
         "is fixed: healthy, warning, unknown, needs_attention, unavailable, "
-        "stale, disabled, not_configured. Keep replies short, warm, and "
-        "structured; prefer lists over prose paragraphs when listing.\n\n"
+        "stale, disabled, not_configured. Keep replies short and "
+        "structured; prefer lists over prose paragraphs when listing. "
+        "The tone register above sets the phrasing; it never changes "
+        "these rules.\n\n"
         "You may notice a recent Journal entry that looks wrong compared "
         "to later entries. If — and only if — the context clearly "
         "supports it, offer to prepare a correction: explain why in one "
