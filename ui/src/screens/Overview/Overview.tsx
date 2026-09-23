@@ -1,5 +1,11 @@
 /**
- * Overview — the front page / headlines surface of Worlds.
+ * Overview — the front page / headlines surface of Worlds, and the
+ * home of the daily home loop (docs/TRUE-NORTH.md): Orient (the
+ * Keeper greets + honest estate status) → Remember (pinned Memory
+ * headlines) → Discover (one small "brought to you" sliver) →
+ * Resume (yesterday's thread, one tap into Memory), plus the
+ * parked-Projects ruling: every status row links to its
+ * authoritative source, agent-sync remaining the feed.
  *
  * Per docs/PRODUCT-LANGUAGE.md the product-facing word is Overview
  * (was "Today"); it answers "what matters right now?" by aggregating
@@ -7,6 +13,10 @@
  * content section. The implementation concepts underneath stay:
  * useTodaySummary still reads GET /api/status + /api/daily +
  * /api/prefs — server truth, never invented headlines.
+ *
+ * Section order follows accessibility contract §5.2 (greeting,
+ * world summary, attention, discovery, journal) with the Memory
+ * headlines and the parked-Projects rows slotted beside their kin.
  *
  * The Explore tiles activate destinations through the same
  * state-driven path as the nav buttons (onOpenArea). They used to be
@@ -20,25 +30,18 @@ import { usePinnedRecords, useTodaySummary } from "../../data/hooks";
 import { WorldSignal } from "../../components/WorldSignal";
 import { ResidentPresence } from "../../components/ResidentPresence";
 import { WorldAssistant } from "../../components/WorldAssistant";
+import { WorldKeeper } from "../../components/WorldKeeper";
+import { STATUS_LABELS } from "../../data/types";
 import type { CapabilityStatus, WorldArea, WorldAreaId } from "../../data/types";
+import { ThreadCard } from "./ThreadCard";
+import { DiscoverySliver } from "./DiscoverySliver";
+import { ProjectsStatus } from "./ProjectsStatus";
+import { keeperStateForHour } from "./home-loop";
 
-/** One honest word per status — text carries the signal, not color. */
+/** One honest word per status — text carries the signal, not color
+ *  (§1.3). The label IS the contract vocabulary. */
 function statusWord(status: CapabilityStatus): string {
-  switch (status) {
-    case "healthy":
-      return "online";
-    case "warning":
-    case "needs_attention":
-      return "attention";
-    case "unavailable":
-    case "stale":
-      return "offline";
-    case "disabled":
-    case "not_configured":
-      return "off";
-    case "unknown":
-      return "unknown";
-  }
+  return STATUS_LABELS[status];
 }
 
 interface OverviewProps {
@@ -147,16 +150,22 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
 
   return (
     <main id="main-content" aria-label="Overview" className="relative z-10 p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)] max-w-[720px]">
-      {/* Greeting */}
+      {/* Greeting — the Keeper greets (the one heartbeat; never
+          telemetry). The pose depends on the clock alone. */}
       <header className="mb-[var(--pw-spacing-2xl)]">
-        <p className="text-[length:var(--pw-typography-size_label)] font-medium uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-1">
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long", year: "numeric", month: "long", day: "numeric",
-          })}
-        </p>
-        <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)] leading-tight">
-          {summary.greeting}, <span className="text-[var(--pw-accent-primary)]">Operator</span>
-        </h1>
+        <div className="flex items-center gap-[var(--pw-spacing-md)]">
+          <WorldKeeper state={keeperStateForHour(new Date().getHours())} />
+          <div className="min-w-0">
+            <p className="text-[length:var(--pw-typography-size_label)] font-medium uppercase tracking-[0.16em] text-[var(--pw-text-muted)] mb-1">
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long", year: "numeric", month: "long", day: "numeric",
+              })}
+            </p>
+            <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)] leading-tight">
+              {summary.greeting}, <span className="text-[var(--pw-accent-primary)]">Operator</span>
+            </h1>
+          </div>
+        </div>
         {summary.resident && (
           <div className="mt-[var(--pw-spacing-lg)]">
             <ResidentPresence resident={summary.resident} />
@@ -212,6 +221,19 @@ export function Overview({ areas, onOpenArea, onOpenAssistant }: OverviewProps) 
           where the person goes looking for them. Locked categories
           never appear here (server rule, RECORDS-API §Locking). */}
       <PinnedSection onOpenMemory={() => onOpenArea("memory")} />
+
+      {/* Discover — one small "brought to you" sliver (mixtape
+          pattern); honest empty until a source exists. Sits before
+          the journal thread per accessibility contract §5.2
+          (discovery → journal). */}
+      <DiscoverySliver onOpenArea={onOpenArea} />
+
+      {/* Resume — yesterday's thread, one tap back into Memory. */}
+      <ThreadCard onOpenMemory={() => onOpenArea("memory")} />
+
+      {/* Projects — parked as a full surface; Overview keeps the
+          deterministic source→details path (owner refinement 2). */}
+      <ProjectsStatus />
 
       {/* World areas — every reachable destination, activated the same
           way the nav bar activates it. Overview is the tap-through

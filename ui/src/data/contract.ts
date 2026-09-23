@@ -150,6 +150,68 @@ export interface DailyResponse extends Envelope<DailyData> {
   actions?: string[];
 }
 
+// ─── Projects (GET /api/projects/status — the agent-sync sensor) ────
+// api.py projects_status: agent-sync is AUTHORITATIVE for repository
+// publication state; the envelope carries its own dated observation
+// (observed_at) and a derived freshness that never rewrites state.
+// Closed vocabularies mirror providers/agent_sync.py; anything outside
+// them arrives as null / "unknown" and stays honestly unknown here.
+
+export type ProjectPublishState = "match" | "ahead" | "behind" | "diverged";
+export type ProjectSafeState =
+  | "yes"
+  | "published-with-local-work"
+  | "no"
+  | "unknown";
+
+export interface ProjectStatusRow {
+  project: string;
+  path: string | null;
+  is_git_repo: boolean;
+  branch: string | null;
+  local_head: string | null;
+  remote_name: string | null;
+  /** The authoritative source for this repository's Git truth. */
+  remote_url: string | null;
+  remote_head: string | null;
+  publish_state: ProjectPublishState | null;
+  /** agent-sync guarantees four non-negative ints (_coerce_count). */
+  working_tree: {
+    staged: number;
+    modified: number;
+    untracked: number;
+    conflicted: number;
+  };
+  play_nice: {
+    present: boolean;
+    revision: string | null;
+    source_repository: string | null;
+  };
+  work_state: string;
+  safe_to_leave: ProjectSafeState;
+  error: string | null;
+}
+
+export interface ProjectsStatusData {
+  observed_at: string | null;
+  freshness: "fresh" | "stale" | "unknown";
+  age_seconds: number | null;
+  projects: ProjectStatusRow[];
+}
+
+// ─── Discovery (GET /api/discovery/status — native_discovery.observe) ─
+// Counts and rows as the provider reports them; Overview's sliver and
+// the Interests screen both read this envelope.
+
+export interface DiscoveryStatusData {
+  sources?: unknown[];
+  interests?: unknown[];
+  items?: unknown[];
+  source_count?: number;
+  interest_count?: number;
+  item_count?: number;
+}
+
 // ─── Chat (api.py chat/chat_providers/chat_history,
 //     chat_history.py NDJSON entries) ─────────────────────
 

@@ -28,6 +28,7 @@ import type {
   ConnectionSaveRequest,
   ConnectionTestRequest,
   DailyResponse,
+  DiscoveryStatusData,
   Envelope,
   HealthzResponse,
   JournalAuditData,
@@ -68,6 +69,7 @@ import type {
   VaultUnlockRequest,
   PrefsData,
   PrefsUpdateRequest,
+  ProjectsStatusData,
 } from "./contract";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -491,6 +493,13 @@ export const testConnection = (body: ConnectionTestRequest) =>
 export const validateConnection = (body: ConnectionTestRequest) =>
   unwrap<Envelope>(sendBody("POST", "/api/connections/validate", body));
 
+// ===== Projects (agent-sync is the authoritative feed) =====
+// GET /api/projects/status — api.py projects_status. Read-only estate
+// observation; the command-absent / timeout / malformed cases answer a
+// 200 + ok:false "unavailable" envelope, which screens read honestly.
+export const getProjectsStatus = () =>
+  unwrap<Envelope<ProjectsStatusData>>(api.GET("/api/projects/status", {}));
+
 // ===== Identity =====
 export const getPrincipal = () =>
   unwrap<Envelope<PrincipalInfo>>(api.GET("/api/identity/principal", {}));
@@ -511,7 +520,7 @@ export const listAgents = () => unwrap<Envelope<unknown[]>>(api.GET("/api/identi
 
 // ===== Discovery =====
 export const getDiscoveryStatus = () =>
-  unwrap<Envelope>(api.GET("/api/discovery/status", {}));
+  unwrap<Envelope<DiscoveryStatusData>>(api.GET("/api/discovery/status", {}));
 
 export const listDiscoverySources = () =>
   unwrap<Envelope<unknown[]>>(api.GET("/api/discovery/sources", {}));

@@ -210,6 +210,77 @@ const WORLD_STATES: Record<string, WorldState> = {
   empty: { capabilities: {}, attention: [], companion: "personal-world" },
 };
 
+// ─── Projects fixtures (agent-sync normalized rows) ─────────────────
+// Mirrors providers/agent_sync.py _normalize exactly: closed
+// vocabularies, null = honest unknown, remote_url is the row's
+// authoritative source link. Fiction only (example.invalid).
+
+const PROJECT_ROWS = [
+  {
+    project: "personal-world",
+    path: "/srv/projects/personal-world",
+    is_git_repo: true,
+    branch: "main",
+    local_head: "2527c0d",
+    remote_name: "origin",
+    remote_url: "https://example.invalid/personal-world.git",
+    remote_head: "2527c0d",
+    publish_state: "match",
+    working_tree: { staged: 0, modified: 2, untracked: 0, conflicted: 0 },
+    play_nice: { present: true, revision: "1", source_repository: null },
+    work_state: "working",
+    safe_to_leave: "no",
+    error: null,
+  },
+  {
+    project: "pickle",
+    path: "/srv/projects/pickle",
+    is_git_repo: true,
+    branch: "dev",
+    local_head: "abc1234",
+    remote_name: null,
+    remote_url: null,
+    remote_head: null,
+    publish_state: null,
+    working_tree: { staged: 0, modified: 0, untracked: 1, conflicted: 0 },
+    play_nice: { present: false, revision: null, source_repository: null },
+    work_state: "waiting_for_help",
+    safe_to_leave: "unknown",
+    error: null,
+  },
+];
+
+/** The Overview home-loop's project feed per world state: degraded
+ *  worlds answer the honest ok:false unavailable envelope (the
+ *  agent-sync-absent contract), the rest a dated two-row observation. */
+function projectsStatusBody(stateName: string) {
+  if (
+    stateName === "unavailable" ||
+    stateName === "offline" ||
+    stateName === "empty"
+  ) {
+    return {
+      ok: false,
+      status: "unavailable",
+      data: null,
+      warnings: [
+        "agent-sync observation unavailable (command absent, timed out, or malformed)",
+      ],
+    };
+  }
+  return {
+    ok: true,
+    status: "healthy",
+    data: {
+      observed_at: "2026-09-22T08:00:00Z",
+      freshness: "fresh",
+      age_seconds: 120,
+      projects: PROJECT_ROWS,
+    },
+    warnings: [],
+  };
+}
+
 // ─── Journal fixtures (model.JournalEvent) ───────────────────────────
 
 interface JournalEvent {
@@ -436,6 +507,35 @@ function buildWorldHandlers(stateName: keyof typeof WORLD_STATES | string): Requ
         ok: true,
         data: { schema: "sections.v1", sections: [] },
       }),
+    ),
+    // Home-loop queries (TRUE-NORTH W1-A): the thread reads the
+    // journal, the sliver reads discovery status, the parked-Projects
+    // rows read the agent-sync observation. An empty world has an
+    // empty journal; degraded worlds lose the sensor honestly.
+    http.get("/api/journal", ({ request }) => {
+      const url = new URL(request.url);
+      const n = Number(url.searchParams.get("n") ?? 20);
+      const events =
+        stateName === "empty" ? [] : JOURNAL_EVENTS_POPULATED;
+      return HttpResponse.json({ ok: true, data: events.slice(0, n) });
+    }),
+    http.get("/api/discovery/status", () =>
+      HttpResponse.json({
+        ok: true,
+        status: "healthy",
+        data: {
+          sources: [],
+          interests: [],
+          items: [],
+          source_count: 0,
+          interest_count: 0,
+          item_count: 0,
+        },
+        warnings: [],
+      }),
+    ),
+    http.get("/api/projects/status", () =>
+      HttpResponse.json(projectsStatusBody(stateName)),
     ),
   ];
 }

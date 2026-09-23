@@ -74,3 +74,83 @@ test.describe("Overview screen", () => {
     expect(hasGreeting || hasError || hasLoading).toBeTruthy();
   });
 });
+
+/**
+ * The daily home loop (TRUE-NORTH, Wave 1 Lane A): Orient → Remember
+ * → Resume → Discover, plus the parked-Projects ruling. The mock API
+ * (scripts/e2e-api.mjs) answers the real server contract: a populated
+ * journal, two discovery sources with no batch due, and a dated
+ * two-row agent-sync observation.
+ */
+test.describe("Overview daily home loop", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+  });
+
+  test("the Keeper greets as hidden decoration — never telemetry", async ({
+    page,
+  }) => {
+    const keeper = page.locator("[data-keeper-state]");
+    await expect(keeper).toBeVisible();
+    await expect(keeper).toHaveAttribute("aria-hidden", "true");
+    // The pose depends on the clock alone: greet by day, rest at night.
+    const state = await keeper.getAttribute("data-keeper-state");
+    expect(state === "hello" || state === "sleep").toBeTruthy();
+    // A screen reader meets the greet line, not the artwork (§7.3).
+    await expect(
+      page.getByRole("heading", { name: /Operator/i, level: 1 }),
+    ).toBeVisible();
+  });
+
+  test("Resume — the newest thread, one tap into Memory", async ({ page }) => {
+    const thread = page.getByRole("region", { name: "Your thread" });
+    await expect(thread).toBeVisible();
+    // The mock journal's newest current event, verbatim.
+    await expect(thread).toContainText("Correction noted");
+    await thread.getByRole("button", { name: "Pick up in Memory" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Memory", level: 1 }),
+    ).toBeVisible();
+  });
+
+  test("Discover — the sliver states its cadence honestly", async ({ page }) => {
+    const sliver = page.getByRole("region", { name: "Brought to you" });
+    await expect(sliver).toBeVisible();
+    // Two sources listening, no batch due: the cadence promise, not a
+    // fabricated pick.
+    await expect(sliver).toContainText("2 sources are");
+    await expect(sliver).toContainText("cadence");
+  });
+
+  test("Projects — every row links to its authoritative source", async ({
+    page,
+  }) => {
+    const section = page.getByRole("region", { name: "Projects" });
+    await expect(section).toBeVisible();
+    await expect(section).toContainText("a fresh observation");
+
+    const link = section.getByRole("link", {
+      name: "Open the source of personal-world",
+    });
+    await expect(link).toHaveAttribute(
+      "href",
+      "https://example.invalid/personal-world.git",
+    );
+    // The row with no recorded remote links nowhere and says so.
+    await expect(section).toContainText("no remote recorded");
+  });
+
+  test("the loop survives phone width without horizontal scroll", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await expect(
+      page.getByRole("region", { name: "Your thread" }),
+    ).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
