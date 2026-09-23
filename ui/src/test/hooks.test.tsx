@@ -16,6 +16,7 @@ vi.mock("../data/api", () => ({
   getDaily: vi.fn(),
   getSetupStatus: vi.fn(),
   listJournal: vi.fn(),
+  getJournalLast: vi.fn(),
   writeJournal: vi.fn(),
   supersedeJournal: vi.fn(),
   journalHistory: vi.fn(),
@@ -79,8 +80,10 @@ vi.mock("../data/api", () => ({
 import {
   useTodaySummary,
   useJournalList,
+  useJournalLast,
   useRecordCategories,
   useRecordsInCategory,
+  useRecordSearch,
   useSetRecordPinned,
   useWriteRecord,
   useStepUp,
@@ -407,6 +410,78 @@ describe("hooks", () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
       const err = result.current.error as { status?: number };
       expect(err.status).toBe(409);
+    });
+  });
+
+  describe("useRecordSearch (the models-off find door)", () => {
+    it("stays disabled for a blank query — no request, no invented results", () => {
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useRecordSearch("   "), { wrapper });
+      expect(result.current.isPending).toBe(true);
+      expect(api.listRecords).not.toHaveBeenCalled();
+    });
+
+    it("sends the plain ?q= lexical query and returns the records", async () => {
+      vi.mocked(api.listRecords).mockResolvedValue({
+        ok: true,
+        status: "healthy",
+        data: {
+          query: "allergy",
+          records: [
+            {
+              id: "allergy-list-f1e2d3",
+              category: "medical",
+              category_name: "Medical",
+              title: "Allergy list",
+              fields: { severe: "Penicillin" },
+              pinned: true,
+              created: "2026-09-18T10:00:00+00:00",
+              updated: "2026-09-18T10:00:00+00:00",
+            },
+          ],
+        },
+      });
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useRecordSearch("allergy"), { wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(api.listRecords).toHaveBeenCalledWith({ q: "allergy" });
+      expect(result.current.data?.data?.records[0]?.title).toBe("Allergy list");
+    });
+  });
+
+  describe("useJournalLast (the thread deep-link contract)", () => {
+    it("surfaces the newest current entry", async () => {
+      vi.mocked(api.getJournalLast).mockResolvedValue({
+        ok: true,
+        status: "healthy",
+        data: {
+          entry: {
+            ts: "2026-09-21T08:00:00+00:00",
+            kind: "observation",
+            summary: "yesterday's thread",
+            provenance: { source: "user", authority: "reported" },
+            classification: "private",
+            supersedes: null,
+            supersede_reason: null,
+          } as JournalEvent,
+        },
+      });
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useJournalLast(), { wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data?.data?.entry?.summary).toBe("yesterday's thread");
+    });
+
+    it("an empty journal is an honest null, never an error", async () => {
+      vi.mocked(api.getJournalLast).mockResolvedValue({
+        ok: true,
+        status: "healthy",
+        data: { entry: null },
+      });
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useJournalLast(), { wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data?.data?.entry).toBeNull();
     });
   });
 

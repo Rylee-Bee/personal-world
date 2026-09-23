@@ -265,6 +265,30 @@ function recordsRoutes(req, res, url, method) {
     if (method === "GET") {
       const category = url.searchParams.get("category");
       const pinned = url.searchParams.get("pinned") === "true";
+      // ?q= — the deterministic lexical find (api.py records_list +
+      // records.search_records): case-insensitive AND-substring over
+      // title, category name, and field keys/values; locked categories
+      // only join results behind the step-up grant (fail closed).
+      const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
+      const matchesQ = (r) => {
+        if (q === "") return true;
+        const terms = q.split(/\s+/).filter(Boolean);
+        const hay = [
+          r.title,
+          r.category_name,
+          ...Object.entries(r.fields ?? {}).flatMap(([k, v]) => [
+            k,
+            v == null ? "" : String(v),
+          ]),
+        ]
+          .join("\n")
+          .toLowerCase();
+        return terms.every((t) => hay.includes(t));
+      };
+      const byFindOrder = (a, b) =>
+        a.updated === b.updated
+          ? a.id < b.id ? 1 : -1
+          : a.updated < b.updated ? 1 : -1;
       if (category !== null) {
         const slug = categorySlug(category);
         if (!slug) return json(res, 422, { detail: "category is required" });
@@ -281,12 +305,23 @@ function recordsRoutes(req, res, url, method) {
         let recs = RECORD_ITEMS.filter((r) => r.category === slug).sort((a, b) =>
           a.created < b.created ? -1 : 1,
         );
+        if (q !== "") recs = recs.filter(matchesQ).sort(byFindOrder);
         if (pinned) recs = recs.filter((r) => r.pinned);
         return json(res, 200, ok("healthy", {
           category: slug,
           locked: Boolean(c && c.locked),
           records: recs,
+          ...(q !== "" ? { query: q } : {}),
         }));
+      }
+      if (q !== "") {
+        let recs = RECORD_ITEMS.filter(
+          (r) => RECORD_STEP_UP_GRANTED || !cat(r.category)?.locked,
+        )
+          .filter(matchesQ)
+          .sort(byFindOrder);
+        if (pinned) recs = recs.filter((r) => r.pinned);
+        return json(res, 200, ok("healthy", { records: recs, query: q }));
       }
       if (pinned) {
         // The Overview feed never aggregates locked categories.
@@ -531,6 +566,16 @@ const server = http.createServer(async (req, res) => {
   if (method === "GET" && p === "/api/journal") {
     const n = Math.min(Math.max(Number(url.searchParams.get("n") ?? 20), 1), 500);
     return json(res, 200, { ok: true, data: CURRENT.slice(0, n) });
+  }
+  // The thread deep-link contract (api.py journal_last): the newest
+  // CURRENT entry, or an honest null — never a fabrication, never a
+  // superseded original (CURRENT only holds current versions).
+  if (method === "GET" && p === "/api/journal/last") {
+    const newest = CURRENT.reduce(
+      (a, b) => (a === null || b.ts > a.ts ? b : a),
+      null,
+    );
+    return json(res, 200, { ok: true, status: "healthy", data: { entry: newest } });
   }
   if (method === "POST" && p === "/api/journal") {
     const body = await readBody(req);

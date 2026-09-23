@@ -1566,6 +1566,38 @@
         "summary": "Journal History"
       }
     },
+    "/api/journal/last": {
+      "get": {
+        "description": "Read-only: the caller's most recent CURRENT journal entry — the\ncalm-view tail (always equals the newest entry GET /api/journal\nshows). The daily home loop's thread deep-link contract; honest\n``entry: null`` on an empty journal. Person principals only.",
+        "operationId": "journal_last_api_journal_last_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Last Api Journal Last Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Journal Last"
+      }
+    },
     "/api/journal/supersede": {
       "post": {
         "operationId": "journal_supersede_api_journal_supersede_post",
@@ -2478,7 +2510,7 @@
         "summary": "Records Delete"
       },
       "get": {
-        "description": "List records. With a category: a locked category yields an honest\n409 'locked' envelope unless THIS request carries fresh step-up.\nWithout a category: the unlocked browse view; ``?pinned=true`` narrows\nit to the Overview feed. A locked category is never aggregated in.",
+        "description": "List records. With a category: a locked category yields an honest\n409 'locked' envelope unless THIS request carries fresh step-up.\nWithout a category: the unlocked browse view; ``?pinned=true`` narrows\nit to the Overview feed. A locked category is never aggregated in.\n\n``?q=`` is the deterministic lexical find (G-memory: works with every\nmodel off — records.search_records, no index/provider/embeddings):\ncase-insensitive AND-substring over title, category name, and field\nkeys/values. Locked categories contribute to ``q`` results ONLY when\nthis request carries a server-verified step-up (fail closed, same seam\nas the locked-category read above); the pinned filter still applies.",
         "operationId": "records_list_api_records_get",
         "parameters": [
           {
@@ -2506,6 +2538,23 @@
               "default": false,
               "title": "Pinned",
               "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Q"
             }
           }
         ],

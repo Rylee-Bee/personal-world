@@ -1,9 +1,12 @@
 /**
  * Memory → Records — the structured-information door (C3 re-cut,
- * Lane R-FE wiring 2026-09-21).
+ * Lane R-FE wiring 2026-09-21; W1-C models-off find 2026-09-22).
  *
  * Records is Memory's structured half (contract: Records ≠ Vault);
- * the Vault is not (it lives under Settings). Two real doors now:
+ * the Vault is not (it lives under Settings). The search block is TWO
+ * deterministic doors, both models-off (TRUE-NORTH G-memory):
+ *   • GET /api/records?q= — the lexical find over the world's own
+ *     records (title/category/fields; locked categories fail closed).
  *   • GET /api/memory/search — the query over the station's memory
  *     index (native_memory.py shape), proven below.
  *   • /api/records* — browsable categories, per-category records,
@@ -14,8 +17,9 @@
  *     routes a per-test 409/step-up pair so parallel workers never
  *     race the shared mock's grant flag.
  * These tests prove: results are the world's own data, refusals and
- * empty answers render honestly, and NOTHING is invented when the
- * source has nothing.
+ * empty answers render honestly per door, one door's unavailability
+ * never takes the other down, and NOTHING is invented when the source
+ * has nothing.
  */
 import { test, expect, type Page } from "@playwright/test";
 
@@ -29,6 +33,11 @@ async function openRecords(page: Page) {
   await expect(records).toBeVisible();
   return records;
 }
+
+const recordResults = (page: Page) =>
+  page.getByRole("region", { name: "Matching records" });
+const indexResults = (page: Page) =>
+  page.getByRole("region", { name: "Journal and memory index results" });
 
 test.describe("Records (inside Memory)", () => {
   test("the Records-vs-Vault distinction is stated where a person reads it", async ({
@@ -49,31 +58,69 @@ test.describe("Records (inside Memory)", () => {
     // rendered constant.
     await page.request.delete("http://127.0.0.1:4174/api/journal/draft");
     await records.getByLabel("Search records").fill("vault encryption");
-    await records.getByRole("button", { name: "Search the memory source" }).click();
+    await records.getByRole("button", { name: "Search Memory" }).click();
 
-    const results = page.getByRole("region", { name: "Record results" });
+    const index = indexResults(page);
     await expect(
-      results.getByText("Reviewed the vault encryption approach"),
+      index.getByText("Reviewed the vault encryption approach"),
     ).toBeVisible();
     // each hit carries its source kind + a machine-time timestamp
-    await expect(results.locator("time[datetime]")).toHaveCount(1);
+    await expect(index.locator("time[datetime]")).toHaveCount(1);
+    // the records door answers too — honestly: nothing matches there
+    await expect(
+      recordResults(page).getByText(/No records match/),
+    ).toBeVisible();
   });
 
-  test("a search that matches nothing says so — no padded results", async ({
+  test("G-memory: pin + find a record with every model off", async ({
+    page,
+  }) => {
+    // The mock station has no models by construction; this is the UI
+    // half of the gate (the backend half: tests/test_memory_models_off.py).
+    const records = await openRecords(page);
+
+    // FIND by title — the seeded "Allergy list" is pinned.
+    await records.getByLabel("Search records").fill("allergy");
+    await records.getByRole("button", { name: "Search Memory" }).click();
+    const found = recordResults(page);
+    await expect(found.getByText("Allergy list")).toBeVisible();
+    await expect(found.getByText("Pinned to Overview")).toBeVisible();
+
+    // Deterministic: the same query again answers the same.
+    await records.getByRole("button", { name: "Search Memory" }).click();
+    await expect(found.getByText("Allergy list")).toBeVisible();
+
+    // FIND by field value (lexical match over fields, not a model).
+    await records.getByLabel("Search records").fill("penicillin");
+    await records.getByRole("button", { name: "Search Memory" }).click();
+    await expect(found.getByText("Allergy list")).toBeVisible();
+
+    // One route to the record's actions: open its category from the
+    // result — the browse view and the find view never disagree.
+    await found
+      .getByRole("button", {
+        name: "Open category Medical for record Allergy list",
+      })
+      .click();
+    const list = records.getByRole("region", { name: "Records in Medical" });
+    await expect(list.getByText("Allergy list")).toBeVisible();
+    await expect(list.getByText("Pinned to Overview")).toBeVisible();
+  });
+
+  test("a search that matches nothing says so — both doors, no padded results", async ({
     page,
   }) => {
     const records = await openRecords(page);
     await records.getByLabel("Search records").fill("zzz-not-a-real-record");
-    await records.getByRole("button", { name: "Search the memory source" }).click();
-    await expect(
-      records.getByText(/Nothing stored matches/),
-    ).toBeVisible();
-    await expect(page.getByRole("region", { name: "Record results" })).toHaveCount(
-      0,
-    );
+    await records.getByRole("button", { name: "Search Memory" }).click();
+    // each door states its own true zero — never silence, never a pad
+    await expect(records.getByText(/No records match/)).toBeVisible();
+    await expect(records.getByText(/Nothing indexed matches/)).toBeVisible();
+    await expect(recordResults(page).locator("li")).toHaveCount(0);
+    await expect(indexResults(page).locator("li")).toHaveCount(0);
   });
 
-  test("when the memory source refuses, the refusal is shown, not softened", async ({
+  test("when one door refuses, the refusal is shown and the other door still works", async ({
     page,
   }) => {
     await page.route("**/api/memory/search**", (route) =>
@@ -86,12 +133,14 @@ test.describe("Records (inside Memory)", () => {
       }),
     );
     const records = await openRecords(page);
-    await records.getByLabel("Search records").fill("anything");
-    await records.getByRole("button", { name: "Search the memory source" }).click();
+    await records.getByLabel("Search records").fill("allergy");
+    await records.getByRole("button", { name: "Search Memory" }).click();
+    // the index door shows the server's own word, unsoftened…
     await expect(records.getByText("no memory provider")).toBeVisible();
-    await expect(page.getByRole("region", { name: "Record results" })).toHaveCount(
-      0,
-    );
+    await expect(indexResults(page).locator("li")).toHaveCount(0);
+    // …and the records find — which never depended on the index or any
+    // model — still answers.
+    await expect(recordResults(page).getByText("Allergy list")).toBeVisible();
   });
 });
 
@@ -269,6 +318,14 @@ test.describe("Records writes (step-up-gated)", () => {
     // Pin it → the Overview feed (GET /api/records?pinned=true) shows it.
     await list.getByRole("button", { name: "Pin record E2E insurance card" }).click();
     await expect(list.getByText("Pinned to Overview")).toBeVisible();
+
+    // G-memory find: the freshly pinned record is discoverable by a
+    // plain lexical query — no model anywhere, no index to rebuild.
+    await records.getByLabel("Search records").fill("insurance");
+    await records.getByRole("button", { name: "Search Memory" }).click();
+    const found = recordResults(page);
+    await expect(found.getByText("E2E insurance card")).toBeVisible();
+    await expect(found.getByText("Pinned to Overview")).toBeVisible();
 
     await page
       .getByRole("navigation", { name: "World navigation" })

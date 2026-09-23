@@ -37,6 +37,7 @@ import type {
   JournalDraftSavedData,
   JournalEvent,
   JournalHistoryData,
+  JournalLastData,
   JournalNoteData,
   JournalNoteRequest,
   JournalSupersedeRequest,
@@ -235,6 +236,13 @@ export const journalHistory = (params: { ts: string }) =>
     api.GET("/api/journal/history", { params: { query: params } }),
   );
 
+/** GET /api/journal/last — the newest CURRENT journal entry (the
+ * calm-view tail), or an honest `entry: null`. The read-only deep-link
+ * contract behind the daily home loop's "Resume — yesterday's thread"
+ * beat (TRUE-NORTH); deterministic with every model off. */
+export const getJournalLast = () =>
+  unwrap<Envelope<JournalLastData>>(api.GET("/api/journal/last", {}));
+
 export const journalAudit = () =>
   unwrap<Envelope<JournalAuditData>>(api.GET("/api/journal/audit", {}));
 
@@ -333,7 +341,15 @@ export const searchMemory = (q: string, topK?: number) =>
 export const listRecordCategories = () =>
   unwrap<Envelope<RecordCategoriesData>>(api.GET("/api/records/categories", {}));
 
-export const listRecords = (params?: { category?: string; pinned?: boolean }) =>
+export const listRecords = (params?: {
+  category?: string;
+  pinned?: boolean;
+  /** The deterministic lexical find (G-memory, models off): the
+   * server matches title/category/fields — see docs/RECORDS-API.md
+   * §Find. Locked categories only join results behind a server-
+   * verified step-up; never a client-trusted flag. */
+  q?: string;
+}) =>
   unwrap<Envelope<RecordsListData>>(
     api.GET("/api/records", { params: { query: params } }),
   );

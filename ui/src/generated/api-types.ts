@@ -1059,6 +1059,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/journal/last": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Journal Last
+         * @description Read-only: the caller's most recent CURRENT journal entry — the
+         *     calm-view tail (always equals the newest entry GET /api/journal
+         *     shows). The daily home loop's thread deep-link contract; honest
+         *     ``entry: null`` on an empty journal. Person principals only.
+         */
+        get: operations["journal_last_api_journal_last_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/journal/supersede": {
         parameters: {
             query?: never;
@@ -1709,6 +1732,13 @@ export interface paths {
          *     409 'locked' envelope unless THIS request carries fresh step-up.
          *     Without a category: the unlocked browse view; ``?pinned=true`` narrows
          *     it to the Overview feed. A locked category is never aggregated in.
+         *
+         *     ``?q=`` is the deterministic lexical find (G-memory: works with every
+         *     model off — records.search_records, no index/provider/embeddings):
+         *     case-insensitive AND-substring over title, category name, and field
+         *     keys/values. Locked categories contribute to ``q`` results ONLY when
+         *     this request carries a server-verified step-up (fail closed, same seam
+         *     as the locked-category read above); the pinned filter still applies.
          */
         get: operations["records_list_api_records_get"];
         put?: never;
@@ -4039,6 +4069,37 @@ export interface operations {
             };
         };
     };
+    journal_last_api_journal_last_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     journal_supersede_api_journal_supersede_post: {
         parameters: {
             query?: never;
@@ -4860,6 +4921,7 @@ export interface operations {
             query?: {
                 category?: string | null;
                 pinned?: boolean;
+                q?: string | null;
             };
             header?: never;
             path?: never;
