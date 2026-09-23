@@ -78,6 +78,14 @@ const SUPERSEDED = [
   journalEvent("2026-09-19T10:30:00Z", "Started working on the new onboarding flow. The wireframes look solid."),
 ];
 
+// Test-only seed snapshots: DELETE /api/__test/reset restores the fixture
+// world (journal + superseded + draft) so specs never leak state into each
+// other on the shared server — CI proved the order dependence the hard way
+// (the draft suite's published entry became Overview's "newest thread").
+// Not a product API: this server only ever runs under Playwright.
+const CURRENT_SEED = structuredClone(CURRENT);
+const SUPERSEDED_SEED = structuredClone(SUPERSEDED);
+
 // In-memory chat transcript (ts = epoch SECONDS, like ChatHistory NDJSON).
 let TRANSCRIPT = [
   { ts: Date.parse("2026-09-19T10:00:00Z") / 1000, role: "user", content: "How are the systems looking?" },
@@ -619,6 +627,16 @@ const server = http.createServer(async (req, res) => {
   }
   if (p === "/api/sections" && (method === "GET" || method === "PUT")) {
     return json(res, 200, ok("healthy", { schema: "sections.v1", sections: SECTIONS }));
+  }
+  // Test-only fixture reset (see CURRENT_SEED) — restores the seeded
+  // journal/superseded/draft state. Never mirrored in api.py by design.
+  if (method === "DELETE" && p === "/api/__test/reset") {
+    CURRENT.length = 0;
+    CURRENT.push(...structuredClone(CURRENT_SEED));
+    SUPERSEDED.length = 0;
+    SUPERSEDED.push(...structuredClone(SUPERSEDED_SEED));
+    DRAFT = null;
+    return json(res, 200, ok("healthy", { reset: true }));
   }
   if (method === "GET" && p === "/api/journal") {
     const n = Math.min(Math.max(Number(url.searchParams.get("n") ?? 20), 1), 500);

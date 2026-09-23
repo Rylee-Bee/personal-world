@@ -184,6 +184,7 @@ describe("hooks", () => {
           target_size: 44,
           companion: "mermaid",
           accent: "world-keeper",
+          personality_pack: "residents",
         },
       } as Awaited<ReturnType<typeof api.getPrefs>>);
 
@@ -198,7 +199,8 @@ describe("hooks", () => {
       expect(result.current.data!.greeting).toBeDefined();
       expect(result.current.data!.capabilities).toHaveLength(1);
       expect(result.current.data!.capabilities[0].status).toBe("healthy");
-      // The companion preference — not /api/actors — names the resident.
+      // The companion preference — not /api/actors — names the resident,
+      // and the personality pack (TRUE-NORTH W1-B) lets it speak.
       expect(result.current.data!.resident?.name).toBe("Renai");
       // Attention strings become signals: the card carries plain
       // language, and the exact wire string stays as technical detail.
@@ -206,6 +208,74 @@ describe("hooks", () => {
       expect(result.current.data!.signals[0].title).toBe("Journal: stale digest");
       expect(result.current.data!.signals[0].technical).toBe("journal: stale digest");
       expect(result.current.data!.signals[0].description).toBeUndefined();
+    });
+
+    it("keeps the resident quiet when the personality pack is off (TRUE-NORTH W1-B)", async () => {
+      const observation = {
+        ok: true,
+        status: "healthy" as const,
+        warnings: [],
+        last_observed: "2026-09-20T09:00:00Z",
+      };
+      vi.mocked(api.getStatus).mockResolvedValue({
+        ok: true,
+        status: "healthy",
+        data: {
+          facts: 3,
+          intents: 1,
+          policies: 2,
+          cemented_policies: 1,
+          lore: { confirmed: 1, derived: 0, suggested: 0, ephemeral: 0 },
+          declared_capabilities: 1,
+          providers: 2,
+          packs: 0,
+          capabilities: { journal: observation },
+          actors: [],
+        },
+      } as Awaited<ReturnType<typeof api.getStatus>>);
+      vi.mocked(api.getDaily).mockResolvedValue({
+        ok: true,
+        status: "healthy",
+        changed: false,
+        warnings: [],
+        actions: [],
+        data: {
+          world: {
+            facts: 3,
+            intents: 1,
+            policies: 2,
+            cemented_policies: 1,
+            lore: { confirmed: 1, derived: 0, suggested: 0, ephemeral: 0 },
+            declared_capabilities: 1,
+            providers: 2,
+            packs: 0,
+          },
+          capabilities: { journal: observation },
+          attention: [],
+        },
+      } as Awaited<ReturnType<typeof api.getDaily>>);
+      vi.mocked(api.getPrefs).mockResolvedValue({
+        ok: true,
+        data: {
+          motion: "reduced",
+          contrast: "comfortable",
+          text_scale: 1,
+          density: "comfortable",
+          target_size: 44,
+          companion: "mermaid",
+          accent: "world-keeper",
+          personality_pack: "off",
+        },
+      } as Awaited<ReturnType<typeof api.getPrefs>>);
+
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useTodaySummary(), { wrapper });
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      // Pack off → one voice, no resident presence — even with a
+      // companion pref set. Honest quiet is the default.
+      expect(result.current.data!.resident).toBeUndefined();
     });
 
     it("never puts a raw 'id: status' token in a signal title", async () => {

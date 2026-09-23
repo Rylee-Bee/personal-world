@@ -84,6 +84,9 @@ test.describe("Overview screen", () => {
  */
 test.describe("Overview daily home loop", () => {
   test.beforeEach(async ({ page }) => {
+    // Shared fixture server: start every home-loop test from the seeded
+    // journal so run order can never decide what "newest" is.
+    await page.request.delete("http://127.0.0.1:4174/api/__test/reset");
     await page.goto("/");
   });
 

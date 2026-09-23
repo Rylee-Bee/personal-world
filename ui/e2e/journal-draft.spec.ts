@@ -18,6 +18,14 @@ import { test, expect, type Page } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 
+// The fixture server is shared across specs in a run, and this suite's
+// publish test writes a real entry into the mock journal. Reset the
+// fixture world afterwards so no later spec inherits our state (CI
+// caught the leak; the reset route is test-only — see e2e-api.mjs).
+test.afterAll(async ({ request }) => {
+  await request.delete("http://127.0.0.1:4174/api/__test/reset");
+});
+
 async function resetDraft(page: Page) {
   await page.request.delete("http://127.0.0.1:4174/api/journal/draft");
 }
@@ -48,12 +56,13 @@ test("keystroke pause saves the draft to the world", async ({ page }) => {
   const box = page.getByLabel("New entry");
   await box.click();
   await box.pressSequentially("a draft that must survive", { delay: 15 });
-  // Debounce is ~1s idle; give the PUT room to land.
+  // Debounce is ~1s idle; give the PUT room to land (a cold CI browser
+  // once flaked inside the old 5s window — same assertion, honest room).
   await expect(async () => {
     const res = await page.request.get("http://127.0.0.1:4174/api/journal/draft");
     const body = (await res.json()) as { data?: { text?: string } };
     expect(body.data?.text).toBe("a draft that must survive");
-  }).toPass({ timeout: 5_000 });
+  }).toPass({ timeout: 15_000 });
   await expect(
     page.getByText("Draft saved — safe to switch devices."),
   ).toBeVisible();
@@ -140,5 +149,5 @@ test("publishing clears the draft only after the confirmed write", async ({
     const res = await page.request.get("http://127.0.0.1:4174/api/journal/draft");
     const body = (await res.json()) as { data?: { text?: string | null } };
     expect(body.data?.text).toBeNull();
-  }).toPass({ timeout: 5_000 });
+  }).toPass({ timeout: 15_000 });
 });

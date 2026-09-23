@@ -23,7 +23,7 @@ const { hookState } = vi.hoisted(() => ({
 }));
 
 vi.mock("../data/hooks", () => ({
-  useJournalList: () => hookState.journal,
+  useJournalLast: () => hookState.journal,
   useDiscoveryStatus: () => hookState.discovery,
   useProjectsStatus: () => hookState.projects,
 }));
@@ -106,7 +106,7 @@ describe("ThreadCard — Resume", () => {
     hookState.journal = {
       isPending: false,
       isError: false,
-      data: { ok: true, data: [THREAD] },
+      data: { ok: true, data: { entry: THREAD } },
     };
     render(<ThreadCard onOpenMemory={onOpenMemory} />);
 
@@ -126,7 +126,7 @@ describe("ThreadCard — Resume", () => {
     hookState.journal = {
       isPending: false,
       isError: false,
-      data: { ok: true, data: [THREAD] },
+      data: { ok: true, data: { entry: THREAD } },
     };
     const { container } = render(<ThreadCard onOpenMemory={() => {}} />);
     const button = container.querySelector("button");
@@ -137,7 +137,7 @@ describe("ThreadCard — Resume", () => {
     hookState.journal = {
       isPending: false,
       isError: false,
-      data: { ok: true, data: [] },
+      data: { ok: true, data: { entry: null } },
     };
     render(<ThreadCard onOpenMemory={() => {}} />);
     expect(screen.getByText(/Nothing written yet/)).toBeInTheDocument();

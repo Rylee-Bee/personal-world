@@ -868,10 +868,15 @@ export function useTodaySummary(): {
       };
     });
 
+  // Residents speak only when the personality pack is on (TRUE-NORTH
+  // § Voice, W1-B): one voice by default; pack off means no resident
+  // presence in the summary — honest quiet, never a guess.
   const companion = prefs.data?.data?.companion;
-  const resident: Resident | undefined = companion
-    ? COMPANION_RESIDENTS[companion]
-    : undefined;
+  const pack = prefs.data?.data?.personality_pack;
+  const resident: Resident | undefined =
+    companion && pack === "residents"
+      ? COMPANION_RESIDENTS[companion]
+      : undefined;
 
   return {
     data: {

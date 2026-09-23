@@ -15,6 +15,7 @@
 import type {
   Envelope,
   JournalEvent,
+  JournalLastData,
   ProjectsStatusData,
   ProjectStatusRow,
 } from "../../data/contract";
@@ -69,16 +70,17 @@ export function greetForHour(hour: number): string {
 // ─── Resume: yesterday's thread ─────────────────────────────────────
 
 /**
- * The newest journal event is the thread to pick back up
- * (GET /api/journal answers current versions, newest first). Absent
- * list → null, never a placeholder.
+ * The thread to resume is the SERVER'S own answer: GET /api/journal/last
+ * (the calm-view tail, API-084). Never pick from the list client-side —
+ * the real backend's GET /api/journal window is oldest→newest, so
+ * events[0] was only ever "newest" against the e2e mock. Absent or
+ * unavailable envelope → null, never a placeholder.
  */
-export function newestThread(
-  envelope: Envelope<JournalEvent[]> | undefined,
+export function lastThread(
+  envelope: Envelope<JournalLastData> | undefined,
 ): JournalEvent | null {
-  const events = envelope?.ok === true ? envelope.data : undefined;
-  if (!Array.isArray(events) || events.length === 0) return null;
-  return events[0] ?? null;
+  if (envelope?.ok !== true) return null;
+  return envelope.data?.entry ?? null;
 }
 
 /** "Sep 19, 4:00 PM" — a local, human when-line for the thread. */

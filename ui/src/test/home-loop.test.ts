@@ -13,7 +13,7 @@ import {
   greetForHour,
   keeperStateForHour,
   KEEPER_STATES,
-  newestThread,
+  lastThread,
   projectsViewState,
   projectRowView,
   threadWhen,
@@ -75,17 +75,16 @@ describe("greetForHour — the greet line", () => {
   });
 });
 
-describe("newestThread — yesterday's thread", () => {
+describe("lastThread — yesterday's thread", () => {
   it("is null when nothing arrived", () => {
-    expect(newestThread(undefined)).toBeNull();
-    expect(newestThread({ ok: false, status: "unavailable" })).toBeNull();
-    expect(newestThread({ ok: true, data: [] })).toBeNull();
+    expect(lastThread(undefined)).toBeNull();
+    expect(lastThread({ ok: false, status: "unavailable" })).toBeNull();
+    expect(lastThread({ ok: true, data: { entry: null } })).toBeNull();
   });
 
-  it("is the newest (first) current event", () => {
+  it("is the server's own last entry, verbatim", () => {
     const newest = journalEvent("2026-09-21T18:00:00Z", "Latest thread");
-    const older = journalEvent("2026-09-20T09:00:00Z", "Older");
-    expect(newestThread({ ok: true, data: [newest, older] })).toBe(newest);
+    expect(lastThread({ ok: true, data: { entry: newest } })).toBe(newest);
   });
 });
 
