@@ -9,6 +9,17 @@ separate from its siblings, and the separation is the point:
 - **The one-sentence family thesis** → [`docs/CREW-AND-STATION-THESIS.md`](CREW-AND-STATION-THESIS.md).
 - **Accessibility** → [`docs/accessibility/ACCESSIBILITY_CONTRACT.md`](accessibility/ACCESSIBILITY_CONTRACT.md). The floor wins over every voice rule here.
 
+> **Pack canon (TRUE-NORTH § Voice, owner ruling 2026-09-22).** The product
+> default is now **one voice** with selectable tone registers
+> (`warm`·`concise`·`playful`·`formal`). The residents and the two-voice
+> system below are preserved as the **optional personality pack** — off by
+> default, switchable via the `personality_pack` preference. This handbook
+> stays the canon for that pack: it is kept, never deleted, and it is the
+> character/voice truth the pack routes to when switched on. The
+> accessibility floor and the honesty floor still outrank every voice rule
+> here (unchanged). Nothing below is edited by that ruling; the default
+> experience simply no longer routes through it unless the pack is on.
+
 This file answers **who**, not **what** or **where**. It does not rename ids,
 change art, or authorize implementation. Older names map to current canon:
 Mermaid → **Renai**; Little Robot / Robot → **Bolt**;
