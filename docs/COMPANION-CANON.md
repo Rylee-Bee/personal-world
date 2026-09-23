@@ -7,6 +7,15 @@ Not a replacement for `design/COMPANION_INTEGRATION.md` (design/art authority),
 
 **Who each resident is** — character and voice truth — is canonical in [`docs/CHARACTER-HANDBOOK.md`](CHARACTER-HANDBOOK.md); this file owns names and ids only.
 
+> **Pack canon (TRUE-NORTH § Voice, owner ruling 2026-09-22).** The residents
+> and the two-voice system are now an **optional personality pack** — off by
+> default (the product default is one voice with selectable tone registers),
+> switchable via the `personality_pack` preference. This file survives as the
+> pack's naming/id canon — kept, never deleted — and stays canonical for
+> display names and the station-id ↔ server-key mapping regardless of the
+> flag (identifiers are not renamed by a voice ruling). Nothing below is
+> edited by that ruling.
+
 Two truths coexist and must not be silently merged:
 
 - **Owner canon is authoritative for the name a human reads and hears.**

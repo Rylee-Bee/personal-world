@@ -146,10 +146,29 @@ ACCENT = EnumPref(
     floor="world-keeper",
     css_var="--pw-accent", data_attr="data-pw-accent",
 )
+# Voice prefs (TRUE-NORTH § Voice, owner ruling 2026-09-22). These are
+# phrasing/comfort prefs, not accessibility prefs: every value sits at
+# or above the honesty floor (warmth never costs exactness) and none
+# touches the accessibility floor. `tone` selects the register of the
+# ONE Worlds voice; `personality_pack` gates the optional residents /
+# two-voice character pack (kept canon: docs/CHARACTER-HANDBOOK.md,
+# docs/COMPANION-CANON.md), off by default. The `floor` slot carries
+# the default-safe first value (EnumPref requires one); there is no
+# below-floor direction here.
+TONE = EnumPref(
+    key="tone", default="warm",
+    allowed=("warm", "concise", "playful", "formal"), floor="warm",
+    css_var="--pw-tone", data_attr="data-pw-tone",
+)
+PERSONALITY_PACK = EnumPref(
+    key="personality_pack", default="off",
+    allowed=("off", "residents"), floor="off",
+    css_var="--pw-personality-pack", data_attr="data-pw-personality-pack",
+)
 PREFS: dict[str, EnumPref | NumberPref] = {
     p.key: p
     for p in (MOTION, CONTRAST, TEXT_SCALE, DENSITY, TARGET_SIZE,
-              COMPANION, ACCENT)
+              COMPANION, ACCENT, TONE, PERSONALITY_PACK)
 }
 
 

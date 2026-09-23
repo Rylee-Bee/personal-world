@@ -98,6 +98,7 @@ import {
   plainAttention,
   toCapabilityStatus,
 } from "./types";
+import { parseTone, type ToneRegister } from "../language/tone";
 
 // ===== Query Keys =====
 export const queryKeys = {
@@ -555,6 +556,15 @@ export function usePrefsSchema() {
     queryFn: getPrefsSchema,
     staleTime: 300_000,
   });
+}
+
+/** The tone register of the ONE voice (TRUE-NORTH § Voice, W1-B):
+ *  server truth from GET /api/prefs, narrowed through parseTone — an
+ *  absent, loading, or off-vocabulary value is the default (warm),
+ *  never a guess. */
+export function useToneRegister(): ToneRegister {
+  const { data } = usePrefs();
+  return parseTone(data?.data?.tone);
 }
 
 // ===== Sections =====

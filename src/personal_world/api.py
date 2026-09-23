@@ -21,7 +21,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import export, prefs, records as records_mod
+from . import export, prefs, records as records_mod, voice
 from .connection_manager import ConnectionManager
 from .provider_schemas import (
     get_capability_schemas,
@@ -1220,8 +1220,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         )
         # Brain templates (first-class): compose runtime instructions
         # from config/prompts/{core,personas,surfaces,tasks,formats}.
-        # Surface is derived from the UI route (e.g. /lab -> lab); the
-        # companion persona follows the owner's `companion` pref, so
+        # Surface is derived from the UI route (e.g. /lab -> lab). The
+        # companion persona is only composed when the optional
+        # personality pack is on (see the voice block below);
         # personality is a plain-markdown template, not code.
         templates = TemplateRegistry(config_dir, data_dir)
         ui = body.get("context") if isinstance(body, dict) else None
@@ -1230,11 +1231,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             route = str(ui.get("route") or "")
             if route.startswith("/"):
                 surface = route[1:]  # /lab -> lab
+        # One voice + tone registers (TRUE-NORTH § Voice, W1-B): the
+        # default identity is the one Worlds voice at the person's tone
+        # register; the residents/two-voice persona rides along ONLY
+        # when the optional personality pack is switched on (default
+        # off). voice.resolve_voice fails safe to (one voice, warm).
         try:
-            companion = str(prefs.get_prefs(world).get("companion") or "") or None
+            _voice = voice.resolve_voice(prefs.get_prefs(world))
         except Exception:
-            companion = None
-        template_instructions = templates.compose(surface=surface, persona=companion)
+            _voice = voice.resolve_voice(None)
+        template_instructions = templates.compose(
+            surface=surface, persona=_voice.persona
+        )
         # Contextual chat (Finish Line "Contextual chat and model
         # routing"): the caller may describe WHERE in the UI the person
         # is. Provenance, not truth: an unknown section_id degrades to
@@ -1285,7 +1293,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         )
         tool_schemas = tool_reg.list_ollama_schemas()
         messages = build_chat_messages(
-            message, context, history, persona=template_instructions
+            message, context, history, persona=template_instructions,
+            tone=_voice.tone,
         )
         # ONE chat loop: every provider implements chat_with_tools
         # (natively or through the ChatContract default with lenient

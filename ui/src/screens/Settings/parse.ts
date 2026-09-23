@@ -268,6 +268,10 @@ export function prefKeyLabel(key: string): string {
       return "Text size";
     case "target_size":
       return "Touch target size";
+    case "tone":
+      return "Voice tone";
+    case "personality_pack":
+      return "Personality pack";
     default:
       return key
         .replace(/_/g, " ")
@@ -288,6 +292,19 @@ export function prefValueLabel(entry: PrefsSchemaEntry, value: PrefsValue): stri
     if (value === "off") return "No motion";
     if (value === "reduced") return "Reduced motion";
     if (value === "subtle") return "Subtle motion";
+  }
+  // The one voice's registers (TRUE-NORTH § Voice) — plain words, the
+  // default named as such so "which one is the calm baseline" is never
+  // a guess.
+  if (entry.key === "tone") {
+    if (value === "warm") return "Warm (default)";
+    if (value === "concise") return "Concise";
+    if (value === "playful") return "Playful";
+    if (value === "formal") return "Formal";
+  }
+  if (entry.key === "personality_pack") {
+    if (value === "off") return "Off (the one voice)";
+    if (value === "residents") return "Residents (optional character pack)";
   }
   return value
     .replace(/-/g, " ")

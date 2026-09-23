@@ -59,6 +59,16 @@ const PREF_DOM_SPECS: Record<string, PrefDomSpec> = {
   target_size: { attr: "data-pw-target-size", cssVar: "--pw-target-size", unit: "px" },
   companion: { attr: "data-pw-companion", cssVar: "--pw-companion", unit: "" },
   accent: { attr: "data-pw-accent", cssVar: "--pw-accent", unit: "" },
+  // Voice prefs (TRUE-NORTH § Voice): phrasing registers on <html> so
+  // tone-aware copy (language/tone.ts activeToneRegister) reads the
+  // same server truth the CSS layer does. Comfort, never accessibility
+  // — no value here may lower any floor.
+  tone: { attr: "data-pw-tone", cssVar: "--pw-tone", unit: "" },
+  personality_pack: {
+    attr: "data-pw-personality-pack",
+    cssVar: "--pw-personality-pack",
+    unit: "",
+  },
 };
 
 /** prefs.py MOTION_TIERS, verbatim. */

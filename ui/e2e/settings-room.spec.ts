@@ -50,8 +50,10 @@ test.describe("Settings Room (C1/C2)", () => {
       "contrast",
       "density",
       "motion",
+      "personality_pack",
       "target_size",
       "text_scale",
+      "tone",
     ]) {
       await expect(page.locator(`#settings-room-${key}-control`)).toBeVisible();
     }
@@ -61,6 +63,52 @@ test.describe("Settings Room (C1/C2)", () => {
       .locator("option")
       .allTextContents();
     expect(options).toEqual(["No motion", "Reduced motion", "Subtle motion"]);
+    // The one voice's registers (TRUE-NORTH § Voice) — the closed set,
+    // warm named as the default.
+    const toneOptions = await page
+      .locator("#settings-room-tone-control")
+      .locator("option")
+      .allTextContents();
+    expect(toneOptions).toEqual([
+      "Warm (default)",
+      "Concise",
+      "Playful",
+      "Formal",
+    ]);
+    const packOptions = await page
+      .locator("#settings-room-personality_pack-control")
+      .locator("option")
+      .allTextContents();
+    expect(packOptions).toEqual([
+      "Off (the one voice)",
+      "Residents (optional character pack)",
+    ]);
+  });
+
+  test("tone apply persists to the server and lands on the document (W1-B)", async ({
+    page,
+  }) => {
+    // The tone pref round-trips: PUT /api/prefs persists it (shared
+    // mock store) and the C12 chrome applies it to <html> as
+    // data-pw-tone — the same server truth tone-aware copy
+    // (language/tone.ts) and the CSS layer read.
+    await gotoSettings(page);
+    const tone = page.locator("#settings-room-tone-control");
+    const before = await tone.inputValue();
+    const next = before === "concise" ? "warm" : "concise";
+    await tone.selectOption(next);
+    await page.getByRole("button", { name: /Apply changes/ }).click();
+    await expect(page.getByRole("status").filter({ hasText: /Saved/ })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-pw-tone", next);
+
+    // Restore the warm default so the shared store is idempotent for
+    // the rest of the suite (serial file, same store as C2/C12).
+    if (next !== "warm") {
+      await tone.selectOption("warm");
+      await page.getByRole("button", { name: /Apply changes/ }).click();
+      await expect(page.getByRole("status").filter({ hasText: /Saved/ })).toBeVisible();
+      await expect(page.locator("html")).toHaveAttribute("data-pw-tone", "warm");
+    }
   });
 
   test("nothing auto-persists: change previews with undo, Apply writes once, and the applied diff stays visible (C2)", async ({

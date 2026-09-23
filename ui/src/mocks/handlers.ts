@@ -10,7 +10,8 @@
  *                                data:{world, capabilities, attention[]}}
  *   GET  /api/actors            {ok, data:[Actor…]}   (provider staff directory)
  *   GET  /api/prefs             {ok, data:{motion, contrast, text_scale,
- *                                density, target_size, companion, accent}}
+ *                                density, target_size, companion, accent,
+ *                                tone, personality_pack}}
  *   GET  /api/journal?n         {ok, data:[JournalEvent…]}  (current versions)
  *   POST /api/journal           body {text} → {ok, data:{written}}
  *   POST /api/journal/supersede body {supersedes, text, reason?}
@@ -115,6 +116,8 @@ const PREFS_BASE = {
   target_size: 44,
   companion: "mermaid",
   accent: "world-keeper",
+  tone: "warm",
+  personality_pack: "off",
 };
 
 // The Settings Room (Track C) renders from GET /api/prefs/schema, so
@@ -129,7 +132,9 @@ type PrefKey =
   | "density"
   | "target_size"
   | "companion"
-  | "accent";
+  | "accent"
+  | "tone"
+  | "personality_pack";
 
 interface PrefSpec {
   type: "enum" | "number";
@@ -171,6 +176,16 @@ const PREFS_SCHEMA: Record<PrefKey, PrefSpec> = {
   accent: {
     type: "enum", default: "world-keeper", floor: "world-keeper",
     allowed: ["world-keeper", "rylee"],
+  },
+  // Voice prefs (TRUE-NORTH § Voice, W1-B) — mirrors prefs.py TONE /
+  // PERSONALITY_PACK exactly.
+  tone: {
+    type: "enum", default: "warm", floor: "warm",
+    allowed: ["warm", "concise", "playful", "formal"],
+  },
+  personality_pack: {
+    type: "enum", default: "off", floor: "off",
+    allowed: ["off", "residents"],
   },
 };
 

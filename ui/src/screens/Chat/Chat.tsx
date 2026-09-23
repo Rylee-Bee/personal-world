@@ -11,8 +11,10 @@ import {
   useChatHistory,
   useChatProviders,
   useSendChat,
+  useToneRegister,
 } from "../../data/hooks";
 import type { ChatEntry } from "../../data/hooks";
+import { chatToneCopy } from "../../language/tone";
 import { WorldButton } from "../../components/WorldButton";
 
 // ─── Local message shape ─────────────────────────────────
@@ -48,6 +50,10 @@ export function Chat() {
   const history = useChatHistory();
   const providers = useChatProviders();
   const sendChat = useSendChat();
+  // The one voice's active tone register (TRUE-NORTH § Voice): server
+  // truth from prefs, warm by default. It phrases the static copy;
+  // facts, statuses, and the honest-off labels never change.
+  const toneCopy = chatToneCopy(useToneRegister());
 
   const messages = normaliseMessages(history.data?.data?.entries);
   const isLoadingHistory = history.isLoading;
@@ -193,7 +199,7 @@ export function Chat() {
         aria-label="Chat messages"
       >
         {messages.length === 0 ? (
-          <EmptyState />
+          <EmptyState copy={toneCopy.empty} />
         ) : (
           <div className="mx-auto max-w-[720px] space-y-[var(--pw-spacing-lg)]">
             {messages.map((msg, i) => (
@@ -205,20 +211,26 @@ export function Chat() {
                 className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
                 aria-live="polite"
               >
-                Thinking…
+                {toneCopy.thinking}
               </p>
             )}
           </div>
         )}
       </div>
 
-      {/* Send error */}
+      {/* Send error — the degraded state is LABELED in the active tone
+          (honest-off, TRUE-NORTH § Voice), and the server's exact
+          reason always renders beneath the label: tone phrases, never
+          softens. */}
       {sendChat.isError && (
         <div
           role="alert"
           className="border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-xl)] py-[var(--pw-spacing-md)]"
         >
-          <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <p className="text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
+            {toneCopy.unavailableHeading}
+          </p>
+          <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             {sendChat.error?.message || "Failed to send message."}
           </p>
           <WorldButton
@@ -274,11 +286,11 @@ function SkipLink() {
 }
 
 /** Empty state when no messages exist. */
-function EmptyState() {
+function EmptyState({ copy }: { copy: string }) {
   return (
     <div className="flex flex-1 items-center justify-center py-[var(--pw-spacing-3xl)]">
       <p className="text-center text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-muted)]">
-        Start a conversation with your world assistant.
+        {copy}
       </p>
     </div>
   );
