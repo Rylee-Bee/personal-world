@@ -78,7 +78,7 @@ HTTP. `api.py` adds only thin, guarded route handlers.
 | Method | Path | Gate | Notes |
 |---|---|---|---|
 | GET | `/api/records/categories` | `require_auth` (person) | Names + counts + `locked` flag. Contents never included. |
-| GET | `/api/records` | `require_auth` (person) | `?category=` lists one category; `?pinned=true` is the Overview feed. |
+| GET | `/api/records` | `require_auth` (person) | `?category=` lists one category; `?pinned=true` is the Overview feed; `?q=` is the deterministic find (below). |
 | POST | `/api/records` | `require_step_up` (person) | Create/update a record; optional `locked` sets the category lock. |
 | POST | `/api/records/pin` | `require_step_up` (person) | Pin for the Overview. |
 | POST | `/api/records/unpin` | `require_step_up` (person) | Remove a pin. |
@@ -99,6 +99,29 @@ HTTP. `api.py` adds only thin, guarded route handlers.
 - **Person-only.** Agents are refused on every Records surface (`_require_person`),
   like the journal and prefs screens. `403 step-up is person-only` on writes;
   `403 person-only surface` on reads.
+
+### Find — `?q=` (the G-memory door, models off)
+
+`GET /api/records?q=<terms>` is the deterministic lexical find required by the
+TRUE-NORTH **G-memory** gate ("pin + find a record with all models off"). It is
+`records.search_records`: case-insensitive **substring AND-match** over each
+record's title, category name, and field keys/values — **no index, no provider,
+no embeddings, no model in the loop**. Ordering is total and stable (`updated`
+desc, then `id` desc), so the same query over the same world always answers
+byte-identically. A blank `q` is the plain browse view; a no-match `q` is the
+honest `ok: true` empty list (a true zero). `?q=` composes with `?pinned=true`
+and with `?category=` (find inside one category).
+
+**Locking fails closed against find.** Locked-category records join `q` results
+only when the request carries a server-verified step-up (`_step_up_authorized`,
+the same seam as the locked-category read); without elevation they are simply
+absent — the query never errors, never leaks, and never reveals which locked
+category would have matched. `?category=<locked>&q=` still returns the hard
+**409** before any search happens.
+
+> AI may add conversational recall on top (Chat is a shortcut), but this door
+> is the base function: it never gates on, waits for, or degrades with any
+> model. Proven by `tests/test_memory_models_off.py`.
 
 ### Locking
 

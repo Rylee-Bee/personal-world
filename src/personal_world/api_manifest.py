@@ -270,6 +270,10 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         note="append-only correction",
     ),
     _e("API-008", "GET", "/api/journal/history", "journal", "read", "none"),
+    _e("API-084", "GET", "/api/journal/last", "journal", "read", "none",
+       note="newest CURRENT entry (calm-view tail) for the daily home "
+            "loop's thread deep-link; honest null when empty; person "
+            "principals only"),
     # journal drafts — lining rescue (D15 "kept safe, synced"); no elevation
     # by design: a draft mutates nothing a publish doesn't already change.
     _e("API-080", "PUT", "/api/journal/draft", "journal", "write", "none",

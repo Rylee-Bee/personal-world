@@ -232,6 +232,70 @@ def list_records(world, category: Any) -> list[dict]:
     return items
 
 
+def _search_terms(q: Any) -> list[str]:
+    """Lowercased whitespace-separated query terms; [] when there is
+    nothing to search for."""
+    return [t for t in re.split(r"\s+", str(q or "").strip().lower()) if t]
+
+
+def _record_haystack(value: dict) -> str:
+    """The deterministic, model-free text a record is matched against:
+    its title, category name, and every field key and value."""
+    parts = [
+        str(value.get("title", "")),
+        str(value.get("category_name", value.get("category", ""))),
+    ]
+    fields = value.get("fields")
+    if isinstance(fields, dict):
+        for key, val in fields.items():
+            parts.append(str(key))
+            parts.append("" if val is None else str(val))
+    return "\n".join(parts).lower()
+
+
+def search_records(
+    world, q: Any, *, category: Any = None, include_locked: bool = False
+) -> list[dict]:
+    """Deterministic lexical record find — the G-memory door that works
+    with every model off: no index, no provider, no embeddings, just
+    case-insensitive substring matching over title, category name, and
+    field keys/values. ALL whitespace-separated terms must match
+    somewhere in the record (AND), the everyday filter behavior a
+    person expects.
+
+    Ordering is total and stable — ``updated`` desc, then ``id`` desc —
+    so the same query over the same world always answers identically.
+
+    Locked categories fail closed: their records contribute only when
+    ``include_locked`` is True, which the caller layer sets exclusively
+    from a server-verified step-up (``api._step_up_authorized``), never
+    from client trust. ``category`` (a slug) narrows the search to one
+    category for the combined browse+filter path.
+    """
+    terms = _search_terms(q)
+    if not terms:
+        return []
+    only_slug = category_slug(category) if category is not None else None
+    out: list[dict] = []
+    for key, fact in world.facts.items():
+        if not key.startswith(ITEM_PREFIX) or not isinstance(fact.value, dict):
+            continue
+        slug = key[len(ITEM_PREFIX) :].split("/", 1)[0]
+        if only_slug is not None and slug != only_slug:
+            continue
+        if not include_locked and is_locked(world, slug):
+            continue
+        value = fact.value
+        haystack = _record_haystack(value)
+        if all(term in haystack for term in terms):
+            out.append(value)
+    out.sort(
+        key=lambda v: (str(v.get("updated", "")), str(v.get("id", ""))),
+        reverse=True,
+    )
+    return out
+
+
 def pinned_records(world) -> list[dict]:
     """Pinned records across all NON-locked categories — the Overview feed.
     Locked categories are never surfaced here (an elevation-free view must
