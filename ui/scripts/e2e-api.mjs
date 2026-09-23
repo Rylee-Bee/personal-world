@@ -525,6 +525,51 @@ const server = http.createServer(async (req, res) => {
       sources_queried: enabled,
     }));
   }
+  // GET /api/projects/status — mirrors api.py projects_status over the
+  // agent-sync sensor (providers/agent_sync.py _normalize): a dated
+  // observation of normalized play-nice/repo-status-v1 rows. Fiction
+  // only; remote_url is the row's authoritative source link.
+  if (method === "GET" && p === "/api/projects/status") {
+    return json(res, 200, ok("healthy", {
+      observed_at: "2026-09-22T08:00:00Z",
+      freshness: "fresh",
+      age_seconds: 120,
+      projects: [
+        {
+          project: "personal-world",
+          path: "/srv/projects/personal-world",
+          is_git_repo: true,
+          branch: "main",
+          local_head: "2527c0d",
+          remote_name: "origin",
+          remote_url: "https://example.invalid/personal-world.git",
+          remote_head: "2527c0d",
+          publish_state: "match",
+          working_tree: { staged: 0, modified: 2, untracked: 0, conflicted: 0 },
+          play_nice: { present: true, revision: "1", source_repository: null },
+          work_state: "working",
+          safe_to_leave: "no",
+          error: null,
+        },
+        {
+          project: "pickle",
+          path: "/srv/projects/pickle",
+          is_git_repo: true,
+          branch: "dev",
+          local_head: "abc1234",
+          remote_name: null,
+          remote_url: null,
+          remote_head: null,
+          publish_state: null,
+          working_tree: { staged: 0, modified: 0, untracked: 1, conflicted: 0 },
+          play_nice: { present: false, revision: null, source_repository: null },
+          work_state: "waiting_for_help",
+          safe_to_leave: "unknown",
+          error: null,
+        },
+      ],
+    }));
+  }
   if (p === "/api/sections" && (method === "GET" || method === "PUT")) {
     return json(res, 200, ok("healthy", { schema: "sections.v1", sections: SECTIONS }));
   }

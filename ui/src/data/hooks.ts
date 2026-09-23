@@ -76,6 +76,7 @@ import {
   getMediaLibrary,
   getMediaRecent,
   getMediaActivity,
+  getProjectsStatus,
 } from "./api";
 import type {
   Actor,
@@ -118,6 +119,7 @@ export const queryKeys = {
   setup: ["setup"] as const,
   prefs: ["prefs"] as const,
   records: ["records"] as const,
+  projectsStatus: ["projects", "status"] as const,
 } as const;
 
 // ===== Health =====
@@ -675,6 +677,19 @@ export function useDeleteConnection() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["connections"] });
     },
+  });
+}
+
+// ===== Projects (agent-sync is the authoritative feed) =====
+// Overview's project-status rows read this dated observation. The
+// ok:false "unavailable" envelope (agent-sync absent / timed out /
+// malformed) stays DATA here — the screen renders the honest empty
+// state, never a fabricated estate.
+export function useProjectsStatus() {
+  return useQuery({
+    queryKey: queryKeys.projectsStatus,
+    queryFn: getProjectsStatus,
+    staleTime: 60_000,
   });
 }
 
