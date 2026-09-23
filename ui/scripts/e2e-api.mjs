@@ -92,6 +92,8 @@ const PREFS = {
   target_size: 44,
   companion: "mermaid",
   accent: "world-keeper",
+  tone: "warm",
+  personality_pack: "off",
 };
 
 // GET /api/prefs/schema — mirrors api.py prefs_schema() built from
@@ -128,6 +130,16 @@ const PREFS_SCHEMA = {
   accent: {
     type: "enum", default: "world-keeper", floor: "world-keeper",
     allowed: ["world-keeper", "rylee"],
+  },
+  // Voice prefs (TRUE-NORTH § Voice, W1-B) — mirrors prefs.py TONE /
+  // PERSONALITY_PACK exactly.
+  tone: {
+    type: "enum", default: "warm", floor: "warm",
+    allowed: ["warm", "concise", "playful", "formal"],
+  },
+  personality_pack: {
+    type: "enum", default: "off", floor: "off",
+    allowed: ["off", "residents"],
   },
 };
 

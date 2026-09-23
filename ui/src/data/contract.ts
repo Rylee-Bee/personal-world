@@ -335,7 +335,12 @@ export interface VaultSetRequest {
   value: string;
 }
 
-// ─── Prefs (prefs.py: seven keys, clamped/validated) ─────
+// ─── Prefs (prefs.py: clamped/validated keys) ───────────
+//
+// tone + personality_pack (TRUE-NORTH § Voice, W1-B) are optional at
+// the type level so older mock/server bodies still parse; the runtime
+// vocabulary stays the server's (GET /api/prefs/schema), and an absent
+// tone degrades to the default register (language/tone.ts parseTone).
 
 export interface PrefsData {
   motion: string;
@@ -345,6 +350,8 @@ export interface PrefsData {
   target_size: number;
   companion: string;
   accent: string;
+  tone?: string;
+  personality_pack?: string;
 }
 
 export type PrefsUpdateRequest = Partial<PrefsData>;

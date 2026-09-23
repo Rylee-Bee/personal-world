@@ -4,6 +4,13 @@
  * Communicates urgency through text, NOT color alone (accessibility contract §1.3).
  * Each level has an explicit human label.
  *
+ * The label is spoken in the active tone register of the ONE voice
+ * (TRUE-NORTH § Voice, W1-B): `tone` prop wins, else the document's
+ * applied `data-pw-tone` (language/tone.ts), else the warm default —
+ * which is byte-identical to the historical SIGNAL_LABELS. A tone may
+ * rephrase a label; it never removes one, and `critical` always says
+ * plainly that attention is needed.
+ *
  * Luminance ranking (brighter = more urgent):
  *   good → subtle
  *   update → slightly brighter
@@ -12,7 +19,8 @@
  */
 
 import type { WorldSignalLevel } from "../data/types";
-import { SIGNAL_LABELS } from "../data/types";
+import type { ToneRegister } from "../language/tone";
+import { activeToneRegister, toneSignalLabels } from "../language/tone";
 
 interface WorldSignalProps {
   level: WorldSignalLevel;
@@ -22,6 +30,9 @@ interface WorldSignalProps {
    * technical depth is on demand, never forced (PRODUCT-LANGUAGE.md),
    * and never hidden: it stays one tap away on the card itself. */
   technical?: string;
+  /** Optional explicit register; defaults to the tone applied on the
+   * document (server-truth prefs). */
+  tone?: ToneRegister;
 }
 
 const levelStyles: Record<WorldSignalLevel, string> = {
@@ -42,7 +53,8 @@ const rankDot: Record<WorldSignalLevel, string> = {
   critical: "bg-white/80",
 };
 
-export function WorldSignal({ level, title, description, technical }: WorldSignalProps) {
+export function WorldSignal({ level, title, description, technical, tone }: WorldSignalProps) {
+  const labels = toneSignalLabels(tone ?? activeToneRegister());
   return (
     <div
       className={`rounded-[var(--pw-radius-md)] border p-[var(--pw-spacing-lg)] ${levelStyles[level]}`}
@@ -56,7 +68,7 @@ export function WorldSignal({ level, title, description, technical }: WorldSigna
         />
         <div className="min-w-0 flex-1">
           <p className="text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
-            <span className="sr-only">{SIGNAL_LABELS[level]}: </span>
+            <span className="sr-only">{labels[level]}: </span>
             {title}
           </p>
           {description && (

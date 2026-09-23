@@ -155,12 +155,31 @@ function PrefsControl({
         ))}
       </select>
       <p id={hintId} className="mt-1 text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
-        Floor: {prefValueLabel(entry, entry.floor)}
-        {entry.key === "target_size" && " (44px minimum — WCAG 2.5.5)"}
-        {entry.key === "motion" && " — your system's reduced-motion setting always wins over this."}
-        {/* Read-only honesty for the one stored key this surface does
-            not render through (C12): saying so beats faking an effect. */}
-        {entry.key === "accent" && " — the station stores this; no view here changes its look yet."}
+        {entry.key === "tone" ? (
+          /* Voice prefs are comfort, not accessibility — no floor
+             wording, and the honesty rule stated plainly instead
+             (TRUE-NORTH § Voice). */
+          <>
+            How the one Worlds voice phrases chat replies and attention
+            labels. Facts, statuses, and uncertainty stay exact in every
+            tone, and degraded states are always labeled honestly.
+          </>
+        ) : entry.key === "personality_pack" ? (
+          <>
+            Off (default) speaks as the one Worlds voice. “Residents”
+            adds the optional character crew as flavor on top — the
+            truth rules are identical either way.
+          </>
+        ) : (
+          <>
+            Floor: {prefValueLabel(entry, entry.floor)}
+            {entry.key === "target_size" && " (44px minimum — WCAG 2.5.5)"}
+            {entry.key === "motion" && " — your system's reduced-motion setting always wins over this."}
+            {/* Read-only honesty for the one stored key this surface does
+                not render through (C12): saying so beats faking an effect. */}
+            {entry.key === "accent" && " — the station stores this; no view here changes its look yet."}
+          </>
+        )}
       </p>
     </div>
   );
