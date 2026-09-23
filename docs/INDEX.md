@@ -13,9 +13,10 @@ open an issue.
 | [docs/README.md](README.md) | Where truth lives: canonical source per subject, and the repo's layers. Read this first. |
 | [README](../README.md) | The front door: what this is, quick start, navigation. |
 | [CHANGELOG](../CHANGELOG.md) | Curated project milestones, newest first. |
-| [ROADMAP](../ROADMAP.md) | Now / Next / Exploring — direction, not promises. The single gap list. |
+| [TRUE-NORTH](TRUE-NORTH.md) | **Canonical direction** (owner-approved 2026-09-22): vision, five commitments, the daily home loop, scope rulings, recut alpha gates. |
+| [ROADMAP](../ROADMAP.md) | Historical horizon record — superseded as direction by TRUE-NORTH (2026-09-22). |
 | [ROADMAP-AND-TODO.md](ROADMAP-AND-TODO.md) | Owner-facing alpha-status snapshot, dated; links to the canonical roadmap. |
-| [PERSONAL-WORLD-FINISH-LINE.md](PERSONAL-WORLD-FINISH-LINE.md) | Canonical target daily-use experience; requirements, not implementation claims. |
+| [PERSONAL-WORLD-FINISH-LINE.md](PERSONAL-WORLD-FINISH-LINE.md) | Target-experience detail where TRUE-NORTH is silent — superseded as direction (2026-09-22). |
 | [PERSONAL-WORLD-COMPLETION-PLAN.md](PERSONAL-WORLD-COMPLETION-PLAN.md) | Dated execution plan (v1, 2026-09-10): approved decisions, dependency-ordered phases P0–P14, acceptance criteria, model routing. Phase status predates the T15 cutover / Workshop v3 — verify against code. |
 | [p1/FOUNDATION-SPEC.md](p1/FOUNDATION-SPEC.md) | Historical (P1 complete) | Approved P1 implementation contract: sections API, primitive contracts, parity checklist, bounded tasks. Preserved for provenance. |
 | [AGENT_POLICY.md](../AGENT_POLICY.md) | Mandatory agent preflight and decision policy. |

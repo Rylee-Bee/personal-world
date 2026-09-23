@@ -8,7 +8,46 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
-## 2026-09-22 — TRUE-NORTH re-vision (current)
+## 2026-09-22 (evening) — WAVE 1 LANDED, LIVE ON THIS BOX (current)
+
+Wave 1 of TRUE-NORTH execution merged to main and deployed live:
+
+- **Merges (serial, orchestrator-gated):** Lane A daily home loop in
+  Overview (`b17431b`) · Lane B one voice + tone registers, residents
+  behind the pack flag (`6fb73d5`) · Lane C Memory deep — deterministic
+  records find, models-off G-memory proof, `GET /api/journal/last`
+  (`944a59f`) · orchestrator fix (`41a5dcf`): the thread card switched to
+  the server's own `/api/journal/last` — Lane A's `events[0]` was
+  newest-first only against the e2e mock; the real backend answers
+  oldest→newest (a real product bug caught at merge). The CI red that
+  exposed the leak was fixed with a test-only `__test/reset` +
+  adverse-order proof (14/14); no gate weakened.
+- **Gates:** CI all four workflows success on `41a5dcf`; at merge:
+  pytest RC=0 · framework validate violations:0 · tsc/lint clean ·
+  vitest 234 · playwright 78/78 with axe color-contrast ON.
+- **Live instance (this box, :8000):** owner-approved update — image
+  `personal-world:dev` `17ee82a4b199` built from `41a5dcf` (buildx
+  `--load`; compose needs `--pull never` — quirk recorded in
+  `docs/OPERATIONS.md`), container recreated with the item-4
+  `config-data:/config` volume now mounted; `world-data` intact; runtime
+  proof: `/api/journal/last` flipped 404→401. Rollback handle:
+  `personal-world:pre-wave1` (`f82f2e1535bd`). Runbook:
+  `docs/OPERATIONS.md` § Containers.
+- **Portal estate (VM 205):** first live use of the blessed approve path
+  found the wpub dir-mode defect (rename(2) on a directory needs write
+  on the directory itself — group-writable parents are not enough);
+  homelab PR #45 fixed it (dirs born 2775), merged `8975d3f3`,
+  owner-approved deploy via `deploy-workshop.sh`, verified by a sudo-free
+  publish→approve→promote round-trip (`worlds/daily-digest` current →
+  `2026-09-22.2`). Evidence: PR #45 comment.
+- **Security flag (open, owner's call):** the live `PW_API_TOKEN` value
+  appeared once in session diagnostic output before filtering; it is in
+  no tracked file (only `~/.config/personal-world-live.env`, chmod 600).
+  Rotation offered; value never restated anywhere.
+- **Cadence running:** daily digest to the Workshop portal
+  (`worlds/daily-digest/<date>`); digest #2 due 2026-09-23.
+
+## 2026-09-22 — TRUE-NORTH re-vision (canonical direction)
 
 Owner-directed re-focus interview (3 rounds, 18 taps + typed answers, after
 a 24-product research pass) → **`docs/TRUE-NORTH.md` is the canonical

@@ -15,6 +15,7 @@ source wins.
 | Subject | Canonical source | Notes |
 |---|---|---|
 | Current state | [`.project/CURRENT.md`](../.project/CURRENT.md) | The single current-state pointer. Routes; does not duplicate. When it and a canonical file disagree, the canonical file wins. |
+| Direction | [`docs/TRUE-NORTH.md`](TRUE-NORTH.md) | Owner-approved 2026-09-22: vision, five commitments, the daily home loop, scope rulings, recut alpha gates. Supersedes the finish line and ROADMAP **as direction**; ADRs and contracts keep their own authority. |
 | Architecture | [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) | Current structure: world model, API surface, identity/auth, Vault, daily loop, export contracts. |
 | World-model invariant | [`docs/NATIVE-BASELINE-AND-ENRICHMENT.md`](NATIVE-BASELINE-AND-ENRICHMENT.md) | Normative; enforced by `personal-world framework validate`. |
 | Contracts index | [`AGENT_CONTRACTS.md`](../AGENT_CONTRACTS.md) | Registry of every contract, trigger, and authority. |
@@ -29,7 +30,7 @@ source wins.
 | Surfaces (UI/API/CLI/tool/storage/auth) | [`docs/surfaces/MASTER-SURFACE-REGISTRY.md`](surfaces/MASTER-SURFACE-REGISTRY.md) | Extraction index; all IDs resolve here. Verified map: [`docs/repo/WIRING-READINESS.md`](repo/WIRING-READINESS.md). |
 | Operations / deployment | [`docs/OPERATIONS.md`](OPERATIONS.md) | Local run, containers, health. |
 | Alpha acceptance | [`docs/ALPHA-ACCEPTANCE.md`](ALPHA-ACCEPTANCE.md) | Owner runbook for declaring private technical alpha; evidence recorded outside the repo. |
-| Product target | [`docs/PERSONAL-WORLD-FINISH-LINE.md`](PERSONAL-WORLD-FINISH-LINE.md) | What "finished enough to live in" means. |
+| Product target | [`docs/TRUE-NORTH.md`](TRUE-NORTH.md) | What "finished enough to live in" means — the recut alpha gates. Target-experience detail where it is silent: [`docs/PERSONAL-WORLD-FINISH-LINE.md`](PERSONAL-WORLD-FINISH-LINE.md). |
 | Completion plan | [`docs/PERSONAL-WORLD-COMPLETION-PLAN.md`](PERSONAL-WORLD-COMPLETION-PLAN.md) | Dated (v1, 2026-09-10) execution plan: phases and acceptance toward the finish line. Not a current-state document. |
 | Decisions | [`.project/DECISIONS.md`](../.project/DECISIONS.md) + [`docs/adr/`](adr/) | Durable decisions and ADRs. |
 | Repo inventory | [`docs/repo/REPOSITORY-INVENTORY.md`](repo/REPOSITORY-INVENTORY.md) | What every major artifact is, and its status. |

@@ -96,12 +96,11 @@ agent's WIP into its commit. The rules:
 - **Validation command:** `uv run pytest --timeout=30` and
   `uv run personal-world framework validate --json` from the repo
   root. CI runs the same.
-- **UI behaviour gate:** `cd frontend && npm run test:e2e` (or
-  `npx playwright test`). Playwright boots the real app with a seeded
-  world and runs the Station accessibility / honest-state / keyboard /
-  motion / reflow suite, including axe with color-contrast ENABLED. The
-  superseded React SPA, its dist build, and its screenshot pipeline were
-  removed 2026-09-16 (single-branch cutover).
+- **UI behaviour gate:** `cd ui && npx playwright test`. Playwright boots
+  the real app against the seeded fixture API (`ui/scripts/e2e-api.mjs`)
+  and runs the accessibility / honest-state / keyboard / motion / reflow
+  suite, including axe with color-contrast ENABLED. The old `frontend/`
+  suite was removed 2026-09-16; `ui/` IS the interface (2026-09-22 flip).
 - **Trunk:** `origin/main`. A local `main` ref can lag it by many
   commits; check `git rev-list --left-right --count main...origin/main`
   before comparing against "main".

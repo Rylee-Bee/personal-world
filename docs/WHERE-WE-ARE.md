@@ -3,6 +3,13 @@
 *Read this if you don't remember. That's okay. Nothing is lost and nothing is
 on you. This page is the whole picture in plain words.*
 
+> **Dated snapshot (pre-2026-09-22 flip).** The star-map-drill shape
+> described below was superseded: the interface is now the stable
+> skeleton (`Overview · Memory · Chat · Settings`) and direction lives in
+> [TRUE-NORTH](TRUE-NORTH.md). The kindness this page promises is
+> unchanged; a refreshed plain-words page is queued. Current state:
+> `.project/CURRENT.md`.
+
 ## What this project is
 **Project Worlds** — a gentle, private, self-hosted place to keep your thoughts
 and your life organized. It looks like a calm star-map ("the systems map") you

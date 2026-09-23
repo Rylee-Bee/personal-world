@@ -579,3 +579,31 @@ dated entry superseding the old one (append-only, like the journal).
   idea ("the companion IS the world"); the owner re-centered the product
   on one daily loop before any scope expansion ("I want to experience the
   actual daily loop before we expand scope again").
+
+## Wave 1 execution + live deploy — 2026-09-22 (evening)
+
+- **2026-09-22 — Wave 1 landed; live instance and portal fix deployed
+  (owner taps: "Deploy + verify now", "Update live now").** Three lanes
+  merged serially with full gates (A home loop `b17431b` · B one voice
+  `6fb73d5` · C Memory deep `944a59f`) + orchestrator fix `41a5dcf` —
+  which caught a real product bug at merge: the thread card read
+  `events[0]` of `GET /api/journal`, newest-first only against the e2e
+  mock; the real backend answers oldest→newest. The card now reads the
+  server's own `GET /api/journal/last` (API-084); the client never picks.
+  The CI red that exposed it was a fixture leak (the journal-draft suite
+  publishing into the shared mock journal) — fixed with a test-only reset
+  route + adverse-order proof, assertion unchanged, no gate weakened.
+  Live instance: image built from `41a5dcf`, recreated with the item-4
+  `config-data` volume, `world-data` intact, `/api/journal/last`
+  404→401; rollback tag `personal-world:pre-wave1` kept; runbook in
+  `docs/OPERATIONS.md`. Portal: the wpub dir-mode defect (directory
+  rename needs write on the directory itself) fixed in homelab PR #45
+  (dirs born 2775), deployed owner-approved, verified by a sudo-free
+  publish→approve→promote round-trip; evidence appended to the PR.
+  Security flag: the live `PW_API_TOKEN` value appeared once in session
+  diagnostics before filtering — in no tracked file; rotation offered,
+  owner's call (value never restated anywhere). Compose quirk recorded
+  in `docs/OPERATIONS.md`: locally-built images need `up --pull never`
+  (Compose v5.5.1 + buildx docker-container driver tries the registry
+  first and fails `denied`). Reason: honest record of everything that
+  changed live state tonight.

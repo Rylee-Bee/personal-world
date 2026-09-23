@@ -174,6 +174,34 @@ The dev override sets `build: .`, `image: personal-world:dev`, and
 `pull_policy: never` — it never reaches GHCR. Developers do not need to
 edit the production Compose file.
 
+### The live dev-box instance (:8000) — update runbook
+
+The owner's live instance on the dev box runs compose project
+`personal-world` from a checkout at main with image `personal-world:dev`
+(`PW_IMAGE` and friends live in `~/.config/personal-world-live.env`,
+chmod 600 — location recorded here, values never). State persists in the
+`personal-world_world-data` and `personal-world_config-data` volumes
+(the config volume is live since the 2026-09-22 Wave-1 update; before
+that `/config` was ephemeral). Update after merging to main:
+
+```bash
+cd <checkout at main>
+docker build --load -t personal-world:dev .   # buildx: --load is REQUIRED
+                                              # or the image stays in the build cache
+docker tag personal-world:dev personal-world:pre-<label>   # rollback handle
+docker compose -p personal-world \
+  --env-file ~/.config/personal-world-live.env \
+  up -d --pull never core
+```
+
+Quirk (observed 2026-09-22, Compose v5.5.1 + buildx docker-container
+driver): plain `up -d` tries to PULL the locally-built tag and fails
+`denied: requested access to the resource is denied`; `--pull never`
+forces the local image. Verify: `/` → 303, `/login` → 200, and a
+Wave-1 endpoint like `/api/journal/last` → 401 unauthenticated (a 404
+means the old image is still serving). Rollback: same command with
+`PW_IMAGE=personal-world:pre-<label>` exported.
+
 ### Optional Rylee / homelab enrichment
 
 The portable base does not bind any host paths. On the laptop / homelab
