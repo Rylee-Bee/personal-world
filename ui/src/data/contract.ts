@@ -68,6 +68,15 @@ export interface JournalHistoryData {
   entries: JournalEvent[];
 }
 
+/** GET /api/journal/last (api.py journal_last) — the read-only
+ * deep-link contract for the daily home loop's "Resume — yesterday's
+ * thread" beat: the newest CURRENT entry (the calm-view tail, exactly
+ * what GET /api/journal shows last), or an honest null on an empty
+ * journal. Person-only, caller-scoped, never mutates. */
+export interface JournalLastData {
+  entry: JournalEvent | null;
+}
+
 export interface JournalAuditData {
   text: string;
 }
@@ -336,6 +345,8 @@ export interface RecordsListData {
   category?: string;
   locked?: boolean;
   records: RecordItem[];
+  /** Echoed by the server on the deterministic `?q=` find path only. */
+  query?: string;
 }
 
 /** POST /api/records body (raw request.json(); create when `id` is

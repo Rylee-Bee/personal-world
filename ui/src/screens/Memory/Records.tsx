@@ -26,9 +26,10 @@
  * warnings:["no memory provider"]} — shown plainly as "no source yet",
  * never as a fake-empty success.
  *
- * The search door (GET /api/memory/search over the station's own
- * memory index) stays exactly as honest as it was before Records was
- * wired — browsing and searching are two real doors, not one.
+ * The search doors (GET /api/records?q= — the deterministic lexical
+ * find, docs/RECORDS-API.md §Find — and GET /api/memory/search over
+ * the station's memory index) are both plain, models-off queries:
+ * browsing and searching are real doors, and AI is never the only one.
  */
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -36,6 +37,7 @@ import {
   useDeleteRecord,
   useMemorySearch,
   useRecordCategories,
+  useRecordSearch,
   useRecordsInCategory,
   useSetRecordPinned,
   useStepUp,
@@ -580,10 +582,12 @@ function RecordCard({
 // ─── Panel ────────────────────────────────────────────────
 
 export function RecordsPanel() {
-  // Search door (unchanged, still real)
+  // Search doors (both deterministic, both models-off — see the block
+  // comment at the form): the records find (?q=) and the memory index.
   const [inputValue, setInputValue] = useState("");
   const [query, setQuery] = useState("");
   const search = useMemorySearch(query);
+  const recordSearch = useRecordSearch(query);
 
   // Browse door — categories → records
   const [selected, setSelected] = useState<string | null>(null);
@@ -913,8 +917,16 @@ export function RecordsPanel() {
         </p>
       )}
 
-      {/* ── Search door (memory index — real before Records was
-           wired, real after) ─────────────────────────────────────── */}
+      {/* ── Search doors — TWO deterministic finds, both models-off ──
+           G-memory (TRUE-NORTH): "pin + find a record with all models
+           off". Door 1 is the records find (GET /api/records?q= —
+           lexical AND-substring over title/category/fields, computed
+           by the server with no index, provider, or model). Door 2 is
+           the journal/memory index (GET /api/memory/search — native
+           SQLite FTS5). Both always render when a query is active,
+           each with its own honest state, so the layout is the same
+           place every time. AI may recall conversationally (Chat);
+           it is never the only door. */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -942,71 +954,166 @@ export function RecordsPanel() {
         <WorldButton
           variant="primary"
           type="submit"
-          isDisabled={search.isFetching}
-          aria-label="Search the memory source"
+          isDisabled={recordSearch.isFetching || search.isFetching}
+          aria-label="Search Memory"
         >
-          {search.isFetching ? "Searching…" : "Search"}
+          {recordSearch.isFetching || search.isFetching ? "Searching…" : "Search"}
         </WorldButton>
       </form>
 
       {query === "" && (
         <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
-          Searching reads the memory index directly — with every model
-          turned off, this stays a plain, deterministic query.
+          Searching reads your records and the memory index directly —
+          with every model turned off, both stay plain, deterministic
+          queries.
         </p>
       )}
 
-      {query !== "" && search.isError && (
-        <p
-          role="alert"
-          className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+      {query !== "" && (
+        <section
+          aria-label="Matching records"
+          className="space-y-[var(--pw-spacing-md)]"
         >
-          The memory source did not answer.{" "}
-          {search.error instanceof Error ? search.error.message : ""}
-        </p>
+          <h3 className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+            Matching records
+          </h3>
+
+          {recordSearch.isPending && (
+            <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+              Loading…
+            </p>
+          )}
+
+          {recordSearch.isError && (
+            <p
+              role="alert"
+              className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+            >
+              The records source did not answer.{" "}
+              {describeError(recordSearch.error, "")}
+            </p>
+          )}
+
+          {recordSearch.isSuccess && recordSearch.data?.ok === false && (
+            /* The server's own word (usually "no memory provider"),
+               plainly — never a fake-empty success. */
+            <p role="note" className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+              {recordSearch.data.warnings?.[0] ??
+                "No source is available for records on this station."}
+            </p>
+          )}
+
+          {recordSearch.isSuccess &&
+            recordSearch.data?.ok !== false &&
+            (recordSearch.data?.data?.records ?? []).length === 0 && (
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+                No records match “{query}” — a true zero from this
+                world's own records.
+              </p>
+            )}
+
+          {recordSearch.isSuccess &&
+            recordSearch.data?.ok !== false &&
+            (recordSearch.data?.data?.records ?? []).length > 0 && (
+              <ul className="space-y-[var(--pw-spacing-md)]" role="list">
+                {(recordSearch.data?.data?.records ?? []).map((rec) => (
+                  <li
+                    key={rec.id}
+                    className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-[var(--pw-spacing-md)]">
+                      <h4 className="text-[length:var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)]">
+                        {rec.title}
+                      </h4>
+                      {rec.pinned && (
+                        <span className="rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] px-2 py-1 text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
+                          Pinned to Overview
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+                      {rec.category_name}
+                      {" · updated "}
+                      <time dateTime={rec.updated}>{formatTs(rec.updated)}</time>
+                    </p>
+                    {/* One route to the record's actions: its category
+                        view (no duplicated pin/edit semantics here). */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelected(rec.category);
+                        setForm(null);
+                        setNotice(null);
+                        setGateNotice(null);
+                      }}
+                      className={`${BTN_PLAIN_SM} mt-[var(--pw-spacing-md)]`}
+                      aria-label={`Open category ${rec.category_name} for record ${rec.title}`}
+                    >
+                      Open category
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+        </section>
       )}
 
-      {query !== "" && search.isSuccess && search.data?.ok === false && (
-        <p role="note" className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-          {search.data.warnings?.[0] ?? "No memory source is available on this station."}
-        </p>
-      )}
+      {query !== "" && (
+        <section
+          aria-label="Journal and memory index results"
+          className="space-y-[var(--pw-spacing-md)]"
+        >
+          <h3 className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
+            Journal &amp; memory index
+          </h3>
 
-      {query !== "" &&
-        search.isSuccess &&
-        search.data?.ok !== false &&
-        parseRecordHits(search.data?.data).length === 0 && (
-          <p
-            aria-label="Empty state"
-            className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
-          >
-            Nothing stored matches “{query}”.
-          </p>
-        )}
+          {search.isError && (
+            <p
+              role="alert"
+              className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
+            >
+              The memory source did not answer.{" "}
+              {search.error instanceof Error ? search.error.message : ""}
+            </p>
+          )}
 
-      {query !== "" && parseRecordHits(search.data?.data).length > 0 && (
-        <section aria-label="Record results">
-          <ul className="space-y-[var(--pw-spacing-md)]" role="list">
-            {parseRecordHits(search.data?.data).map((hit) => (
-              <li
-                key={hit.id}
-                className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
-              >
-                <p className="whitespace-pre-wrap text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
-                  {hit.text}
-                </p>
-                <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
-                  {hit.kind !== "" ? journalKindLabel(hit.kind) : "Record"}
-                  {hit.timestamp !== null && (
-                    <>
-                      {" · "}
-                      <time dateTime={hit.timestamp}>{formatTs(hit.timestamp)}</time>
-                    </>
-                  )}
-                </p>
-              </li>
-            ))}
-          </ul>
+          {search.isSuccess && search.data?.ok === false && (
+            <p role="note" className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+              {search.data.warnings?.[0] ?? "No memory source is available on this station."}
+            </p>
+          )}
+
+          {search.isSuccess &&
+            search.data?.ok !== false &&
+            parseRecordHits(search.data?.data).length === 0 && (
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+                Nothing indexed matches “{query}”.
+              </p>
+            )}
+
+          {search.isSuccess && parseRecordHits(search.data?.data).length > 0 && (
+            <ul className="space-y-[var(--pw-spacing-md)]" role="list">
+              {parseRecordHits(search.data?.data).map((hit) => (
+                <li
+                  key={hit.id}
+                  className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+                >
+                  <p className="whitespace-pre-wrap text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)]">
+                    {hit.text}
+                  </p>
+                  <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+                    {hit.kind !== "" ? journalKindLabel(hit.kind) : "Record"}
+                    {hit.timestamp !== null && (
+                      <>
+                        {" · "}
+                        <time dateTime={hit.timestamp}>{formatTs(hit.timestamp)}</time>
+                      </>
+                    )}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
 

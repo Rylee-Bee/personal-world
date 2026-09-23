@@ -671,6 +671,36 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         events = target.current_events(min(max(n, 1), 500))
         return {"ok": True, "data": [e.model_dump(mode="json") for e in events]}
 
+    @app.get("/api/journal/last", dependencies=[Depends(require_auth)])
+    async def journal_last(request: Request) -> dict:
+        """Read-only: the caller's most recent CURRENT journal entry.
+
+        The deep-link contract for the daily home loop's "Resume —
+        yesterday's thread" beat (TRUE-NORTH): one deterministic answer
+        with every model off, safe for Overview to link to. Never
+        mutates anything. An empty journal is an honest ``entry: null``,
+        not a 404 and not a fabrication. Superseded originals never
+        surface. The contract is the CALM-VIEW TAIL: the answer always
+        equals the newest entry GET /api/journal shows (same kinds, same
+        ordering — a correction ACT appends the correction and then its
+        APPROVAL audit line, and whichever is newest IS the last entry;
+        consumers wanting narrative-only may filter by ``kind``).
+        Person-only, caller-scoped, the same seam as every other journal
+        read.
+        """
+        _require_person(getattr(request.state, "principal", None))
+        _, _, uj = _state_for(request)
+        target = journal if uj == journal.path else Journal(uj)
+        events = target.current_events(1)
+        entry = events[-1] if events else None
+        return {
+            "ok": True,
+            "status": "healthy",
+            "data": {
+                "entry": entry.model_dump(mode="json") if entry is not None else None,
+            },
+        }
+
     @app.post("/api/journal", dependencies=[Depends(require_auth)])
     async def journal_note(request: Request) -> dict:
         _require_person(getattr(request.state, "principal", None))
@@ -1016,15 +1046,27 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/records", dependencies=[Depends(require_auth)])
     async def records_list(
-        request: Request, category: str | None = None, pinned: bool = False
+        request: Request,
+        category: str | None = None,
+        pinned: bool = False,
+        q: str | None = None,
     ) -> dict:
         """List records. With a category: a locked category yields an honest
         409 'locked' envelope unless THIS request carries fresh step-up.
         Without a category: the unlocked browse view; ``?pinned=true`` narrows
-        it to the Overview feed. A locked category is never aggregated in."""
+        it to the Overview feed. A locked category is never aggregated in.
+
+        ``?q=`` is the deterministic lexical find (G-memory: works with every
+        model off — records.search_records, no index/provider/embeddings):
+        case-insensitive AND-substring over title, category name, and field
+        keys/values. Locked categories contribute to ``q`` results ONLY when
+        this request carries a server-verified step-up (fail closed, same seam
+        as the locked-category read above); the pinned filter still applies.
+        """
         world, _registry, _uj, _uw, degrade = _records_person_guard(request)
         if degrade is not None:
             return degrade
+        query = q.strip() if isinstance(q, str) else ""
         if category is not None:
             slug = records_mod.category_slug(category)
             if not slug:
@@ -1044,17 +1086,37 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                         ],
                     },
                 )
-            recs = records_mod.list_records(world, slug)
+            if query:
+                # The 409 gate above already decided elevation for THIS
+                # category, so the search inside it may see it.
+                recs = records_mod.search_records(
+                    world, query, category=slug, include_locked=True
+                )
+            else:
+                recs = records_mod.list_records(world, slug)
+            if pinned:
+                recs = [r for r in recs if r.get("pinned")]
+            data = {
+                "category": slug,
+                "locked": bool(cat and cat["locked"]),
+                "records": recs,
+            }
+            if query:
+                data["query"] = query
+            return {"ok": True, "status": "healthy", "data": data}
+        if query:
+            # Aggregate find: locked-category contents join the results only
+            # behind a server-verified step-up — never client trust.
+            elevated = _step_up_authorized(
+                request, getattr(request.state, "principal", None)
+            )
+            recs = records_mod.search_records(world, query, include_locked=elevated)
             if pinned:
                 recs = [r for r in recs if r.get("pinned")]
             return {
                 "ok": True,
                 "status": "healthy",
-                "data": {
-                    "category": slug,
-                    "locked": bool(cat and cat["locked"]),
-                    "records": recs,
-                },
+                "data": {"records": recs, "query": query},
             }
         # Aggregate browse view: never surfaces locked-category contents. The
         # pinned Overview feed is owned by records.pinned_records (same rule).

@@ -17,6 +17,7 @@ import {
   getStatus,
   getDaily,
   listJournal,
+  getJournalLast,
   writeJournal,
   supersedeJournal,
   journalHistory,
@@ -163,6 +164,19 @@ export function useJournalList(params?: { n?: number }) {
   return useQuery({
     queryKey: [...queryKeys.journal, params],
     queryFn: () => listJournal(params),
+  });
+}
+
+/** GET /api/journal/last — the newest CURRENT entry (the calm-view
+ * tail), or an honest `entry: null`. The read-only deep-link contract
+ * for the daily home loop's "Resume — yesterday's thread" beat
+ * (TRUE-NORTH): deterministic with every model off, person-only,
+ * caller-scoped. Consumers link into Memory; this never mutates. */
+export function useJournalLast() {
+  return useQuery({
+    queryKey: [...queryKeys.journal, "last"],
+    queryFn: getJournalLast,
+    staleTime: 60_000,
   });
 }
 
@@ -336,6 +350,20 @@ export function useRecordsInCategory(category: string | null) {
     queryKey: [...queryKeys.records, "category", category],
     queryFn: () => listRecords({ category: category ?? undefined }),
     enabled: category !== null && category !== "",
+  });
+}
+
+/** GET /api/records?q= — the deterministic lexical find (G-memory:
+ * works with every model off; docs/RECORDS-API.md §Find). Shares the
+ * records query-key namespace so writes/step-up invalidate it too.
+ * Locked categories only appear behind a server-verified step-up —
+ * fail closed, never a client-trusted flag. */
+export function useRecordSearch(q: string) {
+  return useQuery({
+    queryKey: [...queryKeys.records, "search", q],
+    queryFn: () => listRecords({ q }),
+    enabled: q.trim().length > 0,
+    staleTime: 60_000,
   });
 }
 
