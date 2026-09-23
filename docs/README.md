@@ -25,7 +25,7 @@ source wins.
 | Provider-neutral rule | [`docs/NATIVE-BASELINE-AND-ENRICHMENT.md`](NATIVE-BASELINE-AND-ENRICHMENT.md) + [ADR 0001](adr/0001-capabilities-core-owned-providers-optional.md) | Capabilities core-owned; providers optional. |
 | Providers (how to add) | [`docs/PROVIDERS.md`](PROVIDERS.md) | Plus [`docs/surfaces/PROVIDER-MATRIX.md`](surfaces/PROVIDER-MATRIX.md) for the current map. |
 | Design (current) | [`.project/design/CURRENT.md`](../.project/design/CURRENT.md) | Workshop v3 authority; 16 canonical frames in [`.project/design/WORKSHOP-V3-MANIFEST.yaml`](../.project/design/WORKSHOP-V3-MANIFEST.yaml). |
-| Design tokens | [`design/tokens.json`](../design/tokens.json) | Semantic token source; consumed by the Station UI and served APIs. |
+| Design tokens | [`design/tokens.json`](../design/tokens.json) | Semantic token source; consumed by the `ui/` interface (`ui/scripts/generate-tokens.mjs` → `ui/src/generated/`) and served APIs. Theme-pack contract: [`ui/THEMES.md`](../ui/THEMES.md). |
 | V0.1 design baseline | [`docs/DESIGN-HANDOFF.md`](DESIGN-HANDOFF.md) | Dated baseline, not a current feature inventory. |
 | Surfaces (UI/API/CLI/tool/storage/auth) | [`docs/surfaces/MASTER-SURFACE-REGISTRY.md`](surfaces/MASTER-SURFACE-REGISTRY.md) | Extraction index; all IDs resolve here. Verified map: [`docs/repo/WIRING-READINESS.md`](repo/WIRING-READINESS.md). |
 | Operations / deployment | [`docs/OPERATIONS.md`](OPERATIONS.md) | Local run, containers, health. |
@@ -50,8 +50,8 @@ status vocabulary (Canonical / Normative / Spec / Archived).
 | Durable project context | `.project/` | Current-state pointer, decisions, design authority, Play-Nice participants. |
 | Contracts (shared library) | `.project/contracts/` | The one Play-Nice adoption manifest (`.project/contracts/adoption.yaml`); `.contracts/` holds only ignored session artifacts, never a second manifest. |
 | Runtime | `src/personal_world/` | FastAPI app, CLI, providers, domain modules. |
-| Browser gate | `frontend/e2e/`, `frontend/package.json` | Playwright + axe specs for the Station (the React SPA source was removed 2026-09-16). |
-| Station UI (product) | `ui/` | React rebuild, built into the image and served same-origin at `/` by the backend (`station_ui.app_router`). |
+| Browser gate | `ui/e2e/`, `ui/playwright.config.ts` | Playwright + axe specs against the real hub UI (`npm run preview`) and the seeded fixture API (`ui/scripts/e2e-api.mjs`). Run: `cd ui && npx playwright test`. |
+| Interface (product) | `ui/` | React rebuild — the interface since the 2026-09-22 flip. Built into the image and served same-origin at `/` by the backend (`station_ui.app_router`, named from the retired era). |
 | Design art | `design/` | Tokens, frames, companions, icons. `design/handoff/` is archived (do not edit). |
 
 ## Working rules

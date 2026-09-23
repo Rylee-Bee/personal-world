@@ -1,5 +1,11 @@
 # PRODUCT VISION — my reflection, for Rylee to confirm or correct
 
+> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
+> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
+> server-rendered Station is retired (kept as a theme package); `frontend/`
+> paths here are the deleted pre-flip tree. Direction lives in
+> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+
 **Written 2026-09-16 by the agent, from the repo + our conversations.**
 This is *my* model of what you're building, written back to you so you can
 answer honestly and fix wherever I'm wrong. It is not authoritative until you

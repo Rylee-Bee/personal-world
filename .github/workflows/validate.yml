@@ -51,7 +51,7 @@ jobs:
         run: |
           echo "PW_API_TOKEN=ci-placeholder-token" > .env
           docker compose config -q
-      - name: Image builds (Station-only image; no frontend build stage)
+      - name: Image builds (ui/ interface stage + runtime stage)
         run: docker build -t personal-world:ci .
 
   browser:

@@ -18,7 +18,7 @@ duplicated, `command -v` lies to you about what will actually run.
 | `git` | clone the repo |
 | `podman` or `docker` | `./install.sh` runs the app in containers |
 | Python 3.12 + [`uv`](https://docs.astral.sh/uv/) | the backend, tests, and the `personal-world` CLI |
-| Node 20+ (only for the browser gate) | `frontend/` Playwright + axe suite |
+| Node 20+ (only for the browser gate) | `ui/` Playwright + axe suite |
 
 `./install.sh` is the supported path; re-running it is safe and never deletes
 data. See [QUICKSTART.md](QUICKSTART.md) for the user-facing version.
@@ -28,7 +28,7 @@ data. See [QUICKSTART.md](QUICKSTART.md) for the user-facing version.
 ```bash
 uv run pytest --timeout=30
 uv run personal-world framework validate --json
-cd frontend && npm run test:e2e   # boots the real app with a seeded world
+cd ui && npx playwright test   # boots the real app with a seeded fixture world
 ```
 
 If all three pass, the checkout is healthy. CI runs the same checks.

@@ -1,9 +1,9 @@
 # Alpha status — Project Worlds
 
-*Where the alpha actually stands, for the owner. The canonical gap list
-lives in [`ROADMAP.md`](../ROADMAP.md) — this page is a status snapshot,
+*Where the alpha actually stands, for the owner. Direction now lives in
+[`TRUE-NORTH.md`](TRUE-NORTH.md) — this page is a status snapshot,
 not a second truth. Snapshot verified 2026-09-17 against the code; it
-will age, the roadmap should not.*
+will age.*
 
 ---
 

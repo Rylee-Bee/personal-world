@@ -62,9 +62,10 @@ agent's WIP into its commit. The rules:
   where they differ, it is the current product language.
 - **Design truth:** `design/tokens.json` and
   `docs/DESIGN-HANDOFF.md` are canonical for the V0.1/current-baseline
-  design. `docs/PERSONAL-WORLD-FINISH-LINE.md` defines the target
-  completion experience. `design/handoff/` is an archived spec package —
-  historical, never edit it to change design.
+  design; `ui/THEMES.md` is the theme-pack and token-consumption contract
+  for the live interface. `docs/PERSONAL-WORLD-FINISH-LINE.md` supplies
+  target-completion detail where TRUE-NORTH is silent. `design/handoff/` is
+  an archived spec package — historical, never edit it to change design.
   `design/COMPANION_INTEGRATION.md` is the current companion/chat
   architecture. Companion display names and the station-id ↔ server-key
   mapping are canonical in `docs/COMPANION-CANON.md`. Character and voice

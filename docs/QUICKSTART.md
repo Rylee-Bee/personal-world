@@ -5,8 +5,9 @@
 
 ## What this is
 Project Worlds is a **gentle, private home for your thoughts and your life**.
-It looks like a calm star-map you drift into — not a dashboard, not a feed,
-not a wall of red badges. It stays quiet until something genuinely needs you,
+It opens as a calm hub — Overview, Memory, Chat, Settings — not a
+dashboard, not a feed, not a wall of red badges. It stays quiet until
+something genuinely needs you,
 and it never tells you how to feel.
 
 It runs on **your own machine** — or on a server you reach over SSH:
@@ -37,8 +38,9 @@ Re-running `./install.sh` is safe. It never deletes your data.
 ## If you're disabled, low-energy, or use assistive tech
 This was built for you first. Here's what's true:
 
-- **Screen readers:** real landmarks, real headings, real labels. The map has a
-  text equivalent for everything; nothing is conveyed by colour or glow alone.
+- **Screen readers:** real landmarks, real headings, real labels. Every
+  surface has a text equivalent for everything; nothing is conveyed by
+  colour or glow alone.
 - **Keyboard & switch access:** everything is reachable and operable by keyboard;
   visible focus rings always; no hover-only or drag-only interactions.
 - **Low vision:** AA contrast by default, a high-contrast presentation available,
@@ -52,11 +54,11 @@ This was built for you first. Here's what's true:
 - **Honesty:** it never fakes data, never hides errors, and always tells you
   what's real vs. not-set-up-yet.
 
-*Standing gate, not a todo:* the Station UI is covered by the automated
-Playwright gate (`cd frontend && npm run test:e2e`), which boots the real
+*Standing gate, not a todo:* the interface is covered by the automated
+Playwright gate (`cd ui && npx playwright test`), which boots the real
 app with a seeded world and runs the accessibility, honest-state, keyboard,
 motion, and reflow suite — including axe with color-contrast enabled (see
-`frontend/e2e/station-a11y.spec.ts`). If something fights you, that's
+`ui/e2e/accessibility.spec.ts` and `ui/e2e/axe.spec.ts`). If something fights you, that's
 still a bug we want — not your fault.
 
 ---

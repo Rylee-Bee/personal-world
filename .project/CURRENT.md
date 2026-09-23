@@ -12,6 +12,14 @@ disagree, the canonical file wins.
 
 Wave 1 of TRUE-NORTH execution merged to main and deployed live:
 
+- **Docs / CI / skills truth pass (2026-09-23):** the README, QUICKSTART,
+  DEV-ENVIRONMENT, ARCHITECTURE, `docs/README.md` + INDEX, the
+  implement-figma skill, AGENTS.md design bullets, and the validate.yml
+  image-step name now match post-flip reality — `ui/` is the interface,
+  Station retired to theme package, provider/template counts corrected,
+  station-era records carry snapshot banners. Truth alignment only;
+  no scope change.
+
 - **Merges (serial, orchestrator-gated):** Lane A daily home loop in
   Overview (`b17431b`) · Lane B one voice + tone registers, residents
   behind the pack flag (`6fb73d5`) · Lane C Memory deep — deterministic

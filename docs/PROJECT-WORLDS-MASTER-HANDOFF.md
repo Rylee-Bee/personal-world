@@ -1,4 +1,10 @@
 # PROJECT WORLDS — MASTER HANDOFF
+
+> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
+> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
+> server-rendered Station is retired (kept as a theme package); `frontend/`
+> paths here are the deleted pre-flip tree. Direction lives in
+> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
 ### One document to understand everything: what we've done, what we have, where we are.
 *Written 2026-09-16. Copy-paste friendly. Read top-down; every section stands alone.*
 *Repo: `Rylee-Bee/personal-world` · branch `main` @ `c16a07c` + uncommitted 2026-09-16 working tree.*

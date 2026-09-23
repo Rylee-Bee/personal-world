@@ -1,5 +1,11 @@
 # Why the build drifted from Figma — and what to change in future packs
 
+> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
+> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
+> server-rendered Station is retired (kept as a theme package); `frontend/`
+> paths here are the deleted pre-flip tree. Direction lives in
+> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+
 Written after a T14 UAT/recovery pass (2026-09-11). This is for you to hand to
 the Figma AI (or any future design/implementation handoff) so the same drift
 doesn't happen again. It is a postmortem, not a criticism of any one pass —

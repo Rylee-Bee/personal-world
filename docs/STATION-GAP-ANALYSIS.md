@@ -1,5 +1,11 @@
 # The Station — gap analysis: why it doesn't feel alive / land yet
 
+> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
+> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
+> server-rendered Station is retired (kept as a theme package); `frontend/`
+> paths here are the deleted pre-flip tree. Direction lives in
+> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+
 Status: **analysis** (2026-09-17). Evidence-based, not inspiration.
 Companion reading: `docs/STATION-ALIVE-RESEARCH.md`,
 `.project/HANDOFF-UI-ORCHESTRATION-2026-09-17.md`, `docs/PERSONAL-WORLD-FINISH-LINE.md`.

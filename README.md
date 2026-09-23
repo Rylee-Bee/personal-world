@@ -3,21 +3,25 @@
 ![The Project Worlds crew together — Renai, Ratatoskr, Bolt, the Burrito Journalism truck, and Personal World — in matching uniforms beneath the book-leaf world-tree](design/screens/crew-scene-sept17.png)
 
 A personal operating environment. One core process with native
-capabilities, a gentle star-map frontend (the **Station**), and an AI
-assistant that proposes but does not act without approval.
+capabilities, a calm personal hub — **Overview · Memory · Chat ·
+Settings**, where the daily loop of orient, remember, resume, and
+discover begins on Overview — and an assistant that proposes but does
+not act without approval.
 
 **Stable truth. Replaceable machinery.** Your data stays on your own
-hardware, portable and exportable. The durable core and the Station are
+hardware, portable and exportable. The durable core and the hub are
 usable today in a **private technical alpha** — this is not a public
-alpha, and not every visible room is backed by live personal data;
-several rooms are deliberately specimen/prototype surfaces.
+alpha, and not every visible surface is backed by live personal data;
+parked surfaces are deliberately labelled specimen panels and never
+pretend to be your data.
 
 > **New here?** Run `./install.sh` and read
 > **[docs/QUICKSTART.md](docs/QUICKSTART.md)** — one command, no config,
 > written for tired and disabled people first.
-> Roadmap/status: [docs/ROADMAP-AND-TODO.md](docs/ROADMAP-AND-TODO.md).
-> (The older React shell is superseded by the Station; see
-> [docs/PORTING.md](docs/PORTING.md).)
+> Direction: **[docs/TRUE-NORTH.md](docs/TRUE-NORTH.md)**.
+> (The interface is the React app in `ui/` since the 2026-09-22 flip;
+> the server-rendered Station was retired, kept as a theme package,
+> never deleted. Historical port notes: [docs/PORTING.md](docs/PORTING.md).)
 
 ## What ships by default
 
@@ -25,33 +29,29 @@ A portable appliance: the core process plus Ollama (qwen3:1.7b) and a
 one-shot model-bootstrap container, exactly what `compose.yaml` brings
 up on `docker compose up -d`. No other containers are required.
 
-**Station surfaces, honestly wired.** The Station is the product UI.
-Some rooms read live personal data, some read part real / part
-device-local, and some rooms are deliberate specimen/prototype panels
-labelled on the surface — they never pretend to be your data:
+**Surfaces, honestly wired.** Some hub surfaces read live personal
+data, some are device-local by design, and some are deliberately
+labelled specimen panels — they never pretend to be your data:
 
-- **API-wired today.** The map's *Needs you* panel reads live
-  proposals and reminders (`GET /api/proposals`, `GET /api/reminders`);
-  the Journal page lists your real journal entries (`API-005
-  GET /api/journal`); Settings renders your real stored preferences
-  (`API-030/031`). `/login` and `/setup` are server-rendered.
-- **Partially wired.** The Journal page keeps a plainly labelled
-  specimen content view beside the real list; several Settings
-  controls write to the device only while the preferences table is
-  live — `real-data.js` documents exactly how far each control
-  reaches.
-- **Specimen / prototype, on purpose.** Interests discovery cards
-  (`interests-view.js`: "SPECIMEN data … not a real feed"), the
-  Projects room (`projects-view.js`: "performs no reads and no
-  writes … every record above is specimen"), the map's per-region
-  copy (`starmap.js`), and the Chat presentation (`chat.js`: messages
-  stay on this device and companion replies are not invented yet).
+- **API-wired today.** Overview's daily loop reads live journal,
+  proposals, and reminders (latest thread via `GET /api/journal/last`,
+  API-084); Memory lists and finds your real journal entries and
+  records (`GET /api/journal` + records search); Settings renders and
+  writes your real stored preferences (`API-030/031`), including the
+  voice/tone register and the optional residents pack (default off).
+  `/login` and `/setup` are server-rendered.
+- **Device-local by design.** Chat conversations stay on the device;
+  the assistant's replies come from your configured model when one is
+  present, and an honest `not_configured` when it is not.
+- **Specimen / parked, on purpose.** Projects stays a parked surface
+  with plainly labelled records; the Overview discovery sliver is
+  labelled until it reads a real feed. `.project/CURRENT.md` records
+  exactly what is wired today.
 
-**11 native providers** (in-process, no extra containers):
+**10 native providers** (in-process, no extra containers):
 
 | Provider | Purpose |
 |---|---|
-| `native_git` | Source control |
 | `native_vault` | Secrets |
 | `native_memory` | SQLite FTS5 search |
 | `native_calendar` | ICS/CalDAV |
@@ -63,17 +63,16 @@ labelled on the surface — they never pretend to be your data:
 | `native_media` | Plex/Sonarr/Radarr/Lidarr |
 | `native_deployment` | Docker Compose/systemd |
 
-**Brain Template System:** 19 templates (4 core, 9 surfaces, 4 tasks,
-2 formats), private overrides via `config.prompts.local/`, provenance
-tracking.
+**Brain Template System:** 21 templates (4 core, 2 personas, 9
+surfaces, 4 tasks, 2 formats), private overrides via
+`config/prompts.local/`, provenance tracking.
 
-**Connections & Providers:** 7 capabilities, 18 provider schemas.
-Schema and config endpoints exist server-side
-(`/api/connections/...`); today providers are still configured in
-`config/connections.json` — the Station UI for it is not built yet.
+**Connections & Providers:** provider wiring is schema-driven and
+managed in `config/connections.json`; the in-process natives above
+need no configuration at all.
 
-**29 brain tools:** 19 read tools + 4 media tools + 6 write tools
-(proposal-based, require approval).
+**Brain tools** cover read-only world inspection, media, and
+proposal-based writes — every write path needs your approval.
 
 **Auth/SSO:** Native/local auth (`PW_API_TOKEN`), session-cookie support,
 provider-neutral OIDC seam (`config/oidc.json` — point it at your own
@@ -90,7 +89,6 @@ command, timestamps, and exit codes.
 
 ```
 Project Worlds core process
-├── native_git
 ├── native_vault
 ├── native_memory
 ├── native_calendar
@@ -160,17 +158,11 @@ away as a fallback. The superseded React frontend was removed on
 
 ### Screenshots
 
-| | |
-|---|---|
-| ![The Station systems map: seven little worlds with honest status](docs/screenshots/station-map.png) | The systems map — seven little worlds, honest status |
-| ![Journal view](docs/screenshots/station-journal.png) | Journal |
-| ![Interests view](docs/screenshots/station-interests.png) | Interests |
-| ![Projects view](docs/screenshots/station-projects.png) | Projects |
-| ![Settings view](docs/screenshots/station-settings.png) | Settings |
-| ![Chat view](docs/screenshots/station-chat.png) | Chat |
-
-Regenerate deterministically with `cd frontend && npm run docs:screenshots`
-(a run leaves `git status` clean).
+The Station-era screenshots under `docs/screenshots/` show the
+retired server-rendered UI and are kept as history, not as the
+current face. Current design truth is the Workshop v3 frame set and
+pointers in [`.project/design/CURRENT.md`](.project/design/CURRENT.md);
+the running interface is the React app in `ui/`.
 
 ## Quick start
 
@@ -184,10 +176,10 @@ uv run personal-world --config-dir config.local init
 uv run personal-world --config-dir config.local daily
 ```
 
-Then serve the Station with a token:
+Then serve the hub with a token:
 
 ```bash
-PW_API_TOKEN=$(python -c "import secrets; print(secrets.token_urlsafe(32))") \
+PW_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))") \
 PW_CONFIG_DIR=config.local \
 uv run uvicorn personal_world.api:create_app --factory --app-dir src --port 8000
 ```
@@ -199,7 +191,7 @@ network scope.
 ## Container deployment
 
 ```bash
-export PW_API_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+export PW_API_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
 docker compose pull
 docker compose up -d
 ```
@@ -222,6 +214,9 @@ turns. Private-class lore and secret material are never included.
   check lab health, etc.)
 - Write requests create bounded proposals (journal entries, world
   facts/intents, reminders)
+- Chat is a real conversation when a model is configured — read-only:
+  replies observe your world; no tool execution, no mutations without
+  approval. No model configured answers an honest `not_configured`.
 - Approval is required for all writes
 - Step-up auth for consequential actions (300s window)
 - Execution evidence is recorded in the Execution Viewer
@@ -235,7 +230,8 @@ turns. Private-class lore and secret material are never included.
 | Native baseline | [NATIVE-BASELINE-AND-ENRICHMENT.md](docs/NATIVE-BASELINE-AND-ENRICHMENT.md) |
 | Operations | [OPERATIONS.md](docs/OPERATIONS.md) |
 | Providers | [PROVIDERS.md](docs/PROVIDERS.md) |
-| Finish line | [PERSONAL-WORLD-FINISH-LINE.md](docs/PERSONAL-WORLD-FINISH-LINE.md) |
+| Direction | [TRUE-NORTH.md](docs/TRUE-NORTH.md) |
+| Finish line detail | [PERSONAL-WORLD-FINISH-LINE.md](docs/PERSONAL-WORLD-FINISH-LINE.md) |
 | Design | [Workshop v3 design authority](.project/design/CURRENT.md) |
 | Accessibility | [ACCESSIBILITY_CONTRACT.md](docs/accessibility/ACCESSIBILITY_CONTRACT.md) |
 | Full docs index | [INDEX.md](docs/INDEX.md) |

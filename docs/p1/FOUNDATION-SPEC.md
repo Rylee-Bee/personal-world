@@ -1,5 +1,11 @@
 # P1 — Frontend Foundation Spec
 
+> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
+> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
+> server-rendered Station is retired (kept as a theme package); `frontend/`
+> paths here are the deleted pre-flip tree. Direction lives in
+> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+
 **Status:** Approved (owner decisions and corrections folded in, 2026-09-10).
 **Parent:** [`../PERSONAL-WORLD-COMPLETION-PLAN.md`](../PERSONAL-WORLD-COMPLETION-PLAN.md) Phase P1.
 **Gate:** P1 implementation does not start until the owner confirms P0.1

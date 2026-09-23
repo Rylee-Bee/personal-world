@@ -196,15 +196,16 @@ The following inventory reflects implemented routes, not deployment acceptance:
 
 Unless explicitly labeled public above, API routes use bearer auth directly or
 through `require_step_up`; individual routes may add further restrictions.
-`/setup-wizard`, `/setup`, `/login`, `/`, `/station/*`, and packaged
-fonts/icons/companions are browser entry/assets. `/station` serves the
-Station map UI same-origin (`station_ui.py`): first-run redirects to
-`/setup`, an unauthenticated browser redirects to `/login`, and a valid
-`pw_session` cookie is sufficient — which is why its API calls need no
-CORS and no browser-side token. Only web assets from an allowlist built
-at boot are served; internal `.md` notes and `_legacy/` never are. The
-packaged image does not ship `design/`, so a deployment without the
-Station answers an honest 503 rather than echoing a path.
+`/setup-wizard`, `/setup`, `/login`, `/`, and packaged
+fonts/icons/companions are browser entry/assets. `/` serves the React
+interface (`ui/`, built into `static/app/` and mounted by
+`station_ui.app_router` — the module name is from the retired Station
+era): first-run redirects to `/setup`, an unauthenticated browser
+redirects to `/login`, and a valid `pw_session` cookie is sufficient —
+which is why its API calls need no CORS and no browser-side token.
+Only web assets from an allowlist built at boot are served; internal
+`.md` notes and `_legacy/` never are. The server-rendered Station was
+retired on 2026-09-22: `/station/*` and `/vnext` only redirect to `/`.
 The five-step wizard collects welcome/name/companion/
 access-token choices and finishes bootstrap; it is not the finish-line SSO or
 capability/accessibility interview. `POST /api/setup` can initialize Vault too.

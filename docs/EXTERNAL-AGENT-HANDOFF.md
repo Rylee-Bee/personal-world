@@ -1,4 +1,10 @@
 # EXTERNAL-AGENT HANDOFF — parallel lanes for Project Worlds
+
+> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
+> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
+> server-rendered Station is retired (kept as a theme package); `frontend/`
+> paths here are the deleted pre-flip tree. Direction lives in
+> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
 *For any agent (any model, any token plan) joining this repo. Read fully before editing.*
 *Repo: `Rylee-Bee/personal-world` · base `main` @ `c16a07c` + uncommitted verified work.*
 

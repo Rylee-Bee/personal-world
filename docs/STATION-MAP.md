@@ -1,5 +1,11 @@
 # The Station — deck map
 
+> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
+> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
+> server-rendered Station is retired (kept as a theme package); `frontend/`
+> paths here are the deleted pre-flip tree. Direction lives in
+> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+
 **Status:** Owner canon. Deck names re-anchored to **plain job words** by owner
 direction 2026-09-18 (*accessibility over cuteness when forced: the plain word is
 the label, the dialect is the delight*). The logical deck plan of **The Station**

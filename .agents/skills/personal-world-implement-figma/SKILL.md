@@ -1,6 +1,6 @@
 ---
 name: personal-world-implement-figma
-description: Implement or refine Project Worlds (Personal World) UI from an approved Figma frame using the repository's React frontend, canonical tokens and artwork, accessibility contracts, and region-by-region browser comparison. Use for Figma-to-code work, not editing the Figma design system itself.
+description: Implement or refine Project Worlds (Personal World) UI from an approved Figma frame using the repository's React interface (ui/), canonical tokens and artwork, accessibility contracts, and region-by-region browser comparison. Use for Figma-to-code work, not editing the Figma design system itself.
 ---
 
 # Personal World: implement Figma
@@ -117,14 +117,14 @@ still current:
 
 | Concern | Existing owner |
 | --- | --- |
-| Stack and routes | `frontend/package.json`: React 19, TypeScript, Vite, React Router 7, Tailwind 4; `frontend/src/App.tsx`, `frontend/src/screens/`, `frontend/src/shell/` |
-| Token pipeline | `design/tokens.json` -> `frontend/scripts/gen-tokens.mjs` -> generated `frontend/src/tokens.css`; Tailwind aliases and global cascade in `frontend/src/index.css` |
-| Shared UI | `frontend/src/components/ui/` (button, badge, card); `frontend/src/primitives/` (Dialog, Drawer, Popover, Disclosure, LiveRegion, StatusChip, StepUpPrompt, CompanionSlot) |
-| Data and preferences | `frontend/src/lib/api.ts`, `hooks.ts`, `prefs-context.tsx`, `companion-context.tsx`; inspect consumers before changing them |
-| Icons | `frontend/src/lib/icons.tsx`; canonical `design/assets/icons/manifest.json`, `sprite.svg`, and `svg/`; runtime `src/personal_world/static/icons/sprite.svg` and `frontend/public/icons/` |
-| Companions | `design/COMPANION_INTEGRATION.md`, `design/assets/companions/`, protected `design/assets/mermaid-companion-master.lottie`; runtime `src/personal_world/static/companions/` and `frontend/public/companions/` |
+| Stack and routes | `ui/package.json`: React 19, TypeScript, Vite, Tailwind 4, react-aria-components, TanStack Query; app shell `ui/src/app/App.tsx`, screens `ui/src/screens/`, global styles `ui/src/styles/world.css` |
+| Token pipeline | `design/tokens.json` + `design/themes/*.json` → `ui/scripts/generate-tokens.mjs` → generated `ui/src/generated/`; `npm run tokens:check` enforces no drift (never hand-edit generated output); theme-pack contract in `ui/THEMES.md` |
+| Shared UI | `ui/src/components/` (WorldButton, WorldDrawer, WorldAssistant, WorldKeeper, ResidentPresence, WorldSignal, WorldAreaLink); stories in `ui/src/stories/` |
+| Data and preferences | `ui/src/data/`: `api.ts` (typed openapi-fetch client), `hooks.ts`, `queryClient.ts`, `types.ts`, `errors.ts`, `draft-sync.ts`; preference DOM helpers `ui/src/app/prefs-dom.ts`; generated API types `ui/src/generated/api-types.ts` (`npm run api:generate`); browser mocks `ui/src/mocks/` (msw). Inspect consumers before changing them |
+| Icons | canonical `design/assets/icons/manifest.json` and `svg/`; sprite `ui/public/icons.svg`; runtime `src/personal_world/static/icons/` |
+| Companions | `design/COMPANION_INTEGRATION.md`, `design/assets/companions/`, protected `design/assets/mermaid-companion-master.lottie`; runtime `src/personal_world/static/companions/` (served same-origin by the backend) |
 | Visual references | Approved exports under `design/screens/`, classified through `.project/design/CURRENT.md`; inspect actual filenames |
-| Tests | `frontend/src/test/`, `frontend/e2e/`, `frontend/playwright.config.ts`; backend `tests/` |
+| Tests | `ui/src/test/` (vitest), `ui/e2e/` (Playwright specs incl. `accessibility.spec.ts`, `axe.spec.ts`, `overview.spec.ts`, `memory-records.spec.ts`, `navigation.spec.ts`), `ui/playwright.config.ts`; backend `tests/` |
 
 Write a small mapping: Figma node/variable + mode -> repo token/component/asset
 -> intended use -> mismatch/deviation. For example, map the canvas role to
@@ -147,10 +147,13 @@ ownership, status vocabulary, and truthful empty/loading/error states.
 Reuse components where their purpose matches the design. A Card's existence
 does not justify wrapping every heading, summary, or grouped list in a card.
 
-Use the existing Icon wrapper and canonical manifest; do not install Lucide,
-Heroicons, another icon library, or substitute emoji. Reuse CompanionSlot and
-the five canonical companion identities. Do not recreate, trace, regenerate,
-or overwrite companion artwork, rigs, master Lotties, icons, or screen SVGs.
+Use the existing Icon sprite and canonical manifest; do not install Lucide,
+Heroicons, another icon library, or substitute emoji. Reuse `ResidentPresence`
+and `WorldKeeper` for companion surfaces and `WorldSignal` for live
+announcements; step-up recovery is handled at the typed client in
+`ui/src/data/api.ts` against the server's 403 step-up envelope. Keep the five
+canonical companion identities. Do not recreate, trace, regenerate, or overwrite
+companion artwork, rigs, master Lotties, icons, or screen SVGs.
 Canonical display names and the station-id ↔ server-key mapping: `docs/COMPANION-CANON.md`.
 Inspect the actual serving route before synchronizing runtime copies. Missing
 art needs an identified canonical export or owner resolution, not a placeholder
@@ -203,9 +206,9 @@ Do not use overflow clipping to conceal reflow failures.
 
 Run from the stated directory; inspect package scripts and CI again if they
 change. Use the working Node/Python environment, with dependencies installed
-from `frontend/package-lock.json` (`npm ci`) and `uv.lock` as needed.
+from `ui/package-lock.json` (`npm ci`) and `uv.lock` as needed.
 
-From `frontend/`:
+From `ui/`:
 
 ```sh
 npm run tokens:check
@@ -215,38 +218,37 @@ npm run build
 npx playwright test
 ```
 
-For an intentional canonical token edit, run `npm run tokens` before the
-drift check. For a focused region use `npm test -- <test-file>` and
-`npx playwright test e2e/gates.spec.ts` or the relevant existing spec.
-The Playwright config starts `node e2e/server.mjs`, which requires a built
-`frontend/dist/`, launches the real FastAPI backend via uv/uvicorn, and uses
-temporary fixture data. Inspect `frontend/e2e/helpers.ts` for the test login
-flow. Rebuild after edits when comparing this served bundle. Do not accidentally
-reuse an unrelated server on the configured test port.
+For an intentional canonical token edit, run `npm run tokens:generate` before
+the drift check (`tokens:check` fails on drift and is CI-enforced). For a
+focused region use `npm test -- <test-file>` and
+`npx playwright test e2e/<spec>.ts` for the relevant existing spec. The
+Playwright config starts two servers: the seeded fixture API
+(`node scripts/e2e-api.mjs`, `:4174`, answered `/healthz`) and the built
+preview (`npm run preview`, `:4173`, proxying `/api` + `/healthz` to the
+fixture via `VITE_API_PROXY_TARGET`). A fresh `npm run build` is required to
+serve edited code. Inspect `ui/e2e/helpers.ts` for the test boot flow. Do not
+accidentally reuse an unrelated server on the configured test ports.
 
 ### Rendering a named frame state (fixture recipe)
 
 The render-compare loop needs a representative, repeatable state — not the
 operator's live world (a personal-world container may already run on `:8000`).
-Build once, boot the real app on the test port, then put it into the named
-state deliberately:
+Build once, boot the fixture pair on the test ports, then put the UI into the
+named state deliberately:
 
-1. `cd frontend && npm run build` — `e2e/server.mjs` requires a built
-   `frontend/dist/`.
-2. Start the real backend fixture: `node e2e/server.mjs` (FastAPI on `:8731`,
-   `ci-token` bearer, synthetic world). `/api/status`, `/api/daily`,
-   `/api/journal`, `/api/reminders`, `/api/source-control/status`, and
-   `/api/projects/status` answer from that world.
-3. Drive to the state with Playwright `page.route(...)` before navigation — the
-   same mechanism `e2e/docs-screenshots.spec.ts` uses for determinism:
-
-   | Named state | Set these responses |
-   | --- | --- |
-   | Quiet day (`17:481`) | `/api/daily` with empty `warnings`/`actions`; `/api/status` all-healthy |
-   | Attention day | `/api/daily` with real `warnings`/`actions`; or `/api/status` with `needs_attention`/`unavailable` capabilities |
-   | Estate regions | `/api/projects/status` with quiet / unpublished / diverged projects |
-   | Source-control regions | `/api/source-control/status` (the docs spec uses the honest `not_configured` envelope) |
-
+1. `cd ui && npm run build` — the preview server serves the built `ui/dist/`.
+2. Start the seeded fixture API: `node scripts/e2e-api.mjs` (the hub's
+   `/api` surface on `:4174` with a synthetic world; `npm run preview` on
+   `:4173` proxies to it). Inspect the script for the current seeded
+   surface — it is the contract for test states.
+3. Drive to the state with Playwright `page.route(...)` overrides before
+   navigation, or by seeding/`DELETE /api/__test/reset` on the fixture API —
+   see `ui/e2e/overview.spec.ts` and `ui/e2e/memory-records.spec.ts` for the
+   current state-driving patterns. **Mock quirk, know it before you debug:**
+   the fixture's journal list is newest-first, the real backend is
+   oldest→newest; the hub never sorts client-side and reads the server's own
+   `GET /api/journal/last` (API-084). Never prove ordering against the mock
+   alone.
 4. Freeze the clock so relative copy renders identically on every run:
    `await page.clock.setFixedTime(new Date("2026-01-15T15:00:00Z"))`, then
    `bootWait(page)` and let the API-driven content settle.
@@ -259,9 +261,10 @@ truth. A frame whose state the screen does not implement yet (e.g. Bad Day
 fixtures alone: implement the state from the frame first. A fixture that fakes
 an unbuilt state produces a false comparison, not evidence.
 
-For interactive development, `npm run dev` starts Vite on port 5173; its
-`frontend/vite.config.ts` proxies API/fonts/icons/companions to a backend on
-port 8000. A bare Vite page does not prove backend behavior. Use an isolated
+For interactive development, `npm run dev` starts Vite on port 5173;
+`ui/vite.config.ts` proxies API/fonts/icons/companions to
+`VITE_API_PROXY_TARGET` (default `http://127.0.0.1:8000`). A bare Vite page
+does not prove backend behavior. Use an isolated
 development/test instance and inspect configuration before starting services;
 never embed credentials into Vite environment variables or the browser bundle.
 

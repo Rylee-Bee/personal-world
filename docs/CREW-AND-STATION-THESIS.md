@@ -1,6 +1,6 @@
 # The Crew & The Station — family thesis
 
-**Status:** Canonical thesis (2026-09-17). One statement every future design task obeys. It does not replace the accessibility contract; where they conflict, the contract wins and the conflict is recorded back here. The briefs imply this thesis in three places but never state it once — this file states it and flags where the sources still disagree.
+**Status:** Canonical thesis (2026-09-17), amended in role by the 2026-09-22 rulings: the **crew, voices, and companion truths here remain canonical**; the *Station as the primary experience* is superseded — Station is kept as a theme package behind the stable skeleton, never deleted, and the default is a complete existing theme pack (see `docs/TRUE-NORTH.md`, `docs/PRODUCT-LANGUAGE.md`, `ui/THEMES.md`). One statement every future design task obeys. It does not replace the accessibility contract; where they conflict, the contract wins and the conflict is recorded back here. The briefs imply this thesis in three places but never state it once — this file states it and flags where the sources still disagree.
 
 ---
 
