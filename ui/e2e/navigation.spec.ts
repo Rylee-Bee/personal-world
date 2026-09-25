@@ -6,30 +6,32 @@ import { gotoArea, navButtonLabels } from "./helpers";
  *
  * The old spec pinned the pre-contract nav (Today/Systems/…/Records/
  * News). The contract re-cut it: four fixed landmarks first
- * (Overview · Memory · Chat · Settings), personal sections behind.
- * Coverage moved forward with the contract — nothing was deleted,
- * every old assertion has a new-contract counterpart here or in
- * landmark-stability.spec.ts / vault-in-settings.spec.ts.
+ * (Bridge · Memory · Chat · Settings), personal sections behind.
+ * The home area keeps its id ("overview") but wears the Bridge label
+ * (owner plan 2026-09-25: the Bridge is home). Coverage moved forward
+ * with the contract — nothing was deleted, every old assertion has a
+ * new-contract counterpart here or in landmark-stability.spec.ts /
+ * vault-in-settings.spec.ts.
  */
 
-const LANDMARKS = ["Overview", "Memory", "Chat", "Settings"] as const;
+const LANDMARKS = ["Bridge", "Memory", "Chat", "Settings"] as const;
 
 test.describe("Navigation", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
   });
 
-  test("loads Overview by default", async ({ page }) => {
+  test("loads the Bridge by default", async ({ page }) => {
     await expect(page.getByRole("main")).toBeVisible();
-    // Product truth: the Overview screen OPENS with the greeting —
-    // "Good morning, Operator" is the h1. "Overview" remains as the
-    // main landmark's accessible name.
+    // Product truth: home IS the Bridge. Its single h1 is the screen
+    // name (sr-only — the visible identity is the star map itself),
+    // and the main landmark's accessible name is "Bridge".
     await expect(
-      page.getByRole("heading", { name: /Operator/i, level: 1 }),
-    ).toBeVisible();
+      page.getByRole("heading", { name: "Bridge", level: 1 }),
+    ).toBeAttached();
     await expect(page.getByRole("main")).toHaveAttribute(
       "aria-label",
-      "Overview",
+      "Bridge",
     );
   });
 
@@ -45,7 +47,7 @@ test.describe("Navigation", () => {
     await expect(
       page
         .getByRole("navigation", { name: "World navigation" })
-        .getByRole("button", { name: "Overview", exact: true }),
+        .getByRole("button", { name: "Bridge", exact: true }),
     ).toHaveAttribute("aria-current", "page");
   });
 

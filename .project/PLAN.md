@@ -32,9 +32,9 @@ The first working slice must let her:
 | Slice | What | Rough size |
 | --- | --- | --- |
 | 1a | Truth pass (small): `ui/` has no orphaned screens; delete only truly dead bits (`ui/src/mocks/server.ts`, placeholder copy). Unused media/reminder/connection hooks are unfinished intent: keep and wire them. Fix Resume: `GET /api/journal/last` returns the newest entry of any kind, and the daily loop writes "capability X: status" lines | 1 day |
-| 1b | First light: the bridge home in `ui/` (star-map composition, status strip, lenses, briefing panel/bottom sheet, Keeper voice line) fed by real sources already reachable: Project Home (`GET /api/home`: agent deliveries, what needs her), lab state, journal/memory; remembers where she was across devices | 3–4 days |
+| 1b | First light: the bridge home in `ui/` fed by real sources already reachable (Project Home via its CLI or `GET /api/home`, lab state, journal/memory); remembers where she was across devices. **Personality ships here, not later** (owner refinement 2026-09-25): the crew stand on the map and report their systems in their own voices; the Keeper speaks the briefing | 3–4 days |
 | 1c | More arrives: media (existing `native_media`: Plex/Sonarr/Radarr), calendars (personal ICS/CalDAV + work via Graph), the have-tos tray | 2–3 days |
-| 1d | Delight pass: crew and characters inhabit the map, discovery moments, Keeper personality | 1–2 days |
+| 1d | Deepen: richer character moments and animation, discovery surprises, polish | 1–2 days |
 | 1e | A preview she can use on her phone (non-production); production cutover of her live Station only with her explicit approval | her time |
 
 Each slice ends with phone and desktop screenshots or a working preview. Her reaction ("thumbs up" / "this feels wrong") gates the next major experience change; implementation details are Claude's call.
@@ -56,6 +56,8 @@ Node/Headscale remote-agent limb, Workbench/terminal broker, new contract machin
 Project Home merge as a Worlds source; name collisions ("Workshop" means 3 things; "where we left off" exists 4 times: lab recap, lab enter, lab world, Project Home); media_files LimeZu stored twice (~700 MB; repoint game repos first); tidy the design index (16 superseded model variants); decide design/exports/0.1/; 17 duplicate crew/station image pairs left in place because live UI references filenames.
 
 ## Done 2026-09-25
+
+Step 1b "first light" (PR #68; handoff: `.project/HANDOFF-BRIDGE-2026-09-25.md`). Owner: "a lot closer"; next is 1b.2 layout + life, then 1c.
 
 Vision review + live walkthrough + inventory (review doc); PR #65 design archive (tag archive/pre-design-cleanup-2026-09-25; six old branches kept as archive/branch/* tags); PR #66 Play-Nice pin 44ec8f4 -> 60eaeab; media_files node_modules cleared (110 MB).
 

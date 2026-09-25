@@ -25,7 +25,7 @@
  */
 
 import { useMemo, useState, useEffect } from "react";
-import { Overview } from "../screens/Overview/Overview";
+import { Bridge } from "../screens/Bridge/Bridge";
 import { Memory } from "../screens/Memory/Memory";
 import { Interests } from "../screens/Interests/Interests";
 import { Chat } from "../screens/Chat/Chat";
@@ -122,7 +122,7 @@ export function App() {
 
   // Theme: device-local by contract (the station has no theme-write
   // endpoint) — restore what this device chose; a first run with no
-  // stored choice resolves to DEFAULT_THEME (plain, D2).
+  // stored choice resolves to DEFAULT_THEME (starfield, 2026-09-25).
   useEffect(() => {
     applyThemeToDocument(readStoredTheme() ?? DEFAULT_THEME);
   }, []);
@@ -130,9 +130,10 @@ export function App() {
   function renderScreen() {
     switch (activeArea) {
       case "overview":
+        // The Bridge is the home screen (area id stays "overview").
+        // Overview.tsx remains in the repo but is no longer rendered.
         return (
-          <Overview
-            areas={[...skeleton, ...personal]}
+          <Bridge
             onOpenArea={setActiveArea}
             onOpenAssistant={() => setDrawerOpen(true)}
           />
@@ -161,7 +162,8 @@ export function App() {
               {label}
             </h1>
             <p className="mt-[var(--pw-spacing-xl)] text-[var(--pw-text-muted)]">
-              Coming soon.
+              This part of your world isn't open yet — nothing is hidden
+              here, it simply isn't built.
             </p>
           </main>
         );
@@ -250,7 +252,8 @@ export function App() {
         title="World Assistant"
       >
         <p className="text-[var(--pw-text-secondary)]">
-          The World Assistant will appear here.
+          The World Assistant isn't connected yet. When it is, it will
+          speak here — nothing is shown until then.
         </p>
       </WorldDrawer>
 

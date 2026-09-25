@@ -42,6 +42,22 @@ async function computedCss(
     .evaluate((el, prop) => getComputedStyle(el).getPropertyValue(prop), property);
 }
 
+/**
+ * The page's sticky status strip. The Bridge's Keeper line is also a
+ * <footer>, but it lives INSIDE main — the shell's status strip is the
+ * last footer in DOM order, so "footer" must not be read with .first()
+ * (it would measure the Keeper's padding, not the chrome's).
+ */
+async function statusStripCss(
+  page: Page,
+  property: "padding-bottom",
+): Promise<string> {
+  return page
+    .locator("footer")
+    .last()
+    .evaluate((el, prop) => getComputedStyle(el).getPropertyValue(prop), property);
+}
+
 test.describe("mobile safe areas (§2.7)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -73,7 +89,7 @@ test.describe("mobile safe areas (§2.7)", () => {
     // No pin: env(safe-area-inset-*, 0px) must fall back to 0px, i.e. the
     // insets never invent padding on flat screens.
     expect(await computedCss(page, "header", "padding-top")).toBe("0px");
-    expect(await computedCss(page, "footer", "padding-bottom")).toBe(`${SPACING_SM}px`);
+    expect(await statusStripCss(page, "padding-bottom")).toBe(`${SPACING_SM}px`);
   });
 
   test("pinned insets: sticky header pads by the top inset and the nav control stays clear of it", async ({
@@ -82,10 +98,10 @@ test.describe("mobile safe areas (§2.7)", () => {
     await pinInsets(page);
     expect(await computedCss(page, "header", "padding-top")).toBe(`${PIN}px`);
 
-    const overview = page
+    const home = page
       .getByRole("navigation", { name: "World navigation" })
-      .getByRole("button", { name: "Overview" });
-    const box = await overview.boundingBox();
+      .getByRole("button", { name: "Bridge" });
+    const box = await home.boundingBox();
     expect(box).not.toBeNull();
     // Named control fully below the pinned inset band, and still a 44px+
     // touch target (mobile.css re-affirmed that floor; the rebuild must
@@ -100,7 +116,7 @@ test.describe("mobile safe areas (§2.7)", () => {
     await pinInsets(page);
     // calc(--pw-spacing-sm + inset) — the strip's own padding survives
     // and the home-indicator band is added on top of it.
-    expect(await computedCss(page, "footer", "padding-bottom")).toBe(
+    expect(await statusStripCss(page, "padding-bottom")).toBe(
       `${SPACING_SM + PIN}px`,
     );
   });

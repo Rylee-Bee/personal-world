@@ -42,7 +42,9 @@ from .chat_history import ChatHistory
 from .envelope import Result
 from .journal import AuditRenderer, Journal
 from .loop import daily
+from .briefing import build_briefing, SYSTEM_IDS
 from .providers.lab_state import DEFAULT_LAB, LabState
+from .providers.project_home import ProjectHomeSource
 from .providers.registry import Registry
 from .source_control import (
     discover_repositories,
@@ -2500,6 +2502,107 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         discovery = _discovery_for(request)
         r = discovery.discover(source)
         return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
+
+    # ── Worlds briefing + place continuity (contract: worlds-briefing/1) ──
+    # The briefing is what the world knows; place is where the person last
+    # was, so a later visit can say "arrived while you were away". Both are
+    # person-only (agents are refused) and both ride the per-principal
+    # scoped seam (decision #13) — place exactly mirrors the journal-draft
+    # seam: no step-up (it mutates nothing a visit doesn't already imply),
+    # atomic os.replace, never a response echo of more than it stored.
+    _PLACE_MAX_BYTES = 2048
+    _PLACE_ITEM_MAX = 200
+
+    def _place_path(request: Request) -> Path:
+        return _scoped_path(request.state.principal, "last_place")
+
+    def _read_place(request: Request) -> dict | None:
+        """The stored place, or an honest None. A corrupt/foreign file is
+        never guessed at: the caller sees no place rather than a lie."""
+        path = _place_path(request)
+        if not path.exists():
+            return None
+        try:
+            stored = json.loads(path.read_text())
+        except (json.JSONDecodeError, OSError):
+            return None
+        if not isinstance(stored, dict):
+            return None
+        system = stored.get("system")
+        item_id = stored.get("item_id")
+        if system is not None and system not in SYSTEM_IDS:
+            return None
+        if item_id is not None and not isinstance(item_id, str):
+            return None
+        updated_at = stored.get("updated_at")
+        if not isinstance(updated_at, str) or not updated_at:
+            return None
+        return {"system": system, "item_id": item_id, "updated_at": updated_at}
+
+    @app.get("/api/briefing", dependencies=[Depends(require_auth)])
+    async def briefing_view(request: Request) -> dict:
+        """The world's briefing: six systems, have_tos, arrivals, thread.
+
+        Read-only: a view never journals and never writes the place. The
+        stored place's updated_at becomes `since` (the previous visit).
+        Person-only, caller-scoped.
+        """
+        principal = getattr(request.state, "principal", None)
+        _require_person(principal)
+        _, _, uj = _state_for(request)
+        journal_target = journal if uj == journal.path else Journal(uj)
+        place = _read_place(request)
+
+        def _compose() -> dict:
+            return build_briefing(
+                project_home=ProjectHomeSource.from_env(),
+                lab=LabState(lab_path=os.environ.get("PW_LAB_CLI", DEFAULT_LAB)),
+                discovery=_discovery_for(request),
+                journal=journal_target,
+                place=place,
+                name_hint=getattr(principal, "display_name", None),
+            )
+
+        # Sources shell out / fetch; keep the event loop free.
+        return await run_in_threadpool(_compose)
+
+    @app.get("/api/place", dependencies=[Depends(require_auth)])
+    def place_get(request: Request) -> dict:
+        """The caller's last place, or an honest null."""
+        _require_person(getattr(request.state, "principal", None))
+        return {"ok": True, "data": {"place": _read_place(request)}}
+
+    @app.put("/api/place", dependencies=[Depends(require_auth)])
+    async def place_put(request: Request) -> dict:
+        """Store the caller's last place. No step-up: continuity mutates
+        nothing a visit doesn't already imply (same posture as drafts)."""
+        _require_person(getattr(request.state, "principal", None))
+        raw = await request.body()
+        if len(raw) > _PLACE_MAX_BYTES:
+            raise HTTPException(status_code=422, detail="place payload exceeds 2048 bytes")
+        try:
+            body = json.loads(raw or b"{}")
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=422, detail="place body must be JSON")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=422, detail="place body must be an object")
+        system = body.get("system")
+        if system is not None and system not in SYSTEM_IDS:
+            raise HTTPException(status_code=422, detail="unknown system")
+        item_id = body.get("item_id")
+        if item_id is not None and not isinstance(item_id, str):
+            raise HTTPException(status_code=422, detail="item_id must be a string or null")
+        if isinstance(item_id, str) and len(item_id) > _PLACE_ITEM_MAX:
+            raise HTTPException(status_code=422, detail="item_id exceeds 200 chars")
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        place = {"system": system, "item_id": item_id, "updated_at": stamp}
+        path = _place_path(request)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(place))
+        tmp.chmod(0o600)
+        os.replace(tmp, path)  # atomic: a crash never leaves half a place
+        return {"ok": True, "data": {"place": place}}
 
     # --- Native Reconciler endpoints ---
 

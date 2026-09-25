@@ -8,7 +8,16 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
-## 2026-09-25 — VISION REVIEW → PLAN (current)
+## 2026-09-25 (afternoon) — STEP 1b "FIRST LIGHT" LANDED (current)
+
+**Pick up here: [`.project/HANDOFF-BRIDGE-2026-09-25.md`](HANDOFF-BRIDGE-2026-09-25.md).**
+The Bridge is the home screen (PR #68): the Keeper, briefing and bridge as one
+experience, fed by real Project Home, lab and journal data, and it remembers
+where you were. Owner reaction: "a lot closer". Next: 1b.2 layout + life, then
+1c (media, calendars, interests). The live instance is untouched; no cutover
+without the owner's approval.
+
+## 2026-09-25 — VISION REVIEW → PLAN
 
 **Read [`.project/PLAN.md`](PLAN.md) first.** It is the owner-approved plan
 (2026-09-25) and supersedes TRUE-NORTH's scope and sequencing where they differ

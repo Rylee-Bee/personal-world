@@ -207,6 +207,125 @@ const SECTIONS = [
   { id: "settings", label: "Settings", icon: "navigation--settings", order: 2, visible: true, pinned: true, kind: "core", configured: true, status: null },
 ];
 
+// ── Worlds briefing + place fixtures (Bridge home, contract v1) ──────
+// FICTION ONLY. Covers arrivals, a five-item have_tos total (the tray
+// cap), one not_configured system (news), one unavailable system
+// (threads), and a person-authored thread. Shapes copy the published
+// worlds-briefing/1 contract; see ui/src/data/contract.ts.
+
+function bridgeResident(key, name, portrait) {
+  return { key, name, portrait };
+}
+
+function bridgeItem(system, id, kind, title, detail, at, isNew, link = null) {
+  return { id, system, kind, title, detail, at, new: isNew, link };
+}
+
+const BRIDGE_SYSTEMS = [
+  {
+    id: "agents",
+    name: "Workshop",
+    resident: bridgeResident("robot", "Bolt", "/assets/characters/bolt.png"),
+    status: "healthy",
+    voice: "Two things on the bench still want a look. Nothing's on fire — but they're yours when you're ready.",
+    counts: { arrivals: 2, have_tos: 2 },
+    source: { name: "Project Home", observed_at: "2026-09-25T08:40:00Z", freshness: "fresh" },
+    items: [
+      bridgeItem("agents", "agents:pr-review", "have_to", "Review the Play-Nice contract bump", "A dependency refresh is waiting on your call.", "2026-09-25T08:30:00Z", true, { label: "Open Projects", href: null, area: "projects" }),
+      bridgeItem("agents", "agents:tool-failure", "have_to", "A tool run failed overnight", "Nothing was damaged; the retry is queued.", "2026-09-25T07:10:00Z", true),
+      bridgeItem("agents", "agents:bookmark-onboarding", "arrival", "Personal World: polish the onboarding copy", "Next action: review accessibility before the merge.", "2026-09-24T19:00:00Z", false),
+      bridgeItem("agents", "agents:bookmark-docs", "arrival", "Personal World: finish the briefing docs", "Next action: write down the place contract.", "2026-09-24T16:20:00Z", false),
+    ],
+  },
+  {
+    id: "estate",
+    name: "Engine room",
+    resident: bridgeResident("hekek", "Hekek", "/assets/characters/hekek.png"),
+    status: "warning",
+    voice: "Two rows want tending. A patch will hold until a proper repair — your call.",
+    counts: { arrivals: 1, have_tos: 2 },
+    source: { name: "lab lowbw", observed_at: "2026-09-25T08:45:00Z", freshness: "fresh" },
+    items: [
+      bridgeItem("estate", "estate:urgent-backup", "have_to", "The backup volume is nearly full", "Trim old snapshots, or grow the volume.", "2026-09-25T08:20:00Z", true),
+      bridgeItem("estate", "estate:urgent-cert", "have_to", "A service certificate expires soon", "Renew it before it lapses; nothing is down yet.", "2026-09-24T22:00:00Z", false),
+      bridgeItem("estate", "estate:review-log", "arrival", "New review rows in the lab packet", "Three observations are ready to read.", "2026-09-25T07:55:00Z", true),
+    ],
+  },
+  {
+    id: "records",
+    name: "Archive",
+    resident: bridgeResident("bruma", "Bruma", "/assets/characters/bruma.png"),
+    status: "healthy",
+    voice: "I kept your last note safe. Would you like the original, or the summary?",
+    counts: { arrivals: 1, have_tos: 1 },
+    source: { name: "journal", observed_at: "2026-09-25T08:50:00Z", freshness: "fresh" },
+    items: [
+      bridgeItem("records", "records:thread-latest", "thread", "Picked the calm-hub direction; the loop comes first.", "Your own words, from your latest entry.", "2026-09-24T18:00:00Z", true, { label: "Open Memory", href: null, area: "memory" }),
+      bridgeItem("records", "records:have-to-review", "have_to", "A record wants a second look", "One pinned record may be out of date.", "2026-09-24T12:00:00Z", false, { label: "Open Memory", href: null, area: "memory" }),
+    ],
+  },
+  {
+    id: "interests",
+    name: "Observatory",
+    resident: bridgeResident("mira", "Mira", "/assets/characters/mira.png"),
+    status: "healthy",
+    voice: "I noticed a pattern in what you've been reading. I'll keep watching.",
+    counts: { arrivals: 0, have_tos: 0 },
+    source: { name: "discovery", observed_at: "2026-09-25T08:30:00Z", freshness: "fresh" },
+    items: [
+      bridgeItem("interests", "interests:find-1", "interest", "Self-hosting keeps coming up", "A source you follow published about it.", "2026-09-23T10:00:00Z", false),
+    ],
+  },
+  {
+    id: "news",
+    name: "Newsstand",
+    resident: bridgeResident("taco-news-truck", "Burrito Journalism", "/assets/characters/burrito.png"),
+    status: "not_configured",
+    voice: "No feed plugged in yet — the truck's parked and the paper's blank. Nothing to report, honestly.",
+    counts: { arrivals: 0, have_tos: 0 },
+    source: { name: "media", observed_at: null, freshness: "unknown" },
+    items: [],
+  },
+  {
+    id: "threads",
+    name: "World tree",
+    resident: bridgeResident("world-tree-squirrel", "Ratatoskr", "/assets/characters/ratatoskr.png"),
+    status: "unavailable",
+    voice: "The branch I climb is out of reach right now. I'll carry word when it's back — until then, nothing.",
+    counts: { arrivals: 0, have_tos: 0 },
+    source: { name: "place + last thread", observed_at: null, freshness: "unknown" },
+    items: [],
+  },
+];
+
+const BRIDGE_SYSTEM_IDS = BRIDGE_SYSTEMS.map((s) => s.id);
+
+function bridgeFixture() {
+  const byNewest = (a, b) => ((a.at ?? "") < (b.at ?? "") ? 1 : -1);
+  const haveTo = BRIDGE_SYSTEMS.flatMap((s) => s.items.filter((i) => i.kind === "have_to")).sort(byNewest);
+  const arrivals = BRIDGE_SYSTEMS.flatMap((s) => s.items.filter((i) => i.kind !== "have_to")).sort(byNewest).slice(0, 5);
+  return {
+    schema: "worlds-briefing/1",
+    generated_at: "2026-09-25T09:00:00Z",
+    since: "2026-09-24T17:00:00Z",
+    keeper: {
+      line: "Two things need you, and the Workshop has been busy. Take your time — the bridge holds.",
+      mood: "busy",
+      resident: bridgeResident("personal-world", "Personal World", "/assets/characters/personal-world.png"),
+    },
+    systems: BRIDGE_SYSTEMS,
+    have_tos: haveTo.slice(0, 3),
+    have_tos_total: haveTo.length,
+    arrivals,
+    thread: BRIDGE_SYSTEMS.flatMap((s) => s.items).find((i) => i.kind === "thread") ?? null,
+  };
+}
+
+// Continuity: the stored place (per-person on the real station). Null on
+// a first visit; PUT stamps updated_at, which the next briefing's
+// `since` would carry.
+let PLACE = null;
+
 // ── Records fixtures (Lane R-FE, 2026-09-21) ─────────────────────────
 // Envelope shapes copied verbatim from docs/RECORDS-API.md and
 // tests/test_records.py + api.py records_*: category rows are
@@ -628,6 +747,30 @@ const server = http.createServer(async (req, res) => {
   if (p === "/api/sections" && (method === "GET" || method === "PUT")) {
     return json(res, 200, ok("healthy", { schema: "sections.v1", sections: SECTIONS }));
   }
+  // GET /api/briefing — mirrors api.py briefing(): one dated read of
+  // the whole world. `since` is the last place the person stood, so
+  // the Keeper can greet with continuity. Fiction only.
+  if (method === "GET" && p === "/api/briefing") {
+    return json(res, 200, ok("needs_attention", bridgeFixture()));
+  }
+  // GET /api/place — the stored place, or an honest null on a first
+  // visit (never a fabricated default; the UI chooses its own).
+  if (method === "GET" && p === "/api/place") {
+    return json(res, 200, ok("healthy", { place: PLACE }));
+  }
+  // PUT /api/place — per-person, atomic, no step-up. An unknown
+  // system is a 422, exactly like api.py place_put().
+  if (method === "PUT" && p === "/api/place") {
+    const body = await readBody(req);
+    if (body === null) return json(res, 400, { detail: "body must be JSON" });
+    const system = body.system === null || body.system === undefined ? null : String(body.system);
+    if (system !== null && !BRIDGE_SYSTEM_IDS.includes(system)) {
+      return json(res, 422, { detail: `unknown system '${system}'` });
+    }
+    const itemId = body.item_id === null || body.item_id === undefined ? null : String(body.item_id);
+    PLACE = { system, item_id: itemId, updated_at: new Date().toISOString() };
+    return json(res, 200, ok("healthy", { place: PLACE }));
+  }
   // Test-only fixture reset (see CURRENT_SEED) — restores the seeded
   // journal/superseded/draft state. Never mirrored in api.py by design.
   if (method === "DELETE" && p === "/api/__test/reset") {
@@ -636,6 +779,7 @@ const server = http.createServer(async (req, res) => {
     SUPERSEDED.length = 0;
     SUPERSEDED.push(...structuredClone(SUPERSEDED_SEED));
     DRAFT = null;
+    PLACE = null;
     return json(res, 200, ok("healthy", { reset: true }));
   }
   if (method === "GET" && p === "/api/journal") {

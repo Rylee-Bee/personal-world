@@ -4,7 +4,7 @@ import { navButtonLabels } from "./helpers";
 /**
  * Landmark stability — the C3/Δ3 gate artifact.
  *
- * The council rule: the four skeleton landmarks (Overview · Memory ·
+ * The council rule: the four skeleton landmarks (Bridge · Memory ·
  * Chat · Settings) are non-rearrangeable and always reachable under
  * any customization, any theme, even when every section is hidden.
  * These tests drive the REAL rendered nav against deliberately
@@ -15,7 +15,7 @@ import { navButtonLabels } from "./helpers";
  * after first paint, so a one-shot read races the derivation.
  */
 
-const LANDMARKS = ["Overview", "Memory", "Chat", "Settings"] as const;
+const LANDMARKS = ["Bridge", "Memory", "Chat", "Settings"] as const;
 
 function row(id: string, order: number, visible = true) {
   return {
@@ -44,15 +44,15 @@ async function mockSections(page: Page, sections: unknown[]) {
 }
 
 test.describe("landmark stability (C3/Δ3)", () => {
-  test("a fresh load — no stored state — shows plain and the four landmarks in order", async ({
+  test("a fresh load — no stored state — shows starfield and the four landmarks in order", async ({
     page,
   }) => {
     // A new browser context has empty localStorage by construction:
-    // this is the first-run path (DEFAULT_THEME = plain, D2).
+    // this is the first-run path (DEFAULT_THEME = starfield, 2026-09-25).
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute(
       "data-theme",
-      "plain",
+      "starfield",
     );
     await expect
       .poll(async () => (await navButtonLabels(page)).slice(0, 4))
@@ -83,7 +83,7 @@ test.describe("landmark stability (C3/Δ3)", () => {
     const nav = page.getByRole("navigation", { name: "World navigation" });
     await expect
       .poll(async () => navButtonLabels(page), { timeout: 10_000 })
-      .toEqual(["Overview", "Memory", "Chat", "Settings", "Computers"]);
+      .toEqual(["Bridge", "Memory", "Chat", "Settings", "Computers"]);
 
     // Reachable: every landmark still opens its screen.
     await nav.getByRole("button", { name: "Memory", exact: true }).click();
@@ -98,10 +98,11 @@ test.describe("landmark stability (C3/Δ3)", () => {
     await expect(
       page.getByRole("heading", { name: "Settings", level: 1 }),
     ).toBeVisible();
-    await nav.getByRole("button", { name: "Overview", exact: true }).click();
-    await expect(
-      page.getByRole("heading", { name: /Operator/i, level: 1 }),
-    ).toBeVisible();
+    await nav.getByRole("button", { name: "Bridge", exact: true }).click();
+    await expect(page.getByRole("main")).toHaveAttribute(
+      "aria-label",
+      "Bridge",
+    );
   });
 
   test("a scrambled server order cannot reorder or rename the landmarks", async ({
@@ -122,7 +123,7 @@ test.describe("landmark stability (C3/Δ3)", () => {
         // Fixed skeleton first (names AND order are the client's),
         // then the server-ordered personal sections; the server's
         // fake labels ("Server interests") never surface.
-        "Overview",
+        "Bridge",
         "Memory",
         "Chat",
         "Settings",
@@ -140,7 +141,7 @@ test.describe("landmark stability (C3/Δ3)", () => {
     await expect
       .poll(async () => navButtonLabels(page), { timeout: 10_000 })
       .toEqual([
-        "Overview",
+        "Bridge",
         "Memory",
         "Chat",
         "Settings",
@@ -166,7 +167,7 @@ test.describe("landmark stability (C3/Δ3)", () => {
     await expect
       .poll(async () => navButtonLabels(page), { timeout: 10_000 })
       .toEqual([
-        "Overview",
+        "Bridge",
         "Memory",
         "Chat",
         "Settings",

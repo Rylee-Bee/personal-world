@@ -10,8 +10,8 @@
  * The journal now lives INSIDE the Memory landmark (the re-cut moved
  * the screen, not the behaviour). The reload tests are the contract
  * proof that an interrupted person resumes: after a reload the app
- * lands on a clearly predictable place (Overview — never a silently
- * lost state), and the unsaved draft is still there when they return
+ * lands on a clearly predictable place (the Bridge, home — never a
+ * silently lost state), and the unsaved draft is still there when they return
  * to Memory.
  */
 import { test, expect, type Page } from "@playwright/test";
@@ -31,7 +31,7 @@ async function resetDraft(page: Page) {
 }
 
 /** Open Memory from wherever the app currently is (nav-scoped click —
- *  Overview's Explore tiles carry the same label, so no loose ends). */
+ *  the Bridge's items can carry the same label, so no loose ends). */
 async function openMemory(page: Page) {
   await page
     .getByRole("navigation", { name: "World navigation" })
@@ -83,12 +83,9 @@ test("interruption/resumption: reload → predictable landing → the draft is b
   await page.reload();
 
   // Δ3 floor: the reload lands somewhere CLEARLY PREDICTABLE — the
-  // Overview landmark, the first thing the skeleton pins. Never a
-  // silently lost or random screen.
-  await expect(page.getByRole("main")).toHaveAttribute("aria-label", "Overview");
-  await expect(
-    page.getByRole("heading", { name: /Operator/i, level: 1 }),
-  ).toBeVisible();
+  // Bridge (the home landmark), the first thing the skeleton pins.
+  // Never a silently lost or random screen.
+  await expect(page.getByRole("main")).toHaveAttribute("aria-label", "Bridge");
 
   // And the way back is one landmark click — after which the words
   // she was writing are WAITING, not gone.

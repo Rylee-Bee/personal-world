@@ -452,6 +452,10 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     # edit-pair capture v0 (B5, DRAFT-SYNC-SPEC §capture lineage): one
     # BOT→Rylee edit pair per NDJSON line, per principal, same seam.
     "journal_edit_pairs": "journal-edit-pairs.ndjson",
+    # Briefing continuity: where the person last was, so a later visit
+    # can say "arrived while you were away". Same per-principal seam as
+    # drafts; the briefing contract (worlds-briefing/1) owns the shape.
+    "last_place": "last-place.json",
 }
 
 #: Legacy (single-user default) discovery config location. Matches

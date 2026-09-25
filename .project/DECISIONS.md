@@ -607,3 +607,31 @@ dated entry superseding the old one (append-only, like the journal).
   (Compose v5.5.1 + buildx docker-container driver tries the registry
   first and fails `denied`). Reason: honest record of everything that
   changed live state tonight.
+
+## Vision review + Step 1 "first light" — 2026-09-25
+
+- **2026-09-25 — Vision review; `.project/PLAN.md` becomes the plan
+  (owner-approved).** Owner answers: things come to her (email-like, calm,
+  have-tos in one place); the bridge of her station (Constellation star map
+  as starting direction); Worlds + Project Home are one product in her mind;
+  fun is a requirement. Supersedes TRUE-NORTH scope and sequencing where they
+  differ; its honesty and accessibility principles stand. Parked:
+  Node/Headscale, Workbench, new contract machinery. Reason: the owner's own
+  statement of intent, recorded in the review doc and PLAN.md.
+- **2026-09-25 — Keeper, briefing and bridge are one experience; personality
+  in 1b (owner directive).** Each system has a resident from the owner's
+  canon who reports it in their own voice (Bolt: Workshop/agents; Hekek:
+  Engine room/estate; Bruma: Archive/records; Mira: Observatory/interests;
+  Burrito Journalism: Newsstand; Ratatoskr: World tree/threads). The World
+  Keeper speaks the briefing in words; its artwork never encodes status (the
+  WORLD_KEEPER founding rule stands). Reason: "personality should influence
+  how information is presented and explored, not just decorate."
+- **2026-09-25 — Default theme plain → starfield (supersedes D2 of
+  2026-09-22).** Owner directive: the warm sci-fi identity; calm does not
+  mean boring. Reversible: Settings still offers every theme; device choice
+  overrides. Reason: owner directive, PLAN.md rule set.
+- **2026-09-25 — `ui/` truth pass: unused API hooks are unfinished intent,
+  not dead code.** Only the orphaned `ui/src/mocks/server.ts` and
+  placeholder copy were removed; media/reminder/connection hooks stay for
+  wiring. Reason: owner rule "distinguish dead code from unfinished product
+  intent".

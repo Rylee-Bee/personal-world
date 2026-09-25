@@ -52,10 +52,10 @@ test.describe("Memory layout is deterministic (G-memory)", () => {
     expect(await landmarkOrder(page)).toEqual(LANDMARKS);
     await expectFixedFixtures(page);
 
-    // Leave for Overview, come back — the place did not move.
+    // Leave for the Bridge (home), come back — the place did not move.
     await page
       .getByRole("navigation", { name: "World navigation" })
-      .getByRole("button", { name: "Overview", exact: true })
+      .getByRole("button", { name: "Bridge", exact: true })
       .click();
     await gotoMemory(page);
     expect(await landmarkOrder(page)).toEqual(LANDMARKS);

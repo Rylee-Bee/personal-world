@@ -10,8 +10,8 @@ import { expectKeyboardFocusRing } from "./helpers";
 
 async function gotoInterests(page: Page) {
   await page.goto("/");
-  // Nav-scoped: Overview's Explore tiles carry the same word, and
-  // strict mode would rather not guess which door you meant.
+  // Nav-scoped: the Bridge's lenses and briefing carry system words
+  // too, and strict mode would rather not guess which door you meant.
   await page
     .getByRole("navigation", { name: "World navigation" })
     .getByRole("button", { name: "Interests" })

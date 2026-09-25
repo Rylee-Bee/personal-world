@@ -84,8 +84,16 @@ class LabState(StatusContract):
         status = "stale" if stale else "healthy"
         return ok(
             status,
-            data={"rows": rows, "schema": packet.get("schema", "lab-lowbw/1"),
-                  "generated_at": packet.get("generated_at", "")},
+            data={
+                "rows": rows,
+                "schema": packet.get("schema", "lab-lowbw/1"),
+                "generated_at": packet.get("generated_at", ""),
+                # Packet-level summary fields, passed through structurally
+                # (additive): the Worlds briefing reads overall_state to
+                # render 'unknown' honestly, and next_action verbatim.
+                "overall_state": packet.get("overall_state"),
+                "next_action": packet.get("next_action"),
+            },
         )
 
     def _fetch(self) -> dict | None:
@@ -133,6 +141,16 @@ class LabState(StatusContract):
                         "detail": o.get("detail", ""),
                         "action": o.get("action"),
                         "state": o.get("state", "unknown"),
+                        # Additive passthrough (2026-09-25): the Bridge's
+                        # Engine room needs readable words when `detail`
+                        # is empty. Evidence keeps only detail + source.
+                        "summary": o.get("summary"),
+                        "source": o.get("source"),
+                        "evidence": [
+                            {"detail": e.get("detail"), "source": e.get("source")}
+                            for e in (o.get("evidence") or [])
+                            if isinstance(e, dict)
+                        ],
                         "observed_at": (
                             (o.get("evidence") or [{}])[0].get("observed_at", "")
                             if o.get("evidence") else ""
