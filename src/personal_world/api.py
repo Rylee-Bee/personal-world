@@ -2560,6 +2560,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         journal_target = journal if uj == journal.path else Journal(uj)
         place = _read_place(request)
 
+        # One rooms read per request, sharing the same 15 s cache (and 2 s
+        # per-room timeout) as GET /api/rooms — never a second HTTP round.
+        # The snapshot never raises and never claims a dead room healthy.
+        rooms = await _ROOMS.snapshot()
+
         def _compose() -> dict:
             return build_briefing(
                 project_home=ProjectHomeSource.from_env(),
@@ -2567,6 +2572,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 discovery=_discovery_for(request),
                 journal=journal_target,
                 place=place,
+                rooms=rooms,
                 name_hint=getattr(principal, "display_name", None),
             )
 

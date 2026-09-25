@@ -332,6 +332,119 @@ class TestEstateMapping:
         assert _items(brief, "estate", "have_to")[0]["title"] == "d1"
 
 
+# ── rooms (contract room/0) ──────────────────────────────────────────
+def _room(
+    row_id="workshop",
+    status="healthy",
+    needs=None,
+    name="Workshop",
+    checked_at=None,
+):
+    """One honest room row, shaped exactly like GET /api/rooms."""
+    reachable = status != "unreachable"
+    return {
+        "id": row_id,
+        "base_url": "http://room.test",
+        "reachable": reachable,
+        "status": status,
+        "room": (
+            {
+                "contract": "room/0", "id": row_id, "name": name,
+                "icon": "book", "version": "1.2.0", "commit": "a1b2c3d",
+                "status": status, "updated_at": _iso(NOW - timedelta(minutes=5)),
+            }
+            if reachable
+            else None
+        ),
+        "needs_you": list(needs or []),
+        "error": None,
+        "checked_at": checked_at or _iso(NOW - timedelta(minutes=1)),
+        "last_seen": _iso(NOW - timedelta(minutes=1)) if reachable else None,
+    }
+
+
+def _needs(count):
+    return [
+        {
+            "id": f"need-{i}",
+            "title": f"Room need {i}",
+            "why": "the room is waiting",
+            "actions": [],
+            "created_at": _iso(NOW - timedelta(minutes=i + 1)),
+        }
+        for i in range(count)
+    ]
+
+
+class TestRoomsSource:
+    def test_healthy_room_names_the_workshop_system_with_its_count(self):
+        brief = _brief(rooms=[_room(needs=_needs(32))])
+        agents = _system(brief, "agents")
+        # A room id (workshop) names the Workshop system by its human name.
+        assert agents["status"] == "healthy"
+        assert agents["counts"] == {"arrivals": 0, "have_tos": 32}
+        assert [i["kind"] for i in agents["items"]] == ["have_to"] * 8
+        assert all(i["system"] == "agents" for i in agents["items"])
+        # Needs are the room's needs-you, mapped without inventing.
+        assert agents["items"][0]["title"].startswith("Room need ")
+        assert agents["items"][0]["detail"] == "the room is waiting"
+        assert agents["source"]["name"] == "Workshop"
+        # The top-level list carries them too, deduped and capped at three.
+        assert brief["data"]["have_tos_total"] == 32
+        assert len(brief["data"]["have_tos"]) == 3
+        assert brief["status"] == "needs_attention"
+
+    def test_room_id_can_match_a_system_id(self):
+        # "estate" names the estate system by id, not just by name.
+        brief = _brief(rooms=[_room(row_id="estate", name="Engine room")])
+        assert _system(brief, "estate")["status"] == "healthy"
+
+    def test_unreachable_room_is_unavailable_never_healthy(self):
+        brief = _brief(rooms=[_room(status="unreachable")])
+        agents = _system(brief, "agents")
+        assert agents["status"] == "unavailable"
+        assert agents["status"] != "healthy"
+        assert agents["counts"]["have_tos"] == 0
+        # Overall is the worst system, not a healthy claim.
+        assert brief["status"] == "unavailable"
+
+    @pytest.mark.parametrize("room_status, system_status", [
+        ("healthy", "healthy"),
+        ("degraded", "warning"),
+        ("unhealthy", "needs_attention"),
+        ("unknown", "unknown"),
+    ])
+    def test_room_status_maps_onto_existing_system_words(
+        self, room_status, system_status
+    ):
+        brief = _brief(rooms=[_room(status=room_status)])
+        assert _system(brief, "agents")["status"] == system_status
+
+    def test_unmatched_room_contributes_needs_but_changes_no_system(self):
+        # "studio" names no system, so agents keeps its direct source.
+        brief = _brief(rooms=[_room(row_id="studio", name="Studio", needs=_needs(2))])
+        agents = _system(brief, "agents")
+        assert agents["status"] == _system(_brief(), "agents")["status"]
+        assert agents["source"]["name"] == "Project Home"
+        assert agents["counts"]["have_tos"] == 0
+        assert brief["data"]["have_tos_total"] == 2
+        assert [i["id"] for i in brief["data"]["have_tos"]] == [
+            "studio:need-0", "studio:need-1",
+        ]
+        assert all(i["system"] == "studio" for i in brief["data"]["have_tos"])
+
+    def test_a_matched_rooms_needs_are_counted_once(self):
+        brief = _brief(rooms=[_room(needs=_needs(3))])
+        # System pool + room pool are the same three ids; dedupe by id.
+        assert brief["data"]["have_tos_total"] == 3
+
+    def test_no_rooms_is_byte_for_byte_the_old_briefing(self):
+        assert _brief(rooms=None) == _brief(rooms=[])
+        assert _brief() == _brief(rooms=[])
+        # An empty rooms list leaves every system on its direct provider.
+        assert _system(_brief(rooms=[]), "agents")["status"] == "healthy"
+
+
 # ── records / thread ─────────────────────────────────────────────────
 def _event(summary, source, ts):
     from personal_world.model import JournalEvent, JournalKind, Provenance

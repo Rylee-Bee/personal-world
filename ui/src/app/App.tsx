@@ -312,7 +312,7 @@ function StatusStrip() {
         : "bg-[var(--pw-accent-warm)]";
 
   return (
-    <footer className="relative z-20 sticky bottom-0 flex items-center gap-4 pt-[var(--pw-spacing-sm)] pb-[calc(var(--pw-spacing-sm)_+_var(--pw-safe-area-inset-bottom))] pl-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-left))] pr-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-right))] border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/90 backdrop-blur-md">
+    <footer className="relative z-20 flex items-center gap-4 pt-[var(--pw-spacing-sm)] pb-[calc(var(--pw-spacing-sm)_+_var(--pw-safe-area-inset-bottom))] pl-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-left))] pr-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-right))] border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/90 backdrop-blur-md">
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <span
           className={`h-2 w-2 rounded-full shrink-0 ${dotColor}`}
