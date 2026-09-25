@@ -8,7 +8,20 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
-## 2026-09-22 (evening) — WAVE 1 LANDED, LIVE ON THIS BOX (current)
+## 2026-09-25 — VISION REVIEW → PLAN (current)
+
+**Read [`.project/PLAN.md`](PLAN.md) first.** It is the owner-approved plan
+(2026-09-25) and supersedes TRUE-NORTH's scope and sequencing where they differ
+("things come to me", the star-map bridge, Keeper + briefing + bridge as one
+experience, fun as a requirement). TRUE-NORTH's honesty and accessibility
+principles still hold. Step 1 has GO. Review document with evidence:
+https://claude.ai/code/artifact/bd38f7ef-13ee-42e2-b700-9dc4079712f5.
+Landed today: PR #65 (design archive, tag `archive/pre-design-cleanup-2026-09-25`,
+old branches kept as `archive/branch/*`) and PR #66 (Play-Nice pin → `60eaeab`).
+The owner's live instance runs a Station-era build; do not cut it over without
+her explicit approval.
+
+## 2026-09-22 (evening) — WAVE 1 LANDED, LIVE ON THIS BOX
 
 Wave 1 of TRUE-NORTH execution merged to main and deployed live:
 
