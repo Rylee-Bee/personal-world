@@ -9,6 +9,12 @@ separate from its siblings, and the separation is the point:
 - **The one-sentence family thesis** → [`docs/CREW-AND-STATION-THESIS.md`](CREW-AND-STATION-THESIS.md).
 - **Accessibility** → [`docs/accessibility/ACCESSIBILITY_CONTRACT.md`](accessibility/ACCESSIBILITY_CONTRACT.md). The floor wins over every voice rule here.
 
+> **Owner canon update (2026-09-25).** The planet resident is now named **Sol** (the primary logo;
+> the crew's commbadges are based on her) and the burrito truck is **Scoop**, from *Burrito
+> Journalism*. Worlds itself is a place, not a companion. Where this handbook says "Personal World"
+> for the planet or "Burrito Journalism" for the truck, read Sol and Scoop; the character and
+> voice notes below are otherwise unchanged. Names and ids: [`COMPANION-CANON.md`](COMPANION-CANON.md).
+
 > **Pack canon (TRUE-NORTH § Voice, owner ruling 2026-09-22).** The product
 > default is now **one voice** with selectable tone registers
 > (`warm`·`concise`·`playful`·`formal`). The residents and the two-voice

@@ -16,6 +16,15 @@ Not a replacement for `design/COMPANION_INTEGRATION.md` (design/art authority),
 > flag (identifiers are not renamed by a voice ruling). Nothing below is
 > edited by that ruling.
 
+> **Owner canon update (2026-09-25, stated in the Doorways design session).**
+> - The smiling ringed planet is **Sol** ("her"). She is the **primary logo** and the one who pops
+>   up to greet and to tell you things; the crew's commbadges are based on her. Server key and art
+>   paths stay `personal-world` (display name only changes).
+> - **Worlds is a place, not a companion.** A "Worlds" room has no resident.
+> - The burrito truck's name is **Scoop**, from *Burrito Journalism* (the game keeps its name).
+> - Ratatoskr is confirmed as the squirrel of Norse fame.
+> Art for these lives in `design/assets/crew/{sol,renai,portraits,doorways}` (see its README).
+
 Two truths coexist and must not be silently merged:
 
 - **Owner canon is authoritative for the name a human reads and hears.**
@@ -35,8 +44,8 @@ Where this file disagrees with repo evidence, the disagreement is recorded below
 | **Renai** | Personal companion (the operator theme) | Owner canon 2026-09-17. **Not in the repo today** — repo still labels her "Mermaid" | `mermaid` | `mermaid` |
 | **Ratatoskr** | Worlds / lore / memory keeper — the Norse messenger squirrel | **VEFR** (owner game engine). Repo design label: "World-tree Squirrel" | `ratatoskr` | `world-tree-squirrel` |
 | **Bolt** | Lab / development / AI helper ("Little Helper Robot") | Repo design (`design/COMPANION_INTEGRATION.md`); personal name chosen by the owner, 2026-09-17 | `robot` | `robot` |
-| **Burrito Journalism** | Journalism / stories / city life — a **breakfast burrito truck** | **Burrito Journalism** (owner game). Repo design label: "Tacos & the Morning Paper" | `burrito` | `taco-news-truck` |
-| **Personal World** | Default system companion | Repo product identity | *(none — absent from the Station control)* | `personal-world` |
+| **Scoop** | Journalism / stories / city life — the **breakfast burrito truck** | **Burrito Journalism** (owner game; display name **Scoop** from 2026-09-25). Repo design label: "Tacos & the Morning Paper" | `burrito` | `taco-news-truck` |
+| **Sol** | The ringed planet: primary logo, greets and pops up (display name from 2026-09-25; formerly "Personal World") | Repo product identity | *(none — absent from the Station control)* | `personal-world` |
 | **Hekek** | Systems — Builder · Maintainer · Steward | Owner canon 2026-09-17. **New area character, not in the repo today** | `hekek` *(proposed)* | `hekek` *(proposed)* |
 | **Bruma** | Records — Archivist · Keeper · Witness | Owner canon 2026-09-17. **New area character, not in the repo today** | `bruma` *(proposed)* | `bruma` *(proposed)* |
 | **Mira** | Interests — Observer · Note-Taker · Pattern Seeker | Owner canon 2026-09-17. **New area character, not in the repo today** | `mira` *(proposed)* | `mira` *(proposed)* |
@@ -94,7 +103,7 @@ keeps its own value). The mapping above is the translation, not a live sync.
 
 | Surface | Use |
 |---|---|
-| Human-facing copy, docs, chat, UI labels | Owner canon: **Renai**, **Ratatoskr**, **Bolt**, **Burrito Journalism**, **Personal World**, **Hekek**, **Bruma**, **Mira**. **Settings** names the deck/icon, not a resident. |
+| Human-facing copy, docs, chat, UI labels | Owner canon: **Renai**, **Ratatoskr**, **Bolt**, **Scoop** (from *Burrito Journalism*), **Sol**, **Hekek**, **Bruma**, **Mira**. **Settings** names the deck/icon, not a resident. |
 | Station code (`design/opendesign-exploration/station/`) | ids `mermaid`, `ratatoskr`, `robot`, `burrito` (proposed for the new area crew: `hekek`, `bruma`, `mira`) |
 | Server / preferences / API | keys `personal-world`, `mermaid`, `robot`, `world-tree-squirrel`, `taco-news-truck` (proposed for the new area crew: `hekek`, `bruma`, `mira`) |
 | Artwork / rig filenames | Keep the existing paths (`mermaid`, `robot`, `world-tree-squirrel`, `taco-news-truck`, `personal-world`). Never rename art to match a display name. |
