@@ -551,3 +551,122 @@ export interface EndpointRow {
 export interface ManifestResponse extends Envelope<Record<string, unknown>> {
   endpoints: EndpointRow[];
 }
+
+// ─── Worlds briefing (contract v1, slice 1b "first light") ────────────
+//
+// GET /api/briefing — the world's own account of itself: the Keeper's
+// line, one system per resident, and the cross-system rooms she needs.
+// GET/PUT /api/place — continuity: where she was when she left.
+//
+// The briefing is read-only and person-scoped; every field here is
+// copied from the published contract (worlds-briefing/1), never
+// inferred. `at`, `observed_at`, `generated_at`, `since`, and
+// `updated_at` are ISO-8601 or the honest null the contract declares —
+// unknown stays unknown.
+
+/** The six systems of v1, in contract order. */
+export type BridgeSystemId =
+  | "agents"
+  | "estate"
+  | "records"
+  | "interests"
+  | "news"
+  | "threads";
+
+export type BridgeMood =
+  | "greeting"
+  | "calm"
+  | "busy"
+  | "sleepy"
+  | "celebrating";
+
+export type BridgeFreshness = "fresh" | "stale" | "unknown";
+
+export type BridgeItemKind = "arrival" | "have_to" | "thread" | "interest";
+
+export interface BridgeResident {
+  key: string;
+  name: string;
+  portrait: string;
+}
+
+export interface BridgeCounts {
+  arrivals: number;
+  have_tos: number;
+}
+
+export interface BridgeSource {
+  name: string;
+  observed_at: string | null;
+  freshness: BridgeFreshness;
+}
+
+/** Where an item can take the person next. `area` is a state-routed
+ *  destination; `href` is an outbound link (opens in a new tab); both
+ *  may be null — the item is then read-only. */
+export interface BridgeLink {
+  label: string;
+  href: string | null;
+  area: string | null;
+}
+
+export interface BridgeItem {
+  id: string;
+  system: BridgeSystemId;
+  kind: BridgeItemKind;
+  title: string;
+  detail: string | null;
+  at: string | null;
+  /** True only when the item arrived after the stored place's
+   *  `updated_at`; false whenever there was no `since`. */
+  new: boolean;
+  link: BridgeLink | null;
+}
+
+export interface BridgeSystem {
+  id: BridgeSystemId;
+  name: string;
+  resident: BridgeResident;
+  status: string;
+  voice: string;
+  counts: BridgeCounts;
+  source: BridgeSource;
+  items: BridgeItem[];
+}
+
+export interface BridgeKeeper {
+  line: string;
+  mood: BridgeMood;
+  resident: BridgeResident;
+}
+
+export interface BridgeData {
+  schema: string;
+  generated_at: string;
+  /** Previous visit's stored place time, or null on a first visit. */
+  since: string | null;
+  keeper: BridgeKeeper;
+  systems: BridgeSystem[];
+  /** Top three across all systems, most important first. */
+  have_tos: BridgeItem[];
+  have_tos_total: number;
+  /** Top five across systems, newest first. */
+  arrivals: BridgeItem[];
+  /** The person's own latest journal entry — never a machine line. */
+  thread: BridgeItem | null;
+}
+
+export interface Place {
+  system: string | null;
+  item_id: string | null;
+  updated_at: string;
+}
+
+export interface PlaceData {
+  place: Place | null;
+}
+
+export interface PlacePutRequest {
+  system: string | null;
+  item_id: string | null;
+}

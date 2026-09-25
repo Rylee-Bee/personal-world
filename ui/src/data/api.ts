@@ -71,6 +71,9 @@ import type {
   PrefsData,
   PrefsUpdateRequest,
   ProjectsStatusData,
+  BridgeData,
+  PlaceData,
+  PlacePutRequest,
 } from "./contract";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -202,6 +205,18 @@ function sendBody(
     options: { body: unknown; params?: unknown },
   ) => Promise<FetchResult>;
   return call(path, params === undefined ? { body } : { body, params });
+}
+
+/**
+ * GET sender for routes the generated spec snapshot does not carry yet
+ * (the briefing/place endpoints predate their spec entry). Same
+ * documented boundary as sendBody: one cast here keeps every call-site
+ * typed against contract.ts instead of casting per caller. Behavior is
+ * identical to `api.GET(path, {})`.
+ */
+function getRequest(path: string): Promise<FetchResult> {
+  const call = api.GET as (p: string, o: object) => Promise<FetchResult>;
+  return call(path, {});
 }
 
 // ===== Typed API functions =====
@@ -515,6 +530,20 @@ export const validateConnection = (body: ConnectionTestRequest) =>
 // 200 + ok:false "unavailable" envelope, which screens read honestly.
 export const getProjectsStatus = () =>
   unwrap<Envelope<ProjectsStatusData>>(api.GET("/api/projects/status", {}));
+
+// ===== Worlds briefing + place (continuity) =====
+// Contract v1, slice 1b. GET /api/briefing is read-only and
+// person-authenticated; GET/PUT /api/place is the continuity seam
+// (per-person scoped, atomic). Both carry the standard envelope and
+// answer soft failures as data — hooks/screens read `ok` honestly.
+export const getBriefing = () =>
+  unwrap<Envelope<BridgeData>>(getRequest("/api/briefing"));
+
+export const getPlace = () =>
+  unwrap<Envelope<PlaceData>>(getRequest("/api/place"));
+
+export const putPlace = (body: PlacePutRequest) =>
+  unwrap<Envelope<PlaceData>>(sendBody("PUT", "/api/place", body));
 
 // ===== Identity =====
 export const getPrincipal = () =>

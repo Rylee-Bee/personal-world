@@ -283,7 +283,7 @@ export interface WorldArea {
  * never the only door anywhere else).
  */
 export const SKELETON_AREAS: readonly WorldArea[] = [
-  { id: "overview", label: "Overview" },
+  { id: "overview", label: "Bridge" },
   { id: "memory", label: "Memory" },
   { id: "chat", label: "Chat" },
   { id: "settings", label: "Settings" },

@@ -84,8 +84,16 @@ class LabState(StatusContract):
         status = "stale" if stale else "healthy"
         return ok(
             status,
-            data={"rows": rows, "schema": packet.get("schema", "lab-lowbw/1"),
-                  "generated_at": packet.get("generated_at", "")},
+            data={
+                "rows": rows,
+                "schema": packet.get("schema", "lab-lowbw/1"),
+                "generated_at": packet.get("generated_at", ""),
+                # Packet-level summary fields, passed through structurally
+                # (additive): the Worlds briefing reads overall_state to
+                # render 'unknown' honestly, and next_action verbatim.
+                "overall_state": packet.get("overall_state"),
+                "next_action": packet.get("next_action"),
+            },
         )
 
     def _fetch(self) -> dict | None:

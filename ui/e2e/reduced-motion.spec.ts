@@ -18,7 +18,7 @@ import { test, expect, type Page } from "@playwright/test";
 
 async function gotoSettings(page: Page) {
   await page.goto("/");
-  // Nav-scoped — Overview's Explore tiles also say "Settings".
+  // Nav-scoped — the Bridge's lenses also say "Settings".
   await page
     .getByRole("navigation", { name: "World navigation" })
     .getByRole("button", { name: "Settings" })

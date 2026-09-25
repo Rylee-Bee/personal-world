@@ -263,7 +263,7 @@ test.describe("Settings Room (C1/C2)", () => {
       page.getByText(/language dials — not yet wired/),
     ).toHaveCount(1);
     // Not scattered: navigating away shows none of it.
-    await gotoArea(page, "Overview");
+    await gotoArea(page, "Bridge");
     await expect(
       page.getByText(/language dials — not yet wired/),
     ).toHaveCount(0);

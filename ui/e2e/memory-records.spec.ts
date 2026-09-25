@@ -11,7 +11,9 @@
  *     index (native_memory.py shape), proven below.
  *   • /api/records* — browsable categories, per-category records,
  *     step-up-gated writes, the 409 locked-read refusal, and the
- *     ?pinned=true Overview feed. The e2e mock (scripts/e2e-api.mjs)
+ *     ?pinned=true feed (no longer rendered on home — the Bridge shows
+ *     the briefing — but still real on the station; the e2e mock
+ *     (scripts/e2e-api.mjs)
  *     speaks the REAL envelopes copied from docs/RECORDS-API.md +
  *     tests/test_records.py; the locked-invitation flow additionally
  *     routes a per-test 409/step-up pair so parallel workers never
@@ -293,7 +295,7 @@ test.describe("Locked category → calm step-up invitation", () => {
 });
 
 test.describe("Records writes (step-up-gated)", () => {
-  test("create → pin → appears pinned on Overview → delete", async ({
+  test("create → pin → appears pinned → delete", async ({
     page,
   }) => {
     const records = await openRecords(page);
@@ -315,9 +317,17 @@ test.describe("Records writes (step-up-gated)", () => {
     await expect(list.getByText("E2E insurance card")).toBeVisible();
     await expect(list.getByText("PPO-42")).toBeVisible();
 
-    // Pin it → the Overview feed (GET /api/records?pinned=true) shows it.
+    // Pin it → the pinned feed (GET /api/records?pinned=true) carries it.
+    // Home is the Bridge now and the Bridge renders no pinned feed, so
+    // the feed's own truth is asserted through the station API.
     await list.getByRole("button", { name: "Pin record E2E insurance card" }).click();
     await expect(list.getByText("Pinned to Overview")).toBeVisible();
+    const pinnedFeed = await (
+      await page.request.get("http://127.0.0.1:4174/api/records?pinned=true")
+    ).json();
+    expect(
+      pinnedFeed.data.records.map((r: { title: string }) => r.title),
+    ).toContain("E2E insurance card");
 
     // G-memory find: the freshly pinned record is discoverable by a
     // plain lexical query — no model anywhere, no index to rebuild.
@@ -327,15 +337,13 @@ test.describe("Records writes (step-up-gated)", () => {
     await expect(found.getByText("E2E insurance card")).toBeVisible();
     await expect(found.getByText("Pinned to Overview")).toBeVisible();
 
+    // Leave Memory and come back — the screen remounts with a clean
+    // search box (the round trip the old Overview hop also provided).
     await page
       .getByRole("navigation", { name: "World navigation" })
-      .getByRole("button", { name: "Overview", exact: true })
+      .getByRole("button", { name: "Bridge", exact: true })
       .click();
-    const pinned = page.getByRole("region", { name: "Pinned" });
-    await expect(pinned.getByText("E2E insurance card")).toBeVisible();
-    await expect(pinned.getByText("Allergy list")).toBeVisible();
-
-    // Back to Memory → delete through the native confirm dialog.
+    await expect(page.getByRole("region", { name: "Star map" })).toBeVisible();
     await page
       .getByRole("navigation", { name: "World navigation" })
       .getByRole("button", { name: "Memory", exact: true })
@@ -365,17 +373,15 @@ test.describe("Records writes (step-up-gated)", () => {
       records2.getByText(/true zero, not a missing source/),
     ).toBeVisible();
 
-    // And Overview's feed no longer carries it.
-    await page
-      .getByRole("navigation", { name: "World navigation" })
-      .getByRole("button", { name: "Overview", exact: true })
-      .click();
-    await expect(
-      page.getByRole("region", { name: "Pinned" }).getByText("E2E insurance card"),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("region", { name: "Pinned" }).getByText("Allergy list"),
-    ).toBeVisible();
+    // And the pinned feed no longer carries it.
+    const pinnedAfter = await (
+      await page.request.get("http://127.0.0.1:4174/api/records?pinned=true")
+    ).json();
+    const pinnedTitles = pinnedAfter.data.records.map(
+      (r: { title: string }) => r.title,
+    );
+    expect(pinnedTitles).not.toContain("E2E insurance card");
+    expect(pinnedTitles).toContain("Allergy list");
   });
 
   test("a 403 from the step-up gate surfaces the elevate-first door, not silence", async ({
@@ -419,7 +425,7 @@ test.describe("Records writes (step-up-gated)", () => {
 });
 
 test.describe("Degraded: no memory provider", () => {
-  test("Records states the capability truth; Overview renders no Pinned section", async ({
+  test("Records states the capability truth; the Bridge renders no Pinned section", async ({
     page,
   }) => {
     const unavailable = {
@@ -442,26 +448,31 @@ test.describe("Degraded: no memory provider", () => {
       records.getByRole("button", { name: "Category Medical" }),
     ).toHaveCount(0);
 
-    // Overview: the Pinned feed is capability-gated — it renders
-    // NOTHING rather than an error card on the headlines surface.
+    // The Bridge (home) carries its own briefing, not a records feed:
+    // the degraded memory provider leaves no error card on the star map
+    // and no Pinned section anywhere on it.
     await page
       .getByRole("navigation", { name: "World navigation" })
-      .getByRole("button", { name: "Overview", exact: true })
+      .getByRole("button", { name: "Bridge", exact: true })
       .click();
+    await expect(page.getByRole("region", { name: "Star map" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Pinned" })).toHaveCount(0);
+    await expect(page.getByText("no memory provider")).toHaveCount(0);
   });
 
-  test("pinned records exist on a healthy station (the feed is real)", async ({
+  test("the pinned feed is real on a healthy station (through the station API)", async ({
     page,
   }) => {
     await page.goto("/");
-    const pinned = page.getByRole("region", { name: "Pinned" });
-    await expect(pinned.getByText("Allergy list")).toBeVisible();
-    await expect(pinned.getByText("Pinned record · Medical")).toBeVisible();
-    // Tap-through to the deeper section, per the Overview contract.
-    await pinned.getByRole("button", { name: "Open Memory to see all records" }).click();
+    const pinned = await (
+      await page.request.get("http://127.0.0.1:4174/api/records?pinned=true")
+    ).json();
+    const titles = pinned.data.records.map((r: { title: string }) => r.title);
+    expect(titles).toContain("Allergy list");
+    // Home is the Bridge: it shows the briefing, not the pinned feed.
     await expect(
-      page.getByRole("heading", { name: "Memory", level: 1 }),
+      page.getByRole("region", { name: "Star map" }),
     ).toBeVisible();
+    await expect(page.getByRole("region", { name: "Pinned" })).toHaveCount(0);
   });
 });

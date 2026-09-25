@@ -78,6 +78,9 @@ import {
   getMediaRecent,
   getMediaActivity,
   getProjectsStatus,
+  getBriefing,
+  getPlace,
+  putPlace,
 } from "./api";
 import type {
   Actor,
@@ -122,6 +125,8 @@ export const queryKeys = {
   prefs: ["prefs"] as const,
   records: ["records"] as const,
   projectsStatus: ["projects", "status"] as const,
+  briefing: ["briefing"] as const,
+  place: ["place"] as const,
 } as const;
 
 // ===== Health =====
@@ -728,6 +733,37 @@ export function useProjectsStatus() {
     queryKey: queryKeys.projectsStatus,
     queryFn: getProjectsStatus,
     staleTime: 60_000,
+  });
+}
+
+// ===== Worlds briefing + place (the Bridge) =====
+//
+// The briefing is the world's own account; the place is continuity.
+// Both are envelopes: a soft failure stays DATA (the screen reads
+// `ok`), while a hard failure throws and becomes the retry state.
+export function useBriefing() {
+  return useQuery({
+    queryKey: queryKeys.briefing,
+    queryFn: getBriefing,
+    staleTime: 60_000,
+  });
+}
+
+/** Where the person was when they last left. An honest `place: null`
+ *  is a first visit — never invented continuity. */
+export function usePlace() {
+  return useQuery({
+    queryKey: queryKeys.place,
+    queryFn: getPlace,
+    staleTime: 300_000,
+  });
+}
+
+/** PUT /api/place — debounced by the caller; the server stamps
+ *  `updated_at`, which becomes the next visit's `since`. */
+export function useSetPlace() {
+  return useMutation({
+    mutationFn: putPlace,
   });
 }
 

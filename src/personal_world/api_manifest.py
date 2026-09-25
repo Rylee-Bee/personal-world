@@ -274,6 +274,16 @@ ENDPOINTS: tuple[Endpoint, ...] = (
        note="newest CURRENT entry (calm-view tail) for the daily home "
             "loop's thread deep-link; honest null when empty; person "
             "principals only"),
+    # Worlds briefing / place continuity (contract: worlds-briefing/1).
+    _e("API-085", "GET", "/api/briefing", "briefing", "read", "none",
+       note="the world's briefing (six systems, have_tos, arrivals, "
+            "thread); read-only, never writes the journal; person "
+            "principals only"),
+    _e("API-086", "GET", "/api/place", "briefing", "read", "none",
+       note="the caller's last place (continuity); person principals only"),
+    _e("API-087", "PUT", "/api/place", "briefing", "write", "none",
+       note="stores the caller's last place; authenticated, not "
+            "elevation-gated; person principals only"),
     # journal drafts — lining rescue (D15 "kept safe, synced"); no elevation
     # by design: a draft mutates nothing a publish doesn't already change.
     _e("API-080", "PUT", "/api/journal/draft", "journal", "write", "none",

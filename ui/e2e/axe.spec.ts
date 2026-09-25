@@ -11,7 +11,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { gotoArea } from "./helpers";
 
-const VIEWS = ["Overview", "Memory", "Chat", "Settings"] as const;
+const VIEWS = ["Bridge", "Memory", "Chat", "Settings"] as const;
 
 for (const view of VIEWS) {
   test(`axe ${view}: 0 serious/critical`, async ({ page }) => {

@@ -1,0 +1,267 @@
+/**
+ * Tests for the Bridge — the home screen (contract worlds-briefing/1,
+ * slice 1b "first light").
+ *
+ * Pattern (same philosophy as overview-home-loop.test.tsx): the data
+ * layer is mocked at the hooks boundary, the fixture IS the server
+ * vocabulary, and the assertions are the honesty floor plus the a11y
+ * floor (spoken map labels, text-carried status, a calm tray, keyboard
+ * reachable bodies).
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+// ─── Mocked data boundary ────────────────────────────────────────────
+
+const { hookState, mutate } = vi.hoisted(() => ({
+  hookState: {
+    briefing: {
+      isPending: false,
+      isError: false,
+      error: undefined as unknown,
+      refetch: () => Promise.resolve(),
+      data: undefined as unknown,
+    },
+    place: { isPending: false, isError: false, data: undefined as unknown },
+  },
+  mutate: vi.fn(),
+}));
+
+vi.mock("../data/hooks", () => ({
+  useBriefing: () => hookState.briefing,
+  usePlace: () => hookState.place,
+  useSetPlace: () => ({ mutate }),
+}));
+
+import { Bridge } from "../screens/Bridge/Bridge";
+
+// ─── Fiction fixture — the server vocabulary, not a mock of the UI ────
+
+function item(system: string, id: string, kind: string, title: string, isNew = false) {
+  return {
+    id,
+    system,
+    kind,
+    title,
+    detail: `${title} — detail.`,
+    at: "2026-09-25T08:30:00Z",
+    new: isNew,
+    link: null,
+  };
+}
+
+function system(
+  id: string,
+  name: string,
+  residentName: string,
+  status: string,
+  voice: string,
+  arrivals: number,
+  haveTos: number,
+  items: unknown[] = [],
+) {
+  return {
+    id,
+    name,
+    resident: { key: residentName.toLowerCase(), name: residentName, portrait: `/assets/characters/${id}.png` },
+    status,
+    voice,
+    counts: { arrivals, have_tos: haveTos },
+    source: { name: `${name} source`, observed_at: "2026-09-25T08:45:00Z", freshness: "fresh" },
+    items,
+  };
+}
+
+const SYSTEM_LIST = [
+  system("agents", "Workshop", "Bolt", "healthy", "Two things on the bench still want a look.", 2, 2, [
+    item("agents", "agents:one", "have_to", "Review the contract bump", true),
+    item("agents", "agents:two", "arrival", "Polish the onboarding copy"),
+  ]),
+  system("estate", "Engine room", "Hekek", "warning", "A patch will hold until a proper repair.", 1, 2, [
+    item("estate", "estate:one", "have_to", "The backup volume is nearly full", true),
+  ]),
+  system("records", "Archive", "Bruma", "healthy", "I kept your last note safe.", 1, 1, [
+    item("records", "records:one", "have_to", "A record wants a second look"),
+  ]),
+  system("interests", "Observatory", "Mira", "healthy", "I noticed a pattern in what you've been reading.", 0, 0, []),
+  system("news", "Newsstand", "Burrito Journalism", "not_configured", "No feed plugged in yet — nothing to report, honestly.", 0, 0, []),
+  system("threads", "World tree", "Ratatoskr", "unavailable", "The branch I climb is out of reach right now.", 0, 0, []),
+];
+
+const HAVE_TOS = [
+  item("agents", "agents:one", "have_to", "Review the contract bump", true),
+  item("estate", "estate:one", "have_to", "The backup volume is nearly full", true),
+  item("records", "records:one", "have_to", "A record wants a second look"),
+];
+
+const BRIEFING = {
+  ok: true,
+  status: "needs_attention",
+  data: {
+    schema: "worlds-briefing/1",
+    generated_at: "2026-09-25T09:00:00Z",
+    since: "2026-09-24T17:00:00Z",
+    keeper: {
+      line: "Two things need you, and the Workshop has been busy.",
+      mood: "busy",
+      resident: { key: "personal-world", name: "Personal World", portrait: "/assets/characters/personal-world.png" },
+    },
+    systems: SYSTEM_LIST,
+    // Five total, three shown — the tray cap under test.
+    have_tos: HAVE_TOS,
+    have_tos_total: 5,
+    arrivals: [item("agents", "agents:two", "arrival", "Polish the onboarding copy")],
+    thread: null,
+  },
+};
+
+beforeEach(() => {
+  mutate.mockClear();
+  hookState.briefing = {
+    isPending: false,
+    isError: false,
+    error: undefined,
+    refetch: () => Promise.resolve(),
+    data: BRIEFING,
+  };
+  hookState.place = { isPending: false, isError: false, data: { ok: true, data: { place: null } } };
+});
+
+afterEach(() => cleanup());
+
+describe("Bridge — the world at a glance", () => {
+  it("renders every system with its resident's spoken label", () => {
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+
+    // Map bodies are buttons whose label names system, resident, and the
+    // honest status word + counts.
+    expect(
+      screen.getByRole("button", {
+        name: "Workshop — Bolt — Healthy, 2 new, 2 need you",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Newsstand — Burrito Journalism — Not configured, 0 new, 0 need you",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "World tree — Ratatoskr — Unavailable, 0 new, 0 need you",
+      }),
+    ).toBeInTheDocument();
+
+    // The lenses list names each system too.
+    const lenses = screen.getByRole("navigation", { name: "World lenses" });
+    expect(lenses).toBeInTheDocument();
+    for (const s of SYSTEM_LIST) {
+      expect(screen.getByRole("button", { name: `${s.name} — ${statusWordOf(s.status)}` })).toBeInTheDocument();
+    }
+
+    // The Keeper speaks the briefing line in the footer status line.
+    expect(
+      screen.getByText(/Two things need you, and the Workshop has been busy\./),
+    ).toBeInTheDocument();
+  });
+
+  it("opens on the system with the most new arrivals", () => {
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    const panel = screen.getByRole("complementary", { name: "Briefing panel" });
+    expect(panel).toHaveTextContent("Workshop");
+    expect(panel).toHaveTextContent("Bolt");
+    // A never-writes-on-open contract: the world's own choice is not hers.
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it("caps the Needs-you tray at three and counts the rest quietly", () => {
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    const tray = screen.getByRole("region", { name: "Needs you" });
+    expect(tray.querySelectorAll("li")).toHaveLength(3);
+    expect(tray).toHaveTextContent("Review the contract bump");
+    expect(tray).toHaveTextContent("A record wants a second look");
+    expect(tray).toHaveTextContent("and 2 more, quietly waiting");
+  });
+
+  it("shows a not_configured system's honest voice, never a fake item", async () => {
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    // The Newsstand lens (name + status word).
+    await userEvent.click(
+      screen.getByRole("button", { name: "Newsstand — Not configured" }),
+    );
+    const panel = screen.getByRole("complementary", { name: "Briefing panel" });
+    expect(panel).toHaveTextContent("Status: Not configured");
+    expect(panel).toHaveTextContent(
+      "No feed plugged in yet — nothing to report, honestly.",
+    );
+    expect(panel).toHaveTextContent("Nothing to show here yet.");
+  });
+
+  it("remembers a chosen system with one debounced place write", async () => {
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Archive — Healthy" }),
+    );
+    await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1), { timeout: 2500 });
+    expect(mutate).toHaveBeenCalledWith({ system: "records", item_id: null });
+  });
+
+  it("selects a system from the map by keyboard", async () => {
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    const body = screen.getByRole("button", {
+      name: "Engine room — Hekek — Warning, 1 new, 2 need you",
+    });
+    body.focus();
+    expect(body).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    const panel = screen.getByRole("complementary", { name: "Briefing panel" });
+    expect(panel).toHaveTextContent("Engine room");
+    expect(panel).toHaveTextContent("Warning");
+  });
+
+  it("says the world is unreachable, with a retry, when the briefing fails", async () => {
+    const refetch = vi.fn(() => Promise.resolve());
+    hookState.briefing = {
+      isPending: false,
+      isError: true,
+      error: new Error("station did not answer"),
+      refetch,
+      data: undefined,
+    };
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    expect(
+      screen.getByText("Couldn't reach your world right now."),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("gathers the world while loading — no invented rows", () => {
+    hookState.briefing = {
+      isPending: true,
+      isError: false,
+      error: undefined,
+      refetch: () => Promise.resolve(),
+      data: undefined,
+    };
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    expect(screen.getByText("Gathering your world…")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "World lenses" })).toBeNull();
+  });
+});
+
+/** The UI's own status vocabulary, mirrored here so the fixture's raw
+ *  status strings are asserted against words, not tokens. */
+function statusWordOf(raw: string): string {
+  const words: Record<string, string> = {
+    healthy: "Healthy",
+    warning: "Warning",
+    needs_attention: "Needs attention",
+    unavailable: "Unavailable",
+    stale: "Stale",
+    disabled: "Disabled",
+    not_configured: "Not configured",
+    unknown: "Unknown",
+  };
+  return words[raw] ?? "Unknown";
+}

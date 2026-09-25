@@ -254,3 +254,80 @@ body {
     linear-gradient(90deg, rgba(90, 168, 184, 0.04) 1px, transparent 1px);
   background-size: 80px 80px;
 }
+
+/* ── Bridge layout ────────────────────────────────────────────────────
+   Grid AREAS, not visual reordering: the source order is the semantic
+   order (strip → tray → lenses → map → panel → keeper, accessibility
+   contract §5.1/§5.2) and CSS only names where each region sits. On a
+   phone the tray rises to the top and the panel becomes a bottom
+   sheet; on a desk the lenses sit left, the map centre, the panel
+   right (≥ 860px — the phone/desk boundary the contract names). */
+.bridge-layout {
+  display: grid;
+  gap: var(--pw-spacing-lg);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "strip"
+    "tray"
+    "lenses"
+    "map"
+    "panel"
+    "keeper";
+}
+@media (min-width: 860px) {
+  .bridge-layout {
+    grid-template-columns:
+      minmax(180px, 220px) minmax(0, 1fr) minmax(280px, 360px);
+    grid-template-areas:
+      "strip strip strip"
+      "lenses map tray"
+      "lenses map panel"
+      "keeper keeper keeper";
+    align-items: start;
+  }
+}
+.bridge-strip { grid-area: strip; }
+.bridge-tray { grid-area: tray; }
+.bridge-lenses { grid-area: lenses; }
+.bridge-map { grid-area: map; }
+.bridge-panel { grid-area: panel; }
+.bridge-keeper { grid-area: keeper; }
+
+/* Star-map body: a soft glow behind the selected system. Luminance only
+   (never hue alone); the words on the body carry the status. */
+.bridge-map > .starfield-bg,
+.bridge-map > .grid-overlay {
+  position: absolute;
+  border-radius: var(--pw-radius-lg);
+}
+
+/* Subtle twinkle — ONLY when motion is explicitly allowed ("subtle"
+   tier). The default (reduced) and the OS prefers-reduced-motion floor
+   both leave these dots still; the applied-prefs layer and the media
+   query below switch them off. Decorative and aria-hidden always. */
+.bridge-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--pw-text-secondary);
+  opacity: 0.28;
+  animation: none;
+}
+[data-pw-motion="subtle"] .bridge-star {
+  animation: bridge-twinkle 6s ease-in-out infinite;
+}
+@keyframes bridge-twinkle {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-pw-motion] .bridge-star {
+    animation: none !important;
+  }
+}

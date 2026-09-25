@@ -71,8 +71,10 @@ describe("types constants", () => {
         "chat",
         "settings",
       ]);
+      // The home area keeps its id ("overview") but now wears the
+      // Bridge label (owner plan 2026-09-25: the Bridge is home).
       expect(SKELETON_AREAS.map((a) => a.label)).toEqual([
-        "Overview",
+        "Bridge",
         "Memory",
         "Chat",
         "Settings",

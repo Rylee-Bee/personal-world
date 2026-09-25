@@ -39,6 +39,14 @@
  */
 
 import { http, HttpResponse, type RequestHandler } from "msw";
+import type {
+  BridgeData,
+  BridgeItem,
+  BridgeItemKind,
+  BridgeLink,
+  BridgeSystem,
+  BridgeSystemId,
+} from "../data/contract";
 
 // ─── Server-shaped fixtures ──────────────────────────────────────────
 
@@ -296,6 +304,292 @@ function projectsStatusBody(stateName: string) {
   };
 }
 
+// ─── Worlds briefing fixtures (Bridge home, contract v1) ─────────────
+// FICTION ONLY — the residents' own voices, no personal data. Covers
+// what the contract's happy path and its honest edges need: arrivals, a
+// five-item have_tos total (the tray cap's "and N more"), one
+// not_configured system (news), one unavailable system (threads), and a
+// person-authored thread (provenance source "user"). Shapes copy
+// contract.ts: worlds-briefing/1.
+
+const BRIDGE_NOW = "2026-09-25T09:00:00Z";
+
+function bridgeResident(key: string, name: string, portrait: string) {
+  return { key, name, portrait };
+}
+
+function bridgeItem(
+  system: BridgeSystemId,
+  id: string,
+  kind: BridgeItemKind,
+  title: string,
+  detail: string | null,
+  at: string,
+  isNew: boolean,
+  link: BridgeLink | null = null,
+): BridgeItem {
+  return { id, system, kind, title, detail, at, new: isNew, link };
+}
+
+const BRIDGE_SYSTEMS: BridgeSystem[] = [
+  {
+    id: "agents",
+    name: "Workshop",
+    resident: bridgeResident("robot", "Bolt", "/assets/characters/bolt.png"),
+    status: "healthy",
+    voice:
+      "Two things on the bench still want a look. Nothing's on fire — but they're yours when you're ready.",
+    counts: { arrivals: 2, have_tos: 2 },
+    source: {
+      name: "Project Home",
+      observed_at: "2026-09-25T08:40:00Z",
+      freshness: "fresh",
+    },
+    items: [
+      bridgeItem(
+        "agents",
+        "agents:pr-review",
+        "have_to",
+        "Review the Play-Nice contract bump",
+        "A dependency refresh is waiting on your call.",
+        "2026-09-25T08:30:00Z",
+        true,
+        { label: "Open Projects", href: null, area: "projects" },
+      ),
+      bridgeItem(
+        "agents",
+        "agents:tool-failure",
+        "have_to",
+        "A tool run failed overnight",
+        "Nothing was damaged; the retry is queued.",
+        "2026-09-25T07:10:00Z",
+        true,
+      ),
+      bridgeItem(
+        "agents",
+        "agents:bookmark-onboarding",
+        "arrival",
+        "Personal World: polish the onboarding copy",
+        "Next action: review accessibility before the merge.",
+        "2026-09-24T19:00:00Z",
+        false,
+      ),
+      bridgeItem(
+        "agents",
+        "agents:bookmark-docs",
+        "arrival",
+        "Personal World: finish the briefing docs",
+        "Next action: write down the place contract.",
+        "2026-09-24T16:20:00Z",
+        false,
+      ),
+    ],
+  },
+  {
+    id: "estate",
+    name: "Engine room",
+    resident: bridgeResident("hekek", "Hekek", "/assets/characters/hekek.png"),
+    status: "warning",
+    voice:
+      "Two rows want tending. A patch will hold until a proper repair — your call.",
+    counts: { arrivals: 1, have_tos: 2 },
+    source: {
+      name: "lab lowbw",
+      observed_at: "2026-09-25T08:45:00Z",
+      freshness: "fresh",
+    },
+    items: [
+      bridgeItem(
+        "estate",
+        "estate:urgent-backup",
+        "have_to",
+        "The backup volume is nearly full",
+        "Trim old snapshots, or grow the volume.",
+        "2026-09-25T08:20:00Z",
+        true,
+      ),
+      bridgeItem(
+        "estate",
+        "estate:urgent-cert",
+        "have_to",
+        "A service certificate expires soon",
+        "Renew it before it lapses; nothing is down yet.",
+        "2026-09-24T22:00:00Z",
+        false,
+      ),
+      bridgeItem(
+        "estate",
+        "estate:review-log",
+        "arrival",
+        "New review rows in the lab packet",
+        "Three observations are ready to read.",
+        "2026-09-25T07:55:00Z",
+        true,
+      ),
+    ],
+  },
+  {
+    id: "records",
+    name: "Archive",
+    resident: bridgeResident("bruma", "Bruma", "/assets/characters/bruma.png"),
+    status: "healthy",
+    voice: "I kept your last note safe. Would you like the original, or the summary?",
+    counts: { arrivals: 1, have_tos: 1 },
+    source: {
+      name: "journal",
+      observed_at: "2026-09-25T08:50:00Z",
+      freshness: "fresh",
+    },
+    items: [
+      bridgeItem(
+        "records",
+        "records:thread-latest",
+        "thread",
+        "Picked the calm-hub direction; the loop comes first.",
+        "Your own words, from your latest entry.",
+        "2026-09-24T18:00:00Z",
+        true,
+        { label: "Open Memory", href: null, area: "memory" },
+      ),
+      bridgeItem(
+        "records",
+        "records:have-to-review",
+        "have_to",
+        "A record wants a second look",
+        "One pinned record may be out of date.",
+        "2026-09-24T12:00:00Z",
+        false,
+        { label: "Open Memory", href: null, area: "memory" },
+      ),
+    ],
+  },
+  {
+    id: "interests",
+    name: "Observatory",
+    resident: bridgeResident("mira", "Mira", "/assets/characters/mira.png"),
+    status: "healthy",
+    voice: "I noticed a pattern in what you've been reading. I'll keep watching.",
+    counts: { arrivals: 0, have_tos: 0 },
+    source: {
+      name: "discovery",
+      observed_at: "2026-09-25T08:30:00Z",
+      freshness: "fresh",
+    },
+    items: [
+      bridgeItem(
+        "interests",
+        "interests:find-1",
+        "interest",
+        "Self-hosting keeps coming up",
+        "A source you follow published about it.",
+        "2026-09-23T10:00:00Z",
+        false,
+      ),
+    ],
+  },
+  {
+    id: "news",
+    name: "Newsstand",
+    resident: bridgeResident(
+      "taco-news-truck",
+      "Burrito Journalism",
+      "/assets/characters/burrito.png",
+    ),
+    status: "not_configured",
+    voice:
+      "No feed plugged in yet — the truck's parked and the paper's blank. Nothing to report, honestly.",
+    counts: { arrivals: 0, have_tos: 0 },
+    source: { name: "media", observed_at: null, freshness: "unknown" },
+    items: [],
+  },
+  {
+    id: "threads",
+    name: "World tree",
+    resident: bridgeResident(
+      "world-tree-squirrel",
+      "Ratatoskr",
+      "/assets/characters/ratatoskr.png",
+    ),
+    status: "unavailable",
+    voice:
+      "The branch I climb is out of reach right now. I'll carry word when it's back — until then, nothing.",
+    counts: { arrivals: 0, have_tos: 0 },
+    source: { name: "place + last thread", observed_at: null, freshness: "unknown" },
+    items: [],
+  },
+];
+
+/** The aggregate rooms, derived from systems the way the server does —
+ *  have_tos top three + a true total; arrivals newest first. */
+function bridgeFixture(): BridgeData {
+  const haveTo = BRIDGE_SYSTEMS.flatMap((s) =>
+    s.items.filter((i) => i.kind === "have_to"),
+  ).sort((a, b) => (a.at ?? "") < (b.at ?? "") ? 1 : -1);
+  const arrivals = BRIDGE_SYSTEMS.flatMap((s) =>
+    s.items.filter((i) => i.kind !== "have_to"),
+  )
+    .sort((a, b) => ((a.at ?? "") < (b.at ?? "") ? 1 : -1))
+    .slice(0, 5);
+  return {
+    schema: "worlds-briefing/1",
+    generated_at: BRIDGE_NOW,
+    since: "2026-09-24T17:00:00Z",
+    keeper: {
+      line:
+        "Two things need you, and the Workshop has been busy. Take your time — the bridge holds.",
+      mood: "busy",
+      resident: bridgeResident(
+        "personal-world",
+        "Personal World",
+        "/assets/characters/personal-world.png",
+      ),
+    },
+    systems: BRIDGE_SYSTEMS,
+    have_tos: haveTo.slice(0, 3),
+    have_tos_total: haveTo.length,
+    arrivals,
+    thread:
+      BRIDGE_SYSTEMS.flatMap((s) => s.items).find((i) => i.kind === "thread") ??
+      null,
+  };
+}
+
+const BRIDGE_SYSTEM_IDS = BRIDGE_SYSTEMS.map((s) => s.id);
+
+/** /api/briefing + /api/place. The place is stateful per handler set so
+ *  a story's PUT is readable back, like the server's per-person file. */
+function bridgeHandlers(): RequestHandler[] {
+  let place: { system: string | null; item_id: string | null; updated_at: string } | null =
+    null;
+  return [
+    http.get("/api/briefing", () =>
+      HttpResponse.json({ ok: true, status: "needs_attention", data: bridgeFixture() }),
+    ),
+    http.get("/api/place", () =>
+      HttpResponse.json({ ok: true, data: { place } }),
+    ),
+    http.put("/api/place", async ({ request }) => {
+      const body = (await request.json().catch(() => ({}))) as {
+        system?: string | null;
+        item_id?: string | null;
+      };
+      const system = body.system ?? null;
+      if (system !== null && !BRIDGE_SYSTEM_IDS.includes(system as BridgeSystemId)) {
+        return HttpResponse.json(
+          { detail: `unknown system '${system}'` },
+          { status: 422 },
+        );
+      }
+      place = {
+        system,
+        item_id: body.item_id ?? null,
+        updated_at: new Date().toISOString(),
+      };
+      return HttpResponse.json({ ok: true, data: { place } });
+    }),
+  ];
+}
+
 // ─── Journal fixtures (model.JournalEvent) ───────────────────────────
 
 interface JournalEvent {
@@ -513,7 +807,12 @@ function buildWorldHandlers(stateName: keyof typeof WORLD_STATES | string): Requ
   return [
     ...baselineHandlers(),
     ...envelopeHandlers(world),
-    // Overview's Pinned feed reads the Records capability too.
+    // The home screen is the Bridge now: its briefing + place must
+    // answer in every world state, or a story's first fetch bypasses
+    // MSW to the real (unreachable) station.
+    ...bridgeHandlers(),
+    // Records still backs Memory; the Bridge does not read the pinned
+    // feed, but the shell can navigate there from a story.
     ...buildRecordsHandlers(),
     // The App shell consumes section order; the world sets keep the
     // default ordering so readouts match the story name.
