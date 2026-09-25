@@ -5,6 +5,7 @@ configured -> protected routes 503; wrong token -> 401. The token is
 compared with hmac.compare_digest and never logged.
 """
 
+import datetime as _dt
 import json
 import logging
 import secrets
@@ -46,7 +47,8 @@ from .briefing import build_briefing, SYSTEM_IDS
 from .providers.lab_state import DEFAULT_LAB, LabState
 from .providers.project_home import ProjectHomeSource
 from .providers.registry import Registry
-from .rooms import RoomsService
+from .rooms import RoomsService, parse_rooms, STATE_FILENAME as ROOMS_STATE_FILENAME
+from . import rooms_visits
 from .source_control import (
     discover_repositories,
     repository_history,
@@ -373,6 +375,12 @@ async def require_auth(request: Request) -> None:
 def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> FastAPI:
     data_dir = Path(data_dir or os.environ.get("PW_DATA_DIR", "./data"))
     config_dir = Path(config_dir or os.environ.get("PW_CONFIG_DIR", "./config"))
+
+    # Room health (last-seen / last-declared-status) persists under the
+    # data dir so an unreachable room survives a restart with its real
+    # last-seen time (room/0 rule 12). The service stays the one
+    # module-level reader; it just learns where to persist.
+    _ROOMS.set_state_path(data_dir / ROOMS_STATE_FILENAME)
 
     # Vault: one instance per app, survives across requests
     from .vault import Vault
@@ -2579,21 +2587,121 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         # Sources shell out / fetch; keep the event loop free.
         return await run_in_threadpool(_compose)
 
-    @app.get("/api/rooms", dependencies=[Depends(require_auth)])
-    async def rooms_view() -> dict:
-        """The estate's rooms (contract: room/0).
+    def _rooms_visit_path(request: Request) -> Path:
+        """The caller's own visit-state file (per-principal seam)."""
+        return _scoped_path(request.state.principal, "rooms_visits")
 
-        One honest row per configured room — its descriptor, the needs
-        it is charging attention for, and whether it is reachable.
-        Fetching is concurrent with a 2 s per-request timeout and the
-        snapshot is cached 15 s. This handler never raises on a room's
-        behalf: an unreachable room is reported ``reachable: false`` with
-        its last-seen time, never claimed healthy. Authenticated like
-        every other read; adds no new port to Worlds — rooms are reached
-        outbound.
+    def _room_configured(room_id: str) -> bool:
+        """An id is addressable only if PW_ROOMS configured it."""
+        return any(c.id == room_id for c in parse_rooms())
+
+    async def _rooms_body(request: Request) -> dict:
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=422, detail="body must be JSON")
+        if body is None:
+            return {}
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=422, detail="body must be an object")
+        return body
+
+    @app.get("/api/rooms", dependencies=[Depends(require_auth)])
+    async def rooms_view(request: Request) -> dict:
+        """The estate's rooms (contract: room/0) plus the caller's visit state.
+
+        One honest row per configured room — its descriptor, cards, the
+        needs it is charging attention for, whether it is reachable, and
+        when it was last reached (persisted across restarts). Each row
+        also carries the CALLER's private, Worlds-owned visit fields:
+        ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``.
+        ``resume`` and ``summary`` travel as siblings of ``data`` so the
+        existing list envelope stays byte-compatible. Fetching is
+        concurrent with a 2 s per-request timeout and the snapshot is
+        cached 15 s. This handler never raises on a room's behalf: an
+        unreachable room is reported ``reachable: false`` with its
+        last-seen time, never claimed healthy.
         """
         rows = await _ROOMS.snapshot()
-        return {"ok": True, "data": rows}
+        state = rooms_visits.read_visits(_rooms_visit_path(request))
+        decorated = [rooms_visits.decorate_row(row, state) for row in rows]
+        return {
+            "ok": True,
+            "data": decorated,
+            "resume": rooms_visits.resume_of(state),
+            "summary": rooms_visits.summarize(decorated, state),
+        }
+
+    @app.post("/api/rooms/{room_id}/visit", dependencies=[Depends(require_auth)])
+    async def rooms_visit(room_id: str, request: Request) -> dict:
+        """Record the caller's visit to a room (Worlds-owned, private).
+
+        Updates the caller's ``last_visited_at`` for the room and the
+        top-level ``resume``. Idempotent in effect: repeating converges
+        on one stored visit. No step-up — a visit mutates nothing a
+        visit doesn't already imply (same posture as drafts/place). An
+        unconfigured room id is a 404; ``link`` must be a same-origin
+        path or it is refused 422 rather than stored.
+        """
+        if not _room_configured(room_id):
+            raise HTTPException(status_code=404, detail="unknown room")
+        body = await _rooms_body(request)
+        link = body.get("link")
+        if link is not None and not rooms_visits.valid_same_origin_link(link):
+            raise HTTPException(
+                status_code=422, detail="link must be a same-origin path"
+            )
+        title = body.get("title")
+        if title is not None:
+            if not isinstance(title, str):
+                raise HTTPException(status_code=422, detail="title must be a string")
+            title = title.strip()[: rooms_visits.TITLE_MAX] or None
+        # Full precision: a card observed later in the same second as the
+        # visit must not count as "changed since your visit".
+        at = _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="microseconds")
+        path = _rooms_visit_path(request)
+        state = rooms_visits.read_visits(path)
+        rooms_visits.record_visit(state, room_id, at=at, link=link, title=title)
+        rooms_visits.write_visits(path, state)
+        return {
+            "ok": True,
+            "data": {
+                "room_id": room_id,
+                "last_visited_at": at,
+                "resume": rooms_visits.resume_of(state),
+            },
+        }
+
+    @app.post(
+        "/api/rooms/{room_id}/needs/{need_id}/seen",
+        dependencies=[Depends(require_auth)],
+    )
+    async def rooms_need_seen(room_id: str, need_id: str, request: Request) -> dict:
+        """Mark one need seen for the caller (private, per room).
+
+        Adds ``need_id`` to the caller's ``needs_seen`` list for the
+        room, deduped and capped. Idempotent: marking twice changes
+        nothing. Unconfigured room → 404; an empty/oversized id → 422.
+        """
+        if not _room_configured(room_id):
+            raise HTTPException(status_code=404, detail="unknown room")
+        need_id = need_id.strip()
+        if not need_id or len(need_id) > rooms_visits.NEED_ID_MAX:
+            raise HTTPException(
+                status_code=422, detail="need_id must be 1-200 chars"
+            )
+        path = _rooms_visit_path(request)
+        state = rooms_visits.read_visits(path)
+        rooms_visits.mark_need_seen(state, room_id, need_id)
+        rooms_visits.write_visits(path, state)
+        return {
+            "ok": True,
+            "data": {
+                "room_id": room_id,
+                "need_id": need_id,
+                "needs_seen": list(state["rooms"][room_id]["needs_seen"]),
+            },
+        }
 
     @app.get("/api/place", dependencies=[Depends(require_auth)])
     def place_get(request: Request) -> dict:

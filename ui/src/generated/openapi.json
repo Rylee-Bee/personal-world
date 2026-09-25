@@ -2820,7 +2820,7 @@
     },
     "/api/rooms": {
       "get": {
-        "description": "The estate's rooms (contract: room/0).\n\nOne honest row per configured room — its descriptor, the needs\nit is charging attention for, and whether it is reachable.\nFetching is concurrent with a 2 s per-request timeout and the\nsnapshot is cached 15 s. This handler never raises on a room's\nbehalf: an unreachable room is reported ``reachable: false`` with\nits last-seen time, never claimed healthy. Authenticated like\nevery other read; adds no new port to Worlds — rooms are reached\noutbound.",
+        "description": "The estate's rooms (contract: room/0) plus the caller's visit state.\n\nOne honest row per configured room — its descriptor, cards, the\nneeds it is charging attention for, whether it is reachable, and\nwhen it was last reached (persisted across restarts). Each row\nalso carries the CALLER's private, Worlds-owned visit fields:\n``last_visited_at``, ``needs_seen`` and ``changed_since_visit``.\n``resume`` and ``summary`` travel as siblings of ``data`` so the\nexisting list envelope stays byte-compatible. Fetching is\nconcurrent with a 2 s per-request timeout and the snapshot is\ncached 15 s. This handler never raises on a room's behalf: an\nunreachable room is reported ``reachable: false`` with its\nlast-seen time, never claimed healthy.",
         "operationId": "rooms_view_api_rooms_get",
         "responses": {
           "200": {
@@ -2837,6 +2837,99 @@
           }
         },
         "summary": "Rooms View"
+      }
+    },
+    "/api/rooms/{room_id}/needs/{need_id}/seen": {
+      "post": {
+        "description": "Mark one need seen for the caller (private, per room).\n\nAdds ``need_id`` to the caller's ``needs_seen`` list for the\nroom, deduped and capped. Idempotent: marking twice changes\nnothing. Unconfigured room → 404; an empty/oversized id → 422.",
+        "operationId": "rooms_need_seen_api_rooms__room_id__needs__need_id__seen_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "room_id",
+            "required": true,
+            "schema": {
+              "title": "Room Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "need_id",
+            "required": true,
+            "schema": {
+              "title": "Need Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rooms Need Seen Api Rooms  Room Id  Needs  Need Id  Seen Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rooms Need Seen"
+      }
+    },
+    "/api/rooms/{room_id}/visit": {
+      "post": {
+        "description": "Record the caller's visit to a room (Worlds-owned, private).\n\nUpdates the caller's ``last_visited_at`` for the room and the\ntop-level ``resume``. Idempotent in effect: repeating converges\non one stored visit. No step-up — a visit mutates nothing a\nvisit doesn't already imply (same posture as drafts/place). An\nunconfigured room id is a 404; ``link`` must be a same-origin\npath or it is refused 422 rather than stored.",
+        "operationId": "rooms_visit_api_rooms__room_id__visit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "room_id",
+            "required": true,
+            "schema": {
+              "title": "Room Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rooms Visit Api Rooms  Room Id  Visit Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rooms Visit"
       }
     },
     "/api/sections": {

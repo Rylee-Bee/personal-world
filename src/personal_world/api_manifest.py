@@ -289,9 +289,21 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     # mutates local state; an unreachable room is reported, not raised.
     _e("API-088", "GET", "/api/rooms", "rooms", "read", "none",
        note="the estate's rooms (contract room/0): each configured "
-            "backend's descriptor, needs-you, reachability and "
-            "last-seen; never raises, never claims an unreachable room "
-            "healthy"),
+            "backend's descriptor, cards, needs-you, reachability and "
+            "persisted last-seen, plus the caller's private visit state "
+            "(last_visited_at, needs_seen, changed_since_visit) with "
+            "resume/summary siblings of data; never raises, never claims "
+            "an unreachable room healthy"),
+    _e("API-088-visit", "POST", "/api/rooms/{room_id}/visit", "rooms",
+       "write", "none",
+       note="Worlds-owned, caller-scoped visit state (never sent to a "
+            "room): sets last_visited_at + resume; idempotent; 404 for "
+            "an unconfigured room, 422 for a non-same-origin link; "
+            "authenticated, not elevation-gated like drafts/place"),
+    _e("API-088-need-seen", "POST", "/api/rooms/{room_id}/needs/{need_id}/seen",
+       "rooms", "write", "none",
+       note="marks one need seen for the caller (caller-scoped, "
+            "deduped/capped); idempotent; 404 for an unconfigured room"),
     # journal drafts — lining rescue (D15 "kept safe, synced"); no elevation
     # by design: a draft mutates nothing a publish doesn't already change.
     _e("API-080", "PUT", "/api/journal/draft", "journal", "write", "none",

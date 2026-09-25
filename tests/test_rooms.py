@@ -9,7 +9,8 @@ These tests pin the honesty floor of ``src/personal_world/rooms.py`` and
 * a timeout and malformed JSON are named, never raised;
 * a bearer token is sent only when the room configured one (via the
   ``PW_ROOM_<ID>_TOKEN_ENV`` indirection), and never appears in a row;
-* ``last_seen`` survives a later outage (kept in memory);
+* ``last_seen``/``last_status`` survive a later outage and a restart
+  (persisted to the state file when one is configured);
 * the snapshot is cached for 15 s;
 * the route requires authentication.
 
@@ -60,8 +61,8 @@ def run(coro):
     return asyncio.run(coro)
 
 
-def _handler(*, descriptor=None, needs=None, calls=None, tokens=None):
-    """A MockTransport handler for one room's two read endpoints."""
+def _handler(*, descriptor=None, needs=None, cards=None, calls=None, tokens=None):
+    """A MockTransport handler for one room's three read endpoints."""
 
     def handle(request: httpx.Request) -> httpx.Response:
         if calls is not None:
@@ -72,6 +73,9 @@ def _handler(*, descriptor=None, needs=None, calls=None, tokens=None):
             if descriptor is None:
                 return httpx.Response(500, json={"detail": "no"})
             return descriptor()
+        if request.url.path == rooms.CARDS_PATH:
+            # Absent cards are simply no cards — a valid, honest room.
+            return cards() if cards is not None else httpx.Response(200, json=[])
         if request.url.path == rooms.NEEDS_YOU_PATH:
             if needs is None:
                 return httpx.Response(500, json={"detail": "no"})
@@ -154,8 +158,10 @@ class TestSnapshot:
         assert [n["title"] for n in row["needs_you"]] == ["Confirm the transfer"]
         assert row["error"] is None
         assert row["checked_at"] and row["last_seen"]
-        # Both endpoints were read.
-        assert set(calls) == {rooms.ROOM_PATH, rooms.NEEDS_YOU_PATH}
+        assert row["last_status"] == "healthy"
+        assert row["cards"] == []  # an absent cards list is honest, not invented
+        # All three read-only endpoints were read.
+        assert set(calls) == {rooms.ROOM_PATH, rooms.CARDS_PATH, rooms.NEEDS_YOU_PATH}
 
     def test_connect_error_is_unreachable_not_healthy(self):
         def boom(request: httpx.Request) -> httpx.Response:
@@ -241,6 +247,87 @@ class TestSnapshot:
         clock["t"] += rooms.CACHE_TTL_SECONDS + 1
         run(svc.snapshot({"PW_ROOMS": "studio=http://room.test"}))
         assert len(calls) > first_count  # refreshed
+
+
+class TestPersistedRoomHealth:
+    """Room health (last-seen / last-declared-status) outlives a restart.
+
+    The honesty fix: an unreachable room must show its real last_seen,
+    not "never reached" — "never reached" only for a room that has
+    truly never answered (contract room/0 rule 12).
+    """
+
+    def _up_handler(self):
+        def handle(request: httpx.Request) -> httpx.Response:
+            if request.url.path == rooms.ROOM_PATH:
+                return _ok_descriptor()
+            if request.url.path == rooms.CARDS_PATH:
+                return httpx.Response(200, json=[])
+            return _ok_needs()
+
+        return handle
+
+    @staticmethod
+    def _down_handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("down")
+
+    def test_last_seen_survives_a_restart(self, tmp_path):
+        state_path = tmp_path / "rooms-state.json"
+        env = {"PW_ROOMS": "studio=http://room.test"}
+        first_svc = RoomsService(
+            transport=httpx.MockTransport(self._up_handler()), state_path=state_path
+        )
+        first = run(first_svc.snapshot(env))[0]
+        assert first["last_seen"] and first["last_status"] == "healthy"
+        assert state_path.exists()
+
+        # Simulated restart: a fresh service, room now down.
+        second_svc = RoomsService(
+            transport=httpx.MockTransport(self._down_handler), state_path=state_path
+        )
+        row = run(second_svc.snapshot(env))[0]
+        assert row["reachable"] is False
+        assert row["status"] == rooms.UNREACHABLE
+        assert row["last_seen"] == first["last_seen"]  # real, not "never"
+        assert row["last_status"] == "healthy"  # last status it declared
+        assert row["error"] == "connect error"
+
+    def test_never_answered_room_is_honestly_never_reached(self, tmp_path):
+        state_path = tmp_path / "rooms-state.json"
+        svc = RoomsService(
+            transport=httpx.MockTransport(self._down_handler), state_path=state_path
+        )
+        row = run(svc.snapshot({"PW_ROOMS": "studio=http://room.test"}))[0]
+        assert row["status"] == rooms.UNREACHABLE
+        assert row["last_seen"] is None
+        assert row["last_status"] is None
+
+    def test_corrupt_state_file_never_fabricates_last_seen(self, tmp_path):
+        state_path = tmp_path / "rooms-state.json"
+        state_path.write_text("{not json")
+        svc = RoomsService(
+            transport=httpx.MockTransport(self._down_handler), state_path=state_path
+        )
+        row = run(svc.snapshot({"PW_ROOMS": "studio=http://room.test"}))[0]
+        assert row["last_seen"] is None
+
+    def test_last_declared_status_is_carried_for_other_statuses(self, tmp_path):
+        state_path = tmp_path / "rooms-state.json"
+        degraded = dict(DESCRIPTOR, status="degraded")
+        up = RoomsService(
+            transport=httpx.MockTransport(
+                _handler(descriptor=lambda: httpx.Response(200, json=degraded))
+            ),
+            state_path=state_path,
+        )
+        first = run(up.snapshot({"PW_ROOMS": "studio=http://room.test"}))[0]
+        assert first["last_status"] == "degraded"
+        down = RoomsService(
+            transport=httpx.MockTransport(self._down_handler), state_path=state_path
+        )
+        row = run(down.snapshot({"PW_ROOMS": "studio=http://room.test"}))[0]
+        assert row["last_status"] == "degraded"
+        assert row["last_seen"] == first["last_seen"]
 
 
 class TestTokenHeader:

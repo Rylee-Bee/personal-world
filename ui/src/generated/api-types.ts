@@ -1918,20 +1918,74 @@ export interface paths {
         };
         /**
          * Rooms View
-         * @description The estate's rooms (contract: room/0).
+         * @description The estate's rooms (contract: room/0) plus the caller's visit state.
          *
-         *     One honest row per configured room — its descriptor, the needs
-         *     it is charging attention for, and whether it is reachable.
-         *     Fetching is concurrent with a 2 s per-request timeout and the
-         *     snapshot is cached 15 s. This handler never raises on a room's
-         *     behalf: an unreachable room is reported ``reachable: false`` with
-         *     its last-seen time, never claimed healthy. Authenticated like
-         *     every other read; adds no new port to Worlds — rooms are reached
-         *     outbound.
+         *     One honest row per configured room — its descriptor, cards, the
+         *     needs it is charging attention for, whether it is reachable, and
+         *     when it was last reached (persisted across restarts). Each row
+         *     also carries the CALLER's private, Worlds-owned visit fields:
+         *     ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``.
+         *     ``resume`` and ``summary`` travel as siblings of ``data`` so the
+         *     existing list envelope stays byte-compatible. Fetching is
+         *     concurrent with a 2 s per-request timeout and the snapshot is
+         *     cached 15 s. This handler never raises on a room's behalf: an
+         *     unreachable room is reported ``reachable: false`` with its
+         *     last-seen time, never claimed healthy.
          */
         get: operations["rooms_view_api_rooms_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/needs/{need_id}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rooms Need Seen
+         * @description Mark one need seen for the caller (private, per room).
+         *
+         *     Adds ``need_id`` to the caller's ``needs_seen`` list for the
+         *     room, deduped and capped. Idempotent: marking twice changes
+         *     nothing. Unconfigured room → 404; an empty/oversized id → 422.
+         */
+        post: operations["rooms_need_seen_api_rooms__room_id__needs__need_id__seen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/visit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rooms Visit
+         * @description Record the caller's visit to a room (Worlds-owned, private).
+         *
+         *     Updates the caller's ``last_visited_at`` for the room and the
+         *     top-level ``resume``. Idempotent in effect: repeating converges
+         *     on one stored visit. No step-up — a visit mutates nothing a
+         *     visit doesn't already imply (same posture as drafts/place). An
+         *     unconfigured room id is a 404; ``link`` must be a same-origin
+         *     path or it is refused 422 rather than stored.
+         */
+        post: operations["rooms_visit_api_rooms__room_id__visit_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5292,6 +5346,73 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    rooms_need_seen_api_rooms__room_id__needs__need_id__seen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+                need_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rooms_visit_api_rooms__room_id__visit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
