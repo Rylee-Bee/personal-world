@@ -456,6 +456,10 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     # can say "arrived while you were away". Same per-principal seam as
     # drafts; the briefing contract (worlds-briefing/1) owns the shape.
     "last_place": "last-place.json",
+    # Rooms visit state: which room the person last visited and which of
+    # its needs they have already marked seen (Worlds-owned, private,
+    # never sent to a room). Same per-principal seam as drafts/place.
+    "rooms_visits": "rooms-visits.json",
 }
 
 #: Legacy (single-user default) discovery config location. Matches
