@@ -269,7 +269,7 @@ def build_chat_messages(
     formal. The tone block sits between the persona and the identity
     floor and changes phrasing only — an unknown or absent tone adds no
     block, and no tone can remove or weaken the floor. With the
-    personality pack off (the default), the caller passes no companion
+    personality pack off (on by default since 2026-09-25), the caller passes no companion
     persona, so tone + the one voice floor is the whole identity.
 
     SUGGESTIONS, not authority: the prompt teaches ONE tiny fenced

@@ -101,7 +101,7 @@ const PREFS = {
   companion: "mermaid",
   accent: "world-keeper",
   tone: "warm",
-  personality_pack: "off",
+  personality_pack: "residents",
 };
 
 // GET /api/prefs/schema — mirrors api.py prefs_schema() built from
@@ -146,7 +146,7 @@ const PREFS_SCHEMA = {
     allowed: ["warm", "concise", "playful", "formal"],
   },
   personality_pack: {
-    type: "enum", default: "off", floor: "off",
+    type: "enum", default: "residents", floor: "off",
     allowed: ["off", "residents"],
   },
 };

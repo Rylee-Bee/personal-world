@@ -81,7 +81,7 @@ test.describe("Settings Room (C1/C2)", () => {
       .allTextContents();
     expect(packOptions).toEqual([
       "Off (the one voice)",
-      "Residents (optional character pack)",
+      "Residents (default)",
     ]);
   });
 

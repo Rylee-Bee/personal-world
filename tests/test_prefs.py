@@ -43,7 +43,7 @@ class TestDefaultsSatisfyFloor:
             "companion": "personal-world",
             "accent": "world-keeper",
             "tone": "warm",
-            "personality_pack": "off",
+            "personality_pack": "residents",
         }
 
     def test_every_spec_default_equals_normalize(self):

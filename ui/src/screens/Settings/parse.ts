@@ -304,7 +304,7 @@ export function prefValueLabel(entry: PrefsSchemaEntry, value: PrefsValue): stri
   }
   if (entry.key === "personality_pack") {
     if (value === "off") return "Off (the one voice)";
-    if (value === "residents") return "Residents (optional character pack)";
+    if (value === "residents") return "Residents (default)";
   }
   return value
     .replace(/-/g, " ")

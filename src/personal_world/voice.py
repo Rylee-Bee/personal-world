@@ -9,7 +9,8 @@ is a *tone register* (``warm`` default · ``concise`` · ``playful`` ·
 
 The residents and the two-voice system (CHARACTER-HANDBOOK §10(2),
 ``docs/COMPANION-CANON.md``) are preserved as an optional *personality
-pack*: the ``personality_pack`` preference (default ``off``) gates
+pack*: the ``personality_pack`` preference (default ``residents`` since
+2026-09-25; the person can switch it ``off``) gates
 whether the companion persona template rides along in the chat prompt.
 Code and canon are kept, never deleted; only the routing is flagged.
 

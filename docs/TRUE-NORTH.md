@@ -80,7 +80,7 @@ any scope expansion (ruling 2026-09-22).
   registers** (proposed starter set; owner reacts on experience):
   `warm` (default) · `concise` · `playful` · `formal`.
 - The residents and the two-voice system become an **optional personality
-  pack** (switchable, off by default). `docs/CHARACTER-HANDBOOK.md` and
+  pack** (switchable; on by default since 2026-09-25, owner: "turn it on"). `docs/CHARACTER-HANDBOOK.md` and
   `docs/COMPANION-CANON.md` survive as the pack's canon — kept, never deleted.
 - Honesty floor unchanged: warmth never costs exactness; degraded/off states
   are labeled honestly in whatever voice is active.

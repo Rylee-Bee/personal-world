@@ -126,7 +126,7 @@ const PREFS_BASE = {
   companion: "mermaid",
   accent: "world-keeper",
   tone: "warm",
-  personality_pack: "off",
+  personality_pack: "residents",
 };
 
 // The Settings Room (Track C) renders from GET /api/prefs/schema, so
@@ -193,7 +193,7 @@ const PREFS_SCHEMA: Record<PrefKey, PrefSpec> = {
     allowed: ["warm", "concise", "playful", "formal"],
   },
   personality_pack: {
-    type: "enum", default: "off", floor: "off",
+    type: "enum", default: "residents", floor: "off",
     allowed: ["off", "residents"],
   },
 };
