@@ -32,6 +32,7 @@ function publicAsset(path: string): string {
 
 // Map resident IDs to their artwork under public/assets/characters/.
 const ARTWORK_MAP: Record<string, string> = {
+  assistant: "/assets/crew/assistant.svg",
   renai: "/assets/characters/renai.png",
   bolt: "/assets/characters/bolt.png",
   burrito: "/assets/characters/burrito.png",

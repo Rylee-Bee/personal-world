@@ -107,12 +107,20 @@ class TestResolveVoice:
         sel = voice.resolve_voice({"personality_pack": "residents"})
         assert sel.persona is None
 
+    def test_sol_is_voiceless_even_with_the_pack_on(self):
+        # Owner, 2026-09-25: Sol is the Worlds mark, not a companion —
+        # choosing her keeps the one plain voice.
+        sel = voice.resolve_voice(
+            {"personality_pack": "residents", "companion": "personal-world"}
+        )
+        assert sel.persona is None
+
     def test_resolve_from_real_prefs_round_trip(self):
         w = World()
         prefs.set_prefs(w, {"tone": "playful", "personality_pack": "residents"})
         sel = voice.resolve_voice(prefs.get_prefs(w))
         assert sel.tone == "playful"
-        assert sel.persona == "personal-world"  # the companion default
+        assert sel.persona == "assistant"  # the companion default
 
 
 class TestPrefsVocabulary:
@@ -140,7 +148,7 @@ class TestPrefsVocabulary:
         # Additive only: the accessibility-floor keys keep their shape.
         assert prefs.MOTION.default == "reduced"
         assert prefs.TARGET_SIZE.default == 44
-        assert prefs.COMPANION.default == "personal-world"
+        assert prefs.COMPANION.default == "assistant"
 
 
 class TestBuildChatMessagesTone:

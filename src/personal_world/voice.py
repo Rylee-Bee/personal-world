@@ -36,6 +36,9 @@ unchanged honesty floor."""
 DEFAULT_TONE = "warm"
 
 PACK_OFF = "off"
+# Sol (companion key `personal-world`) is the Worlds mark and has no voice
+# (owner, 2026-09-25): she never becomes a chat persona.
+VOICELESS_COMPANIONS = frozenset({"personal-world"})
 PACK_RESIDENTS = "residents"
 """Personality-pack vocabulary (prefs.PERSONALITY_PACK). ``off`` (the
 default) speaks as the one Worlds voice; ``residents`` enables the
@@ -118,4 +121,6 @@ def resolve_voice(pref_values: dict[str, Any] | None) -> VoiceSelection:
         # Pack ON: the historical residents path — the `companion`
         # preference names the persona template, exactly as before.
         persona = str(values.get("companion") or "") or None
+        if persona in VOICELESS_COMPANIONS:
+            persona = None
     return VoiceSelection(persona=persona, tone=tone)

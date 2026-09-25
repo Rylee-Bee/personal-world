@@ -643,3 +643,12 @@ dated entry superseding the old one (append-only, like the journal).
   accessibility floors are unchanged, and residents' artwork still never
   encodes status. Reason: PLAN.md 1b ("personality ships here, not later")
   and the owner's note that the residents are now much less obtrusive.
+- **2026-09-25 — Sol has no voice; a plain Assistant is the default
+  companion.** Owner: Sol "is a bigger thing with no real voice", present
+  in menus and little moments, and "we should make a super generic
+  assistant if you haven't picked one, maybe just a computer screen face".
+  `companion` now defaults to `assistant` (persona template
+  `config/prompts/personas/assistant.md`, art `design/assets/crew/assistant/`);
+  `personal-world` (Sol) stays in the vocabulary but never becomes a chat
+  persona (`voice.VOICELESS_COMPANIONS`). Open question for the owner: the
+  Bridge briefing's "Keeper" line still uses the `personal-world` resident.

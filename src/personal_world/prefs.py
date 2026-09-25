@@ -131,13 +131,16 @@ TARGET_SIZE = NumberPref(
     allowed=(44, 56),
     css_var="--pw-target-size", data_attr="data-pw-target-size",
 )
+# `assistant` (owner, 2026-09-25) is the plain default helper with a
+# screen for a face. `personal-world` is Sol, the Worlds mark: she has no
+# voice, so choosing her means "no companion persona" (one plain voice).
 COMPANION = EnumPref(
-    key="companion", default="personal-world",
+    key="companion", default="assistant",
     allowed=(
-        "personal-world", "mermaid", "robot",
+        "assistant", "personal-world", "mermaid", "robot",
         "world-tree-squirrel", "taco-news-truck",
     ),
-    floor="personal-world",
+    floor="assistant",
     css_var="--pw-companion", data_attr="data-pw-companion",
 )
 ACCENT = EnumPref(
