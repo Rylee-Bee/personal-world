@@ -24,6 +24,12 @@ const { hookState, mutate } = vi.hoisted(() => ({
       data: undefined as unknown,
     },
     place: { isPending: false, isError: false, data: undefined as unknown },
+    rooms: {
+      isPending: false,
+      isError: false,
+      error: undefined as unknown,
+      data: undefined as unknown,
+    },
   },
   mutate: vi.fn(),
 }));
@@ -32,6 +38,7 @@ vi.mock("../data/hooks", () => ({
   useBriefing: () => hookState.briefing,
   usePlace: () => hookState.place,
   useSetPlace: () => ({ mutate }),
+  useRooms: () => hookState.rooms,
 }));
 
 import { Bridge } from "../screens/Bridge/Bridge";
@@ -126,6 +133,12 @@ beforeEach(() => {
     data: BRIEFING,
   };
   hookState.place = { isPending: false, isError: false, data: { ok: true, data: { place: null } } };
+  hookState.rooms = {
+    isPending: false,
+    isError: false,
+    error: undefined,
+    data: { ok: true, data: [] },
+  };
 });
 
 afterEach(() => cleanup());

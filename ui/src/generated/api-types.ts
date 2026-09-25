@@ -4,28 +4,6 @@
  */
 
 export interface paths {
-    "/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Spa Root
-         * @description Entry point. Post-setup the **Station** is the product frontend
-         *     (owner decisions #11/#12). During first-run the setup wizard owns the
-         *     entry.
-         */
-        get: operations["spa_root__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/actors": {
         parameters: {
             query?: never;
@@ -369,6 +347,30 @@ export interface paths {
          * @description List all brain templates with metadata.
          */
         get: operations["brain_templates_api_brain_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/briefing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Briefing View
+         * @description The world's briefing: six systems, have_tos, arrivals, thread.
+         *
+         *     Read-only: a view never journals and never writes the place. The
+         *     stored place's updated_at becomes `since` (the previous visit).
+         *     Person-only, caller-scoped.
+         */
+        get: operations["briefing_view_api_briefing_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1068,10 +1070,20 @@ export interface paths {
         };
         /**
          * Journal Last
-         * @description Read-only: the caller's most recent CURRENT journal entry — the
-         *     calm-view tail (always equals the newest entry GET /api/journal
-         *     shows). The daily home loop's thread deep-link contract; honest
-         *     ``entry: null`` on an empty journal. Person principals only.
+         * @description Read-only: the caller's most recent CURRENT journal entry.
+         *
+         *     The deep-link contract for the daily home loop's "Resume —
+         *     yesterday's thread" beat (TRUE-NORTH): one deterministic answer
+         *     with every model off, safe for Overview to link to. Never
+         *     mutates anything. An empty journal is an honest ``entry: null``,
+         *     not a 404 and not a fabrication. Superseded originals never
+         *     surface. The contract is the CALM-VIEW TAIL: the answer always
+         *     equals the newest entry GET /api/journal shows (same kinds, same
+         *     ordering — a correction ACT appends the correction and then its
+         *     APPROVAL audit line, and whichever is newest IS the last entry;
+         *     consumers wanting narrative-only may filter by ``kind``).
+         *     Person-only, caller-scoped, the same seam as every other journal
+         *     read.
          */
         get: operations["journal_last_api_journal_last_get"];
         put?: never;
@@ -1477,6 +1489,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/place": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Place Get
+         * @description The caller's last place, or an honest null.
+         */
+        get: operations["place_get_api_place_get"];
+        /**
+         * Place Put
+         * @description Store the caller's last place. No step-up: continuity mutates
+         *     nothing a visit doesn't already imply (same posture as drafts).
+         */
+        put: operations["place_put_api_place_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/prefs": {
         parameters: {
             query?: never;
@@ -1870,6 +1907,35 @@ export interface paths {
          * @description Toggle one of the caller's own reminders. Body: {enabled: bool}.
          */
         patch: operations["reminders_toggle_api_reminders__rid__patch"];
+        trace?: never;
+    };
+    "/api/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rooms View
+         * @description The estate's rooms (contract: room/0).
+         *
+         *     One honest row per configured room — its descriptor, the needs
+         *     it is charging attention for, and whether it is reachable.
+         *     Fetching is concurrent with a 2 s per-request timeout and the
+         *     snapshot is cached 15 s. This handler never raises on a room's
+         *     behalf: an unreachable room is reported ``reachable: false`` with
+         *     its last-seen time, never claimed healthy. Authenticated like
+         *     every other read; adds no new port to Worlds — rooms are reached
+         *     outbound.
+         */
+        get: operations["rooms_view_api_rooms_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/sections": {
@@ -2680,26 +2746,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    spa_root__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": string;
-                };
-            };
-        };
-    };
     actors_api_actors_get: {
         parameters: {
             query?: never;
@@ -3025,6 +3071,28 @@ export interface operations {
         };
     };
     brain_templates_api_brain_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    briefing_view_api_briefing_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4089,15 +4157,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
         };
     };
     journal_supersede_api_journal_supersede_post: {
@@ -4554,6 +4613,50 @@ export interface operations {
         };
     };
     native_lab_settings_api_native_lab_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    place_get_api_place_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    place_put_api_place_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -5167,6 +5270,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rooms_view_api_rooms_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

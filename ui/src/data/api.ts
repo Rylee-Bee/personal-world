@@ -74,6 +74,7 @@ import type {
   BridgeData,
   PlaceData,
   PlacePutRequest,
+  RoomRow,
 } from "./contract";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -544,6 +545,14 @@ export const getPlace = () =>
 
 export const putPlace = (body: PlacePutRequest) =>
   unwrap<Envelope<PlaceData>>(sendBody("PUT", "/api/place", body));
+
+// ===== Rooms (contract room/0) =====
+// GET /api/rooms: one honest row per configured room — descriptor,
+// needs-you, reachability and last-seen. An unreachable room is data
+// (`reachable: false`), not an HTTP error; the panel renders it as
+// "unreachable · last seen …", never as healthy. Read-only.
+export const getRooms = () =>
+  unwrap<Envelope<RoomRow[]>>(api.GET("/api/rooms", {}));
 
 // ===== Identity =====
 export const getPrincipal = () =>

@@ -9,13 +9,16 @@ dependencies = [
   "pyyaml>=6.0,<7",
   "fastapi>=0.111,<1",
   "uvicorn>=0.30,<1",
+  # The rooms front door (src/personal_world/rooms.py) reaches outbound
+  # to other small backends concurrently; httpx is a runtime dependency,
+  # not test-only, because GET /api/rooms fetches them in production.
+  "httpx>=0.27,<1",
 ]
 
 [project.optional-dependencies]
 test = [
   "pytest>=9.0.3,<10",
   "pytest-timeout>=2,<3",
-  "httpx>=0.27,<1",
 ]
 crypto = [
   "cryptography>=42.0,<51",

@@ -326,6 +326,75 @@ function bridgeFixture() {
 // `since` would carry.
 let PLACE = null;
 
+// ── Rooms fixtures (contract room/0) ─────────────────────────────────
+// The front door renders other small backends without owning their
+// code. One healthy room with a need, one degraded room with none, and
+// one unreachable room that keeps a last-seen time — so the estate
+// panel always exercises all three honest states. Fiction only.
+const ROOMS_FIXTURE = [
+  {
+    id: "studio",
+    base_url: "http://127.0.0.1:8940",
+    reachable: true,
+    status: "healthy",
+    room: {
+      contract: "room/0",
+      id: "studio",
+      name: "Studio",
+      icon: "book",
+      voice: "dry and precise",
+      version: "1.2.0",
+      commit: "a1b2c3d",
+      status: "healthy",
+      updated_at: "2026-09-25T13:05:48Z",
+    },
+    needs_you: [
+      {
+        id: "need-1",
+        title: "Confirm the transfer",
+        why: "A withdrawal above the usual threshold is waiting.",
+        actions: ["confirm-transfer"],
+        created_at: "2026-09-25T12:30:00Z",
+      },
+    ],
+    error: null,
+    checked_at: "2026-09-25T13:10:00Z",
+    last_seen: "2026-09-25T13:10:00Z",
+  },
+  {
+    id: "workshop",
+    base_url: "https://room.test",
+    reachable: true,
+    status: "degraded",
+    room: {
+      contract: "room/0",
+      id: "workshop",
+      name: "Workshop",
+      icon: "hammer",
+      voice: "plain and steady",
+      version: "0.9.0",
+      commit: "b2c3d4e",
+      status: "degraded",
+      updated_at: "2026-09-25T13:00:00Z",
+    },
+    needs_you: [],
+    error: null,
+    checked_at: "2026-09-25T13:10:00Z",
+    last_seen: "2026-09-25T13:10:00Z",
+  },
+  {
+    id: "cellar",
+    base_url: "http://127.0.0.1:9000",
+    reachable: false,
+    status: "unreachable",
+    room: null,
+    needs_you: [],
+    error: "connect error",
+    checked_at: "2026-09-25T13:10:00Z",
+    last_seen: "2026-09-25T12:00:00Z",
+  },
+];
+
 // ── Records fixtures (Lane R-FE, 2026-09-21) ─────────────────────────
 // Envelope shapes copied verbatim from docs/RECORDS-API.md and
 // tests/test_records.py + api.py records_*: category rows are
@@ -770,6 +839,11 @@ const server = http.createServer(async (req, res) => {
     const itemId = body.item_id === null || body.item_id === undefined ? null : String(body.item_id);
     PLACE = { system, item_id: itemId, updated_at: new Date().toISOString() };
     return json(res, 200, ok("healthy", { place: PLACE }));
+  }
+  // GET /api/rooms — the estate's rooms (contract room/0): one honest
+  // row per configured room. An unreachable room is data, not an error.
+  if (method === "GET" && p === "/api/rooms") {
+    return json(res, 200, ok("healthy", ROOMS_FIXTURE));
   }
   // Test-only fixture reset (see CURRENT_SEED) — restores the seeded
   // journal/superseded/draft state. Never mirrored in api.py by design.

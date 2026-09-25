@@ -35,6 +35,7 @@ import type {
   BridgeSystemId,
 } from "../../data/contract";
 import { ResidentPresence } from "../../components/ResidentPresence";
+import { RoomsPanel } from "../../components/RoomsPanel";
 import { WorldAssistant } from "../../components/WorldAssistant";
 import { chooseDefaultSystem, knownArea, trayOverflow } from "./geometry";
 import { StarMap } from "./StarMap";
@@ -291,6 +292,9 @@ export function Bridge({ onOpenArea, onOpenAssistant }: BridgeProps) {
             closeRef={panelCloseRef}
           />
         )}
+
+        {/* ── Rooms — the other small backends, honestly reported ──── */}
+        <RoomsPanel />
 
       </div>
 

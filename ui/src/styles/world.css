@@ -272,6 +272,7 @@ body {
     "lenses"
     "map"
     "panel"
+    "rooms"
     "keeper";
 }
 @media (min-width: 860px) {
@@ -282,6 +283,7 @@ body {
       "strip strip strip"
       "lenses map tray"
       "lenses map panel"
+      "rooms rooms rooms"
       "keeper keeper keeper";
     align-items: start;
   }
@@ -291,6 +293,7 @@ body {
 .bridge-lenses { grid-area: lenses; }
 .bridge-map { grid-area: map; }
 .bridge-panel { grid-area: panel; }
+.bridge-rooms { grid-area: rooms; }
 .bridge-keeper { grid-area: keeper; }
 
 /* Star-map body: a soft glow behind the selected system. Luminance only
