@@ -166,6 +166,7 @@ warmth gradients · shadows · typography · density).
   current set all passes `lab design theme validate` (WCAG). **Do not hand-author a partial palette** (a
   shell forces the "all the other work" later). A bespoke pack is available via `lab design theme make` only
   if none of the existing full packs feels like home — not as a starting task.
+- > **Updated 2026-09-25:** the first-run default is `starfield`, and `.project/PLAN.md` (owner-approved 2026-09-25) takes the Constellation star map as the starting direction. Where this section says otherwise, PLAN.md and `.project/DECISIONS.md` win.
 - **The *default theme* is not Station.** What defers to a later theme is the **constellation star-map
   navigation model** and Station-as-default — **not the product's personality.** Character art, a quiet
   sci-fi **aroma**, and companions-as-presence stay part of Worlds' soul (the README art stays). "Keep

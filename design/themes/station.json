@@ -1,5 +1,5 @@
 {
-  "_comment": "Station theme — the default. Warm, lived-in space station. Deep navy/indigo structure with amber, cream, wood, gold, green, coral practical light.",
+  "_comment": "Station theme — optional pack; also the generator's :root fallback (the first-run default is starfield, 2026-09-25). Warm, lived-in space station. Deep navy/indigo structure with amber, cream, wood, gold, green, coral practical light.",
   "_author": "Project Worlds (canonical)",
 
   "surface": {

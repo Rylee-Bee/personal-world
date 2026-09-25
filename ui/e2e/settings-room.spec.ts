@@ -234,8 +234,8 @@ test.describe("Settings Room (C1/C2)", () => {
     const root = page.locator("html");
 
     // Ocean, not Plain: clicking an already-active radio is a DOM
-    // no-op (no change event), and plain is the first-run default
-    // since D2 — persistence can only be proven for a theme that
+    // no-op (no change event), and the first-run default (starfield
+    // since 2026-09-25) is already applied — persistence can only be proven for a theme that
     // differs from what boot applied.
     await page.getByText("Ocean", { exact: true }).click();
     await expect(root).toHaveAttribute("data-theme", "ocean");
