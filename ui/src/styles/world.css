@@ -199,6 +199,15 @@ body {
   min-height: 100dvh;
 }
 
+/* Doorways (owner direction B, 2026-09-25) — headings in Fraunces, the
+   storybook serif; body stays Atkinson Hyperlegible. Same scoping as
+   Plain below so no other theme changes voice. */
+[data-theme="doorways"] h1,
+[data-theme="doorways"] h2,
+[data-theme="doorways"] h3 {
+  font-family: var(--pw-typography-font_serif);
+}
+
 /* Plain (first-release default) — display headings carry the soft
    serif identity (owner decision 2026-09-22: "keep Young Serif
    headings"). Scoped to [data-theme="plain"] so every other theme

@@ -74,6 +74,7 @@ import {
 type Theme = ThemeName;
 
 const THEME_LABELS: Record<Theme, string> = {
+  doorways: "Doorways",
   moss: "Moss",
   ocean: "Ocean",
   plain: "Plain",
