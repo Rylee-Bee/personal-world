@@ -15,6 +15,15 @@ never regenerate or overwrite this art casually (see `AGENTS.md`).
 | `poses/` | Pose sheets per resident. |
 | `badge.png` | The planet emblem, large. |
 | `newchars.png` | The **new area characters** production sheet (2026-09-17): **Mira** (Observatory), **Bruma** (Vault), **Hekek** (Engineering) — turnarounds, expressions, six states, combadge, role details — plus the **Quarters** bed-icon set and scene. |
+| `sol/` | **Sol** (2026-09-25), the smiling ringed planet: the primary logo and the one who pops up. `sol-mark` (logo, reads at 24 px), `sol-mark-mono` (one-colour, for high-contrast/forced colours), `sol-badge` (the crew commbadge), and moods `sol-hello` (greeting/pop-up), `sol-cheer` (good news; the only mood with sparkles), `sol-curious` (a room hasn't answered; keeping watch), `sol-rest` (quiet, nothing needs you). |
+| `renai/` | **Renai** (2026-09-25): `renai-hello` (full body, waving), `renai-listening` (bust, beside Chat), `renai-lantern` (full body; she kept your place, for "Where you left off"). Warm brown skin, golden eyes, pearlescent braid, in every image. |
+| `portraits/` | Round-porthole busts (2026-09-25), 1024², same framing for everyone: Bolt, Hekek, Ratatoskr, Bruma, Mira, **Scoop** (the Burrito Journalism truck). Used at 24–84 px. |
+| `doorways/` | Arched room interiors for the **Doorways** theme (2026-09-25), 1024×1536 WebP, no characters inside: `room-worlds` (the bridge; Worlds is a place, not a companion), `room-workshop` (Bolt), `room-playnice` (Hekek), `room-vefr` (Ratatoskr), `room-memomancer` (Bruma). |
+
+**Owner canon, 2026-09-25** (newer than `docs/COMPANION-CANON.md`, which still needs updating):
+the planet is **Sol** (the primary logo; the crew's commbadges are based on her), the
+**Worlds** room has no companion, the squirrel is **Ratatoskr** of Norse fame, and the burrito
+truck is **Scoop** from Burrito Journalism.
 
 **Read alongside:** names/roles `docs/COMPANION-CANON.md` · who they are
 `docs/CHARACTER-HANDBOOK.md` · art direction `design/COMPANION_INTEGRATION.md` ·
