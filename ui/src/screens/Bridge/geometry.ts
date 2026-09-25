@@ -79,3 +79,16 @@ export function trayOverflow(data: BridgeData): number {
   const shown = data.have_tos.length;
   return Math.max(data.have_tos_total - shown, 0);
 }
+/** Six decks around the Keeper, clockwise from the top. Percentages of
+ *  the map box; the ellipse keeps the crew clear of the centre bubble. */
+const DECK_ANGLES = [-90, -30, 30, 90, 150, 210];
+
+export function deckPosition(index: number, count: number): { x: number; y: number } {
+  const angle =
+    count === DECK_ANGLES.length
+      ? DECK_ANGLES[index]
+      : -90 + (360 / Math.max(count, 1)) * index;
+  const rad = (angle * Math.PI) / 180;
+  return { x: 50 + Math.cos(rad) * 38, y: 50 + Math.sin(rad) * 38 };
+}
+

@@ -31,15 +31,13 @@ import { STATUS_LABELS, toCapabilityStatus, type WorldAreaId } from "../../data/
 import type {
   BridgeData,
   BridgeItem,
-  BridgeMood,
   BridgeSystem,
   BridgeSystemId,
 } from "../../data/contract";
 import { ResidentPresence } from "../../components/ResidentPresence";
 import { WorldAssistant } from "../../components/WorldAssistant";
-import { WorldKeeper } from "../../components/WorldKeeper";
-import type { KeeperState } from "../Overview/home-loop";
-import { chooseDefaultSystem, knownArea, orbitPosition, trayOverflow } from "./geometry";
+import { chooseDefaultSystem, knownArea, trayOverflow } from "./geometry";
+import { StarMap } from "./StarMap";
 
 interface BridgeProps {
   /** State-driven activation, identical to the nav buttons. */
@@ -47,25 +45,12 @@ interface BridgeProps {
   onOpenAssistant: () => void;
 }
 
-/** The Keeper's pose for each briefing mood (WORLD_KEEPER.md states). */
-const KEEPER_STATE_FOR_MOOD: Record<BridgeMood, KeeperState> = {
-  greeting: "hello",
-  calm: "idle",
-  busy: "listening",
-  sleepy: "sleep",
-  celebrating: "celebrate",
-};
 
 /** One honest word per status — text carries the signal (§1.3). */
 function statusWord(raw: string): string {
   return STATUS_LABELS[toCapabilityStatus(raw)];
 }
 
-/** public/ files are copied verbatim; join against the deploy base the
- *  way ResidentPresence/WorldKeeper do (the path-prefix lesson). */
-function publicAsset(path: string): string {
-  return `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`;
-}
 
 /** The phone layout (< 860px) is where the panel is a bottom sheet.
  *  Absent matchMedia (SSR-ish) means unknown, which resolves to the
@@ -75,13 +60,6 @@ function isPhoneLayout(): boolean {
   return window.matchMedia("(max-width: 859.98px)").matches;
 }
 
-const MOOD_BLURB: Record<BridgeMood, string> = {
-  greeting: "first light",
-  calm: "steady",
-  busy: "holding things",
-  sleepy: "quiet hours",
-  celebrating: "something arrived",
-};
 
 /** A calm, never-red accent for the tray and chips (words carry the
  *  meaning; colour is reinforcement only). */
@@ -280,29 +258,13 @@ export function Bridge({ onOpenArea, onOpenAssistant }: BridgeProps) {
               style={{ left: `${star.x}%`, top: `${star.y}%` }}
             />
           ))}
-          <ul role="list" className="relative h-full w-full list-none p-0">
-            {systems.map((system, index) => {
-              const point = orbitPosition(index, systems.length);
-              const isActive = selected?.id === system.id;
-              return (
-                <li
-                  key={system.id}
-                  className="absolute"
-                  style={{
-                    left: `${point.xPct}%`,
-                    top: `${point.yPct}%`,
-                    transform: "translate(-50%, -50%)",
-                  }}
-                >
-                  <SystemBody
-                    system={system}
-                    isActive={isActive}
-                    onSelect={() => selectSystem(system.id)}
-                  />
-                </li>
-              );
-            })}
-          </ul>
+          <StarMap
+            keeper={data.keeper}
+            systems={systems}
+            selectedId={selected?.id ?? null}
+            onSelect={(id) => selectSystem(id)}
+            statusWord={statusWord}
+          />
 
           {/* Phone: the briefing panel is a bottom sheet with a toggle. */}
           <button
@@ -330,20 +292,6 @@ export function Bridge({ onOpenArea, onOpenAssistant }: BridgeProps) {
           />
         )}
 
-        {/* ── Keeper line — the ship's status line ─────────────────── */}
-        <footer className="bridge-keeper flex items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/80 p-[var(--pw-spacing-lg)]">
-          <WorldKeeper state={KEEPER_STATE_FOR_MOOD[data.keeper.mood]} />
-          <p
-            aria-live="polite"
-            aria-atomic="true"
-            className="min-w-0 flex-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
-          >
-            <span className="text-[var(--pw-text-muted)]">
-              {data.keeper.resident.name} · {MOOD_BLURB[data.keeper.mood]}:
-            </span>{" "}
-            {data.keeper.line}
-          </p>
-        </footer>
       </div>
 
       {/* Floating assistant trigger — clear of the home-indicator band
@@ -397,60 +345,6 @@ const TWINKLE_STARS: readonly { x: number; y: number }[] = [
 ];
 
 /* ── System body — the glowing map button ─────────────────────────── */
-
-function SystemBody({
-  system,
-  isActive,
-  onSelect,
-}: {
-  system: BridgeSystem;
-  isActive: boolean;
-  onSelect: () => void;
-}) {
-  const arrivals = system.counts?.arrivals ?? 0;
-  const haveTos = system.counts?.have_tos ?? 0;
-  const label = `${system.name} — ${system.resident.name} — ${statusWord(
-    system.status,
-  )}, ${arrivals} new, ${haveTos} need you`;
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-label={label}
-      aria-current={isActive ? "true" : undefined}
-      className={[
-        "group flex min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] flex-col items-center gap-[var(--pw-spacing-xs)] rounded-[var(--pw-radius-md)] p-[var(--pw-spacing-xs)]",
-        "focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]",
-        isActive
-          ? "bg-[var(--pw-accent-teal_soft)]"
-          : "bg-transparent hover:bg-[var(--pw-surface-elevated)]",
-      ].join(" ")}
-    >
-      <span
-        aria-hidden="true"
-        className={[
-          "flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-[var(--pw-surface-hull)]",
-          isActive
-            ? "border-[var(--pw-accent-primary)] shadow-[var(--pw-shadow-glow)]"
-            : "border-[var(--pw-border-subtle)]",
-        ].join(" ")}
-      >
-        <img
-          src={publicAsset(system.resident.portrait)}
-          alt=""
-          className="h-full w-full object-cover"
-        />
-      </span>
-      <span
-        aria-hidden="true"
-        className="max-w-[7rem] text-center text-[length:var(--pw-typography-size_micro)] font-medium text-[var(--pw-text-secondary)] group-hover:text-[var(--pw-text-primary)]"
-      >
-        {system.name}
-      </span>
-    </button>
-  );
-}
 
 /* ── Needs-you tray ───────────────────────────────────────────────── */
 

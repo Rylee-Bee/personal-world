@@ -1,0 +1,120 @@
+/**
+ * StarMap — the little world itself.
+ *
+ * The World Keeper's globe sits at the heart and speaks the briefing;
+ * the crew stand around it, each on their own small deck, reporting
+ * their part of the world. Personality is the presentation: who is
+ * glowing, who is holding something for you, and who is honestly dim
+ * because nothing is plugged in yet.
+ *
+ * Encoding (accessibility contract §1.3): state is carried by WORDS
+ * ("3 new", "2 need you", "not set up yet") and by luminance (dim vs
+ * lit), never by hue alone. Positions are deterministic so the world
+ * always looks like itself. Motion (the gentle bob) runs only when the
+ * person allows motion; the OS reduced-motion setting wins.
+ */
+
+import type { BridgeKeeper, BridgeSystem, BridgeSystemId } from "../../data/contract";
+import { deckPosition } from "./geometry";
+
+const DIM_STATUSES = new Set(["not_configured", "disabled"]);
+const QUIET_STATUSES = new Set(["unavailable", "unknown", "stale"]);
+
+function publicAsset(path: string): string {
+  return `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`;
+}
+
+function deckNote(system: BridgeSystem, statusWord: string): string | null {
+  const { arrivals, have_tos } = system.counts;
+  if (DIM_STATUSES.has(system.status)) return "not set up yet";
+  if (have_tos > 0) return `${have_tos} need you`;
+  if (arrivals > 0) return `${arrivals} new`;
+  if (QUIET_STATUSES.has(system.status)) return statusWord.toLowerCase();
+  return null;
+}
+
+interface StarMapProps {
+  keeper: BridgeKeeper & { greeting?: string | null; name?: string | null };
+  systems: BridgeSystem[];
+  selectedId: BridgeSystemId | null;
+  onSelect: (id: BridgeSystemId) => void;
+  statusWord: (raw: string) => string;
+}
+
+export function StarMap({ keeper, systems, selectedId, onSelect, statusWord }: StarMapProps) {
+  const greeting = keeper.greeting
+    ? `${keeper.greeting}${keeper.name ? `, ${keeper.name}` : ""}.`
+    : null;
+
+  return (
+    <div className="starmap" data-mood={keeper.mood}>
+      <svg className="starmap__orbit" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <ellipse cx="50" cy="50" rx="38" ry="38" />
+      </svg>
+
+      {/* The Keeper — the one voice of the briefing. */}
+      <div className="starmap__keeper">
+        <img
+          src={publicAsset(keeper.resident.portrait)}
+          alt=""
+          aria-hidden="true"
+          className="starmap__globe"
+        />
+        <p className="starmap__speech" aria-live="polite" aria-atomic="true">
+          {greeting && <span className="starmap__greeting">{greeting} </span>}
+          <span>{keeper.line}</span>
+        </p>
+      </div>
+
+      <ul role="list" className="starmap__crew">
+        {systems.map((system, index) => {
+          const pos = deckPosition(index, systems.length);
+          const word = statusWord(system.status);
+          const note = deckNote(system, word);
+          const active = system.id === selectedId;
+          const dim = DIM_STATUSES.has(system.status);
+          const lit = system.counts.arrivals > 0 || system.counts.have_tos > 0;
+          return (
+            <li
+              key={system.id}
+              className="starmap__slot"
+              style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+            >
+              <button
+                type="button"
+                onClick={() => onSelect(system.id)}
+                aria-current={active ? "true" : undefined}
+                aria-label={`${system.name} — ${system.resident.name} — ${word}, ${system.counts.arrivals} new, ${system.counts.have_tos} need you`}
+                className="starmap__deck"
+                data-active={active || undefined}
+                data-dim={dim || undefined}
+                data-lit={lit || undefined}
+                style={{ ["--bob-delay" as string]: `${index * -0.9}s` }}
+              >
+                <img
+                  src={publicAsset(system.resident.portrait)}
+                  alt=""
+                  aria-hidden="true"
+                  className="starmap__figure"
+                />
+                <span className="starmap__base" aria-hidden="true" />
+                <span className="starmap__name" aria-hidden="true">
+                  {system.name}
+                </span>
+                {note && (
+                  <span
+                    className="starmap__note"
+                    data-kind={system.counts.have_tos > 0 && !dim ? "needs" : undefined}
+                    aria-hidden="true"
+                  >
+                    {note}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}

@@ -167,9 +167,10 @@ const THEME_STORAGE_KEY = "pw-station-theme";
  *  theme and any device choice overrides this. Note that "default
  *  theme" and "the theme hosted by `:root`" are separate facts:
  *  `:root` in tokens.css remains station (the generated cascade is
- *  untouched), so booting into plain means explicitly setting
- *  data-theme="plain". */
-export const DEFAULT_THEME: ThemeName = "plain";
+ *  untouched), so booting into starfield means explicitly setting
+ *  data-theme="starfield". Owner directive 2026-09-25 (.project/PLAN.md:
+ *  the warm sci-fi identity; calm does not mean boring) supersedes D2. */
+export const DEFAULT_THEME: ThemeName = "starfield";
 
 export function isThemeName(value: unknown): value is ThemeName {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(THEMES, value);
@@ -177,7 +178,7 @@ export function isThemeName(value: unknown): value is ThemeName {
 
 /** Station is the theme `:root` hosts in tokens.css, so it is expressed
  *  as *no data-theme attribute*; every other theme — including
- *  DEFAULT_THEME (plain) on a first run — sets its own attribute.
+ *  DEFAULT_THEME (starfield) on a first run — sets its own attribute.
  *  This is exactly how the generated cascade documents the override. */
 export function applyThemeToDocument(theme: ThemeName): void {
   const root = document.documentElement;

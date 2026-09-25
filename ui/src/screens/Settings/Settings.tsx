@@ -87,7 +87,7 @@ const THEME_NAMES = Object.keys(THEMES) as Theme[];
  *  model the old station.js chrome used — localStorage, not the
  *  server, because no theme-write endpoint exists), falling back to
  *  whatever is applied on <html>, then to the first-run default
- *  (DEFAULT_THEME, plain — D2). */
+ *  (DEFAULT_THEME, starfield — 2026-09-25). */
 function readInitialTheme(): Theme {
   const stored = readStoredTheme();
   if (stored) return stored;
