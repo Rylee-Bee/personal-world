@@ -22,7 +22,7 @@
   --pw-motion-default: off;
 }
 
-/* Default theme: station */
+/* :root fallback theme: station (first-run default is DEFAULT_THEME) */
 :root {
   --pw-surface-void: #080B14;
   --pw-surface-canvas: #0C101C;

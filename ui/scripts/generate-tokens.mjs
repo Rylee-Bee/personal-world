@@ -9,8 +9,9 @@
  *   - ../design/tokens.json   — token NAMES and immutable values
  *     (targets/, focus/, motion/ categories carry `_value` and are
  *     contract-immutable: never overridden by themes or density).
- *   - ../design/themes/*.json — per-theme values. Station is the default
- *     theme and is emitted on `:root` FIRST so every [data-theme] block,
+ *   - ../design/themes/*.json — per-theme values. Station is the `:root`
+ *     fallback (NOT the product default — that is DEFAULT_THEME in
+ *     src/app/prefs-dom.ts, starfield) and is emitted on `:root` FIRST so every [data-theme] block,
  *     having equal specificity and later position, overrides it.
  *
  * Usage:
@@ -29,7 +30,7 @@ const tsOutput = resolve(__dirname, "../src/generated/tokens.ts");
 
 const allThemeFiles = readdirSync(themesDir).filter((f) => f.endsWith(".json"));
 
-/** Station (the default theme) must come first; rest keeps sorted order. */
+/** Station (the :root fallback) must come first; rest keeps sorted order. */
 const themeFiles = [
   ...allThemeFiles.filter((f) => basename(f, ".json") === "station"),
   ...allThemeFiles.filter((f) => basename(f, ".json") !== "station").sort(),
@@ -95,7 +96,7 @@ for (const file of themeFiles) {
   const data = JSON.parse(readFileSync(resolve(themesDir, file), "utf-8"));
 
   if (themeName === "station") {
-    css += `\n/* Default theme: station */\n:root {\n`;
+    css += `\n/* :root fallback theme: station (first-run default is DEFAULT_THEME) */\n:root {\n`;
   } else {
     css += `\n[data-theme="${themeName}"] {\n`;
   }
@@ -186,7 +187,7 @@ export function token(name: TokenName): string {
 /** Theme names available (generated from design/themes/*.json) */
 export type ThemeName = ${themeNames.map((n) => `"${n}"`).join(" | ")};
 
-/** All theme selectors (station is the default and lives on :root) */
+/** All theme selectors (station is the :root fallback) */
 export const THEMES: Record<ThemeName, string> = {
 ${themeNames
   .map((n) => `  ${JSON.stringify(n)}: ${n === "station" ? '":root"' : `'[data-theme="${n}"]'`}`)

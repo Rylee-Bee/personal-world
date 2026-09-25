@@ -1,5 +1,7 @@
 # Plain Default Theme — shipped default (evolve the generic, don't start a lineage)
 
+> **Superseded 2026-09-25:** the first-run default is now `starfield` (`.project/DECISIONS.md`, "Default theme plain → starfield"). Plain stays as an optional pack; this doc is its history.
+
 **Status:** APPROVED + IMPLEMENTED 2026-09-22 (owner queue item 2 / D2). `design/themes/plain.json` is a
 validated pack and the first-release default (`DEFAULT_THEME` in `ui/src/app/prefs-dom.ts`; first-run boot
 sets `data-theme="plain"`); `starfield` is demoted to a switchable optional pack. This supersedes the

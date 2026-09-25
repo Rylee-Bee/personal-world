@@ -140,7 +140,7 @@ describe("applyPrefsToDocument", () => {
 });
 
 describe("theme (device-local — no server key exists)", () => {
-  it("applies data-theme for real overrides and removes it for the Station default", () => {
+  it("applies data-theme for real overrides and removes it for Station (the :root fallback)", () => {
     applyThemeToDocument("starfield");
     expect(document.documentElement.getAttribute("data-theme")).toBe("starfield");
     applyThemeToDocument("station");
@@ -151,8 +151,7 @@ describe("theme (device-local — no server key exists)", () => {
     // The boot expression App.tsx runs — a fresh device has no stored
     // choice, and DEFAULT_THEME (not station) resolves it. Station is
     // still reachable and still attribute-free; only the FIRST-RUN
-    // default moved (starfield demoted to an optional pack, owner
-    // decision 2026-09-22).
+    // default moved (plain → starfield, owner decision 2026-09-25).
     expect(DEFAULT_THEME).toBe("starfield");
     expect(readStoredTheme()).toBeNull();
     applyThemeToDocument(readStoredTheme() ?? DEFAULT_THEME);
