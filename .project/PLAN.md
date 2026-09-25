@@ -57,6 +57,8 @@ Project Home merge as a Worlds source; name collisions ("Workshop" means 3 thing
 
 ## Done 2026-09-25
 
+Step 1b "first light" (PR #68; handoff: `.project/HANDOFF-BRIDGE-2026-09-25.md`). Owner: "a lot closer"; next is 1b.2 layout + life, then 1c.
+
 Vision review + live walkthrough + inventory (review doc); PR #65 design archive (tag archive/pre-design-cleanup-2026-09-25; six old branches kept as archive/branch/* tags); PR #66 Play-Nice pin 44ec8f4 -> 60eaeab; media_files node_modules cleared (110 MB).
 
 ## Timeline note
