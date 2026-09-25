@@ -129,9 +129,9 @@ const PREFS_SCHEMA = {
     allowed: [44, 56], integer: true, unit: "px",
   },
   companion: {
-    type: "enum", default: "personal-world", floor: "personal-world",
+    type: "enum", default: "assistant", floor: "assistant",
     allowed: [
-      "personal-world", "mermaid", "robot",
+      "assistant", "personal-world", "mermaid", "robot",
       "world-tree-squirrel", "taco-news-truck",
     ],
   },

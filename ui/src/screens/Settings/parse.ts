@@ -302,6 +302,17 @@ export function prefValueLabel(entry: PrefsSchemaEntry, value: PrefsValue): stri
     if (value === "playful") return "Playful";
     if (value === "formal") return "Formal";
   }
+  // Companions by their canon names (docs/COMPANION-CANON.md). Sol
+  // (`personal-world`) is the Worlds mark with no voice, so choosing her
+  // reads as what it does: no companion.
+  if (entry.key === "companion") {
+    if (value === "assistant") return "Assistant (default)";
+    if (value === "personal-world") return "No companion (the one plain voice)";
+    if (value === "mermaid") return "Renai";
+    if (value === "robot") return "Bolt";
+    if (value === "world-tree-squirrel") return "Ratatoskr";
+    if (value === "taco-news-truck") return "Scoop";
+  }
   if (entry.key === "personality_pack") {
     if (value === "off") return "Off (the one voice)";
     if (value === "residents") return "Residents (default)";

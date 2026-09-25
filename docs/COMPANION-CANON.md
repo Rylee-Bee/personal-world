@@ -46,6 +46,7 @@ Where this file disagrees with repo evidence, the disagreement is recorded below
 | **Bolt** | Lab / development / AI helper ("Little Helper Robot") | Repo design (`design/COMPANION_INTEGRATION.md`); personal name chosen by the owner, 2026-09-17 | `robot` | `robot` |
 | **Scoop** | Journalism / stories / city life — the **breakfast burrito truck** | **Burrito Journalism** (owner game; display name **Scoop** from 2026-09-25). Repo design label: "Tacos & the Morning Paper" | `burrito` | `taco-news-truck` |
 | **Sol** | The ringed planet: primary logo, greets and pops up (display name from 2026-09-25; formerly "Personal World") | Repo product identity | *(none — absent from the Station control)* | `personal-world` |
+| **Assistant** | The plain default helper when no companion is chosen; a computer screen with a friendly face (owner, 2026-09-25) | Worlds default | *(none)* | `assistant` |
 | **Hekek** | Systems — Builder · Maintainer · Steward | Owner canon 2026-09-17. **New area character, not in the repo today** | `hekek` *(proposed)* | `hekek` *(proposed)* |
 | **Bruma** | Records — Archivist · Keeper · Witness | Owner canon 2026-09-17. **New area character, not in the repo today** | `bruma` *(proposed)* | `bruma` *(proposed)* |
 | **Mira** | Interests — Observer · Note-Taker · Pattern Seeker | Owner canon 2026-09-17. **New area character, not in the repo today** | `mira` *(proposed)* | `mira` *(proposed)* |

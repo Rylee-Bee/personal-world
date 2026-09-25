@@ -40,7 +40,7 @@ class TestDefaultsSatisfyFloor:
             "text_scale": 1.0,
             "density": "comfortable",
             "target_size": 44,
-            "companion": "personal-world",
+            "companion": "assistant",
             "accent": "world-keeper",
             "tone": "warm",
             "personality_pack": "residents",

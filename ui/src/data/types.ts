@@ -100,13 +100,18 @@ export interface Resident {
  * docs/COMPANION-CANON.md (owner canon 2026-09-17); ids are the
  * ui/public artwork keys. Never invent residents here — this map is
  * the whole of it.
+ *
+ * `assistant` is the plain default helper with a screen for a face
+ * (owner, 2026-09-25). `personal-world` is deliberately ABSENT: that key
+ * is Sol, the Worlds mark, and she has no voice — choosing her means no
+ * companion resident at all (the one plain voice).
  */
 export const COMPANION_RESIDENTS: Record<string, Resident> = {
-  "personal-world": { id: "personal-world", name: "Personal World", role: "System companion" },
+  assistant: { id: "assistant", name: "Assistant", role: "Default helper" },
   mermaid: { id: "renai", name: "Renai", role: "Personal companion" },
   robot: { id: "bolt", name: "Bolt", role: "Lab helper" },
   "world-tree-squirrel": { id: "ratatoskr", name: "Ratatoskr", role: "Lore keeper" },
-  "taco-news-truck": { id: "burrito", name: "Burrito Journalism", role: "Stories & city life" },
+  "taco-news-truck": { id: "burrito", name: "Scoop", role: "Burrito Journalism's truck" },
 };
 
 // ─── Attention language (Overview cards) ─────────────────

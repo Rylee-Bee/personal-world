@@ -222,11 +222,12 @@ describe("types constants", () => {
   });
 
   describe("COMPANION_RESIDENTS", () => {
-    it("covers every server companion preference value", () => {
-      // src/personal_world/prefs.py COMPANION.allowed
+    it("covers every server companion value except voiceless Sol", () => {
+      // src/personal_world/prefs.py COMPANION.allowed, minus
+      // `personal-world` (Sol, the Worlds mark, has no voice).
       expect(Object.keys(COMPANION_RESIDENTS).sort()).toEqual([
+        "assistant",
         "mermaid",
-        "personal-world",
         "robot",
         "taco-news-truck",
         "world-tree-squirrel",
@@ -246,8 +247,9 @@ describe("types constants", () => {
       expect(COMPANION_RESIDENTS["mermaid"].name).toBe("Renai");
       expect(COMPANION_RESIDENTS["robot"].name).toBe("Bolt");
       expect(COMPANION_RESIDENTS["world-tree-squirrel"].name).toBe("Ratatoskr");
-      expect(COMPANION_RESIDENTS["taco-news-truck"].name).toBe("Burrito Journalism");
-      expect(COMPANION_RESIDENTS["personal-world"].name).toBe("Personal World");
+      expect(COMPANION_RESIDENTS["taco-news-truck"].name).toBe("Scoop");
+      expect(COMPANION_RESIDENTS["assistant"].name).toBe("Assistant");
+      expect(COMPANION_RESIDENTS["personal-world"]).toBeUndefined();
     });
   });
 

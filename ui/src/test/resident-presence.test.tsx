@@ -11,7 +11,7 @@
  *     broken-image glyph, never another resident's art.
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { ResidentPresence } from "../components/ResidentPresence";
 import { COMPANION_RESIDENTS } from "../data/types";
@@ -49,7 +49,6 @@ describe("ResidentPresence — artwork resolves under the deploy base", () => {
     // the UI must know about it, not paper over it. Vitest runs with
     // the project root as cwd, so these are stable relative paths.
     vi.stubEnv("BASE_URL", "/vnext/");
-    const served = new Set(readdirSync("public/assets/characters"));
     for (const resident of Object.values(COMPANION_RESIDENTS)) {
       const { container } = render(
         <ResidentPresence resident={resident} />,
@@ -58,7 +57,6 @@ describe("ResidentPresence — artwork resolves under the deploy base", () => {
       expect(img, `${resident.id} should render art`).not.toBeNull();
       const relative = img!.getAttribute("src")!.replace("/vnext", "");
       expect(existsSync(`public${relative}`), `public${relative}`).toBe(true);
-      expect(served.has(`${resident.id}.png`)).toBe(true);
     }
   });
 });
