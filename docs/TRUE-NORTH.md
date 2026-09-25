@@ -94,7 +94,7 @@ any scope expansion (ruling 2026-09-22).
 | Overview | the daily home loop: greet + honest status + thread + discovery sliver |
 | Memory | journal + records; deterministic place; works with **all models off**; step-up for locked categories |
 | Chat | the one voice + tone registers; honest-off reachable; contextual |
-| Settings | preferences, tone, themes (plain default · starfield optional), accessibility prefs |
+| Settings | preferences, tone, themes (starfield default since 2026-09-25 · others optional), accessibility prefs |
 
 **Projects ruling (owner refinement 2):** Projects stays **parked as a full
 surface**, but Overview's project status must keep a **deterministic path

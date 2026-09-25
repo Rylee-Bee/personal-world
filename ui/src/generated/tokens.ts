@@ -136,7 +136,7 @@ export function token(name: TokenName): string {
 /** Theme names available (generated from design/themes/*.json) */
 export type ThemeName = "station" | "moss" | "ocean" | "plain" | "starfield";
 
-/** All theme selectors (station is the default and lives on :root) */
+/** All theme selectors (station is the :root fallback) */
 export const THEMES: Record<ThemeName, string> = {
   "station": ":root",
   "moss": '[data-theme="moss"]',

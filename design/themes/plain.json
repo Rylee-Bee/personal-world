@@ -1,5 +1,5 @@
 {
-  "_comment": "Plain theme — the first-release default. Warm-neutral charcoal surfaces, teal #72B1B1 primary, amber #D4A057 as the rare highlight (owner decision 2026-09-22 flips the draft's amber-primary Q1), Young Serif display headings, dark-warm only. Evolves the generic theme direction, warmed — no new lineage. See design/PLAIN-DEFAULT-THEME-DRAFT.md.",
+  "_comment": "Plain theme — optional pack (first-release default 2026-09-22, superseded by starfield 2026-09-25). Warm-neutral charcoal surfaces, teal #72B1B1 primary, amber #D4A057 as the rare highlight (owner decision 2026-09-22 flips the draft's amber-primary Q1), Young Serif display headings, dark-warm only. Evolves the generic theme direction, warmed — no new lineage. See design/PLAIN-DEFAULT-THEME-DRAFT.md.",
   "_author": "Project Worlds (owner decisions 2026-09-21, 2026-09-22)",
 
   "surface": {

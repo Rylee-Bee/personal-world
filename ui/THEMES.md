@@ -163,7 +163,8 @@ Use these in Tailwind via `var(--pw-*)`:
 design/
 ├── tokens.json                 ← Semantic token definitions (THE contract)
 ├── themes/
-│   ├── station.json            ← Default theme (warm space station)
+│   ├── starfield.json          ← First-run default (DEFAULT_THEME)
+│   ├── station.json            ← Optional; the generator's :root fallback
 │   ├── ocean.json              ← Cool, deep, focused
 │   └── moss.json               ← Earthy, grounded, natural
 └── opendesign-exploration/

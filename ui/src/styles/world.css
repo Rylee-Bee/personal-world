@@ -6,7 +6,7 @@
  * Tailwind may implement layout; it must NOT replace semantic tokens.
  *
  * Theme switching: set [data-theme="…"] on <html> to override defaults.
- * Station lives in :root; Plain is the first-run default (DEFAULT_THEME).
+ * Station lives in :root (fallback only); Starfield is the first-run default (DEFAULT_THEME).
  */
 
 /* Fonts */
@@ -199,7 +199,7 @@ body {
   min-height: 100dvh;
 }
 
-/* Plain (first-release default) — display headings carry the soft
+/* Plain (optional pack; first-release default until 2026-09-25) — display headings carry the soft
    serif identity (owner decision 2026-09-22: "keep Young Serif
    headings"). Scoped to [data-theme="plain"] so every other theme
    keeps its own voice. */
