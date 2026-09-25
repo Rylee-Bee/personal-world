@@ -150,3 +150,14 @@ replace any contract above.
   belongs to the later Station theme package; Station is kept, never deleted). The default is a
   **complete existing theme pack** (full color — plain means calm structure, not colorless), never a
   hand-built partial shell or the aubergine station palette. See `docs/PRODUCT-LANGUAGE.md`.
+
+## No new ports into Worlds
+
+Worlds is the front door plus the Self room (Keeper, memory, journal,
+briefing). It never copies another tool's code. New capabilities arrive as
+rooms that serve the Play-Nice ROOM interface contract — `room/0`:
+`GET /room`, `/room/cards`, `/room/needs-you`, `/room/actions`,
+`POST /room/actions/{id}` — and Worlds renders them. Existing ported
+providers are being moved out per the estate plan
+`docs/orchestration/ORCHESTRATION-PLAN-2026-09-25.md` in the estate root;
+reference that path, do not copy it here.
