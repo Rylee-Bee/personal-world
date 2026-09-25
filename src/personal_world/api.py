@@ -48,7 +48,7 @@ from .providers.lab_state import DEFAULT_LAB, LabState
 from .providers.project_home import ProjectHomeSource
 from .providers.registry import Registry
 from .rooms import RoomsService, parse_rooms, STATE_FILENAME as ROOMS_STATE_FILENAME
-from . import rooms_visits
+from . import crew, rooms_visits
 from .source_control import (
     discover_repositories,
     repository_history,
@@ -2595,7 +2595,61 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """An id is addressable only if PW_ROOMS configured it."""
         return any(c.id == room_id for c in parse_rooms())
 
-    async def _rooms_body(request: Request) -> dict:
+    def _configured_room_ids() -> list[str]:
+        """The configured room ids, in PW_ROOMS order."""
+        return [c.id for c in parse_rooms()]
+
+    def _crew_path(request: Request) -> Path:
+        """The caller's own crew registry file (per-principal seam)."""
+        return _scoped_path(request.state.principal, "crew")
+
+    def _crew_state(request: Request) -> tuple[Path, dict]:
+        """``(path, state)`` for the caller's crew, starter-seeded.
+
+        The configured room ids ride along so the canon keeper defaults can
+        be seeded for the rooms that name a system — and only those.
+        """
+        path = _crew_path(request)
+        return path, crew.read_crew(path, room_ids=_configured_room_ids())
+
+    def _crew_text(
+        body: dict, key: str, cap: int, *, required: bool = False
+    ) -> str | None:
+        """A bounded string field from a crew body, or 422.
+
+        Strings only, trimmed; an omitted/empty optional field is None
+        (never ``""``), and an over-length value is refused rather than
+        silently truncated into a different one.
+        """
+        if key not in body:
+            if required:
+                raise HTTPException(status_code=422, detail=f"{key} is required")
+            return None
+        value = body[key]
+        if value is None or value == "":
+            if required:
+                raise HTTPException(
+                    status_code=422, detail=f"{key} must be a string"
+                )
+            return None
+        if not isinstance(value, str):
+            raise HTTPException(status_code=422, detail=f"{key} must be a string")
+        value = value.strip()
+        if not value:
+            if required:
+                raise HTTPException(
+                    status_code=422, detail=f"{key} must not be empty"
+                )
+            return None
+        if len(value) > cap:
+            raise HTTPException(
+                status_code=422,
+                detail=f"{key} must be at most {cap} characters",
+            )
+        return value
+
+    async def _json_body(request: Request) -> dict:
+        """One JSON object as the request body, or 422 (never a 500)."""
         try:
             body = await request.json()
         except ValueError:
@@ -2614,17 +2668,24 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         needs it is charging attention for, whether it is reachable, and
         when it was last reached (persisted across restarts). Each row
         also carries the CALLER's private, Worlds-owned visit fields:
-        ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``.
-        ``resume`` and ``summary`` travel as siblings of ``data`` so the
-        existing list envelope stays byte-compatible. Fetching is
-        concurrent with a 2 s per-request timeout and the snapshot is
-        cached 15 s. This handler never raises on a room's behalf: an
-        unreachable room is reported ``reachable: false`` with its
-        last-seen time, never claimed healthy.
+        ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,
+        plus ``keeper`` — the companion the caller put on that room, or an
+        honest ``null``. A keeper never changes the room's status; status
+        still comes only from the room. ``resume`` and ``summary`` travel
+        as siblings of ``data`` so the existing list envelope stays
+        byte-compatible. Fetching is concurrent with a 2 s per-request
+        timeout and the snapshot is cached 15 s. This handler never raises
+        on a room's behalf: an unreachable room is reported
+        ``reachable: false`` with its last-seen time, never claimed
+        healthy.
         """
         rows = await _ROOMS.snapshot()
         state = rooms_visits.read_visits(_rooms_visit_path(request))
-        decorated = [rooms_visits.decorate_row(row, state) for row in rows]
+        _, crew_state = _crew_state(request)
+        decorated = [
+            crew.decorate_row(rooms_visits.decorate_row(row, state), crew_state)
+            for row in rows
+        ]
         return {
             "ok": True,
             "data": decorated,
@@ -2645,7 +2706,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """
         if not _room_configured(room_id):
             raise HTTPException(status_code=404, detail="unknown room")
-        body = await _rooms_body(request)
+        body = await _json_body(request)
         link = body.get("link")
         if link is not None and not rooms_visits.valid_same_origin_link(link):
             raise HTTPException(
@@ -2702,6 +2763,240 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 "needs_seen": list(state["rooms"][room_id]["needs_seen"]),
             },
         }
+
+    # ── Crew: companions are user-owned (owner decision 2026-09-25) ─────
+    # The person's own crew registry and keepers: private, per principal,
+    # never sent to a room or a model. Stored on the same per-principal
+    # JSON seam as every other Worlds state file (kind "crew"). The drawn
+    # crew is a STARTER set — add, rename, hide, delete; a room may have
+    # no companion at all. Sol is the Worlds mark, never a crew entry.
+
+    @app.get("/api/crew", dependencies=[Depends(require_auth)])
+    async def crew_view(request: Request) -> dict:
+        """The caller's own crew, starter-seeded on first read.
+
+        Honest roster: every entry is a companion the person has (drawn or
+        their own), including hidden ones — the front door decides what to
+        filter. An emptied roster stays empty.
+        """
+        _, state = _crew_state(request)
+        return {"ok": True, "data": list(state["crew"])}
+
+    @app.post("/api/crew", dependencies=[Depends(require_auth)])
+    async def crew_add(request: Request) -> dict:
+        """Add a companion of the caller's own (``source: "user"``).
+
+        Body: ``{name, blurb?, voice_label?}``. The id is a slug of the
+        name made unique against the caller's roster. Same auth posture as
+        the other POST routes; no step-up — a roster entry mutates nothing
+        a visit doesn't already imply.
+        """
+        body = await _json_body(request)
+        name = _crew_text(body, "name", crew.NAME_MAX, required=True)
+        blurb = _crew_text(body, "blurb", crew.BLURB_MAX)
+        voice_label = _crew_text(body, "voice_label", crew.VOICE_LABEL_MAX)
+        path, state = _crew_state(request)
+        entry = crew.add(state, name=name, blurb=blurb, voice_label=voice_label)
+        crew.write_crew(path, state)
+        return {"ok": True, "data": entry}
+
+    @app.patch("/api/crew/{companion_id}", dependencies=[Depends(require_auth)])
+    async def crew_patch(companion_id: str, request: Request) -> dict:
+        """Rename/reword/hide one companion (drawn crew included).
+
+        Body may carry ``name``, ``blurb``, ``voice_label`` and ``hidden``;
+        omitted keys are untouched and an explicit ``null`` clears an
+        optional text field. Unknown id → 404. Hiding is a roster act: it
+        never changes a room's status and never unassigns a keeper.
+        """
+        path, state = _crew_state(request)
+        entry = crew.find(state, companion_id)
+        if entry is None:
+            raise HTTPException(status_code=404, detail="unknown companion")
+        body = await _json_body(request)
+        if "name" in body:
+            entry["name"] = _crew_text(body, "name", crew.NAME_MAX, required=True)
+        if "blurb" in body:
+            entry["blurb"] = _crew_text(body, "blurb", crew.BLURB_MAX)
+        if "voice_label" in body:
+            entry["voice_label"] = _crew_text(
+                body, "voice_label", crew.VOICE_LABEL_MAX
+            )
+        if "hidden" in body:
+            hidden = body["hidden"]
+            if not isinstance(hidden, bool):
+                raise HTTPException(
+                    status_code=422, detail="hidden must be a boolean"
+                )
+            entry["hidden"] = hidden
+        crew.write_crew(path, state)
+        return {"ok": True, "data": entry}
+
+    @app.delete("/api/crew/{companion_id}", dependencies=[Depends(require_auth)])
+    async def crew_delete(companion_id: str, request: Request) -> dict:
+        """Delete one of the caller's own companions, or refuse a starter.
+
+        The drawn crew is kept: 409, hide it instead. Deleting a companion
+        clears the keeper assignments it held (the rooms stay configured
+        and simply have no companion) and removes its uploaded portrait.
+        """
+        path, state = _crew_state(request)
+        entry = crew.find(state, companion_id)
+        if entry is None:
+            raise HTTPException(status_code=404, detail="unknown companion")
+        if crew.is_starter(entry):
+            raise HTTPException(
+                status_code=409,
+                detail="starter companions cannot be deleted; hide it instead",
+            )
+        _, cleared = crew.remove(state, companion_id)
+        crew.delete_portrait(path, companion_id)
+        crew.write_crew(path, state)
+        return {
+            "ok": True,
+            "data": {
+                "id": companion_id,
+                "deleted": True,
+                "keepers_cleared": cleared,
+            },
+        }
+
+    @app.put("/api/rooms/{room_id}/keeper", dependencies=[Depends(require_auth)])
+    async def rooms_keeper(room_id: str, request: Request) -> dict:
+        """Assign (or clear) the caller's keeper for one configured room.
+
+        Body: ``{companion_id}`` — an existing companion id, or ``null``
+        for "no companion". One keeper per room; a companion may keep
+        several rooms. Unconfigured room → 404; unknown companion → 422.
+        This records who the person put there and nothing else: the room's
+        status is never touched by an assignment.
+        """
+        if not _room_configured(room_id):
+            raise HTTPException(status_code=404, detail="unknown room")
+        body = await _json_body(request)
+        if "companion_id" not in body:
+            raise HTTPException(
+                status_code=422, detail="companion_id is required"
+            )
+        companion_id = body["companion_id"]
+        if companion_id is not None and not isinstance(companion_id, str):
+            raise HTTPException(
+                status_code=422, detail="companion_id must be a string or null"
+            )
+        path, state = _crew_state(request)
+        if companion_id is not None and crew.find(state, companion_id) is None:
+            raise HTTPException(status_code=422, detail="unknown companion")
+        state.setdefault("keepers", {})[room_id] = companion_id
+        crew.write_crew(path, state)
+        return {
+            "ok": True,
+            "data": {
+                "room_id": room_id,
+                "keeper": crew.keeper_of(state, room_id),
+            },
+        }
+
+    @app.post(
+        "/api/crew/{companion_id}/portrait",
+        dependencies=[Depends(require_auth)],
+    )
+    async def crew_portrait_upload(companion_id: str, request: Request) -> dict:
+        """Store a portrait for one companion (private, caller-scoped).
+
+        Body: ``{content_type, data_base64}``. PNG/JPEG/WebP only, and the
+        *bytes* must be that format — the declared type is checked against
+        the magic numbers, so a fake extension is refused 415. Decoded
+        size over 5 MB → 413. The bytes land in the caller's own scoped
+        data directory (never a new store) and the entry's
+        ``portrait_asset`` then points at the same-origin route below.
+        """
+        path, state = _crew_state(request)
+        entry = crew.find(state, companion_id)
+        if entry is None:
+            raise HTTPException(status_code=404, detail="unknown companion")
+        body = await _json_body(request)
+        content_type = body.get("content_type")
+        if content_type not in crew.ALLOWED_IMAGE_TYPES:
+            raise HTTPException(
+                status_code=415,
+                detail="content_type must be one of "
+                + ", ".join(crew.ALLOWED_IMAGE_TYPES),
+            )
+        data, error = crew.decode_portrait(body.get("data_base64"))
+        if error == "too_large":
+            raise HTTPException(
+                status_code=413,
+                detail=f"portrait exceeds {crew.PORTRAIT_MAX_BYTES} bytes",
+            )
+        if error is not None:
+            raise HTTPException(
+                status_code=422, detail="data_base64 must be valid base64"
+            )
+        if crew.sniff_image_type(data) != content_type:
+            raise HTTPException(
+                status_code=415, detail="image bytes do not match content_type"
+            )
+        # The stored id — a validated slug — is what touches the
+        # filesystem; the raw path parameter never does.
+        crew.write_portrait(
+            path, entry["id"], data, crew.EXT_FOR_TYPE[content_type]
+        )
+        entry["portrait_asset"] = crew.PORTRAIT_ROUTE.format(id=entry["id"])
+        crew.write_crew(path, state)
+        return {"ok": True, "data": entry}
+
+    @app.get(
+        "/api/crew/{companion_id}/portrait",
+        dependencies=[Depends(require_auth)],
+    )
+    async def crew_portrait_get(companion_id: str, request: Request) -> Response:
+        """Serve an uploaded portrait same-origin, privately.
+
+        ``Cache-Control: private`` and ``X-Content-Type-Options: nosniff``
+        with the type the *stored bytes* are (never a declared one). No
+        uploaded portrait, or an unknown companion → 404 — the shipped
+        asset path is what the front door uses until someone uploads.
+        """
+        path, state = _crew_state(request)
+        entry = crew.find(state, companion_id)
+        if entry is None:
+            raise HTTPException(status_code=404, detail="unknown companion")
+        stored = crew.find_portrait(path, entry["id"])
+        if stored is None:
+            raise HTTPException(status_code=404, detail="no uploaded portrait")
+        return FileResponse(
+            stored,
+            media_type=crew.image_type_for_path(stored),
+            headers={
+                "Cache-Control": "private",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
+
+    @app.delete(
+        "/api/crew/{companion_id}/portrait",
+        dependencies=[Depends(require_auth)],
+    )
+    async def crew_portrait_delete(companion_id: str, request: Request) -> dict:
+        """Remove an uploaded portrait.
+
+        A drawn companion falls back to its shipped portrait path; a
+        person's own companion falls back to no portrait at all. Nothing
+        uploaded → 404.
+        """
+        path, state = _crew_state(request)
+        entry = crew.find(state, companion_id)
+        if entry is None:
+            raise HTTPException(status_code=404, detail="unknown companion")
+        if not crew.delete_portrait(path, entry["id"]):
+            raise HTTPException(status_code=404, detail="no uploaded portrait")
+        entry["portrait_asset"] = (
+            crew.starter_portrait_asset(entry["id"])
+            if crew.is_starter(entry)
+            else None
+        )
+        crew.write_crew(path, state)
+        return {"ok": True, "data": entry}
 
     @app.get("/api/place", dependencies=[Depends(require_auth)])
     def place_get(request: Request) -> dict:

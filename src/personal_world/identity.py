@@ -460,6 +460,12 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     # its needs they have already marked seen (Worlds-owned, private,
     # never sent to a room). Same per-principal seam as drafts/place.
     "rooms_visits": "rooms-visits.json",
+    # Crew registry (owner decision 2026-09-25): the person's own
+    # companions and which of them keeps which room. Worlds-owned,
+    # private, never sent to a room or a model. Same per-principal seam
+    # as drafts/place; uploaded portrait bytes are files under a sibling
+    # directory of this file (crew.portrait_dir), not a new store.
+    "crew": "crew.json",
 }
 
 #: Legacy (single-user default) discovery config location. Matches
