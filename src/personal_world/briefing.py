@@ -386,7 +386,15 @@ def _observation_title(obs: dict) -> str:
     concept. Never the bare word "Observation" or the raw concept id.
     """
     concept = str(obs.get("concept") or "").strip()
-    detail = obs.get("detail")
+    # Most specific words first: the observation's own detail, then its
+    # summary, then what its first piece of evidence says.
+    evidence = obs.get("evidence")
+    first_evidence = (
+        evidence[0].get("detail")
+        if isinstance(evidence, list) and evidence and isinstance(evidence[0], dict)
+        else None
+    )
+    detail = obs.get("detail") or obs.get("summary") or first_evidence
     cleaned = _strip_kv_noise(" ".join(str(detail).split())) if detail else ""
     title = _first_sentence(cleaned) if cleaned else _human_concept_title(concept)
     if not title or title.lower() == "observation" or title == concept:
@@ -394,6 +402,24 @@ def _observation_title(obs: dict) -> str:
     if not title or title.lower() == "observation":
         title = "Lab note"
     return title
+
+
+def _observation_detail(obs: dict) -> str | None:
+    """Everything the observation says, for the expanded view: its detail
+    or summary plus each piece of evidence with its source."""
+    parts = []
+    for key in ("detail", "summary"):
+        value = obs.get(key)
+        if value and value not in parts:
+            parts.append(str(value))
+    for ev in obs.get("evidence") or []:
+        if isinstance(ev, dict) and ev.get("detail"):
+            line = str(ev["detail"])
+            if ev.get("source"):
+                line += f" ({ev['source']})"
+            if line not in parts and ev["detail"] not in parts:
+                parts.append(line)
+    return _clip(" · ".join(parts), 600) if parts else None
 
 
 def _observation_items(system: str, row_name: str, row, kind: str) -> list[dict]:
@@ -407,7 +433,7 @@ def _observation_items(system: str, row_name: str, row, kind: str) -> list[dict]
         at = obs.get("observed_at") or _evidence_at(obs)
         out.append(_mk_item(
             system=system, sid=f"{row_name}:{i}", kind=kind,
-            title=_observation_title(obs), detail=obs.get("detail"), at=at,
+            title=_observation_title(obs), detail=_observation_detail(obs), at=at,
         ))
     return out
 

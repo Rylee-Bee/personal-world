@@ -633,3 +633,15 @@ def test_keeper_never_greets_the_placeholder_owner_label():
         name_hint="Rylee",
     )
     assert named["data"]["keeper"]["name"] == "Rylee"
+
+
+def test_estate_titles_fall_back_to_summary_then_evidence():
+    from personal_world.briefing import _observation_title, _observation_detail
+
+    assert _observation_title(
+        {"concept": "review", "detail": None, "summary": "quota check failed: PermissionError"}
+    ).startswith("quota check failed")
+    obs = {"concept": "review", "detail": None,
+           "evidence": [{"detail": "M scripts/doctor.py", "source": "git"}]}
+    assert _observation_title(obs) != "Lab note"
+    assert "scripts/doctor.py (git)" in _observation_detail(obs)
