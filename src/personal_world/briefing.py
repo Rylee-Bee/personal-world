@@ -234,6 +234,16 @@ def _system_id_for_room(row: dict) -> str | None:
     return None
 
 
+def system_id_for_room_id(room_id: str) -> str | None:
+    """The briefing system a configured room id names, or None.
+
+    The one public seam over the fold above, so a second reader (the crew
+    registry's canon keeper defaults) resolves a room id exactly as the
+    briefing does instead of growing a parallel rule.
+    """
+    return _system_id_for_room({"id": room_id})
+
+
 def _room_need_items(system_id, row: dict) -> list[dict]:
     """A room's ``needs_you`` as briefing have_to items. Never invented:
     an entry that is not an object is skipped, ``why`` is the detail."""

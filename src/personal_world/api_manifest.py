@@ -304,6 +304,51 @@ ENDPOINTS: tuple[Endpoint, ...] = (
        "rooms", "write", "none",
        note="marks one need seen for the caller (caller-scoped, "
             "deduped/capped); idempotent; 404 for an unconfigured room"),
+    _e("API-088-keeper", "PUT", "/api/rooms/{room_id}/keeper", "rooms",
+       "write", "none",
+       note="the caller's keeper for one configured room "
+            "({companion_id} or null): one keeper per room, a companion "
+            "may keep several; 404 for an unconfigured room, 422 for an "
+            "unknown companion; records who the person put there and "
+            "never the room's status"),
+    # Crew — companions are user-owned (owner decision 2026-09-25). The
+    # drawn crew is a starter set; a person adds, renames, hides and
+    # deletes their own. Private, per principal, never sent to a room or
+    # a model. Same per-principal seam as rooms visits; no new store.
+    _e("API-089", "GET", "/api/crew", "crew", "read", "none",
+       note="the caller's own crew (private, per principal), "
+            "starter-seeded on first read; includes hidden entries so "
+            "the front door decides what to filter"),
+    _e("API-089-create", "POST", "/api/crew", "crew", "write", "none",
+       note="{name, blurb?, voice_label?} → source 'user', id = a unique "
+            "slug of the name; strings only, name ≤ 60 / blurb ≤ 280 / "
+            "voice_label ≤ 60"),
+    _e("API-089-patch", "PATCH", "/api/crew/{companion_id}", "crew",
+       "write", "none",
+       note="rename/reword/hide one companion (the drawn crew included); "
+            "omitted keys untouched, null clears an optional text field; "
+            "404 for an unknown companion"),
+    _e("API-089-delete", "DELETE", "/api/crew/{companion_id}", "crew",
+       "write", "none",
+       note="deletes the caller's own companion and clears the keeper "
+            "assignments it held; 409 for a starter (hide it instead)"),
+    _e("API-089-portrait-put", "POST", "/api/crew/{companion_id}/portrait",
+       "crew", "write", "none",
+       note="{content_type, data_base64}: image/png|jpeg|webp verified by "
+            "magic bytes (415 on a mismatch), decoded ≤ 5 MB (413), "
+            "stored 0600 in the caller's scoped data dir — no new store, "
+            "no new dependency; the bytes never travel to a room or a "
+            "model"),
+    _e("API-089-portrait-get", "GET", "/api/crew/{companion_id}/portrait",
+       "crew", "read", "none",
+       note="serves an uploaded portrait same-origin with its real media "
+            "type, Cache-Control: private and "
+            "X-Content-Type-Options: nosniff; 404 when none is uploaded"),
+    _e("API-089-portrait-delete", "DELETE",
+       "/api/crew/{companion_id}/portrait", "crew", "write", "none",
+       note="removes an uploaded portrait; a drawn companion falls back "
+            "to its shipped portrait path, a person's own falls back to "
+            "none; 404 when there is nothing uploaded"),
     # journal drafts — lining rescue (D15 "kept safe, synced"); no elevation
     # by design: a draft mutates nothing a publish doesn't already change.
     _e("API-080", "PUT", "/api/journal/draft", "journal", "write", "none",

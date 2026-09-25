@@ -651,6 +651,116 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/crew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Crew View
+         * @description The caller's own crew, starter-seeded on first read.
+         *
+         *     Honest roster: every entry is a companion the person has (drawn or
+         *     their own), including hidden ones — the front door decides what to
+         *     filter. An emptied roster stays empty.
+         */
+        get: operations["crew_view_api_crew_get"];
+        put?: never;
+        /**
+         * Crew Add
+         * @description Add a companion of the caller's own (``source: "user"``).
+         *
+         *     Body: ``{name, blurb?, voice_label?}``. The id is a slug of the
+         *     name made unique against the caller's roster. Same auth posture as
+         *     the other POST routes; no step-up — a roster entry mutates nothing
+         *     a visit doesn't already imply.
+         */
+        post: operations["crew_add_api_crew_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/crew/{companion_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Crew Delete
+         * @description Delete one of the caller's own companions, or refuse a starter.
+         *
+         *     The drawn crew is kept: 409, hide it instead. Deleting a companion
+         *     clears the keeper assignments it held (the rooms stay configured
+         *     and simply have no companion) and removes its uploaded portrait.
+         */
+        delete: operations["crew_delete_api_crew__companion_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Crew Patch
+         * @description Rename/reword/hide one companion (drawn crew included).
+         *
+         *     Body may carry ``name``, ``blurb``, ``voice_label`` and ``hidden``;
+         *     omitted keys are untouched and an explicit ``null`` clears an
+         *     optional text field. Unknown id → 404. Hiding is a roster act: it
+         *     never changes a room's status and never unassigns a keeper.
+         */
+        patch: operations["crew_patch_api_crew__companion_id__patch"];
+        trace?: never;
+    };
+    "/api/crew/{companion_id}/portrait": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Crew Portrait Get
+         * @description Serve an uploaded portrait same-origin, privately.
+         *
+         *     ``Cache-Control: private`` and ``X-Content-Type-Options: nosniff``
+         *     with the type the *stored bytes* are (never a declared one). No
+         *     uploaded portrait, or an unknown companion → 404 — the shipped
+         *     asset path is what the front door uses until someone uploads.
+         */
+        get: operations["crew_portrait_get_api_crew__companion_id__portrait_get"];
+        put?: never;
+        /**
+         * Crew Portrait Upload
+         * @description Store a portrait for one companion (private, caller-scoped).
+         *
+         *     Body: ``{content_type, data_base64}``. PNG/JPEG/WebP only, and the
+         *     *bytes* must be that format — the declared type is checked against
+         *     the magic numbers, so a fake extension is refused 415. Decoded
+         *     size over 5 MB → 413. The bytes land in the caller's own scoped
+         *     data directory (never a new store) and the entry's
+         *     ``portrait_asset`` then points at the same-origin route below.
+         */
+        post: operations["crew_portrait_upload_api_crew__companion_id__portrait_post"];
+        /**
+         * Crew Portrait Delete
+         * @description Remove an uploaded portrait.
+         *
+         *     A drawn companion falls back to its shipped portrait path; a
+         *     person's own companion falls back to no portrait at all. Nothing
+         *     uploaded → 404.
+         */
+        delete: operations["crew_portrait_delete_api_crew__companion_id__portrait_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/daily": {
         parameters: {
             query?: never;
@@ -1924,16 +2034,45 @@ export interface paths {
          *     needs it is charging attention for, whether it is reachable, and
          *     when it was last reached (persisted across restarts). Each row
          *     also carries the CALLER's private, Worlds-owned visit fields:
-         *     ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``.
-         *     ``resume`` and ``summary`` travel as siblings of ``data`` so the
-         *     existing list envelope stays byte-compatible. Fetching is
-         *     concurrent with a 2 s per-request timeout and the snapshot is
-         *     cached 15 s. This handler never raises on a room's behalf: an
-         *     unreachable room is reported ``reachable: false`` with its
-         *     last-seen time, never claimed healthy.
+         *     ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,
+         *     plus ``keeper`` — the companion the caller put on that room, or an
+         *     honest ``null``. A keeper never changes the room's status; status
+         *     still comes only from the room. ``resume`` and ``summary`` travel
+         *     as siblings of ``data`` so the existing list envelope stays
+         *     byte-compatible. Fetching is concurrent with a 2 s per-request
+         *     timeout and the snapshot is cached 15 s. This handler never raises
+         *     on a room's behalf: an unreachable room is reported
+         *     ``reachable: false`` with its last-seen time, never claimed
+         *     healthy.
          */
         get: operations["rooms_view_api_rooms_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/keeper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rooms Keeper
+         * @description Assign (or clear) the caller's keeper for one configured room.
+         *
+         *     Body: ``{companion_id}`` — an existing companion id, or ``null``
+         *     for "no companion". One keeper per room; a companion may keep
+         *     several rooms. Unconfigured room → 404; unknown companion → 422.
+         *     This records who the person put there and nothing else: the room's
+         *     status is never touched by an assignment.
+         */
+        put: operations["rooms_keeper_api_rooms__room_id__keeper_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3493,6 +3632,213 @@ export interface operations {
             header?: never;
             path: {
                 name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    crew_view_api_crew_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    crew_add_api_crew_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    crew_delete_api_crew__companion_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    crew_patch_api_crew__companion_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    crew_portrait_get_api_crew__companion_id__portrait_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    crew_portrait_upload_api_crew__companion_id__portrait_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    crew_portrait_delete_api_crew__companion_id__portrait_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companion_id: string;
             };
             cookie?: never;
         };
@@ -5346,6 +5692,39 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    rooms_keeper_api_rooms__room_id__keeper_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

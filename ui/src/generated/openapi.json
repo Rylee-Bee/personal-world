@@ -894,6 +894,246 @@
         "summary": "Connections Delete"
       }
     },
+    "/api/crew": {
+      "get": {
+        "description": "The caller's own crew, starter-seeded on first read.\n\nHonest roster: every entry is a companion the person has (drawn or\ntheir own), including hidden ones — the front door decides what to\nfilter. An emptied roster stays empty.",
+        "operationId": "crew_view_api_crew_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Crew View Api Crew Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Crew View"
+      },
+      "post": {
+        "description": "Add a companion of the caller's own (``source: \"user\"``).\n\nBody: ``{name, blurb?, voice_label?}``. The id is a slug of the\nname made unique against the caller's roster. Same auth posture as\nthe other POST routes; no step-up — a roster entry mutates nothing\na visit doesn't already imply.",
+        "operationId": "crew_add_api_crew_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Crew Add Api Crew Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Crew Add"
+      }
+    },
+    "/api/crew/{companion_id}": {
+      "delete": {
+        "description": "Delete one of the caller's own companions, or refuse a starter.\n\nThe drawn crew is kept: 409, hide it instead. Deleting a companion\nclears the keeper assignments it held (the rooms stay configured\nand simply have no companion) and removes its uploaded portrait.",
+        "operationId": "crew_delete_api_crew__companion_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companion_id",
+            "required": true,
+            "schema": {
+              "title": "Companion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Crew Delete Api Crew  Companion Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Crew Delete"
+      },
+      "patch": {
+        "description": "Rename/reword/hide one companion (drawn crew included).\n\nBody may carry ``name``, ``blurb``, ``voice_label`` and ``hidden``;\nomitted keys are untouched and an explicit ``null`` clears an\noptional text field. Unknown id → 404. Hiding is a roster act: it\nnever changes a room's status and never unassigns a keeper.",
+        "operationId": "crew_patch_api_crew__companion_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companion_id",
+            "required": true,
+            "schema": {
+              "title": "Companion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Crew Patch Api Crew  Companion Id  Patch",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Crew Patch"
+      }
+    },
+    "/api/crew/{companion_id}/portrait": {
+      "delete": {
+        "description": "Remove an uploaded portrait.\n\nA drawn companion falls back to its shipped portrait path; a\nperson's own companion falls back to no portrait at all. Nothing\nuploaded → 404.",
+        "operationId": "crew_portrait_delete_api_crew__companion_id__portrait_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companion_id",
+            "required": true,
+            "schema": {
+              "title": "Companion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Crew Portrait Delete Api Crew  Companion Id  Portrait Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Crew Portrait Delete"
+      },
+      "get": {
+        "description": "Serve an uploaded portrait same-origin, privately.\n\n``Cache-Control: private`` and ``X-Content-Type-Options: nosniff``\nwith the type the *stored bytes* are (never a declared one). No\nuploaded portrait, or an unknown companion → 404 — the shipped\nasset path is what the front door uses until someone uploads.",
+        "operationId": "crew_portrait_get_api_crew__companion_id__portrait_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companion_id",
+            "required": true,
+            "schema": {
+              "title": "Companion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Crew Portrait Get"
+      },
+      "post": {
+        "description": "Store a portrait for one companion (private, caller-scoped).\n\nBody: ``{content_type, data_base64}``. PNG/JPEG/WebP only, and the\n*bytes* must be that format — the declared type is checked against\nthe magic numbers, so a fake extension is refused 415. Decoded\nsize over 5 MB → 413. The bytes land in the caller's own scoped\ndata directory (never a new store) and the entry's\n``portrait_asset`` then points at the same-origin route below.",
+        "operationId": "crew_portrait_upload_api_crew__companion_id__portrait_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companion_id",
+            "required": true,
+            "schema": {
+              "title": "Companion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Crew Portrait Upload Api Crew  Companion Id  Portrait Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Crew Portrait Upload"
+      }
+    },
     "/api/daily": {
       "get": {
         "description": "Present the daily digest. Read-only: a page view never\njournals observations or records facts (that is the POST).",
@@ -2820,7 +3060,7 @@
     },
     "/api/rooms": {
       "get": {
-        "description": "The estate's rooms (contract: room/0) plus the caller's visit state.\n\nOne honest row per configured room — its descriptor, cards, the\nneeds it is charging attention for, whether it is reachable, and\nwhen it was last reached (persisted across restarts). Each row\nalso carries the CALLER's private, Worlds-owned visit fields:\n``last_visited_at``, ``needs_seen`` and ``changed_since_visit``.\n``resume`` and ``summary`` travel as siblings of ``data`` so the\nexisting list envelope stays byte-compatible. Fetching is\nconcurrent with a 2 s per-request timeout and the snapshot is\ncached 15 s. This handler never raises on a room's behalf: an\nunreachable room is reported ``reachable: false`` with its\nlast-seen time, never claimed healthy.",
+        "description": "The estate's rooms (contract: room/0) plus the caller's visit state.\n\nOne honest row per configured room — its descriptor, cards, the\nneeds it is charging attention for, whether it is reachable, and\nwhen it was last reached (persisted across restarts). Each row\nalso carries the CALLER's private, Worlds-owned visit fields:\n``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,\nplus ``keeper`` — the companion the caller put on that room, or an\nhonest ``null``. A keeper never changes the room's status; status\nstill comes only from the room. ``resume`` and ``summary`` travel\nas siblings of ``data`` so the existing list envelope stays\nbyte-compatible. Fetching is concurrent with a 2 s per-request\ntimeout and the snapshot is cached 15 s. This handler never raises\non a room's behalf: an unreachable room is reported\n``reachable: false`` with its last-seen time, never claimed\nhealthy.",
         "operationId": "rooms_view_api_rooms_get",
         "responses": {
           "200": {
@@ -2837,6 +3077,48 @@
           }
         },
         "summary": "Rooms View"
+      }
+    },
+    "/api/rooms/{room_id}/keeper": {
+      "put": {
+        "description": "Assign (or clear) the caller's keeper for one configured room.\n\nBody: ``{companion_id}`` — an existing companion id, or ``null``\nfor \"no companion\". One keeper per room; a companion may keep\nseveral rooms. Unconfigured room → 404; unknown companion → 422.\nThis records who the person put there and nothing else: the room's\nstatus is never touched by an assignment.",
+        "operationId": "rooms_keeper_api_rooms__room_id__keeper_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "room_id",
+            "required": true,
+            "schema": {
+              "title": "Room Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rooms Keeper Api Rooms  Room Id  Keeper Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rooms Keeper"
       }
     },
     "/api/rooms/{room_id}/needs/{need_id}/seen": {
