@@ -283,7 +283,7 @@ name of whoever is involved belongs **in the sentence**, not on the button. A
 resident **may leave one signed line in their own voice** (*"I'll keep this safe for
 you!" — Bruma*); the voice is flavour, never the organising principle. The icon is
 **never the only signal** — the chip always says it in words. Concept:
-`design/concepts/icon-pack.html`.
+`design/concepts/icon-pack.html` (archived; tag `archive/pre-design-cleanup-2026-09-25`).
 
 **Copy guard.** The vocabulary is ours (see §5): no borrowed ship, deck or corridor
 words, and no "beep".
