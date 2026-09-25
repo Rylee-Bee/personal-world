@@ -281,6 +281,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "uvicorn" },
@@ -291,7 +292,6 @@ crypto = [
     { name = "cryptography" },
 ]
 test = [
-    { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-timeout" },
 ]
@@ -300,7 +300,7 @@ test = [
 requires-dist = [
     { name = "cryptography", marker = "extra == 'crypto'", specifier = ">=42.0,<51" },
     { name = "fastapi", specifier = ">=0.111,<1" },
-    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.27,<1" },
+    { name = "httpx", specifier = ">=0.27,<1" },
     { name = "pydantic", specifier = ">=2.7,<3" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=9.0.3,<10" },
     { name = "pytest-timeout", marker = "extra == 'test'", specifier = ">=2,<3" },

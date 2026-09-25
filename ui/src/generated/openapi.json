@@ -108,25 +108,6 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/": {
-      "get": {
-        "description": "Entry point. Post-setup the **Station** is the product frontend\n(owner decisions #11/#12). During first-run the setup wizard owns the\nentry.",
-        "operationId": "spa_root__get",
-        "responses": {
-          "200": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Spa Root"
-      }
-    },
     "/api/actors": {
       "get": {
         "operationId": "actors_api_actors_get",
@@ -513,6 +494,27 @@
           }
         },
         "summary": "Brain Templates"
+      }
+    },
+    "/api/briefing": {
+      "get": {
+        "description": "The world's briefing: six systems, have_tos, arrivals, thread.\n\nRead-only: a view never journals and never writes the place. The\nstored place's updated_at becomes `since` (the previous visit).\nPerson-only, caller-scoped.",
+        "operationId": "briefing_view_api_briefing_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Briefing View Api Briefing Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Briefing View"
       }
     },
     "/api/chat": {
@@ -1568,9 +1570,8 @@
     },
     "/api/journal/last": {
       "get": {
-        "description": "Read-only: the caller's most recent CURRENT journal entry — the\ncalm-view tail (always equals the newest entry GET /api/journal\nshows). The daily home loop's thread deep-link contract; honest\n``entry: null`` on an empty journal. Person principals only.",
+        "description": "Read-only: the caller's most recent CURRENT journal entry.\n\nThe deep-link contract for the daily home loop's \"Resume —\nyesterday's thread\" beat (TRUE-NORTH): one deterministic answer\nwith every model off, safe for Overview to link to. Never\nmutates anything. An empty journal is an honest ``entry: null``,\nnot a 404 and not a fabrication. Superseded originals never\nsurface. The contract is the CALM-VIEW TAIL: the answer always\nequals the newest entry GET /api/journal shows (same kinds, same\nordering — a correction ACT appends the correction and then its\nAPPROVAL audit line, and whichever is newest IS the last entry;\nconsumers wanting narrative-only may filter by ``kind``).\nPerson-only, caller-scoped, the same seam as every other journal\nread.",
         "operationId": "journal_last_api_journal_last_get",
-        "parameters": [],
         "responses": {
           "200": {
             "content": {
@@ -1583,16 +1584,6 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
         "summary": "Journal Last"
@@ -2087,6 +2078,46 @@
         "summary": "Native Lab Settings"
       }
     },
+    "/api/place": {
+      "get": {
+        "description": "The caller's last place, or an honest null.",
+        "operationId": "place_get_api_place_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Place Get Api Place Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Place Get"
+      },
+      "put": {
+        "description": "Store the caller's last place. No step-up: continuity mutates\nnothing a visit doesn't already imply (same posture as drafts).",
+        "operationId": "place_put_api_place_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Place Put Api Place Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Place Put"
+      }
+    },
     "/api/prefs": {
       "get": {
         "operationId": "prefs_get_api_prefs_get",
@@ -2526,7 +2557,6 @@
                   "type": "null"
                 }
               ],
-              "default": null,
               "title": "Category"
             }
           },
@@ -2553,7 +2583,6 @@
                   "type": "null"
                 }
               ],
-              "default": null,
               "title": "Q"
             }
           }
@@ -2787,6 +2816,27 @@
           }
         },
         "summary": "Reminders Toggle"
+      }
+    },
+    "/api/rooms": {
+      "get": {
+        "description": "The estate's rooms (contract: room/0).\n\nOne honest row per configured room — its descriptor, the needs\nit is charging attention for, and whether it is reachable.\nFetching is concurrent with a 2 s per-request timeout and the\nsnapshot is cached 15 s. This handler never raises on a room's\nbehalf: an unreachable room is reported ``reachable: false`` with\nits last-seen time, never claimed healthy. Authenticated like\nevery other read; adds no new port to Worlds — rooms are reached\noutbound.",
+        "operationId": "rooms_view_api_rooms_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rooms View Api Rooms Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Rooms View"
       }
     },
     "/api/sections": {

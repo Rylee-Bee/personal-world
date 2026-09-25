@@ -46,6 +46,7 @@ from .briefing import build_briefing, SYSTEM_IDS
 from .providers.lab_state import DEFAULT_LAB, LabState
 from .providers.project_home import ProjectHomeSource
 from .providers.registry import Registry
+from .rooms import RoomsService
 from .source_control import (
     discover_repositories,
     repository_history,
@@ -68,6 +69,12 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 _OPENER = urllib.request.build_opener(_NoRedirect)
+
+#: One rooms reader per app process: it caches each 15 s snapshot and
+#: remembers last-seen times in memory across refreshes (contract room/0
+#: rule 12). Tests replace this attribute with a MockTransport-backed
+#: service; production reads the network.
+_ROOMS = RoomsService()
 
 
 def _valid_http_url(url: str) -> bool:
@@ -2565,6 +2572,22 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
         # Sources shell out / fetch; keep the event loop free.
         return await run_in_threadpool(_compose)
+
+    @app.get("/api/rooms", dependencies=[Depends(require_auth)])
+    async def rooms_view() -> dict:
+        """The estate's rooms (contract: room/0).
+
+        One honest row per configured room — its descriptor, the needs
+        it is charging attention for, and whether it is reachable.
+        Fetching is concurrent with a 2 s per-request timeout and the
+        snapshot is cached 15 s. This handler never raises on a room's
+        behalf: an unreachable room is reported ``reachable: false`` with
+        its last-seen time, never claimed healthy. Authenticated like
+        every other read; adds no new port to Worlds — rooms are reached
+        outbound.
+        """
+        rows = await _ROOMS.snapshot()
+        return {"ok": True, "data": rows}
 
     @app.get("/api/place", dependencies=[Depends(require_auth)])
     def place_get(request: Request) -> dict:

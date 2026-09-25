@@ -81,6 +81,7 @@ import {
   getBriefing,
   getPlace,
   putPlace,
+  getRooms,
 } from "./api";
 import type {
   Actor,
@@ -127,6 +128,7 @@ export const queryKeys = {
   projectsStatus: ["projects", "status"] as const,
   briefing: ["briefing"] as const,
   place: ["place"] as const,
+  rooms: ["rooms"] as const,
 } as const;
 
 // ===== Health =====
@@ -764,6 +766,18 @@ export function usePlace() {
 export function useSetPlace() {
   return useMutation({
     mutationFn: putPlace,
+  });
+}
+
+// ===== Rooms (contract room/0) =====
+/** The estate's rooms: one honest row per configured backend, with an
+ *  unreachable room reported as data (never an error, never healthy).
+ *  Cached 30 s client-side; the server caches 15 s. */
+export function useRooms() {
+  return useQuery({
+    queryKey: queryKeys.rooms,
+    queryFn: getRooms,
+    staleTime: 30_000,
   });
 }
 

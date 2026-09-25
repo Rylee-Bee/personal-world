@@ -674,3 +674,62 @@ export interface PlacePutRequest {
   system: string | null;
   item_id: string | null;
 }
+
+// ─── Rooms (contract room/0; GET /api/rooms) ─────────────────────────
+//
+// The front door renders other small backends — rooms — without owning
+// their code. `GET /api/rooms` answers one honest row per configured
+// room: its descriptor, the needs it is charging attention for, and
+// whether it answered. An unreachable room is `reachable: false`,
+// `room: null`, `status: "unreachable"` with its in-memory `last_seen`
+// — never blanked, never claimed healthy (room/0 rules 11–12).
+//
+// Field shapes copied from the canonical Room contract (room/0); the
+// server validates/derives `status` so an off-vocabulary descriptor
+// value arrives as "unknown", never as a guess.
+
+/** `status` is exactly one of these for a reachable room; the front
+ *  door adds `unreachable` for one that did not answer. */
+export type RoomStatus =
+  | "healthy"
+  | "degraded"
+  | "unhealthy"
+  | "unknown"
+  | "unreachable";
+
+export interface RoomDescriptor {
+  contract: string;
+  id: string;
+  name: string;
+  icon: string;
+  /** Optional display persona label — a caption hint, never a claim. */
+  voice?: string | null;
+  version: string;
+  commit: string;
+  status: string;
+  updated_at: string;
+}
+
+export interface RoomNeed {
+  id: string;
+  title: string;
+  why: string;
+  actions: string[];
+  created_at: string;
+}
+
+export interface RoomRow {
+  id: string;
+  base_url: string;
+  reachable: boolean;
+  status: string;
+  room: RoomDescriptor | null;
+  needs_you: RoomNeed[];
+  /** A short failure class only ("connect error", "timeout",
+   *  "malformed JSON", …) or null. Never a token or payload. */
+  error: string | null;
+  checked_at: string;
+  /** Last time this room was reachable, kept in the server's memory;
+   *  null when it has never answered. */
+  last_seen: string | null;
+}

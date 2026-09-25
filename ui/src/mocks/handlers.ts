@@ -46,6 +46,7 @@ import type {
   BridgeLink,
   BridgeSystem,
   BridgeSystemId,
+  RoomRow,
 } from "../data/contract";
 
 // ─── Server-shaped fixtures ──────────────────────────────────────────
@@ -556,6 +557,73 @@ function bridgeFixture(): BridgeData {
 
 const BRIDGE_SYSTEM_IDS = BRIDGE_SYSTEMS.map((s) => s.id);
 
+/** Rooms (contract room/0) — one healthy room with a need, one
+ *  degraded room with none, and one unreachable room that keeps a
+ *  last-seen time. The front door shows all three honestly. */
+const ROOMS_FIXTURE: RoomRow[] = [
+  {
+    id: "studio",
+    base_url: "http://127.0.0.1:8940",
+    reachable: true,
+    status: "healthy",
+    room: {
+      contract: "room/0",
+      id: "studio",
+      name: "Studio",
+      icon: "book",
+      voice: "dry and precise",
+      version: "1.2.0",
+      commit: "a1b2c3d",
+      status: "healthy",
+      updated_at: "2026-09-25T13:05:48Z",
+    },
+    needs_you: [
+      {
+        id: "need-1",
+        title: "Confirm the transfer",
+        why: "A withdrawal above the usual threshold is waiting.",
+        actions: ["confirm-transfer"],
+        created_at: "2026-09-25T12:30:00Z",
+      },
+    ],
+    error: null,
+    checked_at: "2026-09-25T13:10:00Z",
+    last_seen: "2026-09-25T13:10:00Z",
+  },
+  {
+    id: "workshop",
+    base_url: "https://room.test",
+    reachable: true,
+    status: "degraded",
+    room: {
+      contract: "room/0",
+      id: "workshop",
+      name: "Workshop",
+      icon: "hammer",
+      voice: "plain and steady",
+      version: "0.9.0",
+      commit: "b2c3d4e",
+      status: "degraded",
+      updated_at: "2026-09-25T13:00:00Z",
+    },
+    needs_you: [],
+    error: null,
+    checked_at: "2026-09-25T13:10:00Z",
+    last_seen: "2026-09-25T13:10:00Z",
+  },
+  {
+    id: "cellar",
+    base_url: "http://127.0.0.1:9000",
+    reachable: false,
+    status: "unreachable",
+    room: null,
+    needs_you: [],
+    error: "connect error",
+    checked_at: "2026-09-25T13:10:00Z",
+    last_seen: "2026-09-25T12:00:00Z",
+  },
+];
+
 /** /api/briefing + /api/place. The place is stateful per handler set so
  *  a story's PUT is readable back, like the server's per-person file. */
 function bridgeHandlers(): RequestHandler[] {
@@ -587,6 +655,12 @@ function bridgeHandlers(): RequestHandler[] {
       };
       return HttpResponse.json({ ok: true, data: { place } });
     }),
+    // GET /api/rooms — the estate's rooms (contract room/0). Always
+    // answers, or a story's Bridge fetch would bypass MSW to a real
+    // (unreachable) station.
+    http.get("/api/rooms", () =>
+      HttpResponse.json({ ok: true, data: ROOMS_FIXTURE }),
+    ),
   ];
 }
 

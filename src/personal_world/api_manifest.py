@@ -284,6 +284,14 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     _e("API-087", "PUT", "/api/place", "briefing", "write", "none",
        note="stores the caller's last place; authenticated, not "
             "elevation-gated; person principals only"),
+    # Rooms — the front door renders other small backends (room/0).
+    # Read-only: it fetches each configured room outbound and never
+    # mutates local state; an unreachable room is reported, not raised.
+    _e("API-088", "GET", "/api/rooms", "rooms", "read", "none",
+       note="the estate's rooms (contract room/0): each configured "
+            "backend's descriptor, needs-you, reachability and "
+            "last-seen; never raises, never claims an unreachable room "
+            "healthy"),
     # journal drafts — lining rescue (D15 "kept safe, synced"); no elevation
     # by design: a draft mutates nothing a publish doesn't already change.
     _e("API-080", "PUT", "/api/journal/draft", "journal", "write", "none",
