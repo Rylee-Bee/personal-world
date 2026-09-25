@@ -1,5 +1,8 @@
 # TRUE-NORTH — Project Worlds
 
+> **2026-09-25:** scope and sequencing are superseded by [`.project/PLAN.md`](../.project/PLAN.md)
+> (owner-approved after the vision review). Its honesty and accessibility principles still hold.
+
 **Status:** canonical direction — owner-approved (human, Rylee) 2026-09-22,
 with four refinements. Built from a three-round owner interview (18 taps +
 typed answers) after a 24-product research pass across personal dashboards,
