@@ -8,7 +8,7 @@ schema: play-nice/adoption-v1
 project: personal-world
 source:
   repository: Rylee-Bee/play-nice-contracts   # renamed from burgeswe/play-nice-contracts (account rename, 2026-09-12); old URL redirects
-  revision: 44ec8f42e4e9f1c993ff29ec135d37c9dbd551d6   # play-nice-contracts v0.10.0 (contract set identical to a0e3efb; ratifies the un-attested 2026-09-20 repin)
+  revision: 60eaeab12cf13d4dc5d6f66eb7a6c6b069fb453e   # play-nice-contracts main 2026-09-25 (VERSION 0.10.0); fast-forward from 44ec8f4, read before pinning
   # Bump history: 2bb60b4 (v0.3.0) -> d6c97db (v0.5.0) -> 0cee065
   # (v0.6.0) -> f825ffb (v0.7.0, 2026-09-15). Each bump verified against the
   # live repository (commit exists, VERSION/CHANGELOG match,
@@ -27,6 +27,14 @@ source:
   # cross-reference edits also landed in-window on what-why-next 1.0.0 and
   # migraine-and-sensory-safety 1.0.0 (progress-and-closure likewise; not
   # adopted here).
+  # -> 60eaeab (2026-09-25, owner-requested refresh after the contract-freshness
+  # check reported DIVERGED on PR #65). Verified fast-forward from 44ec8f4
+  # (merge-base --is-ancestor). One contract text change: contract-attestation
+  # 1.2.0 -> 1.3.0 (receipt quartz-rill-ember -> flint-meadow-anchor), which
+  # adds rule 27, freshness equivalence, for `update: automatic` only. This
+  # manifest is pinned, so the rule doesn't apply here. All other upstream
+  # changes are tooling, tests and docs (contractctl adopter toolkit,
+  # check.sh). Historical session receipts keep their old receipt values.
 
 always:
   - assume-unknown                   # new in v0.7.0; always-applicable
