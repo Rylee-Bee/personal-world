@@ -86,6 +86,69 @@
 
 }
 
+[data-theme="doorways"] {
+  --pw-surface-void: #0F1226;
+  --pw-surface-canvas: #161A30;
+  --pw-surface-hull: #1A1E38;
+  --pw-surface-panel: #1F2442;
+  --pw-surface-elevated: #262C4E;
+  --pw-surface-raised: #2C3358;
+
+  --pw-accent-primary: #E2AB62;
+  --pw-accent-on_primary: #161A30;
+  --pw-accent-secondary: #E7A3B0;
+  --pw-accent-warm: #E2AB62;
+  --pw-accent-warm_soft: rgba(226, 171, 98, 0.14);
+  --pw-accent-gold: #C9A227;
+  --pw-accent-gold_soft: rgba(201, 162, 39, 0.14);
+  --pw-accent-green: #9CC48A;
+  --pw-accent-green_soft: rgba(156, 196, 138, 0.14);
+  --pw-accent-coral: #B57F8B;
+  --pw-accent-coral_soft: rgba(231, 163, 176, 0.14);
+  --pw-accent-teal: #86C3CC;
+  --pw-accent-teal_soft: rgba(134, 195, 204, 0.14);
+  --pw-accent-lavender: #B09CE0;
+  --pw-accent-lavender_soft: rgba(176, 156, 224, 0.14);
+
+  --pw-text-primary: #ECE4D6;
+  --pw-text-secondary: #D3CAB9;
+  --pw-text-muted: #B8AF9F;
+
+  --pw-border-subtle: rgba(236, 228, 214, 0.12);
+  --pw-border-strong: rgba(236, 228, 214, 0.20);
+  --pw-border-hover: rgba(236, 228, 214, 0.24);
+
+  --pw-spacing-xs: 4px;
+  --pw-spacing-sm: 8px;
+  --pw-spacing-md: 12px;
+  --pw-spacing-lg: 16px;
+  --pw-spacing-xl: 24px;
+  --pw-spacing-2xl: 32px;
+  --pw-spacing-3xl: 48px;
+  --pw-spacing-4xl: 64px;
+
+  --pw-radius-sm: 12px;
+  --pw-radius-md: 16px;
+  --pw-radius-lg: 24px;
+  --pw-radius-full: 9999px;
+
+  --pw-shadow-soft: 0 10px 30px rgba(8,10,24,0.45), 0 0 32px rgba(226,171,98,0.05);
+  --pw-shadow-warm: 0 4px 24px rgba(226,171,98,0.12), 0 0 60px rgba(226,171,98,0.05);
+  --pw-shadow-glow: 0 0 20px rgba(226,171,98,0.18), 0 0 40px rgba(226,171,98,0.06);
+
+  --pw-typography-font_sans: 'Atkinson Hyperlegible Next', 'Public Sans', system-ui, sans-serif;
+  --pw-typography-font_serif: 'Fraunces', Georgia, serif;
+  --pw-typography-font_mono: 'JetBrains Mono', ui-monospace, monospace;
+  --pw-typography-size_h1: clamp(32px, 4.4vw, 48px);
+  --pw-typography-size_lead: 18px;
+  --pw-typography-size_body: 16px;
+  --pw-typography-size_small: 15px;
+  --pw-typography-size_micro: 14px;
+  --pw-typography-size_label: 13px;
+
+
+}
+
 [data-theme="moss"] {
   --pw-surface-void: #080D0A;
   --pw-surface-canvas: #0C120E;

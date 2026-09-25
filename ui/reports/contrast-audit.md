@@ -7,7 +7,7 @@ large-text exemption), **3:1** for the focus-ring/underline non-text pairs.
 All four theme packs are audited, because the Settings theme picker lets the
 person move the whole surface into any of them.
 
-**Result: PASS — 0 failing pairs (70 pairs = 14 × 5 themes)**
+**Result: PASS — 0 failing pairs (84 pairs = 14 × 6 themes)**
 
 ## station
 
@@ -27,6 +27,25 @@ person move the whole surface into any of them.
 | `#72b1b1` #72b1b1 | `#131926` #131926 | 7.23 | 3 | yes | focus ring over input fills (§2.4) |
 | `#72b1b1` #72b1b1 | `#1E2636` #1E2636 | 6.23 | 3 | yes | focus ring + link underline over card grounds (§2.4) |
 | `#72b1b1` #72b1b1 | `#0C101C` #0C101C | 7.81 | 3 | yes | focus ring where it crosses the page background |
+
+## doorways
+
+| fg | bg | ratio | need | pass | where it renders |
+| --- | --- | --- | --- | --- | --- |
+| `#ECE4D6` #ECE4D6 | `#161A30` #161A30 | 13.58 | 4.5 | yes | screen h1 + lead lines (Settings/Interests headers) |
+| `#ECE4D6` #ECE4D6 | `#1F2442` #1F2442 | 11.97 | 4.5 | yes | card headings, control labels, change-preview sentences, finding titles |
+| `#ECE4D6` #ECE4D6 | `#1A1E38` #1A1E38 | 12.93 | 4.5 | yes | current values inside selects/number inputs |
+| `#D3CAB9` #D3CAB9 | `#1F2442` #1F2442 | 9.3 | 4.5 | yes | notes, saved/applied lines, descriptions, empty-state sentences, ghost-button text, section eyebrows, hints, provenance lines |
+| `#D3CAB9` #D3CAB9 | `#161A30` #161A30 | 10.55 | 4.5 | yes | error/notice lines that sit directly on the page background |
+| `#D3CAB9` #D3CAB9 | `#1A1E38` #1A1E38 | 10.04 | 4.5 | yes | secondary copy over input grounds |
+| `#B8AF9F` #B8AF9F | `#161A30` #161A30 | 7.9 | 4.5 | yes | micro/small helper copy on the page background (added 2026-09-22: axe found the starfield muted token failing here — the audit's blind spot, not axe's) |
+| `#B8AF9F` #B8AF9F | `#1F2442` #1F2442 | 6.96 | 4.5 | yes | muted copy inside cards (Records hints, category meta) |
+| `#B8AF9F` #B8AF9F | `#262C4E` #262C4E | 6.23 | 4.5 | yes | muted copy on elevated chips/bubbles (chat timestamps, shrunk meta lines) |
+| `#0F1226` #0F1226 | `#E2AB62` #E2AB62 | 9.02 | 4.5 | yes | Apply / Check primary-button label |
+| `#E2AB62` #E2AB62 | `#1F2442` #1F2442 | 7.37 | 4.5 | yes | skip-link revealed text on its panel ground |
+| `#E2AB62` #E2AB62 | `#1A1E38` #1A1E38 | 7.95 | 3 | yes | focus ring over input fills (§2.4) |
+| `#E2AB62` #E2AB62 | `#1F2442` #1F2442 | 7.37 | 3 | yes | focus ring + link underline over card grounds (§2.4) |
+| `#E2AB62` #E2AB62 | `#161A30` #161A30 | 8.36 | 3 | yes | focus ring where it crosses the page background |
 
 ## moss
 
