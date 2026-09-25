@@ -20,6 +20,13 @@ import { defineConfig, devices } from "@playwright/test";
  * Order matters only for startup checks — both servers are health
  * probed before tests run.
  */
+// The UI port is overridable (PW_E2E_UI_PORT) so a sibling project's dev
+// server on 4173 can't silently answer for this suite (reuseExistingServer
+// would otherwise test the wrong app). CI keeps 4173. The fixture API
+// stays on 4174: specs call it directly.
+const UI_PORT = Number(process.env.PW_E2E_UI_PORT ?? 4173);
+const API_PORT = 4174;
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -27,7 +34,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://localhost:4173",
+    baseURL: `http://localhost:${UI_PORT}`,
     trace: "on-first-retry",
   },
   projects: [
@@ -58,20 +65,20 @@ export default defineConfig({
   webServer: [
     {
       command: "node scripts/e2e-api.mjs",
-      url: "http://127.0.0.1:4174/healthz",
+      url: `http://127.0.0.1:${API_PORT}/healthz`,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
     },
     {
-      command: "npm run preview",
-      url: "http://localhost:4173",
+      command: `npm run preview -- --port ${UI_PORT} --strictPort`,
+      url: `http://localhost:${UI_PORT}`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: {
         // vite.config.ts reads this for the /api + /healthz proxy
         // target in preview mode (playwright's webServer env is
         // merged into the child process, not the browser).
-        VITE_API_PROXY_TARGET: "http://127.0.0.1:4174",
+        VITE_API_PROXY_TARGET: `http://127.0.0.1:${API_PORT}`,
       },
     },
   ],

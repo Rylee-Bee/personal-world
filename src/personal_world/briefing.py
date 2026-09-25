@@ -19,6 +19,7 @@ Design rules enforced here:
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
@@ -29,8 +30,12 @@ BRIEFING_SCHEMA = "worlds-briefing/1"
 
 #: A read older than this is stale, not fresh (contract rule).
 STALE_AFTER = timedelta(hours=24)
-#: Only bookmarks touched inside this window count as arrivals.
+#: On a return visit, bookmarks touched since the last visit count as
+#: arrivals only while they are still inside this window.
 ARRIVAL_WINDOW = timedelta(hours=72)
+#: On a first visit there is no "since" to bound the range, so arrivals
+#: fall back to this tighter window instead of the 72h return window.
+FIRST_VISIT_WINDOW = timedelta(hours=24)
 #: Project Home attention kinds that are "things to do".
 HAVE_TO_KINDS = frozenset({"owner_decision", "tool_failure"})
 #: Relative importance for the cross-system have_tos list (lower first).
@@ -217,6 +222,24 @@ def _age_status(status: str, observed, now: datetime) -> str:
     return status
 
 
+def _arrival_in_window(at, since: datetime | None, now: datetime) -> bool:
+    """Whether a timestamped item counts as an arrival.
+
+    On a return visit (``since`` set) it must be newer than ``since`` and
+    still inside the 72h window; on a first visit there is nothing to
+    compare against, so only the tighter 24h window applies. An item with
+    no timestamp is left in (there is nothing to judge it by).
+    """
+    dt = _parse_dt(at)
+    if dt is None:
+        return True
+    if since is not None:
+        if dt <= since:
+            return False
+        return (now - dt) <= ARRIVAL_WINDOW
+    return (now - dt) <= FIRST_VISIT_WINDOW
+
+
 def _observe(source):
     """Ask an injected source to observe. Returns its result or _FAILED."""
     if source is None:
@@ -232,7 +255,7 @@ def _observe(source):
 
 
 # ── system builders ──────────────────────────────────────────────────
-def _agents(source, now: datetime) -> _System:
+def _agents(source, now: datetime, since: datetime | None = None) -> _System:
     result = _observe(source)
     if result is _FAILED or result is None:
         return _empty("agents", Status.UNAVAILABLE.value)
@@ -272,7 +295,7 @@ def _agents(source, now: datetime) -> _System:
         if not isinstance(b, dict):
             continue
         updated = _parse_dt(b.get("updated_at"))
-        if updated is None or (now - updated) > ARRIVAL_WINDOW:
+        if updated is None or not _arrival_in_window(updated, since, now):
             continue
         pretty = _pretty_name(b.get("project_id"))
         working = str(b.get("working_on") or "").splitlines()
@@ -324,6 +347,55 @@ def _evidence_at(observation: dict):
     return None
 
 
+#: "verdict=pass", "key=value", ... — machine noise, never a title.
+_KV_FRAGMENT = re.compile(r"\b[A-Za-z_][\w.-]*\s*=\s*(?:\"[^\"]*\"|'[^']*'|\S+)")
+#: A few raw lab concept ids that need a human head noun to read well.
+_CONCEPT_TITLES = {"last_known_good": "Last known good deploy"}
+
+
+def _strip_kv_noise(detail: str) -> str:
+    return " ".join(_KV_FRAGMENT.sub(" ", detail).split()).strip(" ,;:-")
+
+
+def _first_sentence(text: str) -> str:
+    text = " ".join(text.split())
+    if not text:
+        return ""
+    match = re.match(r"(.+?[.!?])(?:\s|$)", text)
+    return match.group(1) if match else text
+
+
+def _human_concept_title(concept) -> str:
+    """A short human title from a raw concept id (``last_known_good``)."""
+    raw = str(concept or "").strip()
+    if not raw:
+        return ""
+    known = _CONCEPT_TITLES.get(raw.lower())
+    if known:
+        return known
+    words = [w for w in re.split(r"[_\-.]+", raw) if w]
+    text = " ".join(words)
+    return text[:1].upper() + text[1:] if text else ""
+
+
+def _observation_title(obs: dict) -> str:
+    """A human title for an estate observation.
+
+    Prose details yield their first sentence; key=value noise is stripped
+    and, when nothing readable remains, the title is built from the
+    concept. Never the bare word "Observation" or the raw concept id.
+    """
+    concept = str(obs.get("concept") or "").strip()
+    detail = obs.get("detail")
+    cleaned = _strip_kv_noise(" ".join(str(detail).split())) if detail else ""
+    title = _first_sentence(cleaned) if cleaned else _human_concept_title(concept)
+    if not title or title.lower() == "observation" or title == concept:
+        title = _human_concept_title(concept)
+    if not title or title.lower() == "observation":
+        title = "Lab note"
+    return title
+
+
 def _observation_items(system: str, row_name: str, row, kind: str) -> list[dict]:
     observations = row.get("observations") if isinstance(row, dict) else None
     if not isinstance(observations, list):
@@ -332,16 +404,15 @@ def _observation_items(system: str, row_name: str, row, kind: str) -> list[dict]
     for i, obs in enumerate(observations):
         if not isinstance(obs, dict):
             continue
-        title = obs.get("concept") or obs.get("detail") or "Observation"
         at = obs.get("observed_at") or _evidence_at(obs)
         out.append(_mk_item(
             system=system, sid=f"{row_name}:{i}", kind=kind,
-            title=title, detail=obs.get("detail"), at=at,
+            title=_observation_title(obs), detail=obs.get("detail"), at=at,
         ))
     return out
 
 
-def _estate(source, now: datetime) -> _System:
+def _estate(source, now: datetime, since: datetime | None = None) -> _System:
     result = _observe(source)
     if result is _FAILED or result is None:
         return _empty("estate", Status.UNAVAILABLE.value)
@@ -355,7 +426,10 @@ def _estate(source, now: datetime) -> _System:
     rows = _rows_map(data)
     overall = str(data.get("overall_state") or "").upper()
     have_tos = _observation_items("estate", "urgent", rows.get("urgent"), "have_to")
-    arrivals = _observation_items("estate", "review", rows.get("review"), "arrival")
+    arrivals = [
+        i for i in _observation_items("estate", "review", rows.get("review"), "arrival")
+        if _arrival_in_window(i.get("at"), since, now)
+    ]
     observed = _parse_dt(data.get("generated_at"))
     if observed is None:
         observed = max(
@@ -475,7 +549,10 @@ def _records(journal, now: datetime) -> tuple[_System, dict | None]:
     items = [_thread_item(e) for e in personal][:8]
     thread = items[0] if items else None
     observed = _parse_dt(_event_ts(personal[0])) if personal else None
-    status = Status.HEALTHY.value if personal else Status.UNKNOWN.value
+    # A readable journal is healthy even with no personal entries yet:
+    # only an actual read failure is unknown/unavailable. With no new
+    # entries the resident's voice falls through to its honest "quiet".
+    status = Status.HEALTHY.value
     return _System(
         spec=_spec("records"),
         status=status,
@@ -565,6 +642,21 @@ def _keeper_mood(
     return "calm"
 
 
+def _greeting(now: datetime) -> str:
+    """Time-of-day greeting from the server clock ``now`` (local time)."""
+    hour = now.hour
+    if 5 <= hour <= 11:
+        return "Good morning"
+    if 12 <= hour <= 16:
+        return "Good afternoon"
+    if 17 <= hour <= 21:
+        return "Good evening"
+    return "Hello"
+
+
+PLACEHOLDER_NAMES = frozenset({"primary person"})
+
+
 def build_briefing(
     *,
     project_home=None,
@@ -580,13 +672,17 @@ def build_briefing(
     Sources are injected so tests (and the route) can pass fakes or real
     providers; each is observed under its own failure isolation.
     """
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now().astimezone()
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
 
+    # The previous visit bounds arrivals; computed before the systems so
+    # each can apply the since/window rule while it builds its pools.
+    since_dt = _parse_dt(place.get("updated_at")) if isinstance(place, dict) else None
+
     systems = [
-        _agents(project_home, now),
-        _estate(lab, now),
+        _agents(project_home, now, since_dt),
+        _estate(lab, now, since_dt),
         _interests(discovery, now),
         _news(now),
     ]
@@ -608,10 +704,14 @@ def build_briefing(
                       if s.status != Status.NOT_CONFIGURED.value]
         overall = worst(considered) if considered else Status.HEALTHY.value
 
-    since_dt = _parse_dt(place.get("updated_at")) if isinstance(place, dict) else None
     since = _iso(since_dt) if since_dt is not None else None
     arrivals_total = len(arrivals_pool)
     mood = _keeper_mood(now, have_tos_total, arrivals_total, since_dt)
+    keeper_name = (name_hint or "").strip() or None
+    # The identity layer's built-in owner label is a placeholder, not a
+    # name: the Keeper never greets someone as "Primary person".
+    if keeper_name is not None and keeper_name.casefold() in PLACEHOLDER_NAMES:
+        keeper_name = None
 
     system_rows = []
     for s in systems:
@@ -637,8 +737,10 @@ def build_briefing(
             "line": keeper_line(
                 mood,
                 {"arrivals": arrivals_total, "have_tos": have_tos_total},
-                name_hint,
+                keeper_name,
             ),
+            "greeting": _greeting(now),
+            "name": keeper_name,
             "mood": mood,
             "resident": dict(KEEPER),
         },

@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from personal_world.briefing import SYSTEM_IDS, build_briefing  # noqa: E402
+from personal_world.briefing_voice import resident_line  # noqa: E402
 from personal_world.envelope import ok  # noqa: E402
 from personal_world.providers.project_home import (  # noqa: E402
     ProjectHomeResult,
@@ -57,6 +58,13 @@ class FakeJournal:
 
     def current_events(self, n: int = 20):
         return self._events[-n:]
+
+
+class BoomJournal:
+    """A journal whose read itself fails (not merely empty)."""
+
+    def current_events(self, n: int = 20):
+        raise OSError("journal unreadable")
 
 
 def _ph(snapshot=None, status="healthy", observed=None):
@@ -208,6 +216,55 @@ class TestAgentsMapping:
         assert agents["counts"]["arrivals"] == 2
 
 
+# ── arrival window (since / first visit) ─────────────────────────────
+class TestArrivalWindow:
+    def _snapshot(self):
+        return {"bookmarks": [
+            {"project_id": "proj-fresh", "working_on": "just now",
+             "updated_at": _iso(NOW - timedelta(minutes=10))},
+            {"project_id": "proj-mid", "working_on": "two days ago",
+             "updated_at": _iso(NOW - timedelta(hours=48))},
+            {"project_id": "proj-old", "working_on": "four days ago",
+             "updated_at": _iso(NOW - timedelta(hours=100))},
+        ]}
+
+    def test_first_visit_uses_24h_not_72h(self):
+        # No since: a 48h-old bookmark is outside the tighter first-visit
+        # window even though it would fit the 72h return window.
+        brief = _brief(project_home=_ph(self._snapshot()), place=None)
+        ids = {i["id"] for i in _items(brief, "agents", "arrival")}
+        assert ids == {"agents:proj-fresh"}
+
+    def test_return_visit_counts_only_newer_than_since_within_72h(self):
+        place = {"system": "agents", "item_id": "x",
+                 "updated_at": _iso(NOW - timedelta(hours=100))}
+        brief = _brief(project_home=_ph(self._snapshot()), place=place)
+        ids = {i["id"] for i in _items(brief, "agents", "arrival")}
+        # 48h fits the 72h window; the 100h bookmark sits at `since`.
+        assert ids == {"agents:proj-fresh", "agents:proj-mid"}
+
+    def test_bookmark_at_or_before_since_is_not_an_arrival(self):
+        place = {"system": "agents", "item_id": "x",
+                 "updated_at": _iso(NOW - timedelta(minutes=30))}
+        brief = _brief(project_home=_ph(self._snapshot()), place=place)
+        ids = {i["id"] for i in _items(brief, "agents", "arrival")}
+        assert ids == {"agents:proj-fresh"}
+
+    def test_estate_review_observation_follows_the_same_window(self):
+        rows = {"review": {"observations": [
+            {"concept": "Deploy pending", "detail": "waiting on approval",
+             "evidence": [{"observed_at": _iso(NOW - timedelta(hours=48))}]},
+        ]}}
+        # First visit: 48h is outside the 24h window.
+        first = _brief(lab=_lab(rows=rows), place=None)
+        assert _items(first, "estate", "arrival") == []
+        # Return visit from 100h ago: inside the 72h window and after since.
+        place = {"system": "estate", "item_id": "x",
+                 "updated_at": _iso(NOW - timedelta(hours=100))}
+        back = _brief(lab=_lab(rows=rows), place=place)
+        assert [i["id"] for i in _items(back, "estate", "arrival")] == ["estate:review:0"]
+
+
 # ── estate mapping ───────────────────────────────────────────────────
 class TestEstateMapping:
     def _rows(self):
@@ -228,8 +285,39 @@ class TestEstateMapping:
         estate = _system(brief, "estate")
         assert [i["id"] for i in _items(brief, "estate", "have_to")] == ["estate:urgent:0"]
         assert [i["id"] for i in _items(brief, "estate", "arrival")] == ["estate:review:0"]
-        assert _items(brief, "estate", "have_to")[0]["title"] == "Disk failing"
+        # title is the first sentence of the detail, never the concept id
+        assert _items(brief, "estate", "have_to")[0]["title"] == "SMART errors"
+        assert _items(brief, "estate", "have_to")[0]["detail"] == "SMART errors"
         assert estate["counts"] == {"arrivals": 1, "have_tos": 1}
+
+    def test_titles_are_human_never_the_bare_word_observation(self):
+        rows = {"urgent": {"observations": [
+            {"concept": "disk_failing", "detail": "verdict=failed\nsmart=errors"},
+            {"concept": "last_known_good", "detail": "verdict=pass key=value"},
+            {"concept": "ignored_id", "detail": ""},
+            {"concept": "prose", "detail": "Package updates are pending. More text."},
+        ]}}
+        brief = _brief(lab=_lab(rows=rows))
+        by_id = {i["id"]: i for i in _items(brief, "estate", "have_to")}
+        assert by_id["estate:urgent:0"]["title"] == "Disk failing"
+        assert by_id["estate:urgent:1"]["title"] == "Last known good deploy"
+        assert by_id["estate:urgent:2"]["title"] == "Ignored id"
+        assert by_id["estate:urgent:3"]["title"] == "Package updates are pending."
+        for item in by_id.values():
+            assert item["title"] != "Observation"
+            assert item["title"] != "disk_failing"
+            assert item["title"] != "last_known_good"
+            assert item["title"] != "ignored_id"
+        # the full detail is preserved, not replaced by the title
+        assert by_id["estate:urgent:0"]["detail"] == "verdict=failed\nsmart=errors"
+
+    def test_title_is_clipped_to_120_chars(self):
+        rows = {"urgent": {"observations": [
+            {"concept": "noise", "detail": "A" * 200},
+        ]}}
+        brief = _brief(lab=_lab(rows=rows))
+        title = _items(brief, "estate", "have_to")[0]["title"]
+        assert len(title) == 120
 
     def test_overall_state_unknown_is_unknown_status(self):
         estate = _system(_brief(lab=_lab(rows=self._rows(), overall="UNKNOWN")), "estate")
@@ -272,7 +360,17 @@ class TestThread:
     def test_empty_journal_has_no_thread(self):
         brief = _brief(journal=FakeJournal())
         assert brief["data"]["thread"] is None
-        assert _system(brief, "records")["status"] == "unknown"
+        records = _system(brief, "records")
+        # A readable journal is healthy even with nothing personal yet;
+        # the resident just falls through to its honest "quiet" voice.
+        assert records["status"] == "healthy"
+        assert records["voice"] == resident_line(
+            "records", "healthy", {"arrivals": 0, "have_tos": 0}, False
+        )
+
+    def test_unreadable_journal_is_unavailable(self):
+        records = _system(_brief(journal=BoomJournal()), "records")
+        assert records["status"] == "unavailable"
 
 
 # ── flags and mood ───────────────────────────────────────────────────
@@ -291,8 +389,10 @@ class TestFlagsAndMood:
         brief = _brief(project_home=_ph(self._arrival_snapshot()), place=place)
         assert brief["data"]["since"] == _iso(NOW - timedelta(minutes=30))
         by_id = {i["id"]: i for i in _items(brief, "agents", "arrival")}
+        # Only the bookmark updated after `since` is an arrival now; the
+        # older one is excluded, so every arrival here is genuinely new.
+        assert set(by_id) == {"agents:proj-a"}
         assert by_id["agents:proj-a"]["new"] is True
-        assert by_id["agents:proj-b"]["new"] is False
 
     def test_null_since_means_nothing_is_new(self):
         brief = _brief(project_home=_ph(self._arrival_snapshot()), place=None)
@@ -350,6 +450,42 @@ class TestFlagsAndMood:
             "agents", "estate", "records", "interests", "news", "threads",
         ]
         assert data["keeper"]["resident"]["key"] == "personal-world"
+        assert data["keeper"]["greeting"] in {
+            "Good morning", "Good afternoon", "Good evening", "Hello",
+        }
+        assert data["keeper"]["name"] is None
+
+
+# ── keeper: line, greeting, name ─────────────────────────────────────
+class TestKeeperVoice:
+    def test_keeper_line_is_always_produced(self):
+        keeper = _brief()["data"]["keeper"]
+        assert isinstance(keeper["line"], str)
+        assert keeper["line"]
+
+    @pytest.mark.parametrize("hour, expected", [
+        (5, "Good morning"), (11, "Good morning"),
+        (12, "Good afternoon"), (16, "Good afternoon"),
+        (17, "Good evening"), (21, "Good evening"),
+        (22, "Hello"), (23, "Hello"), (0, "Hello"), (4, "Hello"),
+    ])
+    def test_greeting_follows_the_server_hour(self, hour, expected):
+        brief = _brief(now=NOW.replace(hour=hour))
+        assert brief["data"]["keeper"]["greeting"] == expected
+
+    def test_keeper_name_comes_from_the_optional_hint(self):
+        assert _brief()["data"]["keeper"]["name"] is None
+        assert _brief(name_hint="Rylee")["data"]["keeper"]["name"] == "Rylee"
+        assert _brief(name_hint="   ")["data"]["keeper"]["name"] is None
+
+    def test_arrivals_top_level_is_capped_at_five(self):
+        snapshot = {"bookmarks": [
+            {"project_id": f"proj-{i}", "working_on": "x",
+             "updated_at": _iso(NOW - timedelta(minutes=i + 1))}
+            for i in range(6)
+        ]}
+        brief = _brief(project_home=_ph(snapshot))
+        assert brief["data"]["arrivals"] and len(brief["data"]["arrivals"]) == 5
 
 
 # ── routes ───────────────────────────────────────────────────────────
@@ -442,6 +578,15 @@ class TestPlaceRoutes:
     def test_briefing_route_requires_auth(self, client):
         assert client.get("/api/briefing").status_code in (401, 503)
 
+    def test_briefing_route_passes_the_principal_display_name(self, client):
+        keeper = client.get("/api/briefing", headers=AUTH).json()["data"]["keeper"]
+        # single mode resolves the bootstrap person as "Primary person", a
+        # placeholder label, not a name: the Keeper greets without a name.
+        assert keeper["name"] is None
+        assert keeper["greeting"] in {
+            "Good morning", "Good afternoon", "Good evening", "Hello",
+        }
+
 
 class TestAgentRefused:
     def _agent_token(self, c):
@@ -474,3 +619,17 @@ class TestKnownSystems:
         assert SYSTEM_IDS == {
             "agents", "estate", "records", "interests", "news", "threads",
         }
+
+def test_keeper_never_greets_the_placeholder_owner_label():
+    from personal_world.briefing import build_briefing
+
+    data = build_briefing(
+        project_home=None, lab=None, discovery=None, journal=None, place=None,
+        name_hint="Primary person",
+    )
+    assert data["data"]["keeper"]["name"] is None
+    named = build_briefing(
+        project_home=None, lab=None, discovery=None, journal=None, place=None,
+        name_hint="Rylee",
+    )
+    assert named["data"]["keeper"]["name"] == "Rylee"

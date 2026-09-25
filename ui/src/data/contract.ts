@@ -638,6 +638,10 @@ export interface BridgeKeeper {
   line: string;
   mood: BridgeMood;
   resident: BridgeResident;
+  /** Time-of-day greeting from the server clock ("Good morning"). */
+  greeting?: string | null;
+  /** The person's display name when known; null otherwise (never guessed). */
+  name?: string | null;
 }
 
 export interface BridgeData {

@@ -34,7 +34,7 @@ function deckNote(system: BridgeSystem, statusWord: string): string | null {
 }
 
 interface StarMapProps {
-  keeper: BridgeKeeper & { greeting?: string | null; name?: string | null };
+  keeper: BridgeKeeper;
   systems: BridgeSystem[];
   selectedId: BridgeSystemId | null;
   onSelect: (id: BridgeSystemId) => void;
