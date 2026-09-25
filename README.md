@@ -38,7 +38,7 @@ labelled specimen panels — they never pretend to be your data:
   API-084); Memory lists and finds your real journal entries and
   records (`GET /api/journal` + records search); Settings renders and
   writes your real stored preferences (`API-030/031`), including the
-  voice/tone register and the optional residents pack (default off).
+  voice/tone register and the residents pack (on by default; switch off in Settings).
   `/login` and `/setup` are server-rendered.
 - **Device-local by design.** Chat conversations stay on the device;
   the assistant's replies come from your configured model when one is

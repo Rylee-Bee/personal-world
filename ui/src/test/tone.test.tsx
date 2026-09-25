@@ -170,7 +170,7 @@ describe("Settings vocabulary for the voice prefs", () => {
   const packEntry = {
     key: "personality_pack",
     type: "enum" as const,
-    default: "off",
+    default: "residents",
     floor: "off",
     allowed: ["off", "residents"],
     integer: false,
@@ -189,7 +189,7 @@ describe("Settings vocabulary for the voice prefs", () => {
     expect(prefValueLabel(toneEntry, "formal")).toBe("Formal");
     expect(prefValueLabel(packEntry, "off")).toBe("Off (the one voice)");
     expect(prefValueLabel(packEntry, "residents")).toBe(
-      "Residents (optional character pack)",
+      "Residents (default)",
     );
   });
 

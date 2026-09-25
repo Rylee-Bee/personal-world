@@ -152,7 +152,8 @@ ACCENT = EnumPref(
 # touches the accessibility floor. `tone` selects the register of the
 # ONE Worlds voice; `personality_pack` gates the optional residents /
 # two-voice character pack (kept canon: docs/CHARACTER-HANDBOOK.md,
-# docs/COMPANION-CANON.md), off by default. The `floor` slot carries
+# docs/COMPANION-CANON.md), ON by default since 2026-09-25 (owner:
+# "turn it on"; PLAN.md 1b, personality ships now). The `floor` slot carries
 # the default-safe first value (EnumPref requires one); there is no
 # below-floor direction here.
 TONE = EnumPref(
@@ -161,7 +162,7 @@ TONE = EnumPref(
     css_var="--pw-tone", data_attr="data-pw-tone",
 )
 PERSONALITY_PACK = EnumPref(
-    key="personality_pack", default="off",
+    key="personality_pack", default="residents",
     allowed=("off", "residents"), floor="off",
     css_var="--pw-personality-pack", data_attr="data-pw-personality-pack",
 )

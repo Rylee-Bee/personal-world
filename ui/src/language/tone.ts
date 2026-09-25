@@ -10,7 +10,7 @@
  * exact in facts).
  *
  * The residents / two-voice system lives on as the optional personality
- * pack (`personality_pack` pref, off by default; canon kept in
+ * pack (`personality_pack` pref, on by default since 2026-09-25; canon kept in
  * docs/CHARACTER-HANDBOOK.md + docs/COMPANION-CANON.md). The server
  * gates the pack's prompt routing (src/personal_world/voice.py); this
  * module owns the client-side tone vocabulary.

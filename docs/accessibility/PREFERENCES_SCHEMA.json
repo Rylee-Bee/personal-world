@@ -45,8 +45,8 @@
     "personality_pack": {
       "type": "enum",
       "values": ["off", "residents"],
-      "default": "off",
-      "description": "Optional personality pack (TRUE-NORTH § Voice). off (default) = the one Worlds voice. residents = the optional character-crew / two-voice personalities (kept canon: docs/CHARACTER-HANDBOOK.md, docs/COMPANION-CANON.md) layered as flavor on top of the same truth rules. No value removes the honesty floor or any accessibility requirement."
+      "default": "residents",
+      "description": "Optional personality pack (TRUE-NORTH § Voice). residents (default since 2026-09-25) = the character-crew / two-voice personalities (canon: docs/CHARACTER-HANDBOOK.md, docs/COMPANION-CANON.md) layered as flavor on top of the same truth rules. off = the one Worlds voice. No value removes the honesty floor or any accessibility requirement."
     }
   },
   "defaults": {
@@ -56,7 +56,7 @@
     "density": "comfortable",
     "targets": "standard",
     "tone": "warm",
-    "personality_pack": "off"
+    "personality_pack": "residents"
   },
   "resolution_hierarchy": [
     "Platform / assistive requirement (highest priority)",

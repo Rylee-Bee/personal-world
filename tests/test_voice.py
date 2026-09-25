@@ -5,7 +5,7 @@ Proves three rulings:
   1. the tone register is persisted via the existing prefs schema and
      actually reaches the model prompt;
   2. the residents / two-voice persona path only rides along when the
-     optional personality pack is switched on (default off);
+     personality pack is switched on (on by default since 2026-09-25);
   3. honest-off is unchanged — with no model configured, the endpoint
      still answers `not_configured` in every tone, and no tone block
      can remove the truth floor from the system prompt.
@@ -124,7 +124,9 @@ class TestPrefsVocabulary:
 
     def test_pack_vocab(self):
         assert prefs.PERSONALITY_PACK.allowed == ("off", "residents")
-        assert prefs.PERSONALITY_PACK.default == "off"
+        # Owner, 2026-09-25: "turn it on" — the crew is on by default;
+        # "off" stays available and is the fail-safe for missing values.
+        assert prefs.PERSONALITY_PACK.default == "residents"
 
     def test_off_vocabulary_tone_rejected(self):
         with pytest.raises(prefs.PrefsValueError, match="tone"):
@@ -207,14 +209,24 @@ def _system_prompt(fake: FakeChat) -> str:
 
 
 class TestChatEndpointVoice:
-    def test_default_is_one_voice_warm(self, chat_client):
+    def test_default_pack_is_residents(self, chat_client):
+        c, _ = chat_client
+        r = c.get("/api/prefs")
+        assert r.status_code == 200
+        assert r.json()["data"]["personality_pack"] == "residents"
+
+    def test_pack_off_is_one_voice_warm(self, chat_client):
         c, fake = chat_client
+        assert (
+            c.put("/api/prefs", json={"personality_pack": "off"}).status_code
+            == 200
+        )
         r = c.post("/api/chat", json={"message": "hi"})
         assert r.status_code == 200 and r.json()["ok"] is True
         system = _system_prompt(fake)
         assert "Tone register: warm." in system
-        # Pack off by default: no resident persona in the prompt even
-        # though the companion pref has a stored default.
+        # Pack off: no resident persona in the prompt even though the
+        # companion pref has a stored default.
         assert "You speak as Mermaid" not in system
         assert "You speak as Personal World" not in system
 
@@ -228,7 +240,10 @@ class TestChatEndpointVoice:
     def test_companion_pref_alone_does_not_add_a_persona(self, chat_client):
         c, fake = chat_client
         assert (
-            c.put("/api/prefs", json={"companion": "mermaid"}).status_code
+            c.put(
+                "/api/prefs",
+                json={"companion": "mermaid", "personality_pack": "off"},
+            ).status_code
             == 200
         )
         c.post("/api/chat", json={"message": "hi"})

@@ -635,3 +635,11 @@ dated entry superseding the old one (append-only, like the journal).
   placeholder copy were removed; media/reminder/connection hooks stay for
   wiring. Reason: owner rule "distinguish dead code from unfinished product
   intent".
+- **2026-09-25 — Personality pack ON by default (supersedes the 2026-09-22
+  "off by default" routing).** Owner, in the Doorways design session: "turn it
+  on", everywhere, not only with the Doorways theme. `personality_pack`
+  now defaults to `residents`; `off` stays one choice away in Settings and
+  remains the fail-safe for missing or malformed values. The honesty and
+  accessibility floors are unchanged, and residents' artwork still never
+  encodes status. Reason: PLAN.md 1b ("personality ships here, not later")
+  and the owner's note that the residents are now much less obtrusive.

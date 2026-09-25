@@ -12,8 +12,8 @@ separate from its siblings, and the separation is the point:
 > **Pack canon (TRUE-NORTH § Voice, owner ruling 2026-09-22).** The product
 > default is now **one voice** with selectable tone registers
 > (`warm`·`concise`·`playful`·`formal`). The residents and the two-voice
-> system below are preserved as the **optional personality pack** — off by
-> default, switchable via the `personality_pack` preference. This handbook
+> system below are preserved as the **optional personality pack** — on by
+> default since 2026-09-25 (owner: "turn it on"), switchable via the `personality_pack` preference. This handbook
 > stays the canon for that pack: it is kept, never deleted, and it is the
 > character/voice truth the pack routes to when switched on. The
 > accessibility floor and the honesty floor still outrank every voice rule
