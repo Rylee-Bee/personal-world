@@ -43,7 +43,7 @@ async function computedCss(
 }
 
 /**
- * The page's sticky status strip. The Bridge's Keeper line is also a
+ * The page's status strip. The Bridge's Keeper line is also a
  * <footer>, but it lives INSIDE main — the shell's status strip is the
  * last footer in DOM order, so "footer" must not be read with .first()
  * (it would measure the Keeper's padding, not the chrome's).
@@ -110,7 +110,7 @@ test.describe("mobile safe areas (§2.7)", () => {
     expect(box!.height).toBeGreaterThanOrEqual(TARGET_FLOOR);
   });
 
-  test("pinned insets: sticky status strip pads its bottom by inset + base padding", async ({
+  test("pinned insets: the status strip pads its bottom by inset + base padding", async ({
     page,
   }) => {
     await pinInsets(page);

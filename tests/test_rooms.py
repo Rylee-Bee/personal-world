@@ -311,3 +311,59 @@ class TestRoomsRoute:
         assert payload["ok"] is True
         assert payload["data"][0]["id"] == "studio"
         assert payload["data"][0]["reachable"] is True
+
+
+class TestBriefingReadsRooms:
+    """The briefing reads the same one cached snapshot — no second round."""
+
+    def test_briefing_workshop_system_comes_from_its_room(self, client, monkeypatch):
+        import personal_world.api as api_mod
+
+        needs = [
+            {"id": f"n{i}", "title": f"Bench item {i}", "why": "waiting",
+             "actions": [], "created_at": "2026-09-25T12:30:00Z"}
+            for i in range(32)
+        ]
+        svc = RoomsService(
+            transport=httpx.MockTransport(
+                _handler(
+                    descriptor=_ok_descriptor,
+                    needs=lambda: httpx.Response(200, json=needs),
+                )
+            )
+        )
+        monkeypatch.setattr(api_mod, "_ROOMS", svc)
+        monkeypatch.setenv("PW_ROOMS", "workshop=http://room.test")
+
+        body = client.get(
+            "/api/briefing", headers={"Authorization": "Bearer instancetoken"}
+        ).json()
+        assert body["ok"] is True
+        agents = next(
+            s for s in body["data"]["systems"] if s["id"] == "agents"
+        )
+        assert agents["status"] == "healthy"
+        assert agents["counts"]["have_tos"] == 32
+        assert body["data"]["have_tos_total"] == 32
+
+    def test_unreachable_room_never_reports_the_system_healthy(
+        self, client, monkeypatch
+    ):
+        import personal_world.api as api_mod
+
+        def boom(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused")
+
+        monkeypatch.setattr(
+            api_mod, "_ROOMS", RoomsService(transport=httpx.MockTransport(boom))
+        )
+        monkeypatch.setenv("PW_ROOMS", "workshop=http://room.test")
+
+        body = client.get(
+            "/api/briefing", headers={"Authorization": "Bearer instancetoken"}
+        ).json()
+        agents = next(
+            s for s in body["data"]["systems"] if s["id"] == "agents"
+        )
+        assert agents["status"] == "unavailable"
+        assert agents["status"] != "healthy"

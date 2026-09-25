@@ -40,6 +40,26 @@ FIRST_VISIT_WINDOW = timedelta(hours=24)
 HAVE_TO_KINDS = frozenset({"owner_decision", "tool_failure"})
 #: Relative importance for the cross-system have_tos list (lower first).
 HAVE_TO_RANK = {"owner_decision": 0, "tool_failure": 1}
+#: A room's needs-you is the room asking the person; rank it with tool
+#: failures — below an owner decision, above an unranked source item.
+ROOM_NEED_RANK = 1
+
+#: A room (contract room/0) mapping a system onto a room's own status
+#: vocabulary. ``unreachable`` maps to the existing ``unavailable`` word
+#: — never ``healthy``. ``degraded``/``unhealthy`` reuse the words the
+#: UI already carries (``warning`` / ``needs_attention``); no new words.
+ROOM_STATUS_TO_SYSTEM_STATUS = {
+    "healthy": Status.HEALTHY.value,
+    "degraded": Status.WARNING.value,
+    "unhealthy": Status.NEEDS_ATTENTION.value,
+    "unknown": Status.UNKNOWN.value,
+    "unreachable": Status.UNAVAILABLE.value,
+}
+
+#: Room ids are operator-chosen; folding every non-alphanumeric run to
+#: one ``_`` (and lower-casing) lets ``workshop`` match the "Workshop"
+#: system while ``engine-room`` matches "Engine room".
+_ROOM_KEY_UNSAFE = re.compile(r"[^a-z0-9]+")
 
 #: Fixed systems and residents for v1 (contract table).
 SYSTEM_SPECS: tuple[dict, ...] = (
@@ -192,6 +212,75 @@ def _spec(system_id: str) -> dict:
         if spec["id"] == system_id:
             return spec
     raise KeyError(system_id)
+
+
+# ── rooms (contract room/0) ──────────────────────────────────────────
+# A configured room whose id names a briefing system (by id or by the
+# human name shown on the map — e.g. "workshop" names the Workshop /
+# ``agents`` system) becomes that system's source. A room with no
+# matching system contributes only to the top-level needs-you pool.
+def _room_key(value) -> str:
+    return _ROOM_KEY_UNSAFE.sub("_", str(value or "").lower()).strip("_")
+
+
+def _system_id_for_room(row: dict) -> str | None:
+    """The briefing system a room row names, or None. First match wins."""
+    key = _room_key(row.get("id"))
+    if not key:
+        return None
+    for spec in SYSTEM_SPECS:
+        if key in (_room_key(spec["id"]), _room_key(spec["name"])):
+            return spec["id"]
+    return None
+
+
+def _room_need_items(system_id, row: dict) -> list[dict]:
+    """A room's ``needs_you`` as briefing have_to items. Never invented:
+    an entry that is not an object is skipped, ``why`` is the detail."""
+    items: list[dict] = []
+    for i, need in enumerate(row.get("needs_you") or []):
+        if not isinstance(need, dict):
+            continue
+        items.append(_mk_item(
+            system=system_id,
+            sid=str(need.get("id") or f"need-{i}"),
+            kind="have_to",
+            title=need.get("title") or "Needs you",
+            detail=need.get("why"),
+            at=need.get("created_at"),
+            rank=ROOM_NEED_RANK,
+        ))
+    return items
+
+
+def _room_system(spec: dict, row: dict, now: datetime) -> _System:
+    """The system as its room reports it: status from the room word
+    (``unreachable`` -> ``unavailable``, never ``healthy``) and
+    needs-you from the room's own list. Rooms report no arrivals, so
+    there are none."""
+    status = ROOM_STATUS_TO_SYSTEM_STATUS.get(
+        str(row.get("status") or ""), Status.UNKNOWN.value
+    )
+    have_tos = _room_need_items(spec["id"], row)
+    descriptor = row.get("room") if isinstance(row.get("room"), dict) else {}
+    observed = _parse_dt(row.get("checked_at"))
+    source_name = (
+        str(descriptor.get("name") or "").strip()
+        or str(row.get("id") or "").strip()
+        or spec["source_name"]
+    )
+    return _System(
+        spec=spec,
+        status=status,
+        source={
+            "name": source_name,
+            "observed_at": _iso(observed),
+            "freshness": _freshness(observed, now),
+        },
+        items=_newest(have_tos)[:8],
+        have_tos=_newest(have_tos),
+        arrivals=[],
+    )
 
 
 def _empty(system_id: str, status: str, observed=None) -> _System:
@@ -690,6 +779,7 @@ def build_briefing(
     discovery=None,
     journal=None,
     place=None,
+    rooms: list[dict] | None = None,
     now: datetime | None = None,
     name_hint: str | None = None,
 ) -> dict:
@@ -697,6 +787,12 @@ def build_briefing(
 
     Sources are injected so tests (and the route) can pass fakes or real
     providers; each is observed under its own failure isolation.
+
+    ``rooms`` is one honest row per configured room (contract room/0),
+    already read once by the caller. A room that names a system is that
+    system's source — its status and needs-you replace the older direct
+    provider's for that system; every room's needs-you also joins the
+    top-level list. No rooms means the briefing is exactly as before.
     """
     now = now or datetime.now().astimezone()
     if now.tzinfo is None:
@@ -716,8 +812,39 @@ def build_briefing(
     systems.insert(2, records)
     systems.append(_threads(place, thread, now))
 
-    # Cross-system pools.
+    # Rooms override the older direct providers for any system they name.
+    if rooms:
+        by_system: dict[str, dict] = {}
+        for row in rooms:
+            if not isinstance(row, dict):
+                continue
+            sid = _system_id_for_room(row)
+            if sid is not None and sid not in by_system:
+                by_system[sid] = row
+        systems = [
+            _room_system(s.spec, by_system[s.spec["id"]], now)
+            if s.spec["id"] in by_system
+            else s
+            for s in systems
+        ]
+
+    # Cross-system pools. Every room's needs-you joins the top-level
+    # list, whichever system (if any) it names — deduped by item id so a
+    # matched room is counted once, not twice.
     have_tos_pool = [i for s in systems for i in s.have_tos]
+    for row in rooms or []:
+        if not isinstance(row, dict):
+            continue
+        system_id = _system_id_for_room(row) or str(row.get("id") or "room")
+        have_tos_pool.extend(_room_need_items(system_id, row))
+    seen_ids: set[str] = set()
+    deduped: list[dict] = []
+    for item in have_tos_pool:
+        if item["id"] in seen_ids:
+            continue
+        seen_ids.add(item["id"])
+        deduped.append(item)
+    have_tos_pool = deduped
     have_tos_pool.sort(key=_sort_key, reverse=True)          # newest first
     have_tos_pool.sort(key=lambda i: i.get("_rank", 9))       # importance (stable)
     arrivals_pool = _newest([i for s in systems for i in s.arrivals])

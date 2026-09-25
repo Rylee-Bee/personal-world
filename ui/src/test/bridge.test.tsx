@@ -196,6 +196,57 @@ describe("Bridge — the world at a glance", () => {
     expect(tray).toHaveTextContent("and 2 more, quietly waiting");
   });
 
+  it("renders the room-derived needs in the Needs-you box", () => {
+    // The backend composes a matched room (workshop -> the Workshop
+    // system) into the briefing: the system's status and count come
+    // from the room, and its needs join the top-level tray. The Bridge
+    // just renders that truth — a healthy Workshop with 32 needs, never
+    // "not set up yet" beside a Rooms panel that says otherwise.
+    const roomItem = item(
+      "agents",
+      "agents:room-need-1",
+      "have_to",
+      "Fix the bench light",
+      true,
+    );
+    hookState.briefing = {
+      isPending: false,
+      isError: false,
+      error: undefined,
+      refetch: () => Promise.resolve(),
+      data: {
+        ...BRIEFING,
+        status: "needs_attention",
+        data: {
+          ...BRIEFING.data,
+          systems: BRIEFING.data.systems.map((s) =>
+            s.id === "agents"
+              ? {
+                  ...s,
+                  status: "healthy",
+                  counts: { arrivals: 0, have_tos: 32 },
+                  items: [roomItem],
+                }
+              : s,
+          ),
+          have_tos: [roomItem],
+          have_tos_total: 32,
+        },
+      },
+    };
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+
+    const tray = screen.getByRole("region", { name: "Needs you" });
+    expect(tray).toHaveTextContent("Fix the bench light");
+    expect(tray).toHaveTextContent("and 31 more, quietly waiting");
+    // The map no longer contradicts the room: healthy, with its count.
+    expect(
+      screen.getByRole("button", {
+        name: "Workshop — Bolt — Healthy, 0 new, 32 need you",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("shows a not_configured system's honest voice, never a fake item", async () => {
     render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
     // The Newsstand lens (name + status word).
