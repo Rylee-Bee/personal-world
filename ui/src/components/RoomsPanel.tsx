@@ -14,7 +14,9 @@
  *      waiting) and a collapsible "Quiet" group (healthy, nothing
  *      waiting).
  *
- * Art is an optional slot: room interiors only in the Doorways theme,
+ * Art is an optional slot: room interiors only in the Doorways theme (a
+ * doorway the person chose on the Crew page, else the room's own drawn
+ * interior, else the plain arch — never assigned automatically),
  * keeper portraits only when the personality pack is on. Both are
  * decorative (alt="", aria-hidden) — every fact they could suggest is
  * already in words. A room with no keeper shows its own initial in a
@@ -42,6 +44,7 @@ import { useState } from "react";
 import { useMarkNeedSeen, useRooms, useVisitRoom } from "../data/hooks";
 import type { RoomKeeper, RoomRow, RoomsResume, RoomsSummary } from "../data/contract";
 import { interiorUrl, keeperPortraitUrl } from "./rooms/crew";
+import { useDoorwayChoices } from "./rooms/doorwayChoice";
 import { CompanionFace } from "./crew/CompanionFace";
 import { currentNeeds, groupRooms, isUncertain, seenNeeds } from "./rooms/groupRooms";
 import { useMinuteClock, useRootAttribute } from "./rooms/useRootAttribute";
@@ -203,7 +206,8 @@ function Doorway({
   const name = roomName(row);
   const needs = currentNeeds(row);
   const first = needs[0];
-  const interior = showInteriors ? interiorUrl(row.id) : null;
+  const doorways = useDoorwayChoices();
+  const interior = showInteriors ? interiorUrl(row.id, doorways[row.id]) : null;
   const headingId = `room-${row.id}-name`;
   const markSeen = useMarkNeedSeen();
   const changed = row.changed_since_visit ?? 0;
@@ -301,7 +305,8 @@ function CorridorRow({
   keeper: RoomKeeper | null;
 }) {
   const name = roomName(row);
-  const interior = showInteriors ? interiorUrl(row.id) : null;
+  const doorways = useDoorwayChoices();
+  const interior = showInteriors ? interiorUrl(row.id, doorways[row.id]) : null;
   const dim = isUncertain(row);
   return (
     <li className="flex flex-wrap items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)]">

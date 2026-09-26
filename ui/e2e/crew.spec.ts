@@ -32,7 +32,7 @@ test("Mira keeps Studio by default, and a keeper move lands in words", async ({ 
   const mira = page.getByRole("listitem", { name: "Mira" });
   await expect(mira.getByText("Keeps Studio")).toBeVisible();
 
-  await page.getByRole("combobox", { name: "Studio" }).selectOption("renai");
+  await page.getByRole("combobox", { name: "Keeper for Studio" }).selectOption("renai");
   await expect(page.getByText("Renai now keeps Studio.")).toBeVisible();
   await expect(page.getByRole("listitem", { name: "Renai" }).getByText(/Keeps Studio/)).toBeVisible();
   await expect(mira.getByText("No room · free to wander")).toBeVisible();

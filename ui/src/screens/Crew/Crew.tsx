@@ -38,6 +38,14 @@ import { crewAssetUrl } from "../../data/types";
 import { describeError } from "../../data/errors";
 import { WorldButton } from "../../components/WorldButton";
 import { CompanionFace } from "../../components/crew/CompanionFace";
+import {
+  DOORWAYS,
+  drawnInteriorUrl,
+  interiorUrl,
+  pickUrl,
+  PORTRAIT_PICKS,
+} from "../../components/rooms/crew";
+import { setDoorwayChoice, useDoorwayChoices } from "../../components/rooms/doorwayChoice";
 
 const PORTRAIT_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const PORTRAIT_MAX_BYTES = 5 * 1024 * 1024;
@@ -333,9 +341,24 @@ function EditCompanion({ entry, onDone }: { entry: CrewEntry; onDone: () => void
   const [voice, setVoice] = useState(entry.voice_label ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [fileNote, setFileNote] = useState<string | null>(null);
+  const [pick, setPick] = useState<string | null>(null);
   const patch = usePatchCrew();
   const upload = useUploadCrewPortrait();
   const remove = useDeleteCrew();
+
+  const choosePick = async (pickId: string) => {
+    setFileNote(null);
+    setPick(pickId);
+    try {
+      const data = await pickAsBase64(pickId);
+      upload.mutate(
+        { id: entry.id, contentType: "image/webp", dataBase64: data },
+        { onSuccess: () => setFileNote(`New picture saved for ${entry.name}.`) },
+      );
+    } catch (err) {
+      setFileNote(describeError(err, "Couldn’t load that picture."));
+    }
+  };
 
   const save = (e: FormEvent) => {
     e.preventDefault();
@@ -435,6 +458,15 @@ function EditCompanion({ entry, onDone }: { entry: CrewEntry; onDone: () => void
           PNG, JPEG or WebP, up to 5 MB. Square works best. Saved as soon as you pick
           it, and only visible to you.
         </p>
+        <div className="mt-[var(--pw-spacing-md)]">
+          <PortraitPicker
+            name={`${ids}-pick`}
+            legend="Or choose one of ours"
+            value={pick}
+            onChange={(p) => void choosePick(p)}
+            disabled={upload.isPending}
+          />
+        </div>
         {(fileNote || upload.isPending || upload.isError) && (
           <p role={upload.isError ? "alert" : "status"} className={`${NOTE} mt-1`}>
             {upload.isPending
@@ -517,7 +549,7 @@ function HiddenCrew({ entries }: { entries: CrewEntry[] }) {
   );
 }
 
-// ─── Who keeps which room ────────────────────────────────────────────
+// ─── Your rooms: keeper and doorway ─────────────────────────────────
 
 function KeepersSection({
   rows,
@@ -531,14 +563,18 @@ function KeepersSection({
   roomsError: boolean;
 }) {
   const put = usePutRoomKeeper();
+  const doorways = useDoorwayChoices();
+  const [doorwayNote, setDoorwayNote] = useState<string | null>(null);
   return (
     <section aria-labelledby="crew-keepers-heading" className={SECTION}>
       <h2 id="crew-keepers-heading" className={SECTION_TITLE}>
-        Who keeps each room
+        Your rooms
       </h2>
       <p className={`${NOTE} mb-[var(--pw-spacing-lg)]`}>
         A room has at most one keeper. Choosing a new one moves the room; the old
         keeper stays in your crew. A keeper never changes what a room reports.
+        Doorways are the picture you see in the Doorways theme, saved on this
+        device.
       </p>
       {roomsPending ? (
         <p role="status" className={NOTE}>
@@ -551,42 +587,99 @@ function KeepersSection({
       ) : rows.length === 0 ? (
         <p className={NOTE}>No rooms are set up yet.</p>
       ) : (
-        <div className="flex flex-col gap-[var(--pw-spacing-md)]">
+        <ul className="flex flex-col gap-[var(--pw-spacing-md)]">
           {rows.map((row) => {
-            const id = `keeper-${row.id}`;
+            const name = roomName(row);
+            const keeperId = `keeper-${row.id}`;
+            const doorId = `doorway-${row.id}`;
             const current = row.keeper?.id ?? "";
             // A keeper who is hidden stays assignable-as-current, named.
             const options = crew.some((c) => c.id === current) || !row.keeper
               ? crew
               : [...crew, { id: row.keeper.id, name: `${row.keeper.name} (hidden)` } as CrewEntry];
+            const chosenDoor = doorways[row.id] ?? "";
+            const drawn = drawnInteriorUrl(row.id);
+            const preview = interiorUrl(row.id, chosenDoor);
             return (
-              <div
+              <li
                 key={row.id}
-                className="grid grid-cols-1 items-center gap-[var(--pw-spacing-xs)] min-[600px]:grid-cols-[200px_minmax(0,1fr)]"
+                aria-labelledby={`room-row-${row.id}`}
+                className="flex flex-wrap items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)]"
               >
-                <label htmlFor={id} className="font-medium text-[var(--pw-text-primary)]">
-                  {roomName(row)}
-                </label>
-                <select
-                  id={id}
-                  value={current}
-                  disabled={put.isPending}
-                  onChange={(e) =>
-                    put.mutate({ roomId: row.id, companionId: e.target.value || null })
-                  }
-                  className={CONTROL}
-                >
-                  <option value="">No keeper (the room’s own emblem)</option>
-                  {options.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <span aria-hidden="true" className="flex h-24 w-16 shrink-0 items-end justify-center">
+                  {preview ? (
+                    <img src={preview} alt="" className="max-h-full w-auto object-contain" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center rounded-t-full rounded-b-[var(--pw-radius-sm)] border-2 border-[var(--pw-border-subtle)] text-[var(--pw-accent-warm)]">
+                      ✦
+                    </span>
+                  )}
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-[var(--pw-spacing-sm)]">
+                  <h3
+                    id={`room-row-${row.id}`}
+                    className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]"
+                  >
+                    {name}
+                  </h3>
+                  <div className="grid grid-cols-1 gap-[var(--pw-spacing-sm)] min-[700px]:grid-cols-2">
+                    <div>
+                      <label htmlFor={keeperId} className={LABEL}>
+                        {`Keeper for ${name}`}
+                      </label>
+                      <select
+                        id={keeperId}
+                        value={current}
+                        disabled={put.isPending}
+                        onChange={(e) =>
+                          put.mutate({ roomId: row.id, companionId: e.target.value || null })
+                        }
+                        className={CONTROL}
+                      >
+                        <option value="">No keeper (the room’s own emblem)</option>
+                        {options.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor={doorId} className={LABEL}>
+                        {`Doorway for ${name}`}
+                      </label>
+                      <select
+                        id={doorId}
+                        value={chosenDoor}
+                        onChange={(e) => {
+                          const ok = setDoorwayChoice(row.id, e.target.value || null);
+                          setDoorwayNote(
+                            ok
+                              ? null
+                              : "This browser won’t let Worlds save that here, so the doorway didn’t change.",
+                          );
+                        }}
+                        className={CONTROL}
+                      >
+                        <option value="">{drawn ? "Its own painted room" : "A plain lantern arch"}</option>
+                        {DOORWAYS.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
+      )}
+      {doorwayNote && (
+        <p role="alert" className={`${NOTE} mt-[var(--pw-spacing-md)]`}>
+          {doorwayNote}
+        </p>
       )}
       {put.isError && (
         <p role="alert" className={`${NOTE} mt-[var(--pw-spacing-md)]`}>
@@ -606,20 +699,101 @@ function KeepersSection({
   );
 }
 
+// ─── Picking a face from the library ─────────────────────────────────
+
+/** Fetch a library face and store it as the companion's own picture,
+ *  through the same upload route (and checks) as any other picture. */
+async function pickAsBase64(pickId: string): Promise<string> {
+  const res = await fetch(pickUrl(pickId, 512));
+  if (!res.ok) throw new Error("Couldn’t load that picture.");
+  const blob = await res.blob();
+  return readFileAsBase64(new File([blob], `${pickId}.webp`, { type: "image/webp" }));
+}
+
+/**
+ * The sixteen library faces as one radio group: native radios (arrow
+ * keys move, Space picks), each labelled in words, with a 64px face as
+ * decoration. Nothing is chosen until the person picks.
+ */
+function PortraitPicker({
+  name,
+  legend,
+  value,
+  onChange,
+  disabled = false,
+}: {
+  name: string;
+  legend: string;
+  value: string | null;
+  onChange: (pickId: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <fieldset className="m-0 border-0 p-0" disabled={disabled}>
+      <legend className={LABEL}>{legend}</legend>
+      <div className="grid grid-cols-4 gap-[var(--pw-spacing-sm)] min-[520px]:grid-cols-8">
+        {PORTRAIT_PICKS.map((p) => {
+          const checked = value === p.id;
+          return (
+            <label
+              key={p.id}
+              title={p.label}
+              className={`relative flex min-h-[var(--pw-targets-minimum)] cursor-pointer items-center justify-center rounded-[var(--pw-radius-full)] p-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--pw-accent-primary)] ${
+                checked ? "ring-2 ring-[var(--pw-accent-warm)]" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                name={name}
+                value={p.id}
+                checked={checked}
+                onChange={() => onChange(p.id)}
+                className="sr-only"
+              />
+              <img
+                src={pickUrl(p.id)}
+                alt=""
+                aria-hidden="true"
+                className="h-14 w-14 rounded-[var(--pw-radius-full)] object-cover"
+              />
+              <span className="sr-only">{p.label}</span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
 // ─── Add your own ────────────────────────────────────────────────────
 
 function AddCompanion() {
   const ids = useId();
   const add = useAddCrew();
+  const upload = useUploadCrewPortrait();
   const [name, setName] = useState("");
   const [blurb, setBlurb] = useState("");
   const [voice, setVoice] = useState("");
+  const [pick, setPick] = useState<string | null>(null);
   const [added, setAdded] = useState<string | null>(null);
+  const [pictureNote, setPictureNote] = useState<string | null>(null);
+
+  const suggestedFor = (id: string | null) =>
+    PORTRAIT_PICKS.find((p) => p.id === id)?.suggested ?? "";
+
+  // Picking a face offers its suggested name, but never over a name the
+  // person typed themselves.
+  const choosePick = (pickId: string) => {
+    if (!name.trim() || name === suggestedFor(pick)) setName(suggestedFor(pickId));
+    setPick(pickId);
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     setAdded(null);
+    setPictureNote(null);
+    const chosenPick = pick;
     add.mutate(
       {
         name: name.trim(),
@@ -628,10 +802,28 @@ function AddCompanion() {
       },
       {
         onSuccess: (res) => {
-          setAdded(res.data?.name ?? name.trim());
+          const who = res.data?.name ?? name.trim();
+          setAdded(who);
           setName("");
           setBlurb("");
           setVoice("");
+          setPick(null);
+          const newId = res.data?.id;
+          if (chosenPick && newId) {
+            pickAsBase64(chosenPick)
+              .then((data) =>
+                upload.mutate(
+                  { id: newId, contentType: "image/webp", dataBase64: data },
+                  {
+                    onError: () =>
+                      setPictureNote(`${who}’s picture didn’t save. You can choose it again from their card.`),
+                  },
+                ),
+              )
+              .catch(() =>
+                setPictureNote(`${who}’s picture didn’t save. You can choose it again from their card.`),
+              );
+          }
         },
       },
     );
@@ -647,6 +839,12 @@ function AddCompanion() {
           Only a name is required. Until you add a picture, they wear the crew
           commbadge with their initial.
         </p>
+        <PortraitPicker
+          name={`${ids}-pick`}
+          legend="Choose a face (optional)"
+          value={pick}
+          onChange={choosePick}
+        />
         <div>
           <label htmlFor={`${ids}-name`} className={LABEL}>
             Name
@@ -695,7 +893,12 @@ function AddCompanion() {
           )}
           {added && !add.isError && (
             <p role="status" className={NOTE}>
-              {`${added} is aboard. Add a picture or give them a room above.`}
+              {`${added} is aboard. Give them a room above, or change their picture from their card.`}
+            </p>
+          )}
+          {pictureNote && (
+            <p role="alert" className={NOTE}>
+              {pictureNote}
             </p>
           )}
         </div>

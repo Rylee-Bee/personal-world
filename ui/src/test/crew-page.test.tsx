@@ -152,11 +152,11 @@ describe("Crew page", () => {
 
   it("moves a room's keeper, or clears it back to the room's emblem", () => {
     render(<Crew onBack={() => {}} />);
-    const studio = screen.getByRole("combobox", { name: "Studio" });
+    const studio = screen.getByRole("combobox", { name: "Keeper for Studio" });
     expect(studio).toHaveValue("mira");
     fireEvent.change(studio, { target: { value: "pip" } });
     expect(spies.put).toHaveBeenCalledWith({ roomId: "studio", companionId: "pip" });
-    fireEvent.change(screen.getByRole("combobox", { name: "Workshop" }), { target: { value: "" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Keeper for Workshop" }), { target: { value: "" } });
     expect(spies.put).toHaveBeenCalledWith({ roomId: "workshop", companionId: null });
   });
 
@@ -167,6 +167,41 @@ describe("Crew page", () => {
     fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "  Nova  " } });
     fireEvent.submit(form);
     expect(spies.add).toHaveBeenCalledWith({ name: "Nova" }, expect.anything());
+  });
+
+  it("chooses a doorway for a room on this device, and can go back to the room's own art", () => {
+    window.localStorage.removeItem("pw-room-doorways");
+    render(<Crew onBack={() => {}} />);
+    const door = screen.getByRole("combobox", { name: "Doorway for Studio" });
+    // Nothing is assigned automatically: Studio has no painted room.
+    expect(door).toHaveValue("");
+    expect(within(door).getByRole("option", { name: "A plain lantern arch" })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("combobox", { name: "Doorway for Workshop" })).getByRole("option", {
+        name: "Its own painted room",
+      }),
+    ).toBeInTheDocument();
+    fireEvent.change(door, { target: { value: "study" } });
+    expect(JSON.parse(window.localStorage.getItem("pw-room-doorways") ?? "{}")).toEqual({ studio: "study" });
+    expect(door).toHaveValue("study");
+    fireEvent.change(door, { target: { value: "" } });
+    expect(JSON.parse(window.localStorage.getItem("pw-room-doorways") ?? "{}")).toEqual({});
+  });
+
+  it("offers library faces as a labelled radio group, suggesting a name you can change", () => {
+    render(<Crew onBack={() => {}} />);
+    const add = screen.getByRole("button", { name: "Add to your crew" });
+    const form = add.closest("form")!;
+    const group = within(form).getByRole("group", { name: "Choose a face (optional)" });
+    expect(within(group).getAllByRole("radio")).toHaveLength(16);
+    fireEvent.click(within(group).getByRole("radio", { name: "Owl" }));
+    expect(within(form).getByLabelText("Name")).toHaveValue("Ori");
+    fireEvent.click(within(group).getByRole("radio", { name: "Fox" }));
+    expect(within(form).getByLabelText("Name")).toHaveValue("Fenn");
+    // A name the person typed is never replaced.
+    fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "Biscuit" } });
+    fireEvent.click(within(group).getByRole("radio", { name: "Owl" }));
+    expect(within(form).getByLabelText("Name")).toHaveValue("Biscuit");
   });
 
   it("goes back to Settings", () => {

@@ -230,6 +230,19 @@ describe("RoomsPanel", () => {
     expect(screen.queryByText(/kept by Hekek/)).not.toBeInTheDocument();
   });
 
+  it("shows a doorway chosen on this device over the room's own art, and nothing unchosen", () => {
+    document.documentElement.setAttribute("data-theme", "doorways");
+    window.localStorage.setItem("pw-room-doorways", JSON.stringify({ "play-nice": "garden", workshop: "not-a-door" }));
+    const { container } = render(<RoomsPanel />);
+    const srcs = Array.from(container.querySelectorAll("img")).map((i) => i.getAttribute("src") ?? "");
+    expect(srcs.some((s) => s.endsWith("assets/crew/512/doorway-garden.webp"))).toBe(true);
+    // An unknown choice is ignored: Workshop keeps its own painted room.
+    expect(srcs.some((s) => s.endsWith("assets/crew/512/workshop-doorway.webp"))).toBe(true);
+    // No room gets a library doorway it wasn't given.
+    expect(srcs.filter((s) => s.includes("/doorway-"))).toHaveLength(1);
+    window.localStorage.removeItem("pw-room-doorways");
+  });
+
   it("gives a keeper with no picture the crew commbadge and their initial", () => {
     document.documentElement.setAttribute("data-pw-personality-pack", "residents");
     setRooms([{ ...WORKSHOP, keeper: { id: "pip", name: "Pip", portrait_url: null, initial: "P" } }]);

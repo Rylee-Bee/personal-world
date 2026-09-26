@@ -655,9 +655,7 @@ dated entry superseding the old one (append-only, like the journal).
 - **2026-09-26 — Crew page, Mira keeps Studio, commbadge placeholder; the
   Assistant is "no companion".** Owner, answering the design handoff's open
   decisions: "Mira for the Studio, a new Crew page that links from settings,
-  and … the commbadge logo". (1) `crew.ROOM_RESIDENT` seeds Mira as Studio's
-  keeper under the existing seeding rules (only when `keepers` was never
-  saved; a saved or cleared assignment is never overwritten). (2) The crew
+  and … the commbadge logo". (1) Mira keeps Studio (landed separately in #83, `crew.ROOM_RESIDENT`). (2) The crew
   manager is its own page reached from Settings, not a nav landmark; the
   skeleton stays Overview · Memory · Chat · Settings. (3) A companion with
   no picture wears the crew commbadge (Sol's ringed planet) with their
@@ -669,3 +667,12 @@ dated entry superseding the old one (append-only, like the journal).
   `companion_id` was stored. `config/prompts/personas/assistant.md` is no
   longer composed by the voice path. Reason: owner canon, "an assistant if
   you haven't picked one", and one resolution for face and voice.
+- **2026-09-26 — A shared doorway and face library, chosen, never assigned.**
+  Owner commissioned 12 room doorways and 16 portrait-only faces
+  (`design/assets/library/`) so other people's Worlds have art too. Owner:
+  "let people select things" and "no need to set defaults": a room shows the
+  doorway chosen for it on the Crew page, else its own painted interior, else
+  the plain arch; a face from the library becomes a companion's own picture.
+  The doorway choice is device-local for now (like the theme) until the
+  station has somewhere to keep it. Reason: owner direction; art never
+  implies a fact about a room.
