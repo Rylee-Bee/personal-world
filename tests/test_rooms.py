@@ -478,6 +478,66 @@ class TestRoomsRoute:
         assert client.post("/api/rooms/workshop/visit", json={}, headers=auth).status_code == 200
         assert client.post("/api/rooms/studio/visit", json={}, headers=auth).status_code == 404
 
+    def test_registry_public_url_is_surfaced_on_rows(self, client, monkeypatch):
+        """A registry entry's public_url rides the /api/rooms row; an
+        invalid one leaves the entry in place with an honest null."""
+        import personal_world.api as api_mod
+
+        def handle(request: httpx.Request) -> httpx.Response:
+            if request.url.host == "registry.test":
+                return httpx.Response(
+                    200,
+                    json={
+                        "updated_at": "2026-09-25T12:00:00Z",
+                        "rooms": [
+                            {
+                                "id": "workshop",
+                                "name": "Workshop",
+                                "base_url": "http://room.test",
+                                "public_url": "https://workshop.example",
+                                "contract": "room/0",
+                                "token_env": None,
+                                "insecure_tls": False,
+                                "enabled": True,
+                            },
+                            {
+                                "id": "studio",
+                                "name": "Studio",
+                                "base_url": "http://studio.test",
+                                "public_url": "https://user:pass@studio.test",
+                                "contract": "room/0",
+                                "token_env": None,
+                                "insecure_tls": False,
+                                "enabled": True,
+                            },
+                        ],
+                    },
+                )
+            if request.url.path == rooms.ROOM_PATH:
+                return _ok_descriptor()
+            if request.url.path == rooms.CARDS_PATH:
+                return httpx.Response(200, json=[])
+            if request.url.path == rooms.NEEDS_YOU_PATH:
+                return httpx.Response(200, json=[])
+            return httpx.Response(404)
+
+        monkeypatch.setattr(
+            api_mod,
+            "_ROOMS",
+            RoomsService(transport=httpx.MockTransport(handle)),
+        )
+        monkeypatch.delenv("PW_ROOMS", raising=False)
+        monkeypatch.setenv(
+            "PW_ROOMS_REGISTRY_URL", "https://registry.test/api/rooms/registry"
+        )
+        rows = client.get(
+            "/api/rooms", headers={"Authorization": "Bearer instancetoken"}
+        ).json()["data"]
+        by_id = {r["id"]: r for r in rows}
+        assert by_id["workshop"]["public_url"] == "https://workshop.example"
+        # A userinfo-bearing public URL is refused, not the room.
+        assert by_id["studio"]["public_url"] is None
+
 
 class TestBriefingReadsRooms:
     """The briefing reads the same one cached snapshot — no second round."""

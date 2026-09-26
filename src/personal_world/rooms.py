@@ -46,6 +46,19 @@ and a room whose contract this front door does not support renders as
 ``incompatible`` with the reason — its cards and needs are never
 counted.
 
+A registry entry may also name an optional ``public_url``: a
+browser-reachable ``http(s)`` address (no userinfo) for the room. It
+rides each row as ``public_url`` and is an honest ``null`` when absent
+or invalid; consumers then fall back to ``base_url``. The entry itself
+is never dropped for a bad ``public_url``.
+
+:meth:`RoomsService.secrets_overview` is the Worlds side of the
+read-only Secrets board: it finds the room named ``workshop`` and reads
+its ``GET /api/secrets/summary`` with that room's token/TLS policy (3 s
+timeout, cached 60 s). It reports names and health only — never a value
+— and any failure is an honest ``unknown`` station with a plain-words
+detail, never an invented key and never a raised exception.
+
 ``last_seen``/``last_status`` persist to ``rooms-state.json`` under the
 data dir (rule 12's "persists last-seen timestamps"), so an unreachable
 room still reports its real last-seen time after a restart; ``null``
@@ -98,6 +111,15 @@ INSECURE_TLS_SUFFIX = "_INSECURE_TLS"
 ROOM_PATH = "/room"
 CARDS_PATH = "/room/cards"
 NEEDS_YOU_PATH = "/room/needs-you"
+
+#: The Secrets overview reads the room the shared interface fixes by id
+#: (``workshop``), at its read-only summary path, with that room's own
+#: token/TLS policy. A 3 s timeout and a 60 s cache match the other
+#: front-door reads.
+SECRETS_ROOM_ID = "workshop"
+SECRETS_SUMMARY_PATH = "/api/secrets/summary"
+SECRETS_TIMEOUT_SECONDS = 3.0
+SECRETS_CACHE_TTL_SECONDS = 60.0
 
 #: The interface version this consumer understands (rule 14). An entry
 #: (registry) or descriptor contract outside this set is ``incompatible``
@@ -170,6 +192,24 @@ def _valid_absolute_http_url(url: str) -> bool:
     return parts.scheme in ("http", "https") and bool(parts.host)
 
 
+def _valid_public_url(url: str) -> bool:
+    """A browser-reachable ``public_url``: absolute http(s), no userinfo.
+
+    Stricter than :func:`_valid_absolute_http_url`: a public URL is shown
+    to browsers, so credentials embedded in it (``https://user:pass@…``)
+    are refused. An invalid value never drops the room — the entry is
+    kept with ``public_url`` null, and consumers fall back to
+    ``base_url``.
+    """
+    if not _valid_absolute_http_url(url):
+        return False
+    try:
+        parts = httpx.URL(url)
+    except (httpx.InvalidURL, ValueError):
+        return False
+    return not parts.userinfo
+
+
 @dataclass(frozen=True)
 class RoomConfig:
     """One configured room, resolved from the environment or a registry.
@@ -182,7 +222,10 @@ class RoomConfig:
     the row ``incompatible``. ``token_env`` is the **name** of the env
     var the token was read from (or ``None``) — carried so a
     last-known-good can re-read the token on a later boot; the token
-    value itself is never persisted or returned.
+    value itself is never persisted or returned. ``public_url`` is the
+    browser-reachable address a registry entry may name (http(s), no
+    userinfo); it is ``None`` when absent or invalid, and consumers then
+    fall back to ``base_url``.
     """
 
     id: str
@@ -192,6 +235,7 @@ class RoomConfig:
     invalid_reason: str | None = None
     contract: str = CONTRACT_VALUE
     token_env: str | None = None
+    public_url: str | None = None
 
 
 def parse_rooms(env: dict | None = None) -> list[RoomConfig]:
@@ -295,6 +339,14 @@ def _parse_registry_entries(
         if token_env_name and not _ROOM_TOKEN_ENV_RE.match(token_env_name):
             token_env_name = ""
         token = (env.get(token_env_name) or "").strip() if token_env_name else ""
+        # A public_url is optional and never drops the entry: a missing,
+        # non-string, non-http(s) or userinfo-bearing value is simply not
+        # trusted, and consumers fall back to base_url.
+        public_url = entry.get("public_url")
+        if public_url is not None and (
+            not isinstance(public_url, str) or not _valid_public_url(public_url)
+        ):
+            public_url = None
         seen.add(room_id)
         configs.append(
             RoomConfig(
@@ -304,6 +356,7 @@ def _parse_registry_entries(
                 insecure_tls=entry.get("insecure_tls") is True,
                 contract=contract,
                 token_env=token_env_name or None,
+                public_url=public_url or None,
             )
         )
     return configs, dropped
@@ -333,6 +386,7 @@ def _lkg_entries(configs: list[RoomConfig]) -> list[dict]:
             "contract": c.contract,
             "token_env": c.token_env,
             "insecure_tls": c.insecure_tls,
+            "public_url": c.public_url,
         }
         for c in configs
     ]
@@ -372,6 +426,140 @@ def _registry_report(
         "updated_at": updated_at,
         "dropped": dropped,
     }
+
+
+#: The closed station statuses the Secrets summary may declare. Anything
+#: else is reported honestly as ``unknown`` — never guessed healthy.
+_STATION_STATUSES = frozenset({"ok", "unreachable", "not_configured"})
+
+#: The fields copied off a summary's ``requests`` / ``recent_ops`` rows.
+#: Built by allow-list so a station that (wrongly) includes a secret
+#: value can never leak it into the board.
+_REQUEST_KEYS = ("id", "key_path", "reason", "requested_at", "link")
+_OP_KEYS = ("key_path", "state", "deploy_state", "actor", "created_at")
+
+
+def _empty_secrets_summary() -> dict[str, Any]:
+    """The honest empty summary — the shape every overview response keeps."""
+    return {
+        "station": {"configured": False, "status": "not_configured", "detail": None},
+        "namespaces": [],
+        "key_count": 0,
+        "bundle_last_change": None,
+        "requests": [],
+        "recent_ops": [],
+        "links": {"trusted_form": "/secrets"},
+    }
+
+
+def _open_secrets_url(config: RoomConfig, trusted_form: str) -> str | None:
+    """``(public_url or base_url) + links.trusted_form`` for the board.
+
+    ``public_url`` is preferred (browser-reachable); ``base_url`` is the
+    documented fallback. ``trusted_form`` must be a same-origin path, or
+    the default ``/secrets`` is used — never a station-supplied absolute
+    URL.
+    """
+    if not isinstance(trusted_form, str) or not trusted_form.startswith("/"):
+        trusted_form = "/secrets"
+    base = (config.public_url or config.base_url).rstrip("/")
+    return base + trusted_form
+
+
+def _unknown_secrets_overview(
+    detail: str, config: RoomConfig | None = None
+) -> dict[str, Any]:
+    """The honest "cannot read it" overview: unknown station, empty rest.
+
+    Never invents a namespace, key, request or op. ``room_id`` is always
+    stated; ``open_url`` is stated only when a usable room address is
+    known (``None`` otherwise), so the board can link when it can.
+    """
+    data = _empty_secrets_summary()
+    data["station"] = {"configured": False, "status": "unknown", "detail": detail}
+    data["room_id"] = SECRETS_ROOM_ID
+    data["open_url"] = (
+        _open_secrets_url(config, data["links"]["trusted_form"])
+        if config is not None
+        else None
+    )
+    return data
+
+
+def _sanitize_secrets_summary(
+    payload: dict, config: RoomConfig
+) -> dict[str, Any]:
+    """The station summary in the known shape, and nothing else.
+
+    Built from an allow-list of known fields, so a station that (wrongly)
+    includes a ``value`` key can never leak it, and consumers can rely on
+    the shape. Namespace and key names come only from the station; none
+    are invented here.
+    """
+    data = _empty_secrets_summary()
+
+    station = payload.get("station")
+    if isinstance(station, dict):
+        status = station.get("status")
+        detail = station.get("detail")
+        data["station"] = {
+            "configured": station.get("configured") is True,
+            "status": status if status in _STATION_STATUSES else "unknown",
+            "detail": detail if isinstance(detail, str) else None,
+        }
+
+    namespaces = payload.get("namespaces")
+    if isinstance(namespaces, list):
+        cleaned: list[dict[str, Any]] = []
+        for ns in namespaces:
+            if not isinstance(ns, dict) or not isinstance(ns.get("name"), str):
+                continue
+            keys = ns.get("keys")
+            cleaned.append(
+                {
+                    "name": ns["name"],
+                    "keys": (
+                        [k for k in keys if isinstance(k, str)]
+                        if isinstance(keys, list)
+                        else []
+                    ),
+                }
+            )
+        data["namespaces"] = cleaned
+
+    key_count = payload.get("key_count")
+    if isinstance(key_count, int) and not isinstance(key_count, bool) and key_count >= 0:
+        data["key_count"] = key_count
+
+    change = payload.get("bundle_last_change")
+    if isinstance(change, str):
+        data["bundle_last_change"] = change
+
+    requests = payload.get("requests")
+    if isinstance(requests, list):
+        data["requests"] = [
+            {key: row.get(key) for key in _REQUEST_KEYS}
+            for row in requests
+            if isinstance(row, dict)
+        ]
+
+    recent_ops = payload.get("recent_ops")
+    if isinstance(recent_ops, list):
+        data["recent_ops"] = [
+            {key: row.get(key) for key in _OP_KEYS}
+            for row in recent_ops
+            if isinstance(row, dict)
+        ]
+
+    links = payload.get("links")
+    if isinstance(links, dict):
+        trusted = links.get("trusted_form")
+        if isinstance(trusted, str) and trusted.startswith("/"):
+            data["links"] = {"trusted_form": trusted}
+
+    data["room_id"] = SECRETS_ROOM_ID
+    data["open_url"] = _open_secrets_url(config, data["links"]["trusted_form"])
+    return data
 
 
 class RoomsService:
@@ -424,6 +612,11 @@ class RoomsService:
             "env", "not_configured", None, None, None, 0
         )
         self._load_registry_lkg()
+
+        # The Secrets overview (Worlds side) is one outbound read of the
+        # ``workshop`` room, cached 60 s like the registry.
+        self._secrets_cache: dict[str, Any] | None = None
+        self._secrets_cache_at: float = float("-inf")
 
     # -- app wiring ------------------------------------------------------
 
@@ -665,6 +858,101 @@ class RoomsService:
         """Drop the cached snapshot (tests and explicit refresh)."""
         self._cache = None
         self._cache_at = float("-inf")
+        self._secrets_cache = None
+        self._secrets_cache_at = float("-inf")
+
+    async def resolved_config(
+        self, room_id: str, env: dict | None = None
+    ) -> RoomConfig | None:
+        """The resolved config for one room id, or ``None`` when unconfigured.
+
+        Uses the same cached resolution a snapshot uses (registry 60 s,
+        last-known-good, env fallback), so this never triggers a second
+        registry round inside the cache window.
+        """
+        env = os.environ if env is None else env
+        configs, _ = await self._resolve_configs(env)
+        for config in configs:
+            if config.id == room_id:
+                return config
+        return None
+
+    async def secrets_overview(self, env: dict | None = None) -> dict[str, Any]:
+        """The Secrets board's read-only data source. Never raises.
+
+        Finds the room named ``workshop`` and reads its
+        ``GET /api/secrets/summary`` with that room's token and TLS policy
+        (3 s timeout, cached 60 s). Names and health only — never a secret
+        value. Any failure — the room missing, unreachable, refusing the
+        read (401), or answering malformed — is reported as
+        ``station.status: "unknown"`` with a plain-words detail and empty
+        lists; the response never invents namespaces or keys and never
+        carries a token or a value.
+        """
+        env = os.environ if env is None else env
+        now = self._clock()
+        if (
+            self._secrets_cache is not None
+            and (now - self._secrets_cache_at) < SECRETS_CACHE_TTL_SECONDS
+        ):
+            return self._secrets_cache
+        data = await self._fetch_secrets_overview(env)
+        self._secrets_cache = data
+        self._secrets_cache_at = now
+        return data
+
+    async def _fetch_secrets_overview(self, env: dict) -> dict[str, Any]:
+        config = await self.resolved_config(SECRETS_ROOM_ID, env)
+        if config is None:
+            return _unknown_secrets_overview(
+                f"the room {SECRETS_ROOM_ID!r} is not in the registry"
+            )
+        if config.contract not in SUPPORTED_CONTRACTS:
+            return _unknown_secrets_overview(
+                f"the {SECRETS_ROOM_ID} room speaks an unsupported "
+                f"contract {config.contract!r}",
+                config,
+            )
+        if config.invalid_reason is not None:
+            return _unknown_secrets_overview(
+                f"the {SECRETS_ROOM_ID} room's address is unusable "
+                f"({config.invalid_reason})",
+                config,
+            )
+
+        base = config.base_url.rstrip("/")
+        headers = {"Accept": "application/json"}
+        if config.token:
+            headers["Authorization"] = f"Bearer {config.token}"
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(SECRETS_TIMEOUT_SECONDS),
+                verify=not config.insecure_tls,
+                transport=self._transport,
+                follow_redirects=False,
+            ) as client:
+                resp = await client.get(base + SECRETS_SUMMARY_PATH, headers=headers)
+        except Exception as exc:  # noqa: BLE001 — a dead station must not break the board
+            return _unknown_secrets_overview(_reason(exc), config)
+        if resp.status_code == 401:
+            return _unknown_secrets_overview(
+                "the room refused the read (401 unauthorized)", config
+            )
+        if not (200 <= resp.status_code < 300):
+            return _unknown_secrets_overview(
+                f"the room answered HTTP {resp.status_code}", config
+            )
+        try:
+            payload = resp.json()
+        except (ValueError, UnicodeDecodeError):
+            return _unknown_secrets_overview(
+                "the room answered malformed JSON", config
+            )
+        if not isinstance(payload, dict):
+            return _unknown_secrets_overview(
+                "the room's summary is not an object", config
+            )
+        return _sanitize_secrets_summary(payload, config)
 
     async def snapshot(self, env: dict | None = None) -> list[dict[str, Any]]:
         """One honest row per resolved room. Never raises."""
@@ -812,6 +1100,7 @@ class RoomsService:
         return {
             "id": config.id,
             "base_url": config.base_url,
+            "public_url": config.public_url,
             "reachable": reachable,
             "status": status,
             "room": room,

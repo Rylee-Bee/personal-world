@@ -3276,6 +3276,27 @@
         "summary": "Rooms Visit"
       }
     },
+    "/api/secrets/overview": {
+      "get": {
+        "description": "The Secrets board's read-only data source (Worlds side).\n\nFinds the room named ``workshop`` and reads its read-only\n``GET /api/secrets/summary`` with that room's token/TLS policy\n(3 s timeout, cached 60 s). Names and health only — never a\nsecret value. Nothing is invented: a missing, unreachable,\nrefusing (401) or malformed station is reported as\n``station.status: \"unknown\"`` with a plain-words detail and empty\nlists. This handler never raises, never carries a token, and\nnever carries a key value.",
+        "operationId": "secrets_overview_view_api_secrets_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Secrets Overview View Api Secrets Overview Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Secrets Overview View"
+      }
+    },
     "/api/sections": {
       "get": {
         "operationId": "sections_get_api_sections_get",
