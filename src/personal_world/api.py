@@ -49,6 +49,7 @@ from .providers.project_home import ProjectHomeSource
 from .providers.registry import Registry
 from .rooms import RoomsService, STATE_FILENAME as ROOMS_STATE_FILENAME
 from .rooms import REGISTRY_STATE_FILENAME as ROOMS_REGISTRY_STATE_FILENAME
+from .rooms import IDEMPOTENCY_HEADER as ROOMS_IDEMPOTENCY_HEADER
 from . import crew, rooms_visits
 from .source_control import (
     discover_repositories,
@@ -2896,6 +2897,44 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             },
         }
 
+    @app.post(
+        "/api/rooms/{room_id}/actions/{action_id}",
+        dependencies=[Depends(require_auth)],
+    )
+    async def rooms_action(
+        room_id: str, action_id: str, request: Request
+    ) -> JSONResponse:
+        """Pass one room/0 action through to its room; return its receipt.
+
+        Owner-only for writes: the room's own ``GET /room/actions`` list
+        (cached 60 s per room) says whether the action exists and whether
+        it writes; a write needs an admin caller (403 otherwise), and an
+        unknown action is a 404 — both as a plain-words receipt. A valid
+        ``Idempotency-Key`` header is required (400 when missing), the
+        body is a JSON object of at most 16 KB (413/400 otherwise), and
+        the call is forwarded to the room with the room's own token, the
+        caller's ``X-Worlds-Principal``, and that key — never the human
+        session or ``PW_API_TOKEN``. The room's answer is allow-listed to
+        a receipt and returned with HTTP 200 whatever the room's status;
+        a room that cannot answer honestly yields an ``ok: false``
+        "nothing changed" receipt, never a 500. A successful action drops
+        the cached snapshot so the need disappears on the next
+        ``GET /api/rooms``.
+        """
+        principal = getattr(request.state, "principal", None)
+        body = await request.body()
+        status, receipt = await _ROOMS.perform_action(
+            room_id=room_id,
+            action_id=action_id,
+            principal=principal,
+            idempotency_key=request.headers.get(ROOMS_IDEMPOTENCY_HEADER),
+            body=body,
+        )
+        return JSONResponse(
+            status_code=status,
+            content={"ok": status == 200, "data": receipt},
+        )
+
     # ── Crew: companions are user-owned (owner decision 2026-09-25) ─────
     # The person's own crew registry and keepers: private, per principal,
     # never sent to a room or a model. Stored on the same per-principal
@@ -3555,15 +3594,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     app.router.lifespan_context = lifespan
 
     # -- identity admin (issue #8 phase 2/3) -----------------------------
-    def _is_admin(principal) -> bool:
-        """Admin = the bootstrap principal (primary), or a person
-        explicitly carrying the admin scope record. Kept deliberately
-        small: no roles tree, just this gate."""
-        return (
-            principal is not None
-            and principal.kind == "person"
-            and (principal.id == "primary" or "admin" in principal.scopes)
-        )
+    # The rule lives in identity.is_admin (one shared definition), so the
+    # rooms owner-only action gate and this admin gate can never drift.
+    from .identity import is_admin as _is_admin
 
     def _require_person(principal) -> None:
         """Person-only surfaces: prefs, journal, notes. Agents are
