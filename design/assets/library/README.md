@@ -9,8 +9,9 @@ it stays consistent.
   observatory, post, travel, vault, wellness, hallway.
 - `picks/pick-*.png`: 16 portrait-only faces, 1024 × 1024, navy background,
   made for circle crops and checked at 40 px.
-- `pick-labels.json`: a suggested first name per face. Suggestions only;
-  people name their own companions.
+- `pick-labels.json` and `STORIES.md`: a suggested first name and the owner's
+  little crew story per face. Starting points only; people name and describe
+  their own companions.
 
 Nothing is assigned automatically (owner: "no need to set defaults"). People
 choose a room's doorway on the Crew page (saved on that device), and can give

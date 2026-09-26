@@ -86,24 +86,122 @@ export function keeperPortraitUrl(keeper: RoomKeeper): string | undefined {
 }
 
 /** The portrait library (owner, 2026-09-26): faces anyone can give a
- *  companion they add. `suggested` is only a starting name. */
-export const PORTRAIT_PICKS: ReadonlyArray<{ id: string; label: string; suggested: string }> = [
-  { id: "owl", label: "Owl", suggested: "Ori" },
-  { id: "fox", label: "Fox", suggested: "Fenn" },
-  { id: "moth", label: "Moth", suggested: "Lumi" },
-  { id: "robot", label: "Robot", suggested: "Pip" },
-  { id: "lighthouse-keeper", label: "Lighthouse keeper", suggested: "Mara" },
-  { id: "cloud", label: "Cloud", suggested: "Nimbus" },
-  { id: "hedgehog", label: "Hedgehog", suggested: "Thimble" },
-  { id: "octopus", label: "Octopus", suggested: "Kora" },
-  { id: "gardener", label: "Gardener", suggested: "Ivy" },
-  { id: "cartographer", label: "Cartographer", suggested: "Soren" },
-  { id: "red-panda", label: "Red panda", suggested: "Tavi" },
-  { id: "axolotl", label: "Axolotl", suggested: "Aster" },
-  { id: "mossling", label: "Mossling", suggested: "Fern" },
-  { id: "starfish-alien", label: "Starfish alien", suggested: "Coral" },
-  { id: "crystal-alien", label: "Crystal alien", suggested: "Prism" },
-  { id: "mushroom-alien", label: "Mushroom alien", suggested: "Miko" },
+ *  companion they add, each with the owner's little crew story. `suggested`
+ *  and `story` are only starting points: picking a face offers them as the
+ *  companion's name and "few words", never over anything the person typed. */
+export const PORTRAIT_PICKS: ReadonlyArray<{ id: string; label: string; suggested: string; story: string }> = [
+  {
+    id: "owl",
+    label: "Owl",
+    suggested: "Ori",
+    story:
+      "Ori once stayed awake cataloguing every constellation visible from the bridge. Now they keep a notebook of the ones people invent while looking out the window.",
+  },
+  {
+    id: "fox",
+    label: "Fox",
+    suggested: "Fenn",
+    story:
+      "Fenn used to deliver parcels between faraway rooms. They still carry a satchel, though these days it’s usually full of snacks and things someone thought they’d lost.",
+  },
+  {
+    id: "moth",
+    label: "Moth",
+    suggested: "Lumi",
+    story:
+      "Lumi learned to repair lamps so nobody had to find their way home in the dark. She likes the quiet moment when a room becomes warm again.",
+  },
+  {
+    id: "robot",
+    label: "Robot",
+    suggested: "Pip",
+    story:
+      "Pip was assembled from spare workshop parts and given one task: fetch a screwdriver. They completed it perfectly, then decided to learn everyone’s favorite tea.",
+  },
+  {
+    id: "lighthouse-keeper",
+    label: "Lighthouse keeper",
+    suggested: "Wren",
+    story:
+      "Wren tended a beacon on a lonely coast before joining the ship. She knows that a small, steady light can be enough to help someone find their way.",
+  },
+  {
+    id: "cloud",
+    label: "Cloud",
+    suggested: "Nimbus",
+    story:
+      "Nimbus drifted aboard through an open observatory window and liked it here. They’re excellent company on quiet days and occasionally rain into their own teacup.",
+  },
+  {
+    id: "hedgehog",
+    label: "Hedgehog",
+    suggested: "Thimble",
+    story:
+      "Thimble restores well-loved books, smoothing pages and sewing loose bindings. Their tiny toolkit is organized better than the entire workshop.",
+  },
+  {
+    id: "octopus",
+    label: "Octopus",
+    suggested: "Kora",
+    story:
+      "Kora grew up in a floating harbor where every neighbor needed a hand. She can juggle eight projects, but has learned that asking for help feels pretty good too.",
+  },
+  {
+    id: "gardener",
+    label: "Gardener",
+    suggested: "Ivy",
+    story:
+      "Ivy trades seedlings with every place the ship visits. Her greenhouse has a shelf for plants whose names nobody knows yet.",
+  },
+  {
+    id: "cartographer",
+    label: "Cartographer",
+    suggested: "Soren",
+    story:
+      "Soren draws maps that include useful details like good benches, gentle routes, and where to get coffee. They believe a place isn’t fully mapped until someone feels welcome there.",
+  },
+  {
+    id: "red-panda",
+    label: "Red panda",
+    suggested: "Tavi",
+    story:
+      "Tavi maintains the ship’s cozy corners. They can turn a forgotten alcove into a favorite reading spot with one lamp and a remarkably large blanket.",
+  },
+  {
+    id: "axolotl",
+    label: "Axolotl",
+    suggested: "Aster",
+    story:
+      "Aster studies small repairs: cracked cups, torn sleeves, hurt feelings. They’re patient with all three and proudest when someone learns to mend something themselves.",
+  },
+  {
+    id: "mossling",
+    label: "Mossling",
+    suggested: "Fern",
+    story:
+      "Fern sprouted in an old archive drawer beside a packet of seeds. They now care for the ship’s oldest plants and leave cheerful little leaf prints wherever they walk.",
+  },
+  {
+    id: "starfish-alien",
+    label: "Starfish alien",
+    suggested: "Coral",
+    story:
+      "Coral comes from a world of tidal cities. They collect greetings from every language they encounter and practice them carefully before meeting someone new.",
+  },
+  {
+    id: "crystal-alien",
+    label: "Crystal alien",
+    suggested: "Prism",
+    story:
+      "Prism used to measure starlight for a distant observatory. Their facets change color with the hour, which makes them an unexpectedly handy reminder to take a break.",
+  },
+  {
+    id: "mushroom-alien",
+    label: "Mushroom alien",
+    suggested: "Miko",
+    story:
+      "Miko grew up in an underground village connected by shared meals and winding paths. They make wonderful soup and always leave a place at the table for one more.",
+  },
 ];
 
 export function pickUrl(pickId: string, size: 256 | 512 = 256): string {

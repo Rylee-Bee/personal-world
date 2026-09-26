@@ -728,6 +728,7 @@ function PortraitPicker({
   onChange: (pickId: string) => void;
   disabled?: boolean;
 }) {
+  const chosen = PORTRAIT_PICKS.find((p) => p.id === value);
   return (
     <fieldset className="m-0 border-0 p-0" disabled={disabled}>
       <legend className={LABEL}>{legend}</legend>
@@ -761,6 +762,14 @@ function PortraitPicker({
           );
         })}
       </div>
+      {chosen && (
+        <p aria-live="polite" className={`${NOTE} mt-[var(--pw-spacing-sm)] max-w-[60ch]`}>
+          <span className="font-semibold text-[var(--pw-text-primary)]">
+            {`${chosen.suggested} · ${chosen.label}. `}
+          </span>
+          {chosen.story}
+        </p>
+      )}
     </fieldset>
   );
 }
@@ -778,13 +787,15 @@ function AddCompanion() {
   const [added, setAdded] = useState<string | null>(null);
   const [pictureNote, setPictureNote] = useState<string | null>(null);
 
-  const suggestedFor = (id: string | null) =>
-    PORTRAIT_PICKS.find((p) => p.id === id)?.suggested ?? "";
+  const pickOf = (id: string | null) => PORTRAIT_PICKS.find((p) => p.id === id);
 
-  // Picking a face offers its suggested name, but never over a name the
-  // person typed themselves.
+  // Picking a face offers its suggested name and story, but never over
+  // anything the person typed themselves.
   const choosePick = (pickId: string) => {
-    if (!name.trim() || name === suggestedFor(pick)) setName(suggestedFor(pickId));
+    const prev = pickOf(pick);
+    const next = pickOf(pickId);
+    if (!name.trim() || name === prev?.suggested) setName(next?.suggested ?? "");
+    if (!blurb.trim() || blurb === prev?.story) setBlurb(next?.story ?? "");
     setPick(pickId);
   };
 

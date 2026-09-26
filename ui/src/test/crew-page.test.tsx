@@ -188,7 +188,7 @@ describe("Crew page", () => {
     expect(JSON.parse(window.localStorage.getItem("pw-room-doorways") ?? "{}")).toEqual({});
   });
 
-  it("offers library faces as a labelled radio group, suggesting a name you can change", () => {
+  it("offers library faces as a labelled radio group, suggesting a name and story you can change", () => {
     render(<Crew onBack={() => {}} />);
     const add = screen.getByRole("button", { name: "Add to your crew" });
     const form = add.closest("form")!;
@@ -196,8 +196,11 @@ describe("Crew page", () => {
     expect(within(group).getAllByRole("radio")).toHaveLength(16);
     fireEvent.click(within(group).getByRole("radio", { name: "Owl" }));
     expect(within(form).getByLabelText("Name")).toHaveValue("Ori");
+    expect((within(form).getByLabelText("A few words about them") as HTMLInputElement).value).toContain("constellation");
+    expect(within(form).getByText(/Ori · Owl\./)).toBeInTheDocument();
     fireEvent.click(within(group).getByRole("radio", { name: "Fox" }));
     expect(within(form).getByLabelText("Name")).toHaveValue("Fenn");
+    expect((within(form).getByLabelText("A few words about them") as HTMLInputElement).value).toContain("satchel");
     // A name the person typed is never replaced.
     fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "Biscuit" } });
     fireEvent.click(within(group).getByRole("radio", { name: "Owl" }));
