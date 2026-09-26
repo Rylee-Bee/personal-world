@@ -1,110 +1,139 @@
-# Project Worlds — Screen Reader Walkthrough
+# Worlds — Screen Reader Walkthrough
 
-(Formerly "Personal World" — product renamed 2026-09-12; the observed title pattern below reflects the interface as built under the old name.)
+This walkthrough describes the current Worlds interface in `ui/` (the React
+app that became the interface on 2026-09-22), at `main` `d9e9546` plus
+"Ask about … in Chat" (#106) and "Find a room" (#107). It replaces the
+walkthrough of the retired server-rendered dashboard.
 
-This walkthrough describes the current dashboard in `src/personal_world/api.py`
-(`_DASHBOARD_HTML` and `syncRoute`), implementation baseline `c6d3728`.
-Labels are source labels, not a transcript of a manual screen-reader test;
-announcement wording varies by browser and assistive technology.
-The [Accessibility contract](ACCESSIBILITY_CONTRACT.md) remains mandatory.
-The [Finish Line](../PERSONAL-WORLD-FINISH-LINE.md) defines target experience,
-not a claim that every designed interaction is implemented.
+Labels are **source labels**, read from the code, not a transcript of a manual
+screen-reader session; announcement wording varies by browser and assistive
+technology. The [Accessibility contract](ACCESSIBILITY_CONTRACT.md) remains
+mandatory, and the Playwright suite (`cd ui && npx playwright test`: axe with
+colour contrast on, keyboard, focus, reflow and reduced motion) is the
+regression gate.
 
 ## Entry and landmarks
 
-The first focusable element is **Skip to main content**, linking to
-`main#main-content`. Navigation named **Main** precedes the main landmark.
-The narrow banner adds a header landmark. An access-code form and status region
-appear before main when authentication is needed.
+1. **Skip to main content** is the first focusable element and targets
+   `#main-content`.
+2. The **header** holds Sol's mark (decorative, hidden from assistive tech),
+   the word **Worlds**, and navigation named **World navigation**. Inside it,
+   the list **World landmarks** holds the stable skeleton (**Bridge**,
+   **Memory**, **Chat**, **Settings**) and **Personal sections** holds the
+   person's own sections (for example Interests, Projects). They are buttons;
+   the current one carries `aria-current="page"`.
+3. **main** is labelled with the page's name (**Bridge**, **Memory**,
+   **Chat**, **Settings**, **Your crew**), and each page has one h1 (the
+   Bridge's is visually hidden).
+4. A **footer** status strip says the connection state in words ("Scanner
+   online…").
 
-Navigation order is **Today, Chat, World, Journal, Vault, Settings**. The icon
-rail names World **Worlds**; the banner link and page heading say **World**.
-`syncRoute` sets `aria-current="page"`, updates the document title to
-`Personal World — <page>`, and hides inactive views with CSS. It scrolls to the
-top but does not explicitly focus the new heading; do not assume an automatic
-heading announcement when changing routes.
+Changing page swaps the main region; focus does not move to the new heading
+automatically, so use the skip link or heading navigation after a change.
 
-Desktop uses the rail; 600–899px uses banner links; below 600px the rail becomes
-bottom navigation. Hidden navigation copies use `display: none`. Source order
-remains navigation before main. See [Responsive rules](RESPONSIVE_RULES.md).
-Companion images have empty alt text; the chat companion is also aria-hidden.
-There is no separate World Assistant drawer trigger or persistent complementary
-landmark in the current dashboard.
+## Bridge (home)
 
-## Today
+Reading order follows the source: strip → first-day guide → lenses → star
+map → needs panel → rooms.
 
-h1 **Today**, date/state text, then:
+- **Date strip**: date, local time, "since you were here", and the overall
+  status in words (for example "1 system can't be reached", never a lone
+  alarm word).
+- **First day aboard** (a region named by its heading, "Welcome aboard, …"):
+  spoken by the chosen companion ("Renai: …") or Worlds' plain voice. An
+  ordered list of four lines; each says its state in words ("Done · 3 rooms
+  connected", "4 of 6 answering", "Not yet"). **Put this away** hides it on
+  this device; Settings brings it back. When everything is done, a region
+  **You're all settled in.** appears once, then can be put away.
+- **World lenses**: one button per system, each with its status word.
+- **Star map** (region, visually hidden h2): each system is a button with a
+  spoken label, never a URL. Artwork is decorative.
+- **Needs you**: up to three items, then "and N more, quietly waiting".
+- **Briefing panel**: the selected system's keeper line as text.
 
-1. h2 **World health** — summary and explicit status.
-2. h2 **Needs attention** — current items or an explicit empty state.
-3. h2 **Recent changes** — available recent activity.
-4. h2 **Discovery** — configured rollups or unavailable/not-configured state.
-5. h2 **Journal** — **Quick journal entry**, **Save entry**, local status,
-   **Quick templates** button group (`win:`, `blocker:`, `remember:`),
-   h3 **Recent entries**, and **View all**.
-6. Native disclosure **More from your world** — expand for h2 **Services**
-   (links and Service name/Service URL/Add service controls),
-   h2 **Subscription usage**, and h2 **Capabilities**. The capabilities table
-   is in a focusable region named **Capabilities table**.
+### Rooms
 
-Data depends on the configured world/providers. Calendar/email examples in
-older design material are not confirmed native integrations. Current detail
-uses inline `details`/`summary`; attention rows are not universally buttons
-opening a provenance drawer.
+- A summary line in words ("1 room needs you · 2 quiet"). On a quiet day Sol
+  rests beside it (decorative).
+- **Doorway cards** (articles named by the room): "Needs you", the first need,
+  "waiting since …", and the actions **Review "…" in a new tab**, **Open <room>
+  in a new tab**, **Look inside <room>** and **Mark "…" as seen**.
+- **Corridor** groups, each with its own heading: Also needs you · Unknown,
+  unreachable or incompatible · Other rooms. Quiet rooms fold behind a button
+  ("3 quiet rooms, all healthy · Show", `aria-expanded`).
+- **Find a room** (12 or more rooms): a labelled search field. Its result is a
+  status line tied to the field ("2 of 13 rooms below match "st"").
+- Empty: "No rooms yet" with a **How rooms connect** disclosure.
+
+### Room drawer
+
+**Look inside <room>** opens a non-modal dialog named by the room, portalled
+above the page. Focus moves to the room's heading; **Escape** closes it and
+focus returns to the button that opened it (or to the Rooms heading if that
+button is gone); the page behind stays usable. Sections, each with a heading:
+
+- Needs you: each need with **Review "…"** and **Mark "…" as seen**.
+- Changed since you last looked, then What <room> is showing, where the tone
+  is a word: Good news · A small update · When you're ready.
+- **Secrets** (Workshop only, the owner only): station health in words; asks
+  from agents with **Enter <name> in Project Home, in a new tab**; key names in
+  groups behind buttons with `aria-expanded`; what changed, in words. There is
+  never a value field.
+- Where this comes from, with **Technical detail** as a disclosure.
+- Footer: **Open <room>** and **Ask about <room> in Chat**. The second opens
+  Chat with an editable question in the message box; it is never sent for the
+  person.
+
+## Memory
+
+h1 **Memory** with a one-line explanation, then the **journal** (write, draft
+recovery with a conflict chooser that takes focus, and history) and
+**records** (categories, matching records, and a record editor whose trigger
+gets focus back when it closes).
 
 ## Chat
 
-h1 **Chat**, h2 **Talk with your world**, **Conversation details** disclosure,
-then the **Conversation** region. Empty-state buttons form the **Conversation
-starters** group. The composer has a **Message** textarea and **Send** button.
-Enter submits; Shift+Enter inserts a newline. Sending/failure/completion use
-text status independent of the companion. Response **Sources** are disclosures.
+h1 **Chat**, the **Chat messages** log, the **Message input** textarea and
+**Send message**. Errors are an alert with **Dismiss error**; a failed history
+load offers **Retry loading conversation**. The chosen companion's picture is
+decorative. A question from another screen arrives in the message box with
+focus there, unsent.
 
-Chat is a conversation over a world snapshot through an optional
-reasoning provider. Read tools execute directly; write requests create
-bounded proposals that require approval. Step-up auth gates consequential
-actions. Execution evidence is recorded. The brain does not receive
-arbitrary shell access. Contextual chat across sections and cross-system
-actions are target work.
+## Settings and your crew
 
-## Other current pages
+- h1 **Settings**, then the preference room, **Your crew** (with **Open your
+  crew**), the first-day guide toggle, theme choice, and **Advanced** (the
+  Vault tool). Toggle rows are real checkboxes with visible labels.
+- **Your crew** (main labelled "Your crew"): the list of companions (each
+  editable, hideable, and deletable if the person added it), a status line for
+  saves and an alert for failures, **Your rooms** (a keeper select and a
+  doorway select per room, named "Keeper for Studio", "Doorway for Studio"), and
+  an "About your crew" complement (your companion, Sol, the rules). Portraits
+  are decorative; names are always written.
 
-| Page | Reading and interaction structure |
-|---|---|
-| World | h1 World; h2 Intent & policies, Lore, Actors, Lab status, Source repositories, Updates. Actors has a named focusable table region; evidence uses inline disclosure. |
-| Journal | h1 Journal; Filter by kind button group (All, Observations, Drift, Failures, Settings) with aria-pressed selection, event list, Load more. Event Source disclosures expose provenance. |
-| Vault | h1 Vault; status, Master passphrase and Unlock; unlocked view lists names and offers Secret name/Secret value inputs and Store. Stored values are not redisplayed. Storage inputs currently rely on placeholders; explicit labeling remains an accessibility gap. |
-| Settings | h1 Settings; h2 Reading & interaction, Companion & theme, Chat provider, Reminders, Capability & pack settings. The reminder input currently relies on a placeholder. Preference writes are validated and gated; Architecture explains current step-up limits. |
+## First Light (first-run setup)
 
-The five-step setup wizard is a separate first-run page, not a main-navigation
-destination. Its structure is covered by `tests/test_setup_wizard.py`; this is
-not a manual assistive-technology acceptance result.
+A separate page before the app: six steps, each with its own heading (Welcome
+to your World · Getting things ready · How will you sign in? · Make yourself
+comfortable · Pick a companion, or don't · Welcome aboard). Progress is
+static text and dots; errors are inline next to the control they concern.
+Its structure is covered by `tests/test_setup_wizard.py`.
 
-## Live regions and required restraint
+## Live regions and restraint
 
-Current markup uses status roles/polite regions for page and chat status and
-local save feedback. Message helpers can suppress routine loading announcements;
-the conversation region is not itself a live transcript.
+Status lines use `role="status"` (saves, search results, loading words) and
+failures use `role="alert"`. Nothing announces on a timer: no poll, clock or
+companion announcements. Contract section 8's cadence (meaningful events only,
+about one announcement per 30 seconds, bursts batched) is a requirement, not
+a proven property of every region; verify cadence with real assistive
+technology.
 
-Contract section 8 requires meaningful events only, no routine poll/timestamp/
-companion announcements, and approximately one announcement per 30 seconds under
-normal operation with bursts batched. A polite region alone does not prove a
-global throttle or compliance. Manual speech output and cadence remain unverified.
+## Still to verify manually
 
-## Target overlays and acceptance requirements
-
-When drawers, contextual chat overlays, or dangerous-action dialogs are added,
-Accessibility contract sections 3 and 7 require:
-
-- Non-modal provenance/detail drawers move focus in, close on Escape, restore
-  focus to the trigger, and leave the background interactive.
-- Modal mobile sheets trap focus, prevent background interaction, provide an
-  explicit close control, close on Escape, and restore focus.
-- Dangerous confirmations start on the safe/cancel action and explain the
-  action and consequence.
-- Companion artwork never becomes telemetry or the only path to functionality.
-
-These are requirements, not current overlay implementations. Verify keyboard
-operation, heading/source order, accessible names, route focus, and live-region
-restraint with actual assistive technology; implementation gaps do not weaken
-the accessibility contract.
+- Real screen-reader output (VoiceOver, NVDA) for the drawer, the Find a room
+  status and the first-day guide.
+- Route-change focus: the app does not move focus to the new h1; decide
+  whether it should.
+- Mobile sheets that trap focus and dangerous-action confirmations (contract
+  sections 3 and 7) as they are added: they start on the safe action and say
+  the consequence.
