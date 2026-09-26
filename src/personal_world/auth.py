@@ -264,6 +264,46 @@ class AuthManager:
         )
         return self.sessions.create(principal.id, "oidc")
 
+    def grant_oidc_step_up(
+        self, session_id: str, sub: str, auth_time: float | None, now: float
+    ) -> Session | None:
+        """Step-up after a fresh provider sign-in ("Confirm it's you").
+
+        Granted only when the verified subject resolves to the session's
+        own principal and the provider says the person signed in within
+        the last two minutes (``auth_time``); otherwise ``None``.
+        """
+        session = self.sessions.get(session_id)
+        if session is None or not sub:
+            return None
+        if auth_time is None or not (now - 120 <= auth_time <= now + 30):
+            return None
+        from .identity import NoPrincipalError, resolve_oidc_principal
+
+        store, mode, _ = self._seam()
+        try:
+            principal = resolve_oidc_principal(sub, store, mode)
+        except NoPrincipalError:
+            return None
+        if principal.id != session.principal_id:
+            return None
+        return self.sessions.grant_step_up(
+            session_id, principal_id=session.principal_id, duration=300
+        )
+
+    def step_up_methods(self, principal_id: str) -> list[str]:
+        """Which ways this person can confirm it's them, for the UI."""
+        store, mode, _ = self._seam()
+        record = store.get_user(principal_id) if store is not None else None
+        methods: list[str] = []
+        if principal_id == "primary" or (record and record.get("hashed_tokens")):
+            methods.append("key")
+        if self.get_oidc_config() is not None and (
+            mode != "multi" or (record and record.get("oidc_subjects"))
+        ):
+            methods.append("sso")
+        return methods
+
     def link_oidc(self, principal_id: str, sub: str) -> None:
         """Link a verified provider subject to a local person (multi mode).
 

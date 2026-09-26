@@ -616,6 +616,11 @@ class PendingLogin:
     # Set only when a signed-in person started "link my sign-in": the
     # local principal id the verified subject will be linked to.
     link_to: str | None = None
+    # Set only for "Confirm it's you" by a fresh provider sign-in: the
+    # local principal whose session gets the step-up, and the same-site
+    # path to return to afterwards.
+    step_up_for: str | None = None
+    return_to: str | None = None
 
 
 class FlowCodec:
@@ -647,6 +652,8 @@ class FlowCodec:
                     "redirect_uri": pending.redirect_uri,
                     "issued_at": pending.issued_at,
                     "link_to": pending.link_to,
+                    "step_up_for": pending.step_up_for,
+                    "return_to": pending.return_to,
                 },
                 separators=(",", ":"),
             ).encode("utf-8")
@@ -675,6 +682,10 @@ class FlowCodec:
                 redirect_uri=str(data["redirect_uri"]),
                 issued_at=float(data["issued_at"]),
                 link_to=(str(data["link_to"]) if data.get("link_to") else None),
+                step_up_for=(
+                    str(data["step_up_for"]) if data.get("step_up_for") else None
+                ),
+                return_to=(str(data["return_to"]) if data.get("return_to") else None),
             )
         except Exception:
             raise OIDCLoginError(
@@ -1150,7 +1161,11 @@ class OIDCClient:
     # -- login ------------------------------------------------------------
 
     def start_login(
-        self, redirect_uri: str, link_to: str | None = None
+        self,
+        redirect_uri: str,
+        link_to: str | None = None,
+        step_up_for: str | None = None,
+        return_to: str | None = None,
     ) -> tuple[str, PendingLogin, str]:
         """Build the authorization redirect for one fresh login attempt.
 
@@ -1166,6 +1181,8 @@ class OIDCClient:
             redirect_uri=redirect_uri,
             issued_at=self._clock(),
             link_to=link_to,
+            step_up_for=step_up_for,
+            return_to=return_to,
         )
         params = {
             "response_type": "code",
@@ -1177,6 +1194,10 @@ class OIDCClient:
             "code_challenge": code_challenge(pending.code_verifier),
             "code_challenge_method": "S256",
         }
+        if step_up_for:
+            # Make the provider ask again, even inside its own session.
+            params["prompt"] = "login"
+            params["max_age"] = "0"
         url = f"{discovery.authorization_endpoint}?{urllib.parse.urlencode(params)}"
         return url, pending, self._codec.encode(pending)
 

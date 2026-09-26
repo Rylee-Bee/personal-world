@@ -191,6 +191,17 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "public",
     ),
     _e(
+        "AUTH-009-oidc-step-up",
+        "GET",
+        "/api/auth/oidc/step-up",
+        "auth",
+        "read",
+        "none",
+        "public",
+        "confirm it's you by a fresh provider sign-in; the callback grants "
+        "step-up only for the same person with a recent auth_time",
+    ),
+    _e(
         "AUTH-009-oidc-link",
         "POST",
         "/api/auth/oidc/link",

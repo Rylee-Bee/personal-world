@@ -183,6 +183,7 @@ discarded. Sessions hold a principal id, not a credential.
 | `GET /api/auth/oidc/status` | Current state + discovery metadata, no secrets. Read-only. |
 | `GET /api/auth/oidc/config` | Legacy alias of status, flattened for the login screen. |
 | `GET /api/auth/oidc/login` | Start a sign-in (303 to the provider). |
+| `GET /api/auth/oidc/step-up` | "Confirm it's you" by a fresh provider sign-in (for people with no sign-in key). |
 | `POST /api/auth/oidc/link` | Link a provider sign-in to the signed-in person's account (multi mode). |
 | `GET /api/auth/oidc/callback` | Finish a sign-in (303 to `/` on success). |
 | `GET /api/auth/oidc/logout` | End the local session, then the provider session. |
@@ -255,6 +256,19 @@ presents it; the server does not render pages). API callers that send
 `oidc_key_not_found`, `oidc_alg_unsupported`,
 `oidc_verification_unavailable`, `oidc_bad_issuer`, `oidc_bad_audience`,
 `oidc_token_expired`, `oidc_bad_nonce`, `oidc_identity_not_mapped`.
+
+## Confirm it's you without a sign-in key
+
+Some changes ask the person to confirm it's them (step-up). People who
+sign in only through the provider have no sign-in key to type, so they
+confirm by signing in to the provider again:
+`GET /api/auth/oidc/step-up?return_to=/path` sends them to the provider
+with `prompt=login` and `max_age=0`. The callback grants the usual
+5-minute window only if the provider reports a sign-in in the last two
+minutes (`auth_time`) by the same person, then returns to `return_to`
+(a path on this site; anything else goes to `/`).
+`GET /api/auth/session` lists `step_up_methods` (`key`, `sso`) so the
+page offers the right button.
 
 ## Linking a sign-in to an account (multi mode)
 
