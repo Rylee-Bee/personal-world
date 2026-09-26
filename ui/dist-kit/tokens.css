@@ -80,8 +80,8 @@
   --pw-typography-size_lead: 18px;
   --pw-typography-size_body: 16px;
   --pw-typography-size_small: 14px;
-  --pw-typography-size_micro: 12px;
-  --pw-typography-size_label: 12.5px;
+  --pw-typography-size_micro: 13px;
+  --pw-typography-size_label: 13px;
 
 
 }
@@ -206,8 +206,8 @@
   --pw-typography-size_lead: 18px;
   --pw-typography-size_body: 16px;
   --pw-typography-size_small: 14px;
-  --pw-typography-size_micro: 12px;
-  --pw-typography-size_label: 12.5px;
+  --pw-typography-size_micro: 13px;
+  --pw-typography-size_label: 13px;
 
 
 }
@@ -266,11 +266,11 @@
   --pw-typography-font_serif: Georgia, 'Times New Roman', 'Palatino Linotype', serif;
   --pw-typography-font_mono: 'SF Mono', 'Cascadia Code', Consolas, monospace;
   --pw-typography-size_h1: clamp(28px, 4vw, 40px);
-  --pw-typography-size_lead: 17px;
-  --pw-typography-size_body: 15px;
-  --pw-typography-size_small: 13px;
-  --pw-typography-size_micro: 11px;
-  --pw-typography-size_label: 12px;
+  --pw-typography-size_lead: 18px;
+  --pw-typography-size_body: 16px;
+  --pw-typography-size_small: 14px;
+  --pw-typography-size_micro: 13px;
+  --pw-typography-size_label: 13px;
 
 
 }
@@ -332,8 +332,8 @@
   --pw-typography-size_lead: 18px;
   --pw-typography-size_body: 16px;
   --pw-typography-size_small: 14px;
-  --pw-typography-size_micro: 12px;
-  --pw-typography-size_label: 12.5px;
+  --pw-typography-size_micro: 13px;
+  --pw-typography-size_label: 13px;
 
 
 }

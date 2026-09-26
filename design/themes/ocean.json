@@ -70,11 +70,11 @@
     "font_serif": "Georgia, 'Times New Roman', 'Palatino Linotype', serif",
     "font_mono":  "'SF Mono', 'Cascadia Code', Consolas, monospace",
     "size_h1":    "clamp(28px, 4vw, 40px)",
-    "size_lead":  "17px",
-    "size_body":  "15px",
-    "size_small": "13px",
-    "size_micro": "11px",
-    "size_label": "12px"
+    "size_lead":  "18px",
+    "size_body":  "16px",
+    "size_small": "14px",
+    "size_micro": "13px",
+    "size_label": "13px"
   },
 
   "density": {
