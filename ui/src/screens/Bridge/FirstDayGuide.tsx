@@ -19,13 +19,12 @@
  * brings it back. No motion, no confetti: a finished line gets its tick.
  */
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { useJournalList, useRooms } from "../../data/hooks";
 import type { BridgeData } from "../../data/contract";
 import type { WorldAreaId } from "../../data/types";
 import { CompanionFace } from "../../components/crew/CompanionFace";
 import { RoomsExplainer } from "../../components/rooms/RoomsExplainer";
 import { LINK_BASE } from "../../components/rooms/format";
-import { ANSWERING, markFirstDayShown, setFirstDayHidden, SYSTEM_ABOUT, useFirstDayHidden, wasFirstDayShown } from "./firstDay";
+import { ANSWERING, markFirstDayShown, setFirstDayHidden, SYSTEM_ABOUT, useFirstDayProgress, wasFirstDayShown } from "./firstDay";
 import { SolMoment } from "../../components/SolMoment";
 
 function asset(path: string): string {
@@ -143,24 +142,20 @@ export function FirstDayGuide({
   onOpenArea: (id: WorldAreaId) => void;
   onOpenCrew?: () => void;
 }) {
-  const hidden = useFirstDayHidden();
-  const rooms = useRooms();
-  const journal = useJournalList({ n: 200 });
-
-  const speaker = data.keeper.resident;
-  const crewOn = speaker.key !== null;
-  const roomCount = rooms.data?.data?.length;
-  const answering = data.systems.filter((s) => ANSWERING.has(s.status)).length;
-  const wroteNote = (journal.data?.data ?? []).some((e) => e.provenance?.source === "user");
-  const companionChosen = crewOn && speaker.key !== "assistant";
-
-  const roomsDone = (roomCount ?? 0) > 0;
-  const systemsDone = data.systems.length > 0 && answering === data.systems.length;
-  const lines = [roomsDone, systemsDone, wroteNote, ...(crewOn ? [companionChosen] : [])];
-  const allDone = lines.every(Boolean);
-
-  const settling = rooms.isPending || journal.isPending;
-  const showing = !hidden && !allDone && !settling;
+  const {
+    hidden,
+    settling,
+    showing,
+    allDone,
+    speaker,
+    crewOn,
+    roomCount,
+    answering,
+    wroteNote,
+    companionChosen,
+    roomsDone,
+    systemsDone,
+  } = useFirstDayProgress(data);
   useEffect(() => {
     if (showing) markFirstDayShown();
   }, [showing]);

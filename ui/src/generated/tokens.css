@@ -22,8 +22,10 @@
   --pw-motion-default: off;
 }
 
-/* :root fallback theme: station (first-run default is DEFAULT_THEME) */
-:root {
+/* :root fallback theme: station (first-run default is DEFAULT_THEME). Also
+   addressable as [data-theme="station"] so an element (a theme swatch) can show
+   Station's own colours inside another theme. */
+:root, [data-theme="station"] {
   --pw-surface-void: #080B14;
   --pw-surface-canvas: #0C101C;
   --pw-surface-hull: #131926;

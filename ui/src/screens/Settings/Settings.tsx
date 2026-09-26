@@ -34,6 +34,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  useBriefing,
   useStatus,
   useSession,
   usePrincipal,
@@ -52,7 +53,9 @@ import {
   toCapabilityStatus,
 } from "../../data/types";
 import { WorldButton } from "../../components/WorldButton";
+import { CompanionFace } from "../../components/crew/CompanionFace";
 import { setFirstDayHidden, useFirstDayHidden } from "../Bridge/firstDay";
+import { MESSAGES_MODES, setMessagesMode, useMessagesMode } from "../Bridge/companionMessages";
 import { VaultTool } from "../Vault/Vault";
 import { THEMES, type ThemeName } from "../../generated/tokens";
 import {
@@ -90,6 +93,12 @@ const THEME_NAMES = Object.keys(THEMES) as Theme[];
  *  server, because no theme-write endpoint exists), falling back to
  *  whatever is applied on <html>, then to the first-run default
  *  (DEFAULT_THEME, starfield — 2026-09-25). */
+
+/** Section headings in the Doorways look: the serif, sentence case. */
+const SECTION_HEADING =
+  "text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]";
+const SERIF = { fontFamily: "var(--pw-typography-font_serif, inherit)" } as const;
+
 function readInitialTheme(): Theme {
   const stored = readStoredTheme();
   if (stored) return stored;
@@ -150,7 +159,8 @@ function SettingsSection({
     >
       <h2
         id={titleId}
-        className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
+        className={`mb-[var(--pw-spacing-md)] ${SECTION_HEADING}`}
+        style={SERIF}
       >
         {id}
       </h2>
@@ -598,7 +608,7 @@ function ThemeSection({
           endpoint that stores a chosen theme, so this selection is remembered
           on this device only — it returns to the default on a new device.
         </p>
-        <div className="grid grid-cols-2 gap-[var(--pw-spacing-md)]">
+        <div className="grid grid-cols-1 gap-[var(--pw-spacing-md)] min-[480px]:grid-cols-2">
           {THEME_NAMES.map((theme) => {
             const isActive = theme === currentTheme;
             return (
@@ -620,6 +630,14 @@ function ThemeSection({
                   onChange={() => onSelect(theme)}
                   className="sr-only"
                 />
+                {/* The theme's own colours: tokens scoped by data-theme. */}
+                <span
+                  aria-hidden="true"
+                  data-theme={theme}
+                  className="flex h-9 w-14 shrink-0 items-end rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-canvas)] p-[3px]"
+                >
+                  <span className="h-[5px] w-6 rounded-full bg-[var(--pw-accent-primary)]" />
+                </span>
                 <span className="text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
                   {THEME_LABELS[theme]}
                 </span>
@@ -645,6 +663,7 @@ export function Settings({ onOpenCrew }: { onOpenCrew?: () => void } = {}) {
   // Server state
   const { data: status, isLoading: isStatusLoading } = useStatus();
   const { data: session, isLoading: isSessionLoading } = useSession();
+  const speaker = useSettingsSpeaker();
   const principalQuery = usePrincipal();
   const { data: brain, isLoading: isBrainLoading } = useBrainTemplates();
   const { data: manifest, isLoading: isManifestLoading } = useManifest();
@@ -720,6 +739,36 @@ export function Settings({ onOpenCrew }: { onOpenCrew?: () => void } = {}) {
           </p>
         </header>
 
+        {onOpenCrew && (
+          <section
+            aria-labelledby="settings-crew-heading"
+            className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+          >
+            {speaker?.crewOn && <CompanionFace name={speaker.name} portrait={speaker.portrait} size="sm" />}
+            <div className="min-w-0 flex-1">
+              <h2
+                id="settings-crew-heading"
+                className={`mb-[var(--pw-spacing-xs)] ${SECTION_HEADING}`}
+                style={SERIF}
+              >
+                Your crew
+              </h2>
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+                {speaker
+                  ? speaker.crewOn
+                    ? `${speaker.name} is your companion. Add your own, give them pictures, and choose who keeps each room.`
+                    : "The crew is off, so Worlds speaks plainly. Add companions and choose who keeps each room."
+                  : "Add your own companions, give them pictures, and choose who keeps each room."}
+              </p>
+            </div>
+            <WorldButton variant="primary" onPress={onOpenCrew}>
+              Open your crew
+            </WorldButton>
+          </section>
+        )}
+
+        <MessagesSection />
+
         <ProfileSection
           authenticated={session?.ok === true}
           isSessionLoading={isSessionLoading}
@@ -729,28 +778,6 @@ export function Settings({ onOpenCrew }: { onOpenCrew?: () => void } = {}) {
 
         <SettingsRoom />
 
-        {onOpenCrew && (
-          <section
-            aria-labelledby="settings-crew-heading"
-            className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
-          >
-            <div className="min-w-0 flex-1">
-              <h2
-                id="settings-crew-heading"
-                className="mb-[var(--pw-spacing-xs)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
-              >
-                Your crew
-              </h2>
-              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-                Add your own companions, give them pictures, and choose who keeps
-                each room.
-              </p>
-            </div>
-            <WorldButton variant="primary" onPress={onOpenCrew}>
-              Open your crew
-            </WorldButton>
-          </section>
-        )}
 
         <FirstDayToggle />
 
@@ -784,7 +811,8 @@ export function Settings({ onOpenCrew }: { onOpenCrew?: () => void } = {}) {
         >
           <h2
             id="settings-advanced-heading"
-            className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
+            className={`mb-[var(--pw-spacing-md)] ${SECTION_HEADING}`}
+        style={SERIF}
           >
             Advanced
           </h2>
@@ -813,7 +841,8 @@ function FirstDayToggle() {
       <div className="min-w-0 flex-1">
         <h2
           id="settings-firstday-heading"
-          className="mb-[var(--pw-spacing-xs)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
+          className={`mb-[var(--pw-spacing-xs)] ${SECTION_HEADING}`}
+                style={SERIF}
         >
           First-day guide
         </h2>
@@ -823,5 +852,50 @@ function FirstDayToggle() {
       </div>
       <WorldButton onPress={() => setFirstDayHidden(false)}>Show the first-day guide</WorldButton>
     </section>
+  );
+}
+
+/** Who the person's companion is, from the briefing's per-caller
+ *  resident (null until it arrives). */
+function useSettingsSpeaker(): { name: string; portrait?: string; crewOn: boolean } | null {
+  const briefing = useBriefing();
+  const resident = briefing.data?.ok === true ? briefing.data.data?.keeper?.resident : undefined;
+  if (!resident) return null;
+  return {
+    name: resident.name,
+    portrait: resident.portrait ? `${import.meta.env.BASE_URL}${resident.portrait.replace(/^\//, "")}` : undefined,
+    crewOn: resident.key !== null,
+  };
+}
+
+/** How often the companion may speak up on the Bridge (this device). */
+function MessagesSection() {
+  const mode = useMessagesMode();
+  return (
+    <SettingsSection id="Companion messages" titleId="settings-messages-heading">
+      <fieldset>
+        <legend className="mb-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          One short line on the Bridge, never on a quiet day. Remembered on this device.
+        </legend>
+        <div className="flex flex-col gap-[var(--pw-spacing-xs)]">
+          {MESSAGES_MODES.map((m) => (
+            <label
+              key={m.value}
+              className="flex min-h-[var(--pw-targets-minimum)] cursor-pointer items-center gap-[var(--pw-spacing-md)] text-[var(--pw-text-primary)]"
+            >
+              <input
+                type="radio"
+                name="companion-messages"
+                value={m.value}
+                checked={mode === m.value}
+                onChange={() => setMessagesMode(m.value)}
+                className="h-5 w-5 accent-[var(--pw-accent-primary)]"
+              />
+              {m.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    </SettingsSection>
   );
 }

@@ -8,11 +8,14 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
+  useBriefing,
   useChatHistory,
   useChatProviders,
   useSendChat,
   useToneRegister,
 } from "../../data/hooks";
+import { CompanionFace } from "../../components/crew/CompanionFace";
+import { SolMoment } from "../../components/SolMoment";
 import type { ChatEntry } from "../../data/hooks";
 import { chatToneCopy } from "../../language/tone";
 import { WorldButton } from "../../components/WorldButton";
@@ -67,6 +70,10 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
   // truth from prefs, warm by default. It phrases the static copy;
   // facts, statuses, and the honest-off labels never change.
   const toneCopy = chatToneCopy(useToneRegister());
+  // Who answers: the person's chosen companion (the same voice the chat
+  // server resolves), the Assistant, or Worlds' plain voice when the crew
+  // is off. Until the briefing arrives, Chat just says "Chat".
+  const speaker = useChatSpeaker();
 
   const messages = normaliseMessages(history.data?.data?.entries);
   const isLoadingHistory = history.isLoading;
@@ -186,21 +193,38 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
     >
       <SkipLink />
 
-      {/* Header + provider selector */}
-      <header className="flex items-center justify-between border-b border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-xl)] py-[var(--pw-spacing-lg)]">
-        <h1 className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
-          Chat
-        </h1>
+      {/* Header: who answers here, with the provider folded away. */}
+      <header className="flex flex-wrap items-center gap-[var(--pw-spacing-md)] border-b border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-xl)] py-[var(--pw-spacing-lg)]">
+        {speaker && (speaker.crewOn ? (
+          <CompanionFace name={speaker.name} portrait={speaker.portrait} size="sm" />
+        ) : (
+          <SolMoment mood="mark" size={40} />
+        ))}
+        <div className="min-w-0 flex-1">
+          <h1
+            className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]"
+            style={{ fontFamily: "var(--pw-typography-font_serif, inherit)" }}
+          >
+            {speaker ? `Chat with ${speaker.name}` : "Chat"}
+          </h1>
+          {speaker?.crewOn && (
+            <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+              Your companion answers here. Change who in Your crew.
+            </p>
+          )}
+        </div>
 
         {providerInfo && providerInfo.providers.length > 0 && (
-          <p
-            className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
-            role="note"
-          >
-            {activeProvider
-              ? `Answering provider: ${activeProvider.display_name}`
-              : "No reasoning provider is healthy yet — chat will say so honestly."}
-          </p>
+          <details className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
+            <summary className="flex min-h-[var(--pw-targets-minimum)] cursor-pointer items-center rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] px-[var(--pw-spacing-md)] text-[var(--pw-text-primary)]">
+              Technical detail
+            </summary>
+            <p className="pt-[var(--pw-spacing-xs)]" role="note">
+              {activeProvider
+                ? `Answering provider: ${activeProvider.display_name}`
+                : "No reasoning provider is healthy yet — chat will say so honestly."}
+            </p>
+          </details>
         )}
       </header>
 
@@ -216,16 +240,20 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
         ) : (
           <div className="mx-auto max-w-[720px] space-y-[var(--pw-spacing-lg)]">
             {messages.map((msg, i) => (
-              <MessageBubble key={`${msg.ts ?? "now"}-${i}`} message={msg} />
+              <MessageBubble key={`${msg.ts ?? "now"}-${i}`} message={msg} speaker={speaker} />
             ))}
 
             {isSending && (
-              <p
-                className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
-                aria-live="polite"
-              >
-                {toneCopy.thinking}
-              </p>
+              // Static words, never a typing animation.
+              <div className="flex items-center gap-[var(--pw-spacing-md)]">
+                {speaker?.crewOn && <CompanionFace name={speaker.name} portrait={speaker.portrait} size="sm" />}
+                <p
+                  className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]"
+                  aria-live="polite"
+                >
+                  {speaker?.crewOn ? `${speaker.name} is thinking…` : toneCopy.thinking}
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -260,6 +288,10 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
       {/* Input area */}
       <div className="border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] pt-[var(--pw-spacing-lg)] pb-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-bottom))] pl-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-left))] pr-[calc(var(--pw-spacing-xl)_+_var(--pw-safe-area-inset-right))]">
         <div className="mx-auto flex max-w-[720px] items-end gap-[var(--pw-spacing-md)]">
+          <label className="flex min-w-0 flex-1 flex-col gap-[var(--pw-spacing-xs)]">
+          <span className="text-[length:var(--pw-typography-size_small)] font-semibold text-[var(--pw-text-primary)]">
+            Message
+          </span>
           <textarea
             ref={inputRef}
             value={input}
@@ -268,8 +300,9 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
             aria-label="Message input"
             placeholder="Type a message…"
             rows={1}
-            className="flex-1 resize-none rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-elevated)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+            className="w-full resize-none rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-elevated)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
           />
+          </label>
           <WorldButton
             variant="primary"
             onPress={handleSend}
@@ -309,25 +342,52 @@ function EmptyState({ copy }: { copy: string }) {
   );
 }
 
-/** A single chat message bubble. */
-function MessageBubble({ message }: { message: ChatMessage }) {
-  const isUser = message.role === "user";
+/** Who answers in Chat, from the briefing's per-caller resident: the
+ *  chosen companion, the Assistant, or Worlds' plain voice (crew off). */
+interface ChatSpeaker {
+  name: string;
+  portrait?: string;
+  crewOn: boolean;
+}
 
+function useChatSpeaker(): ChatSpeaker | null {
+  const briefing = useBriefing();
+  const resident = briefing.data?.ok === true ? briefing.data.data?.keeper?.resident : undefined;
+  if (!resident) return null;
+  const crewOn = resident.key !== null;
+  return {
+    name: crewOn ? resident.name : "Worlds",
+    portrait: resident.portrait ? `${import.meta.env.BASE_URL}${resident.portrait.replace(/^\//, "")}` : undefined,
+    crewOn,
+  };
+}
+
+/** A single chat message. The companion's face and name sit beside
+ *  theirs (decoration; the name is written); yours are lamp-lit. The
+ *  list itself is the live region (role="log"), so bubbles aren't. */
+function MessageBubble({ message, speaker }: { message: ChatMessage; speaker: ChatSpeaker | null }) {
+  const isUser = message.role === "user";
+  if (isUser) {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[85%] rounded-[var(--pw-radius-md)] rounded-tr-[var(--pw-radius-sm)] border border-[var(--pw-accent-warm)] bg-[var(--pw-surface-hull)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] leading-relaxed text-[var(--pw-text-primary)]">
+          {message.content}
+        </div>
+      </div>
+    );
+  }
   return (
-    <div
-      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-      aria-live="polite"
-    >
-      <div
-        className={[
-          "max-w-[85%] rounded-[var(--pw-radius-md)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)]",
-          "text-[length:var(--pw-typography-size_body)] leading-relaxed",
-          isUser
-            ? "bg-[var(--pw-accent-primary)] text-[var(--pw-accent-on_primary)]"
-            : "bg-[var(--pw-surface-elevated)] text-[var(--pw-text-primary)]",
-        ].join(" ")}
-      >
-        {message.content}
+    <div className="flex items-start gap-[var(--pw-spacing-md)]">
+      {speaker?.crewOn && <CompanionFace name={speaker.name} portrait={speaker.portrait} size="sm" />}
+      <div className="flex min-w-0 max-w-[85%] flex-col gap-[var(--pw-spacing-xs)]">
+        {speaker && (
+          <span className="text-[length:var(--pw-typography-size_small)] font-semibold text-[var(--pw-text-secondary)]">
+            {speaker.name}
+          </span>
+        )}
+        <div className="rounded-[var(--pw-radius-md)] rounded-tl-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] leading-relaxed text-[var(--pw-text-primary)]">
+          {message.content}
+        </div>
       </div>
     </div>
   );
