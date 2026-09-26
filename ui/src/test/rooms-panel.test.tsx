@@ -458,6 +458,27 @@ describe("RoomDrawer", () => {
     ...extra,
   });
 
+  it("opens the drawer from a /?room=<id> deep link and clears the parameter", () => {
+    const replace = vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    window.location.href = "http://station.test/?room=workshop";
+    setRooms([WORKSHOP]);
+    render(<RoomsPanel />);
+    expect(screen.getByRole("dialog", { name: "Workshop" })).toBeInTheDocument();
+    expect(replace.mock.calls.at(-1)?.[2]).toBe("/");
+    window.location.href = "http://station.test/";
+    replace.mockRestore();
+  });
+
+  it("opens nothing for an unknown room id in the deep link", () => {
+    const replace = vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    window.location.href = "http://station.test/?room=not-a-room";
+    setRooms([WORKSHOP]);
+    render(<RoomsPanel />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    window.location.href = "http://station.test/";
+    replace.mockRestore();
+  });
+
   it("opens from Look inside as a labelled dialog, focuses its heading, and returns focus on close", () => {
     setRooms([WORKSHOP]);
     render(<RoomsPanel />);
