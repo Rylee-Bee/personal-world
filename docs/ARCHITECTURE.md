@@ -79,7 +79,7 @@ renders rooms; it never copies another tool's code. Pin:
 systems — agents/Workshop, estate/Engine room, records/Archive,
 interests/Observatory, news/Newsstand, threads/World tree. A configured room
 whose id names a system (e.g. `workshop`, `engine-room`) is that system;
-Newsstand is an honest `not_configured` placeholder. The **Bridge** is the
+Newsstand is a `not_configured` placeholder. The **Bridge** is the
 home screen (`ui/src/screens/Bridge/`): it shows the Keeper and the briefing,
 the rooms as doorway cards, and remembers where you were.
 

@@ -140,7 +140,7 @@ Stop, preserve state, and report when:
 - the next action would materially increase risk;
 - verification cannot currently be completed.
 
-Stopping with an honest `WAITING`, `BLOCKED`, `UNKNOWN`, or `DEFERRED`
+Stopping with an explicit `WAITING`, `BLOCKED`, `UNKNOWN`, or `DEFERRED`
 state is preferable to manufacturing progress.
 
 ## Closure Is Part of the Work

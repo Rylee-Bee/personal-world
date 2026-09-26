@@ -11,7 +11,7 @@ people first.
 
 ## What this is
 Worlds is a **gentle, private home for your thoughts and your life**.
-It opens on a calm home screen (the **Bridge**) with Memory, Chat and
+It opens on a simple home screen (the **Bridge**) with Memory, Chat and
 Settings a tap away — not a dashboard, not a feed, not a wall of red
 badges. It stays quiet until something genuinely needs you, and it never
 tells you how to feel.
@@ -57,12 +57,12 @@ This was built for you first. Here's what's true:
   but asks less of you. "Nothing needs your attention" is a real, respected
   state — not a guilt trip.
 - **Big targets:** every interactive thing is at least 44×44px.
-- **Honesty:** it never fakes data, never hides errors, and always tells you
+- **Accuracy:** it never fakes data, never hides errors, and always tells you
   what's real vs. not-set-up-yet.
 
 *Standing gate, not a todo:* the interface is covered by the automated
 Playwright gate (`cd ui && npx playwright test`), which boots the real
-app with a seeded world and runs the accessibility, honest-state, keyboard,
+app with a seeded world and runs the accessibility, accurate-state, keyboard,
 motion, and reflow suite — including axe with color-contrast enabled (see
 `ui/e2e/accessibility.spec.ts` and `ui/e2e/axe.spec.ts`). If something fights you, that's
 still a bug we want — not your fault.
@@ -70,7 +70,7 @@ still a bug we want — not your fault.
 ---
 
 ## Where your stuff lives · how to not lose it
-- Everything lives in one place on your machine (the `world-data` volume).
+- Everything is stored in one place on your machine (the `world-data` volume).
 - **Back it up encrypted, any time,** from the command line on a compose
   install:
   `docker compose exec core personal-world worlds backup ~/my-worlds-backup.pwbackup`
@@ -88,6 +88,6 @@ still a bug we want — not your fault.
 - Docs: `docs/INDEX.md` (the full map of the documentation) ·
   `docs/WORLDS-BACKUP.md` and `docs/RECOVERY-BOUNDARY.md` (backup and SOS) ·
   `.project/CURRENT.md` (where the project actually is) ·
-  `docs/accessibility/ACCESSIBILITY_CONTRACT.md` (the accessibility floor).
+  `docs/accessibility/ACCESSIBILITY_CONTRACT.md` (the minimum accessibility requirements).
 
 *Soft by default. Deep when you ask. Everyone, at any level, included.*

@@ -86,7 +86,7 @@ private operator docs.
   Record: the URL shape, cert issuer class (public CA / internal CA), date.
   Pass: TLS chain validates; the session cookie is `Secure` (check in the
   browser's dev tools after sign-in).
-- [ ] **`/healthz` honest state.** How: `curl -s https://<worlds-host>/healthz`
+- [ ] **`/healthz` reports the real state.** How: `curl -s https://<worlds-host>/healthz`
   — public liveness + `auth_configured`. Record: response summary, date.
   Pass: HTTP 200 with `auth_configured: true`; `setup_needed` matches what
   you expect for this deployment.
@@ -157,7 +157,7 @@ plus the app-level encrypted archive path (`docs/WORLDS-BACKUP.md`).
   Record (private log): restore date, what was verified present, and any
   `refused[]`/`skipped[]` report rows if you used the CLI restore.
   **Pass:** after a restore from the copied volume, the world state is
-  indistinguishable from the pre-backup deployment and health is honest.
+  indistinguishable from the pre-backup deployment and health is reported correctly.
   Do the drill on the live deployment only if you accept the risk — a
   scratch deployment on the copied volume satisfies the requirement with
   zero live risk.
@@ -215,7 +215,7 @@ color-contrast enabled), security gates, and framework conformance.
   Pass: a successful publish for the same sha; the workflow_run gate means
   a failed validate never ships an image.
 - [ ] **Browser/a11y job green** (`browser` job in `validate` — Playwright
-  accessibility / honest-state / keyboard / motion suite with axe,
+  accessibility / accurate-state / keyboard / motion suite with axe,
   color-contrast rules enabled). Pass: `success` for the deployed sha.
   You may also re-run locally: `cd ui && npx playwright test`.
 

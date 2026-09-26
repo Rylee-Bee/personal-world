@@ -127,7 +127,7 @@ gives it useful local meaning with **zero providers connected**
   <path>` argv lists only, 10s timeout per call).
 - Configuration: repo paths live in the `source_control.search_paths`
   key of `config/connections.json` (a sibling of `connections`, not a
-  provider entry). Absence or malformed config is the honest
+  provider entry). Absence or malformed config is the correct
   `not_configured` state, never a crash.
 - Enrichment seam: GitHub (via the authenticated `gh` CLI, read-only)
   may enrich the capability with remote-side data — canonical

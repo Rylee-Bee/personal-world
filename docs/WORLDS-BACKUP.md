@@ -2,7 +2,7 @@
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the encrypted full-instance backup/restore (`pw-worlds-backup/1`) · **Read this if:** you need to save or move a whole Worlds instance
 
-**In short:** One encrypted file plus a passphrase is enough to rebuild the same instance on a fresh machine. This page is the how-to, the archive format, and the honest boundary of what is and is not inside.
+**In short:** One encrypted file plus a passphrase is enough to rebuild the same instance on a fresh machine. This page is the how-to, the archive format, and the exact limits of what is and is not inside.
 
 > One encrypted file. One passphrase. Enough to be the same instance
 > again on a fresh machine.
@@ -43,7 +43,7 @@ personal-world --data-dir ./data --config-dir ./config \
 
 Then restart the app so registries reload the restored state.
 
-One honest step an earlier version of this doc skipped: the archive
+One step an earlier version of this doc skipped: the archive
 carries user state, NOT the instance's own credentials or first-run
 marker. On a truly fresh box you must still run the normal first-run
 setup (`personal-world init` / the setup wizard) to mint `PW_API_TOKEN`
@@ -153,7 +153,7 @@ Fail-closed guarantees:
 - Restore refuses path-traversal members, unknown archive roots, and
   any ephemeral file (`sessions.json`, `memory.fts5.db`) even if a
   hand-crafted archive contains them.
-- Every restore returns an honest per-file report:
+- Every restore returns a per-file report:
   `{restored[], skipped[], refused[]}`.
 
 ## Ordinary exports still exclude secrets

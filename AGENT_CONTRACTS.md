@@ -53,7 +53,7 @@ anything a person perceives or interacts with.
 
 - **Applies:** Always
 - **Purpose:** Governs cognitive load, visible state, calm defaults,
-  honest status (`PASS` / `FAIL` / `N/A` / `UNKNOWN`), recoverability,
+  accurate status (`PASS` / `FAIL` / `N/A` / `UNKNOWN`), recoverability,
   and healthy agent/human collaboration.
 - **Contract:** [`docs/HUMAN_RELIABILITY_CONTRACT.md`](docs/HUMAN_RELIABILITY_CONTRACT.md)
 
@@ -251,7 +251,7 @@ decisions.
 When uncertain:
 
 1. Observe truth first.
-2. Preserve uncertainty honestly.
+2. State plainly what is uncertain.
 3. Consult the applicable contract.
 4. Prefer reversible action.
 5. Verify what happened.

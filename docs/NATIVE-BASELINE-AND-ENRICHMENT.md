@@ -54,7 +54,7 @@ vocabulary:
 | `enrichment` | Optional third-party richness (the default) | capability degrades gracefully, never breaks |
 | `replacement` | Swaps the native baseline for another system | still substitutable like any provider |
 
-Separately, availability is honest state, never silent:
+Separately, availability is always reported, never silent:
 `healthy / warning / unknown / needs_attention / unavailable / stale /
 disabled / not_configured` (`src/personal_world/status.py`). Absence
 of a provider is reported as `not_configured`; a dead provider as
@@ -227,7 +227,7 @@ design provider / implementation tool
 - **B. Provider added:** capability richer; canonical concept
   unchanged (`test_provider_added_capability_richer_concept_unchanged`).
 - **C. Provider unavailable:** core healthy; degraded reported
-  honestly; unrelated capabilities unaffected (`test_provider_unavailable_...`).
+  as unavailable; unrelated capabilities unaffected (`test_provider_unavailable_...`).
 - **D. Provider removed:** no corruption; baseline remains;
   provider-specific data does not masquerade as current
   (`test_provider_removed_no_corruption`).

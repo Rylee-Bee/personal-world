@@ -26,7 +26,7 @@ The five endpoints (canonical text: Play-Nice
 | `GET /room/actions` | What the room can do, with `default_autonomy` (`auto`, `check_in`, `ask_first`) |
 | `POST /room/actions/{id}` | Do it. Always returns a receipt (`ok`, `summary`, `changed`, `at`); needs an `Idempotency-Key` so a retry never runs twice |
 
-Tone is a display hint, never a priority. Urgency lives in needs-you.
+Tone only affects display; it is not a priority. Urgent items go in needs-you.
 
 ## The rooms today
 
@@ -72,7 +72,7 @@ Code: `src/personal_world/rooms.py` (`RoomsService`, `_parse_registry_entries`).
 - **Compatibility first.** A room whose `contract` is not in
   `SUPPORTED_CONTRACTS` (`room/0`) shows as **incompatible**, with the reason;
   its cards and needs are never counted.
-- **Honest status.** A room that can't be reached, times out (2 s,
+- **Accurate status.** A room that can't be reached, times out (2 s,
   `TIMEOUT_SECONDS`) or answers malformed JSON shows as **unreachable** with
   when it was last seen. `unknown` is not `healthy` and not failed.
 - **One snapshot for everyone,** cached 15 s (`CACHE_TTL_SECONDS`), except the
@@ -170,9 +170,9 @@ Rules, in order:
 * **Response.** The room's answer is allow-listed to exactly
   `{action_id, ok, summary, changed, at}` — anything else is dropped —
   and returned as `{"ok": true, "data": <receipt>}` with **HTTP 200**,
-  whatever status code the room used (its own `ok`/`summary` are the
-  truth). If the room cannot be reached, times out, fails, or does not
-  answer with a receipt, the caller gets an honest `ok: false` receipt:
+  whatever status code the room used (its own `ok` and `summary` are
+  what count). If the room cannot be reached, times out, fails, or does not
+  answer with a receipt, the caller gets an `ok: false` receipt:
   *"Couldn't reach {room name}, so nothing changed."* with
   `changed: []` — **never a 500**. Local refusals (the 400/403/404/413
   above) carry the same receipt shape under `data` with the envelope's

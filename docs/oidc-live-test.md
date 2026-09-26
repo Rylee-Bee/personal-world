@@ -2,7 +2,7 @@
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the opt-in live-Authelia OIDC harness (setup, env vars, teardown) · **Read this if:** you need to prove the OIDC code against a real provider, not the in-process stub.
 
-**In short:** an opt-in harness that stands up a throwaway Authelia container and drives the real discovery → login → callback → session → logout flow through production code. It never runs in CI; without the env vars the test skips honestly.
+**In short:** an opt-in harness that stands up a throwaway Authelia container and drives the real discovery → login → callback → session → logout flow through production code. It never runs in CI; without the env vars the test skips .
 
 `tests/test_oidc.py` proves the OIDC relying party against an in-process
 stub provider. This harness proves it against a **real** one: a
@@ -13,7 +13,7 @@ the production code paths (real HTTP, real JWKS, real signature
 verification).
 
 It is **opt-in and never runs in CI**: without the environment below,
-`tests/test_oidc_live.py` skips honestly with an actionable reason.
+`tests/test_oidc_live.py` skips with an actionable reason.
 
 ## What it proves
 
@@ -35,7 +35,7 @@ It is **opt-in and never runs in CI**: without the environment below,
 
 The IdP login itself is driven headlessly over HTTP (Authelia's
 first-factor API) — no browser needed. If a future IdP build stops
-exposing that API, the interactive leg skips with an honest reason while
+exposing that API, the interactive leg skips with a clear reason while
 the discovery/JWKS/status/login-redirect legs still run.
 
 ## Secrets and topology

@@ -43,7 +43,7 @@ delegating mechanics to existing open tools rather than reimplementing them.
 6. **"Worlds Node" = one user-facing install** containing the Worlds Agent + the NetBird client as
    **separate cooperating components**. The agent talks to the local NetBird daemon through its supported
    local API (gRPC / HTTP-JSON daemon socket) — never by scraping UI state.
-7. **Offline Node ≠ broken Core.** A Node may disappear without breaking Worlds; surface honest
+7. **Offline Node ≠ broken Core.** A Node may disappear without breaking Worlds; report the real
    `unavailable`/`stale` (canonical `failure-and-degradation`).
 
 ## Consequences

@@ -94,7 +94,7 @@ HTTP. `api.py` adds only thin, guarded route handlers.
   carries a matching `X-PW-Proxy-StepUp-Secret`). **Client trust is never
   sufficient**: `X-PW-StepUp: 1` alone, with no proxy secret, is denied.
 - **Locked-category reads.** Reading a locked category (`?category=<locked>`)
-  returns an honest **HTTP 409 `status: "locked"`** envelope **unless that same
+  returns an **HTTP 409 `status: "locked"`** envelope **unless that same
   request carries fresh step-up**, checked server-side with the same seam. The
   category's name, count, and `locked` flag stay visible without elevation (so
   a person always knows what to unlock); the record titles and field values do
@@ -112,7 +112,7 @@ record's title, category name, and field keys/values — **no index, no provider
 no embeddings, no model in the loop**. Ordering is total and stable (`updated`
 desc, then `id` desc), so the same query over the same world always answers
 byte-identically. A blank `q` is the plain browse view; a no-match `q` is the
-honest `ok: true` empty list (a true zero). `?q=` composes with `?pinned=true`
+`ok: true` empty list (a real zero). `?q=` composes with `?pinned=true`
 and with `?category=` (find inside one category).
 
 **Locking fails closed against find.** Locked-category records join `q` results
@@ -135,7 +135,7 @@ by the browse aggregate or the pinned Overview feed.
 
 ---
 
-## Honest degradation
+## Degraded states
 
 Records are a Memory feature, so every route first checks the **same**
 `memory` provider `/api/memory/search` checks. With no memory provider

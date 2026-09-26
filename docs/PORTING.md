@@ -39,6 +39,6 @@ you may swap underneath them. It is a how-to, not a roadmap.
 ## Porting checklist (someday)
 - [ ] Keep the four soul items above.
 - [ ] Re-implement against `/api/manifest`, not against internals.
-- [ ] Preserve honest states + gated writes in the new home.
+- [ ] Keep accurate state labels and gated writes in the new location.
 - [ ] Re-run the accessibility gate on the new surface.
 - [ ] Ship a `QUICKSTART` equivalent: one command, wizard, no manual tokens.
