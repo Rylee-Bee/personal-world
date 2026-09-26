@@ -52,6 +52,33 @@ rides each row as ``public_url`` and is an honest ``null`` when absent
 or invalid; consumers then fall back to ``base_url``. The entry itself
 is never dropped for a bad ``public_url``.
 
+A registry entry may also opt in to **per-person forwarding** with
+``forward_principal: true`` (default false; anything but JSON ``true``
+is false, and env-configured ``PW_ROOMS`` never forwards). For such a
+room, Worlds sends ``X-Worlds-Principal: <principal id>`` on every
+request to it (``GET /room``, ``/room/cards``, ``/room/needs-you``, and
+any future ``POST /room/actions/*``) **in addition to** that room's own
+bearer token — never instead of it. The token proves Worlds may read the
+room; the principal header tells the room *who is asking* so it can
+answer for that person. If the room has no token configured the header
+is not sent at all (an unauthenticated identity claim is meaningless)
+and the room is treated as non-forwarding. The principal id is the
+caller's Worlds principal id, validated against the same safe-id rule
+``identity.principal_scoped_path`` uses; an invalid id is never sent.
+The human's session token / ``PW_API_TOKEN`` is never sent to a room —
+only the room's own token is.
+
+A forwarding room's health is still estate-wide (a room that is down is
+down for everyone), but its cards and needs are per person:
+:meth:`RoomsService.snapshot_for_principal` serves the shared 15 s
+snapshot for non-forwarding rooms and, for forwarding rooms, a
+per-principal fetch cached against the same 15 s TTL — keyed by room id +
+principal id, bounded to :data:`MAX_FORWARD_PRINCIPALS` principals with
+the oldest evicted. Nothing one principal's forwarded fetch returned can
+appear in another principal's response. A caller with no request
+principal (a background job, the digest) never forwards: it gets the
+room's own default, non-personal view.
+
 :meth:`RoomsService.secrets_overview` is the Worlds side of the
 read-only Secrets board: it finds the room named ``workshop`` and reads
 its ``GET /api/secrets/summary`` with that room's token/TLS policy (3 s
@@ -81,6 +108,10 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+
+# The same safe-principal-id rule ``identity.principal_scoped_path`` uses,
+# so a forwarded principal id can never be a path/header injection.
+from .identity import _SAFE_PRINCIPAL_ID
 
 _logger = logging.getLogger("personal_world.rooms")
 
@@ -147,6 +178,16 @@ TIMEOUT_SECONDS = 2.0
 
 #: How long one snapshot is served before the estate is re-checked.
 CACHE_TTL_SECONDS = 15.0
+
+#: The header that tells a forwarding room who is asking. It rides every
+#: request to a room whose registry entry opted in (``forward_principal``)
+#: AND that configured its own token, alongside that room's bearer token —
+#: never instead of it, and never when the room has no token.
+PRINCIPAL_HEADER = "X-Worlds-Principal"
+
+#: At most this many principals have their forwarded cards/needs cached;
+#: the oldest principal's entries are evicted past the cap.
+MAX_FORWARD_PRINCIPALS = 64
 
 #: Where per-room health (last-seen / last-declared-status) is persisted
 #: under the data dir. Plain JSON on the same atomic-write seam every
@@ -225,7 +266,11 @@ class RoomConfig:
     value itself is never persisted or returned. ``public_url`` is the
     browser-reachable address a registry entry may name (http(s), no
     userinfo); it is ``None`` when absent or invalid, and consumers then
-    fall back to ``base_url``.
+    fall back to ``base_url``. ``forward_principal`` is a registry
+    opt-in: when true the room is told who is asking (via
+    ``X-Worlds-Principal``, alongside its token) and its cards/needs are
+    served per person. It is false for env-configured rooms and for any
+    registry value that is not JSON ``true``.
     """
 
     id: str
@@ -236,6 +281,7 @@ class RoomConfig:
     contract: str = CONTRACT_VALUE
     token_env: str | None = None
     public_url: str | None = None
+    forward_principal: bool = False
 
 
 def parse_rooms(env: dict | None = None) -> list[RoomConfig]:
@@ -299,6 +345,7 @@ def _parse_registry_entries(
     returns it; consumers do not load it) and is not counted as dropped.
     A ``contract`` outside :data:`SUPPORTED_CONTRACTS` is kept as an
     ``incompatible`` row so the person can see why it is not loaded.
+    ``forward_principal`` rides through only as strict JSON ``true``.
     """
     if not isinstance(entries, list):
         return [], 0
@@ -357,6 +404,9 @@ def _parse_registry_entries(
                 contract=contract,
                 token_env=token_env_name or None,
                 public_url=public_url or None,
+                # Opt-in per-person forwarding: strictly JSON true. Any
+                # other value (false, "true", 1, missing) is false.
+                forward_principal=entry.get("forward_principal") is True,
             )
         )
     return configs, dropped
@@ -387,6 +437,9 @@ def _lkg_entries(configs: list[RoomConfig]) -> list[dict]:
             "token_env": c.token_env,
             "insecure_tls": c.insecure_tls,
             "public_url": c.public_url,
+            # Persisted so a forwarding room's opt-in survives a registry
+            # outage via last-known-good.
+            "forward_principal": c.forward_principal,
         }
         for c in configs
     ]
@@ -562,8 +615,47 @@ def _sanitize_secrets_summary(
     return data
 
 
+def _safe_principal_id(raw: Any) -> str | None:
+    """A principal id safe to put in a header, or ``None``.
+
+    Uses the exact safe-id rule ``identity.principal_scoped_path`` uses,
+    so an id that could never name a scoped path is also never forwarded
+    to a room.
+    """
+    if not isinstance(raw, str) or not _SAFE_PRINCIPAL_ID.match(raw):
+        return None
+    return raw
+
+
+def _merge_personal(
+    shared: dict[str, Any], forwarded: dict[str, Any]
+) -> dict[str, Any]:
+    """One caller's row for a forwarding room.
+
+    Health is estate-wide (``reachable``, ``status``, ``last_seen``,
+    ``last_status``, ``checked_at``), so it comes from the shared row —
+    a room that is down is down for everyone. Only the person's ``cards``
+    and ``needs_you`` come from their own forwarded fetch. If that fetch
+    itself failed, its error is stated (empty cards/needs, never the
+    default view presented as theirs) while the room's shared health
+    stands.
+    """
+    merged = dict(shared)
+    merged["cards"] = forwarded["cards"]
+    merged["needs_you"] = forwarded["needs_you"]
+    if not forwarded["reachable"]:
+        merged["error"] = forwarded["error"]
+    return merged
+
+
 class RoomsService:
     """Reads every configured room; caches one snapshot for 15 s.
+
+    :meth:`snapshot` is the estate-wide view (no principal): forwarding
+    rooms answer it with their own default, non-personal view. A request
+    handler calls :meth:`snapshot_for_principal` instead, which layers
+    the caller's own forwarded cards/needs over the shared rows for the
+    rooms that opted in.
 
     ``last_seen``/``last_status`` are persisted per room id through
     ``state_path`` (a JSON file on the data dir) so an unreachable room
@@ -590,6 +682,11 @@ class RoomsService:
         self._clock = clock or time.monotonic
         self._cache: list[dict[str, Any]] | None = None
         self._cache_at: float = float("-inf")
+        # Per-person forwarded rows for forwarding rooms, keyed by
+        # (room id, principal id) and cached against the same 15 s TTL.
+        # Insertion order is refresh order, so the oldest principal is
+        # evicted first once the cap is passed.
+        self._principal_cache: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
         self._state_path: Path | None = (
             Path(state_path) if state_path is not None else None
         )
@@ -858,6 +955,7 @@ class RoomsService:
         """Drop the cached snapshot (tests and explicit refresh)."""
         self._cache = None
         self._cache_at = float("-inf")
+        self._principal_cache.clear()
         self._secrets_cache = None
         self._secrets_cache_at = float("-inf")
 
@@ -969,7 +1067,103 @@ class RoomsService:
         self._persist()  # room health outlives this process
         return rows
 
-    async def _probe(self, config: RoomConfig) -> dict[str, Any]:
+    async def snapshot_for_principal(
+        self, principal: Any | None = None, env: dict | None = None
+    ) -> list[dict[str, Any]]:
+        """The caller's rows: shared rows plus the caller's own forwarded rows.
+
+        Non-forwarding rooms come straight from the one shared 15 s
+        snapshot — unchanged. For a forwarding room (registry
+        ``forward_principal: true`` AND a configured token) the row's
+        cards and needs are replaced with this principal's own forwarded
+        fetch (cached per room + principal, same 15 s TTL). The room's
+        status, reachability and last-seen stay estate-wide, because a
+        room that is down is down for everyone. A principal with no
+        usable id, or no forwarding rooms, gets exactly the shared rows:
+        one principal's forwarded fetch can never appear in another's.
+
+        This is the caller-aware seam for ``GET /api/rooms`` and the
+        briefing. :meth:`snapshot` (no principal) is what background
+        jobs and the digest use: forwarding rooms answer it with their
+        own default, non-personal view because the header is not sent.
+        """
+        env = os.environ if env is None else env
+        rows = await self.snapshot(env)
+        principal_id = _safe_principal_id(getattr(principal, "id", None))
+        if principal_id is None:
+            return rows
+        configs = self._last_configs or []
+        forwarding = [c for c in configs if c.forward_principal and c.token]
+        if not forwarding:
+            return rows
+        fetched = await asyncio.gather(
+            *(self._forwarded_row(c, principal_id) for c in forwarding)
+        )
+        by_id = {row["id"]: row for row in fetched}
+        merged: list[dict[str, Any]] = []
+        for row in rows:
+            forwarded = by_id.get(row["id"])
+            merged.append(
+                _merge_personal(row, forwarded) if forwarded is not None else row
+            )
+        return merged
+
+    async def _forwarded_row(
+        self, config: RoomConfig, principal_id: str
+    ) -> dict[str, Any]:
+        """The cached per-principal row for one forwarding room."""
+        key = (config.id, principal_id)
+        now = self._clock()
+        cached = self._principal_cache.get(key)
+        if cached is not None and (now - cached[0]) < CACHE_TTL_SECONDS:
+            return cached[1]
+        row = await self._probe(config, principal_id=principal_id)
+        self._store_principal_row(key, principal_id, row, now)
+        return row
+
+    def _store_principal_row(
+        self, key: tuple[str, str], principal_id: str, row: dict[str, Any], now: float
+    ) -> None:
+        """Cache one forwarded row, evicting the oldest principal past the cap."""
+        self._principal_cache.pop(key, None)
+        self._principal_cache[key] = (now, row)
+        order: list[str] = []
+        for _, pid in self._principal_cache:
+            if pid not in order:
+                order.append(pid)
+        while len(order) > MAX_FORWARD_PRINCIPALS:
+            oldest = order.pop(0)
+            for cache_key in [k for k in self._principal_cache if k[1] == oldest]:
+                del self._principal_cache[cache_key]
+
+    def _room_headers(
+        self, config: RoomConfig, principal_id: str | None = None
+    ) -> dict[str, str]:
+        """Outbound headers for one room request.
+
+        Always the room's own bearer token when it has one. The
+        ``X-Worlds-Principal`` header is added **in addition** to that
+        token — never instead of it — only when the registry opted the
+        room in, the room has a token, and the principal id is safe. A
+        room with no token gets no identity claim (meaningless without
+        authentication), so it behaves as non-forwarding. The human's
+        session token / ``PW_API_TOKEN`` is never among these. Any future
+        ``POST /room/actions/*`` must use this same helper.
+        """
+        headers: dict[str, str] = {}
+        if config.token:
+            headers["Authorization"] = f"Bearer {config.token}"
+            if (
+                config.forward_principal
+                and principal_id
+                and _SAFE_PRINCIPAL_ID.match(principal_id)
+            ):
+                headers[PRINCIPAL_HEADER] = principal_id
+        return headers
+
+    async def _probe(
+        self, config: RoomConfig, principal_id: str | None = None
+    ) -> dict[str, Any]:
         checked_at = _iso_now()
         if config.contract not in SUPPORTED_CONTRACTS:
             # A registry entry this front door cannot understand: never
@@ -997,9 +1191,7 @@ class RoomsService:
             )
 
         base = config.base_url.rstrip("/")
-        headers: dict[str, str] = {}
-        if config.token:
-            headers["Authorization"] = f"Bearer {config.token}"
+        headers = self._room_headers(config, principal_id)
 
         try:
             async with httpx.AsyncClient(
