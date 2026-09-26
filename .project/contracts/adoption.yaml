@@ -8,7 +8,7 @@ schema: play-nice/adoption-v1
 project: personal-world
 source:
   repository: Rylee-Bee/play-nice-contracts   # renamed from burgeswe/play-nice-contracts (account rename, 2026-09-12); old URL redirects
-  revision: c307868516da5827f5f15740173700dbe1bd4934   # play-nice-contracts v2 (library 2.0.0, #38): 68 contracts -> 40 in 7 packs; the ids below are v1 names, which resolve to their v2 contracts via aliases.json. Read before pinning.
+  revision: c3197aea27495f6a02bf1e5d0e498b399369ecf2   # play-nice-contracts main 2026-09-26: v2 (library 2.0.0) + ROOM 2.1.0 (optional need choices, #40) and docs; fast-forward from c307868, read before pinning
   # Bump history: 2bb60b4 (v0.3.0) -> d6c97db (v0.5.0) -> 0cee065
   # (v0.6.0) -> f825ffb (v0.7.0, 2026-09-15). Each bump verified against the
   # live repository (commit exists, VERSION/CHANGELOG match,
