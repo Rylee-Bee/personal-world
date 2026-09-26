@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { test, expect } from "./test";
 
 /**
  * C8 reduced-motion pass on the Track C panels (Settings Room,

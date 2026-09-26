@@ -7,7 +7,7 @@
  * NO .disableRules() anywhere — a suppressed rule is a hidden failure.
  * Zero serious/critical violations per landmark view.
  */
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import AxeBuilder from "@axe-core/playwright";
 import { gotoArea } from "./helpers";
 

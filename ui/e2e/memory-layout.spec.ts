@@ -10,7 +10,8 @@
  * landmark stability lives in landmark-stability.spec.ts; this spec
  * owns the inside of the Memory screen.)
  */
-import { test, expect, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { test, expect } from "./test";
 
 const LANDMARKS = ["Memory", "Journal", "Records"];
 

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 
 /**
  * The Bridge — the home screen (contract worlds-briefing/1, slice 1b).
@@ -112,12 +112,14 @@ test.describe("Bridge screen", () => {
     await page.goto("/");
     const main = page.getByRole("main");
     await expect(main).toBeVisible();
-    // Either the briefing arrived or the honest loading word is up.
-    const hasMap = await page
-      .getByRole("region", { name: "Star map" })
-      .isVisible();
-    const hasLoading = await page.getByText("Gathering your world…").isVisible();
-    expect(hasMap || hasLoading).toBeTruthy();
+    // Either the briefing arrived or the honest loading word is up. Wait
+    // for one of them: a single instant can fall between the two.
+    await expect(
+      page
+        .getByRole("region", { name: "Star map" })
+        .or(page.getByText("Gathering your world…"))
+        .first(),
+    ).toBeVisible();
   });
 
   test("a failing briefing says so, with a retry", async ({ page }) => {
