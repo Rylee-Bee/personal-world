@@ -360,7 +360,7 @@ describe("RoomsPanel", () => {
     setRooms([]);
     render(<RoomsPanel />);
     expect(
-      screen.getByText("No rooms are set up yet. When a room connects, its door appears here."),
+      screen.getByText("No rooms yet"),
     ).toBeInTheDocument();
   });
 

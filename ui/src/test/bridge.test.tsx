@@ -9,7 +9,7 @@
  * reachable bodies).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 // ─── Mocked data boundary ────────────────────────────────────────────
@@ -30,6 +30,9 @@ const { hookState, mutate } = vi.hoisted(() => ({
       error: undefined as unknown,
       data: undefined as unknown,
     },
+    // Pending by default: the first-day guide waits for real data, so the
+    // Bridge tests below see the Bridge alone; the guide has its own.
+    journal: { isPending: true, data: undefined as unknown },
   },
   mutate: vi.fn(),
 }));
@@ -39,6 +42,7 @@ vi.mock("../data/hooks", () => ({
   usePlace: () => hookState.place,
   useSetPlace: () => ({ mutate }),
   useRooms: () => hookState.rooms,
+  useJournalList: () => hookState.journal,
 }));
 
 import { Bridge } from "../screens/Bridge/Bridge";
@@ -347,3 +351,106 @@ function statusWordOf(raw: string): string {
   };
   return words[raw] ?? "Unknown";
 }
+// ─── The first-day guide (FirstBridge board) ─────────────────────────
+
+describe("Bridge — first day aboard", () => {
+  function firstDay(opts: {
+    rooms?: unknown[];
+    notes?: Array<{ source: string }>;
+    resident?: { key: string | null; name: string; portrait: string | null };
+    name?: string | null;
+  }) {
+    hookState.rooms = {
+      isPending: false,
+      isError: false,
+      error: undefined,
+      data: { ok: true, data: opts.rooms ?? [] },
+    };
+    hookState.journal = {
+      isPending: false,
+      data: {
+        ok: true,
+        data: (opts.notes ?? []).map((n, i) => ({
+          ts: `2026-09-25T0${i}:00:00Z`,
+          kind: "observation",
+          summary: "x",
+          provenance: { source: n.source },
+        })),
+      },
+    };
+    hookState.briefing = {
+      ...hookState.briefing,
+      data: {
+        ...BRIEFING,
+        data: {
+          ...BRIEFING.data,
+          keeper: {
+            ...BRIEFING.data.keeper,
+            name: opts.name ?? null,
+            resident: opts.resident ?? { key: "renai", name: "Renai", portrait: null },
+          },
+        },
+      },
+    };
+  }
+
+  afterEach(() => {
+    window.localStorage.removeItem("pw-first-day-guide");
+    hookState.journal = { isPending: true, data: undefined };
+  });
+
+  it("welcomes the person in their companion's voice, with every line live and in words", () => {
+    firstDay({ name: "Rylee", notes: [{ source: "setup-wizard" }] });
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} onOpenCrew={() => {}} />);
+    const guide = screen.getByRole("region", { name: "Welcome aboard, Rylee." });
+    expect(within(guide).getByText("Renai:")).toBeInTheDocument();
+    expect(within(guide).getByText("No rooms yet")).toBeInTheDocument();
+    // Setup's own journal entry is not the person's first note.
+    expect(within(guide).getByText("Not yet")).toBeInTheDocument();
+    expect(within(guide).getByText("Done · Renai is your companion")).toBeInTheDocument();
+    expect(within(guide).getByRole("button", { name: "How rooms connect" })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("speaks in Worlds' plain voice with Sol's mark when the crew is off, and drops the crew line", () => {
+    firstDay({ resident: { key: null, name: "Worlds", portrait: null } });
+    const { container } = render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    const guide = screen.getByRole("region", { name: "Welcome aboard." });
+    expect(within(guide).getByText("Worlds:")).toBeInTheDocument();
+    expect(within(guide).queryByText(/Meet your crew/)).not.toBeInTheDocument();
+    expect(
+      Array.from(container.querySelectorAll("img")).some((i) => i.getAttribute("src")?.endsWith("sol-mark.webp")),
+    ).toBe(true);
+  });
+
+  it("stays put away once put away, on this device", () => {
+    firstDay({});
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Put this away" }));
+    expect(screen.queryByRole("region", { name: /Welcome aboard/ })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("pw-first-day-guide")).toBe("hidden");
+  });
+
+  it("isn't shown while it can't yet tell what's done", () => {
+    firstDay({});
+    hookState.journal = { isPending: true, data: undefined };
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    expect(screen.queryByRole("region", { name: /Welcome aboard/ })).not.toBeInTheDocument();
+  });
+
+  it("says an unreachable system as a count, not a lone alarm word", () => {
+    firstDay({});
+    hookState.briefing = {
+      ...hookState.briefing,
+      data: {
+        ...BRIEFING,
+        status: "unavailable",
+        data: {
+          ...BRIEFING.data,
+          systems: SYSTEM_LIST.map((s, i) => ({ ...s, status: i === 0 ? "unavailable" : "healthy" })),
+        },
+      },
+    };
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    expect(screen.getByText("1 system can’t be reached")).toBeInTheDocument();
+  });
+});

@@ -39,11 +39,14 @@ import { RoomsPanel } from "../../components/RoomsPanel";
 import { WorldAssistant } from "../../components/WorldAssistant";
 import { chooseDefaultSystem, knownArea, trayOverflow } from "./geometry";
 import { StarMap } from "./StarMap";
+import { FirstDayGuide } from "./FirstDayGuide";
 
 interface BridgeProps {
   /** State-driven activation, identical to the nav buttons. */
   onOpenArea: (id: WorldAreaId) => void;
   onOpenAssistant: () => void;
+  /** Opens the Crew page (a Settings page, not a nav landmark). */
+  onOpenCrew?: () => void;
 }
 
 
@@ -66,7 +69,7 @@ function isPhoneLayout(): boolean {
  *  meaning; colour is reinforcement only). */
 const CALM_ACCENT = "var(--pw-accent-warm)";
 
-export function Bridge({ onOpenArea, onOpenAssistant }: BridgeProps) {
+export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew }: BridgeProps) {
   const briefing = useBriefing();
   const place = usePlace();
   const setPlace = useSetPlace();
@@ -161,7 +164,15 @@ export function Bridge({ onOpenArea, onOpenAssistant }: BridgeProps) {
   const selected =
     systems.find((s) => s.id === activeId) ?? systems[0] ?? null;
   const arrivals = systems.reduce((n, s) => n + (s.counts?.arrivals ?? 0), 0);
-  const overall = statusWord(briefing.data?.status ?? "unknown");
+  // The overall word, said as a count when systems can't be reached: a
+  // lone "Unavailable" on day one reads as an alarm; the number is the
+  // same truth, in plainer words.
+  const unreachable = systems.filter((s) => toCapabilityStatus(s.status) === "unavailable").length;
+  const overallRaw = toCapabilityStatus(briefing.data?.status ?? "unknown");
+  const overall =
+    overallRaw === "unavailable" && unreachable > 0
+      ? `${unreachable} ${unreachable === 1 ? "system" : "systems"} can’t be reached`
+      : statusWord(briefing.data?.status ?? "unknown");
 
   return (
     <BridgeFrame>
@@ -197,6 +208,9 @@ export function Bridge({ onOpenArea, onOpenAssistant }: BridgeProps) {
             </p>
           )}
         </header>
+
+        {/* ── First day aboard — until it's put away or all done ──── */}
+        <FirstDayGuide data={data} onOpenArea={onOpenArea} onOpenCrew={onOpenCrew} />
 
         {/* ── Needs you — a calm tray, never red ──────────────────── */}
         <NeedsTray data={data} onPick={(item) =>

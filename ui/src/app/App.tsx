@@ -1,5 +1,5 @@
 /**
- * App — Project Worlds vNext shell.
+ * App — the Worlds shell.
  *
  * Accessibility contract §5.1 canonical DOM order:
  *   skip-link → navigation → main → complementary
@@ -139,6 +139,7 @@ export function App() {
           <Bridge
             onOpenArea={setActiveArea}
             onOpenAssistant={() => setDrawerOpen(true)}
+            onOpenCrew={() => setActiveArea("crew")}
           />
         );
       case "memory":
@@ -209,7 +210,7 @@ export function App() {
           </div>
           <div className="hidden sm:block">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--pw-text-primary)]">
-              Project Worlds
+              Worlds
             </p>
           </div>
         </div>
@@ -328,7 +329,7 @@ function StatusStrip() {
         </p>
       </div>
       <div className="hidden sm:flex gap-4 text-[length:var(--pw-typography-size_micro)] font-mono uppercase tracking-[0.14em] text-[var(--pw-text-muted)]">
-        <span>Project Worlds</span>
+        <span>Worlds</span>
       </div>
     </footer>
   );

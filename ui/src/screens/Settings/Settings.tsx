@@ -52,6 +52,7 @@ import {
   toCapabilityStatus,
 } from "../../data/types";
 import { WorldButton } from "../../components/WorldButton";
+import { setFirstDayHidden, useFirstDayHidden } from "../Bridge/firstDay";
 import { VaultTool } from "../Vault/Vault";
 import { THEMES, type ThemeName } from "../../generated/tokens";
 import {
@@ -751,6 +752,8 @@ export function Settings({ onOpenCrew }: { onOpenCrew?: () => void } = {}) {
           </section>
         )}
 
+        <FirstDayToggle />
+
         <SectionsManager
           serverSections={editableSections}
           onReorder={handleReorderSections}
@@ -794,5 +797,31 @@ export function Settings({ onOpenCrew }: { onOpenCrew?: () => void } = {}) {
         </section>
       </main>
     </>
+  );
+}
+
+/** Brings the Bridge's first-day guide back after it was put away. It
+ *  still hides itself once every line is done. */
+function FirstDayToggle() {
+  const hidden = useFirstDayHidden();
+  if (!hidden) return null;
+  return (
+    <section
+      aria-labelledby="settings-firstday-heading"
+      className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+    >
+      <div className="min-w-0 flex-1">
+        <h2
+          id="settings-firstday-heading"
+          className="mb-[var(--pw-spacing-xs)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
+        >
+          First-day guide
+        </h2>
+        <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          You put it away on this device. Bring it back to the Bridge?
+        </p>
+      </div>
+      <WorldButton onPress={() => setFirstDayHidden(false)}>Show the first-day guide</WorldButton>
+    </section>
   );
 }
