@@ -80,6 +80,8 @@ import type {
   CrewEntry,
   RoomKeeper,
   RoomActionReceipt,
+  Me,
+  Person,
 } from "./contract";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -621,6 +623,24 @@ export async function postRoomAction(
   await unwrap<unknown>(Promise.resolve(result));
   throw new ApiError(result.response.status, "The room answered without a receipt.");
 }
+
+// GET /api/me: who I am and what I may do.
+export const getMe = () => unwrap<Envelope<Me>>(getRequest("/api/me"));
+
+// GET /api/people: everyone, with roles (manage_people only; 403 otherwise).
+export const getPeople = () => unwrap<Envelope<Person[]>>(getRequest("/api/people"));
+
+// PUT /api/people/{id}/role: manage_people + "Confirm it's you" (step-up).
+export const putPersonRole = (id: string, role: string) =>
+  unwrap<Envelope<{ id: string; display_name: string | null; role: string }>>(
+    sendBody("PUT", `/api/people/${encodeURIComponent(id)}/role`, { role }),
+  );
+
+// POST /api/people/transfer-ownership: owner only + step-up; `to` must be an admin.
+export const postTransferOwnership = (to: string) =>
+  unwrap<Envelope<{ from: string; to: string }>>(
+    sendBody("POST", "/api/people/transfer-ownership", { to }),
+  );
 
 // GET /api/crew: this person's own companions, hidden ones included.
 export const getCrew = () => unwrap<Envelope<CrewEntry[]>>(getRequest("/api/crew"));

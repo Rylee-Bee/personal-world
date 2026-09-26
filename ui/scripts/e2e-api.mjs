@@ -569,6 +569,23 @@ const RECORD_ITEMS = [
 // mechanism). Seeded granted like a loopback session on the real
 // station; specs exercise the 409 invitation through page.route
 // overrides so parallel workers never race this flag.
+// People and roles (docs/IDENTITY-BOUNDARY.md). Made-up people only.
+// The operator is the owner. Role writes need a fresh "Confirm it's you":
+// the first PUT answers 403 "write requires step-up auth" until
+// POST /api/auth/step-up grants it.
+const PEOPLE_SEED = [
+  { id: "person:operator", display_name: "Sam", role: "owner", kind: "person", created_at: "2026-09-01T09:00:00Z" },
+  { id: "person:jo", display_name: "Jo", role: "admin", kind: "person", created_at: "2026-09-02T09:00:00Z" },
+  { id: "person:alex", display_name: "Alex", role: "member", kind: "person", created_at: "2026-09-03T09:00:00Z" },
+  { id: "person:robin", display_name: "Robin", role: "supervised", kind: "person", created_at: "2026-09-04T09:00:00Z" },
+  { id: "person:kit", display_name: "Kit", role: "guest", kind: "person", created_at: "2026-09-05T09:00:00Z" },
+  { id: "agent:bolt", display_name: "Bolt", role: null, kind: "agent", created_at: "2026-09-06T09:00:00Z" },
+];
+let PEOPLE = structuredClone(PEOPLE_SEED);
+let PEOPLE_STEP_UP = false;
+const OWNER_PERMISSIONS = ["own_space", "see_shared", "approve", "manage_people", "manage_rooms", "estate_secrets", "updates", "transfer_ownership"];
+const ADMIN_PERMISSIONS = OWNER_PERMISSIONS.filter((x) => x !== "transfer_ownership");
+
 let RECORD_STEP_UP_GRANTED = true;
 let recordSeq = 0;
 
@@ -1083,6 +1100,8 @@ const server = http.createServer(async (req, res) => {
     VISITS = {};
     RESUME = null;
     for (const k of Object.keys(SEEN)) delete SEEN[k];
+    PEOPLE = structuredClone(PEOPLE_SEED);
+    PEOPLE_STEP_UP = false;
     return json(res, 200, ok("healthy", { reset: true }));
   }
   if (method === "GET" && p === "/api/journal") {
@@ -1243,6 +1262,7 @@ const server = http.createServer(async (req, res) => {
     const token = String(body?.token ?? "").trim();
     if (!token) return json(res, 403, { detail: "step-up credential invalid" });
     RECORD_STEP_UP_GRANTED = true;
+    PEOPLE_STEP_UP = true;
     return json(res, 200, {
       ok: true,
       data: { has_step_up: true, expires_in: 300, principal_id: "person:operator" },
@@ -1253,6 +1273,38 @@ const server = http.createServer(async (req, res) => {
   {
     const handled = recordsRoutes(req, res, url, method);
     if (handled !== null) return handled;
+  }
+  if (method === "GET" && p === "/api/me") {
+    const me = PEOPLE.find((x) => x.id === "person:operator");
+    const perms = me.role === "owner" ? OWNER_PERMISSIONS : me.role === "admin" ? ADMIN_PERMISSIONS : ["own_space", "see_shared"];
+    return json(res, 200, { ok: true, data: { id: me.id, display_name: me.display_name, role: me.role, permissions: perms } });
+  }
+  if (method === "GET" && p === "/api/people") {
+    return json(res, 200, { ok: true, data: PEOPLE });
+  }
+  const roleMatch = p.match(/^\/api\/people\/([^/]+)\/role$/);
+  if (method === "PUT" && roleMatch) {
+    if (!PEOPLE_STEP_UP) return json(res, 403, { detail: "write requires step-up auth" });
+    const id = decodeURIComponent(roleMatch[1]);
+    const body = (await readBody(req)) ?? {};
+    const target = PEOPLE.find((x) => x.id === id && x.kind === "person");
+    if (!["member", "admin", "supervised", "guest"].includes(body.role)) return json(res, 422, { detail: "unknown role" });
+    if (!target) return json(res, 404, { detail: "no such person" });
+    if (target.role === "owner") return json(res, 403, { detail: "the owner's role cannot be changed here" });
+    if (id === "person:operator") return json(res, 403, { detail: "admins cannot change their own role" });
+    target.role = body.role;
+    return json(res, 200, { ok: true, data: { id, display_name: target.display_name, role: target.role } });
+  }
+  if (method === "POST" && p === "/api/people/transfer-ownership") {
+    if (!PEOPLE_STEP_UP) return json(res, 403, { detail: "write requires step-up auth" });
+    const body = (await readBody(req)) ?? {};
+    const owner = PEOPLE.find((x) => x.role === "owner");
+    const to = PEOPLE.find((x) => x.id === body.to && x.kind === "person");
+    if (!to) return json(res, 404, { detail: "no such person" });
+    if (to.role !== "admin") return json(res, 422, { detail: "ownership can only transfer to an admin" });
+    owner.role = "admin";
+    to.role = "owner";
+    return json(res, 200, { ok: true, data: { from: owner.id, to: to.id } });
   }
   if ((method === "GET" || method === "PUT") && p === "/api/identity/principal") {
     return json(res, 200, ok("healthy", {

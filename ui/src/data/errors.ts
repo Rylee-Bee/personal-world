@@ -31,3 +31,10 @@ export function isStepUpGate(err: unknown): boolean {
 export function isLockedRefusal(err: unknown): boolean {
   return err instanceof ApiError && err.status === 409;
 }
+
+/** True when a write was refused only because the session needs a
+ *  fresh "Confirm it's you" (require_step_up), not because the person
+ *  lacks the permission. */
+export function needsConfirm(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 403 && /step-up/i.test(err.message);
+}
