@@ -40,7 +40,7 @@
  * animation.
  */
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useMarkNeedSeen, useRooms } from "../data/hooks";
 import type {
   RoomKeeper,
@@ -421,6 +421,12 @@ function RoomsBody({
   const groups = groupRooms(rows);
   const needingCount = groups.doorways.length + groups.alsoNeeds.length;
   const quietOpen = quietChoice ?? needingCount === 0;
+  // Many rooms: a name filter over the corridor (doorways stay put).
+  const [query, setQuery] = useState("");
+  const q = rows.length >= FIND_AT ? query.trim().toLowerCase() : "";
+  const searching = q.length > 0;
+  const match = searching ? filterGroups(groups, q) : groups;
+  const quietShown = searching || quietOpen;
 
   const summary = [
     needingCount > 0
@@ -476,23 +482,35 @@ function RoomsBody({
         </div>
       )}
 
-      <CorridorGroup title="Also needs you" rows={groups.alsoNeeds} showInteriors={showInteriors} showKeepers={showKeepers} />
-      <CorridorGroup title="Unknown, unreachable or incompatible" rows={groups.uncertain} showInteriors={showInteriors} showKeepers={showKeepers} />
-      <CorridorGroup title="Other rooms" rows={groups.other} showInteriors={showInteriors} showKeepers={showKeepers} />
+      {rows.length >= FIND_AT && (
+        <FindRoom
+          query={query}
+          onQuery={setQuery}
+          matching={corridorCount(match)}
+          total={corridorCount(groups)}
+        />
+      )}
 
-      {groups.quiet.length > 0 && (
+      <CorridorGroup title="Also needs you" rows={match.alsoNeeds} showInteriors={showInteriors} showKeepers={showKeepers} />
+      <CorridorGroup title="Unknown, unreachable or incompatible" rows={match.uncertain} showInteriors={showInteriors} showKeepers={showKeepers} />
+      <CorridorGroup title="Other rooms" rows={match.other} showInteriors={showInteriors} showKeepers={showKeepers} />
+
+      {match.quiet.length > 0 && (
         <div className="flex flex-col gap-[var(--pw-spacing-sm)]">
           <button
             type="button"
-            aria-expanded={quietOpen}
+            aria-expanded={quietShown}
             aria-controls="rooms-quiet"
             onClick={() => onToggleQuiet(!quietOpen)}
-            className={`${LINK_BASE} self-start border border-[var(--pw-border-subtle)] bg-transparent text-[var(--pw-text-primary)]`}
+            disabled={searching}
+            className={`${LINK_BASE} self-start border border-[var(--pw-border-subtle)] bg-transparent text-[var(--pw-text-primary)] disabled:opacity-80`}
           >
-            {`${plural(groups.quiet.length, "quiet room", "quiet rooms")}, all healthy · ${quietOpen ? "Hide" : "Show"}`}
+            {searching
+              ? `${plural(match.quiet.length, "quiet room", "quiet rooms")}, all healthy`
+              : `${plural(groups.quiet.length, "quiet room", "quiet rooms")}, all healthy · ${quietOpen ? "Hide" : "Show"}`}
           </button>
-          <ul id="rooms-quiet" hidden={!quietOpen} className="flex flex-col gap-[var(--pw-spacing-sm)]">
-            {groups.quiet.map((row) => (
+          <ul id="rooms-quiet" hidden={!quietShown} className="flex flex-col gap-[var(--pw-spacing-sm)]">
+            {match.quiet.map((row) => (
               <CorridorRow
                 key={row.id}
                 row={row}
@@ -504,6 +522,75 @@ function RoomsBody({
         </div>
       )}
     </>
+  );
+}
+
+/** Past this many rooms, the corridor gets a "Find a room" filter. */
+const FIND_AT = 12;
+
+function roomMatches(row: RoomRow, q: string): boolean {
+  return roomName(row).toLowerCase().includes(q) || row.id.toLowerCase().includes(q);
+}
+
+function filterGroups(groups: ReturnType<typeof groupRooms>, q: string): ReturnType<typeof groupRooms> {
+  return {
+    ...groups,
+    alsoNeeds: groups.alsoNeeds.filter((r) => roomMatches(r, q)),
+    uncertain: groups.uncertain.filter((r) => roomMatches(r, q)),
+    other: groups.other.filter((r) => roomMatches(r, q)),
+    quiet: groups.quiet.filter((r) => roomMatches(r, q)),
+  };
+}
+
+function corridorCount(g: ReturnType<typeof groupRooms>): number {
+  return g.alsoNeeds.length + g.uncertain.length + g.other.length + g.quiet.length;
+}
+
+function FindRoom({
+  query,
+  onQuery,
+  matching,
+  total,
+}: {
+  query: string;
+  onQuery: (q: string) => void;
+  matching: number;
+  total: number;
+}) {
+  const id = useId();
+  const searching = query.trim().length > 0;
+  return (
+    <div className="flex flex-col gap-[var(--pw-spacing-xs)]">
+      <label htmlFor={id} className="text-[length:var(--pw-typography-size_small)] font-semibold text-[var(--pw-text-primary)]">
+        Find a room
+      </label>
+      <div className="flex flex-wrap items-center gap-[var(--pw-spacing-sm)]">
+        <input
+          id={id}
+          type="search"
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          aria-describedby={`${id}-count`}
+          className="min-h-[var(--pw-targets-minimum)] min-w-0 flex-1 rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] px-[var(--pw-spacing-md)] text-[var(--pw-text-primary)] sm:max-w-[22rem]"
+        />
+        {searching && (
+          <button
+            type="button"
+            onClick={() => onQuery("")}
+            className={`${LINK_BASE} border border-[var(--pw-border-subtle)] bg-transparent text-[var(--pw-text-primary)]`}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <p id={`${id}-count`} role="status" className="text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
+        {searching
+          ? matching === 0
+            ? `No room below matches “${query.trim()}”.`
+            : `${matching} of ${plural(total, "room", "rooms")} below match “${query.trim()}”.`
+          : `${plural(total, "room", "rooms")} below. Type part of a name to narrow them.`}
+      </p>
+    </div>
   );
 }
 
