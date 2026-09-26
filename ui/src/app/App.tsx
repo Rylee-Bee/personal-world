@@ -209,7 +209,7 @@ export function App() {
             <span className="text-[var(--pw-accent-primary)] text-sm">✦</span>
           </div>
           <div className="hidden sm:block">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--pw-text-primary)]">
+            <p className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.14em] text-[var(--pw-text-primary)]">
               Worlds
             </p>
           </div>
