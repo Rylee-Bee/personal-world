@@ -1,5 +1,9 @@
 # Brain Templates — plain-markdown editing guide
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** how brain/chat prompt templates are written, composed, and overridden · **Read this if:** you are editing chat prompt text or adding a persona/surface/task template.
+
+**In short:** chat prompts are plain markdown files, not code. This page shows where they live (`config/prompts/`), the front-matter format, how `POST /api/chat` composes them, the read-only discovery API, and the edit workflow (edit the file, commit it — no restart, no code change).
+
 First-class agent templates (decision #18): a small local brain (Qwen3
 1.7B, ADR 0002) is kept on-task by the tool registry (hands) and these
 templates (focus). **Templates are plain markdown files. Editing,
@@ -12,9 +16,10 @@ re-reads the tree on every chat call and every `GET /api/templates`.
 config/prompts/
   core/       always composed, in sorted id order (identity, truth rules,
               tool-use discipline, uncertainty handling)
-  personas/   companion personalities — composed when the template id
-              matches the owner's `companion` preference
-              (e.g. companion=mermaid → persona.mermaid)
+  personas/   companion personalities — composed as `persona.<name>`
+              (e.g. `persona.mermaid`) only when the `personality_pack`
+              preference is on (it is on by default) and the chosen
+              companion has canon persona copy
   surfaces/   per-UI-route focus (surface.lab is composed when the chat
               caller reports route "/lab")
   tasks/      per-task focus (task.inspect, task.search, …), selected by

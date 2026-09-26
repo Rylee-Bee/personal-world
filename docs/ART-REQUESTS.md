@@ -1,12 +1,18 @@
 # ART REQUESTS — what to ask for, and how to ask
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** how to phrase crew/area art requests so new work matches the existing style · **Read this if:** you are commissioning or generating new art.
+
+**Display names:** see `docs/COMPANION-CANON.md` — some request text below predates the 2026-09-25 name updates (Sol, Scoop).
+
+**In short:** the style clause to paste first, the priority list of assets, per-character one-line briefs, and copy-paste request blocks. It records what has already been delivered so nothing is re-requested.
+
 Status: a practical request sheet. Grounded in the owner crew sheet
 (`design/screens/crew.png`) and `docs/CHARACTER-HANDBOOK.md`. Companions are
 described in `docs/COMPANION-CANON.md`. Art direction: `design/COMPANION_INTEGRATION.md` → "Art direction".
 
 ## 1. Paste this first — the style clause
 
-> Match the Project Worlds crew sheet. Every character wears the **same dark
+> Match the Worlds crew sheet. Every character wears the **same dark
 > uniform with gold trim and the same combadge**. Pastel-to-saturated palette,
 > crisp dark outlines, large expressive eyes with highlights, rosy cheeks,
 > sparkle accents. Warm, painterly, cozy lighting on a deep navy / space
@@ -57,22 +63,22 @@ Bruma and Mira now have transparent cutouts (Mira delivered 2026-09-18); vector
 SVGs are still outstanding. Paste the clause as-is when commissioning.
 
 - **Hekek** — "A retired paladin dwarf turned station engineer; Builder ·
-  Maintainer · Steward; broad, steady and practical, wearing the Project Worlds
+  Maintainer · Steward; broad, steady and practical, wearing the Worlds
   navy-and-gold crew uniform adapted into a durable engineering coat and apron,
   carrying well-used tools and subtle relics of his paladin life; maintenance as
   care, repair over spectacle."
 - **Bruma** — "A gentle polar bear librarian who tends the Vault; Archivist ·
-  Keeper · Witness; large, calm and reassuring, wearing the Project Worlds
+  Keeper · Witness; large, calm and reassuring, wearing the Worlds
   navy-and-gold crew uniform as a warm librarian mantle, surrounded by carefully
   kept books, provenance cards, archive ribbons and lamplight; preservation
   without possessiveness."
 - **Mira** — "A bright, slightly forgetful young Observatory investigator;
   Observer · Note-Taker · Pattern Seeker; curious and capable, wearing the
-  Project Worlds navy-and-gold crew uniform as a practical astronomer's jacket,
+  Worlds navy-and-gold crew uniform as a practical astronomer's jacket,
   carrying notebooks and observing tools; she may forget the name, but remembers
   the shape of the pattern."
 - **Settings** *(icon, not a character)* — "A simple stylized bed, pillow and
-  folded blanket in the Project Worlds navy-and-gold icon language, with a tiny
+  folded blanket in the Worlds navy-and-gold icon language, with a tiny
   optional celestial accent; calm, private and instantly readable at small
   sizes."
 
@@ -159,7 +165,7 @@ to `design/screens/` and `design/assets/station/`.
 
 ### Prefix — paste this under every request below
 
-> **Style:** match the Project Worlds crew sheet — the same dark uniform with gold
+> **Style:** match the Worlds crew sheet — the same dark uniform with gold
 > trim and the shared **planet combadge**; pastel-to-saturated palette; crisp dark
 > outlines; large expressive eyes; rosy cheeks; sparkle accents; warm painterly
 > light on a deep navy field; **cute but competent** (not infantilised). Keep it

@@ -1,5 +1,11 @@
 # ADR-0005: Network overlay behind a `NetworkOverlay` contract (Headscale + Tailscale; NetBird dropped)
 
+> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** the replaceable network-overlay direction (proposed, review-only) · **Read this if:** you are touching mesh networking for Nodes.
+
+**Scope note:** proposed and review-only. `.project/PLAN.md` wins on scope and sequencing. (Filename keeps the original `netbird` slug; the decision dropped NetBird.)
+
+**In short:** proposed, not accepted. If accepted, Worlds owns a generic `NetworkOverlay` contract, first implemented by `HeadscaleAdapter` (BSD-3 `juanfont/headscale` + BSD-3 Tailscale clients, no paid gate); NetBird was dropped for its open-core paid tier and AGPL relicensing. Nothing ships; the first slice uses SSH + the existing `lab` CLI.
+
 - Status: **proposed** (review-only per owner D22; license gate cleared)
 - Date: 2026-09-21 — **supersedes** the same-day NetBird-preferred draft
 - Enforced by: the `NetworkOverlay` adapter contract; `personal-world framework validate`

@@ -1,6 +1,10 @@
 # Contributing and support
 
-Project Worlds is in active development. Start with the [README](README.md)
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** how to make and land a small, reviewable change · **Read this if:** you want to contribute a fix or a reviewable PR.
+
+**In short:** where to start reading, how to keep a change small and reviewable, the commands to run before opening a PR, and the public-repo rules (synthetic examples only — no live endpoints, identities, tokens, or personal data).
+
+Worlds is in active development. Start with the [README](README.md)
 and [architecture](docs/ARCHITECTURE.md); the full map is the
 [documentation index](docs/INDEX.md), and design work starts at the
 [Workshop v3 design authority](.project/design/CURRENT.md) (the
@@ -20,8 +24,10 @@ for security concerns. There is no support response-time guarantee.
 3. Use synthetic examples. Never include live endpoints, personal identities,
    tokens, private keys, local configuration, journal data, logs or backups.
    Inspect archives and image metadata before uploading them.
-4. Run `uv sync --frozen --extra test`, `uv run pytest --timeout=30`, and
+4. Run `uv sync --frozen --extra test --extra crypto`,
+   `uv run --extra test --extra crypto pytest --timeout=30`, and
    `uv run personal-world framework validate --json` from the repository root.
+   (CI runs the same sync line; see [`docs/CI-ENVIRONMENT-NOTES.md`](docs/CI-ENVIRONMENT-NOTES.md).)
 5. Open a PR explaining the behavior, evidence, and remaining limitations.
    A passing local check is not evidence of a deployed runtime.
 

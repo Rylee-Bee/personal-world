@@ -1,6 +1,10 @@
 # Dev reset — ephemeral sessions by design
 
-Project Worlds is a **universal** self-hosted app. During development, sessions
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the `scripts/reset-dev.sh` wipe procedure and its safety rules · **Read this if:** you need to return a development instance to a clean first-run state.
+
+**In short:** how to wipe a development instance back to the setup wizard, and the safety rules that keep the wipe from touching tracked files or production. Default is dry-run; nothing is removed without `--yes-i-wipe`.
+
+Worlds is a **universal** self-hosted app. During development, sessions
 are **ephemeral**: we wipe generated state and return to a clean first-run
 (setup wizard) rather than accumulating personal or experimental data.
 

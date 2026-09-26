@@ -1,9 +1,16 @@
 # Wiring Readiness — Project Worlds
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../../.project/CURRENT.md)) · **Read this if:** you need the dated SHA `60823ae` GREEN/YELLOW/RED assessment for provenance · **Superseded by:** the running code and [`.project/CURRENT.md`](../../.project/CURRENT.md).
+
+**In short:** a GREEN/YELLOW/RED/GRAY read on each subsystem plus
+default-provider candidates, taken at SHA `60823ae` before the 2026-09-22
+interface flip. It is a past assessment, not current state — the rows
+naming `frontend/`, `PW_FRONTEND*`, or the pre-flip screen set describe
+that earlier tree. No wiring was performed in this pass.
+
 Assessment for the next pass: **find what is not wired, wire it,
 establish default local providers, make API/runtime coherent
-end-to-end.** Verified against code at SHA `60823ae` (landed on `main`
-via PR #50, merge `1701476`). No wiring was performed in this pass.
+end-to-end.** Landed on `main` via PR #50 (merge `1701476`).
 
 Legend: **GREEN** fully wired · **YELLOW** partial / bypass / duplicate ·
 **RED** broken / stubbed / orphaned · **GRAY** intentionally deferred.

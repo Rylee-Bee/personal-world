@@ -4,6 +4,10 @@
 # origin/main: fffc11b
 # commits ahead of main: 22
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the 2026-09-13 post-Connections issue-reconciliation record. · **Superseded by:** `.project/CURRENT.md`.
+
+**In short:** a 2026-09-13 reconciliation receipt recording issue closures, branch state and a 726-test claim. Kept for provenance; the issue list is frozen in time. Since this record: the architecture branch has long since merged and the product is called Worlds.
+
 ---
 
 ## TESTS

@@ -1,6 +1,10 @@
 # Project Worlds — API Wiring Handoff (Final)
 # Every endpoint accounted for. Nothing forgotten.
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the 2026-09-13 endpoint-disposition handoff (68 endpoints, 19 read tools). · **Superseded by:** `.project/CURRENT.md`.
+
+**In short:** a 2026-09-13 handoff classifying every endpoint as UI-wired, tool-wired, internal, gap or deferred, with 68 endpoints and 19 read tools. Kept for provenance; treat no count as current. Since this record: the product is called Worlds and many of these surfaces have since been built out or retired.
+
 ---
 
 ## Endpoint Disposition

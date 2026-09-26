@@ -1,13 +1,8 @@
 # Construction-era and epoch narrative (historical)
 
-> **HISTORICAL — retained for provenance; not current implementation
-> guidance.** Extracted verbatim from `.project/CURRENT.md` on
-> 2026-09-15 so the canonical current-state pointer stays a summary
-> rather than a 700-line narrative. Counts, test totals, and feature
-> claims below are as of the dates shown and have not been re-verified.
-> For current state read [`.project/CURRENT.md`](../../.project/CURRENT.md);
-> for implemented scope read [`README.md`](../../README.md) and
-> [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md).
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you want the dated 2026-09-12→14 feature-slice narrative. · **Superseded by:** `.project/CURRENT.md`.
+
+**In short:** the construction-era narrative (Projects workspace, journal supersede, agent-sync estate, Gitea retirement, GHCR, the identity pass and the integration truth pass), extracted verbatim from `.project/CURRENT.md` on 2026-09-15 so the current-state pointer stays a summary. Counts and feature claims are as of the dates shown and have not been re-verified; for current state read [`.project/CURRENT.md`](../../.project/CURRENT.md), and for implemented scope read [`README.md`](../../README.md) and [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md).
 
 ## What works today
 

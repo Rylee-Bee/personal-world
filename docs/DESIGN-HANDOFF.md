@@ -1,28 +1,15 @@
 # Project Worlds — Design Handoff (V0.1)
 
-> [!WARNING]
-> **⚠️ V0.1 HISTORICAL BASELINE — superseded as current truth (2026-09-20).**
-> This document is the **V0.1 historical baseline**, not the current product.
-> Its "implemented today" statements are dated to the V0.1 era (commit
-> `7c16a61`+): the hash-routed `DASHBOARD_HTML` described in §B **no longer
-> exists** — the 2026-09-16 Station-only cutover removed it, and `/` now
-> redirects to `/station/` (vNext is served side-by-side at `/vnext/`).
-> **Settings-write now exists** (`PUT /api/prefs`, step-up gated) — §E's
-> "not implemented" row is stale. `design/rylee-lab/tokens.css` (§J) **no
-> longer exists.** Current product truth:
-> [`docs/INDEX.md`](INDEX.md) + [`.project/CURRENT.md`](../.project/CURRENT.md).
-> The accessibility contract and the architectural *intent* below remain
-> useful as provenance; treat everything else as dated.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the V0.1 design baseline and the accessibility/architectural intent behind today's product · **Superseded by:** `.project/CURRENT.md`
+
+**In short:** the V0.1 design-stage handoff — product purpose, information architecture, status vocabulary, accessibility contract, and design constraints as they stood at commit `7c16a61`+. It is provenance now, not current product truth.
+
+**What changed since:** the server-rendered `DASHBOARD_HTML` SPA it describes is gone (removed in the 2026-09-16 Station-only cutover, and the 2026-09-22 React `ui/` flip replaced the Station with the **Bridge** — `ui/src/app/App.tsx`); `/` now serves the Bridge home screen, not a redirect to `/station/`; themes ship as theme packages (`ui/THEMES.md`); `design/rylee-lab/tokens.css` (§J) no longer exists; Settings-write now exists (`PUT /api/prefs`, step-up gated), so §E's "not implemented" row is stale. Current product truth: [`.project/CURRENT.md`](../.project/CURRENT.md).
 
 (Formerly "Personal World" — product renamed 2026-09-12; the design it
 describes is unchanged. Technical identifiers unchanged.)
 
-**Status: canonical design reference** (as of V0.1; superseded sections
-are marked inline). **For: the Figma design stage.** This document describes
-the ACTUAL implemented product as of V0.1 (commit `7c16a61`+). It is
-sanitized: no credentials, no tokens, no personal journal contents, no
-private lore, no real indexer/client names. All examples below are either
-real structural output or clearly synthetic.
+**V0.1 design reference** (superseded sections are marked inline). **For: the Figma design stage.** This document describes the ACTUAL implemented product as of V0.1 (commit `7c16a61`+). It is sanitized: no credentials, no tokens, no personal journal contents, no private lore, no real indexer/client names. All examples below are either real structural output or clearly synthetic.
 
 > **Target-state note:** this document remains the canonical V0.1 design-stage
 > design reference. It is not the definition of the finished product.
@@ -32,17 +19,12 @@ real structural output or clearly synthetic.
 > to understand the destination; architecture, security, accessibility, and
 > human-reliability contracts continue to govern both.
 
-> **Current implementation reconciliation (2026-09-10):** the inventories,
-> endpoint examples, auth experience, and "not implemented" labels below are
-> the dated V0.1 baseline, not today's feature inventory. Current navigation is
-> Today / Chat / World / Journal / Vault / Settings. Native Vault, editable
-> Services, journal notes, reminders, setup wizard, preference writes, identity
-> foundations, and forge/ingress rollups now have implementation. Theme manifest
-> loading exists, while complete frontend pack integration remains partial.
-> Current auth is token/principal-based; verified provider-neutral SSO is still
-> target work. Use [Architecture](ARCHITECTURE.md), [README](../README.md), and
-> the canonical [responsive rules](accessibility/RESPONSIVE_RULES.md) and
-> [walkthrough](accessibility/SCREEN_READER_WALKTHROUGH.md) for current behavior.
+> **Implementation reconciliation (2026-09-10, kept as dated provenance):** the
+> inventories, endpoint examples, auth experience, and "not implemented" labels
+> below are the V0.1 baseline, not today's feature inventory. For current behavior
+> use [Architecture](ARCHITECTURE.md) and the canonical
+> [responsive rules](accessibility/RESPONSIVE_RULES.md) and
+> [screen-reader walkthrough](accessibility/SCREEN_READER_WALKTHROUGH.md).
 > Historical screen proposals below do not supersede those sources or the
 > accessibility contract.
 
@@ -236,8 +218,9 @@ framework; one HTML template string in `src/personal_world/api.py`
 
 > **[SUPERSEDED 2026-09-16]** — the route table below describes the
 > `DASHBOARD_HTML` SPA, deleted in the Station-only cutover; "implemented
-> today" is no longer true. Production routing today: `/` → `/station/`
-> (vNext side-by-side at `/vnext/`). Kept verbatim as V0.1 baseline.
+> today" is no longer true. That cutover is itself superseded: `/` now serves
+> the Bridge home screen in the React `ui/` app, not `/station/`. Kept verbatim
+> as V0.1 baseline.
 
 | Route | Purpose | Status | Primary tasks | Data source |
 |---|---|---|---|---|
@@ -554,6 +537,10 @@ preference exists in the schema.
 ---
 
 ## O. Reproducing current states locally
+
+**V0.1 recipe — no longer accurate.** There is no `docker-compose.yml` in the repo
+today; run the backend and the `ui/` dev loop as described in
+[CONTRIBUTING](../CONTRIBUTING.md). Kept verbatim as V0.1 baseline.
 
 ```bash
 git clone <personal-world repo> && cd personal-world

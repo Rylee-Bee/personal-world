@@ -1,8 +1,8 @@
-# DEV-ENVIRONMENT — setting up to work on Project Worlds
+# DEV-ENVIRONMENT — setting up to work on Worlds
 
-Status: canonical dev-setup reference. Audience: a human or an agent about to
-run, test, or contribute to Project Worlds. Keep it short and true; this is a
-floor, not a manual.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the dev-setup floor (tools, verify commands, environment hygiene) · **Read this if:** you are about to run, test, or contribute to Worlds.
+
+**In short:** the minimum toolchain to clone, run and test Worlds, plus a few hard-won environment rules. One canonical install per tool; this is a floor, not a manual. For the user-facing install, see [QUICKSTART.md](QUICKSTART.md).
 
 ## Principle
 
@@ -26,12 +26,15 @@ data. See [QUICKSTART.md](QUICKSTART.md) for the user-facing version.
 ## Verify a checkout
 
 ```bash
-uv run pytest --timeout=30
+uv run --extra test --extra crypto pytest --timeout=60 -o addopts="" -q
 uv run personal-world framework validate --json
 cd ui && npx playwright test   # boots the real app with a seeded fixture world
 ```
 
-If all three pass, the checkout is healthy. CI runs the same checks.
+If all three pass, the checkout is healthy. CI runs the same checks plus
+`npx vitest run`, `npx tsc -b`, `npm run lint`, the tokens drift gate
+(`npm run tokens:generate && git diff --exit-code src/generated`), and the
+kit gates (`npm run kit:check`).
 
 ## Recommended agent toolchain (optional)
 

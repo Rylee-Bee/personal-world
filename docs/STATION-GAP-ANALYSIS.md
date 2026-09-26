@@ -1,10 +1,14 @@
 # The Station — gap analysis: why it doesn't feel alive / land yet
 
-> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
-> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
-> server-rendered Station is retired (kept as a theme package); `frontend/`
-> paths here are the deleted pre-flip tree. Direction lives in
-> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../.project/CURRENT.md)) · **Read this if:** you need the dated 2026-09-17 source-level gap analysis for provenance · **Superseded by:** the running `ui/` interface and [`.project/CURRENT.md`](../.project/CURRENT.md).
+
+**In short:** a 2026-09-17 evidence-based analysis of why the served
+Station felt static, with line-level citations and top fixes. Since it was
+written, the interface flipped to the React rebuild in `ui/` (2026-09-22,
+Bridge is now home) and the server-rendered Station — including the
+`design/opendesign-exploration/station/` tree cited below — was retired to
+a theme package. Read it as a record, not a current map. Truth routing:
+[`docs/README.md`](README.md).
 
 Status: **analysis** (2026-09-17). Evidence-based, not inspiration.
 Companion reading: `docs/STATION-ALIVE-RESEARCH.md`,

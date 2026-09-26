@@ -1,54 +1,69 @@
-# Project Worlds
+# Worlds
 
-![The Project Worlds crew together — Renai, Ratatoskr, Bolt, the Burrito Journalism truck, and Personal World — in matching uniforms beneath the book-leaf world-tree](design/screens/crew-scene-sept17.png)
+![The Worlds crew together — Renai, Ratatoskr, Bolt, the Burrito Journalism truck, and Personal World — in matching uniforms beneath the book-leaf world-tree](design/screens/crew-scene-sept17.png)
 
-A personal operating environment. One core process with native
-capabilities, a calm personal hub — **Overview · Memory · Chat ·
-Settings**, where the daily loop of orient, remember, resume, and
-discover begins on Overview — and an assistant that proposes but does
-not act without approval.
+> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** nothing (the front door; see `.project/CURRENT.md`) · **Read this if:** you are new here, human or agent.
+
+**In short:** Worlds is a private, self-hosted front door for your life and
+your projects. It brings things to you in plain words: what changed, what
+needs you, and what can wait. It runs on your own hardware and never acts
+without your approval.
+
+## What it is
+
+Worlds is one calm home screen, **the Bridge**, plus a small set of screens
+behind it: **Memory**, **Chat**, **Settings** and **Crew** (and **Interests**,
+which is moving out; see Candy below). A guide (the one Assistant voice, or a
+companion you choose) briefs you on what changed since you last looked.
+
+Worlds is also the **front door for rooms**. A *room* is a separate service
+(your project workshop, your design studio, your homelab, your discovery
+feed) that speaks one small shared contract, `room/0`. Worlds shows every
+room the same way: its status in words, its cards, and what needs you. A room
+that is down shows as down, and never blanks the rest. See
+[docs/ROOMS.md](docs/ROOMS.md).
+
+Worlds is the **design language** too. Its look is exported as the
+framework-free **Worlds kit** (`ui/dist-kit/`), which the other tools vendor,
+so the whole estate looks and feels like one place.
 
 **Stable truth. Replaceable machinery.** Your data stays on your own
-hardware, portable and exportable. The durable core and the hub are
-usable today in a **private technical alpha** — this is not a public
-alpha, and not every visible surface is backed by live personal data;
-parked surfaces are deliberately labelled specimen panels and never
-pretend to be your data.
+hardware, portable and exportable. This is a **private technical alpha**:
+some surfaces are live, some are device-local by design, and parked ones are
+plainly labelled and never pretend to be your data.
 
 > **New here?** Run `./install.sh` and read
-> **[docs/QUICKSTART.md](docs/QUICKSTART.md)** — one command, no config,
+> **[docs/QUICKSTART.md](docs/QUICKSTART.md)**: one command, no config,
 > written for tired and disabled people first.
-> Direction: **[docs/TRUE-NORTH.md](docs/TRUE-NORTH.md)**.
-> (The interface is the React app in `ui/` since the 2026-09-22 flip;
-> the server-rendered Station was retired, kept as a theme package,
-> never deleted. Historical port notes: [docs/PORTING.md](docs/PORTING.md).)
+> Where things stand: **[docs/WHERE-WE-ARE.md](docs/WHERE-WE-ARE.md)** (plain
+> words) and [`.project/CURRENT.md`](.project/CURRENT.md) (for agents).
+> Direction: [`.project/PLAN.md`](.project/PLAN.md) (owner-approved
+> 2026-09-25; it wins over [TRUE-NORTH](docs/TRUE-NORTH.md) on scope and
+> sequencing, while TRUE-NORTH's honesty and accessibility principles hold).
 
 ## What ships by default
 
-A portable appliance: the core process plus Ollama (qwen3:1.7b) and a
-one-shot model-bootstrap container, exactly what `compose.yaml` brings
-up on `docker compose up -d`. No other containers are required.
+A portable appliance: the core process plus Ollama (`qwen3:1.7b`) and a
+one-shot model-bootstrap container, exactly what `compose.yaml` brings up on
+`docker compose up -d`. No other containers are required, and no room is
+required: rooms are optional services Worlds can show when you run them.
 
-**Surfaces, honestly wired.** Some hub surfaces read live personal
-data, some are device-local by design, and some are deliberately
-labelled specimen panels — they never pretend to be your data:
+**Surfaces, honestly wired.**
 
-- **API-wired today.** Overview's daily loop reads live journal,
-  proposals, and reminders (latest thread via `GET /api/journal/last`,
-  API-084); Memory lists and finds your real journal entries and
-  records (`GET /api/journal` + records search); Settings renders and
-  writes your real stored preferences (`API-030/031`), including the
-  voice/tone register and the residents pack (on by default; switch off in Settings).
-  `/login` and `/setup` are server-rendered.
-- **Device-local by design.** Chat conversations stay on the device;
-  the assistant's replies come from your configured model when one is
-  present, and an honest `not_configured` when it is not.
-- **Specimen / parked, on purpose.** Projects stays a parked surface
-  with plainly labelled records; the Overview discovery sliver is
-  labelled until it reads a real feed. `.project/CURRENT.md` records
-  exactly what is wired today.
+- **Live today.** The Bridge reads your rooms, briefing and journal (latest
+  thread via `GET /api/journal/last`); Memory lists and finds your real journal
+  entries and records; Settings and Crew read and write your real
+  preferences (voice/tone, companion, keepers, doorways). `/login` and
+  `/setup` are server-rendered; **First Light** is the first-run setup.
+- **Device-local by design.** Chat conversations stay on the device; replies
+  come from your configured model, or an honest `not_configured`.
+- **Parked, on purpose.** Projects and systems are labelled placeholders.
+- **Moving out.** Discovery, media, calendars and notifications are moving
+  to **Candy**, a separate room with its own page. The code still lives in
+  Worlds today (`src/personal_world/discovery/`, the native providers, the
+  Interests screen); nothing has been removed yet.
 
-**10 native providers** (in-process, no extra containers):
+**10 native providers** (in-process, no extra containers; `ls src/personal_world/providers/native_*.py`):
 
 | Provider | Purpose |
 |---|---|
@@ -63,9 +78,9 @@ labelled specimen panels — they never pretend to be your data:
 | `native_media` | Plex/Sonarr/Radarr/Lidarr |
 | `native_deployment` | Docker Compose/systemd |
 
-**Brain Template System:** 21 templates (4 core, 2 personas, 9
-surfaces, 4 tasks, 2 formats), private overrides via
-`config/prompts.local/`, provenance tracking.
+**Brain Template System:** prompt templates under `config/prompts/` (core,
+personas, surfaces, tasks, formats), private overrides via
+`config/prompts.local/`, provenance tracking (`ls -R config/prompts`).
 
 **Connections & Providers:** provider wiring is schema-driven and
 managed in `config/connections.json`; the in-process natives above
@@ -88,7 +103,7 @@ command, timestamps, and exit codes.
 ## Architecture
 
 ```
-Project Worlds core process
+Worlds core process
 ├── native_vault
 ├── native_memory
 ├── native_calendar
@@ -113,24 +128,31 @@ Ollama
 **One core process. Tiny native capabilities. Adapters to the outside
 world. External services only when they earn their existence.**
 
+Around the core, optional **rooms** run as their own services and are listed
+at runtime by a **room registry** (served by Project Home; `PW_ROOMS_REGISTRY_URL`).
+Worlds checks each room's contract before showing it, and for per-person
+rooms tells the room who is asking (`X-Worlds-Principal`) alongside the room's
+own token. Details: [docs/ROOMS.md](docs/ROOMS.md).
+
 ## A Play-Nice product
 
 This project adopts [Play-Nice Contracts](.project/contracts/adoption.yaml)
 (`Rylee-Bee/play-nice-contracts`) as its shared cooperation and
 engineering constitution.
 
-Play-Nice governs how the four sides of Project Worlds cooperate:
-**Rylee** (the owner), **Personal World** (the companion), the **agents
-and models** that assist her, and the **providers, APIs, automation, and
+Play-Nice governs how the four sides of Worlds cooperate:
+**Rylee** (the owner), **Worlds** (the companion and front door), the
+**agents and models** that assist her, and the **providers, APIs, automation, and
 interfaces** that orbit both of them. Truth and evidence, explicit state,
 asking instead of guessing, provenance on consequential decisions,
 recoverable mistakes, accessibility floors, bounded work, and
 collaborative good faith are the cooperation floor — not the product.
 
-Project Worlds **accepts and implements** the **full** Play-Nice
-library (66 contracts across 8 layers) through one manifest:
+Worlds **accepts and implements** the **full** Play-Nice library (8 layers)
+through one manifest:
 [`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml),
-pinned to library v0.7.0. Applicable contracts are resolved per task
+pinned to a verified library revision (v0.10.0 as of 2026-09-26, which
+includes ROOM 1.1.1). Applicable contracts are resolved per task
 from that manifest's `always` and `triggers` lists; no contract text is
 copied into this repository. The explicit acknowledgement — target
 revision, implemented contracts, and evidence — is in
@@ -158,11 +180,11 @@ away as a fallback. The superseded React frontend was removed on
 
 ### Screenshots
 
-The Station-era screenshots under `docs/screenshots/` show the
-retired server-rendered UI and are kept as history, not as the
-current face. Current design truth is the Workshop v3 frame set and
-pointers in [`.project/design/CURRENT.md`](.project/design/CURRENT.md);
-the running interface is the React app in `ui/`.
+The current face lives in the **[screenshot gallery](docs/gallery/README.md)**:
+every screen, at phone (390) and desktop (1440) widths, in the default
+starfield theme and the others. The Station-era screenshots under
+`docs/screenshots/` show the retired server-rendered UI and are kept as
+history only.
 
 ## Quick start
 
@@ -198,10 +220,11 @@ docker compose up -d
 
 The portable base image (`compose.yaml`) carries no host paths; it
 boots with only the images, a `world-data` volume and an `ollama-data`
-model volume, and the token — that is the core, Ollama, and the
-one-shot model bootstrap. See
-[Operations](docs/OPERATIONS.md#containers) for the full deployment
-guide.
+model volume, and the token: the core, Ollama, and the one-shot model
+bootstrap. Images are published to `ghcr.io/rylee-bee/personal-world` by the
+`publish-image` workflow on every push to `main`. See
+[Operations](docs/OPERATIONS.md#containers) for deployment, updates and
+rollback.
 
 ## How the assistant works
 
@@ -226,11 +249,14 @@ turns. Private-class lore and secret material are never included.
 
 | Interest | Entry point |
 |---|---|
+| Where things stand (plain words) | [WHERE-WE-ARE.md](docs/WHERE-WE-ARE.md) |
 | Architecture | [ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Rooms (the front door) | [ROOMS.md](docs/ROOMS.md) |
+| Screenshots | [gallery](docs/gallery/README.md) |
 | Native baseline | [NATIVE-BASELINE-AND-ENRICHMENT.md](docs/NATIVE-BASELINE-AND-ENRICHMENT.md) |
 | Operations | [OPERATIONS.md](docs/OPERATIONS.md) |
 | Providers | [PROVIDERS.md](docs/PROVIDERS.md) |
-| Direction | [TRUE-NORTH.md](docs/TRUE-NORTH.md) |
+| Direction | [`.project/PLAN.md`](.project/PLAN.md), then [TRUE-NORTH.md](docs/TRUE-NORTH.md) |
 | Finish line detail | [PERSONAL-WORLD-FINISH-LINE.md](docs/PERSONAL-WORLD-FINISH-LINE.md) |
 | Design | [Workshop v3 design authority](.project/design/CURRENT.md) |
 | Accessibility | [ACCESSIBILITY_CONTRACT.md](docs/accessibility/ACCESSIBILITY_CONTRACT.md) |
@@ -241,12 +267,13 @@ turns. Private-class lore and secret material are never included.
 ## Validation
 
 ```bash
-uv run pytest --timeout=30
+uv run --extra test --extra crypto pytest --timeout=60 -o addopts="" -q
 uv run personal-world framework validate --json
+cd ui && npx tsc -b && npx vitest run && npm run kit:check
 ```
 
 Licensed under [Apache-2.0](LICENSE). The project is experimental; see
 the [security policy](SECURITY.md) for the current support and
 deployment boundary.
 
-![Project Worlds companion artwork: Mermaid, Personal World, Little Helper robot, world-tree squirrel and the taco news truck, gathered under the world-tree](design/screens/worlds.png)
+![Worlds companion artwork: Mermaid, Personal World, Little Helper robot, world-tree squirrel and the taco news truck, gathered under the world-tree](design/screens/worlds.png)

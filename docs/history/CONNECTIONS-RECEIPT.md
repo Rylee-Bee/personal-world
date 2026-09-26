@@ -4,6 +4,10 @@
 # audit fix commit: 0e3d940
 # audited receipt commit: f73df40
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the 2026-09-13 Connections/Providers audit's own counts and test-behavior table. · **Superseded by:** `.project/CURRENT.md`.
+
+**In short:** a 2026-09-13 audit receipt claiming 725 tests, 7 capabilities and 18 providers. Kept for provenance; treat no count as current. Since this record: the product is called Worlds and providers are registered against the current capability set, not this snapshot.
+
 ---
 
 ## TESTS

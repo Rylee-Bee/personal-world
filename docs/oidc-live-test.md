@@ -1,5 +1,9 @@
 # Live-IdP (Authelia) integration test
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the opt-in live-Authelia OIDC harness (setup, env vars, teardown) · **Read this if:** you need to prove the OIDC code against a real provider, not the in-process stub.
+
+**In short:** an opt-in harness that stands up a throwaway Authelia container and drives the real discovery → login → callback → session → logout flow through production code. It never runs in CI; without the env vars the test skips honestly.
+
 `tests/test_oidc.py` proves the OIDC relying party against an in-process
 stub provider. This harness proves it against a **real** one: a
 throwaway [Authelia](https://www.authelia.com/) container

@@ -1,5 +1,11 @@
 # ADR-0004: Node & Agent capability model (the Agent is the enabler, not the product)
 
+> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** the Node/Agent vocabulary and boundary (proposed, review-only) · **Read this if:** you are working on Nodes, remote machines, or the Worlds Agent.
+
+**Scope note:** proposed and review-only. `.project/PLAN.md` wins on scope and sequencing.
+
+**In short:** proposed, not accepted. If accepted, remote and host machines appear as **Nodes** reachable through a small **Worlds Agent** that advertises capabilities and delegates mechanics to open tools. Mesh presence never grants Worlds-level authority, and an offline Node never breaks the core. No Agent ships yet.
+
 - Status: **proposed** (review-only per owner D22; not yet accepted)
 - Date: 2026-09-21
 - Supersedes: none

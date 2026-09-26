@@ -1,6 +1,15 @@
-# Project Worlds — Product Language & Interaction Contract
+# Worlds — Product Language & Interaction Contract
 
-**Status:** owner-approved (human, Rylee, 2026-09-21) via the owner round table.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** first-release product language, vocabulary, and information architecture · **Read this if:** you are writing user-facing copy or deciding where a feature surfaces.
+
+**In short:** the durable contract for what things are called and how the
+product is laid out (`Bridge · Memory · Chat · Settings` skeleton, plus
+chosen personal sections). It refines presentation and IA; it does not
+replace `docs/ARCHITECTURE.md`, `SECURITY.md`, the accessibility contract,
+or the human-reliability contract. Where direction conflicts,
+[`.project/PLAN.md`](../.project/PLAN.md) wins on scope and sequencing.
+
+**Owner-approval:** human (Rylee, 2026-09-21) via the owner round table.
 **Kind:** the small, durable product-language and interaction contract the project aligns around.
 **Authority:** refines the first-release *presentation, language, and information architecture*. It does
 **not** replace `docs/ARCHITECTURE.md`, `SECURITY.md`, the accessibility contract, or the human-reliability
@@ -37,7 +46,7 @@ This is the product layer. It does **not** reverse the Workbench/Node architectu
 
 ### Stable skeleton — always easy to find (theme-proof, customization-proof)
 
-`Overview · Memory · Chat · Settings`
+`Bridge · Memory · Chat · Settings`
 
 ### Personal sections — chosen, pinned, ordered, hidden by the person
 
@@ -49,8 +58,9 @@ the world the person shapes. This is what preserves **both** customization **and
 
 ### Overview
 
-The **front page / headlines surface** of the rest of Worlds — *not* a competing content section. It answers
-**"what matters right now?"** by aggregating each enabled section's headline state:
+The **front page / headlines surface** of the rest of Worlds — *not* a competing content section. It is
+implemented today as the **Bridge** screen (`ui/src/screens/Bridge/`; the app's area id is still `overview`).
+It answers **"what matters right now?"** by aggregating each enabled section's headline state:
 
 - Projects → recent changes / something needing attention
 - Interests → something new or relevant
@@ -138,7 +148,7 @@ or separate product modes.
 
 ### User-facing (product language)
 
-`Overview · Memory · Chat · Settings · Customize / Customize Worlds · Projects · Interests · Computer ·
+`Bridge · Memory · Chat · Settings · Customize / Customize Worlds · Projects · Interests · Computer ·
 Terminal · Desktop · Files · Build · Preview · Run · Output · Services · Records`
 
 Decisions: **Run** (not Job) · **Output** (not Result) · **Services** stays · the attached-machine word is
@@ -158,7 +168,7 @@ technical name; **installation language is human** — e.g. *"Connect this compu
 ## The default theme — a full pack, not a shell
 
 **"Plain" means the structure, not the color.** Plain = calm, predictable, low-cognitive-load, accessible.
-It does **not** mean colorless, gray, or minimal. **Project Worlds ships a full, complete, multi-color theme
+It does **not** mean colorless, gray, or minimal. **Worlds ships a full, complete, multi-color theme
 pack** — every token of the `--pw-*` system filled (surface ladder · the accent set · text · borders ·
 warmth gradients · shadows · typography · density).
 
@@ -178,16 +188,15 @@ warmth gradients · shadows · typography · density).
   character art, and a light sci-fi feeling. Only the **full Station skin** (map-as-navigation + its own room
   vocabulary) is a later theme package; it never defines the stable skeleton.
 
-**Default pack (owner pick 2026-09-21; superseded by D2, owner decision 2026-09-22):** **`plain`** —
-warm-neutral charcoal surfaces + teal primary (`#72B1B1`) + amber (`#D4A057`) as the rare highlight +
-warm-white text + Young Serif display headings — a complete, WCAG-validated full palette
-(`lab design theme validate` PASS, fails 0; body AA min 7.76:1), dark-warm only for the first release.
-`starfield` (deep-navy + warm amber) is demoted to a switchable optional pack; its `"Adapted from the
-constellation portfolio"` provenance line is an internal lineage note only — the palette carries no lore,
-no companion, no star-map navigation. Neither default reintroduces the Station experience; the
-star-map/constellation *navigation* ban (above) stands regardless of palette choice.
-The other full packs (`ocean` · `moss` · `aurora-garden` · `copper-kitchen`) ship alongside as switchable
-color options, all validated. Reversible at any time.
+**Default theme (verified 2026-09-26):** **`starfield`** — deep-navy surfaces + warm amber accents
+(a complete, WCAG-validated palette). Its `"Adapted from the constellation portfolio"` provenance line is
+an internal lineage note only: the palette carries no lore, no companion, and no star-map navigation.
+The other shipped themes are `doorways`, `station`, `moss`, `ocean`, and `plain`; all are switchable and
+reversible at any time, and every theme meets the type floor (body ≥16px, labels ≥13px).
+**`plain`** (warm-neutral charcoal + teal primary `#72B1B1` + amber `#D4A057` as the rare highlight +
+Young Serif display headings) remains a full, WCAG-validated pack — plain means the structure, not the
+color. No palette reintroduces the Station experience; the star-map/constellation *navigation* ban (above)
+stands regardless of palette choice.
 
 ---
 
@@ -218,7 +227,7 @@ later. What is rejected is Station as the *default, the baseline palette, or the
 
 Preserve and **coherently present the existing product** — do not flatten it to a generic shell:
 
-Overview · Memory · Chat · Settings · Setup/Customize · Discovery · Projects · the existing world/journal
+Bridge · Memory · Chat · Settings · Setup/Customize · Discovery · Projects · the existing world/journal
 capabilities · existing auth/security behavior · existing real integrations/capabilities · accessibility ·
 theme infrastructure · the Workbench thin slice (where it belongs in the roadmap).
 

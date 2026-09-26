@@ -1,4 +1,13 @@
-# AUTH MATRIX — Project Worlds
+# AUTH MATRIX — Worlds
+
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the authentication surface (`AUTH-*`, `API-*` rows) · **Read this if:** you need to know which credential or elevation a surface requires
+
+**In short:** Every protected API surface and the credential it accepts — bearer token, browser session, OIDC, step-up, the loopback dev bypass, or the admin gate. The backend auth model is the single `require_auth` seam; this table maps each route onto it.
+
+**Note (2026-09-26):** the `UI-*` IDs below name the retired 2026-09-22 SPA
+(the deleted `frontend/` tree); the current interface is `ui/` (the Bridge is
+home). The `AUTH-*` and `API-*` rows still resolve against the code, and the
+rooms / briefing / crew / secrets rows are appended at the end of the table.
 
 Legend: YES / NO / INDIRECT / N/A.
 
@@ -46,6 +55,19 @@ Legend: YES / NO / INDIRECT / N/A.
 | API-075..077 world writes | NO | YES | NO | NO | YES | INDIRECT | NO |
 | API-078..079 ingress/projects | NO | YES | NO | NO | NO | NO | NO |
 | AUTH-009 login/logout/session/step-up routes (`auth_routes.py`) | YES (login/logout/session) | NO | YES (session/step-up) | INDIRECT (oidc subset) | YES (POST /api/auth/step-up, credential-verified) | NO | NO |
+| API-085 GET /api/briefing | NO | YES (+person) | INDIRECT (via seam) | INDIRECT | NO | NO | NO |
+| API-088 GET /api/rooms; POST /api/rooms/{id}/visit | NO | YES (+person) | INDIRECT | INDIRECT | NO | NO | NO |
+| API-088-keeper / API-088-doorway PUT /api/rooms/{id}/(keeper\|doorway) | NO | YES (+person) | INDIRECT | INDIRECT | NO | NO | NO |
+| API-089 GET/POST /api/crew; PATCH/DELETE /api/crew/{id} | NO | YES (+person) | INDIRECT | INDIRECT | NO | NO | NO |
+| API-090 GET /api/secrets/overview (Workshop room) | NO | YES | INDIRECT | INDIRECT | NO | NO | **YES (admin only; 403 for other people)** |
+| (uncurated) /api/setup-wizard/{state,provision,crew,companion,…} | YES (first-run only) | NO | NO | NO | NO | NO | NO |
+
+> Rows above with "INDIRECT (via seam)" mean the request still passes through
+> `require_auth`; a browser session resolves to one `Principal` exactly as a
+> bearer token does (see the key observations below). `/api/secrets/overview`
+> is the only row with an in-handler **admin** gate: names and health, never a
+> value, and only the bootstrap principal `primary` or a person with the `admin`
+> scope at that.
 
 Key observations (D1/D2 convergence, 2026-09-15):
 
@@ -77,3 +99,17 @@ Key observations (D1/D2 convergence, 2026-09-15):
   this pass; recorded boundary).
 - Admin gate (AUTH-007) applies only to identity user/agent
   administration routes.
+- **Identity modes (2026-09-26):** `PW_IDENTITY_MODE` is `single` (default) or
+  `multi`. In `single`, the API bearer token `PW_API_TOKEN` maps to the bootstrap
+  principal `primary`. In `multi`, each person is a principal and per-person data
+  lives under `identity.principal_scoped_path` (`data/users/<id>/…`); a person is
+  an admin if they are `primary` or hold the `admin` scope. See
+  `docs/IDENTITY-BOUNDARY.md`.
+- **Per-person rooms (#103):** for a registry row with `forward_principal: true`
+  and a token, Worlds sends `X-Worlds-Principal: <principal id>` alongside the
+  room's own bearer token — cards and needs are then cached per person. Worlds
+  never forwards the human's session token to a room.
+
+Source of truth: this matrix summarises `require_auth`/`require_step_up` in
+`src/personal_world/api.py` and `src/personal_world/auth_routes.py`, and the
+curated rows in `src/personal_world/api_manifest.py`; the code wins.

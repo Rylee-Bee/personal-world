@@ -1,5 +1,11 @@
 # Character Handbook — who the crew is
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** character and voice truth (who each resident is, the two voices, the attention voices) · **Read this if:** you are writing copy, a persona, or a screen that speaks as a resident.
+
+The accessibility and honesty floors outrank every voice rule here.
+
+**In short:** who each resident is — Renai, Ratatoskr, Bolt, Scoop, Sol, Hekek, Bruma, Mira — and how they speak, with a do/don't table each. The residents are the optional **personality pack**; the one plain voice is the default floor beneath them. Names and ids live in `docs/COMPANION-CANON.md`.
+
 **Status:** Canonical for *character and voice* (owner-stated, handoff 2026-09-17).
 This is the emotional/voice authority for the residents. It is deliberately
 separate from its siblings, and the separation is the point:
@@ -50,8 +56,8 @@ Taco Truck / "Tacos & the Morning Paper" → **Burrito Journalism**;
 > table above when writing new copy.** Mixed pronouns are not a typo — vary them
 > naturally and never correct one to the other.
 >
-> Name authority now lives in
-> `~/code/Rylee-Bee/media_files/MEDIA_INDEX.md` § Pronouns and § Alias map.
+> Name authority now lives in the owner's private media index (§ Pronouns and
+> § Alias map) — outside this public repository, so not linked here.
 
 **Area residents (owner canon 2026-09-17) extend the crew:** **Hekek**
 (Systems), **Bruma** (Records) and **Mira** (Interests). Same crew,
@@ -82,7 +88,7 @@ an icon, not a resident (see [`docs/STATION-MAP.md`](STATION-MAP.md)).
 language — with no voice, no states, and no personality; rest · privacy · safety ·
 quiet.
 
-**Phrases closer to the real heart of Project Worlds:**
+**Phrases closer to the real heart of Worlds:**
 
 - "Different Worlds / Same Crew"
 - "The Right Path Is a Kind One"
@@ -318,7 +324,7 @@ motifs: bookplates, seals, labels, ribbons, constellation-like filing marks.
 
 **Who she is.** A young woman who works on the Interests deck. Energy reminiscent of
 the capable young-investigator archetype — bright, curious, resourceful, always
-following another clue — but entirely her own Project Worlds character. She is a
+following another clue — but entirely her own Worlds character. She is a
 little forgetful: may forget the exact name of something, where she put a
 notebook, or why she walked across the deck. But she often remembers the
 shape of an idea, the relationship between two things, or a tiny observation
@@ -360,7 +366,7 @@ she forgot.
 |---|---|
 | Notice patterns before you know what they mean. | Be incompetent or foolish because she is forgetful. |
 | Remember the shape of an idea; follow the clue. | Reduce her to comic absent-mindedness. |
-| Be bright, curious, resourceful. | Copy any existing archetype — she is her own Project Worlds character. |
+| Be bright, curious, resourceful. | Copy any existing archetype — she is her own Worlds character. |
 
 ---
 
@@ -466,9 +472,10 @@ files. Naming/ids belong to [`COMPANION-CANON.md`](COMPANION-CANON.md).
   `docs/CREW-AND-STATION-THESIS.md` list Personal World as one of five residents;
   this handbook frames it as *almost the spirit of the place* rather than a fifth
   talking character.
-- **Attention voices not in code.** GOOD NEWS · A SMALL UPDATE · WHEN YOU'RE READY
-  are owner canon (2026-09-17) and are not yet represented in the Station or
-  server. Presence in copy does not prove implementation.
+- **Attention voices now have a code shape.** GOOD NEWS · A SMALL UPDATE · WHEN
+  YOU'RE READY are owner canon (2026-09-17) and now appear as ROOM card tones —
+  `good_news` | `update` | `when_ready` (`src/personal_world/rooms.py`) — a
+  display hint, never priority. They are not yet a user-facing label set.
 
 ---
 

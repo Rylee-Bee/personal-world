@@ -1,12 +1,10 @@
-# EXTERNAL-AGENT HANDOFF — parallel lanes for Project Worlds
+# EXTERNAL-AGENT HANDOFF — parallel lanes for Worlds
 
-> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
-> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
-> server-rendered Station is retired (kept as a theme package); `frontend/`
-> paths here are the deleted pre-flip tree. Direction lives in
-> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
-*For any agent (any model, any token plan) joining this repo. Read fully before editing.*
-*Repo: `Rylee-Bee/personal-world` · base `main` @ `c16a07c` + uncommitted verified work.*
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the 2026-09-16 parallel-lane working plan and its file-ownership rules. · **Superseded by:** `.project/CURRENT.md`.
+
+**In short:** a dated 2026-09-16 handoff that split work into four disjoint lanes (`station` accessibility, chat streaming, live-IdP harness, restore drill). Kept for provenance; its states and lane assignments are not current. Since the 2026-09-22 flip the interface is `ui/` and the server-rendered Station is retired (kept as a theme package); `frontend/` paths here are the deleted pre-flip tree.
+
+Read fully before copying anything from it. It was written for base `main` @ `c16a07c`.
 
 ## The soul (non-negotiable)
 DNA: smallest-reliable-first · depth-on-demand · soft-by-default · everyone-at-any-level-included.

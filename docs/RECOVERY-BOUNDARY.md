@@ -1,10 +1,14 @@
 # 🛟 Recovery boundary — measured, not aspirational
 
-What one encrypted worlds bundle (`personal-world worlds backup` →
-`.pwbackup`) **actually** restores, proven by a live timed drill on
-2026-09-21 rather than by doc inference. Companion to
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** what one encrypted `.pwbackup` restore actually recovers · **Read this if:** you are restoring Worlds, or writing recovery/backup docs.
+
+**In short:** what one encrypted worlds bundle (`personal-world worlds
+backup` → `.pwbackup`) **actually** restores, proven by a live timed drill
+on 2026-09-21 rather than by doc inference. Companion to
 [`WORLDS-BACKUP.md`](WORLDS-BACKUP.md); where the two disagree, **this
-file carries the observed truth** and the disagreement is flagged.
+file carries the observed truth** and the disagreement is flagged. Timings
+are from that one drill; re-run `scripts/restore-drill.sh` for fresh
+numbers.
 
 Evidence sources, all reproducible on any machine with the repo env:
 
@@ -53,7 +57,7 @@ Restored byte-identical (data/config/home members):
 | `data/world.json` — facts, intents, policies, lore | drill `cmp` A↔B + `GET /api/status` on B |
 | `data/journal.ndjson` — the full journal | drill `cmp` + `GET /api/journal` on B shows seeded notes and provisioning events |
 | `data/users.json` — identity records (hashed tokens) | drill `GET /api/identity/users` on B lists both provisioned persons |
-| `data/users/**` — per-user trees (world, journal, reminders, proposals, chat, prefs) | unit round-trip byte-compares `users/rylee/world.json`; drill ran single-mode, where instance state *is* the person state |
+| `data/users/**` — per-user trees (world, journal, reminders, proposals, chat, prefs) | unit round-trip byte-compares `users/<person>/world.json`; drill ran single-mode, where instance state *is* the person state |
 | `data/reminders.json`, `data/apps.json`, `data/proposals.json`, `data/chat-history.ndjson` | boundary-listed; unit round-trip |
 | `data/theme-packs/**`, `data/template-sources/**` | drill restored `theme-packs/drizzle/manifest.json` + `template-sources/tpl/source.md` |
 | `config/connections.local.json` | drill `cmp` A↔B byte-identical |

@@ -1,7 +1,33 @@
-# MAJOR CALL CHAINS — Project Worlds
+# MAJOR CALL CHAINS — Worlds
+
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the end-to-end call chains across the backend · **Read this if:** you want to trace how a feature travels from surface to store
+
+**In short:** Compact, ID-linked traces of the main request paths — first launch, browser auth, world read/write, journal, reminders, chat, backup — plus the current rooms/briefing path. IDs resolve in `MASTER-SURFACE-REGISTRY.md`.
+
+**Note (2026-09-26):** `UI-*` IDs below name the retired 2026-09-22 SPA (deleted `frontend/` tree); today's interface is `ui/` (the Bridge is home, reached through `GET /api/briefing`, `/api/rooms` and `/api/crew`). Backend chains are unchanged in shape.
 
 Compact chains from the registry. IDs resolve in
 MASTER-SURFACE-REGISTRY.md.
+
+## Rooms, briefing and crew (current front door, 2026-09-26)
+
+```text
+Bridge (ui/) → GET /api/briefing (API-085, require_auth + person)
+→ briefing.py build_briefing: six fixed systems (agents/Workshop, estate/Engine room,
+   records/Archive, interests/Observatory, news/Newsstand, threads/World tree);
+   one failing source makes only its own system `unavailable` — never a 500
+→ crew.py resolves the Keeper + each system's resident from the person's own crew
+   (companion_id pref null → the one Assistant voice; pack off → «Worlds»)
+
+GET /api/rooms (API-088) → rooms.py RoomsService
+→ room list from Project Home GET /api/rooms/registry when PW_ROOMS_REGISTRY_URL is set
+   (cached 60 s, last-known-good as rooms-registry.json); else fall back to PW_ROOMS
+→ per room: GET /room, /room/cards, /room/needs-you (contract room/0)
+   contract ∉ SUPPORTED_CONTRACTS={room/0} → `incompatible`; unreachable → `unreachable`
+→ forward_principal: true also sends X-Worlds-Principal; cards/needs cached per person (15 s)
+
+PUT /api/rooms/{id}/(visit|keeper|doorway) (API-088-*) → crew.json, per person
+```
 
 ## First launch
 
@@ -101,14 +127,25 @@ UI-008 ChatRoute/ChatPanel → API-010 POST /api/chat (AUTH-001)
 
 ## Backup
 
+Two distinct paths, do not conflate them:
+
 ```text
+ordinary share/export
 CLI-008 backup [--apply] / API-028 GET /api/backup (AUTH-001)
 → export.backup_payload(DOMAIN-001 world, JOURNAL-002 journal)
 → includes: serialized world + journal (incl. private state)
 → excludes: STORE-003 vault.enc, STORE-005 users, STORE-004 sessions, STORE-006 reminders, STORE-007 apps,
    per-user trees, STORE-015 connections.local.json, STORE-013/018/019
 → external encryption expected (SOPS/age), not provided by the app
-restore path: no full-instance restore exists; CLI-010 init + manual re-entry is the recovery floor
+
+full-instance SOS (encrypted, pw-worlds-backup/1) — docs/WORLDS-BACKUP.md
+CLI `personal-world worlds backup` / `personal-world worlds restore`
+   (passphrase via prompt or PW_BACKUP_PASSPHRASE, never argv)
+→ worlds_backup.backup/restore: scrypt + AES-256-GCM over a gzipped tar
+→ covers world+journal, per-user trees, users/reminders/apps/proposals, oidc config (secret stripped),
+   discovery, reconciler/lab desired state, theme packs; vault.enc only with --include-vault
+→ HTTP: POST /api/worlds/backup, GET /api/worlds/backup/download/{token}, POST /api/worlds/restore (step-up gated)
+restore path: a fresh box still needs first-run setup to mint PW_API_TOKEN + setup-complete
 ```
 
 ## Vault value read (exceptional workflow)

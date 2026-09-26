@@ -1,4 +1,13 @@
-# ORPHAN / SUPERSEDED INDEX — Project Worlds
+# ORPHAN / SUPERSEDED INDEX — Worlds
+
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** orphan / superseded / intentional-headless surfaces · **Read this if:** you found code with no caller and want to know whether it is dead, deliberate, or already resolved
+
+**In short:** A dated index of surfaces with no live caller (orphans), surfaces kept on purpose (internal/archived), and findings from the 2026-09-15/16 audits that were later fixed. Reality only; nothing here is a to-do list.
+
+**Note (2026-09-26):** line numbers (`api.py:NNN`, `tool_registry.py:NNN`) are from
+the 2026-09-15/16/17 passes and may have drifted — find the named symbol instead.
+Rows naming the deleted `frontend/` or `station/` tree describe the retired
+pre-flip UI; today's interface is `ui/`.
 
 | ID | Surface | State | Evidence | Confidence |
 |---|---|---|---|---|
@@ -19,7 +28,7 @@
 | PROV-011 | NativeDeploymentProvider (compose/systemd adapters) | PARTIAL | Registered; status/observe only; no live deploy caller | MEDIUM |
 | PROV-009 (send) | NativeNotificationsProvider.send (webhook/ntfy) | PARTIAL | Provider registered and observed; no current send() caller in api/cli/tools | MEDIUM |
 | CAP-013 | scheduler capability (no provider registered) | PARTIAL | Capability defined; Scheduler used directly, not via capability | HIGH |
-| UI-023 | SPA missing-frontend 503 page | INTERNAL | Deliberate honest-missing state (T15 cutover, no legacy fallback) | HIGH |
+| UI-023 | "interface not built" page | INTERNAL | Deliberate honest-missing state when the `ui/` build is absent from the image (`station_ui.py`); no legacy fallback | HIGH |
 | PROV-024 | CandyDispenser | INTERNAL | Demo/reference provider behind explicit connections type=candy | HIGH |
 | PROV-003 | FakeSourceControl | INTERNAL | Substitution-proof machinery for tests | HIGH |
 | PROV-028 | FakeUpdateProvider | INTERNAL | Update state-machine reference for tests | HIGH |
@@ -43,7 +52,7 @@ artwork as dead.
 | ID | Surface | State | Evidence | Confidence |
 |---|---|---|---|---|
 | TOOL-030 | inspect_source_control_history (tool_registry.py:1346) | **BUG — FIXED 2026-09-17** | Imported nonexistent `from .source_control import history`; tool raised at every invocation. Fixed to reuse `repository_history` with repo-name→path resolution (same shape as `/api/source-control/history`, api.py:1680). Regression tests: `tests/test_source_control.py::TestHistoryToolRegression` | HIGH |
-| NEW-001 (bug) | Public-safety: private topology in tracked files | **BUG — FIXED 2026-09-17** | `.project/CURRENT.md` and `docs/AUTHELIA-CLIENT-SNIPPET.md` carried a duckdns hostname + RFC1918 IP (violates SECURITY.md; exact values not restated here). Redacted preserving meaning; `tests/test_public_safety.py` markers now pass over tracked files | HIGH |
+| NEW-001 (bug) | Public-safety: private topology in tracked files | **BUG — FIXED 2026-09-17** | `.project/CURRENT.md` and `docs/AUTHELIA-CLIENT-SNIPPET.md` carried an operator hostname + RFC1918 IP (violates SECURITY.md; exact values not restated here). Redacted preserving meaning; `tests/test_public_safety.py` markers now pass over tracked files | HIGH |
 | STATION-001 | Companion chat is localStorage-only (`station/chat.js`) | UNWIRED PRODUCT SURFACE (acknowledged in code, chat.js:9-11) | Backend `/api/chat*` + `/api/brain/templates` are live, tested, UI never calls them. From Station UI the backend exposes ~110 routes; Station calls 15. Deliberate target for a separate wiring lane | HIGH |
 | STATION-002 | Station write flows absent (prefs save, sections, reminders CRUD, journal write/supersede, proposal actions) | UNWIRED PRODUCT SURFACE | Endpoints exist + step-up gated; Station is read-only/local. `chat.js` warning captions describe the intended binding | HIGH |
 | STATION-003 | localStorage prefs not synced to API-065 | UNWIRED PRODUCT SURFACE (documented mapping at station.js:4-9) | Deliberate prototype seam, not dead | HIGH |

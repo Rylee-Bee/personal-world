@@ -1,7 +1,10 @@
 # Agent Contract Index
 
-Project Worlds uses canonical contracts to define how humans and AI
-agents work within it.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the contract registry (which contracts to load, and where each one lives) · **Read this if:** you are an agent or human starting substantial work in this repo.
+
+**In short:** Worlds governs itself with written contracts. This page is the index: it names each contract, when it applies, what it covers, and where the authoritative copy lives. Load the ones that apply before you plan or change anything.
+
+Subject (not product) name is **Worlds**; `Project Worlds` remains in older text. Technical identifiers — package `personal_world`, repo `personal-world`, env prefix `PW_` — are unchanged.
 
 Before substantial work, read this index and load every contract
 applicable to the task.
@@ -100,15 +103,22 @@ Rationale: [`docs/adr/0001-capabilities-core-owned-providers-optional.md`](docs/
 - **Applies when:** Work touches any governed surface — UI, API,
   agents, providers, design, or engineering.
 - **Purpose:** Shared constitution for how humans, bots, services,
-  APIs, interfaces, and tools interact. 65 canonical contracts across
-  8 layers: core safety, human experience, product behavior,
-  interoperability, security, engineering, agents, and interfaces.
+  APIs, interfaces, and tools interact — the whole Play-Nice library,
+  adopted here as one manifest.
 - **Contract:** [`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml)
   — the project's one adoption manifest (declared by
   `.project/project.yaml: contracts.manifest`), pinned to Play-Nice
-  revision `f825ffb1a0b49c054bbf54e0ba3c0b15441e3f0e` (v0.7.0).
+  revision `0a7fb10002396c4724b4fecd196308f786ee960d` (2026-09-26).
+  The manifest records the pinned contract count; check it there rather
+  than trusting a number in prose.
 - **Source:** [`Rylee-Bee/play-nice-contracts`](https://github.com/Rylee-Bee/play-nice-contracts)
   — public shared library, MIT license.
+
+The **Room interface** (`room/0`) is the one Play-Nice interface contract
+Worlds itself consumes at runtime: a room is any service that serves it,
+and Worlds renders it. Pin and version: see
+`.project/contracts/adoption.yaml`; the app-side reader is
+`src/personal_world/rooms.py`.
 
 One adoption manifest, one pin. `.project/contracts/adoption.yaml` is
 the authority; it is the layout the Play-Nice project-context framework

@@ -2,6 +2,10 @@
 # Merged to main via PR #42 (3405f60) and PR #43 (dc2eda7)
 # Date: 2026-09-14
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the 2026-09-14 merge receipt's own counts and claims. · **Superseded by:** `.project/CURRENT.md`.
+
+**In short:** a 2026-09-14 merge receipt claiming 726 tests, 29 brain tools, 15 wired screens and 18 capabilities. Kept for provenance; treat no count as current. Since this record: the product is called Worlds, the interface is `ui/` with Bridge as home, and production runs on the transcode host.
+
 ---
 
 ## TESTS

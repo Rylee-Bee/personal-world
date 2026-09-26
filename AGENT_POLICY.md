@@ -1,8 +1,10 @@
-# Agent Policy — Project Worlds Decision Kernel
+# Agent Policy — Worlds Decision Kernel
 
-(Formerly "Personal World" — product renamed 2026-09-12; technical identifiers unchanged.)
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the agent decision policy (product/decision/ownership/security rules and the definition of done) · **Read this if:** you are an AI agent deciding what to do here, or how to say whether it worked.
 
-This is the mandatory entry point for AI agents working on Project Worlds.
+**In short:** the mandatory entry point for agents. It states how Worlds makes decisions — human intent over provider UI, honesty over fabrication, explicit ownership, fail-closed security — and the "final truth report" shape to end substantial work with. It does not copy the contracts; it tells you to load them.
+
+(Formerly "Personal World" — product renamed 2026-09-12; technical identifiers unchanged. Direction is owned by `.project/PLAN.md`, which supersedes TRUE-NORTH's scope and sequencing.)
 
 ## Mandatory preflight
 
@@ -19,13 +21,13 @@ Before planning, researching, designing, modifying, reviewing, merging, or relea
 
 ## Product rule
 
-Project Worlds is a personal appliance, not an administration console.
+Worlds is a personal appliance, not an administration console.
 
 Technology should disappear behind understandable human concepts.
 
 Prefer:
 
-`human intent → native Project Worlds concept → adapter`
+`human intent → native Worlds concept → adapter`
 
 over:
 
@@ -119,7 +121,7 @@ Administrative capability must not automatically imply routine access to private
 
 ## Simplicity
 
-Before adding a new service, framework, database, agent system, or UI, ask whether an existing Project Worlds or Lab abstraction already owns the responsibility.
+Before adding a new service, framework, database, agent system, or UI, ask whether an existing Worlds or Lab abstraction already owns the responsibility.
 
 Prefer:
 
@@ -127,7 +129,7 @@ Prefer:
 - explicit schemas
 - boring APIs
 - deterministic logic
-- native Project Worlds concepts
+- native Worlds concepts
 - provider adapters
 - ordinary Git
 - visible state
@@ -166,4 +168,4 @@ Substantial work ends with:
 
 > **Make honesty cheaper than fabrication.**
 
-Project Worlds should make the safe, accessible, truthful, understandable path the natural path—for its users and for the agents building it.
+Worlds should make the safe, accessible, truthful, understandable path the natural path—for its users and for the agents building it.

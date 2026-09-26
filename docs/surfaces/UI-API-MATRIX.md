@@ -1,5 +1,22 @@
 # UI → API MATRIX — Project Worlds
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** which API surface each UI action reads or writes (the prose view of `api_manifest.py`) · **Read this if:** you need to know what a screen calls, and what gate that call passes
+
+**In short:** Maps UI actions onto API IDs and their read/write gate. The API-side rows are still code-verified; the `UI-*` IDs name the retired 2026-09-22 SPA, so the current screens are listed separately below.
+
+**Note (2026-09-26):** `UI-*` IDs below name the retired SPA (deleted `frontend/`
+tree). The current interface is `ui/`; its screens and their main calls:
+
+| Screen (`ui/src/screens/`) | Main calls |
+|---|---|
+| Bridge (home) | API-085 `/api/briefing`, API-088 `/api/rooms`, API-089 `/api/crew` |
+| Memory | API-005 journal, API-016 memory search |
+| Chat | API-010 `/api/chat`, API-011 providers |
+| Settings | API-030/031/032 prefs + sections, connections, identity |
+| Crew (from Settings/Bridge) | API-089 `/api/crew*`, keeper/doorway PUT |
+| Interests | API-049..052 discovery (`/api/discovery/*`) |
+| (Workshop room drawer) | API-090 `/api/secrets/overview` (admin only) |
+
 | UI ID | Action/Data | API ID | Read/Write | Current state |
 |---|---|---|---|---|
 | UI-001 Today | world summary + greeting | API-003 | Read | ACTIVE |
@@ -54,8 +71,8 @@
 | (no UI) | updates apply/rollback | CLI-018 | Write | deliberately CLI-only |
 | (no UI) | backup | API-028, CLI-008 | Read | ACTIVE (external encryption expected) |
 
-Note: the SPA also boot-fetches API-030 (prefs) on every non-auth
-route before first paint (App.tsx bootstrap).
+Note: the `ui/` app boot-fetches API-030 (prefs) and the sections layout
+before first paint (`ui/src/app/App.tsx`).
 
 Machine-readable form: `src/personal_world/api_manifest.py` is the single
 curated source for `{id, method, path, capability, kind, gate, auth}`,

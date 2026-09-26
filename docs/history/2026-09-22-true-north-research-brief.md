@@ -1,5 +1,9 @@
 # Worlds re-focus — product research brief (2026-09-22)
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`docs/TRUE-NORTH.md`](../TRUE-NORTH.md)) · **Read this if:** you want the 2026-09-22 research that fed the re-focus. · **Superseded by:** [`docs/TRUE-NORTH.md`](../TRUE-NORTH.md).
+
+**In short:** a 2026-09-22 survey of ~24 personal-dashboard, AI-companion, git-management, alert-game and discovery products, with the lessons that shaped Worlds' re-focus. Kept for provenance; the direction it informed now lives in TRUE-NORTH and `.project/PLAN.md`.
+
 Requested by Rylee: adequate research (≥15–20 products) across personal dashboards,
 AI assistant platforms, git management, alert/system-management games, and
 interest-discovery systems — to re-envision Project Worlds as:

@@ -1,15 +1,10 @@
-# TRUE-NORTH — Project Worlds
+# TRUE-NORTH — Worlds
 
-> **2026-09-25:** scope and sequencing are superseded by [`.project/PLAN.md`](../.project/PLAN.md)
-> (owner-approved after the vision review). Its honesty and accessibility principles still hold.
+> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** vision, the five commitments, and the honesty and accessibility principles · **Read this if:** you need *why* Worlds is shaped this way; for *what we are building now* read [`.project/PLAN.md`](../.project/PLAN.md) first
 
-**Status:** canonical direction — owner-approved (human, Rylee) 2026-09-22,
-with four refinements. Built from a three-round owner interview (18 taps +
-typed answers) after a 24-product research pass across personal dashboards,
-AI companions, git forges, alert-management games, and discovery systems.
-**Supersedes as direction:** `WORLDS-DELIVERY-ORCHESTRATION-PLAN-2026-09-21.md`
-(historical record), `docs/PERSONAL-WORLD-FINISH-LINE.md`, `ROADMAP.md`
-(both remain as historical detail where this doc is silent).
+**In short:** This is the owner-approved direction: the vision, the five commitments (fast · flexible · warm · polite · accessible DNA), the daily home loop, and the alpha gates. Its **scope and sequencing are superseded by `.project/PLAN.md`** (owner-approved 2026-09-25) — where they conflict on scope or order, PLAN wins. The honesty and accessibility principles here still hold.
+
+**Provenance:** canonical direction, owner-approved (human, Rylee) 2026-09-22 with four refinements; built from a three-round owner interview (18 taps + typed answers) after a 24-product research pass. **Supersedes as direction:** `WORLDS-DELIVERY-ORCHESTRATION-PLAN-2026-09-21.md` (historical record), `docs/PERSONAL-WORLD-FINISH-LINE.md`, `ROADMAP.md` (both remain as historical detail where this doc is silent).
 
 **Authority boundary (owner refinement 4):** TRUE-NORTH owns **direction
 only**. `.project/DECISIONS.md` remains the append-only decision history —
@@ -87,7 +82,7 @@ any scope expansion (ruling 2026-09-22).
 
 ## Scope — the calm hub (first release)
 
-**Core, deep:** `Overview · Memory · Chat · Settings` (the stable skeleton).
+**Core, deep:** `Bridge · Memory · Chat · Settings` (the stable skeleton).
 
 | Screen | Depth target |
 |---|---|

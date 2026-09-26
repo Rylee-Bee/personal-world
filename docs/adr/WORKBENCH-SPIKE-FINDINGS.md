@@ -1,5 +1,9 @@
 # Workbench spike findings (Lane W, backend only)
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (evidence for `docs/adr/0003` and `docs/adr/0006`) · **Read this if:** you want to see what a spike actually found when the Workbench ADRs met the code. · **Superseded by:** `docs/adr/0003-workbench-core-owned-capability.md` and `docs/adr/0006-event-task-envelope.md`
+
+**In short:** a dated record (2026-09-21) of what fit and what did not when the Workbench and task-envelope ADRs were tried against the code. It is evidence, not current state — both ADRs remain **proposed**, and the test counts and commit hashes are that session's.
+
 - Date: 2026-09-21 · Branch `lane/workbench-spike` off main @ `58f3b5e`
 - Proves ADR-0003 (core-owned workbench capability) and ADR-0006
   (task/event envelope on the journal) against the code as it actually

@@ -8,7 +8,43 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
-## 2026-09-25 (afternoon) — STEP 1b "FIRST LIGHT" LANDED (current)
+## 2026-09-26 — CURRENT (verified against code and production)
+
+**Plain words:** [`docs/WHERE-WE-ARE.md`](../docs/WHERE-WE-ARE.md). **Direction:**
+[`PLAN.md`](PLAN.md) (owner-approved 2026-09-25). **Every doc by status:**
+[`docs/INDEX.md`](../docs/INDEX.md).
+
+- **Production** runs on the transcode host (docker compose at
+  `/opt/personal-world`), image `ghcr.io/rylee-bee/personal-world` built by
+  `publish-image` on `main`. Updates are one-tap from Project Home's "What's
+  live" (ask-first; backup, `personal-world:pre-<stamp>` rollback tag, health
+  wait). Running commit: `GET /healthz` → `commit`. Runbook:
+  [`docs/OPERATIONS.md`](../docs/OPERATIONS.md).
+- **The Bridge is home** (`ui/src/screens/Bridge/`); Memory, Chat, Settings,
+  Crew and Interests are real screens; Projects and systems are labelled
+  placeholders. First Light is the first-run setup. Starfield is the default
+  theme; every theme meets the type floor (body 16px, labels 13px).
+- **Rooms** are the architecture: Workshop, Studio, Engine room and Candy, read
+  from Project Home's runtime registry; per-person rooms get
+  `X-Worlds-Principal`; a read-only, admin-only Secrets section sits in the
+  Workshop drawer. Guide: [`docs/ROOMS.md`](../docs/ROOMS.md).
+- **Crew** (per person): starter crew, `companion_id` (null = Assistant),
+  keepers and doorways per room. Canon: [`docs/COMPANION-CANON.md`](../docs/COMPANION-CANON.md).
+- **Worlds kit** (`ui/dist-kit/`, `kit:check` in CI) is vendored by Studio,
+  Project Home and Candy.
+- **Candy extraction:** discovery, media, calendars and notifications are moving
+  to the Candy room (private repo), which is live and multi-user. The code is
+  **still in Worlds** until the planned removal steps land.
+- **Next:** the OpenBao secrets migration (owner approved 2026-09-26; plan
+  pending her choices), the Candy removal steps, Bridge layout and life, and
+  filling the [screenshot gallery](../docs/gallery/README.md).
+- **Gates:** backend pytest (~1843 as of 2026-09-26), `framework validate`
+  (0 violations), UI tsc, lint, vitest, Playwright, the tokens and kit drift
+  gates, and `tests/test_public_safety.py` (no private topology in tracked text).
+
+Everything below is dated history, newest first.
+
+## 2026-09-25 (afternoon) — STEP 1b "FIRST LIGHT" LANDED
 
 **Pick up here: [`.project/HANDOFF-BRIDGE-2026-09-25.md`](HANDOFF-BRIDGE-2026-09-25.md).**
 The Bridge is the home screen (PR #68): the Keeper, briefing and bridge as one

@@ -1,5 +1,9 @@
 # Historical receipts and handoffs
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the `docs/history/` archive index (what is here and why it is not current) · **Read this if:** you are looking for a dated receipt or need to know what not to trust.
+
+**In short:** this folder holds archived 2026-09-12→14 construction, merge and convergence receipts. They are historical evidence, not current authority — their counts have drifted. This page is the map of what is here and where current truth lives.
+
 Archived evidence from the 2026-09-12→14 construction, merge, and
 convergence epochs. These files are **historical**, not current
 authority. They are preserved

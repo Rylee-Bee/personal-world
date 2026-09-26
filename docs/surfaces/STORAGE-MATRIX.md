@@ -1,4 +1,8 @@
-# STORAGE MATRIX — Project Worlds
+# STORAGE MATRIX — Worlds
+
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the on-disk stores and what backs up · **Read this if:** you need to know where a piece of state lives and whether the backup covers it
+
+**In short:** Every durable and derived store, its path, who reads and writes it, and whether the backup covers it. Rows added 2026-09-26 cover the rooms registry and per-person crew.
 
 Paths are relative to `PW_DATA_DIR` (default `./data`) and
 `PW_CONFIG_DIR` (default `./config`) unless absolute.
@@ -25,6 +29,9 @@ Paths are relative to `PW_DATA_DIR` (default `./data`) and
 | STORE-019 | ~/.config/personal-world/reconciler/desired/ | YES (desired state YAML/JSON) | NativeSettingsReconciler | manual only | NO | yes (user-authored) |
 | STORE-020 | data/executions.json | derived (execution viewer) | ExecutionStore.query | ExecutionStore append/update | NO | YES (append log; currently orphaned) |
 | STORE-021 | data/users/<id>/ (multi mode) | YES (per-person world/journal) | _user_paths | same as STORE-001/002 per person | backup_payload covers GLOBAL world only | partially |
+| STORE-022 | data/rooms-registry.json | YES (last-known-good room list) | RoomsService (registry read), `/api/rooms` | registry fetch (atomic) | NO | yes (re-fetched from Project Home) |
+| STORE-023 | data/rooms-state.json | YES (per-room keeper/doorway + visit state) | RoomsService, `/api/rooms` | `/api/rooms/{id}/(visit\|keeper\|doorway)` | NO | partially (per-person state; re-choosable) |
+| STORE-024 | crew.json via `identity.principal_scoped_path` (`data/crew.json` single · `data/users/<id>/crew.json` multi) | YES (per-person crew/keepers/doorways) | crew.py, briefing.py, `/api/crew` | `/api/crew*`, keeper/doorway PUT | NO | partially (per-person; re-createable) |
 | — | data/.env also read at boot for PW_API_TOKEN (see STORE-010) | — | — | — | — | — |
 
 Notes:
@@ -34,6 +41,11 @@ Notes:
   theme packs, discovery.json, and reconciler desired state are NOT in
   any automated backup; recovery plans must cover them separately
   (matches ARCHITECTURE.md export contract).
+- The **full-instance SOS archive** (`personal-world worlds backup`, format
+  `pw-worlds-backup/1`) is the wider path: it covers world+journal, per-user
+  trees, users/reminders/apps/proposals, oidc config (secret stripped),
+  discovery, reconciler/lab desired state and theme packs, and `vault.enc` with
+  `--include-vault`. See `docs/WORLDS-BACKUP.md`.
 - All four export contracts (settings/world/story/backup) are
   serialization views, never the storage of record.
 - `config/connections.json` is tracked and must stay secret-free;

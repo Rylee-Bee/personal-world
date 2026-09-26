@@ -1,12 +1,12 @@
 # Human Reliability Contract
 
-Status: Canonical
-Scope: Human-facing systems, agent behavior, operational workflows,
-project continuity, and substantial engineering work in this repository.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the human-reliability contract (safe, understandable, recoverable operation under low attention/energy) · **Read this if:** you are designing or reviewing any human-facing surface, agent behavior, or operational workflow.
+
+**In short:** Worlds must stay safe, understandable and calmly operable when the person is tired, foggy, or interrupted. Human reliability is an architectural requirement, not polish — this page lists the rules and acceptance questions that enforce it.
 
 ## Purpose
 
-Project Worlds must remain safe, understandable, recoverable, and
+Worlds must remain safe, understandable, recoverable, and
 calmly operable when the person using or maintaining it is not
 operating at maximum attention, memory, energy, or tolerance for
 complexity.
@@ -216,7 +216,7 @@ explicitly as unresolved work.
 The goal is not to eliminate complexity. The goal is to make
 complexity navigable.
 
-A successful Project Worlds can support deep engineering when the
+A successful Worlds can support deep engineering when the
 person wants depth while remaining calm, safe, and understandable when
 the person needs simplicity.
 

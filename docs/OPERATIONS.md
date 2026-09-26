@@ -1,8 +1,12 @@
 # Operations guide (0.1)
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** running, deploying, updating and backing up Worlds · **Read this if:** you are operating an instance — local CLI, containers, production deploy, backups, or chat providers.
+
+**In short:** how to run Worlds locally and in containers, sign in with your own SSO, deploy and roll back, and keep data safe. Keep private hostnames, credentials and access procedures in your own private operator docs — this repo carries the portable pattern only.
+
 > **First run on new hardware?** See
 > [`docs/OPERATIONS-FIRST-RUN.md`](OPERATIONS-FIRST-RUN.md) — the
-> daily-use runbook matching what was actually done.
+> dated 2026-09-09 bring-up record (historical, not a current recipe).
 
 This guide describes the public standalone application. Keep private deployment
 hostnames, service inventories, credentials and access procedures in private
@@ -174,37 +178,38 @@ The dev override sets `build: .`, `image: personal-world:dev`, and
 `pull_policy: never` — it never reaches GHCR. Developers do not need to
 edit the production Compose file.
 
-### The live dev-box instance (:8000) — update runbook
+### Production deployment (the transcode host)
 
-The owner's live instance on the dev box runs compose project
-`personal-world` from a checkout at main with image `personal-world:dev`
-(`PW_IMAGE` and friends live in `~/.config/personal-world-live.env`,
-chmod 600 — location recorded here, values never). State persists in the
-`personal-world_world-data` and `personal-world_config-data` volumes
-(the config volume is live since the 2026-09-22 Wave-1 update; before
-that `/config` was ephemeral). Update after merging to main:
+Production Worlds runs on the **transcode host** (a LAN machine) as a
+docker compose stack at `/opt/personal-world`, serving the owner's Worlds
+hostname through homelab Traefik. The Traefik route applies the `secure`
+headers middleware but **no Authelia forward-auth** — Worlds owns its own
+auth (bearer token, browser sign-in, optional OIDC used only as an
+identity provider). It is not on the workstation and not part of the
+homelab compose stacks.
+
+Images are built by the GitHub Actions `publish-image` workflow on `main`
+and pushed to `ghcr.io/rylee-bee/personal-world`; production pulls them:
 
 ```bash
-cd <checkout at main>
-docker build --load -t personal-world:dev .   # buildx: --load is REQUIRED
-                                              # or the image stays in the build cache
-docker tag personal-world:dev personal-world:pre-<label>   # rollback handle
-docker compose -p personal-world \
-  --env-file ~/.config/personal-world-live.env \
-  up -d --pull never core
+cd /opt/personal-world
+docker compose pull && docker compose up -d
 ```
 
-Quirk (observed 2026-09-22, Compose v5.5.1 + buildx docker-container
-driver): plain `up -d` tries to PULL the locally-built tag and fails
-`denied: requested access to the resource is denied`; `--pull never`
-forces the local image. Verify: `/` → 303, `/login` → 200, and a
-Wave-1 endpoint like `/api/journal/last` → 401 unauthenticated (a 404
-means the old image is still serving). Rollback: same command with
-`PW_IMAGE=personal-world:pre-<label>` exported.
+Updates are normally one tap: Project Home's "What's live" panel shows the
+running vs latest commit and can create an ask-first deploy task. After
+approval, the Project Home host deployer (runs every 2 minutes) runs the
+app's deploy command — which backs up data, tags the old image
+`personal-world:pre-<stamp>` for rollback, pulls, restarts, and waits for
+healthy.
 
-### Optional Rylee / homelab enrichment
+Secrets and env live only in `/opt/personal-world/.env` (mode 600):
+`PW_API_TOKEN`, `OIDC_CLIENT_SECRET`, and any `PW_ROOM_*_TOKEN` values.
+This repo records names only, never values.
 
-The portable base does not bind any host paths. On the laptop / homelab
+### Optional homelab enrichment
+
+The portable base does not bind any host paths. On the homelab developer
 host that has the kilo2/homelab checkout and a Kilo auth file, opt in
 with the homelab override (read-only binds, no other changes):
 
@@ -217,9 +222,11 @@ machine-specific and intentionally non-portable.
 
 ## Health, failures and state
 
-`GET /healthz` is a public health endpoint; successful protected API access is a
-separate check. The container refuses startup with an empty token. Docker health
-status alone does not restart an unhealthy running container.
+`GET /healthz` is a public health endpoint returning
+`{"ok", "auth_configured", "setup_needed", "dev_bypass", "commit"}`
+(`commit` is the build's short SHA, null when unknown); successful protected API
+access is a separate check. The container refuses startup with an empty token.
+Docker health status alone does not restart an unhealthy running container.
 
 Unavailable providers must degrade honestly while core capabilities remain
 usable. Missing providers are `not_configured`, not falsely healthy. The daily
@@ -240,7 +247,9 @@ world snapshot. With no chat provider configured the capability reports
 model degrades to an honest inline error, never a fake reply.
 
 Wire a provider in your **private** runtime config
-(`config.local/connections.json`), never the tracked default:
+(`config.local/connections.json`). The tracked `config/connections.json`
+ships only a local-ollama example; never put real endpoints or credentials
+in the tracked copy:
 
 ```json
 {

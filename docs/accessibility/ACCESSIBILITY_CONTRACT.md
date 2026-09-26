@@ -1,4 +1,8 @@
-# Project Worlds Accessibility Contract
+# Worlds Accessibility Contract
+
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the accessibility floor every screen, component, token and theme must meet · **Read this if:** you are designing, building or reviewing anything a person perceives or operates.
+
+**In short:** the non-negotiable accessibility floor for Worlds — contrast, 44px targets, keyboard and focus, drawer/dialog behaviour, headings and landmarks, live-region restraint, companion rules. It is a contract, not a description of the current build: components must satisfy it, and no theme or preference may lower it.
 
 (Formerly "Personal World" — product renamed 2026-09-12; technical identifiers unchanged.)
 
@@ -78,7 +82,7 @@ Canonical. Commit to repository. Engineering preserves these rules regardless of
 
 5.1. The canonical DOM/source order is: skip-link, navigation, main, complementary.
 
-5.2. Within main: greeting, world summary, attention, changes, discovery, journal, actions.
+5.2. Within `main`, the screen's own reading order is the source order. The home screen (the **Bridge**) reads: first-day summary, world lenses, the star map, what needs you, the briefing panel, rooms, keeper. A screen that changes this order must record the change where the screen is defined.
 
 5.3. This source order supports desktop, tablet, mobile, screen reader, keyboard, and 200% zoom without separate semantic versions.
 
@@ -102,7 +106,7 @@ DECORATIVE ENHANCEMENT
 
 A lower layer may never violate a requirement above it.
 
-6.2. OS `prefers-reduced-motion` is respected unconditionally. It overrides Project Worlds animation preferences.
+6.2. OS `prefers-reduced-motion` is respected unconditionally. It overrides Worlds animation preferences.
 
 6.3. Browser zoom is never disabled. User text scaling is never prevented.
 
@@ -110,9 +114,9 @@ A lower layer may never violate a requirement above it.
 
 6.5. The interface never requires a specific orientation.
 
-6.6. Forced-colors / platform high-contrast mode: do not override in ways that destroy platform accessibility. Project Worlds' high-contrast treatment is additive, not a replacement for OS-level forced colors.
+6.6. Forced-colors / platform high-contrast mode: do not override in ways that destroy platform accessibility. Worlds' high-contrast treatment is additive, not a replacement for OS-level forced colors.
 
-6.7. Project Worlds preferences may increase comfort but may never lower the accessibility floor.
+6.7. Worlds preferences may increase comfort but may never lower the accessibility floor.
 
 ---
 
@@ -144,6 +148,6 @@ A lower layer may never violate a requirement above it.
 
 9.1. Accessibility preferences tune an already-accessible product. They do not create accessibility.
 
-9.2. No "accessibility mode" exists. The settings section is named "Reading & Interaction."
+9.2. No "accessibility mode" exists. The preference section is named "Customize" (`ui/src/screens/Settings/SettingsRoom.tsx`), not a separate accessibility mode.
 
 9.3. "Standard" targets are already >=44px. "Comfortable" contrast is already WCAG AA. Motion is already restrained.

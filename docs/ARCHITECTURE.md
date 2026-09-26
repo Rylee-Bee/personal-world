@@ -1,4 +1,8 @@
-# Project Worlds Architecture
+# Worlds Architecture
+
+> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** how Worlds is structured — world model, rooms, API surface, identity/auth, Vault, exports · **Read this if:** you need to know where something lives before changing it.
+
+**In short:** how Worlds is put together: one small durable core (facts, intent, policy, lore, capabilities, journal, packs) surrounded by replaceable providers, plus **rooms** — separate services Worlds renders. It also covers the API surface, identity and auth, the Vault, the daily loop, and export contracts.
 
 (Formerly "Personal World" — product renamed 2026-09-12; technical
 identifiers unchanged. Historical docs may still use the old name.)
@@ -26,6 +30,57 @@ tool. Those are providers behind adapters.
 | Provider | Concrete system mapped to a capability | no |
 | Journal | One append-oriented event stream | records |
 | Pack | Recipe: structure, never personal data | installs defaults only |
+
+## Rooms (the core architecture)
+
+A **room** is any service that serves the Play-Nice **ROOM** contract
+`room/0` — `GET /room`, `/room/cards`, `/room/needs-you`, `/room/actions`,
+`POST /room/actions/{id}` (idempotent, with `Idempotency-Key`). Worlds
+renders rooms; it never copies another tool's code. Pin:
+`.project/contracts/adoption.yaml`; app-side reader: `src/personal_world/rooms.py`.
+
+- **Runtime registry (Gap 1).** Worlds reads the room list at runtime from
+  Project Home `GET /api/rooms/registry` (`PW_ROOMS_REGISTRY_URL`), cached
+  60 s with last-known-good persisted. `PW_ROOMS` is only a fallback. A room
+  whose contract is not in `SUPPORTED_CONTRACTS` (`{"room/0"}`) shows as
+  `incompatible`; one that does not answer shows as `unreachable` with its
+  last-seen time, and one failing room never blanks the rest.
+- **Tokens.** Each room's token lives in Worlds' environment under a name
+  like `PW_ROOM_WORKSHOP_TOKEN`; a registry row names that variable in
+  `token_env` (must match `^PW_ROOM_[A-Z0-9_]+_TOKEN$`). Values live only in
+  the host's `.env` (mode 600), never in git.
+- **Cards and needs.** A card's `tone` (`good_news` | `update` |
+  `when_ready`) is a display hint, never priority. A need's `link` is a
+  same-origin path on the **room's** site; Worlds opens it in a new tab at
+  the room's `public_url` (falling back to `base_url`), with no proxy — a
+  proxy would hand every room Worlds' cookies.
+- **Per-person rooms.** For a registry row with `forward_principal: true`
+  and a token, Worlds sends `X-Worlds-Principal: <principal id>` alongside
+  the room's bearer token; cards and needs are then fetched and cached per
+  person (15 s, ≤64 people). Health stays estate-wide; background snapshots
+  send no principal. Candy is the first per-person room.
+- **Visits, keepers, doorways.** Room visits, need-seen state, keepers and
+  doorways are Worlds-owned and per person (`/api/rooms/{id}/…`). A doorway
+  is presentation only: a closed list of 12 ids (`study`, `archive`,
+  `garden`, `kitchen`, `lounge`, `music`, `observatory`, `post`, `travel`,
+  `vault`, `wellness`, `hallway`) with no defaults.
+- **Secrets overview.** Worlds shows a read-only secrets section in the
+  Workshop room's drawer, built on `GET /api/secrets/overview` (which reads
+  Project Home `GET /api/secrets/summary` with the workshop room's token).
+  Names and health only, never a value; admin-only.
+- **Live rooms (2026-09-26):** Workshop (Project Home) and Studio on the
+  workstation, Engine room (homelab `lab room serve`), and Candy (discovery),
+  all reachable in production Worlds.
+
+## The Bridge and the briefing
+
+`/api/briefing` (contract `worlds-briefing/1`) is built from six fixed
+systems — agents/Workshop, estate/Engine room, records/Archive,
+interests/Observatory, news/Newsstand, threads/World tree. A configured room
+whose id names a system (e.g. `workshop`, `engine-room`) is that system;
+Newsstand is an honest `not_configured` placeholder. The **Bridge** is the
+home screen (`ui/src/screens/Bridge/`): it shows the Keeper and the briefing,
+the rooms as doorway cards, and remembers where you were.
 
 ## Durable memory and retrieval
 
@@ -144,7 +199,7 @@ deployment layer, but it does not replace application authorization.
 
 **Finish-line target:** authentication becomes provider-neutral at the
 application seam. A real SSO/identity provider may supply normal sign-in,
-while Project Worlds retains its own authorization/ownership rules. The
+while Worlds retains its own authorization/ownership rules. The
 finished path must support step-up authentication for severe/destructive
 changes and sensitive vault/secure-note access, plus recoverable
 bootstrap/break-glass access when an external identity provider is
@@ -157,19 +212,29 @@ narrower refactor.
 
 One core, a FastAPI HTTP surface in `src/personal_world/api.py`, and a CLI
 in `cli.py` sharing core modules. The CLI does not require an HTTP server.
-The dashboard uses the API; future clients can use the same boundary.
-The following inventory reflects implemented routes, not deployment acceptance:
+The interface in `ui/` uses the API; future clients can use the same
+boundary. `GET /api/manifest` carries the machine-readable route table
+(curated in `api_manifest.py`). The following inventory reflects implemented
+routes, not deployment acceptance:
 
 | Route | Purpose |
 |---|---|
 | GET /healthz | Public liveness, auth_configured, setup_needed, commit (short SHA of the running build, or null) |
 | GET /api/setup/status; POST /api/setup | Public first-run state/bootstrap; setup rejects repeats after the completion marker |
 | GET /api/status | world summary + capability statuses |
+| GET /api/briefing | the Bridge's briefing (`worlds-briefing/1`), six fixed systems |
+| GET /api/rooms | the estate's rooms: descriptor, cards, needs, reachability, last-seen, status, public_url, plus the caller's visit/keeper/doorway state (snapshot cached 15 s) |
+| POST /api/rooms/{room_id}/visit, /needs/{need_id}/seen; PUT /api/rooms/{room_id}/keeper, /doorway | per-person room state (visit, need-seen, keeper, doorway) |
+| GET /api/secrets/overview | read-only secrets names + health for the Workshop room's drawer (admin-only) |
+| GET/POST /api/crew; PATCH/DELETE /api/crew/{companion_id}; GET/POST/DELETE /api/crew/{companion_id}/portrait | per-person crew: companions and their portraits (keepers and doorways are set per room, below) |
+| GET /api/setup-wizard/state, /crew; POST /api/setup-wizard/provision, /test-oidc, /auth-choice, /comfort, /companion, /finish | First Light first-run setup (`src/personal_world/setup_wizard.py`): sign-in choice, comfort settings, crew on/off, companion choice |
 | GET /api/daily | present the daily digest (read-only; never mutates) |
 | POST /api/daily | run the daily loop: journal observations, record facts, save |
 | GET /api/journal | recent events |
 | POST /api/journal | User note append |
 | GET /api/journal/audit | audit-log rendering |
+| GET /api/journal/last | the newest journal event (the Bridge thread card reads this, not the list order) |
+| GET/POST /api/discovery/*; GET /api/media/* | discovery (Interests) and media, on native providers — being extracted to the **Candy** room and still present in Worlds today |
 | GET /api/actors | staff-directory view |
 | GET /api/manifest | Core capability/provider manifest (`data`) + the machine-readable endpoint manifest (`endpoints`: id, method, path, capability, kind, gate, auth, present — curated in `api_manifest.py`, verified against the live route table) |
 | GET /api/memory/search | semantic recall via the memory provider |
@@ -200,8 +265,9 @@ through `require_step_up`; individual routes may add further restrictions.
 fonts/icons/companions are browser entry/assets. `/` serves the React
 interface (`ui/`, built into `static/app/` and mounted by
 `station_ui.app_router` — the module name is from the retired Station
-era): first-run redirects to `/setup`, an unauthenticated browser
-redirects to `/login`, and a valid `pw_session` cookie is sufficient —
+era; the home screen is the **Bridge**, labelled "Bridge" in the navigation
+though its internal area id is still `overview`): first-run redirects to `/setup`, an unauthenticated
+browser redirects to `/login`, and a valid `pw_session` cookie is sufficient —
 which is why its API calls need no CORS and no browser-side token.
 Only web assets from an allowlist built at boot are served; internal
 `.md` notes and `_legacy/` never are. The server-rendered Station was
@@ -278,7 +344,7 @@ The lab already runs a de-facto epistemic taxonomy across three
 systems — rylee_lore claim states (`candidate/accepted/superseded/
 rejected/unknown`), rylee-context provenance triples (`source ×
 confidence × status`), and VEFR's propose-validate-apply Spark
-contract. Project Worlds' lore states (`confirmed/derived/suggested/
+contract. Worlds' lore states (`confirmed/derived/suggested/
 ephemeral`) align with all of them, and the shared promotion rule is
 identical everywhere: **agents append evidence; only an explicit human
 action promotes to canon.** The core's `MutationDenied` gate enforces
@@ -302,7 +368,10 @@ src/personal_world/   core package
   providers/          contracts, registry, adapters.py (forge HTTP/HTTP/fake/SOPS),
                       github.py (GitHub enrichment via gh CLI),
                       optional Lab and ingress enrichment adapters
-  api.py              FastAPI + bearer auth + dashboard shell
+  api.py              FastAPI + bearer auth + the JSON API behind the interface
+  rooms.py            ROOM contract reader: runtime registry, cards, needs, visits
+  briefing.py         the Bridge briefing (worlds-briefing/1), six fixed systems
+  crew.py             per-person crew: companions, keepers, doorways
   cli.py              personal-world CLI (--json envelope)
   loop.py             the daily cycle
   status.py           canonical provider/capability statuses + ranking

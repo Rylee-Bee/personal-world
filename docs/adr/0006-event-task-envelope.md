@@ -1,5 +1,11 @@
 # ADR-0006: One task/event envelope = the journal event shape (transport-agnostic)
 
+> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** the task/event envelope direction (proposed, review-only) · **Read this if:** you are designing how Workbench tasks and Agent operations record events.
+
+**Scope note:** proposed and review-only. `.project/PLAN.md` wins on scope and sequencing.
+
+**In short:** proposed, not accepted. If accepted, Workbench tasks and Agent operations share one transport-agnostic event envelope that is a **journal event shape** — not a new bus or store. NATS or any durable broker is added only when a named trigger fires. A spike (2026-09-21) showed the journal accepts the extra fields additively.
+
 - Status: **proposed** (review-only per owner D22; not yet accepted)
 - Date: 2026-09-21
 - Supersedes: none

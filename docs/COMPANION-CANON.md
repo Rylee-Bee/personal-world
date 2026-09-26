@@ -1,5 +1,9 @@
 # Companion Canon — names, roles, and the id mapping
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** companion display names, roles, and the id mapping (station id ↔ server key ↔ crew id) · **Read this if:** you are naming a companion in copy, or mapping a legacy key to a crew id.
+
+**In short:** the human-readable name, role, and machine identifiers for each resident — and the rule that display names are canon for people while ids are canon for the code. Some historical evidence and open questions below are kept as records; the crew-id table in §2 is what the current code reads.
+
 **Status:** Canonical for companion **display names** (owner-stated, 2026-09-17).
 Not a replacement for `design/COMPANION_INTEGRATION.md` (design/art authority),
 `docs/accessibility/ACCESSIBILITY_CONTRACT.md` (accessibility), or
@@ -39,17 +43,17 @@ Where this file disagrees with repo evidence, the disagreement is recorded below
 
 ## 1. The residents
 
-| Name | Role | Origin (game / repo) | Station id | Server key |
+| Name | Role | Origin (game / repo) | Crew id | Old key (migrates) |
 |---|---|---|---|---|
-| **Renai** | Personal companion (the operator theme) | Owner canon 2026-09-17. **Not in the repo today** — repo still labels her "Mermaid" | `mermaid` | `mermaid` |
-| **Ratatoskr** | Worlds / lore / memory keeper — the Norse messenger squirrel | **VEFR** (owner game engine). Repo design label: "World-tree Squirrel" | `ratatoskr` | `world-tree-squirrel` |
-| **Bolt** | Lab / development / AI helper ("Little Helper Robot") | Repo design (`design/COMPANION_INTEGRATION.md`); personal name chosen by the owner, 2026-09-17 | `robot` | `robot` |
-| **Scoop** | Journalism / stories / city life — the **breakfast burrito truck** | **Burrito Journalism** (owner game; display name **Scoop** from 2026-09-25). Repo design label: "Tacos & the Morning Paper" | `burrito` | `taco-news-truck` |
-| **Sol** | The ringed planet: primary logo, greets and pops up (display name from 2026-09-25; formerly "Personal World") | Repo product identity | *(none — absent from the Station control)* | `personal-world` |
-| **Assistant** | The plain default helper when no companion is chosen; a computer screen with a friendly face (owner, 2026-09-25) | Worlds default | *(none)* | `assistant` |
-| **Hekek** | Systems — Builder · Maintainer · Steward | Owner canon 2026-09-17. **New area character, not in the repo today** | `hekek` *(proposed)* | `hekek` *(proposed)* |
-| **Bruma** | Records — Archivist · Keeper · Witness | Owner canon 2026-09-17. **New area character, not in the repo today** | `bruma` *(proposed)* | `bruma` *(proposed)* |
-| **Mira** | Interests — Observer · Note-Taker · Pattern Seeker | Owner canon 2026-09-17. **New area character, not in the repo today** | `mira` *(proposed)* | `mira` *(proposed)* |
+| **Renai** | Personal companion (the operator theme) | Owner canon 2026-09-17 (formerly labelled "Mermaid") | `renai` | `mermaid` |
+| **Ratatoskr** | Worlds / lore / memory keeper: the Norse messenger squirrel | **VEFR** (owner game engine). Old design label: "World-tree Squirrel" | `ratatoskr` | `world-tree-squirrel` |
+| **Bolt** | Lab / development / AI helper ("Little Helper Robot") | Repo design (`design/COMPANION_INTEGRATION.md`); personal name chosen by the owner, 2026-09-17 | `bolt` | `robot` |
+| **Scoop** | Journalism / stories / city life: the **breakfast burrito truck** | **Burrito Journalism** (owner game; display name **Scoop** from 2026-09-25). Old design label: "Tacos & the Morning Paper" | `scoop` | `taco-news-truck` |
+| **Hekek** | Systems: Builder · Maintainer · Steward | Owner canon 2026-09-17; starter crew since 2026-09-25 | `hekek` | *(none)* |
+| **Bruma** | Records: Archivist · Keeper · Witness | Owner canon 2026-09-17; starter crew since 2026-09-25 | `bruma` | *(none)* |
+| **Mira** | Interests: Observer · Note-Taker · Pattern Seeker | Owner canon 2026-09-17; starter crew since 2026-09-25 | `mira` | *(none)* |
+| **Sol** | The ringed planet: Worlds' mark; greets and pops up, never speaks (display name from 2026-09-25; formerly "Personal World") | Repo product identity | *(not crew)* | `personal-world` → no companion |
+| **Assistant** | The plain default voice when no companion is chosen; a computer screen with a friendly face (owner, 2026-09-25) | Worlds default | *(not crew; `companion_id: null`)* | `assistant` → no companion |
 
 "Origin (game / repo)" says where the character comes from, not that the repo
 already spells the name that way.
@@ -69,51 +73,44 @@ stylized bed icon in the crew icon language
 
 ---
 
-## 2. Server key ↔ station name mapping
+## 2. Crew ids today, and the old keys they replace
 
-Evidence: `design/opendesign-exploration/station/real-data.js` L94–99,
-`design/opendesign-exploration/station/station.js` L30–35,
-`design/opendesign-exploration/station/settings.html` L371–376
-(the Station's "Your companion" control), and
-`src/personal_world/prefs.py` L134–142 (the server `COMPANION` preference).
+**Source of truth:** `src/personal_world/crew.py` (`STARTER_CREW`,
+`SYSTEM_RESIDENT`) and `src/personal_world/prefs.py` (`LEGACY_COMPANION_IDS`).
 
-| Station value (browser) | Server value (`prefs.py`) | Binding | Notes |
-|---|---|---|---|
-| `mermaid` | `mermaid` | exact | Same id both sides. Display canon is **Renai**. |
-| `ratatoskr` | `world-tree-squirrel` | renamed | Station id is the character name; server key is the descriptor. |
-| `robot` | `robot` | exact | Display: **Bolt** ("Little Helper Robot"). |
-| `burrito` | `taco-news-truck` | renamed | Station id is the game name; server key is the descriptor. |
-| *(absent)* | `personal-world` | server-only | Default value and floor of the companion preference; the Station control offers only the four above. |
-| `hekek` *(proposed)* | `hekek` *(proposed)* | exact | **Not in the Station control or server today.** Display canon: **Hekek**. New area character, owner canon 2026-09-17. |
-| `bruma` *(proposed)* | `bruma` *(proposed)* | exact | **Not in the Station control or server today.** Display canon: **Bruma**. New area character, owner canon 2026-09-17. |
-| `mira` *(proposed)* | `mira` *(proposed)* | exact | **Not in the Station control or server today.** Display canon: **Mira**. New area character, owner canon 2026-09-17. |
+The chosen companion is a reference into the person's own crew
+(preference `companion_id`; `null` means the one plain Assistant voice). Every
+person starts with the same **starter crew**, which they can rename, hide or
+add to:
 
-The three `*(proposed)*` rows are a naming proposal only — no code reads them
-yet, and whether these ids are correct is **UNKNOWN** until an implementation
-decision. `Settings` is deliberately absent: it is an icon, not a resident.
+| Crew id | Display name | Resident of (briefing system) |
+|---|---|---|
+| `renai` | Renai | *(none)* |
+| `bolt` | Bolt | agents: **Workshop** |
+| `hekek` | Hekek | estate: **Engine room** |
+| `ratatoskr` | Ratatoskr | threads: **World tree** |
+| `bruma` | Bruma | records: **Archive** |
+| `mira` | Mira | interests: **Observatory** |
+| `scoop` | Scoop | news: **Newsstand** (Burrito Journalism) |
 
-The Station and the server are two stores that are **not synchronized**
-(`real-data.js` L94–98: the Station control saves in this browser, the server
-keeps its own value). The mapping above is the translation, not a live sync.
+Being a system's resident is who reports that system in the briefing. It is
+not the same as being a room's **keeper**: keepers are chosen per room by
+each person, and only the Workshop starts with one (Bolt).
 
-> **Crew ids (owner decision 2026-09-25, companions addendum item 4).** The
-> chosen companion is now a reference into the person's own crew registry
-> (`src/personal_world/crew.py`, preference `companion_id`), not one of the
-> old server keys. The starter crew keeps these canon residents, and the old
-> server key still reads as the crew id below — one-time and lazy
-> (`prefs.LEGACY_COMPANION_IDS`), rendered in `crew.STARTER_CREW`:
->
-> | Old server key | Crew id |
-> |---|---|
-> | `mermaid` | `renai` |
-> | `robot` | `bolt` |
-> | `world-tree-squirrel` | `ratatoskr` |
-> | `taco-news-truck` | `scoop` |
-> | `assistant`, `personal-world` | *(none — the one plain voice)* |
->
-> Sol is still not a crew entry, and no crew id above is a rename of an
-> existing identifier: the display name is canonical for humans, the crew id
-> for the registry, exactly as the server keys were before.
+**Old keys.** Before 2026-09-25 the preference held descriptor keys. They
+migrate once, lazily, via `prefs.LEGACY_COMPANION_IDS`:
+
+| Old key | Crew id |
+|---|---|
+| `mermaid` | `renai` |
+| `robot` | `bolt` |
+| `world-tree-squirrel` | `ratatoskr` |
+| `taco-news-truck` | `scoop` |
+| `assistant`, `personal-world` | *(none: the one plain voice)* |
+
+Sol is not a crew entry and never speaks: she is Worlds' own mark. The retired
+Station's browser-side companion ids are history only (tag
+`archive/pre-design-cleanup-2026-09-25`).
 
 ---
 
@@ -124,18 +121,20 @@ keeps its own value). The mapping above is the translation, not a live sync.
 | Surface | Use |
 |---|---|
 | Human-facing copy, docs, chat, UI labels | Owner canon: **Renai**, **Ratatoskr**, **Bolt**, **Scoop** (from *Burrito Journalism*), **Sol**, **Hekek**, **Bruma**, **Mira**. **Settings** names the deck/icon, not a resident. |
-| Station code (`design/opendesign-exploration/station/`) | ids `mermaid`, `ratatoskr`, `robot`, `burrito` (proposed for the new area crew: `hekek`, `bruma`, `mira`) |
-| Server / preferences / API | keys `personal-world`, `mermaid`, `robot`, `world-tree-squirrel`, `taco-news-truck` (proposed for the new area crew: `hekek`, `bruma`, `mira`) |
+| Server / preferences / API | crew ids `renai`, `bolt`, `hekek`, `ratatoskr`, `bruma`, `mira`, `scoop` (`crew.STARTER_CREW`); `companion_id: null` is the Assistant. Old keys migrate (§2). |
+| Retired Station code | Its browser ids (`mermaid`, `ratatoskr`, `robot`, `burrito`) are history only (tag `archive/pre-design-cleanup-2026-09-25`). |
 | Artwork / rig filenames | Keep the existing paths (`mermaid`, `robot`, `world-tree-squirrel`, `taco-news-truck`, `personal-world`). Never rename art to match a display name. |
 
 **What each must never be confused with**
 
-- **Renai is not the default.** "Personal World" is the default system companion;
-  Renai (id `mermaid`) is the personal companion / operator theme. Do not use
-  "Mermaid" as her name in human-facing copy — it is the artwork form and the id.
-- **"Personal World" is overloaded.** It is both the resident and the product's
-  former name (renamed *Project Worlds* 2026-09-12). The resident keeps the name;
-  the product does not.
+- **Renai is not the default.** The default is the plain **Assistant**
+  (`companion_id: null`); Renai (crew id `renai`) is a personal companion a
+  person can choose. Do not use "Mermaid" as her name in human-facing copy: it
+  is the artwork form and the old key.
+- **"Personal World" is retired as a name.** The product went "Personal World"
+  → *Project Worlds* (2026-09-12) → **Worlds**, and the planet mark is now
+  **Sol** (2026-09-25), who never speaks. Code identifiers (`personal_world`,
+  `PW_`) keep the old name.
 - **Ratatoskr is the squirrel, not the tree.** Do not address the character as
   "World-tree Squirrel" (repo descriptor) or as "Yggdrasil" (the world tree).
 - **The truck is a breakfast burrito truck, not a taco truck.** "Tacos & the
@@ -157,11 +156,13 @@ an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
 
 ## 4. OPEN and UNKNOWN
 
-- **Renai — name missing from the repo.** `rg -i 'renai'` returns 0 matches.
-  The repo labels her "Mermaid" everywhere. Which surface adopts "Renai" first,
-  and whether the id `mermaid` ever changes, is **UNKNOWN** (do not change ids
-  without an explicit decision). *(Earlier working draft name "Willow" is retired —
-  do not reintroduce it; it was too close to personal information.)*
+- **Renai — resolved in code.** The crew id is `renai` (`src/personal_world/crew.py`;
+  the drawn companion's persona template `config/prompts/personas/mermaid.md`),
+  and the legacy server key `mermaid` migrates to it lazily via
+  `prefs.LEGACY_COMPANION_IDS`. The raw id `mermaid` is unchanged. Some older
+  prose and design filenames still read "Mermaid". *(Earlier working draft name
+  "Willow" is retired — do not reintroduce it; it was too close to personal
+  information.)*
 - **Bolt — resolved.** The robot's personal name is **Bolt** (owner-stated
   2026-09-17); "Little Helper Robot" remains the role/descriptor. No id changes
   (`robot` stays `robot`).
@@ -170,13 +171,13 @@ an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
   `burrito`; `personal-world` exists only as a server value/floor. Whether the
   Station should expose it is UNKNOWN.
 - **"Tacos & the Morning Paper" retirement date UNKNOWN.** Reconcile to Burrito
-  Journalism; when the repo label is retired is not yet decided.
-- **Hekek, Bruma, Mira — ids proposed, not implemented.** Owner canon adds three
-  area residents (2026-09-17). Their station ids / server keys are **proposed**
-  as `hekek`, `bruma`, `mira` (exact binding), but no code, asset, or Station
-  control reads them yet. Whether these ids are correct is **UNKNOWN** until an
-  owner/implementation decision. `Settings` has no id — it is an icon, not a
-  resident.
+  Journalism (display name **Scoop**, owner canon 2026-09-25); when the repo
+  label is retired everywhere is not yet decided. The crew id is `scoop`, and
+  the legacy server key `taco-news-truck` migrates to it.
+- **Hekek, Bruma, Mira: settled.** They are starter crew with ids `hekek`,
+  `bruma`, `mira` (`crew.STARTER_CREW`, 2026-09-25) and residents of the
+  Engine room, Archive and Observatory systems. `Settings` has no id: it is an
+  icon, not a resident.
 
 ---
 
@@ -184,19 +185,19 @@ an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
 
 Recorded by `rg -i 'renai|ratatoskr|world-tree|tacos & the morning paper|burrito journalism'`:
 
-- `README.md` L3 spells **`Ratataskor`** (typo, missing the second `r`); L252 uses
-  the descriptor **"world-tree squirrel and the taco news truck"**. Not fixed.
-- `CHANGELOG.md` L221–222 and `design/assets/README.md` / `icons/README.md` still
-  use **"Tacos & the Morning Paper"** and **"World-tree Squirrel"** descriptors.
-  Not fixed.
-- `docs/CREW-AND-STATION-THESIS.md` §2 and `design/COMPANION_INTEGRATION.md` L29–33
-  still head their tables with the repo descriptors, not the canon names. Pointer
-  added; tables not rewritten.
-- `docs/STATION-GAP-ANALYSIS.md` L114–117 already records the
-  `ratatoskr`/`burrito` ↔ `world-tree-squirrel`/`taco-news-truck` drift. Left as-is;
-  this file is the mapping.
-- `src/personal_world/prefs.py` L137 and `src/personal_world/api.py` L2907 keep the
-  server keys and art filename. Correct — identifiers are not renamed.
+- `README.md` still uses the descriptor **"world-tree squirrel and the taco news
+  truck"** in an image alt near the end. (The earlier `Ratataskor` typo in the
+  intro was fixed.) Not otherwise rewritten.
+- `CHANGELOG.md` (2026-09-07 entries) and `design/assets/README.md` /
+  `icons/README.md` still use **"Tacos & the Morning Paper"** and
+  **"World-tree Squirrel"** descriptors. Not fixed.
+- `docs/CREW-AND-STATION-THESIS.md` §2 and `design/COMPANION_INTEGRATION.md`
+  still head their residents tables with the repo descriptors, not the canon
+  names. Pointer added; tables not rewritten.
+- `docs/STATION-GAP-ANALYSIS.md` already records the `ratatoskr`/`burrito` ↔
+  `world-tree-squirrel`/`taco-news-truck` drift. Left as-is; this file is the mapping.
+- `src/personal_world/prefs.py` and `api.py` keep the server keys and art
+  filenames. Correct — identifiers are not renamed.
 
 Names below remain **UNKNOWN** in the repo: **Renai** (absent from copy; the id
 stays `mermaid`), and the new area crew **Hekek**, **Bruma**, **Mira** (owner

@@ -1,10 +1,13 @@
 # PRODUCT VISION — my reflection, for Rylee to confirm or correct
 
-> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
-> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
-> server-rendered Station is retired (kept as a theme package); `frontend/`
-> paths here are the deleted pre-flip tree. Direction lives in
-> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../.project/CURRENT.md)) · **Read this if:** you want the dated 2026-09-16 vision write-up and its decision list for provenance · **Superseded by:** [`.project/PLAN.md`](../.project/PLAN.md) for direction and [`.project/CURRENT.md`](../.project/CURRENT.md) for state.
+
+**In short:** the agent's 2026-09-16 write-back of what it thought
+Worlds was, plus the decisions closed that day. Since it was written, the
+interface flipped to the React rebuild in `ui/` (2026-09-22, Bridge is now
+home) and the server-rendered Station became a theme package; decision 12
+("the Station map IS the frontend") is superseded. Truth routing:
+[`docs/README.md`](README.md).
 
 **Written 2026-09-16 by the agent, from the repo + our conversations.**
 This is *my* model of what you're building, written back to you so you can

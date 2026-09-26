@@ -1,9 +1,14 @@
-# Alpha status — Project Worlds
+# Alpha status — Project Worlds (2026-09-17 snapshot)
 
-*Where the alpha actually stands, for the owner. Direction now lives in
-[`TRUE-NORTH.md`](TRUE-NORTH.md) — this page is a status snapshot,
-not a second truth. Snapshot verified 2026-09-17 against the code; it
-will age.*
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../.project/CURRENT.md)) · **Read this if:** you want the dated 2026-09-17 alpha snapshot, not current truth · **Superseded by:** [`.project/PLAN.md`](../.project/PLAN.md) for direction and [`.project/CURRENT.md`](../.project/CURRENT.md) for state.
+
+**In short:** a status snapshot of where the private alpha stood on
+2026-09-17. Direction now lives in `.project/PLAN.md` (with
+[`TRUE-NORTH.md`](TRUE-NORTH.md) for its honesty and accessibility
+principles); this page is kept only as a record. Since it was written,
+the interface flipped to the React rebuild in `ui/` (2026-09-22, Bridge
+is now home), the server-rendered Station became a theme package, and
+the rooms/registry/crew/doorways architecture landed.
 
 ---
 

@@ -1,0 +1,164 @@
+{
+  "schema": "worlds-gallery/1",
+  "about": "What the screenshot gallery should show. capture.mjs reads this, writes shots/<id>/<theme>-<width>.png, and updates each entry's status. Screens are captured against the deterministic mock API (ui/scripts/e2e-api.mjs), never a real Worlds: this repo is public.",
+  "defaults": {
+    "widths": [
+      390,
+      1440
+    ],
+    "themes": [
+      "starfield"
+    ]
+  },
+  "all_themes": [
+    "starfield",
+    "doorways",
+    "station",
+    "moss",
+    "ocean",
+    "plain"
+  ],
+  "entries": [
+    {
+      "id": "bridge",
+      "title": "Bridge (home)",
+      "area": "Bridge",
+      "themes": [
+        "starfield",
+        "doorways",
+        "station",
+        "moss",
+        "ocean",
+        "plain"
+      ],
+      "caption": "The Bridge: the guide's briefing, the rooms as doorways, and what needs you.",
+      "alt": "The Worlds Bridge with a briefing at the top and room doorway cards below.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "7777a62"
+    },
+    {
+      "id": "room-drawer-studio",
+      "title": "A room's drawer (Studio)",
+      "area": "Bridge",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "Look inside Studio"
+          }
+        }
+      ],
+      "caption": "Looking inside a room: its status in words, its cards, and what needs you, with links that open on the room's own site.",
+      "alt": "The Studio room drawer open over the Bridge.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "7777a62"
+    },
+    {
+      "id": "room-drawer-workshop-secrets",
+      "title": "Workshop drawer with Secrets",
+      "area": "Bridge",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "Look inside Workshop"
+          }
+        }
+      ],
+      "caption": "The Workshop room's drawer, including the owner-only Secrets section: names and health only, never a value.",
+      "alt": "The Workshop room drawer showing a Secrets section with station health and key names.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "7777a62"
+    },
+    {
+      "id": "memory",
+      "title": "Memory",
+      "area": "Memory",
+      "caption": "Memory: your journal and records, and finding things in them.",
+      "alt": "The Memory screen listing journal entries.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "7777a62"
+    },
+    {
+      "id": "chat",
+      "title": "Chat",
+      "area": "Chat",
+      "caption": "Chat with your guide. Read-only: it observes, and anything it wants to change becomes a proposal you approve.",
+      "alt": "The Chat screen.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "7777a62"
+    },
+    {
+      "id": "settings",
+      "title": "Settings",
+      "area": "Settings",
+      "caption": "Settings: voice and tone, companion, theme, and the way into Crew.",
+      "alt": "The Settings screen.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "7777a62"
+    },
+    {
+      "id": "crew",
+      "title": "Crew",
+      "area": "Settings",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "Crew"
+          }
+        }
+      ],
+      "caption": "Crew: choose your companion, and put a keeper and a doorway on each room.",
+      "alt": "The Crew screen with companions and per-room keepers.",
+      "status": "captured",
+      "notes": "If the Settings screen's way into Crew has a different accessible name, fix the step, not the UI.",
+      "captured_at": "2026-09-26",
+      "commit": "7777a62"
+    },
+    {
+      "id": "interests",
+      "title": "Interests (moving to Candy)",
+      "area": "Interests",
+      "caption": "Interests: discovery as it lives in Worlds today, before it moves to the Candy room.",
+      "alt": "The Interests screen.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "7777a62"
+    },
+    {
+      "id": "projects-placeholder",
+      "title": "Projects (parked)",
+      "area": "Projects",
+      "caption": "A parked area: an honest placeholder, never pretend data.",
+      "alt": "The Projects placeholder screen.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "7777a62"
+    },
+    {
+      "id": "first-light",
+      "title": "First Light (first-run setup)",
+      "path": "/setup",
+      "caption": "First Light: the first-run setup, with crew on or off and a companion choice.",
+      "alt": "The First Light setup screen.",
+      "status": "wanted",
+      "notes": "Server-rendered: not served by the preview build or the mock API. Capture from a throwaway local Worlds with a fresh data dir, or leave wanted."
+    },
+    {
+      "id": "login",
+      "title": "Sign in",
+      "path": "/login",
+      "caption": "Sign in: passkey-first when an identity provider is configured, with the access code as a fallback.",
+      "alt": "The Worlds sign-in page.",
+      "status": "wanted",
+      "notes": "Server-rendered, like First Light. Use a throwaway local Worlds; never the owner's."
+    }
+  ]
+}

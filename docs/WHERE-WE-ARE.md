@@ -1,58 +1,80 @@
 # Where we are
 
-*Read this if you don't remember. That's okay. Nothing is lost and nothing is
-on you. This page is the whole picture in plain words.*
+> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** nothing (the plain-words summary; agents read `.project/CURRENT.md`) · **Read this if:** you don't remember where things stand. That's okay.
 
-> **Dated snapshot (pre-2026-09-22 flip).** The star-map-drill shape
-> described below was superseded: the interface is now the stable
-> skeleton (`Overview · Memory · Chat · Settings`) and direction lives in
-> [TRUE-NORTH](TRUE-NORTH.md). The kindness this page promises is
-> unchanged; a refreshed plain-words page is queued. Current state:
-> `.project/CURRENT.md`.
+**In short:** Worlds is running, it's yours, and it's getting quieter and
+kinder. Nothing is lost and nothing is on you. This page is the whole picture
+in plain words.
 
-## What this project is
-**Project Worlds** — a gentle, private, self-hosted place to keep your thoughts
-and your life organized. It looks like a calm star-map ("the systems map") you
-drill into, instead of a busy dashboard. It is built to be kind to low-energy
-days, sensitive eyes, and foggy heads — and to be installable by anyone with
-one command.
+## What Worlds is
 
-## What's true right now
-- The **backend is real and running**: login, your world, journal, reminders,
-  settings, safe "propose then approve" writes, git reads, encrypted vault.
-- The **star-map frontend** is real and pretty: seven constellations, drill-in,
-  companions, chat dock, settings, help button.
-- Your **own personal data is NOT in here** on purpose. It lives in your
-  separate data repo. This repo is the universal product; dev data is disposable
-  and wipe-able (`scripts/reset-dev.sh`).
-- Everything is **written down**: decisions, vision, and plans live in
-  `docs/PRODUCT-VISION-HANDOFF.md`. You never have to re-explain it.
+**Worlds** is your front door: one calm place that brings things to you
+(what changed, what needs you, what can wait) instead of making you go and
+look. It runs on your own machine, keeps your data yours, and never does
+anything important without asking you first.
 
-## The decisions you already made (you can stop re-deciding these)
-1. Small local brain (Qwen3 1.7B), kept on-task by the CLI + templates.
-2. Optional add-ons (media, GitHub, search) yes; notifications later.
-3. Multi-user: one box can serve several people.
-4. Backups may include the encrypted vault; never plaintext secrets.
-5. Deploy locally first (your Bazzite box, Docker Compose).
-6. One updates system, not several.
-7. Crypto extra: yes; vault fails closed without it.
-8. agent-sync optional; Projects still works without it.
-9. Universal first; your data later. Setup wizard + your own SSO (Authelia).
-10. The star-map IS the frontend. The API is a full "Lego box" for building
-    neat things safely.
+It used to be called Personal World, and then Project Worlds. The code still
+says `personal_world` in places. That's fine; the name you'll see is Worlds.
 
-## What's being built right now (agents are working; you can rest)
-- First-run **setup wizard** (no manual tokens ever).
-- **SSO login** (OIDC / Authelia).
-- Star-map **wired to real data** + a full API manifest (the Lego box).
-- **Multi-user** separation of each person's stuff.
-- **Tool-calling fix** so the small brain can use the CLI; templates as focus.
-- Frontend: onboarding, search, deep-links, mobile, content views.
+## What's true right now (2026-09-26)
+
+- **It's live.** Your Worlds runs on the transcode host and updates with one
+  tap from Project Home's "What's live" (it asks you first, backs up, and can
+  roll back).
+- **The Bridge is home.** You open Worlds and land on the Bridge: your guide
+  tells you what changed since you last looked, and your rooms sit there as
+  doorways.
+- **Rooms.** Your other tools are rooms now, each its own little service:
+  - **Workshop** (Project Home): your projects, tasks, approvals, and
+    what's live.
+  - **Studio**: designs, demos, screenshots and themes.
+  - **Engine room**: how the homelab is doing, in plain words.
+  - **Candy**: things you might like (books, music, shows, releases). It's
+    just starting, so it will say it has nothing to look through until you
+    give it sources. Everyone in the house gets their own Candy.
+
+  If a room is down, it says so, and everything else keeps working.
+- **Your crew.** You can choose a companion to talk to you (or keep the one
+  plain Assistant voice), put a crew member on each room as its keeper, and
+  pick a doorway picture for each room. Nothing is picked for you except Bolt
+  on the Workshop.
+- **Memory, Chat, Settings** are real and use your real things.
+- **Secrets** show up in the Workshop room as names and health only, and
+  only for you. You type secret values on Project Home's own page, never in
+  Worlds.
+- **It looks like one place.** Worlds' look is shared as the Worlds kit, and
+  Studio, Project Home and Candy all use it now. Text is never smaller than 16
+  (13 for little labels), buttons are big enough to tap, and nothing moves
+  unless you ask.
+
+## Decisions you already made (you can stop re-deciding these)
+
+1. Small local brain (Qwen3 1.7B) by default, kept on-task by templates.
+2. One box can serve several people, and each person's stuff stays theirs.
+3. Backups may include the encrypted vault; never plaintext secrets.
+4. One way to update, and it always asks first.
+5. Worlds is the general look and the front door; tools become rooms.
+6. Rooms open on their own sites in a new tab. No proxy.
+7. Candy takes over discovery, media, calendars and notifications. It's
+   multi-user and behind your sign-in.
+8. Station is a theme you can keep, not the shape of the app.
+9. Starfield is the default theme.
+
+## What's being built next
+
+- Moving discovery and media fully out of Worlds and into Candy (Candy works
+  already; Worlds still carries the old copy until Candy is proven).
+- Filling the [screenshot gallery](gallery/README.md) so you can see every
+  screen at a glance.
+- Bridge layout and life, and the parked Projects and systems screens.
 
 ## What's on you
-**Nothing.** Seriously. Rest. When you're back, just say *"where are we?"* and
-any agent (or this file) will catch you up in a minute.
+
+**Nothing.** When you're back, say *"where are we?"* and any agent (or this
+page) will catch you up in a minute. Anything that needs your yes waits as a
+question, with a recommendation first.
 
 ## If your head hurts right now
+
 Close the laptop. The work holds itself. It will still be here, exactly where
 you left it, and it will be gentler than whatever you're fearing it is.
