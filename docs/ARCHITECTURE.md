@@ -162,7 +162,7 @@ The following inventory reflects implemented routes, not deployment acceptance:
 
 | Route | Purpose |
 |---|---|
-| GET /healthz | Public liveness, auth_configured, setup_needed |
+| GET /healthz | Public liveness, auth_configured, setup_needed, commit (short SHA of the running build, or null) |
 | GET /api/setup/status; POST /api/setup | Public first-run state/bootstrap; setup rejects repeats after the completion marker |
 | GET /api/status | world summary + capability statuses |
 | GET /api/daily | present the daily digest (read-only; never mutates) |

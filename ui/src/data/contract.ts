@@ -279,6 +279,9 @@ export interface HealthzResponse extends Envelope {
   auth_configured?: boolean;
   setup_needed?: boolean;
   dev_bypass?: boolean;
+  /** Short SHA of the commit the running build came from (PW_COMMIT,
+   * baked in by publish-image.yml); null on local/unlabelled builds. */
+  commit?: string | null;
 }
 
 export interface SetupData {
