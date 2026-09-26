@@ -37,6 +37,7 @@ import { Settings } from "../screens/Settings/Settings";
 import { Crew } from "../screens/Crew/Crew";
 import { People } from "../screens/People/People";
 import { Helpers } from "../screens/Helpers/Helpers";
+import { RoughNight } from "../screens/RoughNight/RoughNight";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
 import { useHealthz, usePrefs, usePrefsSchema, useSections } from "../data/hooks";
@@ -126,8 +127,20 @@ export function App() {
   // Coming back from "Confirm with your sign-in" reopens the page the
   // person was on, with one line saying they're confirmed.
   const [returned] = useState(() => takeConfirmReturn());
-  const [activeArea, setActiveArea] = useState<WorldAreaId | "crew" | "people" | "helpers">(
-    () => (returned as WorldAreaId | "crew" | "people" | "helpers" | null) ?? "overview",
+  // "rough-night" joins those quiet pages: a plain page of its own,
+  // reached by small links from the Bridge and Settings — never a nav
+  // landmark, and (the app has no router) never a URL of its own.
+  const [activeArea, setActiveArea] = useState<
+    WorldAreaId | "crew" | "people" | "helpers" | "rough-night"
+  >(
+    () =>
+      (returned as
+        | WorldAreaId
+        | "crew"
+        | "people"
+        | "helpers"
+        | "rough-night"
+        | null) ?? "overview",
   );
   const [confirmedNote, setConfirmedNote] = useState(returned !== null);
   useEffect(() => {
@@ -178,6 +191,7 @@ export function App() {
             onOpenArea={setActiveArea}
             onOpenAssistant={() => setDrawerOpen(true)}
             onOpenCrew={() => setActiveArea("crew")}
+            onOpenRoughNight={() => setActiveArea("rough-night")}
           />
         );
       case "memory":
@@ -190,6 +204,7 @@ export function App() {
             onOpenCrew={() => setActiveArea("crew")}
             onOpenPeople={() => setActiveArea("people")}
             onOpenHelpers={() => setActiveArea("helpers")}
+            onOpenRoughNight={() => setActiveArea("rough-night")}
           />
         );
       case "crew":
@@ -198,6 +213,8 @@ export function App() {
         return <People onBack={() => setActiveArea("settings")} />;
       case "helpers":
         return <Helpers onBack={() => setActiveArea("settings")} />;
+      case "rough-night":
+        return <RoughNight onBack={() => setActiveArea("overview")} />;
       case "interests":
         return <Interests />;
       default: {
