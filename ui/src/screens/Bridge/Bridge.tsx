@@ -26,6 +26,7 @@
  */
 
 import { SolMoment } from "../../components/SolMoment";
+import { CompanionMessage } from "./CompanionMessage";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useBriefing, usePlace, useSetPlace } from "../../data/hooks";
 import { STATUS_LABELS, toCapabilityStatus, type WorldAreaId } from "../../data/types";
@@ -215,6 +216,9 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew }: BridgeProps)
             </p>
           )}
         </header>
+
+        {/* ── One line from the companion, only when it matters ──── */}
+        <CompanionMessage data={data} />
 
         {/* ── First day aboard — until it's put away or all done ──── */}
         <FirstDayGuide data={data} onOpenArea={onOpenArea} onOpenCrew={onOpenCrew} />

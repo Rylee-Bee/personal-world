@@ -716,3 +716,17 @@ dated entry superseding the old one (append-only, like the journal).
   surprised). Full cutouts only, never the peeking hello crop, never
   animated, always aria-hidden. Every theme now meets the type floor (body
   ≥16px, labels ≥13px; #101, #104).
+- **2026-09-26 — Chat, Memory and Settings in the Doorways look; companion
+  messages.** Owner approved the boards (Doorways-Chat,
+  Doorways-MemorySettings, Companion-Messages). Chat says who answers ("Chat
+  with Renai", or "Chat with Worlds" with the crew off), with the
+  companion's face beside their messages, a static "… is thinking", a
+  visible Message label and the provider under Technical detail; the list is
+  the one live region. Settings leads with your crew (face and name), serif
+  section headings, theme swatches drawn from each theme's own tokens, and a
+  "Companion messages" choice. Memory gets serif headings and, in the
+  Doorways theme, the archive doorway. Companion messages: one line on the
+  Bridge only when something arrived or needs you, at most one every 30
+  seconds (newer news waits and is batched), dismissible, silent on quiet
+  days and while the first-day guide speaks; device-local setting: when
+  something happens · only when something needs me · off.

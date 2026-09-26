@@ -691,6 +691,7 @@ export function RecordsPanel() {
         <h2
           id="memory-records-heading"
           className="text-[length:var(--pw-typography-size_h2)] font-semibold text-[var(--pw-text-primary)]"
+            style={{ fontFamily: "var(--pw-typography-font_serif, inherit)" }}
         >
           Records
         </h2>

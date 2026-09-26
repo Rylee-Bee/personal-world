@@ -96,7 +96,7 @@ for (const file of themeFiles) {
   const data = JSON.parse(readFileSync(resolve(themesDir, file), "utf-8"));
 
   if (themeName === "station") {
-    css += `\n/* :root fallback theme: station (first-run default is DEFAULT_THEME) */\n:root {\n`;
+    css += `\n/* :root fallback theme: station (first-run default is DEFAULT_THEME). Also\n   addressable as [data-theme="station"] so an element (a theme swatch) can show\n   Station's own colours inside another theme. */\n:root, [data-theme="station"] {\n`;
   } else {
     css += `\n[data-theme="${themeName}"] {\n`;
   }
