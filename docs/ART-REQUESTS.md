@@ -590,3 +590,58 @@ checks each file for real transparency and size, curates the masters into
 `design/assets/icons/spot/`, `design/assets/crew/sol/` and
 `design/assets/brand/`, exports the WebP sizes into `ui/public/assets/`, and
 wires them in.
+
+## 14. Sleepy crew, for rough nights (requested 2026-09-26)
+
+**Why:** the owner's wish, on a hard pain night. Worlds is getting a
+**Rough night** page: the darkest tokens, no motion, "How bad is it?" from
+1 to 5, and "Save for my doctor" (a private journal note). On that page the
+crew should keep you company *without asking anything of you*: curled up,
+half asleep, a blanket, a dim lantern. Quiet company, not cheerleading.
+
+**The night clause** (paste first, before the crew style clause in §1):
+
+> Night version: very dark and low contrast. Deep navy and charcoal, the
+> uniform's gold dimmed to old brass, one small warm light source at most
+> (a dim lantern, an ember, a porch light). Soft edges, no sparkles, no
+> bright whites, no stars that shine. Eyes half closed or closed, a relaxed
+> sleepy smile. Nothing busy, nothing that pulls the eye. Calm enough to
+> look at when everything hurts.
+
+**Deliver:** one PNG per character, **1024 × 1024, real transparency**,
+the figure centred and filling about 80% of the canvas, no text, no glow
+outside the art. Must still read at **96 px on a near-black page**: a clear
+silhouette in the dim light is enough.
+
+| File | Who | The sleepy pose |
+| --- | --- | --- |
+| `renai-sleepy.png` | Renai | Curled in a soft kelp hammock, rainbow braid dimmed to pastel, eyes closed, one hand under her cheek |
+| `bolt-sleepy.png` | Bolt | Sitting with a tiny blanket over its knees, antenna glow turned down to an ember, eyes as half-lit arcs |
+| `hekek-sleepy.png` | Hekek | Dozing in a worn armchair, tools set down beside him, a mug in both hands, a dim lantern at his feet |
+| `ratatoskr-sleepy.png` | Ratatoskr | Curled in a tree hollow, tail wrapped round as a blanket, satchel as a pillow, cap tipped over one eye |
+| `bruma-sleepy.png` | Bruma | Under a knitted blanket with a closed book on her chest, one small reading lamp turned low |
+| `mira-sleepy.png` | Mira | Asleep with her head on an open notebook, the telescope capped beside her, a pencil still in her hand |
+| `scoop-sleepy.png` | Scoop | The burrito truck parked for the night: headlights off, one warm porch light, the news sign dark, a little blanket over the hood |
+| `assistant-sleepy.png` | The Assistant | The screen in night mode (dim, warm), eyes as sleepy arcs, a tiny blanket draped over the stand |
+
+Sol already has `sol-sleeping` (§12), so she isn't needed here.
+
+**Copy-paste request (one character at a time; swap the last line):**
+
+```
+Paint a sleepy night version of a Project Worlds crew member, to keep someone company on a
+rough night. Very dark and low contrast: deep navy and charcoal, the gold uniform trim dimmed
+to old brass, one small warm light at most (a dim lantern, an ember, a porch light). Soft
+edges, no sparkles, no bright whites, no shining stars. Eyes half closed or closed, a relaxed
+sleepy smile; calm enough to look at when everything hurts. Same character design and warm
+painterly style as the crew sheet, crisp but soft dark outlines, the same navy-and-gold crew
+uniform and combadge. No text. Transparent PNG, 1024x1024, the figure centred and filling
+about 80% of the canvas; it must read at 96 px on a near-black page.
+Character: <paste the character's clause from §3 or §9, then the sleepy pose from §14's table>
+```
+
+**Where they go:** drop them in `design/owner/crew/newassets/` (or send a
+zip). Claude checks transparency, size and how dark they read, curates the
+masters into `design/assets/crew/sleepy/`, exports `ui/public/assets/crew/{256,512}/`
+WebPs, and uses them on the Rough night page (and anywhere else a quiet
+night fits, like quiet hours).
