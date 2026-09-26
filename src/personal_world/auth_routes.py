@@ -264,7 +264,9 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
             identity = client.complete_login(code, pending)
             try:
                 session = auth.login_oidc(
-                    identity.sub, display_name=identity.display_name
+                    identity.sub,
+                    display_name=identity.display_name,
+                    groups=identity.groups,
                 )
             except NoPrincipalError:
                 # Verified by the IdP but not mapped onto a local

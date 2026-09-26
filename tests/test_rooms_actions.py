@@ -12,8 +12,8 @@ returns the room's own receipt. These tests pin:
   ``{action_id, ok, summary, changed, at}``;
 * the outbound call carries ``Idempotency-Key`` and ``X-Worlds-Principal``
   alongside the room's token, and never ``PW_API_TOKEN``;
-* a write action is owner-only (403 for a non-admin), while a
-  ``writes: false`` action passes through for anyone;
+* a write action needs the ``approve`` permission (403 without it),
+  while a ``writes: false`` action passes through for anyone;
 * an unknown action is a 404 receipt;
 * a missing/malformed ``Idempotency-Key`` is a 400 receipt;
 * malformed ids and incompatible/disabled rooms are 404 receipts;
@@ -332,6 +332,44 @@ class TestOwnerOnly:
             principal=Principal(id="carol", scopes=("admin",)),
         )
         assert status == 200
+
+    @pytest.mark.parametrize("role", ["member", "supervised", "guest"])
+    def test_role_without_approve_is_refused_a_write(self, role):
+        """The `approve` permission, not a name: these roles have no
+        approve, so a write is refused whatever they are called."""
+        svc = RoomsService(transport=_transport(action=_receipt_response))
+        status, receipt = _act(
+            svc, action_id="approve", principal=Principal(id="beta", role=role)
+        )
+        assert status == 403
+        assert receipt["summary"] == "Only the owner can do that here."
+
+    @pytest.mark.parametrize("role", ["owner", "admin"])
+    def test_role_with_approve_may_write(self, role):
+        def action(request: httpx.Request) -> httpx.Response:
+            return _receipt_response(status=200, summary="Approved.")
+
+        svc = RoomsService(transport=_transport(action=action))
+        status, _ = _act(
+            svc, action_id="approve", principal=Principal(id="carol", role=role)
+        )
+        assert status == 200
+
+    def test_agent_never_writes_a_room_action(self):
+        """An agent holds no `approve`, even under an owner's tree."""
+        svc = RoomsService(transport=_transport(action=_receipt_response))
+        status, _ = _act(
+            svc,
+            action_id="approve",
+            principal=Principal(
+                id="bot",
+                kind="agent",
+                owner_id="primary",
+                scopes=("write", "read"),
+                role="owner",
+            ),
+        )
+        assert status == 403
 
 
 # ── Local refusals ───────────────────────────────────────────────────

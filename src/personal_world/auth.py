@@ -236,7 +236,12 @@ class AuthManager:
     def get_oidc_config(self) -> OIDCConfig | None:
         return self._oidc_config
 
-    def login_oidc(self, sub: str, display_name: str | None = None) -> Session:
+    def login_oidc(
+        self,
+        sub: str,
+        display_name: str | None = None,
+        groups: tuple[str, ...] | list[str] | None = None,
+    ) -> Session:
         """Login after OIDC callback verification.
 
         The verified subject is mapped onto a local principal through
@@ -244,11 +249,19 @@ class AuthManager:
         multi mode requires an existing enabled local record and raises
         ``NoPrincipalError`` otherwise (an unknown IdP identity never
         silently creates an account).
+
+        When the provider asserted ``groups`` and ``PW_ROLE_GROUPS`` is
+        set, the person's stored role is updated from the mapping — the
+        owner is never demoted. A local account (no groups) keeps its
+        stored role.
         """
-        from .identity import resolve_oidc_principal
+        from .identity import apply_group_role, resolve_oidc_principal
 
         store, mode, _ = self._seam()
         principal = resolve_oidc_principal(sub, store, mode, display_name=display_name)
+        principal = apply_group_role(
+            store, principal, groups, os.environ.get("PW_ROLE_GROUPS", "").strip()
+        )
         return self.sessions.create(principal.id, "oidc")
 
     def validate_session(self, session_id: str) -> Session | None:

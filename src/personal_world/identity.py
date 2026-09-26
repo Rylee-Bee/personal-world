@@ -29,9 +29,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+from .roles import ROLES, can, role_for_groups
+
 _logger = logging.getLogger("personal_world.identity")
 
 Kind = Literal["person", "agent", "service"]
+
+#: The bootstrap person's id: the install's first account and break-glass
+#: owner. Not a name — this is the one fixed principal id.
+BOOTSTRAP_PRINCIPAL_ID = "primary"
 
 
 @dataclass(frozen=True)
@@ -45,19 +51,38 @@ class Principal:
     scopes: tuple[str, ...] = ()  # subset of owner scopes for agents
     auth_level: int = 1  # 1 bearer/session, 2 recent, 3 fresh-2fa
     source: str = "token"  # token | oidc | header | scheduler
+    #: The person's role (owner/admin/member/supervised/guest). For an
+    #: agent principal this carries its OWNER's role, so ``can()`` can
+    #: reason about "the lesser of scopes and the person" without I/O.
+    role: str = "member"
 
 
 def is_admin(principal: Principal | None) -> bool:
-    """Admin = the bootstrap principal (primary), or a person explicitly
-    carrying the admin scope record. Kept deliberately small: no roles
-    tree, just this gate. The single shared definition (api.py's
-    ``_is_admin`` and rooms' owner-only action gate both use it, so the
-    two can never drift)."""
-    return (
-        principal is not None
-        and principal.kind == "person"
-        and (principal.id == "primary" or "admin" in principal.scopes)
-    )
+    """Deprecated thin wrapper — kept for callers not yet migrated.
+
+    New code asks ``can(principal, permission)`` (see roles.py). This
+    remains one shared definition of the old gate so the rooms action
+    path and anything else still importing it cannot drift: admin in the
+    permission model means "may approve", which owner and admin hold.
+    """
+    return can(principal, "approve")
+
+
+def role_for_record(record: dict) -> str:
+    """The role stored on a person record, with back-compat reads.
+
+    New records carry ``role``. Pre-roles records are read like this:
+    the bootstrap ``primary`` is the owner; a legacy ``admin`` scope
+    means admin; everything else is a member. Never a guessed role.
+    """
+    role = record.get("role")
+    if isinstance(role, str) and role in ROLES:
+        return role
+    if record.get("user_id") == BOOTSTRAP_PRINCIPAL_ID:
+        return "owner"
+    if "admin" in (record.get("scopes") or ()):
+        return "admin"
+    return "member"
 
 
 def _token_fingerprint(token: str) -> str:
@@ -73,8 +98,8 @@ class IdentityStore:
     """Local users + per-user hashed token records.
 
     Storage shape (data root):
-      users.json       — list of {user_id, display_name, hashed_tokens,
-                          token_prefixes, enabled, created_at}
+      users.json       — list of {user_id, display_name, role, scopes?,
+                          hashed_tokens, token_prefixes, enabled, created_at}
     Single-writer: the FastAPI process. Read-only for CLI helpers.
     """
 
@@ -120,6 +145,7 @@ class IdentityStore:
         user_id: str,
         display_name: str | None,
         initial_plain_token: str | None = None,
+        role: str = "member",
     ) -> dict:
         payload = self._load()
         if any(u.get("user_id") == user_id for u in payload["users"]):
@@ -127,6 +153,7 @@ class IdentityStore:
         u = {
             "user_id": user_id,
             "display_name": display_name,
+            "role": role if role in ROLES else "member",
             "hashed_tokens": [],
             "token_prefixes": [],
             "enabled": True,
@@ -159,6 +186,79 @@ class IdentityStore:
     def list_users(self) -> list[dict]:
         return self._load().get("users", [])
 
+    # -- roles (owner-approved 2026-09-26) -------------------------------
+    def get_user(self, user_id: str) -> dict | None:
+        """One enabled-or-disabled person record by id, or ``None``."""
+        for u in self._load().get("users", []):
+            if u.get("user_id") == user_id:
+                return u
+        return None
+
+    def role_for(self, user_id: str) -> str | None:
+        """The stored (with back-compat) role for a person, or ``None``."""
+        rec = self.get_user(user_id)
+        return role_for_record(rec) if rec is not None else None
+
+    def set_role(self, user_id: str, role: str) -> dict | None:
+        """Write a person's role. Unknown role → ``ValueError`` (fail
+        closed); unknown person → ``None``. Never touches agents."""
+        if role not in ROLES:
+            raise ValueError(f"unknown role: {role!r}")
+        payload = self._load()
+        for u in payload.get("users", []):
+            if u.get("user_id") == user_id:
+                u["role"] = role
+                # Once a role is written it is the only authority: drop the
+                # pre-roles ``admin`` scope, or a demoted admin would stay
+                # admin (and migrate_roles would promote them back at boot).
+                scopes = [sc for sc in (u.get("scopes") or []) if sc != "admin"]
+                if scopes:
+                    u["scopes"] = scopes
+                else:
+                    u.pop("scopes", None)
+                self._save(payload)
+                return u
+        return None
+
+    def owner_id(self) -> str | None:
+        """The id of the person whose role is owner, or ``None``.
+
+        Exactly one by design; the first owner found wins (a second can
+        only appear through a bug, and the code does not guess which is
+        right)."""
+        for u in self._load().get("users", []):
+            if role_for_record(u) == "owner":
+                return u.get("user_id")
+        return None
+
+    def migrate_roles(self) -> int:
+        """Give pre-roles records their role. Returns how many changed.
+
+        Rules (owner-approved 2026-09-26): ``primary`` → owner; a person
+        carrying the legacy ``admin`` scope → admin; everyone else →
+        member. Idempotent: a record that already has a role is left
+        alone. Called at boot so the store is self-describing; readers
+        also fall back through :func:`role_for_record`, so a store that
+        has never been migrated still authorizes correctly.
+        """
+        payload = self._load()
+        changed = 0
+        for u in payload.get("users", []):
+            stored = u.get("role")
+            if isinstance(stored, str) and stored in ROLES:
+                # Back-compat upgrade: a legacy admin scope outranks a
+                # default member role, so the scope and role cannot
+                # disagree after migration.
+                if "admin" in (u.get("scopes") or ()) and stored == "member":
+                    u["role"] = "admin"
+                    changed += 1
+                continue
+            u["role"] = role_for_record(u)
+            changed += 1
+        if changed:
+            self._save(payload)
+        return changed
+
     # -- profile ----------------------------------------------------------
     def get_display_name(self, user_id: str) -> str | None:
         """Stored display name for a person, or None if never set."""
@@ -180,6 +280,7 @@ class IdentityStore:
         u = {
             "user_id": user_id,
             "display_name": display_name,
+            "role": "owner" if user_id == BOOTSTRAP_PRINCIPAL_ID else "member",
             "hashed_tokens": [],
             "token_prefixes": [],
             "enabled": True,
@@ -277,16 +378,24 @@ class IdentityStore:
         payload = self._load()
         users = payload.get("users", [])
         for u in users:
-            if u.get("user_id") == "primary":
+            if u.get("user_id") == BOOTSTRAP_PRINCIPAL_ID:
                 if not u.get("hashed_tokens"):
                     # record created tokenless (e.g. display-name set in
                     # single mode) — attach the instance credential so a
                     # mode switch never locks the owner out.
                     self._attach_token(u, instance_token)
                     self._save(payload)
+                if not u.get("role"):
+                    # A primary record made before roles existed is the
+                    # owner; heal it in place so it is self-describing.
+                    u["role"] = "owner"
+                    self._save(payload)
                 return u
         return self.create_user(
-            "primary", "Primary person", initial_plain_token=instance_token
+            BOOTSTRAP_PRINCIPAL_ID,
+            "Primary person",
+            initial_plain_token=instance_token,
+            role="owner",
         )
 
 
@@ -307,17 +416,32 @@ def dev_bypass_principal() -> Principal:
     """The principal the dev bypass resolves to: the bootstrap primary
     person, visibly marked with its own auth source."""
     return Principal(
-        id="primary",
+        id=BOOTSTRAP_PRINCIPAL_ID,
         kind="person",
         display_name="Primary person",
         auth_level=1,
         source="dev-bypass",
+        role="owner",
     )
 
 
-def principal_from_record(record: dict, source: str = "token") -> Principal:
+def _owner_role(store: IdentityStore | None, record: dict) -> str:
+    """The role of an agent record's owner, for "the lesser of" checks.
+
+    Falls back to ``member`` (least privilege that still owns a space)
+    when the owner cannot be found — never to owner/admin.
+    """
+    if store is None or record.get("kind") != "agent":
+        return "member"
+    owner = store.get_user(record.get("owner_id") or "")
+    return role_for_record(owner) if owner is not None else "member"
+
+
+def principal_from_record(
+    record: dict, source: str = "token", store: IdentityStore | None = None
+) -> Principal:
     """Canonical record → Principal. Agents keep owner_id and scopes;
-    persons carry their stored display name. Session and OIDC
+    persons carry their stored display name and role. Session and OIDC
     resolution reuse this so every credential path lands on the same
     Principal shape."""
     if record.get("kind") == "agent":
@@ -329,6 +453,9 @@ def principal_from_record(record: dict, source: str = "token") -> Principal:
             scopes=tuple(record.get("scopes") or ()),
             auth_level=1,
             source=source,
+            # An agent's role is its owner's: the permission half of the
+            # "lesser of scopes and the person" rule.
+            role=_owner_role(store, record),
         )
     return Principal(
         id=record["user_id"],
@@ -336,6 +463,7 @@ def principal_from_record(record: dict, source: str = "token") -> Principal:
         display_name=record.get("display_name"),
         auth_level=1,
         source=source,
+        role=role_for_record(record),
     )
 
 
@@ -350,7 +478,7 @@ def resolve_principal(
         found = store.match_token(token or "")
         if not found:
             raise NoPrincipalError("no principal for token")
-        return principal_from_record(found, source="token")
+        return principal_from_record(found, source="token", store=store)
     # single mode: bootstrap "primary" directly from the instance token
     if (
         not instance_token
@@ -359,11 +487,12 @@ def resolve_principal(
     ):
         raise NoPrincipalError()
     return Principal(
-        id="primary",
+        id=BOOTSTRAP_PRINCIPAL_ID,
         kind="person",
         display_name="Primary person",
         auth_level=1,
         source="token",
+        role="owner",
     )
 
 
@@ -387,15 +516,16 @@ def resolve_session_principal(
         record = store.get_principal_record(session_principal_id or "")
         if record is None:
             raise NoPrincipalError("no principal for session")
-        return principal_from_record(record, source=source)
+        return principal_from_record(record, source=source, store=store)
     if not session_principal_id:
         raise NoPrincipalError("empty session principal")
     return Principal(
-        id="primary",
+        id=BOOTSTRAP_PRINCIPAL_ID,
         kind="person",
         display_name="Primary person",
         auth_level=1,
         source=source,
+        role="owner",
     )
 
 
@@ -418,16 +548,52 @@ def resolve_oidc_principal(
         for candidate in (sub, display_name):
             record = store.get_principal_record(candidate or "")
             if record is not None:
-                return principal_from_record(record, source="oidc")
+                return principal_from_record(record, source="oidc", store=store)
         raise NoPrincipalError("oidc identity has no local account")
     if not sub:
         raise NoPrincipalError("empty oidc subject")
     return Principal(
-        id="primary",
+        id=BOOTSTRAP_PRINCIPAL_ID,
         kind="person",
         display_name="Primary person",
         auth_level=1,
         source="oidc",
+        role="owner",
+    )
+
+
+def apply_group_role(
+    store: IdentityStore | None,
+    principal: Principal,
+    groups: tuple[str, ...] | list[str] | None,
+    mapping: str | None,
+) -> Principal:
+    """Map OIDC ``groups`` to a role and store it on the person.
+
+    Reads (never invents) the role from ``mapping`` (``PW_ROLE_GROUPS``);
+    a person with no matching group keeps their stored role, as do local
+    (non-SSO) accounts. **The owner is never demoted**: if the stored role
+    is owner the sign-in changes nothing. Returns the (possibly updated)
+    principal so the caller's session resolves on the fresh role.
+    """
+    if store is None or principal.kind != "person" or not groups or not mapping:
+        return principal
+    role = role_for_groups(list(groups), mapping)
+    if role is None:
+        return principal
+    current = store.get_user(principal.id)
+    if current is None:
+        # No local record to update (single-mode primary, typically):
+        # leave the owner/principal exactly as resolved.
+        return principal
+    if role_for_record(current) == "owner":
+        return principal
+    store.set_role(principal.id, role)
+    fresh = store.get_principal_record(principal.id)
+    return (
+        principal_from_record(fresh, source=principal.source, store=store)
+        if fresh is not None
+        else principal
     )
 
 

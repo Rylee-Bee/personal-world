@@ -51,6 +51,7 @@ from .rooms import RoomsService, STATE_FILENAME as ROOMS_STATE_FILENAME
 from .rooms import REGISTRY_STATE_FILENAME as ROOMS_REGISTRY_STATE_FILENAME
 from .rooms import IDEMPOTENCY_HEADER as ROOMS_IDEMPOTENCY_HEADER
 from . import crew, rooms_visits
+from .roles import PERMISSIONS, ROLES, can
 from .source_control import (
     discover_repositories,
     repository_history,
@@ -431,6 +432,14 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     _identity_mode = os.environ.get("PW_IDENTITY_MODE", "single")
     _identity_store = IdentityStore(data_dir)
     _app_instance_token = _token()
+    # Roles (owner-approved 2026-09-26): heal pre-roles records once at
+    # boot (primary -> owner, legacy admin scope -> admin, else member).
+    # Readers also fall back through identity.role_for_record, so a store
+    # that cannot be written still authorizes correctly.
+    try:
+        _identity_store.migrate_roles()
+    except Exception as exc:  # never block boot on this; fail toward reads
+        _logger.warning("role migration skipped: %s", exc)
     # Temporary dev ergonomics: explicit opt-in, loopback-only. The
     # startup log line is the visible "this is on" state (human
     # reliability contract: visible state, not a silent default).
@@ -2814,14 +2823,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         lists. This handler never raises, never carries a token, and
         never carries a key value.
         """
-        # Secret names are the owner's business, not every household
-        # member's: same admin gate as identity admin.
+        # Secret names are the estate's business, not every household
+        # member's: the `estate_secrets` permission (owner and admin).
         principal = getattr(request.state, "principal", None)
-        if principal is not None and not (
-            principal.kind == "person"
-            and (principal.id == "primary" or "admin" in principal.scopes)
-        ):
-            raise HTTPException(status_code=403, detail="admin only")
+        if not can(principal, "estate_secrets"):
+            raise HTTPException(status_code=403, detail="estate secrets required")
         data = await _ROOMS.secrets_overview()
         return {"ok": True, "data": data}
 
@@ -2905,9 +2911,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     ) -> JSONResponse:
         """Pass one room/0 action through to its room; return its receipt.
 
-        Owner-only for writes: the room's own ``GET /room/actions`` list
-        (cached 60 s per room) says whether the action exists and whether
-        it writes; a write needs an admin caller (403 otherwise), and an
+        A write needs the ``approve`` permission (the room's own ``GET
+        /room/actions`` list, cached 60 s per room, says whether the
+        action exists and whether it writes; 403 otherwise), and an
         unknown action is a 404 — both as a plain-words receipt. A valid
         ``Idempotency-Key`` header is required (400 when missing), the
         body is a JSON object of at most 16 KB (413/400 otherwise), and
@@ -3592,11 +3598,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # We attach lifespan to the app state so it's used
     app.router.lifespan_context = lifespan
 
-    # -- identity admin (issue #8 phase 2/3) -----------------------------
-    # The rule is in identity.is_admin (one shared definition), so the
-    # rooms owner-only action gate and this admin gate can never drift.
-    from .identity import is_admin as _is_admin
-
+    # -- identity admin + people & roles (issue #8; roles 2026-09-26) ------
+    # Authorization is the permission model (roles.can), never a name or
+    # a role string: admins manage accounts, not content.
     def _require_person(principal) -> None:
         """Person-only surfaces: prefs, journal, notes. Agents are
         refused even with valid tokens — narrow scope model, fail
@@ -3604,11 +3608,16 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         if principal is not None and principal.kind == "agent":
             raise HTTPException(status_code=403, detail="person-only surface")
 
+    def _require_permission(principal, permission: str) -> None:
+        """The HTTP form of ``can``: 403 with the permission named when
+        the caller does not hold it (agents included — fail closed)."""
+        if not can(principal, permission):
+            raise HTTPException(status_code=403, detail=f"{permission} required")
+
     @app.get("/api/identity/users", dependencies=[Depends(require_auth)])
     async def users_list(request: Request) -> dict:
         principal = getattr(request.state, "principal", None)
-        if not _is_admin(principal):
-            raise HTTPException(status_code=403, detail="admin only")
+        _require_permission(principal, "manage_people")
         return {"ok": True, "data": _identity_store.list_users()}
 
     @app.post("/api/identity/users", dependencies=[Depends(require_step_up)])
@@ -3620,8 +3629,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         exactly once. Never stored in the clear.
         """
         principal = getattr(request.state, "principal", None)
-        if not _is_admin(principal):
-            raise HTTPException(status_code=403, detail="admin only")
+        _require_permission(principal, "manage_people")
         body = await request.json()
         user_id = ((body or {}).get("user_id") or "").strip()
         from .identity import _SAFE_PRINCIPAL_ID as _safe_pid  # mirrored, single owner
@@ -3657,8 +3665,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     async def users_disable(request: Request, user_id: str) -> dict:
         """Revoke access (disable). Data is preserved, not deleted."""
         principal = getattr(request.state, "principal", None)
-        if not _is_admin(principal):
-            raise HTTPException(status_code=403, detail="admin only")
+        _require_permission(principal, "manage_people")
         ok = _identity_store.disable_user(user_id)
         if not ok:
             raise HTTPException(status_code=404, detail="no such user")
@@ -3673,7 +3680,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     async def agents_list(request: Request) -> dict:
         """Mine (list) — agents owned by the caller; admins see all."""
         principal = getattr(request.state, "principal", None)
-        if principal and _is_admin(principal):
+        if can(principal, "manage_people"):
             return {"ok": True, "data": _identity_store.list_agents()}
         owner = (
             principal.owner_id
@@ -3884,6 +3891,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 "id": p.id,
                 "kind": p.kind,
                 "display_name": stored or p.display_name,
+                "role": p.role,
                 "scopes": list(p.scopes),
                 "source": p.source,
             },
@@ -3918,10 +3926,168 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 "id": p.id,
                 "kind": p.kind,
                 "display_name": name,
+                "role": p.role,
                 "scopes": list(p.scopes),
                 "source": p.source,
             },
         }
+
+    # -- People & roles (owner-approved 2026-09-26) ---------------------
+    # Admins manage accounts, not content: these routes carry identities,
+    # roles and the ownership hand-off — never a journal, a secret or a
+    # token. Every response is allow-listed field by field.
+
+    @app.get("/api/me", dependencies=[Depends(require_auth)])
+    async def me(request: Request) -> dict:
+        """Who the caller is and what they may do.
+
+        The one call the interface makes to show or hide affordances:
+        ``{id, display_name, role, permissions}``. Permissions are the
+        server's answer (``can``), never a client guess.
+        """
+        p = getattr(request.state, "principal", None)
+        if p is None:
+            raise HTTPException(status_code=409, detail="principal not resolved")
+        stored = (
+            _identity_store.get_display_name(p.id) if p.kind == "person" else None
+        )
+        return {
+            "ok": True,
+            "data": {
+                "id": p.id,
+                "display_name": stored or p.display_name,
+                "role": p.role,
+                "permissions": [perm for perm in PERMISSIONS if can(p, perm)],
+            },
+        }
+
+    @app.get("/api/people", dependencies=[Depends(require_auth)])
+    async def people_list(request: Request) -> dict:
+        """Everyone in the estate, with roles. ``manage_people`` only.
+
+        Persons carry their role; agents carry ``role: null`` (an agent is
+        a principal, not a role). No content, no secrets, no tokens — an
+        allow-list of exactly id/display_name/role/kind/created_at.
+        """
+        from .identity import role_for_record
+
+        _require_permission(
+            getattr(request.state, "principal", None), "manage_people"
+        )
+        people = [
+            {
+                "id": u.get("user_id"),
+                "display_name": u.get("display_name"),
+                "role": role_for_record(u),
+                "kind": "person",
+                "created_at": u.get("created_at"),
+            }
+            for u in _identity_store.list_users()
+        ]
+        people.extend(
+            {
+                "id": a.get("user_id"),
+                "display_name": a.get("display_name"),
+                "role": None,
+                "kind": "agent",
+                "created_at": a.get("created_at"),
+            }
+            for a in _identity_store.list_agents()
+        )
+        return {"ok": True, "data": people}
+
+    @app.put("/api/people/{user_id}/role", dependencies=[Depends(require_step_up)])
+    async def people_set_role(request: Request, user_id: str) -> dict:
+        """Set a person's role. ``manage_people`` + step-up.
+
+        An admin may set member/supervised/guest/admin but **never
+        owner** (ownership moves only through transfer-ownership). An
+        admin cannot change their own role, and nobody can change the
+        owner's role here. Unknown role → 422.
+        """
+        principal = getattr(request.state, "principal", None)
+        _require_permission(principal, "manage_people")
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="body must be JSON")
+        role = (body or {}).get("role") if isinstance(body, dict) else None
+        if not isinstance(role, str) or role not in ROLES:
+            raise HTTPException(status_code=422, detail="unknown role")
+        if role == "owner":
+            raise HTTPException(
+                status_code=422,
+                detail="owner is not assignable here; use transfer-ownership",
+            )
+        if user_id == _identity_store.owner_id():
+            raise HTTPException(
+                status_code=403, detail="the owner's role cannot be changed here"
+            )
+        if user_id == principal.id:
+            raise HTTPException(
+                status_code=403, detail="admins cannot change their own role"
+            )
+        rec = _identity_store.set_role(user_id, role)
+        if rec is None:
+            raise HTTPException(status_code=404, detail="no such person")
+        journal.record(
+            JournalKind.SETTINGS_CHANGE,
+            f"role changed for {user_id}: {role}",
+            source="people",
+        )
+        return {
+            "ok": True,
+            "data": {
+                "id": user_id,
+                "display_name": rec.get("display_name"),
+                "role": role,
+            },
+        }
+
+    @app.post(
+        "/api/people/transfer-ownership", dependencies=[Depends(require_step_up)]
+    )
+    async def people_transfer_ownership(request: Request) -> dict:
+        """Hand ownership to an existing admin. Owner only + step-up.
+
+        ``transfer_ownership`` is held by the owner alone. The target must
+        already be an admin; the old owner becomes an admin. Journalled so
+        the hand-off is visible, never silent.
+        """
+        principal = getattr(request.state, "principal", None)
+        _require_permission(principal, "transfer_ownership")
+        from .identity import _SAFE_PRINCIPAL_ID as _safe_pid
+
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="body must be JSON")
+        to = str((body or {}).get("to") or "").strip() if isinstance(body, dict) else ""
+        if not to or not _safe_pid.fullmatch(to):
+            raise HTTPException(status_code=422, detail="to must be a valid id")
+        owner = _identity_store.owner_id()
+        if owner is None:
+            # Single mode: the bootstrap person holds the permission and
+            # may have no users.json record of their own yet.
+            owner = principal.id if getattr(principal, "role", None) == "owner" else None
+        if owner is None:
+            raise HTTPException(status_code=409, detail="no owner to transfer from")
+        if to == owner:
+            raise HTTPException(status_code=422, detail="already the owner")
+        if _identity_store.get_user(to) is None:
+            raise HTTPException(status_code=404, detail="no such person")
+        if _identity_store.role_for(to) != "admin":
+            raise HTTPException(
+                status_code=422, detail="ownership can only transfer to an admin"
+            )
+        _identity_store.set_role(owner, "admin")
+        _identity_store.set_role(to, "owner")
+        journal.record(
+            JournalKind.SETTINGS_CHANGE,
+            f"ownership transferred from {owner} to {to}",
+            source="people",
+        )
+        return {"ok": True, "data": {"from": owner, "to": to}}
 
     @app.get("/api/ingress/rollups", dependencies=[Depends(require_auth)])
     async def ingress_rollups() -> dict:

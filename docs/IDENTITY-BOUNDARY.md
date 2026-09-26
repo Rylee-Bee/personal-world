@@ -1,15 +1,15 @@
 # Identity Boundary — per-user vs instance-global state
 
-> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the per-user vs instance-global state boundary and the `identity.principal_scoped_path` seam · **Read this if:** you are adding per-person state or working on multi-user mode.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the per-user vs instance-global state boundary and the `identity.principal_scoped_path` entry point · **Read this if:** you are adding per-person state or working on multi-user mode.
 
-**In short:** one Worlds instance can serve several people, and this page says exactly which state is per-person (journal, reminders, world, crew, room visits, …) and which is instance-wide (runtime config, the shared connections registry, identity records). Every per-user file resolves through one seam, so single-user installs keep working unchanged.
+**In short:** one Worlds instance can serve several people, and this page says exactly which state is per-person (journal, reminders, world, crew, room visits, …) and which is instance-wide (runtime config, the shared connections registry, identity records). Every per-user file resolves through one entry point, so single-user installs keep working unchanged.
 
 Product decision #13: **one instance can serve multiple people**
 (OIDC/Authelia identities map onto local principal records). The
 single-user default must keep working byte-identically — this boundary
 is what makes both true at once.
 
-The single seam is `identity.principal_scoped_path(data_dir, principal,
+The single entry point is `identity.principal_scoped_path(data_dir, principal,
 kind, mode=...)` (`src/personal_world/identity.py`). Every per-user
 store resolves its file through it; no handler invents its own layout.
 `api.py` wraps it as `_scoped_path(principal, kind)`.
@@ -46,7 +46,7 @@ store resolves its file through it; no handler invents its own layout.
 
 1. Unknown kind → `ValueError`. Fail closed; never a guessed path.
 2. Single mode (`PW_IDENTITY_MODE=single`, the default), or no
-   principal (background seams like the scheduler tick) → the **legacy
+   principal (background entry points like the scheduler tick) → the **legacy
    instance path**. A single-user install reads and writes exactly the
    files it has always used; enabling multi-user later never silently
    moves or loses data.
@@ -108,10 +108,79 @@ design may assume it. The properties that keep the door open:
 Do not add cross-user reads, shared mutable per-user files, or
 global counters to per-user kinds without revisiting this document.
 
+## Roles and permissions
+
+> Owner-approved 2026-09-26. Canonical for how people get admin vs
+> member rights in Worlds (Project Home and Candy follow the same names).
+
+**Code never checks a name or a role string; it asks "can this person do
+X?".** The one question is `roles.can(principal, permission)` in
+`src/personal_world/roles.py` (pure — no I/O, no imports from the
+package). Roles are just *bundles* of permissions, so a new role is a
+table entry and not a search-and-replace.
+
+| Role | For | Gets |
+|---|---|---|
+| **owner** | whoever runs the install; exactly one | every permission; can't be locked out; can hand ownership to an admin |
+| **admin** | trusted co-runners | manage people and rooms, approve, estate secrets, updates |
+| **member** | everyone in the home | their own space; see shared rooms |
+| **supervised** | kids | member, minus what a guardian limits (the limits are step 2 and visible to the person) |
+| **guest** | a babysitter, a visitor | only what is shared with them (the narrowing is step 2); expires |
+| **agent** | AI and services, not people | only their token's permissions, never more than the person they act for |
+
+**Helper is a grant layered on any account, not a role** (Amber can be a
+member *and* hold a helper grant for the owner); its per-person
+`see_needs_of:<person>` / `act_for:<person>` permissions arrive in step 2.
+`can(..., target=...)` already accepts the target those grants need and
+ignores it today.
+
+| Permission | owner | admin | member | supervised | guest |
+|---|---|---|---|---|---|
+| `own_space` (journal, crew, own Candy, own secrets) | ✓ | ✓ | ✓ | ✓ (within limits) | – |
+| `see_shared` (rooms, shared things) | ✓ | ✓ | ✓ | ✓ | only what's shared with them |
+| `approve` (room actions that write) | ✓ | ✓ | – | – | – |
+| `manage_people` (invite, roles, limits) | ✓ | ✓ (not the owner) | – | – | – |
+| `manage_rooms` (registry, keepers for everyone) | ✓ | ✓ | – | – | – |
+| `estate_secrets` | ✓ | ✓ | – | – | – |
+| `updates` (deploy what's live) | ✓ | ✓ | – | – | – |
+| `transfer_ownership` | ✓ | – | – | – | – |
+
+`can()` fails closed: an unknown permission is `False`, never an
+exception; no principal is `False`; an agent holds a permission only when
+its token scopes map to it **and** the owner it acts for holds it too
+(the lesser of the two). The legacy `admin` scope is still read as admin
+for back-compat, but new code writes `role`.
+
+### How a role is set
+
+* **Local (non-SSO) accounts** keep the role an admin set for them
+  (`PUT /api/people/{id}/role`). Provisioned people default to `member`;
+  the bootstrap `primary` account is the `owner`.
+* **SSO sign-in** reads the provider's `groups` claim and maps it through
+  `PW_ROLE_GROUPS`, e.g.
+  `admin=admin,users=member,kids=supervised,guests=guest`. The highest
+  privilege wins when several groups match; the person's stored role is
+  updated on every sign-in. **Owner is never mappable**: an entry naming
+  `owner` is ignored and logged, and the owner is never demoted.
+* **Agents** stay principals (`kind: "agent"`), not a role. An agent's
+  reach is its token scopes intersected with its owner's permissions.
+
+### Admins manage accounts, not content
+
+`manage_people` is about accounts, roles and the ownership hand-off
+(`GET /api/people`, `PUT /api/people/{id}/role`,
+`POST /api/people/transfer-ownership`). It is **not** a key to anyone's
+journal, secrets or world: nobody reads another person's data unless that
+person shares it, admins included. `GET /api/me` tells the interface what
+the caller may do so it can show or hide affordances; the server always
+enforces the same `can()` answer.
+
 ## Tests
 
-`tests/test_identity_boundary.py` — seam rules, two-principal isolation
+`tests/test_identity_boundary.py` — entry point rules, two-principal isolation
 (journal, reminders, proposals, prefs, chat history, interests), and
-legacy-path continuity for the single-user default. Existing coverage:
-`tests/test_multiuser_phase23.py`, `tests/test_identity.py`,
+legacy-path continuity for the single-user default. `tests/test_roles.py`
+— the role/permission bundle, `can()` fail-closed and agent lesser-of,
+group mapping, record migration, the people API and `/api/me`. Existing
+coverage: `tests/test_multiuser_phase23.py`, `tests/test_identity.py`,
 `tests/test_proposal_durability.py`.
