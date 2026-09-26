@@ -191,6 +191,17 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "public",
     ),
     _e(
+        "AUTH-009-oidc-link",
+        "POST",
+        "/api/auth/oidc/link",
+        "auth",
+        "write",
+        "step-up",
+        note="signed-in person links a provider sign-in to their own "
+        "account; same-origin; the callback links only if the same "
+        "person is still signed in",
+    ),
+    _e(
         "AUTH-009-oidc-callback",
         "GET",
         "/api/auth/oidc/callback",

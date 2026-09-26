@@ -264,6 +264,20 @@ class AuthManager:
         )
         return self.sessions.create(principal.id, "oidc")
 
+    def link_oidc(self, principal_id: str, sub: str) -> None:
+        """Link a verified provider subject to a local person (multi mode).
+
+        In single mode every verified sign-in is already the owner, so
+        there is nothing to record.
+        """
+        store, mode, instance_token = self._seam()
+        if mode != "multi" or store is None:
+            return
+        if principal_id == "primary" and instance_token:
+            # The bootstrap owner may not have a stored record yet.
+            store.legacy_primary(instance_token)
+        store.link_oidc_subject(principal_id, sub)
+
     def validate_session(self, session_id: str) -> Session | None:
         return self.sessions.get(session_id)
 

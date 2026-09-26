@@ -217,6 +217,48 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
         )
         return response
 
+    @app.post("/api/auth/oidc/link")
+    async def auth_oidc_link(request: Request):
+        """Start linking a provider sign-in to the signed-in person.
+
+        Needed in multi mode, where a provider sign-in only works for an
+        account it is linked to. The caller must be signed in, have
+        confirmed it's them in the last few minutes (step-up), and call
+        from this site (the ``Origin`` header must match). The person to
+        link is carried in the signed flow cookie; the callback links
+        the verified subject only if the same person is still signed in.
+        """
+        origin = request.headers.get("origin", "")
+        if not origin or origin.rstrip("/") != str(request.base_url).rstrip("/"):
+            raise HTTPException(403, "link must be started from this site")
+        session_id = request.cookies.get(SESSION_COOKIE)
+        session = auth.validate_session(session_id) if session_id else None
+        if session is None:
+            raise HTTPException(401, "sign in first")
+        if not session.has_step_up(session.principal_id):
+            raise HTTPException(403, "confirm it's you first")
+        service = _oidc(request)
+        redirect_uri = f"{str(request.base_url).rstrip('/')}/api/auth/oidc/callback"
+        try:
+            client = service.client()
+            url, _pending, cookie = client.start_login(
+                redirect_uri, link_to=session.principal_id
+            )
+        except OIDCError as exc:
+            return _failure_response(request, exc)
+        response = RedirectResponse(
+            url, status_code=303, headers={"Cache-Control": "no-store"}
+        )
+        response.set_cookie(
+            FLOW_COOKIE,
+            cookie,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=600,
+        )
+        return response
+
     @app.get("/api/auth/oidc/callback")
     async def auth_oidc_callback(
         request: Request,
@@ -262,6 +304,23 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
                     error_code="oidc_state_mismatch",
                 )
             identity = client.complete_login(code, pending)
+            if pending.link_to:
+                current_id = request.cookies.get(SESSION_COOKIE)
+                current = auth.validate_session(current_id) if current_id else None
+                if current is None or current.principal_id != pending.link_to:
+                    raise OIDCLoginError(
+                        "the person who started linking is no longer signed in",
+                        error_code="oidc_link_session_changed",
+                        http_status=403,
+                    )
+                try:
+                    auth.link_oidc(pending.link_to, identity.sub)
+                except ValueError:
+                    raise OIDCLoginError(
+                        "this sign-in is already linked to another account",
+                        error_code="oidc_identity_in_use",
+                        http_status=409,
+                    )
             try:
                 session = auth.login_oidc(
                     identity.sub,

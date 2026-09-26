@@ -183,6 +183,7 @@ discarded. Sessions hold a principal id, not a credential.
 | `GET /api/auth/oidc/status` | Current state + discovery metadata, no secrets. Read-only. |
 | `GET /api/auth/oidc/config` | Legacy alias of status, flattened for the login screen. |
 | `GET /api/auth/oidc/login` | Start a sign-in (303 to the provider). |
+| `POST /api/auth/oidc/link` | Link a provider sign-in to the signed-in person's account (multi mode). |
 | `GET /api/auth/oidc/callback` | Finish a sign-in (303 to `/` on success). |
 | `GET /api/auth/oidc/logout` | End the local session, then the provider session. |
 | `POST /api/auth/logout` | End the local session; returns `end_session_url` for OIDC sessions. |
@@ -254,6 +255,21 @@ presents it; the server does not render pages). API callers that send
 `oidc_key_not_found`, `oidc_alg_unsupported`,
 `oidc_verification_unavailable`, `oidc_bad_issuer`, `oidc_bad_audience`,
 `oidc_token_expired`, `oidc_bad_nonce`, `oidc_identity_not_mapped`.
+
+## Linking a sign-in to an account (multi mode)
+
+In multi mode a provider sign-in works only for an account it is linked
+to; Worlds never creates an account from a sign-in. To link one:
+
+1. Sign in the local way and confirm it's you (step-up).
+2. `POST /api/auth/oidc/link` from the Worlds page. It sends you to the
+   provider.
+3. Sign in there. On the way back Worlds links that provider identity
+   (its `sub`) to your account, then signs you in with it.
+
+The link is refused if you were signed out in between, or if that
+provider identity is already linked to someone else. The owner links
+their own sign-in this way before switching an install to multi mode.
 
 ## Logout
 
