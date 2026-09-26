@@ -608,7 +608,7 @@ describe("RoomDrawer", () => {
     it("shows names, health in words, requests and changes, and never a value field", () => {
       const drawer = openWorkshop({ data: { ok: true, data: OVERVIEW } });
       expect(within(drawer).getByRole("heading", { name: "Secrets" })).toBeInTheDocument();
-      expect(within(drawer).getByText("The station is answering")).toBeInTheDocument();
+      expect(within(drawer).getByText("Connected")).toBeInTheDocument();
       expect(within(drawer).getByText(/3 keys in 2 groups/)).toBeInTheDocument();
       expect(within(drawer).getByRole("link", { name: "Enter mail/relay-password in Project Home, in a new tab" })).toHaveAttribute(
         "href",
@@ -635,7 +635,7 @@ describe("RoomDrawer", () => {
       const drawer = openWorkshop({
         data: { ok: true, data: { ...OVERVIEW, station: { configured: true, status: "unreachable", detail: null }, requests: [] } },
       });
-      expect(within(drawer).getByText(/Secrets are resting: the station isn’t reachable/)).toBeInTheDocument();
+      expect(within(drawer).getByText(/Can’t reach the station right now/)).toBeInTheDocument();
       expect(within(drawer).getByRole("heading", { name: /What Workshop is showing/ })).toBeInTheDocument();
     });
 

@@ -122,6 +122,22 @@ focus there, unsent.
   an "About your crew" complement (your companion, Sol, the rules). Portraits
   are decorative; names are always written.
 
+### People
+
+Only for people who run or help run the World (Settings shows **Open
+people** only then). main is labelled **People**, h1 **People in this
+World**. Each person is a list item: name (and "(you)"), then their role in
+plain words ("Runs this World", "Helps run this World", "Has their own
+space", "Has their own space, with limits", "Visiting"). **Change what
+{name} can do** opens a group of that name with radio buttons, **Not now**
+and **Save for {name}**; nobody sees a Change button for the owner or
+themselves. A write that needs it shows **Confirm it's you** in place, with
+focus on **Your sign-in key**. Results are a status line ("Saved. Alex:
+Helps run this World."); focus returns to the Change button. **Hand this
+World over** (owner only) needs the new owner's name typed exactly before
+**Hand over to {name}** is enabled. Programs are in a separate disclosure,
+**Programs that act here**.
+
 ## First Light (first-run setup)
 
 A separate page before the app: six steps, each with its own heading (Welcome

@@ -19,7 +19,12 @@
  *   node ../docs/gallery/capture.mjs --table-only    # just rebuild README table
  *
  * Entries with a "path" (server-rendered pages like /setup and /login) are
- * skipped: the preview build doesn't serve them. See their "notes".
+ * skipped: the preview build doesn't serve them. capture-server.mjs takes
+ * those from a throwaway local Worlds.
+ *
+ * An entry may also carry "fixture" (a made-up data variant: "many-rooms",
+ * "no-rooms"), "steps" ({click: {role, name}} or {fill: {label, value}}) and
+ * "scroll_to" ({role, name}) to show a particular state.
  */
 import { spawn, execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
@@ -108,6 +113,46 @@ async function waitFor(url, ms = 60_000) {
   throw new Error(`timed out waiting for ${url}`);
 }
 
+// Data variants for states the standard mock world doesn't show. They
+// rewrite only the browser's copy of GET /api/rooms, with made-up rooms.
+const EXTRA_ROOMS = [
+  "Atelier", "Bakery", "Boathouse", "Conservatory", "Darkroom", "Greenhouse",
+  "Kiln", "Loft", "Observatory", "Pantry", "Stables", "Tinker Shop",
+];
+
+async function applyFixture(page, fixture) {
+  await page.route("**/api/rooms", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const rows = Array.isArray(body.data) ? body.data : [];
+    if (fixture === "no-rooms") {
+      body.data = [];
+    } else if (fixture === "many-rooms") {
+      const template = rows.find((r) => r.status === "healthy") ?? rows[0];
+      body.data = rows.concat(
+        EXTRA_ROOMS.map((name) => {
+          const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          return {
+            ...template,
+            id,
+            base_url: `https://${id}.room.test`,
+            public_url: null,
+            status: "healthy",
+            room: { ...template.room, id, name, status: "healthy" },
+            needs_you: [],
+            cards: [],
+            keeper: null,
+            doorway: null,
+          };
+        }),
+      );
+    } else {
+      throw new Error(`unknown fixture ${fixture}`);
+    }
+    await route.fulfill({ response, json: body });
+  });
+}
+
 async function main() {
   if (tableOnly) {
     writeReadmeTable();
@@ -160,7 +205,7 @@ async function main() {
     for (const entry of manifest.entries) {
       if (only && entry.id !== only) continue;
       if (entry.path) {
-        console.log(`skip ${entry.id}: server-rendered (${entry.path}); see its notes`);
+        console.log(`skip ${entry.id}: server-rendered (${entry.path}); use capture-server.mjs`);
         continue;
       }
       const themes = allThemes ? manifest.all_themes : (entry.themes ?? manifest.defaults.themes);
@@ -180,6 +225,7 @@ async function main() {
             [THEME_STORAGE_KEY, theme],
           );
           const page = await context.newPage();
+          if (entry.fixture) await applyFixture(page, entry.fixture);
           try {
             await page.goto(`http://127.0.0.1:${UI_PORT}/`);
             if (entry.area) {
@@ -190,11 +236,19 @@ async function main() {
             }
             for (const step of entry.steps ?? []) {
               if (step.click) await page.getByRole(step.click.role, { name: step.click.name }).first().click();
+              if (step.fill) await page.getByLabel(step.fill.label).first().fill(step.fill.value);
             }
             await page.waitForLoadState("networkidle");
             // Start every picture at the top of the page: a click can leave
-            // the page scrolled to wherever the button was.
+            // the page scrolled to wherever the button was. An entry can then
+            // name the part it is about ("scroll_to"), which is brought into view.
             await page.evaluate(() => window.scrollTo(0, 0));
+            if (entry.scroll_to) {
+              await page
+                .getByRole(entry.scroll_to.role, { name: entry.scroll_to.name })
+                .first()
+                .evaluate((el) => el.scrollIntoView({ block: "start" }));
+            }
             await page.waitForTimeout(400);
             const file = shotPath(entry.id, theme, width);
             mkdirSync(dirname(file), { recursive: true });

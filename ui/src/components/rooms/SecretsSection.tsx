@@ -49,7 +49,7 @@ function stationWords(data: SecretsOverview): { lit: boolean; title: string; lin
     case "ok":
       return {
         lit: true,
-        title: "The station is answering",
+        title: "Connected",
         line: [
           data.bundle_last_change ? `Last change reached it ${formatTime(data.bundle_last_change)}.` : null,
           `${plural(data.key_count, "key", "keys")} in ${plural(groups, "group", "groups")}.`,
@@ -60,7 +60,7 @@ function stationWords(data: SecretsOverview): { lit: boolean; title: string; lin
     case "unreachable":
       return {
         lit: false,
-        title: "Secrets are resting: the station isn’t reachable",
+        title: "Can’t reach the station right now",
         line: `Nothing can be saved until it’s back. The rest of Worlds carries on as normal.${
           detail ? ` (${detail})` : ""
         }`,

@@ -143,7 +143,7 @@ function StepUpInvite({
     e.preventDefault();
     setOutcome(null);
     if (token.trim() === "") {
-      setOutcome("A credential is needed to step up — the station will not guess one.");
+      setOutcome("Enter your sign-in key to confirm.");
       return;
     }
     stepUp.mutate(token.trim(), {
@@ -157,8 +157,8 @@ function StepUpInvite({
       onError: (err) => {
         setOutcome(
           isStepUpGate(err)
-            ? "That credential did not match this session — nothing changed."
-            : describeError(err, "Step-up did not complete."),
+            ? "That key didn’t match. Nothing changed."
+            : describeError(err, "Couldn’t confirm. Nothing changed."),
         );
       },
     });
@@ -166,7 +166,7 @@ function StepUpInvite({
 
   return (
     <section
-      aria-label="Step up to continue"
+      aria-label="Confirm it’s you"
       className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
     >
       <p
@@ -184,7 +184,7 @@ function StepUpInvite({
             htmlFor="records-step-up-credential"
             className="mb-[var(--pw-spacing-sm)] block text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
           >
-            Re-present your credential
+            Your sign-in key
           </label>
           <input
             id="records-step-up-credential"
@@ -196,7 +196,7 @@ function StepUpInvite({
           />
         </div>
         <WorldButton variant="primary" type="submit" isDisabled={stepUp.isPending}>
-          {stepUp.isPending ? "Stepping up…" : "Step up"}
+          {stepUp.isPending ? "Confirming…" : "Confirm"}
         </WorldButton>
       </form>
       {outcome !== null && (
@@ -462,7 +462,7 @@ function RecordForm({
 
       {gate !== null && (
         <StepUpInvite
-          reason="Records writes are the step-up ACT. Elevate this session, then save again — until then nothing was written."
+          reason="Saving records needs you to confirm it’s you. Nothing has been saved yet."
           onElevated={() => setGate(null)}
         />
       )}
@@ -862,7 +862,7 @@ export function RecordsPanel() {
 
           {gateNotice !== null && lockedRefusal === false && (
             <StepUpInvite
-              reason="That action was refused: it needs step-up, and the station made no change. Elevate below, then try again."
+              reason="That needs you to confirm it’s you first. Nothing changed. Confirm below, then try again."
               onElevated={() => setGateNotice(null)}
             />
           )}

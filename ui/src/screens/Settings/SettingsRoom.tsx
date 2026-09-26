@@ -116,7 +116,7 @@ function PrefsControl({
         />
         <p id={hintId} className="mt-1 text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
           Minimum {String(entry.floor)}
-          {entry.unit} — set by the accessibility floor, never offered below it.
+          {entry.unit}. It never goes lower.
         </p>
       </div>
     );
@@ -163,15 +163,15 @@ function PrefsControl({
              wording, and the honesty rule stated plainly instead
              (TRUE-NORTH § Voice). */
           <>
-            How the one Worlds voice phrases chat replies and attention
-            labels. Facts, statuses, and uncertainty stay exact in every
-            tone, and degraded states are always labeled honestly.
+            How Worlds phrases chat replies and attention labels. Facts,
+            statuses and uncertainty stay exact in every tone, and problems
+            are always named.
           </>
         ) : entry.key === "personality_pack" ? (
           <>
-            “Residents” (the default) adds the character crew as flavor
-            on top of the one Worlds voice; Off speaks plainly. The truth
-            rules are identical either way.
+            “Residents” (the default) adds the crew’s personalities on top
+            of Worlds’ plain voice; Off speaks plainly. The facts are the
+            same either way.
           </>
         ) : entry.key === "companion_id" ? (
           <>
@@ -181,12 +181,12 @@ function PrefsControl({
           </>
         ) : (
           <>
-            Floor: {prefValueLabel(entry, entry.floor)}
+            Minimum: {prefValueLabel(entry, entry.floor)}
             {entry.key === "target_size" && " (44px minimum — WCAG 2.5.5)"}
             {entry.key === "motion" && " — your system's reduced-motion setting always wins over this."}
             {/* Read-only honesty for the one stored key this surface does
                 not render through (C12): saying so beats faking an effect. */}
-            {entry.key === "accent" && " — the station stores this; no view here changes its look yet."}
+            {entry.key === "accent" && " — this is saved, but no screen uses it yet."}
           </>
         )}
       </p>
@@ -318,8 +318,8 @@ export function SettingsRoom() {
         </h2>
         <p role="alert" className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {schemaQuery.isError
-            ? "The station could not describe its settings, so nothing is offered for editing here. Nothing has been changed."
-            : "The station reported no renderable settings. Nothing is offered, and nothing has been changed."}
+            ? "Worlds couldn’t list its settings, so there’s nothing to change here. Nothing has been changed."
+            : "Worlds has no settings to show here. Nothing has been changed."}
         </p>
       </section>
     );
@@ -338,8 +338,8 @@ export function SettingsRoom() {
       </h2>
       {/* §9.2: these preferences tune an already-accessible product. */}
       <p className="mb-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-        Every value below comes from the station itself — the options shown are the
-        options the server accepts. Nothing saves until you apply it.
+        The options below are the ones Worlds accepts. Nothing saves until you
+        apply it.
       </p>
 
       {/* A setting we cannot describe faithfully is shown READ-ONLY with
@@ -353,9 +353,8 @@ export function SettingsRoom() {
             {prefKeyLabel(key)}
           </p>
           <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-            Read-only: the station described this setting in a shape this view
-            does not understand, and showing a guessed control would be worse
-            than showing none.
+            Read-only: this screen doesn’t understand how this setting is
+            described, so it won’t guess at a control for it.
           </p>
         </div>
       ))}
@@ -454,8 +453,8 @@ export function SettingsRoom() {
       {!hasStepUp && (
         <p className="mt-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {stepUpKnown
-            ? "Read-only right now: saving settings requires re-authentication (step-up), which this session has not been granted. The values above can still be previewed; the station will not accept the write."
-            : "Read-only right now: this view cannot confirm whether saving is permitted in this session, so Apply stays unavailable rather than pretending."}
+            ? "Read-only for now: saving settings needs you to confirm it’s you first. You can still preview the values above."
+            : "Read-only for now: this screen can’t tell whether you’re allowed to save, so Apply is off."}
         </p>
       )}
 
@@ -476,9 +475,8 @@ export function SettingsRoom() {
       </h3>
       {WARMTH_UNWIRED ? (
         <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-          {WARMTH_UNWIRED_LABEL}. The shape is decided (job, up to two context
-          tags, low-bandwidth, warmth 1–7); no station message is rendered
-          through it yet, and no control here changes anything.
+          {WARMTH_UNWIRED_LABEL}. No message uses them, so there are no
+          controls for them here.
         </p>
       ) : (
         <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">

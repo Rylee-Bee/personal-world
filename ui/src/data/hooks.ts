@@ -87,6 +87,10 @@ import {
   postRoomVisit,
   postNeedSeen,
   postRoomAction,
+  getMe,
+  getPeople,
+  putPersonRole,
+  postTransferOwnership,
   getCrew,
   addCrew,
   patchCrew,
@@ -143,6 +147,8 @@ export const queryKeys = {
   rooms: ["rooms"] as const,
   secretsOverview: ["secrets", "overview"] as const,
   crew: ["crew"] as const,
+  me: ["me"] as const,
+  people: ["people"] as const,
 } as const;
 
 // ===== Health =====
@@ -850,6 +856,36 @@ export function useRoomAction() {
       if (receipt.ok) qc.invalidateQueries({ queryKey: queryKeys.rooms });
     },
   });
+}
+
+/** Who I am and what I may do (GET /api/me). */
+export function useMe() {
+  return useQuery({ queryKey: queryKeys.me, queryFn: getMe, staleTime: 60_000, retry: false });
+}
+
+/** Everyone in this World (GET /api/people). Only asked for when the
+ *  caller may manage people; a 403 is an answer, not a retry. */
+export function usePeople(enabled: boolean) {
+  return useQuery({ queryKey: queryKeys.people, queryFn: getPeople, enabled, retry: false });
+}
+
+function usePeopleMutation<V, R>(fn: (vars: V) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.people });
+      qc.invalidateQueries({ queryKey: queryKeys.me });
+    },
+  });
+}
+
+export function useSetRole() {
+  return usePeopleMutation(({ id, role }: { id: string; role: string }) => putPersonRole(id, role));
+}
+
+export function useTransferOwnership() {
+  return usePeopleMutation((to: string) => postTransferOwnership(to));
 }
 
 /** This person's crew (GET /api/crew), hidden companions included. */

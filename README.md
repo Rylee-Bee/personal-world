@@ -181,11 +181,56 @@ away as a fallback. The superseded React frontend was removed on
 
 ### Screenshots
 
-Current screenshots are in the **[screenshot gallery](docs/gallery/README.md)**:
-every screen, at phone (390) and desktop (1440) widths, in the default
-starfield theme and the others. The Station-era screenshots under
-`docs/screenshots/` show the retired server-rendered UI and are kept as
-history only.
+<p align="center">
+  <a href="docs/gallery/shots/bridge/starfield-1440.png"><img src="docs/gallery/showcase/hero.png" alt="The Worlds Bridge on a desktop window and a phone, side by side on a starry background, with the Assistant waving and Sol smiling." width="100%"></a>
+  <br><sub><b>The Bridge</b>: what changed, what needs you, and each room as a doorway. On a phone it's the same page, stacked.</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/gallery/shots/room-drawer-studio/starfield-1440.png"><img src="docs/gallery/showcase/room-drawer.png" alt="A room's drawer open beside the Bridge, with a need and tone-labelled cards; the Assistant peeks in from the corner." width="100%"></a>
+      <br><b>Look inside a room</b>
+      <br><sub>Status in words, what changed, and what needs you. Links open on the room's own site.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/gallery/shots/secrets-waiting/starfield-1440.png"><img src="docs/gallery/showcase/secrets.png" alt="The Workshop drawer's Secrets section with a request waiting for you; Sol peeks in, curious." width="100%"></a>
+      <br><b>Secrets, by name only</b>
+      <br><sub>An agent asked for a key. Nothing is shared until you type it on Project Home's page.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/gallery/shots/ask-in-chat/starfield-1440.png"><img src="docs/gallery/showcase/ask-in-chat.png" alt="Chat with a question about Studio written in the message box; the Assistant waves from the corner." width="100%"></a>
+      <br><b>Ask about a room</b>
+      <br><sub>Chat opens with the question already written. You choose whether to send it.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/gallery/shots/crew/starfield-1440.png"><img src="docs/gallery/showcase/crew.png" alt="The Crew page with companion cards; Renai waves beside it." width="100%"></a>
+      <br><b>Your crew</b>
+      <br><sub>Pick a companion, add your own, and choose who keeps each room.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/gallery/shots/find-a-room/starfield-1440.png"><img src="docs/gallery/showcase/find-a-room.png" alt="The Rooms section with a Find a room box and its match count; Sol cheers from the corner." width="100%"></a>
+      <br><b>Find a room</b>
+      <br><sub>With 12 or more rooms, a search box says how many match.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/gallery/shots/first-light-companion/starfield-1440.png"><img src="docs/gallery/showcase/first-light.png" alt="The First Light step for picking a companion, with the Assistant chosen; Sol rests in the corner." width="100%"></a>
+      <br><b>First Light</b>
+      <br><sub>A six-step first-run setup: sign-in, comfort, and a companion, or none.</sub>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <a href="docs/gallery/shots/bridge/"><img src="docs/gallery/showcase/themes.png" alt="The Bridge on six phones, one per theme: starfield, doorways, station, moss, ocean and plain." width="100%"></a>
+  <br><sub><b>Six themes</b>: starfield (the default), doorways, station, moss, ocean and plain. Every one keeps 16px body text and 44px targets.</sub>
+</p>
+
+<p align="center"><b><a href="docs/gallery/README.md">See every screen in the gallery →</a></b><br><sub>Phone and desktop, sign-in and first-run included. All pictures use made-up demo data.</sub></p>
 
 ## Quick start
 

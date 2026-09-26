@@ -155,7 +155,7 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew }: BridgeProps)
         <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
           {briefing.error instanceof Error && briefing.error.message
             ? briefing.error.message
-            : "The station did not answer. Nothing here is invented."}
+            : "Worlds didn’t answer, so there’s nothing to show yet."}
         </p>
         <button
           type="button"

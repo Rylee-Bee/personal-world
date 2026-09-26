@@ -261,12 +261,12 @@ test.describe("Settings Room (C1/C2)", () => {
   }) => {
     await gotoSettings(page);
     await expect(
-      page.getByText(/language dials — not yet wired/),
+      page.getByText(/Language dials aren’t in use yet/),
     ).toHaveCount(1);
     // Not scattered: navigating away shows none of it.
     await gotoArea(page, "Bridge");
     await expect(
-      page.getByText(/language dials — not yet wired/),
+      page.getByText(/Language dials aren’t in use yet/),
     ).toHaveCount(0);
   });
 

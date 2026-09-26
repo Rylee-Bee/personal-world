@@ -33,6 +33,7 @@ import { Chat, type ChatDraft } from "../screens/Chat/Chat";
 import { AskInChatContext } from "./askInChat";
 import { Settings } from "../screens/Settings/Settings";
 import { Crew } from "../screens/Crew/Crew";
+import { People } from "../screens/People/People";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
 import { useHealthz, usePrefs, usePrefsSchema, useSections } from "../data/hooks";
@@ -117,9 +118,9 @@ function useApplyPrefsChrome(): void {
 
 export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  // "crew" is a page inside Settings, not a nav landmark: the skeleton
-  // stays Overview · Memory · Chat · Settings.
-  const [activeArea, setActiveArea] = useState<WorldAreaId | "crew">("overview");
+  // "crew" and "people" are pages inside Settings, not nav landmarks:
+  // the skeleton stays Overview · Memory · Chat · Settings.
+  const [activeArea, setActiveArea] = useState<WorldAreaId | "crew" | "people">("overview");
   const [chatDraft, setChatDraft] = useState<ChatDraft | null>(null);
   const askInChat = useCallback((question: string) => {
     setChatDraft({ id: Date.now(), text: question });
@@ -154,9 +155,16 @@ export function App() {
       case "chat":
         return <Chat key={chatDraft?.id ?? "chat"} draft={chatDraft} />;
       case "settings":
-        return <Settings onOpenCrew={() => setActiveArea("crew")} />;
+        return (
+          <Settings
+            onOpenCrew={() => setActiveArea("crew")}
+            onOpenPeople={() => setActiveArea("people")}
+          />
+        );
       case "crew":
         return <Crew onBack={() => setActiveArea("settings")} />;
+      case "people":
+        return <People onBack={() => setActiveArea("settings")} />;
       case "interests":
         return <Interests />;
       default: {
@@ -188,7 +196,10 @@ export function App() {
     <li key={area.id}>
       <WorldAreaLink
         area={area}
-        isActive={area.id === activeArea || (activeArea === "crew" && area.id === "settings")}
+        isActive={
+          area.id === activeArea ||
+          ((activeArea === "crew" || activeArea === "people") && area.id === "settings")
+        }
         onClick={() => setActiveArea(area.id)}
       />
     </li>
@@ -311,12 +322,12 @@ function StatusStrip() {
   const word = healthWord(health);
   const line =
     word === "Online"
-      ? "Scanner online. Select a world to begin."
+      ? "Connected."
       : word === "Checking"
-        ? "Checking scanner…"
+        ? "Connecting…"
         : word === "Degraded"
-          ? "Scanner degraded. Some worlds may be unreachable."
-          : "Scanner unreachable. Showing nothing until the station answers.";
+          ? "Connected, but some parts aren’t answering."
+          : "Can’t reach Worlds. Nothing here is current.";
   const dotColor =
     word === "Online"
       ? "bg-[var(--pw-accent-teal)]"

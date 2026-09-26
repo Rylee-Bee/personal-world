@@ -286,7 +286,7 @@ describe("Interests view", () => {
     };
     render(<Interests />);
     expect(
-      screen.getByText(/Your interests could not be read from the station\. Nothing was changed\./),
+      screen.getByText(/Couldn’t read your interests\. Nothing was changed\./),
     ).toBeInTheDocument();
     // The check button exists but cannot be pressed against a dead status.
     expect(screen.getByRole("button", { name: "Check sources now" })).toBeDisabled();
