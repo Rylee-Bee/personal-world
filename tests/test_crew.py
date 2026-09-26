@@ -210,6 +210,8 @@ class TestKeeperDefaults:
             "observatory": "mira",
             "newsstand": "scoop",
             "world-tree": "ratatoskr",
+            # Owner-named, not a briefing system (owner, 2026-09-26).
+            "studio": "mira",
         }
         # Renai reports no system and is never seeded as a keeper.
         assert "renai" not in keepers.values()
@@ -225,7 +227,7 @@ class TestKeeperDefaults:
         path = tmp_path / "crew.json"
         path.write_text(json.dumps({"crew": crew.starter_entries()}))
         state = crew.read_crew(path, room_ids=["workshop", "studio"])
-        assert state["keepers"] == {"workshop": "bolt"}
+        assert state["keepers"] == {"workshop": "bolt", "studio": "mira"}
 
     def test_a_seeded_keeper_the_roster_no_longer_has_is_not_written(self, tmp_path):
         """A hand-edited file with an emptied roster gets no phantom
@@ -501,13 +503,16 @@ class TestKeepers:
     def test_defaults_come_from_canon_and_nothing_else(self, client, monkeypatch):
         _install(
             monkeypatch,
-            room_spec="workshop=http://room.test,studio=http://room.test",
+            room_spec="workshop=http://room.test,studio=http://room.test,"
+            "garden=http://room.test",
         )
         rows = _rows(client)
         assert rows["workshop"]["keeper"]["id"] == "bolt"
         assert rows["workshop"]["keeper"]["initial"] == "B"
-        # "studio" names no canon system → honestly no companion
-        assert rows["studio"]["keeper"] is None
+        # Studio's keeper is owner-named (crew.ROOM_RESIDENT), not a system.
+        assert rows["studio"]["keeper"]["id"] == "mira"
+        # A room nothing names → honestly no companion
+        assert rows["garden"]["keeper"] is None
 
     def test_assigning_moves_the_room_but_not_the_crew(self, client, monkeypatch):
         _install(monkeypatch)

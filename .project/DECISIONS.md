@@ -652,3 +652,20 @@ dated entry superseding the old one (append-only, like the journal).
   `personal-world` (Sol) stays in the vocabulary but never becomes a chat
   persona (`voice.VOICELESS_COMPANIONS`). Open question for the owner: the
   Bridge briefing's "Keeper" line still uses the `personal-world` resident.
+- **2026-09-26 — Crew page, Mira keeps Studio, commbadge placeholder; the
+  Assistant is "no companion".** Owner, answering the design handoff's open
+  decisions: "Mira for the Studio, a new Crew page that links from settings,
+  and … the commbadge logo". (1) `crew.ROOM_RESIDENT` seeds Mira as Studio's
+  keeper under the existing seeding rules (only when `keepers` was never
+  saved; a saved or cleared assignment is never overwritten). (2) The crew
+  manager is its own page reached from Settings, not a nav landmark; the
+  skeleton stays Overview · Memory · Chat · Settings. (3) A companion with
+  no picture wears the crew commbadge (Sol's ringed planet) with their
+  initial. (4) Since #81 the server maps the old `assistant` value to
+  `companion_id: null`, the one plain voice, so the frontend shows that
+  plain voice as the Assistant (screen face) instead of adding a crew
+  entry; Settings now edits `companion_id` from the person's crew and
+  retires the old `companion` row, which stopped changing the voice once
+  `companion_id` was stored. `config/prompts/personas/assistant.md` is no
+  longer composed by the voice path. Reason: owner canon, "an assistant if
+  you haven't picked one", and one resolution for face and voice.

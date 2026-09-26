@@ -98,6 +98,11 @@ const { mutate, mocks } = vi.hoisted(() => {
       error: null as Error | null,
       data: undefined as unknown,
     },
+    crewState: {
+      isPending: false,
+      isError: false,
+      data: undefined as { ok: boolean; data: unknown[] } | undefined,
+    },
   };
   return { mutate, mocks };
 });
@@ -107,6 +112,7 @@ vi.mock("../data/hooks", () => ({
   usePrefsSchema: () => mocks.schemaState,
   useSession: () => mocks.sessionState,
   usePutPrefs: () => ({ isPending: false, mutate }),
+  useCrew: () => mocks.crewState,
 }));
 
 import { SettingsRoom } from "../screens/Settings/SettingsRoom";
@@ -448,5 +454,60 @@ describe("SettingsRoom", () => {
   it("shows the honest unwired label for the language dials in one place (C10)", () => {
     renderRoom();
     expect(screen.getByText(/language dials — not yet wired/)).toBeInTheDocument();
+  });
+});
+
+// ─── companion_id: the crew is the vocabulary (owner 2026-09-25/26) ──
+
+describe("SettingsRoom — companion", () => {
+  const WITH_COMPANION_ID = {
+    ...SCHEMA_BODY,
+    companion_id: {
+      type: "companion_id", default: null, floor: null, allowed: null,
+      integer: false, unit: "", note: "a companion id from the caller's own crew",
+    },
+  };
+
+  function useCompanionSchema(companionId: string | null) {
+    mocks.schemaState = { ...mocks.schemaState, data: { ok: true, data: WITH_COMPANION_ID } };
+    mocks.prefsState = {
+      ...mocks.prefsState,
+      data: { ok: true, data: { ...PREFS_BODY, companion_id: companionId } },
+    };
+    mocks.crewState = {
+      isPending: false,
+      isError: false,
+      data: {
+        ok: true,
+        data: [
+          { id: "renai", name: "Renai", source: "starter", hidden: false },
+          { id: "pip", name: "Pip", source: "user", hidden: false },
+          { id: "hekek", name: "Hekek", source: "starter", hidden: true },
+        ],
+      },
+    };
+  }
+
+  it("offers the Assistant plus your unhidden crew, and retires the old companion row", () => {
+    useCompanionSchema(null);
+    renderRoom();
+    expect(document.getElementById("settings-room-companion-control")).toBeNull();
+    const select = screen.getByLabelText("Companion") as HTMLSelectElement;
+    expect(select.value).toBe("");
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+      "Assistant (default, the plain voice)",
+      "Renai",
+      "Pip",
+    ]);
+  });
+
+  it("saves the Assistant as null and a companion by crew id", async () => {
+    const user = userEvent.setup();
+    useCompanionSchema("renai");
+    renderRoom();
+    await user.selectOptions(screen.getByLabelText("Companion"), "");
+    await user.click(screen.getByRole("button", { name: /Apply changes \(1\)/ }));
+    await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1));
+    expect(mutate.mock.calls[0][0]).toEqual({ companion_id: null });
   });
 });

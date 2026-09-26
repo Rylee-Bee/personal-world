@@ -19,11 +19,19 @@ const { hookState } = vi.hoisted(() => ({
       data: undefined as unknown,
       refetch: (() => Promise.resolve()) as () => Promise<unknown>,
     },
+    visit: vi.fn(),
+    markSeen: vi.fn(),
   },
 }));
 
 vi.mock("../data/hooks", () => ({
   useRooms: () => hookState.rooms,
+  useVisitRoom: () => ({ mutate: hookState.visit }),
+  useMarkNeedSeen: () => ({
+    mutate: hookState.markSeen,
+    isPending: false,
+    isError: false,
+  }),
 }));
 
 import { RoomsPanel } from "../components/RoomsPanel";
@@ -205,12 +213,83 @@ describe("RoomsPanel", () => {
   it("adds interiors in Doorways and keeper portraits with the crew on — all decorative", () => {
     document.documentElement.setAttribute("data-theme", "doorways");
     document.documentElement.setAttribute("data-pw-personality-pack", "residents");
+    setRooms([
+      {
+        ...WORKSHOP,
+        keeper: { id: "bolt", name: "Bolt", portrait_url: "/assets/crew/512/bolt-portrait.webp", initial: "B" },
+      },
+      PLAYNICE,
+    ]);
     const { container } = render(<RoomsPanel />);
     const imgs = Array.from(container.querySelectorAll("img"));
     expect(imgs.some((i) => i.getAttribute("src")?.endsWith("assets/crew/512/workshop-doorway.webp"))).toBe(true);
-    expect(imgs.some((i) => i.getAttribute("src")?.endsWith("assets/crew/256/bolt-portrait.webp"))).toBe(true);
+    expect(imgs.some((i) => i.getAttribute("src")?.endsWith("assets/crew/512/bolt-portrait.webp"))).toBe(true);
     for (const img of imgs) expect(img).toHaveAttribute("alt", "");
     expect(screen.getByText(/kept by Bolt/)).toBeInTheDocument();
+    // Keepers come from the server, never a built-in map: Play-Nice has none.
+    expect(screen.queryByText(/kept by Hekek/)).not.toBeInTheDocument();
+  });
+
+  it("gives a keeper with no picture the crew commbadge and their initial", () => {
+    document.documentElement.setAttribute("data-pw-personality-pack", "residents");
+    setRooms([{ ...WORKSHOP, keeper: { id: "pip", name: "Pip", portrait_url: null, initial: "P" } }]);
+    const { container } = render(<RoomsPanel />);
+    const badge = Array.from(container.querySelectorAll("img")).find((i) =>
+      i.getAttribute("src")?.endsWith("assets/crew/256/sol-badge.webp"),
+    );
+    expect(badge).toBeDefined();
+    expect(badge!.closest("[aria-hidden='true']")).toHaveTextContent("P");
+    expect(screen.getByText(/kept by Pip/)).toBeInTheDocument();
+  });
+
+  it("hides keepers when the personality pack is off, even when the server names one", () => {
+    setRooms([{ ...WORKSHOP, keeper: { id: "bolt", name: "Bolt", portrait_url: null, initial: "B" } }]);
+    render(<RoomsPanel />);
+    expect(screen.queryByText(/kept by/)).not.toBeInTheDocument();
+  });
+
+  it("stops charging for a need you've marked seen, and says so in words", () => {
+    setRooms([{ ...WORKSHOP, needs_seen: ["workshop-need-0"] }, QUIET]);
+    render(<RoomsPanel />);
+    expect(screen.queryByText("Needs you")).not.toBeInTheDocument();
+    expect(screen.getByText(/Nothing needs you right now/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /quiet room/ }));
+    expect(screen.getByText(/1 need you've seen/)).toBeInTheDocument();
+  });
+
+  it("marks the shown need seen, and records a visit when a room is opened", () => {
+    hookState.markSeen.mockClear();
+    hookState.visit.mockClear();
+    setRooms([WORKSHOP]);
+    render(<RoomsPanel />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Mark “Review an agent's proposed changes” as seen" }),
+    );
+    expect(hookState.markSeen).toHaveBeenCalledWith({ roomId: "workshop", needId: "workshop-need-0" });
+    fireEvent.click(screen.getByRole("link", { name: "Open Workshop in a new tab" }));
+    expect(hookState.visit).toHaveBeenCalledWith({ roomId: "workshop", title: "Workshop" });
+  });
+
+  it("says where you left off, and who kept your place when the crew is on", () => {
+    const at = "2026-09-25T21:35:22Z";
+    hookState.rooms = {
+      ...hookState.rooms,
+      data: {
+        ok: true,
+        data: [{ ...QUIET, keeper: { id: "ratatoskr", name: "Ratatoskr", portrait_url: null, initial: "R" } }],
+        resume: { room_id: "vefr", title: null, link: null, at },
+        summary: { needs_you: 0, changed: 2, can_wait: 0, unknown: 0, unreachable: 0 },
+      },
+    };
+    render(<RoomsPanel />);
+    expect(screen.getByText(/You were last in VEFR/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to VEFR in a new tab" })).toBeInTheDocument();
+    expect(screen.getByText(/2 new since you last looked/)).toBeInTheDocument();
+    cleanup();
+
+    document.documentElement.setAttribute("data-pw-personality-pack", "residents");
+    render(<RoomsPanel />);
+    expect(screen.getByText(/Ratatoskr kept your place in VEFR/)).toBeInTheDocument();
   });
 
   it("names loading and failure plainly, inventing nothing", () => {

@@ -12,6 +12,8 @@ import {
   SKELETON_AREA_IDS,
   derivePersonalAreas,
   COMPANION_RESIDENTS,
+  ASSISTANT_RESIDENT,
+  companionResident,
   CAPABILITY_NAMES,
   capabilityDisplayName,
   plainAttention,
@@ -354,5 +356,41 @@ describe("types constants", () => {
     it("humanizes an unknown id instead of leaking the token", () => {
       expect(capabilityDisplayName("foo_bar")).toBe("Foo Bar");
     });
+  });
+});
+
+describe("companionResident — the face follows the voice", () => {
+  const crew = [
+    { id: "renai", name: "Renai", source: "starter" as const, hidden: false, portrait_asset: "/assets/crew/512/renai-hello.webp" },
+    { id: "pip", name: "Pip", source: "user" as const, hidden: false, portrait_asset: null },
+    { id: "bolt", name: "Bolt", source: "starter" as const, hidden: true },
+  ];
+
+  it("shows nobody when the personality pack is off", () => {
+    expect(companionResident({ companion_id: "renai", personality_pack: "off" }, crew)).toBeUndefined();
+  });
+
+  it("shows the Assistant for no companion, an unknown one, or a hidden one", () => {
+    for (const id of [null, "ghost", "bolt"]) {
+      expect(companionResident({ companion_id: id, personality_pack: "residents" }, crew)).toEqual(
+        ASSISTANT_RESIDENT,
+      );
+    }
+  });
+
+  it("names a crew companion with their own picture", () => {
+    const r = companionResident({ companion_id: "renai", personality_pack: "residents" }, crew);
+    expect(r?.name).toBe("Renai");
+    expect(r?.artwork).toMatch(/assets\/crew\/512\/renai-hello\.webp$/);
+    expect(companionResident({ companion_id: "pip", personality_pack: "residents" }, crew)?.artwork).toBeUndefined();
+  });
+
+  it("reads the old key through the server's canon mapping when companion_id is absent", () => {
+    expect(companionResident({ companion: "mermaid", personality_pack: "residents" }, crew)?.name).toBe("Renai");
+    expect(companionResident({ companion: "personal-world", personality_pack: "residents" }, crew)).toEqual(
+      ASSISTANT_RESIDENT,
+    );
+    // Crew not loaded yet: a known legacy face still shows.
+    expect(companionResident({ companion: "robot", personality_pack: "residents" }, undefined)?.name).toBe("Bolt");
   });
 });

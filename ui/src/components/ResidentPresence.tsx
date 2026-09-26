@@ -36,6 +36,7 @@ const ARTWORK_MAP: Record<string, string> = {
   renai: "/assets/characters/renai.png",
   bolt: "/assets/characters/bolt.png",
   burrito: "/assets/characters/burrito.png",
+  scoop: "/assets/characters/burrito.png",
   ratatoskr: "/assets/characters/ratatoskr.png",
   "personal-world": "/assets/characters/personal-world.png",
   solace: "/assets/characters/solace.png",

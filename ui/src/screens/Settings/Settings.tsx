@@ -640,7 +640,7 @@ function ThemeSection({
 
 // ─── Main Settings screen ────────────────────────────────
 
-export function Settings() {
+export function Settings({ onOpenCrew }: { onOpenCrew?: () => void } = {}) {
   // Server state
   const { data: status, isLoading: isStatusLoading } = useStatus();
   const { data: session, isLoading: isSessionLoading } = useSession();
@@ -727,6 +727,29 @@ export function Settings() {
         />
 
         <SettingsRoom />
+
+        {onOpenCrew && (
+          <section
+            aria-labelledby="settings-crew-heading"
+            className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+          >
+            <div className="min-w-0 flex-1">
+              <h2
+                id="settings-crew-heading"
+                className="mb-[var(--pw-spacing-xs)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-secondary)]"
+              >
+                Your crew
+              </h2>
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+                Add your own companions, give them pictures, and choose who keeps
+                each room.
+              </p>
+            </div>
+            <WorldButton variant="primary" onPress={onOpenCrew}>
+              Open your crew
+            </WorldButton>
+          </section>
+        )}
 
         <SectionsManager
           serverSections={editableSections}
