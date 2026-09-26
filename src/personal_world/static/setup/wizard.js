@@ -1,20 +1,27 @@
-/* Project Worlds — first-run setup wizard (dependency-free).
+/* Worlds — "First light", the first-run setup wizard (dependency-free).
    Plain ES2017+, progressive enhancement over the static HTML:
    every step is a real <section> with a heading; navigation moves
-   focus to the heading and announces through the live region. */
+   focus to the heading and announces through the live region.
+   Nothing moves unless the person asks: the progress dots are static. */
 (function () {
   "use strict";
 
   var STEPS = [
-    { id: "step-welcome", label: "Welcome" },
+    { id: "step-welcome", label: "First light" },
     { id: "step-preparing", label: "Getting things ready" },
     { id: "step-auth", label: "Sign-in" },
     { id: "step-comfort", label: "Comfort" },
-    { id: "step-finish", label: "Finish" }
+    { id: "step-companion", label: "Companion" },
+    { id: "step-finish", label: "Welcome aboard" }
   ];
+  var COMFORT = 3, COMPANION = 4, FINISH = 5;
+  var THEME_KEY = "pw-station-theme";
+  var THEME_LABELS = { starfield: "Starfield", doorways: "Doorways", plain: "Plain" };
   var current = 0;
   var provisioned = false;
   var provisioning = false;
+  var crewLoaded = false;
+  var savedCompanion = null;
 
   function $(id) { return document.getElementById(id); }
 
@@ -24,6 +31,11 @@
       var el = $(step.id);
       if (el) { el.hidden = i !== index; }
     });
+    document.body.setAttribute("data-step", STEPS[index].id);
+    var dots = $("dots").children;
+    for (var d = 0; d < dots.length; d++) {
+      dots[d].className = d < index ? "done" : d === index ? "here" : "";
+    }
     var stepInfo = STEPS[index];
     $("progress").textContent =
       "Step " + (index + 1) + " of " + STEPS.length + ": " + stepInfo.label;
@@ -239,41 +251,168 @@
 
   /* ── Step 4: comfort ── */
 
+  function radioValue(name, fallback) {
+    var radios = document.getElementsByName(name);
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].checked) { return radios[i].value; }
+    }
+    return fallback;
+  }
+
+  function selectedTheme() { return radioValue("theme-choice", "starfield"); }
+
+  /* The colour choice previews on this page at once and is kept on this
+     device (the same localStorage key the app reads), never on the
+     server. Storage can be blocked; the page still works. */
+  function previewTheme() {
+    document.documentElement.setAttribute("data-theme", selectedTheme());
+  }
+
+  function saveTheme() {
+    try { window.localStorage.setItem(THEME_KEY, selectedTheme()); } catch (e) { /* private window */ }
+  }
+
+  function inlineError(boxId, detailId, text) {
+    $(detailId).textContent = text;
+    $(boxId).hidden = false;
+    $("live").textContent = text;
+  }
+
   function submitComfort() {
     $("btn-comfort-next").disabled = true;
+    $("comfort-error").hidden = true;
+    saveTheme();
     postJSON("/api/setup-wizard/comfort", {
       larger_text: $("comfort-larger-text").checked,
-      gentle_animations: $("comfort-gentle-motion").checked
+      gentle_animations: $("comfort-gentle-motion").checked,
+      crew_on: $("comfort-crew").checked
     }).then(function (r) {
       $("btn-comfort-next").disabled = false;
       if (r.status === 200 && r.data && r.data.ok) {
         updateSummary();
-        showStep(4);
+        // With the crew off, Worlds speaks plainly: there is no
+        // companion to pick, so that step steps aside.
+        if ($("comfort-crew").checked) {
+          loadCrew();
+          showStep(COMPANION);
+        } else {
+          showStep(FINISH);
+        }
         return;
       }
       if (r.status === 404) { window.location.href = "/"; return; }
       var lines = joinWarnings(r.data);
-      window.alert(lines.join("\n") ||
-        "Comfort settings could not be saved. Try again.");
+      inlineError("comfort-error", "comfort-error-detail", lines.join(" ") ||
+        "Your comfort settings could not be saved. Try again.");
     }).catch(function () {
       $("btn-comfort-next").disabled = false;
-      window.alert("This page could not talk to the server. Try again.");
+      inlineError("comfort-error", "comfort-error-detail",
+        "This page could not talk to the server. Try again in a moment.");
     });
+  }
+
+  /* ── Step 5: companion ── */
+
+  function addCompanionChoice(entry) {
+    var id = "companion-" + entry.id;
+    if ($(id)) { return; }
+    var label = document.createElement("label");
+    label.className = "companion";
+    label.setAttribute("for", id);
+    var input = document.createElement("input");
+    input.type = "radio";
+    input.id = id;
+    input.name = "companion-choice";
+    input.value = entry.id;
+    if (savedCompanion === entry.id) { input.checked = true; }
+    var img = document.createElement("img");
+    img.alt = "";
+    img.setAttribute("aria-hidden", "true");
+    if (entry.portrait_asset) { img.src = entry.portrait_asset; }
+    var name = document.createElement("span");
+    name.className = "companion-name";
+    name.textContent = entry.name;
+    var desc = document.createElement("span");
+    desc.className = "companion-desc";
+    desc.textContent = entry.blurb || "";
+    label.appendChild(input);
+    label.appendChild(img);
+    label.appendChild(name);
+    label.appendChild(desc);
+    $("companion-grid").appendChild(label);
+  }
+
+  function loadCrew() {
+    if (crewLoaded) { return; }
+    fetch("/api/setup-wizard/crew").then(function (r) {
+      if (r.status === 404) { window.location.href = "/"; return null; }
+      return r.json();
+    }).then(function (body) {
+      if (!body) { return; }
+      var crew = (body && body.data) || [];
+      crew.forEach(addCompanionChoice);
+      crewLoaded = true;
+      $("companion-note").hidden = true;
+    }).catch(function () {
+      // Honest, and never a dead end: the Assistant is always there.
+      $("companion-note").textContent =
+        "The crew couldn’t be loaded just now, so only the Assistant is " +
+        "shown. You can pick a companion later in Settings.";
+      $("companion-note").hidden = false;
+    });
+  }
+
+  function selectedCompanion() { return radioValue("companion-choice", ""); }
+
+  function companionLabel() {
+    var id = selectedCompanion();
+    if (!id) { return "Assistant"; }
+    var input = $("companion-" + id);
+    var name = input && input.parentNode.querySelector(".companion-name");
+    return name ? name.textContent : id;
+  }
+
+  function submitCompanion() {
+    $("btn-companion-next").disabled = true;
+    $("companion-error").hidden = true;
+    var id = selectedCompanion();
+    postJSON("/api/setup-wizard/companion", { companion_id: id || null })
+      .then(function (r) {
+        $("btn-companion-next").disabled = false;
+        if (r.status === 200 && r.data && r.data.ok) {
+          savedCompanion = id || null;
+          updateSummary();
+          showStep(FINISH);
+          return;
+        }
+        if (r.status === 404) { window.location.href = "/"; return; }
+        var lines = joinWarnings(r.data);
+        inlineError("companion-error", "companion-error-detail", lines.join(" ") ||
+          "Your companion could not be saved. Try again.");
+      }).catch(function () {
+        $("btn-companion-next").disabled = false;
+        inlineError("companion-error", "companion-error-detail",
+          "This page could not talk to the server. Try again in a moment.");
+      });
   }
 
   function updateSummary() {
     $("summary-auth").textContent = selectedAuth() === "oidc"
       ? "My own SSO (" + ($("oidc-issuer").value || "sign-in server") + ")"
       : "Just me on this device";
+    $("summary-theme").textContent = THEME_LABELS[selectedTheme()] || "Starfield";
     $("summary-text").textContent =
       $("comfort-larger-text").checked ? "Larger" : "Normal";
     $("summary-motion").textContent =
       $("comfort-gentle-motion").checked
         ? "Gentle animation"
         : "Calm (no animation)";
+    var crewOn = $("comfort-crew").checked;
+    $("summary-crew").textContent = crewOn ? "On" : "Off (Worlds speaks plainly)";
+    $("summary-companion").textContent = crewOn ? companionLabel() : "None (the crew is off)";
   }
 
-  /* ── Step 5: finish ── */
+  /* ── Step 6: finish ── */
 
   function runFinish() {
     $("finish-actions").hidden = true;
@@ -282,7 +421,7 @@
     postJSON("/api/setup-wizard/finish", {}).then(function (r) {
       if (r.status === 200 && r.data && r.data.ok) {
         $("finish-status").textContent =
-          "✓ Setup complete. Opening your world…";
+          "✓ Setup complete. Opening your World…";
         var target = (r.data.data && r.data.data.redirect) || "/";
         window.location.href = target;
         return;
@@ -333,10 +472,28 @@
 
     $("btn-comfort-back").addEventListener("click", function () { showStep(2); });
     $("btn-comfort-next").addEventListener("click", submitComfort);
+    var themes = document.getElementsByName("theme-choice");
+    for (var t = 0; t < themes.length; t++) {
+      themes[t].addEventListener("change", previewTheme);
+    }
 
-    $("btn-finish-back").addEventListener("click", function () { showStep(3); });
+    $("btn-companion-back").addEventListener("click", function () { showStep(COMFORT); });
+    $("btn-companion-next").addEventListener("click", submitCompanion);
+
+    $("btn-finish-back").addEventListener("click", function () {
+      showStep($("comfort-crew").checked ? COMPANION : COMFORT);
+    });
     $("btn-finish").addEventListener("click", runFinish);
     $("btn-retry-finish").addEventListener("click", runFinish);
+
+    // A colour chosen earlier on this device previews straight away.
+    try {
+      var stored = window.localStorage.getItem(THEME_KEY);
+      if (stored && $("theme-" + stored)) { $("theme-" + stored).checked = true; }
+    } catch (e) { /* storage blocked: the default stands */ }
+    previewTheme();
+    document.body.setAttribute("data-step", STEPS[0].id);
+    $("dots").children[0].className = "here";
 
     // Restore progress after a refresh: ask the server what already
     // happened and resume at the right step.
@@ -358,6 +515,12 @@
       if (choices.comfort) {
         $("comfort-larger-text").checked = !!choices.comfort.larger_text;
         $("comfort-gentle-motion").checked = !!choices.comfort.gentle_animations;
+        if (typeof choices.comfort.crew_on === "boolean") {
+          $("comfort-crew").checked = choices.comfort.crew_on;
+        }
+      }
+      if (typeof choices.companion_id === "string") {
+        savedCompanion = choices.companion_id;
       }
     }).catch(function () { /* stay on step 1; honest default */ });
   }
