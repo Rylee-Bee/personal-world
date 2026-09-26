@@ -43,6 +43,10 @@ vi.mock("../data/hooks", () => ({
   useSetPlace: () => ({ mutate }),
   useRooms: () => hookState.rooms,
   useJournalList: () => hookState.journal,
+  // The Rooms panel's own hooks, for tests that connect a room.
+  useVisitRoom: () => ({ mutate }),
+  useMarkNeedSeen: () => ({ mutate, isPending: false, isError: false }),
+  useSecretsOverview: () => ({ isPending: true, isError: false, data: undefined, error: undefined }),
 }));
 
 import { Bridge } from "../screens/Bridge/Bridge";
@@ -314,10 +318,11 @@ describe("Bridge — the world at a glance", () => {
       refetch,
       data: undefined,
     };
-    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    const { container } = render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
     expect(
       screen.getByText("Couldn't reach your world right now."),
     ).toBeInTheDocument();
+    expect(container.querySelector("img[data-sol-mood='rest']")).not.toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
@@ -330,8 +335,12 @@ describe("Bridge — the world at a glance", () => {
       refetch: () => Promise.resolve(),
       data: undefined,
     };
-    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    const { container } = render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
     expect(screen.getByText("Gathering your world…")).toBeInTheDocument();
+    // Sol keeps it company, curious and silent (decoration only).
+    const sol = container.querySelector("img[data-sol-mood='curious']");
+    expect(sol).toHaveAttribute("alt", "");
+    expect(sol).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("navigation", { name: "World lenses" })).toBeNull();
   });
 });
@@ -435,6 +444,55 @@ describe("Bridge — first day aboard", () => {
     hookState.journal = { isPending: true, data: undefined };
     render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
     expect(screen.queryByRole("region", { name: /Welcome aboard/ })).not.toBeInTheDocument();
+  });
+
+  function settled() {
+    firstDay({
+      rooms: [
+        {
+          id: "workshop",
+          base_url: "https://workshop.test",
+          reachable: true,
+          status: "healthy",
+          room: null,
+          needs_you: [],
+          error: null,
+          checked_at: "2026-09-25T09:00:00Z",
+          last_seen: null,
+        },
+      ],
+      notes: [{ source: "user" }],
+    });
+    hookState.briefing = {
+      ...hookState.briefing,
+      data: {
+        ...BRIEFING,
+        data: {
+          ...BRIEFING.data,
+          keeper: {
+            ...BRIEFING.data.keeper,
+            resident: { key: "renai", name: "Renai", portrait: null },
+          },
+          systems: SYSTEM_LIST.map((s) => ({ ...s, status: "healthy" })),
+        },
+      },
+    };
+  }
+
+  it("marks the end of the first day with one quiet Sol moment, on a device that showed the guide", () => {
+    window.localStorage.setItem("pw-first-day-guide", "shown");
+    settled();
+    const { container } = render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    expect(screen.getByRole("region", { name: "You’re all settled in." })).toBeInTheDocument();
+    expect(container.querySelector("img[data-sol-mood='cheer']")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Put this away" }));
+    expect(screen.queryByRole("region", { name: "You’re all settled in." })).not.toBeInTheDocument();
+  });
+
+  it("never surprises a World that was already settled before the guide existed", () => {
+    settled();
+    render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    expect(screen.queryByRole("region", { name: /settled in|Welcome aboard/ })).not.toBeInTheDocument();
   });
 
   it("says an unreachable system as a count, not a lone alarm word", () => {

@@ -706,3 +706,13 @@ dated entry superseding the old one (append-only, like the journal).
   system can't be reached") rather than a lone "Unavailable". Owner: "just
   call it worlds, I like it better" — the header, footer and tab title say
   Worlds.
+- **2026-09-26 — Sol's little moments, and the type floor in every theme.**
+  Owner: "start on everything". Sol (the voiceless Worlds mark) now appears
+  as the header logo and in small, static, decorative moments beside
+  Worlds' own words: curious while the Bridge gathers, resting when it
+  can't reach the world and on a quiet day in Rooms, and cheering once in
+  "You're all settled in" when the first-day guide is finished (only on a
+  device that showed the guide, so an already-settled World is never
+  surprised). Full cutouts only, never the peeking hello crop, never
+  animated, always aria-hidden. Every theme now meets the type floor (body
+  ≥16px, labels ≥13px; #101, #104).

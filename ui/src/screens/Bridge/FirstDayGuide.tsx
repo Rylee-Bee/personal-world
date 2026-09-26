@@ -18,14 +18,15 @@
  * Hidden once put away (this device) or once every line is done; Settings
  * brings it back. No motion, no confetti: a finished line gets its tick.
  */
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useJournalList, useRooms } from "../../data/hooks";
 import type { BridgeData } from "../../data/contract";
 import type { WorldAreaId } from "../../data/types";
 import { CompanionFace } from "../../components/crew/CompanionFace";
 import { RoomsExplainer } from "../../components/rooms/RoomsExplainer";
 import { LINK_BASE } from "../../components/rooms/format";
-import { ANSWERING, setFirstDayHidden, SYSTEM_ABOUT, useFirstDayHidden } from "./firstDay";
+import { ANSWERING, markFirstDayShown, setFirstDayHidden, SYSTEM_ABOUT, useFirstDayHidden, wasFirstDayShown } from "./firstDay";
+import { SolMoment } from "../../components/SolMoment";
 
 function asset(path: string): string {
   return `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`;
@@ -107,6 +108,32 @@ function SystemsExplainer({ data }: { data: BridgeData }) {
   );
 }
 
+function SettledIn() {
+  return (
+    <section
+      aria-labelledby="settled-in-heading"
+      className="bridge-firstday flex flex-wrap items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-lg)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+    >
+      <SolMoment mood="cheer" size={64} />
+      <div className="min-w-[14rem] flex-1">
+        <h2
+          id="settled-in-heading"
+          className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]"
+          style={{ fontFamily: "var(--pw-typography-font_serif, inherit)" }}
+        >
+          You’re all settled in.
+        </h2>
+        <p className="text-[var(--pw-text-secondary)]">
+          Rooms are connected, your systems are answering and your journal has begun.
+        </p>
+      </div>
+      <button type="button" onClick={() => setFirstDayHidden(true)} className={BUTTON}>
+        Put this away
+      </button>
+    </section>
+  );
+}
+
 export function FirstDayGuide({
   data,
   onOpenArea,
@@ -132,9 +159,20 @@ export function FirstDayGuide({
   const lines = [roomsDone, systemsDone, wroteNote, ...(crewOn ? [companionChosen] : [])];
   const allDone = lines.every(Boolean);
 
+  const settling = rooms.isPending || journal.isPending;
+  const showing = !hidden && !allDone && !settling;
+  useEffect(() => {
+    if (showing) markFirstDayShown();
+  }, [showing]);
+
   // Until the rooms and journal reads settle, a line would claim "not
   // yet" without knowing; wait rather than guess.
-  if (hidden || allDone || rooms.isPending || journal.isPending) return null;
+  if (hidden || settling) return null;
+  if (allDone) {
+    // Everything's in: one quiet moment with Sol, only on a device that
+    // showed the guide (so an already-settled World never gets a surprise).
+    return wasFirstDayShown() ? <SettledIn /> : null;
+  }
 
   const who = crewOn ? speaker.name : "Worlds";
   const greetingName = data.keeper.name ? `, ${data.keeper.name}` : "";

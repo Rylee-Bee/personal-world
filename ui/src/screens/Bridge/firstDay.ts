@@ -43,6 +43,26 @@ export function setFirstDayHidden(hidden: boolean): void {
   listeners.forEach((l) => l());
 }
 
+/** The guide was shown on this device (so finishing it can be marked).
+ *  Never overrides "hidden". */
+export function markFirstDayShown(): void {
+  try {
+    if (window.localStorage.getItem(KEY) === null) window.localStorage.setItem(KEY, "shown");
+  } catch {
+    /* storage blocked: the settled-in moment just won't appear */
+  }
+}
+
+/** Whether this device has shown the guide before. A World that was
+ *  already settled when the guide shipped never gets a surprise moment. */
+export function wasFirstDayShown(): boolean {
+  try {
+    return window.localStorage.getItem(KEY) === "shown";
+  } catch {
+    return false;
+  }
+}
+
 /** What each briefing system is, in plain words (briefing.SYSTEM_SPECS). */
 export const SYSTEM_ABOUT: Record<string, string> = {
   agents: "Your projects and the agents working on them, from Project Home.",
