@@ -36,6 +36,7 @@ vi.mock("../data/hooks", () => ({
   useVisitRoom: () => ({ mutate: hookState.visit }),
   useSecretsOverview: () => hookState.secrets,
   useRoomAction: () => ({ mutate: hookState.roomAction }),
+  useMe: () => ({ data: { data: { permissions: ["approve"] } } }),
   useMarkNeedSeen: () => ({
     mutate: hookState.markSeen,
     isPending: false,
