@@ -298,7 +298,10 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "is set (cached 60 s, last-known-good persisted, env fallback) "
             "and a sibling `registry` states its source/status; a room "
             "whose contract this front door does not support is "
-            "`incompatible`, never healthy, with its cards/needs uncounted"),
+            "`incompatible`, never healthy, with its cards/needs uncounted; "
+            "each row carries an optional `public_url` (a registry entry's "
+            "browser-reachable http(s) address, no userinfo) or an honest "
+            "null when absent/invalid"),
     _e("API-088-visit", "POST", "/api/rooms/{room_id}/visit", "rooms",
        "write", "none",
        note="Worlds-owned, caller-scoped visit state (never sent to a "
@@ -322,6 +325,18 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "from the closed list, or null): presentation only, private, "
             "never sent to the room and never the room's status; 404 for "
             "an unconfigured room, 422 for an id outside the closed list"),
+    # Secrets overview — the Worlds side of the read-only Secrets board.
+    # It finds the `workshop` registry room and reads that room's
+    # read-only /api/secrets/summary with the room's own token/TLS policy
+    # (3 s timeout, 60 s cache). Names and health only — never a value.
+    _e("API-090", "GET", "/api/secrets/overview", "secrets", "read", "none",
+       note="the Secrets board's data source: reads the `workshop` registry "
+            "room's read-only /api/secrets/summary (3 s timeout, 60 s "
+            "cache) with that room's token/TLS policy; names and health "
+            "only, never a secret value; a missing/unreachable/refusing/"
+            "malformed station is reported as station.status 'unknown' with "
+            "a plain-words detail and empty lists — never raises, never "
+            "invents keys, never carries a token"),
     # Crew — companions are user-owned (owner decision 2026-09-25). The
     # drawn crew is a starter set; a person adds, renames, hides and
     # deletes their own. Private, per principal, never sent to a room or

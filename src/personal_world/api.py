@@ -2791,6 +2791,30 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             "registry": _ROOMS.registry_report(),
         }
 
+    @app.get("/api/secrets/overview", dependencies=[Depends(require_auth)])
+    async def secrets_overview_view(request: Request) -> dict:
+        """The Secrets board's read-only data source (Worlds side).
+
+        Finds the room named ``workshop`` and reads its read-only
+        ``GET /api/secrets/summary`` with that room's token/TLS policy
+        (3 s timeout, cached 60 s). Names and health only — never a
+        secret value. Nothing is invented: a missing, unreachable,
+        refusing (401) or malformed station is reported as
+        ``station.status: "unknown"`` with a plain-words detail and empty
+        lists. This handler never raises, never carries a token, and
+        never carries a key value.
+        """
+        # Secret names are the owner's business, not every household
+        # member's: same admin gate as identity admin.
+        principal = getattr(request.state, "principal", None)
+        if principal is not None and not (
+            principal.kind == "person"
+            and (principal.id == "primary" or "admin" in principal.scopes)
+        ):
+            raise HTTPException(status_code=403, detail="admin only")
+        data = await _ROOMS.secrets_overview()
+        return {"ok": True, "data": data}
+
     @app.post("/api/rooms/{room_id}/visit", dependencies=[Depends(require_auth)])
     async def rooms_visit(room_id: str, request: Request) -> dict:
         """Record the caller's visit to a room (Worlds-owned, private).

@@ -2183,6 +2183,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/secrets/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Secrets Overview View
+         * @description The Secrets board's read-only data source (Worlds side).
+         *
+         *     Finds the room named ``workshop`` and reads its read-only
+         *     ``GET /api/secrets/summary`` with that room's token/TLS policy
+         *     (3 s timeout, cached 60 s). Names and health only — never a
+         *     secret value. Nothing is invented: a missing, unreachable,
+         *     refusing (401) or malformed station is reported as
+         *     ``station.status: "unknown"`` with a plain-words detail and empty
+         *     lists. This handler never raises, never carries a token, and
+         *     never carries a key value.
+         */
+        get: operations["secrets_overview_view_api_secrets_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sections": {
         parameters: {
             query?: never;
@@ -5944,6 +5973,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    secrets_overview_view_api_secrets_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

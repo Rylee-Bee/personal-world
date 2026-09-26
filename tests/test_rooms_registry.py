@@ -74,6 +74,7 @@ def _entry(
     insecure_tls=False,
     enabled=True,
     name=None,
+    public_url=None,
 ):
     return {
         "id": room_id,
@@ -83,6 +84,7 @@ def _entry(
         "token_env": token_env,
         "insecure_tls": insecure_tls,
         "enabled": enabled,
+        "public_url": public_url,
     }
 
 
@@ -363,3 +365,70 @@ class TestRegistryCache:
         current["rooms"] = [_entry("studio")]
         clock["t"] += 70
         assert [r["id"] for r in run(svc.snapshot(env))] == ["studio"]
+
+
+class TestRegistryPublicUrl:
+    def test_public_url_is_parsed_and_surfaced_on_the_row(self):
+        svc = RoomsService(
+            transport=_transport(
+                registry=_registry(
+                    [_entry("workshop", public_url="https://workshop.example")]
+                ),
+                room=_room(),
+            )
+        )
+        row = run(svc.snapshot({"PW_ROOMS_REGISTRY_URL": REGISTRY_URL}))[0]
+        assert row["base_url"] == "http://room.test"
+        assert row["public_url"] == "https://workshop.example"
+
+    def test_absent_public_url_is_null(self):
+        svc = RoomsService(
+            transport=_transport(
+                registry=_registry([_entry("workshop")]), room=_room()
+            )
+        )
+        row = run(svc.snapshot({"PW_ROOMS_REGISTRY_URL": REGISTRY_URL}))[0]
+        assert row["public_url"] is None
+
+    def test_invalid_public_url_is_dropped_but_the_entry_is_kept(self):
+        entries = [
+            _entry("userinfo", public_url="https://user:pass@room.test"),
+            _entry("ftp", public_url="ftp://room.test"),
+            _entry("relative", public_url="/room"),
+            _entry("non-string", public_url=8940),
+            _entry("blank", public_url=""),
+        ]
+        svc = RoomsService(
+            transport=_transport(registry=_registry(entries), room=_room())
+        )
+        rows = run(svc.snapshot({"PW_ROOMS_REGISTRY_URL": REGISTRY_URL}))
+        assert [r["id"] for r in rows] == [
+            "userinfo",
+            "ftp",
+            "relative",
+            "non-string",
+            "blank",
+        ]
+        assert all(r["public_url"] is None for r in rows)
+        assert svc.registry_report()["dropped"] == 0
+
+    def test_public_url_survives_last_known_good(self, tmp_path):
+        state = tmp_path / "rooms-registry.json"
+        up = RoomsService(
+            transport=_transport(
+                registry=_registry(
+                    [_entry("workshop", public_url="https://workshop.example")]
+                ),
+                room=_room(),
+            ),
+            registry_state_path=state,
+        )
+        run(up.snapshot({"PW_ROOMS_REGISTRY_URL": REGISTRY_URL}))
+        assert state.exists()
+
+        down = RoomsService(
+            transport=_transport(registry=None, room=_room()),
+            registry_state_path=state,
+        )
+        row = run(down.snapshot({"PW_ROOMS_REGISTRY_URL": REGISTRY_URL}))[0]
+        assert row["public_url"] == "https://workshop.example"
