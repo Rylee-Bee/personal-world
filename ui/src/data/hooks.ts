@@ -91,6 +91,14 @@ import {
   getPeople,
   putPersonRole,
   postTransferOwnership,
+  getInvites,
+  postInvite,
+  deleteInvite,
+  getMyHelpers,
+  postMyHelper,
+  deleteMyHelper,
+  getHelpedBy,
+  putPersonLimits,
   getCrew,
   addCrew,
   patchCrew,
@@ -149,6 +157,9 @@ export const queryKeys = {
   crew: ["crew"] as const,
   me: ["me"] as const,
   people: ["people"] as const,
+  invites: ["people", "invites"] as const,
+  myHelpers: ["me", "helpers"] as const,
+  helpedBy: ["me", "helped-by"] as const,
 } as const;
 
 // ===== Health =====
@@ -886,6 +897,43 @@ export function useSetRole() {
 
 export function useTransferOwnership() {
   return usePeopleMutation((to: string) => postTransferOwnership(to));
+}
+
+export function useInvites(enabled: boolean) {
+  return useQuery({ queryKey: queryKeys.invites, queryFn: getInvites, enabled, retry: false });
+}
+export function useCreateInvite() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: postInvite, onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.invites }) });
+}
+export function useCancelInvite() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id: string) => deleteInvite(id), onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.invites }) });
+}
+export function useMyHelpers() {
+  return useQuery({ queryKey: queryKeys.myHelpers, queryFn: getMyHelpers, retry: false });
+}
+export function useHelpedBy() {
+  return useQuery({ queryKey: queryKeys.helpedBy, queryFn: getHelpedBy, retry: false });
+}
+function useHelperMutation<V, R>(fn: (vars: V) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.myHelpers });
+      qc.invalidateQueries({ queryKey: queryKeys.me });
+    },
+  });
+}
+export function useGrantHelper() {
+  return useHelperMutation(postMyHelper);
+}
+export function useRevokeHelper() {
+  return useHelperMutation((grantId: string) => deleteMyHelper(grantId));
+}
+export function useSetLimits() {
+  return usePeopleMutation(({ id, limits }: { id: string; limits: { key: string; value: unknown }[] }) => putPersonLimits(id, limits));
 }
 
 /** This person's crew (GET /api/crew), hidden companions included. */

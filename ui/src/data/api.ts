@@ -82,6 +82,10 @@ import type {
   RoomActionReceipt,
   Me,
   Person,
+  Invite,
+  HelperGrant,
+  HelpedBy,
+  MyLimits,
 } from "./contract";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -641,6 +645,27 @@ export const postTransferOwnership = (to: string) =>
   unwrap<Envelope<{ from: string; to: string }>>(
     sendBody("POST", "/api/people/transfer-ownership", { to }),
   );
+
+// Invites (manage_people). The one-time code comes back once, at creation.
+export const getInvites = () => unwrap<Envelope<Invite[]>>(getRequest("/api/people/invites"));
+export const postInvite = (body: { role: string; display_name: string; expires_in_hours?: number; guest_until?: string }) =>
+  unwrap<Envelope<{ invite_id: string; role: string; display_name: string; expires_at: string; guest_until: string | null; token: string }>>(
+    sendBody("POST", "/api/people/invites", body),
+  );
+export const deleteInvite = (id: string) =>
+  unwrap<Envelope<{ invite_id: string; deleted: boolean }>>(sendBody("DELETE", `/api/people/invites/${encodeURIComponent(id)}`, {}));
+
+// Helpers: grants this person gives, and what helpers did for them.
+export const getMyHelpers = () => unwrap<Envelope<HelperGrant[]>>(getRequest("/api/me/helpers"));
+export const postMyHelper = (body: { helper_id: string; can_act: boolean; until?: string }) =>
+  unwrap<Envelope<HelperGrant>>(sendBody("POST", "/api/me/helpers", body));
+export const deleteMyHelper = (grantId: string) =>
+  unwrap<Envelope<{ grant_id: string }>>(sendBody("DELETE", `/api/me/helpers/${encodeURIComponent(grantId)}`, {}));
+export const getHelpedBy = () => unwrap<Envelope<HelpedBy[]>>(getRequest("/api/me/helped-by"));
+
+// Limits: set for a supervised person (manage_people or their guardian).
+export const putPersonLimits = (id: string, limits: { key: string; value: unknown }[]) =>
+  unwrap<Envelope<MyLimits>>(sendBody("PUT", `/api/people/${encodeURIComponent(id)}/limits`, { limits }));
 
 // GET /api/crew: this person's own companions, hidden ones included.
 export const getCrew = () => unwrap<Envelope<CrewEntry[]>>(getRequest("/api/crew"));
