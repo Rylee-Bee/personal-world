@@ -40,8 +40,8 @@
  * animation.
  */
 
-import { useState } from "react";
-import { useMarkNeedSeen, useRooms, useVisitRoom } from "../data/hooks";
+import { useRef, useState } from "react";
+import { useMarkNeedSeen, useRooms } from "../data/hooks";
 import type {
   RoomKeeper,
   RoomRow,
@@ -49,52 +49,16 @@ import type {
   RoomsResume,
   RoomsSummary,
 } from "../data/contract";
-import { interiorUrl, keeperPortraitUrl } from "./rooms/crew";
-import { CompanionFace } from "./crew/CompanionFace";
+import { interiorUrl } from "./rooms/crew";
+import { formatTime, LINK_BASE, plural, roomName } from "./rooms/format";
 import { currentNeeds, groupRooms, isUncertain, seenNeeds } from "./rooms/groupRooms";
+import { Emblem, LookInside, OpenLink, StatusWord } from "./rooms/parts";
+import { RoomDrawerContext } from "./rooms/drawerContext";
+import { RoomDrawer } from "./rooms/RoomDrawer";
 import { useMinuteClock, useRootAttribute } from "./rooms/useRootAttribute";
 
 /** How old a check can be before the panel says so in words. */
 const STALE_AFTER_MS = 15 * 60 * 1000;
-
-/** The six honest words a room row can carry. `unreachable` and
- *  `incompatible` are the front door's own words: a room that did not
- *  answer, and one whose contract this front door does not support. */
-const STATUS_WORDS: Record<string, string> = {
-  healthy: "Healthy",
-  degraded: "Degraded",
-  unhealthy: "Unhealthy",
-  unknown: "Unknown",
-  unreachable: "Unreachable",
-  incompatible: "Incompatible",
-};
-
-function statusWord(raw: string): string {
-  return STATUS_WORDS[raw] ?? "Unknown";
-}
-
-function formatTime(iso: string): string {
-  const when = new Date(iso);
-  if (Number.isNaN(when.getTime())) return "an unknown time";
-  return when.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function roomName(row: RoomRow): string {
-  return row.room?.name?.trim() || row.id;
-}
-
-function initial(row: RoomRow): string {
-  return roomName(row).charAt(0).toUpperCase() || "✦";
-}
-
-function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
 
 /** One line under a room's name: what it needs, or why we can't say. */
 function detailLine(row: RoomRow): string {
@@ -121,89 +85,6 @@ function detailLine(row: RoomRow): string {
   const changed = row.changed_since_visit ?? 0;
   if (changed > 0) parts.push(`${changed} new since you last looked`);
   return `${parts.join(" · ")}.`;
-}
-
-// ─── Shared pieces ───────────────────────────────────────────────────
-
-const LINK_BASE =
-  "inline-flex min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] items-center justify-center rounded-[var(--pw-radius-sm)] px-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] font-semibold focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
-
-function OpenLink({
-  row,
-  primary = false,
-  label,
-}: {
-  row: RoomRow;
-  primary?: boolean;
-  label?: string;
-}) {
-  const name = roomName(row);
-  const visit = useVisitRoom();
-  return (
-    <a
-      href={row.base_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`${label ?? `Open ${name}`} in a new tab`}
-      // Opening a room is the visit. Recorded after the tab opens, never
-      // in its way; a failed write only leaves the old baseline.
-      onClick={() => visit.mutate({ roomId: row.id, title: name })}
-      className={`${LINK_BASE} ${
-        primary
-          ? "bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)]"
-          : "border border-[var(--pw-border-subtle)] text-[var(--pw-text-primary)] underline"
-      }`}
-    >
-      {label ?? `Open ${name}`}
-    </a>
-  );
-}
-
-function StatusWord({ row }: { row: RoomRow }) {
-  return (
-    <span className="shrink-0 text-[length:var(--pw-typography-size_micro)] font-medium text-[var(--pw-text-secondary)]">
-      {row.reachable || row.status === "incompatible"
-        ? statusWord(row.status)
-        : "Unreachable"}
-    </span>
-  );
-}
-
-/** A room's face: its keeper (pack on) — their picture, or the crew
- *  commbadge with their initial — or, with no keeper, the room's own
- *  initial in a lantern ring. */
-function Emblem({
-  row,
-  keeper,
-  size,
-}: {
-  row: RoomRow;
-  keeper: RoomKeeper | null;
-  size: "sm" | "lg";
-}) {
-  const dim = isUncertain(row);
-  if (keeper) {
-    return (
-      <CompanionFace
-        name={keeper.name}
-        initial={keeper.initial}
-        portrait={keeperPortraitUrl(keeper)}
-        size={size}
-        dim={dim}
-      />
-    );
-  }
-  const box = size === "lg" ? "h-20 w-20 text-3xl" : "h-10 w-10 text-lg";
-  return (
-    <span
-      aria-hidden="true"
-      className={`flex ${box} shrink-0 items-center justify-center overflow-hidden rounded-[var(--pw-radius-full)] border-2 ${
-        dim ? "border-dashed border-[var(--pw-text-muted)]" : "border-[var(--pw-accent-warm)]"
-      } bg-[var(--pw-surface-hull)] font-semibold text-[var(--pw-accent-warm)]`}
-    >
-      {initial(row)}
-    </span>
-  );
 }
 
 // ─── Doorway (rooms that need you) ───────────────────────────────────
@@ -289,6 +170,7 @@ function Doorway({
         )}
         <div className="mt-auto flex flex-wrap gap-[var(--pw-spacing-sm)] pt-[var(--pw-spacing-sm)]">
           <OpenLink row={row} primary />
+          <LookInside row={row} />
           {first && (
             <button
               type="button"
@@ -348,7 +230,10 @@ function CorridorRow({
           </p>
         )}
       </div>
-      <OpenLink row={row} />
+      <div className="flex flex-wrap gap-[var(--pw-spacing-sm)]">
+        <LookInside row={row} />
+        <OpenLink row={row} />
+      </div>
     </li>
   );
 }
@@ -393,6 +278,20 @@ export function RoomsPanel() {
   const showKeepers = useRootAttribute("data-pw-personality-pack") === "residents";
   // null = follow the default (open only when nothing needs you).
   const [quietChoice, setQuietChoice] = useState<boolean | null>(null);
+  // The room drawer: which room is open, and the control that opened it
+  // (focus goes back there on close; the Rooms heading if it's gone).
+  const [openRoomId, setOpenRoomId] = useState<string | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const openRow = openRoomId ? rows?.find((r) => r.id === openRoomId) : undefined;
+
+  const closeDrawer = () => {
+    setOpenRoomId(null);
+    const opener = openerRef.current;
+    openerRef.current = null;
+    if (opener && opener.isConnected && !opener.closest("[hidden]")) opener.focus();
+    else headingRef.current?.focus();
+  };
 
   return (
     <section
@@ -401,7 +300,9 @@ export function RoomsPanel() {
     >
       <h2
         id="rooms-heading"
-        className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]"
+        ref={headingRef}
+        tabIndex={-1}
+        className="focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]"
       >
         Rooms
       </h2>
@@ -438,6 +339,15 @@ export function RoomsPanel() {
           No rooms are set up yet. When a room connects, its door appears here.
         </p>
       ) : (
+        <RoomDrawerContext.Provider
+          value={{
+            openRoomId,
+            open: (roomId, opener) => {
+              openerRef.current = opener;
+              setOpenRoomId(roomId);
+            },
+          }}
+        >
         <RoomsBody
           rows={rows}
           resume={rooms.data?.resume ?? null}
@@ -448,6 +358,14 @@ export function RoomsPanel() {
           quietChoice={quietChoice}
           onToggleQuiet={(open) => setQuietChoice(open)}
         />
+        {openRow && (
+          <RoomDrawer
+            row={openRow}
+            keeper={showKeepers ? (openRow.keeper ?? null) : null}
+            onClose={closeDrawer}
+          />
+        )}
+        </RoomDrawerContext.Provider>
       )}
     </section>
   );
