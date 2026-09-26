@@ -13,6 +13,16 @@ Production vector icons for Project Worlds. Concept sheets established the frien
 - `manifest.json`: component names, semantics, categories, paths, and canonical companion sources
 - contact-sheet SVG/PNG files: visual QA at reference and actual 16/20/24px sizes
 
+## Painted spot icons (`spot/`)
+
+Sixteen painted objects (2026-09-26, `docs/ART-REQUESTS.md` §11), the
+line icons' warm cousins for empty states, section headers and cards:
+approve, candy, chat, crew, find, guest, helper, journal, limits, memory,
+people, quiet, room, secrets, settings, unreachable. Masters are 512² PNG
+with real transparency; web sizes are `ui/public/assets/spot/{128,256}/`.
+In the interface they are always decoration beside words (`<SpotArt>`,
+`alt=""`, `aria-hidden`).
+
 ## Figma import
 
 Drag `figma-icon-library.svg` into a Figma Design canvas. Each tile has a stable group name in the form `Icon/Category/Name`. Move the 24x24 artwork from each tile into a 24x24 component frame, preserve the component name, then publish the set as a library. Individual SVG files can also be imported directly.

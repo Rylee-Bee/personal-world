@@ -25,6 +25,7 @@
  * operable, native dialog semantics (WorldDrawer).
  */
 
+import { SpotArt } from "../../components/SpotArt";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useJournalList,
@@ -644,6 +645,7 @@ export function JournalRoom() {
             className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-xl)] text-center"
             aria-label="Empty state"
           >
+            <SpotArt name="memory" size={96} className="mx-auto mb-[var(--pw-spacing-md)]" />
             <p className="text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-secondary)]">
               No journal entries yet. Start writing to capture your thoughts.
             </p>

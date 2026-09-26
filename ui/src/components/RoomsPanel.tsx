@@ -54,6 +54,7 @@ import { formatTime, LINK_BASE, plural, roomItemUrl, roomName } from "./rooms/fo
 import { currentNeeds, groupRooms, isUncertain, seenNeeds } from "./rooms/groupRooms";
 import { Emblem, LookInside, OpenLink, StatusWord } from "./rooms/parts";
 import { SolMoment } from "./SolMoment";
+import { SpotArt } from "./SpotArt";
 import { RoomDrawerContext } from "./rooms/drawerContext";
 import { RoomDrawer } from "./rooms/RoomDrawer";
 import { RoomsExplainer } from "./rooms/RoomsExplainer";
@@ -351,12 +352,7 @@ export function RoomsPanel() {
         </div>
       ) : rows.length === 0 ? (
         <div className="flex flex-wrap items-center gap-[var(--pw-spacing-lg)]">
-          <span
-            aria-hidden="true"
-            className="flex h-32 w-24 shrink-0 items-center justify-center rounded-t-full rounded-b-[var(--pw-radius-md)] border-2 border-dashed border-[var(--pw-text-muted)] text-[var(--pw-accent-warm)]"
-          >
-            ✦
-          </span>
+          <SpotArt name="room" size={112} />
           <div className="flex min-w-[14rem] flex-1 flex-col items-start gap-[var(--pw-spacing-sm)]">
             <p className="font-semibold text-[var(--pw-text-primary)]">No rooms yet</p>
             <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">

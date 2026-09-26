@@ -19,6 +19,7 @@
 import { useId, useState } from "react";
 import { ApiError } from "../../data/api";
 import { useSecretsOverview } from "../../data/hooks";
+import { SpotArt } from "../SpotArt";
 import type { SecretsOverview } from "../../data/contract";
 import { formatTime, LINK_BASE, plural, sitePathUrl } from "./format";
 
@@ -140,13 +141,16 @@ export function SecretsSection({ headingId }: { headingId: string }) {
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-[var(--pw-spacing-md)]">
-      <div>
+      <div className="flex items-start gap-[var(--pw-spacing-md)]">
+        <SpotArt name="secrets" size={48} />
+        <div className="min-w-0 flex-1">
         <h3 id={headingId} className={SECTION_TITLE}>
           Secrets
         </h3>
         <p className={SMALL}>
           What your station keeps, by name. Values are only ever typed in Project Home, and never shown here.
         </p>
+        </div>
       </div>
 
       {overview.isPending ? (

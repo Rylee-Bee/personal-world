@@ -93,7 +93,7 @@
       "alt": "The Workshop drawer's Secrets section with a request card and an Enter it in Project Home button.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "efd3063"
     },
     {
       "id": "unreachable-room",
@@ -111,7 +111,7 @@
       "alt": "The Cellar drawer saying Worlds can't reach it and when it last answered.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "f9e665d"
     },
     {
       "id": "find-a-room",
@@ -149,7 +149,7 @@
       "alt": "The Rooms section saying there are no rooms yet, with a How rooms connect button.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "efd3063"
     },
     {
       "id": "ask-in-chat",
@@ -193,7 +193,7 @@
       "alt": "The Chat screen with the companion's name in the header and the message box.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "efd3063"
     },
     {
       "id": "settings",
@@ -203,7 +203,7 @@
       "alt": "The Settings screen with the Your crew card, message choices and theme swatches.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "efd3063"
     },
     {
       "id": "crew",
@@ -222,7 +222,7 @@
       "status": "captured",
       "notes": "If the Settings screen's way into Crew has a different accessible name, fix the step, not the UI.",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "efd3063"
     },
     {
       "id": "interests",

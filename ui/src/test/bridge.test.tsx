@@ -322,7 +322,7 @@ describe("Bridge — the world at a glance", () => {
     expect(
       screen.getByText("Couldn't reach your world right now."),
     ).toBeInTheDocument();
-    expect(container.querySelector("img[data-sol-mood='rest']")).not.toBeNull();
+    expect(container.querySelector("img[data-sol-mood='sleeping']")).not.toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
@@ -337,8 +337,8 @@ describe("Bridge — the world at a glance", () => {
     };
     const { container } = render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
     expect(screen.getByText("Gathering your world…")).toBeInTheDocument();
-    // Sol keeps it company, curious and silent (decoration only).
-    const sol = container.querySelector("img[data-sol-mood='curious']");
+    // Sol keeps it company, searching and silent (decoration only).
+    const sol = container.querySelector("img[data-sol-mood='searching']");
     expect(sol).toHaveAttribute("alt", "");
     expect(sol).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("navigation", { name: "World lenses" })).toBeNull();
@@ -484,7 +484,7 @@ describe("Bridge — first day aboard", () => {
     settled();
     const { container } = render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
     expect(screen.getByRole("region", { name: "You’re all settled in." })).toBeInTheDocument();
-    expect(container.querySelector("img[data-sol-mood='cheer']")).not.toBeNull();
+    expect(container.querySelector("img[data-sol-mood='proud']")).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Put this away" }));
     expect(screen.queryByRole("region", { name: "You’re all settled in." })).not.toBeInTheDocument();
   });

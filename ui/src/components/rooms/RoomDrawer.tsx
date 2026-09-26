@@ -40,6 +40,7 @@ import {
 import { currentNeeds, isUncertain, seenNeeds } from "./groupRooms";
 import { Emblem, OpenLink, StatusWord } from "./parts";
 import { SecretsSection } from "./SecretsSection";
+import { SpotArt } from "../SpotArt";
 import { ApprovalReview } from "./ApprovalReview";
 import { useAskInChat } from "../../app/askInChat";
 import { useMinuteClock } from "./useRootAttribute";
@@ -207,7 +208,9 @@ export function RoomDrawer({
       </header>
 
       {uncertain && (
-        <p className="rounded-[var(--pw-radius-sm)] border border-dashed border-[var(--pw-text-muted)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <div className="flex items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-sm)] border border-dashed border-[var(--pw-text-muted)] p-[var(--pw-spacing-md)]">
+        <SpotArt name="unreachable" size={56} />
+        <p className="min-w-0 flex-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {row.status === "incompatible"
             ? `${name} speaks a room contract this front door doesn’t support${
                 row.error ? ` (${row.error})` : ""
@@ -218,6 +221,7 @@ export function RoomDrawer({
                 }. Nothing here is current.`
               : `${name} is answering but hasn’t reported a status, so Worlds won’t guess.`}
         </p>
+        </div>
       )}
 
       {decided.length > 0 && (
