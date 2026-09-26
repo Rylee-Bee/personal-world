@@ -8,7 +8,7 @@ schema: play-nice/adoption-v1
 project: personal-world
 source:
   repository: Rylee-Bee/play-nice-contracts   # renamed from burgeswe/play-nice-contracts (account rename, 2026-09-12); old URL redirects
-  revision: 613f780fcb4105738269daa935f7ada85c33f1a1   # play-nice-contracts main 2026-09-25 (#33, ROOM 1.1.0); fast-forward from e570e26, read before pinning
+  revision: 0a7fb10002396c4724b4fecd196308f786ee960d   # play-nice-contracts main 2026-09-26 (#34, ROOM 1.1.1); fast-forward from 613f780, read before pinning
   # Bump history: 2bb60b4 (v0.3.0) -> d6c97db (v0.5.0) -> 0cee065
   # (v0.6.0) -> f825ffb (v0.7.0, 2026-09-15). Each bump verified against the
   # live repository (commit exists, VERSION/CHANGELOG match,
@@ -46,6 +46,8 @@ source:
   # fathom-ridge-wren -> lumen-quill-marsh): optional card `tone`
   # (good_news|update|when_ready), optional need `link` (same-origin path),
   # normative clause 15 (independent rooms). No other adopted contract changed.
+  # -> 0a7fb10 (2026-09-26, owner-approved ROOM 1.1.1 via play-nice #34): patch
+  # clarification only — freshness.observed_at is the item's own time.
 
 always:
   - assume-unknown                   # new in v0.7.0; always-applicable
