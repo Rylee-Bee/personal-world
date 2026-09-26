@@ -2050,8 +2050,10 @@ export interface paths {
          *     also carries the CALLER's private, Worlds-owned visit fields:
          *     ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,
          *     plus ``keeper`` — the companion the caller put on that room, or an
-         *     honest ``null``. A keeper never changes the room's status; status
-         *     still comes only from the room. ``resume`` and ``summary`` travel
+         *     honest ``null`` — and ``doorway`` — the presentation-only doorway
+         *     id the caller chose, or an honest ``null``. Neither a keeper nor a
+         *     doorway changes the room's status; status still comes only from
+         *     the room. ``resume`` and ``summary`` travel
          *     as siblings of ``data`` so the existing list envelope stays
          *     byte-compatible. Fetching is concurrent with a 2 s per-request
          *     timeout and the snapshot is cached 15 s. This handler never raises
@@ -2061,6 +2063,33 @@ export interface paths {
          */
         get: operations["rooms_view_api_rooms_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/doorway": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rooms Doorway
+         * @description Choose (or clear) the caller's doorway for one configured room.
+         *
+         *     Body: ``{doorway_id}`` — an id from the closed
+         *     :data:`crew.DOORWAYS` list, or ``null`` for "no doorway". A
+         *     doorway is presentation only: it records which door the person
+         *     sees for the room and nothing else — private, per principal,
+         *     never sent to the room and never a status. Unconfigured room →
+         *     404; an id outside the closed list (or not a string/null) → 422.
+         */
+        put: operations["rooms_doorway_api_rooms__room_id__doorway_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -5728,6 +5757,39 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    rooms_doorway_api_rooms__room_id__doorway_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

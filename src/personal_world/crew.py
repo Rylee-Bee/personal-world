@@ -23,7 +23,8 @@ The stored shape (one file per principal)::
          "portrait_asset": "/assets/crew/512/bolt-portrait.webp",
          "full_body_asset": null, "source": "starter", "hidden": false}
       ],
-      "keepers": {"workshop": "bolt"}
+      "keepers": {"workshop": "bolt"},
+      "doorways": {"workshop": "garden"}
     }
 
 Honesty rules:
@@ -158,6 +159,32 @@ SYSTEM_RESIDENT: dict[str, str] = {
     "threads": "ratatoskr",  # World tree
 }
 
+#: The closed list of doorways a room may be given (owner request
+#: 2026-09-26). A doorway is **presentation only**: the door a person
+#: chooses to see for a room. It is private, per principal, and never
+#: sent to a room. An id outside this list is refused at the API and read
+#: as absent from a stored file (never guessed); non-dict stored state
+#: reads as ``{}``. No doorway is ever seeded — there are no defaults.
+DOORWAYS: tuple[str, ...] = (
+    "study",
+    "archive",
+    "garden",
+    "kitchen",
+    "lounge",
+    "music",
+    "observatory",
+    "post",
+    "travel",
+    "vault",
+    "wellness",
+    "hallway",
+)
+
+
+def is_doorway(value: Any) -> bool:
+    """True for an id in the closed doorway list, and nothing else."""
+    return isinstance(value, str) and value in DOORWAYS
+
 
 def _entry(
     companion_id: str,
@@ -250,8 +277,8 @@ def initial_of(name: str) -> str:
 
 
 def empty_state() -> dict[str, Any]:
-    """An honest empty crew: no companions, no keepers."""
-    return {"crew": [], "keepers": {}}
+    """An honest empty crew: no companions, no keepers, no doorways."""
+    return {"crew": [], "keepers": {}, "doorways": {}}
 
 
 def default_keepers(room_ids: Iterable[str]) -> dict[str, str]:
@@ -281,11 +308,13 @@ def read_crew(path: Path, *, room_ids: Iterable[str] = ()) -> dict[str, Any]:
     file that is absent or unreadable falls back to the starter seed. The
     ``keepers`` key is seeded from the canon when it is absent — never
     when it is present, so a cleared assignment is never re-seeded.
+    ``doorways`` is never seeded: it holds only a person's own choices.
     """
     def _seeded() -> dict[str, Any]:
         return {
             "crew": starter_entries(),
             "keepers": default_keepers(room_ids),
+            "doorways": {},
         }
 
     if not path.exists():
@@ -328,6 +357,17 @@ def read_crew(path: Path, *, room_ids: Iterable[str] = ()) -> dict[str, Any]:
             for room_id, companion_id in default_keepers(room_ids).items()
             if companion_id in known
         }
+
+    # Doorways: presentation only, never seeded. A stored id outside the
+    # closed list reads as absent (never guessed); a non-dict reads as {}.
+    raw_doorways = data.get("doorways")
+    if isinstance(raw_doorways, dict):
+        for room_id, doorway_id in raw_doorways.items():
+            if not isinstance(room_id, str) or not room_id:
+                continue
+            state["doorways"][room_id] = (
+                doorway_id if is_doorway(doorway_id) else None
+            )
     return state
 
 
@@ -373,6 +413,7 @@ def write_crew(path: Path, state: dict[str, Any]) -> None:
     payload = {
         "crew": list(state.get("crew") or []),
         "keepers": dict(state.get("keepers") or {}),
+        "doorways": dict(state.get("doorways") or {}),
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
@@ -456,14 +497,30 @@ def keeper_of(state: dict[str, Any], room_id: Any) -> dict[str, Any] | None:
     }
 
 
+def doorway_of(state: dict[str, Any], room_id: Any) -> str | None:
+    """The caller's doorway id for one room row, or an honest null.
+
+    A stored id that is not in the closed list (or an explicit clear)
+    reads as no doorway — never a guess the front door would have to
+    render.
+    """
+    doorways = state.get("doorways")
+    if not isinstance(doorways, dict) or not isinstance(room_id, str):
+        return None
+    doorway_id = doorways.get(room_id)
+    return doorway_id if is_doorway(doorway_id) else None
+
+
 def decorate_row(row: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
-    """A room row copy with the caller's ``keeper`` added.
+    """A room row copy with the caller's ``keeper`` and ``doorway`` added.
 
     The service's cached row is never mutated, and nothing else about the
-    row changes: a keeper is who the person put there, never a status.
+    row changes: neither a keeper nor a doorway is a status — both are
+    who/what the person put there, never a claim about the room's health.
     """
     out = dict(row)
     out["keeper"] = keeper_of(state, row.get("id"))
+    out["doorway"] = doorway_of(state, row.get("id"))
     return out
 
 
