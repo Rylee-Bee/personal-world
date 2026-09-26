@@ -113,9 +113,10 @@ from typing import Any
 import httpx
 
 # The same safe-principal-id rule ``identity.principal_scoped_path`` uses,
-# so a forwarded principal id can never be a path/header injection. The
-# one shared admin rule gates owner-only room actions (never a copy).
-from .identity import _SAFE_PRINCIPAL_ID, is_admin
+# so a forwarded principal id can never be a path/header injection. A room
+# write needs the ``approve`` permission (roles.can) — one shared rule.
+from .identity import _SAFE_PRINCIPAL_ID
+from .roles import can
 
 _logger = logging.getLogger("personal_world.rooms")
 
@@ -150,9 +151,9 @@ ACTIONS_PATH = "/room/actions"
 
 #: Passing a room/0 action through to the room. The caller names one
 #: action; Worlds reads the room's own action list (cached 60 s per
-#: room, never per person), enforces the owner-only rule for writes,
-#: requires an idempotency key, and forwards the call to the room's
-#: ``POST /room/actions/{id}``. The room's own receipt comes back.
+#: room, never per person), enforces the ``approve`` permission for
+#: writes, requires an idempotency key, and forwards the call to the
+#: room's ``POST /room/actions/{id}``. The room's own receipt comes back.
 ACTION_TIMEOUT_SECONDS = 10.0
 ACTIONS_CACHE_TTL_SECONDS = 60.0
 
@@ -1212,9 +1213,9 @@ class RoomsService:
           (404) before any network call;
         * the room's own ``GET /room/actions`` list (cached 60 s per
           room) decides whether the action exists (404 when not) and
-          whether it is a write; a write requires an admin caller (403),
-          and a missing/unknown ``writes`` field is treated as a write
-          (fail closed);
+          whether it is a write; a write requires the caller to hold the
+          ``approve`` permission (403 otherwise), and a missing/unknown
+          ``writes`` field is treated as a write (fail closed);
         * a missing/malformed ``Idempotency-Key`` is refused (400), a
           body over 16 KB is refused (413), and a non-object JSON body is
           refused (400);
@@ -1257,9 +1258,11 @@ class RoomsService:
 
         principal_id = _safe_principal_id(getattr(principal, "id", None))
 
-        # 3. Owner-only for writes. The room's own list is authoritative:
-        # an unreadable list or an unknown action fails closed (404); a
-        # missing ``writes`` is treated as a write (never guessed safe).
+        # 3. Writes need the `approve` permission (owner and admin hold
+        # it; helpers will hold it for one person in step 2). The room's
+        # own list is authoritative: an unreadable list or an unknown
+        # action fails closed (404); a missing ``writes`` is treated as a
+        # write (never guessed safe).
         actions = await self._room_actions(config)
         action = (
             next((a for a in actions if a.get("id") == action_id), None)
@@ -1268,7 +1271,7 @@ class RoomsService:
         )
         if action is None:
             return 404, _receipt(asked, False, "That room doesn't offer that.")
-        if action.get("writes") is not False and not is_admin(principal):
+        if action.get("writes") is not False and not can(principal, "approve"):
             return 403, _receipt(asked, False, "Only the owner can do that here.")
 
         # 4. A retry must not double-act: the caller presents a key.

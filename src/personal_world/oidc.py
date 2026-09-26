@@ -707,6 +707,11 @@ class VerifiedIdentity:
     issuer: str = ""
     auth_time: float | None = None
     claim_names: tuple[str, ...] = ()
+    #: Group names the provider asserted (Authelia's ``groups`` claim,
+    #: id_token or userinfo). Used ONLY to look up a role in
+    #: ``PW_ROLE_GROUPS``; never authorization by itself, and never a
+    #: role the IdP can hand out (owner is not mappable).
+    groups: tuple[str, ...] = ()
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
         return (
@@ -996,6 +1001,19 @@ def validate_claims(
         )
 
 
+def _string_groups(value: Any) -> tuple[str, ...]:
+    """A ``groups`` claim as a tuple of non-empty strings.
+
+    Anything else (a bare string, numbers, nested objects, a missing
+    claim) yields ``()`` — never a guessed group. These are only ever
+    looked up in the operator's own ``PW_ROLE_GROUPS`` mapping, so an
+    over-eager value can at most name a group the operator listed.
+    """
+    if not isinstance(value, list):
+        return ()
+    return tuple(str(g) for g in value if isinstance(g, str) and g)
+
+
 def identity_from_claims(claims: dict) -> VerifiedIdentity:
     """Pick a display name from ordinary profile claims. ``sub`` stays
     the identity that ``identity.py`` maps; the display name is
@@ -1015,6 +1033,7 @@ def identity_from_claims(claims: dict) -> VerifiedIdentity:
         issuer=_normalize_issuer(str(claims.get("iss") or "")),
         auth_time=float(auth_time) if isinstance(auth_time, (int, float)) else None,
         claim_names=tuple(sorted(claims)),
+        groups=_string_groups(claims.get("groups")),
     )
 
 
@@ -1312,7 +1331,10 @@ class OIDCClient:
             return identity
         display = info.get("preferred_username") or info.get("name")
         email = info.get("email")
-        if not display and not email:
+        # Groups may live only on userinfo; only fill a gap the verified
+        # id_token left, and never replace what it asserted.
+        groups = identity.groups or _string_groups(info.get("groups"))
+        if not display and not email and groups == identity.groups:
             return identity
         return VerifiedIdentity(
             sub=identity.sub,
@@ -1321,6 +1343,7 @@ class OIDCClient:
             issuer=identity.issuer,
             auth_time=identity.auth_time,
             claim_names=identity.claim_names,
+            groups=groups,
         )
 
     def end_session_url(self, post_logout_redirect_uri: str) -> str | None:

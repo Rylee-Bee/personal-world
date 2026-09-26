@@ -339,8 +339,8 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "never a 500. Owner-only for writes: the room's own GET "
             "/room/actions list (cached 60 s per room) decides whether the "
             "action exists (404 otherwise) and whether it writes (a write "
-            "needs an admin caller, 403 otherwise; a missing writes field "
-            "fails closed as a write). Requires an Idempotency-Key header "
+            "needs the approve permission, 403 otherwise; a missing writes "
+            "field fails closed as a write). Requires an Idempotency-Key "
             "(1-128 chars, 400 when missing) and a JSON object body of at "
             "most 16 KB (413/400 otherwise), forwarded as-is with the "
             "room's own token, the caller's X-Worlds-Principal, and that "
@@ -358,7 +358,8 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "only, never a secret value; a missing/unreachable/refusing/"
             "malformed station is reported as station.status 'unknown' with "
             "a plain-words detail and empty lists — never raises, never "
-            "invents keys, never carries a token"),
+            "invents keys, never carries a token; estate_secrets-gated in "
+            "handler"),
     # Crew — companions are user-owned (owner decision 2026-09-25). The
     # drawn crew is a starter set; a person adds, renames, hides and
     # deletes their own. Private, per principal, never sent to a room or
@@ -725,7 +726,7 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "identity",
         "read",
         "none",
-        note="admin-gated in handler",
+        note="manage_people-gated in handler",
     ),
     _e(
         "API-069",
@@ -734,7 +735,7 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "identity",
         "write",
         "step-up",
-        note="admin-gated in handler",
+        note="manage_people-gated in handler",
     ),
     _e(
         "API-070",
@@ -743,7 +744,7 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "identity",
         "write",
         "step-up",
-        note="admin-gated in handler",
+        note="manage_people-gated in handler",
     ),
     _e(
         "API-071-get",
@@ -767,6 +768,50 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     _e("API-073", "GET", "/api/identity/principal", "identity", "read", "none"),
     _e("API-074", "PUT", "/api/identity/principal", "identity", "write", "step-up"),
+    # People & roles (owner-approved 2026-09-26): code asks
+    # `roles.can(principal, permission)`; admins manage accounts, never
+    # content. Responses are allow-listed (no secrets, no tokens).
+    _e(
+        "API-091",
+        "GET",
+        "/api/me",
+        "identity",
+        "read",
+        "none",
+        note="the caller's own {id, display_name, role, permissions} "
+        "for the interface to show/hide affordances",
+    ),
+    _e(
+        "API-092",
+        "GET",
+        "/api/people",
+        "identity",
+        "read",
+        "none",
+        note="every person and agent with role/kind; manage_people-gated "
+        "in handler; no content, secrets or tokens",
+    ),
+    _e(
+        "API-093",
+        "PUT",
+        "/api/people/{user_id}/role",
+        "identity",
+        "write",
+        "step-up",
+        note="manage_people-gated; sets member/supervised/guest/admin; "
+        "owner never assignable (422), admins cannot change their own "
+        "role (403), the owner record is protected (403)",
+    ),
+    _e(
+        "API-094",
+        "POST",
+        "/api/people/transfer-ownership",
+        "identity",
+        "write",
+        "step-up",
+        note="owner only (transfer_ownership); target must already be an "
+        "admin; the old owner becomes an admin; journalled",
+    ),
     # Exports / backup / updates.
     _e(
         "API-025",

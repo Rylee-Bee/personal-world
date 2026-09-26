@@ -128,14 +128,15 @@ The Workshop room's drawer has a read-only **Secrets** section:
 `GET /api/secrets/overview` reads Project Home's `GET /api/secrets/summary`
 with the workshop room's token. It shows station health, key **names**
 grouped by namespace, pending requests and recent changes. It never shows a
-value, and it is **admin only** (other household members get 403). Values
+value, and it is **admin only** (the `estate_secrets` permission; other
+household members get 403). Values
 are typed only on Project Home's own trusted page.
 
 ## Acting on a room
 
 `POST /api/rooms/{room_id}/actions/{action_id}` passes one action
 through to the room and returns the room's own receipt. It is
-authenticated, but **not** elevation-gated: the owner-only rule below is
+authenticated, but **not** elevation-gated: the write rule below is
 the gate.
 
 Rules, in order:
@@ -145,14 +146,14 @@ Rules, in order:
   `^[a-z0-9][a-z0-9-]{0,63}$`. The room must be configured, enabled, and
   speak a supported contract. Anything else is a `404` receipt — and
   never a probe of an unvalidated URL.
-* **Owner-only for writes.** Worlds reads the room's own
+* **Writes need the `approve` permission.** Worlds reads the room's own
   `GET /room/actions` list (cached **60 s per room**, never per person)
   and finds `action_id`:
   * unknown action → `404` receipt, *"That room doesn't offer that."*
   * `writes` is `true`, or the field is missing (fail closed as a
-    write) → the caller must be admin (the bootstrap `primary`
-    principal, or a person with the `admin` scope — the one shared
-    `identity.is_admin` rule). Otherwise `403` receipt, *"Only the owner
+    write) → the caller must hold the `approve` permission
+    (`roles.can`; the owner and admins hold it, a helper will hold it for
+    one person in step 2). Otherwise `403` receipt, *"Only the owner
     can do that here."*
   * a `writes: false` action passes through for anyone.
 * **Idempotency.** An `Idempotency-Key` header is required: 1–128 chars
