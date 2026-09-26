@@ -695,3 +695,14 @@ dated entry superseding the old one (append-only, like the journal).
   when the crew is off. Every safeguard is unchanged: loopback-only writes,
   first-run only, the same provisioning, sign-in and finish code. No
   motion: the progress dots and the lamp are static.
+- **2026-09-26 — The Bridge's first day, and the name is "Worlds".** Owner
+  approved the FirstBridge board: a first-day guide on the Bridge, spoken by
+  the chosen companion (Worlds' plain voice with Sol's mark when the crew is
+  off), with four live lines (first room, systems answering, first note —
+  a journal entry the person wrote — and a chosen companion). It hides when
+  put away (this device) or when everything is done; Settings brings it
+  back. Rooms get a plain in-app explainer (owner: "probably a plain
+  explainer"). The overall status says unreachable systems as a count ("1
+  system can't be reached") rather than a lone "Unavailable". Owner: "just
+  call it worlds, I like it better" — the header, footer and tab title say
+  Worlds.

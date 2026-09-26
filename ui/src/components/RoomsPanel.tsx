@@ -55,6 +55,7 @@ import { currentNeeds, groupRooms, isUncertain, seenNeeds } from "./rooms/groupR
 import { Emblem, LookInside, OpenLink, StatusWord } from "./rooms/parts";
 import { RoomDrawerContext } from "./rooms/drawerContext";
 import { RoomDrawer } from "./rooms/RoomDrawer";
+import { RoomsExplainer } from "./rooms/RoomsExplainer";
 import { useMinuteClock, useRootAttribute } from "./rooms/useRootAttribute";
 
 /** How old a check can be before the panel says so in words. */
@@ -335,9 +336,21 @@ export function RoomsPanel() {
           </button>
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-          No rooms are set up yet. When a room connects, its door appears here.
-        </p>
+        <div className="flex flex-wrap items-center gap-[var(--pw-spacing-lg)]">
+          <span
+            aria-hidden="true"
+            className="flex h-32 w-24 shrink-0 items-center justify-center rounded-t-full rounded-b-[var(--pw-radius-md)] border-2 border-dashed border-[var(--pw-text-muted)] text-[var(--pw-accent-warm)]"
+          >
+            ✦
+          </span>
+          <div className="flex min-w-[14rem] flex-1 flex-col items-start gap-[var(--pw-spacing-sm)]">
+            <p className="font-semibold text-[var(--pw-text-primary)]">No rooms yet</p>
+            <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+              When a room connects, its door appears here, with whatever needs you inside.
+            </p>
+            <RoomsExplainer />
+          </div>
+        </div>
       ) : (
         <RoomDrawerContext.Provider
           value={{
