@@ -80,20 +80,25 @@ function stationWords(data: SecretsOverview): { lit: boolean; title: string; lin
   }
 }
 
-/** Whether a change reached the station, in words. Unknown values are
- *  shown as they came, never mapped to success. */
+/**
+ * What happened to a change, in words (Project Home's values, 2026-09-26):
+ * `state` is encrypted | committed | pushed | failed | unchanged, and
+ * `deploy_state` is pending (when pushed) or unknown; applied | verified
+ * mean the station reported it back. Only those two light the lamp, and
+ * anything unrecognised shows the station's own word, never success.
+ */
 function changeWords(op: SecretsOverview["recent_ops"][number]): { lit: boolean; words: string } {
   const deploy = (op.deploy_state ?? "").toLowerCase();
   const state = (op.state ?? "").toLowerCase();
-  if (["failed", "error", "rejected"].includes(state) || ["failed", "error"].includes(deploy)) {
-    return { lit: false, words: "didn’t reach the station · old value kept" };
+  if (state === "failed") return { lit: false, words: "didn’t save · old value kept" };
+  if (state === "unchanged") return { lit: false, words: "already set, nothing changed" };
+  if (deploy === "applied" || deploy === "verified") return { lit: true, words: "reached the station" };
+  if (state === "pushed") return { lit: false, words: "waiting for the station" };
+  if (state === "encrypted" || state === "committed") {
+    return { lit: false, words: "saved · not sent to the station yet" };
   }
-  if (deploy === "deployed") return { lit: true, words: "reached the station" };
-  if (["pending", "queued", "deploying", "applying"].includes(deploy)) {
-    return { lit: false, words: "waiting for the station" };
-  }
-  if (deploy) return { lit: false, words: `station says “${deploy}”` };
-  return { lit: false, words: "not known yet whether it reached the station" };
+  const word = state || deploy;
+  return { lit: false, words: word ? `station says “${word}”` : "not known yet what happened" };
 }
 
 function Namespace({ name, keys }: { name: string; keys: string[] }) {

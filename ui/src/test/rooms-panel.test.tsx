@@ -574,8 +574,11 @@ describe("RoomDrawer", () => {
         },
       ],
       recent_ops: [
-        { key_path: "rooms/workshop-token", state: "ok", deploy_state: "deployed", actor: "owner", created_at: "2026-09-25T09:12:00Z" },
-        { key_path: "rooms/studio-token", state: "ok", deploy_state: "pending", actor: "owner", created_at: "2026-09-25T09:13:00Z" },
+        { key_path: "rooms/workshop-token", state: "pushed", deploy_state: "verified", actor: "owner", created_at: "2026-09-25T09:12:00Z" },
+        { key_path: "rooms/studio-token", state: "pushed", deploy_state: "pending", actor: "owner", created_at: "2026-09-25T09:13:00Z" },
+        { key_path: "mail/relay-password", state: "failed", deploy_state: "unknown", actor: "owner", created_at: "2026-09-25T09:14:00Z" },
+        { key_path: "mail/other", state: "unchanged", deploy_state: "unknown", actor: "owner", created_at: "2026-09-25T09:15:00Z" },
+        { key_path: "mail/odd", state: "mystery", deploy_state: "unknown", actor: "owner", created_at: "2026-09-25T09:16:00Z" },
       ],
       room_id: "workshop",
       open_url: "https://workshop.example.test/secrets",
@@ -606,6 +609,10 @@ describe("RoomDrawer", () => {
       expect(within(drawer).getAllByText("rooms/workshop-token").length).toBeGreaterThan(0);
       expect(within(drawer).getByText(/reached the station/)).toBeInTheDocument();
       expect(within(drawer).getByText(/waiting for the station/)).toBeInTheDocument();
+      expect(within(drawer).getByText(/didn’t save · old value kept/)).toBeInTheDocument();
+      expect(within(drawer).getByText(/already set, nothing changed/)).toBeInTheDocument();
+      // An unrecognised value is the station's own word, never success.
+      expect(within(drawer).getByText(/station says “mystery”/)).toBeInTheDocument();
       // Worlds never has a place to type a value.
       expect(within(drawer).queryByRole("textbox")).toBeNull();
       expect(drawer.querySelector("input[type=password]")).toBeNull();

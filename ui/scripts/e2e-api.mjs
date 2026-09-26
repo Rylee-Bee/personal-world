@@ -391,7 +391,7 @@ const SECRETS_OVERVIEW = {
     },
   ],
   recent_ops: [
-    { key_path: "rooms/workshop-token", state: "ok", deploy_state: "deployed", actor: "owner", created_at: "2026-09-25T09:12:00Z" },
+    { key_path: "rooms/workshop-token", state: "pushed", deploy_state: "verified", actor: "owner", created_at: "2026-09-25T09:12:00Z" },
   ],
   room_id: "workshop",
   open_url: "https://room.test/secrets",
