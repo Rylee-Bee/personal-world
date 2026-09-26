@@ -541,11 +541,8 @@ function bridgeFixture(): BridgeData {
       line:
         "Two things need you, and the Workshop has been busy. Take your time — the bridge holds.",
       mood: "busy",
-      resident: bridgeResident(
-        "personal-world",
-        "Personal World",
-        "/assets/characters/personal-world.png",
-      ),
+      // Sol never speaks: with no companion chosen it's the Assistant.
+      resident: bridgeResident("assistant", "Assistant", "/assets/crew/assistant.svg"),
     },
     systems: BRIDGE_SYSTEMS,
     have_tos: haveTo.slice(0, 3),
@@ -663,7 +660,7 @@ function bridgeHandlers(): RequestHandler[] {
     http.get("/api/rooms", () =>
       HttpResponse.json({
         ok: true,
-        data: ROOMS_FIXTURE.map((row) => ({ ...row, keeper: MOCK_KEEPERS[row.id] ?? null })),
+        data: ROOMS_FIXTURE.map((row) => ({ ...row, keeper: MOCK_KEEPERS[row.id] ?? null, doorway: null })),
       }),
     ),
     // GET /api/crew — the starter crew (crew.STARTER_CREW), read-only here.
@@ -692,10 +689,10 @@ const MOCK_CREW: CrewEntry[] = (
   hidden: false,
 }));
 
-/** Canon seed (crew.default_keepers): Bolt keeps Workshop, Mira Studio. */
+/** Canon seed (crew.default_keepers): only Bolt keeps Workshop; Studio
+ *  has no keeper until the person picks one. */
 const MOCK_KEEPERS: Record<string, RoomKeeper> = {
   workshop: { id: "bolt", name: "Bolt", portrait_url: "/assets/crew/512/bolt-portrait.webp", initial: "B" },
-  studio: { id: "mira", name: "Mira", portrait_url: "/assets/crew/512/mira-portrait.webp", initial: "M" },
 };
 
 // ─── Journal fixtures (model.JournalEvent) ───────────────────────────

@@ -230,17 +230,51 @@ describe("RoomsPanel", () => {
     expect(screen.queryByText(/kept by Hekek/)).not.toBeInTheDocument();
   });
 
-  it("shows a doorway chosen on this device over the room's own art, and nothing unchosen", () => {
+  it("shows the doorway the person chose over the room's own art, and nothing unchosen", () => {
     document.documentElement.setAttribute("data-theme", "doorways");
-    window.localStorage.setItem("pw-room-doorways", JSON.stringify({ "play-nice": "garden", workshop: "not-a-door" }));
+    setRooms([
+      WORKSHOP,
+      { ...PLAYNICE, doorway: "garden" },
+      { ...QUIET, doorway: "not-a-door" },
+    ]);
     const { container } = render(<RoomsPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /quiet room/ }));
     const srcs = Array.from(container.querySelectorAll("img")).map((i) => i.getAttribute("src") ?? "");
     expect(srcs.some((s) => s.endsWith("assets/crew/512/doorway-garden.webp"))).toBe(true);
-    // An unknown choice is ignored: Workshop keeps its own painted room.
     expect(srcs.some((s) => s.endsWith("assets/crew/512/workshop-doorway.webp"))).toBe(true);
-    // No room gets a library doorway it wasn't given.
+    // An id outside the library is ignored: VEFR keeps its own painted room.
+    expect(srcs.some((s) => s.endsWith("assets/crew/512/vefr-doorway.webp"))).toBe(true);
     expect(srcs.filter((s) => s.includes("/doorway-"))).toHaveLength(1);
-    window.localStorage.removeItem("pw-room-doorways");
+  });
+
+  it("never counts an incompatible room's needs, and says why in words", () => {
+    setRooms([
+      room("odd", "Odd room", "incompatible", [{ title: "Should not count" }], { error: "unsupported contract room/9" }),
+    ]);
+    render(<RoomsPanel />);
+    expect(screen.queryByText("Needs you")).not.toBeInTheDocument();
+    expect(screen.getByText(/not compatible with this front door · unsupported contract room\/9/)).toBeInTheDocument();
+  });
+
+  it("says when the room list couldn't be refreshed, and is quiet when it could", () => {
+    hookState.rooms = {
+      ...hookState.rooms,
+      data: {
+        ok: true,
+        data: [QUIET],
+        registry: { source: "last_known_good", status: "unreachable", checked_at: NOW, updated_at: NOW, dropped: 2 },
+      },
+    };
+    render(<RoomsPanel />);
+    expect(screen.getByText(/Couldn't refresh the room list/)).toBeInTheDocument();
+    expect(screen.getByText(/2 entries in the room list couldn't be read/)).toBeInTheDocument();
+    cleanup();
+    hookState.rooms = {
+      ...hookState.rooms,
+      data: { ok: true, data: [QUIET], registry: { source: "registry", status: "ok", checked_at: NOW, dropped: 0 } },
+    };
+    render(<RoomsPanel />);
+    expect(screen.queryByText(/room list/)).not.toBeInTheDocument();
   });
 
   it("gives a keeper with no picture the crew commbadge and their initial", () => {

@@ -27,15 +27,27 @@ test("axe Crew: 0 serious/critical", async ({ page }) => {
   expect(bad.map((v) => `${v.id}: ${v.nodes.length} node(s)`)).toEqual([]);
 });
 
-test("Mira keeps Studio by default, and a keeper move lands in words", async ({ page }) => {
+test("Studio has no keeper until you pick one, and a keeper move lands in words", async ({ page }) => {
   await openCrew(page);
   const mira = page.getByRole("listitem", { name: "Mira" });
-  await expect(mira.getByText("Keeps Studio")).toBeVisible();
-
-  await page.getByRole("combobox", { name: "Keeper for Studio" }).selectOption("renai");
-  await expect(page.getByText("Renai now keeps Studio.")).toBeVisible();
-  await expect(page.getByRole("listitem", { name: "Renai" }).getByText(/Keeps Studio/)).toBeVisible();
   await expect(mira.getByText("No room · free to wander")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Keeper for Studio" })).toHaveValue("");
+
+  await page.getByRole("combobox", { name: "Keeper for Studio" }).selectOption("mira");
+  await expect(page.getByText("Mira now keeps Studio.")).toBeVisible();
+  await expect(mira.getByText(/Keeps Studio/)).toBeVisible();
+});
+
+test("a doorway choice is kept by the station, and can be cleared", async ({ page, request }) => {
+  await openCrew(page);
+  const door = page.getByRole("combobox", { name: "Doorway for Studio" });
+  await expect(door).toHaveValue("");
+  await door.selectOption("study");
+  await expect(door).toHaveValue("study");
+  const rows = (await (await request.get("/api/rooms")).json()).data as Array<{ id: string; doorway: string | null }>;
+  expect(rows.find((r) => r.id === "studio")?.doorway).toBe("study");
+  await door.selectOption("");
+  await expect(door).toHaveValue("");
 });
 
 test("a new companion wears the commbadge until they have a picture", async ({ page }) => {

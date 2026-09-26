@@ -762,6 +762,9 @@ export interface RoomRow {
   /** The companion this person put on the room, or null (the room shows
    *  its own emblem). A keeper never changes a room's status. */
   keeper?: RoomKeeper | null;
+  /** The library doorway this person chose for the room (PUT
+   *  /api/rooms/{id}/doorway), or null: never assigned by default. */
+  doorway?: string | null;
 }
 
 export interface RoomCard {

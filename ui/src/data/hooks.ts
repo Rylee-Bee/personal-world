@@ -90,6 +90,7 @@ import {
   deleteCrew,
   uploadCrewPortrait,
   putRoomKeeper,
+  putRoomDoorway,
 } from "./api";
 import type {
   Actor,
@@ -848,6 +849,11 @@ export const useUploadCrewPortrait = () =>
   useCrewMutation(
     ({ id, contentType, dataBase64 }: { id: string; contentType: string; dataBase64: string }) =>
       uploadCrewPortrait(id, contentType, dataBase64),
+  );
+
+export const usePutRoomDoorway = () =>
+  useCrewMutation(({ roomId, doorwayId }: { roomId: string; doorwayId: string | null }) =>
+    putRoomDoorway(roomId, doorwayId),
   );
 
 export const usePutRoomKeeper = () =>
