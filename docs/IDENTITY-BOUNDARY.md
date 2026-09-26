@@ -217,6 +217,21 @@ covers room needs and room actions only.
 caller may help, with `until`), and `limits` (when supervised) or
 `guest_until` (when a guest).
 
+**Join page, directory, names beside ids.** An invite is sent as
+`/invite#<code>`: a signed-out static page served with the same
+`no-store` pattern as `/login`. The code rides in the URL fragment —
+fragments never reach the server — and the page posts it to
+`POST /api/invites/accept`; the sign-in key that comes back is shown
+**once** and never written to a URL, browser storage or a log.
+`GET /api/people/directory` is the people picker: `[{id, display_name}]`
+for enabled people only — no roles, no emails, no expired guests, no
+agents. It is gated on `own_space`: people who live here (owner, admin,
+member, supervised) can list who else does, so they can pick a helper;
+guests (visitors) and agents get 403. Helper and
+limit views carry names beside ids (`helper_name`, `person_name`,
+`set_by_name`): display names read from the identity store, with an
+unknown or deleted id giving `null` — a name is never invented.
+
 ## Tests
 
 `tests/test_identity_boundary.py` — entry point rules, two-principal isolation

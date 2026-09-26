@@ -560,6 +560,15 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     register_login_page(app, data_dir=data_dir)
 
+    # --- Invite accept page (server-rendered, signed-out like /login) ---
+    # `/invite#<code>`: the invite code rides in the URL fragment and
+    # never reaches the server; the page posts it to the existing
+    # POST /api/invites/accept. invite_page.py copies the login serving
+    # pattern (no-store static file, first-run redirects to /setup).
+    from .invite_page import register_invite_page
+
+    register_invite_page(app, data_dir=data_dir)
+
     # (The interface itself is mounted at the end of create_app —
     # app_router must come last so it never shadows an API route.)
 
@@ -3719,6 +3728,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         if not can(principal, permission):
             raise HTTPException(status_code=403, detail=f"{permission} required")
 
+    def _person_name(user_id: object) -> str | None:
+        """The stored display name beside a person id, or ``None``.
+
+        Names for the ``*_name`` fields are **read** from the identity
+        store, never invented: an unknown or deleted id, or a record
+        with no display name, gives ``None``. Identity-level metadata
+        only (see people.py) — this says nothing about a person's
+        content."""
+        if not isinstance(user_id, str) or not user_id:
+            return None
+        return _identity_store.get_display_name(user_id)
+
     def _helping_target(request: Request, *, need_act: bool):
         """The person a helper's ``X-Worlds-Helping`` header names.
 
@@ -4111,6 +4132,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             data["helping"] = [
                 {
                     "person_id": g.get("person_id"),
+                    # Name beside id; unknown or deleted id → null.
+                    "person_name": _person_name(g.get("person_id")),
                     "until": g.get("until"),
                     "can_act": bool(g.get("can_act")),
                 }
@@ -4175,6 +4198,35 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             for a in _identity_store.list_agents()
         )
         return {"ok": True, "data": people}
+
+    @app.get("/api/people/directory", dependencies=[Depends(require_auth)])
+    async def people_directory(request: Request) -> dict:
+        """Who is here, by name — the picker list. Signed-in people only.
+
+        ``[{id, display_name}]`` and nothing else: no roles, no emails,
+        no expired guests, no agents, no content. Disabled people are
+        out (an account that cannot sign in should not be picked).
+
+        The gate is ``own_space``: people who live here (owner, admin,
+        member, supervised) can list who else does, so they can pick a
+        helper. Guests are refused: a visitor should not get a list of
+        everyone in the household. Agents are refused too: a directory of
+        people is a person's surface.
+        """
+        principal = getattr(request.state, "principal", None)
+        _require_person(principal)
+        _require_permission(principal, "own_space")
+
+        from .identity import record_is_expired
+
+        rows = [
+            {"id": u.get("user_id"), "display_name": u.get("display_name")}
+            for u in _identity_store.list_users()
+            if u.get("enabled", False) and not record_is_expired(u)
+        ]
+        # Stable for a picker: by name, then id.
+        rows.sort(key=lambda r: ((r["display_name"] or "").lower(), r["id"] or ""))
+        return {"ok": True, "data": rows}
 
     @app.put("/api/people/{user_id}/role", dependencies=[Depends(require_step_up)])
     async def people_set_role(request: Request, user_id: str) -> dict:
@@ -4275,10 +4327,16 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .identity import _SAFE_PRINCIPAL_ID as _safe_pid
 
     def _grant_row(grant: dict) -> dict:
-        """One helper grant, allow-listed; nothing else is exposed."""
+        """One helper grant, allow-listed; nothing else is exposed.
+
+        Names ride beside ids (People step 2 handoff): ``helper_name``
+        and ``person_name`` are read from the identity store — an
+        unknown or deleted id gives ``null``, never an invented name."""
         return {
             "grant_id": grant.get("grant_id"),
             "helper_id": grant.get("helper_id"),
+            "helper_name": _person_name(grant.get("helper_id")),
+            "person_name": _person_name(grant.get("person_id")),
             "can_act": bool(grant.get("can_act")),
             "until": grant.get("until"),
             "created_at": grant.get("created_at"),
@@ -4373,6 +4431,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 "expires_at": people_mod.to_iso(invite["expires_at"]),
                 "guest_until": invite.get("guest_until"),
                 "token": token,
+                # Ready to send: the accept page reads the code from the
+                # fragment, which never reaches the server.
+                "link": f"{str(request.base_url).rstrip('/')}/invite#{token}",
             },
         }
 
@@ -4585,12 +4646,26 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     async def helped_by(request: Request) -> dict:
         """What helpers did for the caller, newest first.
 
-        Each row: ``{at, helper_id, action, summary, undoable}``.
-        ``undoable`` is false unless a room's own receipt says otherwise.
+        Each row: ``{at, helper_id, helper_name, action, summary,
+        undoable}``. ``undoable`` is false unless a room's own receipt
+        says otherwise. ``helper_name`` rides beside the id — read from
+        the identity store, ``null`` for a helper who is gone.
         """
         principal = getattr(request.state, "principal", None)
         _require_person(principal)
-        return {"ok": True, "data": _helper_log.list(principal.id)}
+        rows = []
+        for entry in _helper_log.list(principal.id):
+            rows.append(
+                {
+                    "at": entry.get("at"),
+                    "helper_id": entry.get("helper_id"),
+                    "helper_name": _person_name(entry.get("helper_id")),
+                    "action": entry.get("action"),
+                    "summary": entry.get("summary"),
+                    "undoable": bool(entry.get("undoable", False)),
+                }
+            )
+        return {"ok": True, "data": rows}
 
     @app.put(
         "/api/people/{user_id}/limits", dependencies=[Depends(require_step_up)]
@@ -4646,7 +4721,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/me/limits", dependencies=[Depends(require_auth)])
     async def my_limits(request: Request) -> dict:
-        """The caller's own limits and who set them (empty if none)."""
+        """The caller's own limits and who set them (empty if none).
+
+        ``set_by_name`` rides beside ``set_by``: the setter's display
+        name read from the identity store, ``null`` if that person is
+        gone. No name is ever invented for an id."""
         principal = getattr(request.state, "principal", None)
         _require_person(principal)
         record = _limits_store.get(principal.id)
@@ -4655,6 +4734,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             "data": {
                 "limits": record.get("limits", {}) if record else {},
                 "set_by": record.get("set_by") if record else None,
+                "set_by_name": (
+                    _person_name(record.get("set_by")) if record else None
+                ),
                 "set_at": record.get("set_at") if record else None,
             },
         }

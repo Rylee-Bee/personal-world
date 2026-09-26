@@ -24,6 +24,12 @@ Every numbered item of the plan is pinned here:
 6. **/api/me** — ``helpers_granted``, ``helping``, ``limits``,
    ``guest_until``.
 7. **Manifest** — every new route is curated with the right gate.
+8. **Join link** — invite creation returns a ready ``link`` and
+   ``/invite`` is served signed-out like ``/login`` (no-store).
+9. **Directory** — ``GET /api/people/directory``: the ``own_space``
+   matrix and the ``{id, display_name}`` field set.
+10. **Names beside ids** — ``helper_name`` / ``person_name`` /
+    ``set_by_name``; an unknown or deleted id gives ``null``.
 
 All people here are made up: sam, jo, alex, robin, kit. The rooms
 transport is ``httpx.MockTransport`` — no network is touched.
@@ -902,7 +908,14 @@ class TestApiMeFields:
         assert sam_me["helpers_granted"] == 1
         jo_me = c.get("/api/me", headers=_h(jo_tok)).json()["data"]
         assert jo_me["helping"] == [
-            {"person_id": "sam", "until": grant["until"], "can_act": True}
+            {
+                "person_id": "sam",
+                # Name beside the id (step 3 handoff): sam's stored
+                # display name, read — never invented.
+                "person_name": "Made up person",
+                "until": grant["until"],
+                "can_act": True,
+            }
         ]
         # Revoking takes the count down (the grant stays visible in the
         # person's own list, but it is not live).
@@ -976,11 +989,15 @@ class TestManifest:
             ("GET", "/api/me/helpers"),
             ("GET", "/api/me/helped-by"),
             ("GET", "/api/me/limits"),
+            ("GET", "/api/people/directory"),
         ):
             assert rows[key]["gate"] == "none", key
             assert rows[key]["kind"] == "read", key
         accept = rows[("POST", "/api/invites/accept")]
         assert accept["auth"] == "public"  # the token is the proof
+        directory = rows[("GET", "/api/people/directory")]
+        assert directory["auth"] == "authenticated", directory
+        assert directory["present"] is True
 
     def test_no_api_route_is_uncatalogued(self, tmp_path, monkeypatch):
         """The new routes ride the manifest's own coverage claim."""
@@ -992,6 +1009,284 @@ class TestManifest:
         api_new = [
             r
             for r in payload["uncurated"]
-            if "/invites" in r["path"] or "/helpers" in r["path"] or "limits" in r["path"]
+            if "/invites" in r["path"]
+            or "/helpers" in r["path"]
+            or "limits" in r["path"]
+            or "directory" in r["path"]
         ]
         assert api_new == []
+
+
+# ── 8. The join link: ready-made field + signed-out page ──────────────
+
+
+class TestInviteLinkAndPage:
+    def test_creation_returns_a_ready_link(self, tmp_path, monkeypatch):
+        c = _app(tmp_path, monkeypatch)
+        invite = _make_invite(c)
+        token = invite["token"]
+        # `<origin>/invite#<code>` — the code rides in the fragment, so
+        # the server never sees it in a request line.
+        expected = str(c.base_url).rstrip("/") + "/invite#" + token
+        assert invite["link"] == expected
+
+    def test_invite_page_is_served_signed_out_with_no_store(
+        self, tmp_path, monkeypatch
+    ):
+        c = _app(tmp_path, monkeypatch)
+        (tmp_path / "setup-complete").write_text("ok")
+        r = c.get("/invite")  # no credential: the page itself is the start
+        assert r.status_code == 200
+        assert r.headers["content-type"].startswith("text/html")
+        assert r.headers["Cache-Control"] == "no-store"
+        assert 'lang="en"' in r.text
+        # It posts the fragment code to the existing accept endpoint and
+        # offers exactly what the plan asks: the key shown once, a copy
+        # control, and a sign-in link.
+        assert "/api/invites/accept" in r.text
+        assert 'id="key"' in r.text and "shown once" in r.text
+        assert 'id="copy"' in r.text
+        assert "navigator.clipboard" in r.text
+        assert 'href="/login"' in r.text
+        # Every control is labeled and keyboard-operable markup (native
+        # button/input/label/anchor), and the key can be displayed with
+        # no JavaScript beyond this file.
+        assert "<label" in r.text
+        assert 'for="key"' in r.text
+
+    def test_invite_page_never_touches_storage_or_logging(
+        self, tmp_path, monkeypatch
+    ):
+        """The sign-in key is shown once — nothing on this page writes
+        it (or anything) to browser storage or a log."""
+        c = _app(tmp_path, monkeypatch)
+        (tmp_path / "setup-complete").write_text("ok")
+        text = c.get("/invite").text
+        for forbidden in ("localStorage", "sessionStorage", "indexedDB", "console."):
+            assert forbidden not in text, forbidden
+
+    def test_bare_invite_redirects_and_first_run_goes_to_setup(
+        self, tmp_path, monkeypatch
+    ):
+        c = _app(tmp_path, monkeypatch)
+        # First-run: like /login, /invite defers to /setup (no join on a
+        # half-built world).
+        r = c.get("/invite", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == "/setup"
+        (tmp_path / "setup-complete").write_text("ok")
+        r = c.get("/invite/", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == "/invite"
+
+
+# ── 9. People directory ───────────────────────────────────────────────
+
+
+def _seed_roles(c):
+    """sam (member), jo (admin), robin (supervised), kit (guest).
+
+    Returns their tokens. All names made up."""
+    sam = _provision(c, "sam", display_name="Sam Person")
+    jo = _provision(c, "jo", display_name="Jo Admin")
+    robin = _provision(c, "robin", display_name="Robin Kid")
+    assert (
+        c.put("/api/people/jo/role", json={"role": "admin"}, headers=OWNER).status_code
+        == 200
+    )
+    assert (
+        c.put(
+            "/api/people/robin/role", json={"role": "supervised"}, headers=OWNER
+        ).status_code
+        == 200
+    )
+    guest_key = _accept(
+        c,
+        _make_invite(
+            c,
+            role="guest",
+            display_name="Kit Guest",
+            guest_until=_future_iso(3600),
+        )["token"],
+    ).json()["data"]["sign_in_key"]
+    return sam, jo, robin, guest_key
+
+
+class TestPeopleDirectory:
+    def test_permission_matrix_own_space_and_persons_only(
+        self, tmp_path, monkeypatch
+    ):
+        """The gate is ``see_shared``, person-only.
+
+        Every human role holds see_shared in today's table (owner,
+        admin, member, supervised, guest), so all four persons pass —
+        guests and supervised pass *because* they hold see_shared, and
+        would be refused the day the table drops it. An agent gets 403
+        even with read scope; nobody signed in gets 401."""
+        c = _app(tmp_path, monkeypatch)
+        sam, jo, robin, kit_key = _seed_roles(c)
+        bot = c.post(
+            "/api/identity/agents",
+            json={"agent_id": "kit-bot", "scopes": ["read"]},
+            headers=OWNER,
+        )
+        bot_tok = bot.json()["data"]["token"]
+        for token in (OWNER_TOKEN, sam, jo, robin):
+            r = c.get(
+                "/api/people/directory", headers=_h(token, step_up=False)
+            )
+            assert r.status_code == 200, token
+        # A guest (a visitor) never gets the household's names.
+        assert (
+            c.get("/api/people/directory", headers=_h(kit_key, step_up=False)).status_code
+            == 403
+        )
+        assert (
+            c.get(
+                "/api/people/directory", headers=_h(bot_tok, step_up=False)
+            ).status_code
+            == 403
+        )
+        assert c.get("/api/people/directory").status_code == 401
+
+    def test_field_set_enabled_people_no_agents(self, tmp_path, monkeypatch):
+        c = _app(tmp_path, monkeypatch)
+        sam, _jo, _robin, _kit = _seed_roles(c)
+        c.post(
+            "/api/identity/agents",
+            json={"agent_id": "kit-bot", "scopes": ["read"]},
+            headers=OWNER,
+        )
+        rows = c.get(
+            "/api/people/directory", headers=_h(sam, step_up=False)
+        ).json()["data"]
+        # Exactly the two fields — no role, no email, no token material.
+        assert all(set(row) == {"id", "display_name"} for row in rows), rows
+        ids = {row["id"] for row in rows}
+        assert {"sam", "jo", "robin", "kit-guest", "primary"} <= ids
+        assert "kit-bot" not in ids  # agents are never in the directory
+        by_id = {row["id"]: row["display_name"] for row in rows}
+        assert by_id["sam"] == "Sam Person"
+        assert by_id["kit-guest"] == "Kit Guest"
+
+    def test_disabled_people_and_expired_guests_are_out(self, tmp_path, monkeypatch):
+        c = _app(tmp_path, monkeypatch)
+        sam, _jo, _robin, _kit_key = _seed_roles(c)
+
+        def ids():
+            return {
+                row["id"]
+                for row in c.get(
+                    "/api/people/directory", headers=_h(sam, step_up=False)
+                ).json()["data"]
+            }
+
+        assert "sam" in ids()
+        assert (
+            c.delete("/api/identity/users/sam", headers=OWNER).status_code == 200
+        )
+        # Disabled: cannot sign in, must not be pickable (the owner
+        # lists here because sam's own token now resolves to nothing).
+        assert (
+            "sam"
+            not in {
+                row["id"]
+                for row in c.get(
+                    "/api/people/directory", headers=OWNER
+                ).json()["data"]
+            }
+        )
+        # Expired guest: gone from the directory too (fail closed).
+        store = IdentityStore(tmp_path)
+        store.set_guest_until("kit-guest", _future_iso(-5))
+        people = c.get("/api/people/directory", headers=OWNER).json()["data"]
+        assert "kit-guest" not in {row["id"] for row in people}
+
+
+# ── 10. Names beside ids ──────────────────────────────────────────────
+
+
+class TestNamesBesideIds:
+    def test_helpers_rows_carry_names_and_a_deleted_helper_is_null(
+        self, tmp_path, monkeypatch
+    ):
+        c = _app(tmp_path, monkeypatch)
+        sam = _provision(c, "sam", display_name="Sam Person")
+        _provision(c, "jo", display_name="Jo Helper")
+        grant = _grant(c, sam, "jo", can_act=True).json()["data"]
+        assert grant["helper_name"] == "Jo Helper"
+        assert grant["person_name"] == "Sam Person"
+        rows = c.get("/api/me/helpers", headers=_h(sam)).json()["data"]
+        assert rows[0]["helper_name"] == "Jo Helper"
+        assert rows[0]["person_name"] == "Sam Person"
+        # The helper's record disappears entirely: the id stays, the
+        # name becomes null — a name is never invented for a gone id.
+        store = IdentityStore(tmp_path)
+        payload = store._load()
+        payload["users"] = [u for u in payload["users"] if u["user_id"] != "jo"]
+        store._save(payload)
+        rows = c.get("/api/me/helpers", headers=_h(sam)).json()["data"]
+        assert rows[0]["helper_id"] == "jo"
+        assert rows[0]["helper_name"] is None
+        assert rows[0]["person_name"] == "Sam Person"
+
+    def test_helped_by_names_the_helper_unknown_id_is_null(
+        self, tmp_path, monkeypatch
+    ):
+        c = _app(tmp_path, monkeypatch)
+        sam = _provision(c, "sam", display_name="Sam Person")
+        _provision(c, "jo", display_name="Jo Helper")
+        log = people_mod.HelperLog(tmp_path)
+        log.append(
+            "sam",
+            {
+                "at": "2026-09-26T08:00:00Z",
+                "helper_id": "jo",
+                "action": "approve",
+                "summary": "Done.",
+                "undoable": False,
+            },
+        )
+        # A helper who was never a person here (or is fully gone):
+        log.append(
+            "sam",
+            {
+                "at": "2026-09-26T09:00:00Z",
+                "helper_id": "gone",
+                "action": "refresh",
+                "summary": "Done.",
+                "undoable": False,
+            },
+        )
+        rows = c.get("/api/me/helped-by", headers=_h(sam)).json()["data"]
+        assert len(rows) == 2  # newest first
+        assert rows[0]["helper_id"] == "gone"
+        assert rows[0]["helper_name"] is None
+        assert rows[1]["helper_id"] == "jo"
+        assert rows[1]["helper_name"] == "Jo Helper"
+
+    def test_limits_set_by_name(self, tmp_path, monkeypatch):
+        c = _app(tmp_path, monkeypatch)
+        sam = _provision(c, "sam", display_name="Sam Person")
+        jo = _provision(c, "jo", display_name="Jo Helper")
+        assert _grant(c, sam, "jo", can_act=True).status_code == 200  # guardian
+        r = c.put(
+            "/api/people/sam/limits", json={"limits": GOOD_LIMITS}, headers=_h(jo)
+        )
+        assert r.status_code == 200, r.text
+        mine = c.get("/api/me/limits", headers=_h(sam)).json()["data"]
+        assert mine["set_by"] == "jo"
+        assert mine["set_by_name"] == "Jo Helper"
+        # A setter that is gone: name null, id kept.
+        people_mod.LimitsStore(tmp_path).set("sam", {}, "nobody")
+        mine = c.get("/api/me/limits", headers=_h(sam)).json()["data"]
+        assert mine["set_by"] == "nobody"
+        assert mine["set_by_name"] is None
+
+    def test_api_me_helping_carries_person_name(self, tmp_path, monkeypatch):
+        c = _app(tmp_path, monkeypatch)
+        sam = _provision(c, "sam", display_name="Sam Person")
+        jo = _provision(c, "jo", display_name="Jo Helper")
+        assert _grant(c, sam, "jo").status_code == 200
+        me = c.get("/api/me", headers=_h(jo)).json()["data"]
+        assert [h["person_name"] for h in me["helping"]] == ["Sam Person"]
