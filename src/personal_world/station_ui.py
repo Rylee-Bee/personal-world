@@ -93,6 +93,7 @@ RESERVED_TOP_LEVEL = frozenset(
     {
         "api",
         "login",
+        "invite",
         "logout",
         "setup",
         "healthz",

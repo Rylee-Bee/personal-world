@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#161a30">
+<title>You're invited — Worlds</title>
+<style>
+  /* Same tokens as the login page; design will restyle later. */
+  :root {
+    color-scheme: dark;
+    --bg: #12100e;
+    --panel: #1c1814;
+    --ink: #f4efe6;
+    --ink-soft: #c9c0b2;
+    --accent: #d4a057;
+    --line: #3a332b;
+    --danger: #ff9b8a;
+    --focus: #8fd0ff;
+    --radius: 14px;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(1200px 600px at 50% -10%, #241d15 0%, var(--bg) 60%);
+    color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    padding: 24px;
+  }
+  main {
+    width: 100%;
+    max-width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 32px;
+  }
+  .brand { color: var(--accent); font-weight: 600; letter-spacing: 0.02em; margin: 0 0 4px; }
+  h1 { font-size: 1.5rem; margin: 0 0 8px; }
+  .lede { color: var(--ink-soft); margin: 0 0 20px; }
+  button {
+    min-height: 48px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: var(--accent);
+    color: #1a1409;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.05); }
+  button[disabled] { opacity: 0.6; cursor: progress; }
+  label { font-weight: 600; }
+  .key-row { display: grid; gap: var(--gap); margin: 0 0 12px; }
+  input[type="text"] {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    background: #14110e;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font: inherit;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .error {
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 0 0 16px;
+  }
+  .alt { margin: 16px 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+  .alt a { color: var(--accent); }
+  .hint { margin: 8px 0 0; color: var(--ink-soft); font-size: 0.9rem; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main id="main">
+  <p class="brand">Worlds</p>
+  <h1>You're invited</h1>
+
+  <p class="lede" id="lede">Someone sent you a link to join this world. Accepting
+  it makes your account and shows a sign-in key one time.</p>
+
+  <p id="error" class="error" role="alert" hidden></p>
+
+  <div id="accept-block">
+    <button type="button" id="accept" disabled>Accept invite</button>
+  </div>
+
+  <section id="done" hidden aria-labelledby="key-label">
+    <div class="key-row">
+      <label id="key-label" for="key">Your sign-in key (shown once)</label>
+      <input id="key" type="text" readonly spellcheck="false"
+             autocapitalize="off" autocomplete="off">
+      <button type="button" id="copy">Copy</button>
+    </div>
+    <p class="hint" id="done-hint">Keep it somewhere safe. There is no way to show
+    this key again — if you lose it, ask the person who invited you for a new link.</p>
+    <p class="alt">Ready to go? <a href="/login" id="signin">Sign in</a> with this key.</p>
+  </section>
+
+  <p id="live" class="visually-hidden" role="status" aria-live="polite"></p>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  // The invite code is everything after `#`. Fragments never reach the
+  // server, so this page is served the same to everyone, signed out.
+  var hash = window.location.hash || "";
+  var code = (hash.charAt(0) === "#" ? hash.slice(1) : hash).trim();
+
+  var accept = document.getElementById("accept");
+  var copy = document.getElementById("copy");
+  var keyInput = document.getElementById("key");
+  var error = document.getElementById("error");
+  var live = document.getElementById("live");
+  var acceptBlock = document.getElementById("accept-block");
+  var done = document.getElementById("done");
+
+  function showError(message) {
+    error.textContent = message;
+    error.hidden = false;
+    live.textContent = message;
+  }
+
+  function resetAccept() {
+    accept.disabled = false;
+    accept.textContent = "Accept invite";
+  }
+
+  // A link with no code has nothing to accept: say so plainly and keep
+  // the button disabled rather than letting a click do a pointless POST.
+  if (!code) {
+    showError("This link is missing its invite code. Ask the person who invited you for a new one.");
+  } else {
+    accept.disabled = false;
+  }
+
+  accept.addEventListener("click", function () {
+    if (!code) return;
+    error.hidden = true;
+    accept.disabled = true;
+    accept.textContent = "Working…";
+    fetch("/api/invites/accept", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: code })
+    })
+      .then(function (res) {
+        if (res.ok) return res.json();
+        // Honest, plain reasons — one per state the link can be in.
+        return res.json().catch(function () { return {}; }).then(function (body) {
+          var detail = (body && body.detail) || "";
+          var message;
+          if (res.status === 403 && detail.indexOf("expired") !== -1) {
+            message = "This invite link has expired. Ask the person who invited you for a new one.";
+          } else if (res.status === 403) {
+            message = "This invite link has already been used. Ask the person who invited you for a new one.";
+          } else if (res.status === 409) {
+            message = "That invite's account already exists. Ask the person who invited you for a new one.";
+          } else if (res.status === 422) {
+            message = "This link is missing its invite code. Ask the person who invited you for a new one.";
+          } else {
+            message = "The server could not accept this invite right now. Try again in a moment.";
+          }
+          showError(message);
+          resetAccept();
+          accept.focus();
+          return null;
+        });
+      })
+      .then(function (body) {
+        if (!body || !body.data || !body.data.sign_in_key) return;
+        // Show the key once. It goes nowhere else: not the URL, not
+        // browser storage, not a log.
+        acceptBlock.hidden = true;
+        error.hidden = true;
+        done.hidden = false;
+        keyInput.value = body.data.sign_in_key;
+        live.textContent = "Here is your sign-in key. Keep it somewhere safe.";
+        copy.focus();
+      })
+      .catch(function () {
+        showError("Could not reach the server. Check your connection and try again.");
+        resetAccept();
+      });
+  });
+
+  copy.addEventListener("click", function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(keyInput.value).then(
+        function () { live.textContent = "Copied."; },
+        function () { selectKey(); }
+      );
+    } else {
+      selectKey();
+    }
+  });
+
+  function selectKey() {
+    // Clipboard refused or unavailable: put the key on screen selected,
+    // ready to copy by hand, instead of claiming a copy that failed.
+    keyInput.focus();
+    keyInput.select();
+    live.textContent =
+      "Copy did not work, so the key is selected for you. Press Ctrl+C (Cmd+C on a Mac) to copy it.";
+  }
+})();
+</script>
+</body>
+</html>

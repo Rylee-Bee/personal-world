@@ -945,6 +945,17 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "set it and when are stored; a guardian still cannot read the "
         "person's journal or world",
     ),
+    _e(
+        "API-100",
+        "GET",
+        "/api/people/directory",
+        "identity",
+        "read",
+        "none",
+        note="people picker: [{id, display_name}] for enabled people "
+        "only, no roles, emails, expired guests or agents; gated on "
+        "own_space (people who live here), so guests and agents get 403",
+    ),
     # Exports / backup / updates.
     _e(
         "API-025",
