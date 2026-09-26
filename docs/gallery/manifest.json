@@ -37,7 +37,7 @@
       "alt": "The Bridge: a short briefing at the top, a Needs you tray, and room doorway cards with their status in words.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "c4ec302"
+      "commit": "74ae381"
     },
     {
       "id": "room-drawer-studio",
@@ -55,7 +55,7 @@
       "alt": "The Studio drawer open beside the Bridge, showing a need, cards with tone words, and an Open Studio button.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "room-drawer-workshop-secrets",
@@ -73,7 +73,7 @@
       "alt": "The Workshop drawer with a Secrets section: the station's health in words and key names in groups.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "secrets-waiting",
@@ -95,7 +95,7 @@
       "alt": "The Workshop drawer's Secrets section with a request card and an Enter it in Project Home button.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "efd3063"
+      "commit": "74ae381"
     },
     {
       "id": "unreachable-room",
@@ -113,7 +113,7 @@
       "alt": "The Cellar drawer saying Worlds can't reach it and when it last answered.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "f9e665d"
+      "commit": "74ae381"
     },
     {
       "id": "find-a-room",
@@ -136,7 +136,7 @@
       "alt": "The Rooms section with a Find a room box containing 'st' and a line saying how many rooms match.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "no-rooms",
@@ -151,7 +151,7 @@
       "alt": "The Rooms section saying there are no rooms yet, with a How rooms connect button.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "efd3063"
+      "commit": "74ae381"
     },
     {
       "id": "ask-in-chat",
@@ -175,7 +175,7 @@
       "alt": "The Chat screen with a question about Studio written in the message box, not yet sent.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "memory",
@@ -185,7 +185,7 @@
       "alt": "The Memory screen with a note box and recent journal entries.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "chat",
@@ -195,7 +195,7 @@
       "alt": "The Chat screen with the companion's name in the header and the message box.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "efd3063"
+      "commit": "74ae381"
     },
     {
       "id": "settings",
@@ -205,7 +205,7 @@
       "alt": "The Settings screen with the Your crew card, message choices and theme swatches.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "efd3063"
+      "commit": "74ae381"
     },
     {
       "id": "crew",
@@ -224,7 +224,43 @@
       "status": "captured",
       "notes": "If the Settings screen's way into Crew has a different accessible name, fix the step, not the UI.",
       "captured_at": "2026-09-26",
-      "commit": "efd3063"
+      "commit": "74ae381"
+    },
+    {
+      "id": "people",
+      "title": "People",
+      "area": "Settings",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "Open people"
+          }
+        }
+      ],
+      "caption": "People: who lives in this World, each role written as what that person can do, inviting someone, and handing the World over.",
+      "alt": "The People page listing Sam, Jo, Alex, Robin and Kit, each with a plain sentence about what they can do.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "74ae381"
+    },
+    {
+      "id": "helpers",
+      "title": "Let someone help you",
+      "area": "Settings",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "Open helpers"
+          }
+        }
+      ],
+      "caption": "Let someone help you: choose who and for how long, stop it any time, and see what they did.",
+      "alt": "The helpers page with a form to choose a person and how long, a list of who is helping now with Stop now buttons, and a Who helped me list.",
+      "status": "captured",
+      "captured_at": "2026-09-26",
+      "commit": "74ae381"
     },
     {
       "id": "interests",
@@ -234,7 +270,7 @@
       "alt": "The Interests screen with a list of followed interests.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "projects-placeholder",
@@ -244,7 +280,7 @@
       "alt": "The Projects screen with a heading and one sentence saying it isn't built yet.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "first-light",
@@ -254,7 +290,7 @@
       "alt": "The First Light welcome step with a Let's begin button.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "first-light-comfort",
@@ -264,7 +300,7 @@
       "alt": "The First Light comfort step with three theme choices and three checkboxes.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "first-light-companion",
@@ -274,7 +310,7 @@
       "alt": "The First Light companion step with the Assistant chosen.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     },
     {
       "id": "login",
@@ -284,7 +320,7 @@
       "alt": "The Worlds sign-in page with a field for the access code.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "74ae381"
     }
   ]
 }
