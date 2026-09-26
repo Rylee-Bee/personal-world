@@ -537,7 +537,7 @@ describe("RoomDrawer", () => {
     setRooms([
       {
         ...WORKSHOP,
-        base_url: "http://10.0.0.5:8940",
+        base_url: "http://workshop.internal:8940",
         public_url: "https://workshop.example.test",
         needs_you: [
           { id: "n1", title: "Approve the plan", why: "", actions: [], created_at: "2026-09-25T09:00:00Z", link: "/plans/1" },
