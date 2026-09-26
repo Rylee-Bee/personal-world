@@ -22,10 +22,12 @@
  * the journal drawers.
  */
 
+import { useRootAttribute } from "../../components/rooms/useRootAttribute";
 import { JournalRoom } from "./JournalRoom";
 import { RecordsPanel } from "./Records";
 
 export function Memory() {
+  const doorways = useRootAttribute("data-theme") === "doorways";
   return (
     <>
       {/* Skip-to-main-content — first focusable element */}
@@ -41,8 +43,22 @@ export function Memory() {
         aria-label="Memory"
         className="mx-auto max-w-2xl space-y-[var(--pw-spacing-2xl)] p-[var(--pw-spacing-lg)]"
       >
-        <header>
-          <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+        <header className="flex items-center gap-[var(--pw-spacing-lg)]">
+          {/* Doorways theme: Memory is the archive, seen through its door
+              (decorative, like the rooms' interiors). */}
+          {doorways && (
+            <img
+              src={`${import.meta.env.BASE_URL}assets/crew/256/doorway-archive.webp`}
+              alt=""
+              aria-hidden="true"
+              className="hidden h-28 w-auto shrink-0 object-contain sm:block"
+            />
+          )}
+          <div className="min-w-0">
+          <h1
+            className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]"
+            style={{ fontFamily: "var(--pw-typography-font_serif, inherit)" }}
+          >
             Memory
           </h1>
           <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
@@ -51,6 +67,7 @@ export function Memory() {
             without any model in the loop. Chat can recall things for
             you — it is a shortcut, never the only door.
           </p>
+          </div>
         </header>
 
         <JournalRoom />

@@ -5,6 +5,8 @@
  * shows (it never breaks the Bridge). Settings can bring it back.
  */
 import { useSyncExternalStore } from "react";
+import { useJournalList, useRooms } from "../../data/hooks";
+import type { BridgeData } from "../../data/contract";
 
 const KEY = "pw-first-day-guide";
 const listeners = new Set<() => void>();
@@ -76,3 +78,25 @@ export const SYSTEM_ABOUT: Record<string, string> = {
 /** Statuses that mean a system answered with something (briefing
  *  _FRESH_STATUSES): the rest are not set up, unknown or unreachable. */
 export const ANSWERING = new Set(["healthy", "warning", "stale", "needs_attention"]);
+
+/** Where the first day stands, from the same live data the guide shows.
+ *  `showing` is true only while the guide is actually on the Bridge (so
+ *  the companion's messages can stay quiet then: one voice at a time). */
+export function useFirstDayProgress(data: BridgeData) {
+  const hidden = useFirstDayHidden();
+  const rooms = useRooms();
+  const journal = useJournalList({ n: 200 });
+  const speaker = data.keeper.resident;
+  const crewOn = speaker.key !== null;
+  const roomCount = rooms.data?.data?.length;
+  const answering = data.systems.filter((s) => ANSWERING.has(s.status)).length;
+  const wroteNote = (journal.data?.data ?? []).some((e) => e.provenance?.source === "user");
+  const companionChosen = crewOn && speaker.key !== "assistant";
+  const roomsDone = (roomCount ?? 0) > 0;
+  const systemsDone = data.systems.length > 0 && answering === data.systems.length;
+  const lines = [roomsDone, systemsDone, wroteNote, ...(crewOn ? [companionChosen] : [])];
+  const allDone = lines.every(Boolean);
+  const settling = rooms.isPending || journal.isPending;
+  const showing = !hidden && !allDone && !settling;
+  return { hidden, settling, showing, allDone, speaker, crewOn, roomCount, answering, wroteNote, companionChosen, roomsDone, systemsDone };
+}

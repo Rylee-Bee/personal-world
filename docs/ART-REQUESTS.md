@@ -407,3 +407,50 @@ private. Deep navy and warm gold, no text.
 Export the Settings bed icon as clean 16, 32 and 48 px PNGs plus a vector SVG, in
 the crew icon language (navy + warm gold, optional tiny crescent, no face).
 ```
+## 10. The Assistant, painted (requested 2026-09-26)
+
+The Assistant is Worlds' **plain default companion**: who answers when the person
+hasn't chosen anyone. Today it's a drawn SVG (`design/assets/crew/assistant/assistant.svg`):
+a friendly computer monitor in the crew's navy and gold, with a small gold
+ringed-planet commbadge (Sol's shape, no face) on its stand. This asks for a painted
+version that sits beside the rest of the crew without standing out.
+
+**Who it is.** Calm, helpful, a little shy; plain-spoken, never cutesy. It's a
+*screen with a kind face*: two eyes, a small smile, rosy cheeks, all shown **on the
+screen**. No arms or legs; emotion lives in the face and a little tilt of the monitor.
+It is not Sol (the planet logo) and never wears her face.
+
+**Deliver (so it drops straight in):**
+
+| File | What | Canvas | Used for |
+| --- | --- | --- | --- |
+| `assistant-portrait.png` | Round-porthole bust, **same framing as `portraits/bolt-portrait.png`** (screen centred, face at the same height) | 1024 × 1024, transparent | Crew page, keeper emblems, briefing speaker (24–84 px) |
+| `assistant-listening.png` | Bust, face turned slightly to the reader, attentive | 1024 × 1024, transparent | Beside Chat (the "Chat with your companion" board) |
+| `assistant-hello.png` | Full monitor on its stand, smiling; a small gold cursor-hand waves **on the screen** | 1024 × 1536, transparent | Empty states, first-day guide |
+| `assistant-sheet.png` (optional) | The six states on one sheet: REST · CURIOUS · ATTENTIVE · ENGAGED · PROTECTIVE · GIVING SPACE | any, flat | Reference |
+
+- PNG with real transparency, no baked-in text, no background glow or halo in the cutouts.
+- Must still read at **24 px**: a clear screen shape and two eyes, nothing fiddly.
+- Drop the files in `design/owner/crew/newassets/` (or send them). Claude curates them
+  into `design/assets/crew/assistant/` and exports `ui/public/assets/crew/{256,512}/`
+  WebPs, the same as the crew.
+
+**Copy-paste request:**
+
+```
+Paint the Assistant for the Project Worlds crew: a friendly computer monitor on a small
+stand — the plain default helper. Same style as the crew sheet: warm, painterly, crisp
+dark outlines, deep navy casing with gold trim, cozy lighting. The face lives ON the
+screen: two large expressive eyes with highlights, a small gentle smile, rosy cheeks.
+A small gold ringed-planet commbadge (a planet with a ring, no face) sits on the stand.
+No arms or legs; emotion comes from the face and a slight tilt. Calm, helpful, a little
+shy; cute but competent. No text anywhere.
+Deliver, each as a transparent PNG:
+1) assistant-portrait.png — 1024×1024 round-porthole bust, framed exactly like the other
+   crew portraits (screen centred, face at the same height).
+2) assistant-listening.png — 1024×1024 bust, attentive, turned slightly toward the viewer.
+3) assistant-hello.png — 1024×1536 full monitor on its stand, smiling, with a small gold
+   cursor-hand waving on the screen.
+Optional: a sheet of six states (rest, curious, attentive, engaged, protective, giving space).
+It must still read at 24 px.
+```

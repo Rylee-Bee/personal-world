@@ -585,6 +585,7 @@ export function JournalRoom() {
           <h2
             id="memory-journal-heading"
             className="text-[length:var(--pw-typography-size_h2)] font-semibold text-[var(--pw-text-primary)]"
+            style={{ fontFamily: "var(--pw-typography-font_serif, inherit)" }}
           >
             Journal
           </h2>

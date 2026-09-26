@@ -277,6 +277,7 @@ body {
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "strip"
+    "message"
     "firstday"
     "tray"
     "lenses"
@@ -291,6 +292,7 @@ body {
       minmax(180px, 220px) minmax(0, 1fr) minmax(280px, 360px);
     grid-template-areas:
       "strip strip strip"
+      "message message message"
       "firstday firstday firstday"
       "lenses map tray"
       "lenses map panel"
@@ -300,6 +302,7 @@ body {
   }
 }
 .bridge-strip { grid-area: strip; }
+.bridge-message { grid-area: message; }
 .bridge-firstday { grid-area: firstday; }
 .bridge-tray { grid-area: tray; }
 .bridge-lenses { grid-area: lenses; }
