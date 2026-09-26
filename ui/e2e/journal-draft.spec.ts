@@ -14,7 +14,8 @@
  * silently lost state), and the unsaved draft is still there when they return
  * to Memory.
  */
-import { test, expect, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { test, expect } from "./test";
 
 test.describe.configure({ mode: "serial" });
 

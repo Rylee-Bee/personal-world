@@ -3,7 +3,7 @@
  * non-modal dialog; full axe rule set with no suppressions; Escape
  * closes it and focus returns to the doorway's Look inside button.
  */
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import AxeBuilder from "@axe-core/playwright";
 
 test.beforeEach(async ({ request }) => {

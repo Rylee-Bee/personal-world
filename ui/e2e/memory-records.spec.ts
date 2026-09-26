@@ -23,7 +23,8 @@
  * never takes the other down, and NOTHING is invented when the source
  * has nothing.
  */
-import { test, expect, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { test, expect } from "./test";
 
 async function openRecords(page: Page) {
   await page.goto("/");

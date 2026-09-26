@@ -8,7 +8,7 @@
  * delete-confirmation modal. Nothing outside ui/ was touched; every
  * endpoint behaves exactly as when Vault had its own nav slot.
  */
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 
 // Serial: both tests touch the ONE mock server's vault state. Under
 // the default full-parallel mode the second test's afterEach re-locks

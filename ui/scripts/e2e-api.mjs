@@ -18,9 +18,19 @@
  *
  * Started by playwright.config.ts (webServer) on 127.0.0.1:4174; the
  * preview proxy points at it via VITE_API_PROXY_TARGET.
+ *
+ * One world per Playwright worker. The process on :4174 is a small
+ * router: every request carries `x-e2e-worker` (set by e2e/test.ts), and
+ * the router starts a private copy of this server for each worker on
+ * first use, then pipes that worker's requests to it. So a spec's
+ * `DELETE /api/__test/reset` or a draft/crew write can never land in the
+ * middle of another worker's test. Requests without the header share
+ * one "default" world (the webServer health check, ad-hoc curl).
  */
 
 import http from "node:http";
+import { fork } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const PORT = Number(process.env.E2E_API_PORT ?? 4174);
 const NOW_ISO = "2026-09-20T09:00:00Z";
@@ -1315,6 +1325,66 @@ const server = http.createServer(async (req, res) => {
   notFound(res);
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`pw-station e2e mock API listening on http://127.0.0.1:${PORT}`);
-});
+if (process.env.E2E_API_WORLD) {
+  // A private world for one worker, on an ephemeral port the router picks.
+  server.listen(0, "127.0.0.1", () => {
+    process.send?.({ port: server.address().port });
+  });
+} else {
+  startRouter();
+}
+
+// ─── The router: one fixture world per Playwright worker ─────────────
+function startRouter() {
+  const worlds = new Map(); // worker id -> Promise<port>
+  const children = [];
+  const worldFor = (id) => {
+    if (!worlds.has(id)) {
+      worlds.set(
+        id,
+        new Promise((resolve, reject) => {
+          const child = fork(fileURLToPath(import.meta.url), [], {
+            env: { ...process.env, E2E_API_WORLD: id },
+            stdio: ["ignore", "ignore", "inherit", "ipc"],
+          });
+          children.push(child);
+          child.once("message", (m) => resolve(m.port));
+          child.once("exit", (code) => reject(new Error(`world ${id} exited (${code})`)));
+        }),
+      );
+    }
+    return worlds.get(id);
+  };
+  const router = http.createServer(async (req, res) => {
+    const raw = String(req.headers["x-e2e-worker"] ?? "default");
+    const id = /^[a-z0-9-]{1,32}$/i.test(raw) ? raw : "default";
+    let port;
+    try {
+      port = await worldFor(id);
+    } catch (err) {
+      res.writeHead(502, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ ok: false, error: String(err) }));
+    }
+    const upstream = http.request(
+      { host: "127.0.0.1", port, method: req.method, path: req.url, headers: req.headers },
+      (up) => {
+        res.writeHead(up.statusCode ?? 502, up.headers);
+        up.pipe(res);
+      },
+    );
+    upstream.on("error", (err) => {
+      res.writeHead(502, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: String(err) }));
+    });
+    req.pipe(upstream);
+  });
+  const stop = () => {
+    for (const c of children) c.kill();
+    process.exit(0);
+  };
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
+  router.listen(PORT, "127.0.0.1", () => {
+    console.log(`pw-station e2e mock API router on http://127.0.0.1:${PORT} (one world per worker)`);
+  });
+}

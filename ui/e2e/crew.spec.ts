@@ -4,7 +4,7 @@
  * real write round-trip against the fixture API: a keeper move shows up
  * in words on the page.
  */
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import AxeBuilder from "@axe-core/playwright";
 import { gotoArea } from "./helpers";
 
