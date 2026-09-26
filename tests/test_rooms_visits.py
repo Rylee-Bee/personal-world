@@ -263,15 +263,21 @@ class TestRoomsViewVisitState:
         assert payload["summary"]["needs_you"] == 0
         assert _rows(payload)["studio"]["needs_seen"] == ["need-1"]
 
-    def test_unknown_room_needs_count_as_unknown_not_current(self, client, monkeypatch):
+    def test_incompatible_room_needs_are_not_counted(self, client, monkeypatch):
+        # An unsupported contract is "incompatible": its needs/cards are
+        # never used for the summary (never current, never "unknown needs").
         bad = dict(DESCRIPTOR, contract="room/9")
         _install(
             monkeypatch,
             handler=_handler(descriptor=lambda: httpx.Response(200, json=bad)),
         )
         payload = client.get("/api/rooms", headers=_auth()).json()
+        row = _rows(payload)["studio"]
+        assert row["status"] == "incompatible"
+        assert row["status"] != "healthy"
+        assert row["needs_you"] == []
         assert payload["summary"]["needs_you"] == 0
-        assert payload["summary"]["unknown"] == 1
+        assert payload["summary"]["unknown"] == 0
 
     def test_unreachable_room_is_counted_and_never_health(self, client, monkeypatch):
         _install(monkeypatch, handler=_down)

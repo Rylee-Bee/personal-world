@@ -2060,6 +2060,15 @@ export interface paths {
          *     on a room's behalf: an unreachable room is reported
          *     ``reachable: false`` with its last-seen time, never claimed
          *     healthy.
+         *
+         *     The room list itself is read at runtime: when a registry is
+         *     configured (``PW_ROOMS_REGISTRY_URL``) it is refreshed on the
+         *     snapshot cadence, so adding or removing a registry room takes
+         *     effect on the next refresh with no restart. A new sibling
+         *     ``registry`` states where the list came from and whether the
+         *     registry read was ok, unreachable or not configured — additive:
+         *     the existing ``data``/``resume``/``summary`` envelope is
+         *     unchanged.
          */
         get: operations["rooms_view_api_rooms_get"];
         put?: never;

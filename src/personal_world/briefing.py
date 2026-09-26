@@ -48,12 +48,17 @@ ROOM_NEED_RANK = 1
 #: vocabulary. ``unreachable`` maps to the existing ``unavailable`` word
 #: — never ``healthy``. ``degraded``/``unhealthy`` reuse the words the
 #: UI already carries (``warning`` / ``needs_attention``); no new words.
+#: ``incompatible`` (a contract this front door does not support) maps to
+#: ``needs_attention`` — the existing not-healthy word the UI renders as
+#: "Needs attention": a definite mismatch the person should act on, not
+#: the softer "unknown".
 ROOM_STATUS_TO_SYSTEM_STATUS = {
     "healthy": Status.HEALTHY.value,
     "degraded": Status.WARNING.value,
     "unhealthy": Status.NEEDS_ATTENTION.value,
     "unknown": Status.UNKNOWN.value,
     "unreachable": Status.UNAVAILABLE.value,
+    "incompatible": Status.NEEDS_ATTENTION.value,
 }
 
 #: Room ids are operator-chosen; folding every non-alphanumeric run to

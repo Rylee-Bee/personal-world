@@ -32,7 +32,9 @@ function oldestNeedTime(row: RoomRow): number {
 }
 
 export function isUncertain(row: RoomRow): boolean {
-  return !row.reachable || row.status === "unknown";
+  // A room we can't read has unknown needs: unreachable, no status, or a
+  // contract this front door does not support (never healthy).
+  return !row.reachable || row.status === "unknown" || row.status === "incompatible";
 }
 
 export interface RoomGroups {

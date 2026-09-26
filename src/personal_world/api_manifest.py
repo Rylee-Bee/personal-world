@@ -293,7 +293,12 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "persisted last-seen, plus the caller's private visit state "
             "(last_visited_at, needs_seen, changed_since_visit) with "
             "resume/summary siblings of data; never raises, never claims "
-            "an unreachable room healthy"),
+            "an unreachable room healthy. The room list is read at "
+            "runtime from Project Home's registry when PW_ROOMS_REGISTRY_URL "
+            "is set (cached 60 s, last-known-good persisted, env fallback) "
+            "and a sibling `registry` states its source/status; a room "
+            "whose contract this front door does not support is "
+            "`incompatible`, never healthy, with its cards/needs uncounted"),
     _e("API-088-visit", "POST", "/api/rooms/{room_id}/visit", "rooms",
        "write", "none",
        note="Worlds-owned, caller-scoped visit state (never sent to a "
