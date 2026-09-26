@@ -410,8 +410,8 @@ the crew icon language (navy + warm gold, optional tiny crescent, no face).
 ## 10. The Assistant, painted (requested and DELIVERED 2026-09-26)
 
 **Delivered:** `design/assets/crew/assistant/assistant-{portrait,listening,hello}.png`, with web
-sizes in `ui/public/assets/crew/{256,512}/`. The hello image keeps a soft baked-in glow; a
-clean-edge version would let it work as a strict cutout.
+sizes in `ui/public/assets/crew/{256,512}/`. The hello image was replaced the same day with a
+clean-edge cutout (no glow, no waving hand), padded to a 1024² square so it sits on any panel.
 
 The Assistant is Worlds' **plain default companion**: who answers when the person
 hasn't chosen anyone. Today it's a drawn SVG (`design/assets/crew/assistant/assistant.svg`):
