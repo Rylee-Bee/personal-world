@@ -158,12 +158,6 @@ SYSTEM_RESIDENT: dict[str, str] = {
     "threads": "ratatoskr",  # World tree
 }
 
-#: Rooms that are not one of the six briefing systems but still have an
-#: owner-chosen default keeper (Rylee, 2026-09-26: "Mira keeps Studio").
-ROOM_RESIDENT: dict[str, str] = {
-    "studio": "mira",
-}
-
 
 def _entry(
     companion_id: str,
@@ -274,7 +268,7 @@ def default_keepers(room_ids: Iterable[str]) -> dict[str, str]:
         if not isinstance(room_id, str) or not room_id:
             continue
         system_id = system_id_for_room_id(room_id)
-        companion_id = ROOM_RESIDENT.get(room_id) or SYSTEM_RESIDENT.get(system_id or "")
+        companion_id = SYSTEM_RESIDENT.get(system_id or "")
         if companion_id:
             out[room_id] = companion_id
     return out
@@ -324,11 +318,6 @@ def read_crew(path: Path, *, room_ids: Iterable[str] = ()) -> dict[str, Any]:
                 if isinstance(companion_id, str) and companion_id in known
                 else None
             )
-        # A room this person has never assigned (no key at all) gets its
-        # default keeper; an explicit clear is stored as None and stays.
-        for room_id, companion_id in default_keepers(room_ids).items():
-            if room_id not in state["keepers"] and companion_id in known:
-                state["keepers"][room_id] = companion_id
     else:
         # Seeded only for a companion this roster actually has: a
         # hand-edited file with an emptied crew gets no phantom keepers
