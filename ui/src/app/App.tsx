@@ -25,11 +25,12 @@
  */
 
 import { SolMoment } from "../components/SolMoment";
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { Bridge } from "../screens/Bridge/Bridge";
 import { Memory } from "../screens/Memory/Memory";
 import { Interests } from "../screens/Interests/Interests";
-import { Chat } from "../screens/Chat/Chat";
+import { Chat, type ChatDraft } from "../screens/Chat/Chat";
+import { AskInChatContext } from "./askInChat";
 import { Settings } from "../screens/Settings/Settings";
 import { Crew } from "../screens/Crew/Crew";
 import { WorldDrawer } from "../components/WorldDrawer";
@@ -119,6 +120,11 @@ export function App() {
   // "crew" is a page inside Settings, not a nav landmark: the skeleton
   // stays Overview · Memory · Chat · Settings.
   const [activeArea, setActiveArea] = useState<WorldAreaId | "crew">("overview");
+  const [chatDraft, setChatDraft] = useState<ChatDraft | null>(null);
+  const askInChat = useCallback((question: string) => {
+    setChatDraft({ id: Date.now(), text: question });
+    setActiveArea("chat");
+  }, []);
   const { skeleton, personal } = useWorldAreas();
 
   // Prefs chrome: server truth lands on the document (C12).
@@ -146,7 +152,7 @@ export function App() {
       case "memory":
         return <Memory />;
       case "chat":
-        return <Chat />;
+        return <Chat key={chatDraft?.id ?? "chat"} draft={chatDraft} />;
       case "settings":
         return <Settings onOpenCrew={() => setActiveArea("crew")} />;
       case "crew":
@@ -189,6 +195,7 @@ export function App() {
   );
 
   return (
+    <AskInChatContext.Provider value={askInChat}>
     <div className="min-h-screen bg-[var(--pw-surface-canvas)]">
       {/* Atmosphere layers — aria-hidden, decorative */}
       <div className="starfield-bg" aria-hidden="true" />
@@ -265,6 +272,7 @@ export function App() {
       {/* Status strip — bottom bar pattern from starfield */}
       <StatusStrip />
     </div>
+    </AskInChatContext.Provider>
   );
 }
 

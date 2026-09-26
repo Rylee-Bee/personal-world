@@ -41,11 +41,24 @@ function normaliseMessages(raw: ChatEntry[] | undefined): ChatMessage[] {
 
 // ─── Component ───────────────────────────────────────────
 
-export function Chat() {
-  const [input, setInput] = useState("");
+/** A question another screen wrote for the person ("Ask about this in
+ *  Chat"): it lands in the box, unsent. `id` changes per ask. */
+export interface ChatDraft {
+  id: number;
+  text: string;
+}
+
+export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
+  const [input, setInput] = useState(draft?.text ?? "");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // An ask arrives as a fresh mount (App keys Chat by the ask), so the
+  // box starts with its text; put the cursor there. Never sent for them.
+  useEffect(() => {
+    if (draft) inputRef.current?.focus();
+  }, [draft]);
 
   const history = useChatHistory();
   const providers = useChatProviders();
