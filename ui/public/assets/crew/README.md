@@ -9,7 +9,7 @@ masters live in `design/assets/crew/` (see its README); edit those, never these.
 Contents: the Assistant (`assistant-portrait`, `assistant-listening`, `assistant-hello`; `assistant.svg` stays as a vector fallback), `sol-mark`, `sol-mark-mono`, `sol-badge`, Sol's moods (`sol-hello`, `sol-cheer`,
 `sol-curious`, `sol-rest`); `renai-hello`, `renai-listening`, `renai-lantern`; portraits for
 Bolt, Hekek, Ratatoskr, Bruma, Mira, Scoop; room interiors `room-worlds`, `workshop-doorway`,
-`play-nice-doorway`, `vefr-doorway`, `memomancer-doorway`.
+`play-nice-doorway`, `vefr-doorway`, `memomancer-doorway`, `hive-works-doorway`.
 
 The shared library (masters in `design/assets/library/`): 13 `doorway-*` interiors anyone can
 choose for a room, and 16 `pick-*` faces anyone can give a companion they add.
