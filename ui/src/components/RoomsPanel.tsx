@@ -41,7 +41,7 @@
  */
 
 import { Icon } from "./Icon";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useMarkNeedSeen, useRooms } from "../data/hooks";
 import type {
   RoomKeeper,
@@ -297,10 +297,16 @@ export function RoomsPanel() {
   const [quietChoice, setQuietChoice] = useState<boolean | null>(null);
   // The room drawer: which room is open, and the control that opened it
   // (focus goes back there on close; the Rooms heading if it's gone).
-  const [openRoomId, setOpenRoomId] = useState<string | null>(null);
+  // A deep link (/?room=<id>, e.g. from a notification) opens that room's
+  // drawer once. The parameter is then dropped from the address so a
+  // reload doesn't reopen it; an unknown id simply opens nothing.
+  const [openRoomId, setOpenRoomId] = useState<string | null>(() => readRoomParam());
   const openerRef = useRef<HTMLElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const openRow = openRoomId ? rows?.find((r) => r.id === openRoomId) : undefined;
+  useEffect(() => {
+    if (rows !== undefined) clearRoomParam();
+  }, [rows]);
 
   const closeDrawer = () => {
     setOpenRoomId(null);
@@ -658,4 +664,29 @@ function RegistryNotice({ registry }: { registry: RoomsRegistry | undefined }) {
       {lines.join(" ")}
     </p>
   );
+}
+
+/** The `room` query parameter, if any (see the deep-link note above). */
+function readRoomParam(): string | null {
+  if (typeof window === "undefined") return null;
+  let id: string | null = null;
+  try {
+    id = new URL(window.location.href).searchParams.get("room");
+  } catch {
+    return null;
+  }
+  return id && /^[a-z0-9][a-z0-9_-]{0,63}$/.test(id) ? id : null;
+}
+
+function clearRoomParam(): void {
+  if (typeof window === "undefined") return;
+  let url: URL;
+  try {
+    url = new URL(window.location.href);
+  } catch {
+    return;
+  }
+  if (!url.searchParams.has("room")) return;
+  url.searchParams.delete("room");
+  window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
 }
