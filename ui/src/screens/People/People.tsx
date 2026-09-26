@@ -14,8 +14,9 @@
  * end dates arrive with roles step 2; nothing for them is shown yet.
  */
 import { Icon } from "../../components/Icon";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { useMe, usePeople, useSetRole, useStepUp, useTransferOwnership } from "../../data/hooks";
+import { useEffect, useId, useRef, useState } from "react";
+import { useMe, usePeople, useSetRole, useTransferOwnership } from "../../data/hooks";
+import { ConfirmItsYou } from "../../components/ConfirmItsYou";
 import type { Person } from "../../data/contract";
 import { describeError, needsConfirm } from "../../data/errors";
 import { WorldButton } from "../../components/WorldButton";
@@ -46,77 +47,6 @@ function Initial({ name, agent = false }: { name: string; agent?: boolean }) {
     >
       {agent ? <Icon name="agent" size={24} /> : name.slice(0, 1).toUpperCase()}
     </span>
-  );
-}
-
-/** "Confirm it's you": re-enter the sign-in key to mint the short grant
- *  the server asks for, then run the held write again. */
-function ConfirmItsYou({ onConfirmed, onCancel }: { onConfirmed: () => void; onCancel: () => void }) {
-  const id = useId();
-  const [key, setKey] = useState("");
-  const [problem, setProblem] = useState<string | null>(null);
-  const stepUp = useStepUp();
-  const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => inputRef.current?.focus(), []);
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    setProblem(null);
-    if (key.trim() === "") {
-      setProblem("Enter your sign-in key to confirm.");
-      return;
-    }
-    stepUp.mutate(key.trim(), {
-      onSuccess: () => {
-        setKey("");
-        onConfirmed();
-      },
-      onError: (err) =>
-        setProblem(
-          err instanceof Error && /invalid|403/i.test(err.message)
-            ? "That key didn't match. Nothing changed."
-            : describeError(err, "Couldn't confirm. Nothing changed."),
-        ),
-    });
-  };
-
-  return (
-    <form
-      onSubmit={submit}
-      aria-labelledby={`${id}-title`}
-      className="mt-[var(--pw-spacing-md)] flex flex-col gap-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)]"
-    >
-      <p id={`${id}-title`} className="font-semibold text-[var(--pw-text-primary)]">
-        Confirm it’s you
-      </p>
-      <p className={NOTE}>This change needs you to confirm first. It lasts a few minutes.</p>
-      <label htmlFor={`${id}-key`} className={LABEL}>
-        Your sign-in key
-      </label>
-      <input
-        ref={inputRef}
-        id={`${id}-key`}
-        type="password"
-        autoComplete="current-password"
-        value={key}
-        onChange={(e) => setKey(e.target.value)}
-        aria-describedby={problem ? `${id}-problem` : undefined}
-        className={CONTROL}
-      />
-      {problem && (
-        <p id={`${id}-problem`} role="alert" className={NOTE}>
-          {problem}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-[var(--pw-spacing-sm)]">
-        <WorldButton type="button" onPress={onCancel}>
-          Not now
-        </WorldButton>
-        <WorldButton variant="primary" type="submit" isDisabled={stepUp.isPending}>
-          {stepUp.isPending ? "Confirming…" : "Confirm"}
-        </WorldButton>
-      </div>
-    </form>
   );
 }
 

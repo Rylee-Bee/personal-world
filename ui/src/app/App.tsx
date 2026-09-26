@@ -24,6 +24,8 @@
  * Status readouts are derived from the live /healthz probe — never hardcoded.
  */
 
+import { noteCurrentArea, takeConfirmReturn } from "./confirmReturn";
+import { WorldButton } from "../components/WorldButton";
 import { SolMoment } from "../components/SolMoment";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { Bridge } from "../screens/Bridge/Bridge";
@@ -120,7 +122,16 @@ export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   // "crew" and "people" are pages inside Settings, not nav landmarks:
   // the skeleton stays Overview · Memory · Chat · Settings.
-  const [activeArea, setActiveArea] = useState<WorldAreaId | "crew" | "people">("overview");
+  // Coming back from "Confirm with your sign-in" reopens the page the
+  // person was on, with one line saying they're confirmed.
+  const [returned] = useState(() => takeConfirmReturn());
+  const [activeArea, setActiveArea] = useState<WorldAreaId | "crew" | "people">(
+    () => (returned as WorldAreaId | "crew" | "people" | null) ?? "overview",
+  );
+  const [confirmedNote, setConfirmedNote] = useState(returned !== null);
+  useEffect(() => {
+    noteCurrentArea(activeArea);
+  }, [activeArea]);
   const [chatDraft, setChatDraft] = useState<ChatDraft | null>(null);
   const askInChat = useCallback((question: string) => {
     setChatDraft({ id: Date.now(), text: question });
@@ -264,6 +275,18 @@ export function App() {
         {/* Readout cells */}
         <HealthReadout />
       </header>
+
+      {confirmedNote && (
+        <div
+          role="status"
+          className="relative z-10 mx-[var(--pw-spacing-xl)] mt-[var(--pw-spacing-md)] flex flex-wrap items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-primary)]"
+        >
+          <span className="flex-1">You’re confirmed for the next few minutes. You can make your change now.</span>
+          <WorldButton variant="ghost" onPress={() => setConfirmedNote(false)}>
+            Dismiss
+          </WorldButton>
+        </div>
+      )}
 
       {/* §5.1: main content — screen router */}
       {renderScreen()}
