@@ -739,6 +739,10 @@ export interface RoomNeed {
 export interface RoomRow {
   id: string;
   base_url: string;
+  /** A browser-reachable address from the registry, or null. Preferred
+   *  over `base_url` (which may be an internal address) for every link a
+   *  person follows; `base_url` is the fallback. */
+  public_url?: string | null;
   reachable: boolean;
   status: string;
   room: RoomDescriptor | null;
@@ -847,4 +851,37 @@ export interface CrewEntry {
   full_body_asset?: string | null;
   source: "starter" | "user";
   hidden: boolean;
+}
+
+// ─── Secrets overview (GET /api/secrets/overview, owner only) ─────────
+/** Names and health only: a value is structurally absent. */
+export interface SecretsOverview {
+  station: {
+    configured: boolean;
+    /** ok | unreachable | not_configured | unknown */
+    status: string;
+    detail: string | null;
+  };
+  namespaces: { name: string; keys: string[] }[];
+  key_count: number;
+  bundle_last_change: string | null;
+  requests: {
+    id: string | null;
+    key_path: string | null;
+    reason: string | null;
+    requested_at: string | null;
+    /** A path on the Workshop's own site, or null. */
+    link: string | null;
+  }[];
+  recent_ops: {
+    key_path: string | null;
+    state: string | null;
+    deploy_state: string | null;
+    actor: string | null;
+    created_at: string | null;
+  }[];
+  room_id: string;
+  /** Project Home's trusted page (absolute), or null when no usable
+   *  address is known. The only place a value is ever typed. */
+  open_url: string | null;
 }

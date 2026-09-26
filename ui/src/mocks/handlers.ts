@@ -663,6 +663,8 @@ function bridgeHandlers(): RequestHandler[] {
         data: ROOMS_FIXTURE.map((row) => ({ ...row, keeper: MOCK_KEEPERS[row.id] ?? null, doorway: null })),
       }),
     ),
+    // GET /api/secrets/overview — names and health only (owner view).
+    http.get("/api/secrets/overview", () => HttpResponse.json({ ok: true, data: SECRETS_OVERVIEW_FIXTURE })),
     // GET /api/crew — the starter crew (crew.STARTER_CREW), read-only here.
     http.get("/api/crew", () => HttpResponse.json({ ok: true, data: MOCK_CREW })),
   ];
@@ -1914,6 +1916,30 @@ const builders = {
   chatEmpty: () => buildChatHandlers([]),
   chatPopulated: () => buildChatHandlers(CHAT_SEED),
 } satisfies Record<string, SetBuilder>;
+
+const SECRETS_OVERVIEW_FIXTURE = {
+  station: { configured: true, status: "ok", detail: null },
+  namespaces: [
+    { name: "rooms", keys: ["rooms/workshop-token", "rooms/studio-token"] },
+    { name: "mail", keys: ["mail/relay-password"] },
+  ],
+  key_count: 3,
+  bundle_last_change: "2026-09-25T22:52:00Z",
+  requests: [
+    {
+      id: "req-1",
+      key_path: "mail/relay-password",
+      reason: "The weekly digest can't send without the mail relay's password.",
+      requested_at: "2026-09-25T22:40:00Z",
+      link: "/secrets?request=req-1",
+    },
+  ],
+  recent_ops: [
+    { key_path: "rooms/workshop-token", state: "ok", deploy_state: "deployed", actor: "owner", created_at: "2026-09-25T09:12:00Z" },
+  ],
+  room_id: "workshop",
+  open_url: "https://room.test/secrets",
+};
 
 export type HandlerSet = keyof typeof builders;
 
