@@ -506,6 +506,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 content={
                     "ok": False,
                     "status": "forbidden",
+                    "detail": (
+                        "Helping only covers seeing needs and acting in rooms."
+                    ),
                     "warnings": [
                         "Helping only covers seeing needs and acting in rooms."
                     ],
@@ -3734,10 +3737,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             raise HTTPException(
                 status_code=403, detail="helping needs a person account"
             )
-        from .identity import (
-            _SAFE_PRINCIPAL_ID as _safe,
-            principal_from_record,
-        )
+        from .identity import _SAFE_PRINCIPAL_ID as _safe
+        from .identity import principal_from_record
 
         if not _safe.fullmatch(raw):
             raise HTTPException(

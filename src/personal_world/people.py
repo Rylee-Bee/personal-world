@@ -30,7 +30,7 @@ import os
 import re
 import secrets
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -65,14 +65,12 @@ _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 def iso_now() -> str:
     """Now, as an ISO-8601 UTC string ending in ``Z``."""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def to_iso(epoch: float) -> str:
     """An epoch time as an ISO-8601 UTC string ending in ``Z``."""
-    return datetime.fromtimestamp(epoch, timezone.utc).strftime(
-        "%Y-%m-%dT%H:%M:%SZ"
-    )
+    return datetime.fromtimestamp(epoch, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def parse_iso(value: Any) -> float | None:
@@ -87,7 +85,7 @@ def parse_iso(value: Any) -> float | None:
     except ValueError:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.timestamp()
 
 
@@ -130,11 +128,15 @@ def validate_limits(raw: Any) -> dict[str, Any]:
     is refused rather than stored.
     """
     if not isinstance(raw, list):
-        raise ValueError("limits must be a list of {key, value}")
+        # ValueError on purpose: the route catches it and answers 422.
+        raise ValueError("limits must be a list of {key, value}")  # noqa: TRY004
     out: dict[str, Any] = {}
     for item in raw:
         if not isinstance(item, dict):
-            raise ValueError("each limit must be an object with key and value")
+            # ValueError on purpose: the route catches it and answers 422.
+            raise ValueError(  # noqa: TRY004
+                "each limit must be an object with key and value"
+            )
         key = item.get("key")
         if key not in LIMIT_KEYS:
             raise ValueError("unknown limit key")
@@ -147,11 +149,8 @@ def validate_limits(raw: Any) -> dict[str, Any]:
         elif key == "no_outside_sharing":
             if not isinstance(value, bool):
                 raise ValueError("no_outside_sharing must be true or false")
-        elif key == "content_boundary":
-            if value not in CONTENT_BOUNDARIES:
-                raise ValueError(
-                    "content_boundary must be gentle or standard"
-                )
+        elif key == "content_boundary" and value not in CONTENT_BOUNDARIES:
+            raise ValueError("content_boundary must be gentle or standard")
         out[key] = value
     return out
 
@@ -227,7 +226,12 @@ class InviteStore(_JsonStore):
             "created_by": created_by,
         }
         payload = self._load()
-        payload.setdefault(self.root_key, []).append(invite)
+        # Assign the normalized list back explicitly: the shared _load
+        # default shape is a dict, and the first invite must still land
+        # as a list (same entry point HelperStore.create uses).
+        invites = self._invites(payload)
+        invites.append(invite)
+        payload[self.root_key] = invites
         self._save(payload)
         return invite, token
 

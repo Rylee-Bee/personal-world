@@ -26,7 +26,7 @@ import re
 import secrets
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -103,20 +103,24 @@ def _iso_to_epoch(value: Any) -> float | None:
     except ValueError:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.timestamp()
 
 
 def record_is_expired(record: dict | None, now: float | None = None) -> bool:
     """True when a guest record's ``until`` has passed.
 
-    A person who is not a guest has no ``guest_until`` and never expires.
-    A guest's ``guest_until`` must be readable; an unreadable value is
-    treated as expired (fail closed) so a corrupt timestamp cannot keep
-    an account open.
+    Only a **guest** expires: the check is role-aware, so a person whose
+    role has moved on (an ex-guest promoted to member) is never killed by
+    a stale ``guest_until`` left on their record. A guest's
+    ``guest_until`` must be readable; an unreadable value is treated as
+    expired (fail closed) so a corrupt timestamp cannot keep an account
+    open.
     """
     if record is None:
         return True
+    if role_for_record(record) != "guest":
+        return False
     until = record.get("guest_until")
     if not until:
         return False
