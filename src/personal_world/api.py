@@ -3622,18 +3622,48 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # per-request Scheduler instances would silently double-fire or
     # miss entirely. Started with the app; stops at FastAPI shutdown.
     from .scheduler import Scheduler, Reminder
+    from . import push as push_mod
 
-    def _deliver_reminder(title: str, body: str) -> Result | None:
+    _push = push_mod.PushHub(data_dir, mode=_identity_mode)
+    if _identity_mode == "multi":
+        _push.person_ids = lambda: [
+            u.get("user_id")
+            for u in _identity_store.list_users()
+            if u.get("user_id") and u.get("enabled", False)
+        ]
+
+    def _deliver_reminder(
+        title: str, body: str, person_id: str = "primary"
+    ) -> Result | None:
         """Resolve the notifications provider per delivery so a runtime
         config change is honored and the scheduler stays decoupled from
         any transport. None = no notifications provider configured; the
-        reminder still fires and journals (delivery is optional)."""
+        reminder still fires and journals (delivery is optional).
+
+        Web push is ONE MORE TRANSPORT of the same capability: when it
+        is configured, a fired reminder is also published to that
+        person's devices through the normal notify path (prefs and quiet
+        hours apply exactly as they do for any other source)."""
+        result: Result | None = None
         _world, reg = _state()
         provider = reg.provider_for("notifications")
         impl = reg.impl(provider.name) if provider else None
-        if impl is None:
-            return None
-        return impl.send(title, body)
+        if impl is not None:
+            result = impl.send(title, body)
+        try:
+            _push.notify(
+                person_id,
+                # A reminder is something the person asked to be told: it
+                # pushes at the GOOD NEWS tier, which is on by default.
+                tier="good_news",
+                source="reminder",
+                title=title,
+                body=body,
+                link="/",
+            )
+        except Exception as exc:  # a push problem never loses a reminder
+            _logger.warning("reminder push transport failed: %s", type(exc).__name__)
+        return result
 
     _reminders = Scheduler(
         data_dir / "reminders.json",
@@ -3655,10 +3685,17 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         key = str(path)
         sched = _scoped_schedulers.get(key)
         if sched is None:
+            # Deliver into the OWNER's notification space (an agent's
+            # reminders are the owner's, per principal_scoped_path).
+            person_id = (
+                principal.owner_id
+                if principal is not None and principal.kind == "agent" and principal.owner_id
+                else (principal.id if principal is not None else "primary")
+            )
             sched = Scheduler(
                 path,
                 journal=_journal_target(_scoped_path(principal, "journal")),
-                notifier=_deliver_reminder,
+                notifier=lambda title, body: _deliver_reminder(title, body, person_id),
             )
             _scoped_schedulers[key] = sched
         return sched
@@ -3704,8 +3741,22 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
             scoped_thread = threading.Thread(target=_scoped_tick, daemon=True)
             scoped_thread.start()
+        # Quiet hours ended → one "N things waited for you" per person
+        # (push.py; a minute-granularity tick, like the scheduler's own).
+        push_stop = threading.Event()
+
+        def _push_summary_tick():
+            while not push_stop.wait(60):
+                try:
+                    _push.quiet_summaries()
+                except Exception as exc:  # never kill the thread on one bad tick
+                    _logger.warning("push summary tick failed: %s", type(exc).__name__)
+
+        push_thread = threading.Thread(target=_push_summary_tick, daemon=True)
+        push_thread.start()
         yield
         scoped_stop.set()
+        push_stop.set()
         _reminders.stop()
 
     # Re-create app with lifespan (FastAPI supports this pattern)
@@ -3858,9 +3909,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """Register an agent principal owned by the caller.
 
         Body: {"agent_id", "display_name"?, "scopes"?}. Scopes subset
-        of read/write/journal/apps. Returns the token exactly once.
+        of read/write/journal/apps/notify. Returns the token exactly
+        once. ``notify`` lets the agent publish to its owner's
+        notifications (POST /api/notify) — nothing else.
         """
-        ALLOWED = {"read", "write", "journal", "apps"}
+        ALLOWED = {"read", "write", "journal", "apps", "notify"}
         principal = getattr(request.state, "principal", None)
         if principal is None:
             raise HTTPException(status_code=403, detail="principal required")
@@ -3979,6 +4032,212 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         body = await request.json()
         r = _scheduler_for(_principal(request)).toggle(rid, body.get("enabled", True))
         return {"ok": r.ok, "data": r.data, "warnings": r.warnings}
+
+    # --- Web Push & notification history (the notifications transport) ---
+    # Standards-based Web Push (VAPID) through the browsers' own push
+    # services: the last transport of the "notifications" capability, so
+    # Worlds — and iPhone Home Screen installs under Worlds' own name and
+    # icon — is the hub. Stores are per person
+    # (identity kinds "push_subscriptions" and "notifications"); the
+    # VAPID private key lives only in the environment and never in a
+    # response or a log. Device subscription writes are auth-only (not
+    # step-up): a phone setting itself up has no session grant yet, and
+    # the surface is the caller's own devices. Full guide:
+    # docs/NOTIFICATIONS.md.
+
+    _NOTIFY_SOURCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$")
+
+    def _push_caller(request: Request) -> str:
+        """The person whose notification space this call touches."""
+        principal = _principal(request)
+        _require_person(principal)
+        return principal.id
+
+    @app.get("/api/push/public-key", dependencies=[Depends(require_auth)])
+    async def push_public_key(request: Request) -> dict:
+        """The VAPID public key the browser subscribes with, or 409
+        not_configured when this server has no push key (everything
+        else still works — the UI reads that as 'not configured')."""
+        _push_caller(request)  # person-only surface; the key itself is public
+        key = _push.public_key()
+        if key is None or not _push.configured():
+            raise HTTPException(
+                status_code=409,
+                detail="push is not configured on this server",
+            )
+        return {"ok": True, "data": {"public_key": key}}
+
+    @app.post("/api/push/subscriptions", dependencies=[Depends(require_auth)])
+    async def push_subscribe(request: Request) -> dict:
+        """Register (or refresh) one device. Body: {subscription: <the
+        JSON a browser PushSubscription produces>, device_label}.
+        Upsert by endpoint, so re-subscribing never stacks devices."""
+        caller = _push_caller(request)
+        body = await request.json()
+        try:
+            sub_id, created = _push.add_subscription(
+                caller,
+                (body or {}).get("subscription") or {},
+                str((body or {}).get("device_label") or ""),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        return {"ok": True, "data": {"id": sub_id, "created": created}}
+
+    @app.get("/api/push/subscriptions", dependencies=[Depends(require_auth)])
+    async def push_subscriptions_list(request: Request) -> dict:
+        """This person's devices: labels and times only. Endpoints and
+        keys are credentials and never leave the store."""
+        caller = _push_caller(request)
+        return {"ok": True, "data": _push.list_subscriptions(caller)}
+
+    @app.delete(
+        "/api/push/subscriptions/{sub_id}", dependencies=[Depends(require_auth)]
+    )
+    async def push_subscription_delete(sub_id: str, request: Request) -> dict:
+        caller = _push_caller(request)
+        if not _push.remove_subscription(caller, sub_id):
+            raise HTTPException(status_code=404, detail="no such device")
+        return {"ok": True, "data": {"id": sub_id, "removed": True}}
+
+    @app.get("/api/notifications", dependencies=[Depends(require_auth)])
+    async def notifications_list(request: Request) -> dict:
+        """The caller's notification history, newest first.
+        Query: unread=1 to see only what has not been read; limit."""
+        caller = _push_caller(request)
+        unread = request.query_params.get("unread", "") in ("1", "true", "yes")
+        try:
+            limit = int(request.query_params.get("limit") or 20)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="limit must be a number")
+        items = _push.list_notifications(caller, unread, limit)
+        return {"ok": True, "data": items}
+
+    @app.get("/api/notifications/prefs", dependencies=[Depends(require_auth)])
+    async def notifications_prefs_get(request: Request) -> dict:
+        caller = _push_caller(request)
+        return {"ok": True, "data": _push.get_prefs(caller)}
+
+    @app.put("/api/notifications/prefs", dependencies=[Depends(require_auth)])
+    async def notifications_prefs_put(request: Request) -> dict:
+        """Replace the caller's notification preferences.
+        Body: {tiers: {…on/off}, sources: {<source>: on/off},
+        quiet_hours: {on, start, end, tz}}; partial bodies merge over
+        the defaults."""
+        caller = _push_caller(request)
+        body = await request.json()
+        try:
+            prefs = _push.put_prefs(caller, body or {})
+        except push_mod.PrefsError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        return {"ok": True, "data": prefs}
+
+    @app.post(
+        "/api/notifications/read-all", dependencies=[Depends(require_auth)]
+    )
+    async def notifications_read_all(request: Request) -> dict:
+        caller = _push_caller(request)
+        return {"ok": True, "data": {"read": _push.read_all(caller)}}
+
+    @app.post(
+        "/api/notifications/{note_id}/read", dependencies=[Depends(require_auth)]
+    )
+    async def notifications_read(note_id: str, request: Request) -> dict:
+        caller = _push_caller(request)
+        if not _push.mark_read(caller, note_id):
+            raise HTTPException(status_code=404, detail="no such notification")
+        return {"ok": True, "data": {"id": note_id, "read": True}}
+
+    @app.post("/api/notifications/test", dependencies=[Depends(require_auth)])
+    async def notifications_test(request: Request) -> dict:
+        """'Send me a test' — one known-good notification to every one
+        of the caller's devices. Step-up is not required: this sends to
+        the person's own phone, not to anything of value."""
+        caller = _push_caller(request)
+        return {"ok": True, "data": _push.test_push(caller)}
+
+    @app.post("/api/notify", dependencies=[Depends(require_auth)])
+    async def notify_publish(request: Request) -> dict:
+        """The publishing door for people, agents and CLI tools.
+
+        A signed-in person may notify themselves. An agent (service
+        token) needs the ``notify`` scope and notifies its OWNER; it may
+        name another person with ``to`` only when the owner can manage
+        people. Every notification is stored in the recipient's history
+        before anything is pushed; the response says what happened
+        ({id, delivered, deferred, state}). Publishes are rate-limited
+        per caller (30 a minute, plain 429) and idempotent on
+        ``dedupe_key`` for a day. docs/NOTIFICATIONS.md has curl and CLI
+        examples."""
+        principal = _principal(request)
+        if principal is None:
+            raise HTTPException(status_code=403, detail="principal required")
+        if principal.kind == "agent":
+            if "notify" not in (principal.scopes or ()):
+                raise HTTPException(
+                    status_code=403, detail="the notify scope is required to publish"
+                )
+            owner = principal.owner_id
+            if not owner:
+                raise HTTPException(status_code=403, detail="agent has no owner")
+            recipient = owner
+        else:
+            recipient = principal.id
+        body = await request.json()
+        to = (body or {}).get("to")
+        if to and to != recipient:
+            if not can(principal, "manage_people"):
+                raise HTTPException(
+                    status_code=403, detail="you may only notify yourself"
+                )
+            from .identity import _SAFE_PRINCIPAL_ID as _safe_pid
+
+            if not _safe_pid.fullmatch(str(to)):
+                raise HTTPException(status_code=422, detail="to is not a person id")
+            recipient = str(to)
+            if _identity_mode == "multi" and _identity_store.get_user(recipient) is None:
+                raise HTTPException(status_code=404, detail="no such person")
+        tier = (body or {}).get("tier")
+        if tier not in push_mod.TIERS:
+            raise HTTPException(
+                status_code=422, detail="tier is good_news, update or when_ready"
+            )
+        source = str((body or {}).get("source") or "api")
+        if not _NOTIFY_SOURCE.fullmatch(source):
+            raise HTTPException(
+                status_code=422, detail="source is a short plain id (vefr, candy, cli…)"
+            )
+        title = str((body or {}).get("title") or "").strip()
+        text = str((body or {}).get("body") or "").strip()
+        if not title or len(title) > 120:
+            raise HTTPException(status_code=422, detail="title is needed (max 120)")
+        if not text or len(text) > 4000:
+            raise HTTPException(status_code=422, detail="body is needed (max 4000)")
+        try:
+            link = push_mod.valid_same_origin_link((body or {}).get("link"))
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        dedupe = (body or {}).get("dedupe_key")
+        if dedupe is not None:
+            dedupe = str(dedupe)[:120] or None
+        if _push.rate_limited(f"{principal.kind}:{principal.id}"):
+            raise HTTPException(
+                status_code=429, detail="too many notifications this minute; wait a moment"
+            )
+        try:
+            outcome = _push.notify(
+                recipient,
+                tier=tier,
+                source=source,
+                title=title,
+                body=text,
+                link=link,
+                dedupe_key=dedupe,
+                private=bool((body or {}).get("private")),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        return {"ok": True, "data": outcome}
 
     # --- Source control enrichment ---
 
@@ -4926,6 +5185,27 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         if not path.exists():
             raise HTTPException(status_code=404, detail="font missing")
         return _cached_file(request, path, ctype)
+
+    # --- The push service worker (site-root scope) ---------------------
+    # Browsers only let a service worker control the directory it is
+    # served from; push must survive every path of the SPA, so /sw.js
+    # is served AT THE ROOT with Service-Worker-Allowed: / — and never
+    # cached (no-store): a stale worker is a notification that silently
+    # stops. The script itself (ui/public/sw.js) carries no state and
+    # needs no auth, like the other root assets. A missing build answers
+    # 404 plainly.
+    @app.get("/sw.js", include_in_schema=False)
+    async def service_worker() -> Response:
+        from .station_ui import default_app_dir
+
+        path = default_app_dir() / "sw.js"
+        if not path.is_file():
+            raise HTTPException(status_code=404, detail="service worker not built")
+        return FileResponse(
+            path,
+            media_type="text/javascript; charset=utf-8",
+            headers={"Cache-Control": "no-store", "Service-Worker-Allowed": "/"},
+        )
 
     # --- The interface (owner decision 2026-09-22: the React rebuild IS
     # the product frontend). Mounted LAST so its SPA fallback can never

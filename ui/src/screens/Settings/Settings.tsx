@@ -69,6 +69,7 @@ import {
   saveStoredTheme,
 } from "../../app/prefs-dom";
 import { SettingsRoom } from "./SettingsRoom";
+import { NotificationsSection } from "./Notifications";
 import {
   countManifestEndpoints,
   principalDisplayName,
@@ -847,6 +848,10 @@ export function Settings({
 
         <SettingsRoom />
 
+        {/* Web Push: state in words, this device, tiers, quiet hours,
+            test — Settings.tsx stays the list of sections, the whole
+            notifications story lives in ./Notifications.tsx. */}
+        <NotificationsSection />
 
         <FirstDayToggle />
 

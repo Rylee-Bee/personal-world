@@ -956,6 +956,113 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "only, no roles, emails, expired guests or agents; gated on "
         "own_space (people who live here), so guests and agents get 403",
     ),
+    # Web Push & notifications (the notifications transport; docs/NOTIFICATIONS.md).
+    # Device self-registration and personal history are the caller's own
+    # surface: auth-only, never step-up (a phone setting itself up has no
+    # session grant yet), and person-only (an agent publishes through
+    # API-103, it never reads a person's devices).
+    _e(
+        "API-101-key",
+        "GET",
+        "/api/push/public-key",
+        "notifications",
+        "read",
+        "none",
+        note="the VAPID public key a browser subscribes with; 409 "
+        "not_configured when push has no key here",
+    ),
+    _e(
+        "API-101-add",
+        "POST",
+        "/api/push/subscriptions",
+        "notifications",
+        "write",
+        "none",
+        note="register/refresh one device (upsert by endpoint); the "
+        "endpoint + keys are stored per person and never returned",
+    ),
+    _e(
+        "API-101-list",
+        "GET",
+        "/api/push/subscriptions",
+        "notifications",
+        "read",
+        "none",
+        note="device labels and times only, never keys or endpoints",
+    ),
+    _e(
+        "API-101-del",
+        "DELETE",
+        "/api/push/subscriptions/{sub_id}",
+        "notifications",
+        "write",
+        "none",
+    ),
+    _e(
+        "API-102-list",
+        "GET",
+        "/api/notifications",
+        "notifications",
+        "read",
+        "none",
+        note="the caller's history, newest first; unread=1 and limit",
+    ),
+    _e(
+        "API-102-prefs-get",
+        "GET",
+        "/api/notifications/prefs",
+        "notifications",
+        "read",
+        "none",
+    ),
+    _e(
+        "API-102-prefs-put",
+        "PUT",
+        "/api/notifications/prefs",
+        "notifications",
+        "write",
+        "none",
+        note="tiers/sources/quiet hours; quiet hours are ON by default "
+        "21:00-08:00 and when_ready never pushes unless turned on",
+    ),
+    _e(
+        "API-102-read",
+        "POST",
+        "/api/notifications/{note_id}/read",
+        "notifications",
+        "write",
+        "none",
+    ),
+    _e(
+        "API-102-read-all",
+        "POST",
+        "/api/notifications/read-all",
+        "notifications",
+        "write",
+        "none",
+    ),
+    _e(
+        "API-102-test",
+        "POST",
+        "/api/notifications/test",
+        "notifications",
+        "write",
+        "none",
+        note="'send me a test' to the caller's own devices; not step-up "
+        "because it reaches no state",
+    ),
+    _e(
+        "API-103",
+        "POST",
+        "/api/notify",
+        "notifications",
+        "write",
+        "none",
+        note="publishing door for agents/CLI: a person notifies "
+        "themselves; an agent needs the notify scope (recipient is its "
+        "owner; another person only when the owner has manage_people). "
+        "30/min per caller, idempotent on dedupe_key for a day",
+    ),
     # Exports / backup / updates.
     _e(
         "API-025",

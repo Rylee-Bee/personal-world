@@ -451,8 +451,8 @@ class IdentityStore:
         """An agent is a first-class principal owned by a person.
 
         Scopes are a subset language from the owner: "read", "write",
-        "journal", "apps". Agents never inherit owner rights beyond
-        the listed scopes.
+        "journal", "apps", "notify". Agents never inherit owner rights
+        beyond the listed scopes.
         """
         payload = self._load()
         if any(a.get("user_id") == agent_id for a in payload.get("agents", [])):
@@ -765,6 +765,13 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     # as drafts/place; uploaded portrait bytes are files under a sibling
     # directory of this file (crew.portrait_dir), not a new store.
     "crew": "crew.json",
+    # Web Push (native notifications, 2026-09-26): the devices a person
+    # turned push on for, and their notification history + prefs. Both
+    # are per-person state; the endpoint/keys a subscription record
+    # carries are credentials and never leave the store toward a
+    # response. See docs/NOTIFICATIONS.md.
+    "push_subscriptions": "push-subscriptions.json",
+    "notifications": "notifications.json",
 }
 
 #: Legacy (single-user default) discovery config location. Matches

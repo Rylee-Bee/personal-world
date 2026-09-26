@@ -45,7 +45,11 @@ import type {
   LoginData,
   LoginRequest,
   ManifestResponse,
+  NotificationItem,
+  NotificationPrefs,
+  NotifyOutcome,
   PrincipalInfo,
+  PushDevice,
   PrincipalPutRequest,
   Reminder,
   ReminderAddRequest,
@@ -756,6 +760,69 @@ export const getMediaActivity = () => unwrap<Envelope>(api.GET("/api/media/activ
 
 export const searchMedia = (q: string) =>
   unwrap<Envelope>(api.GET("/api/media/search", { params: { query: { q } } }));
+
+// ===== Notifications (Web Push; docs/NOTIFICATIONS.md) =====
+// Server contract: api.py push_* / notifications_* (manifest ids
+// API-101/API-102). These routes postdate the generated spec snapshot,
+// so they ride the same documented getRequest/sendBody boundary as
+// briefing/place — bodies come from contract.ts, not a call-site cast.
+// GET /api/push/public-key answers 409 (thrown as ApiError) when this
+// server has no push key: screens read that as "not configured", and
+// every other door here keeps working without a key.
+
+export const getPushPublicKey = () =>
+  unwrap<Envelope<{ public_key: string }>>(getRequest("/api/push/public-key"));
+
+export const registerPushSubscription = (body: {
+  subscription: { endpoint: string; keys: { p256dh?: string; auth?: string } };
+  device_label: string;
+}) =>
+  unwrap<Envelope<{ id: string; created: boolean }>>(
+    sendBody("POST", "/api/push/subscriptions", body),
+  );
+
+export const listPushSubscriptions = () =>
+  unwrap<Envelope<PushDevice[]>>(getRequest("/api/push/subscriptions"));
+
+export const removePushSubscription = (id: string) =>
+  unwrap<Envelope<{ id: string; removed: boolean }>>(
+    sendBody("DELETE", `/api/push/subscriptions/${encodeURIComponent(id)}`, {}),
+  );
+
+export const listNotifications = (params?: { unread?: boolean; limit?: number }) => {
+  const q = new URLSearchParams();
+  if (params?.unread) q.set("unread", "1");
+  if (params?.limit) q.set("limit", String(params.limit));
+  const suffix = q.toString() ? `?${q.toString()}` : "";
+  return unwrap<Envelope<NotificationItem[]>>(
+    getRequest(`/api/notifications${suffix}`),
+  );
+};
+
+export const getNotificationPrefs = () =>
+  unwrap<Envelope<NotificationPrefs>>(getRequest("/api/notifications/prefs"));
+
+/** Partial bodies merge over the defaults server-side; the answer is
+ *  the complete stored shape. */
+export const putNotificationPrefs = (body: Partial<NotificationPrefs>) =>
+  unwrap<Envelope<NotificationPrefs>>(
+    sendBody("PUT", "/api/notifications/prefs", body),
+  );
+
+export const markNotificationRead = (id: string) =>
+  unwrap<Envelope<{ id: string; read: boolean }>>(
+    sendBody("POST", `/api/notifications/${encodeURIComponent(id)}/read`, {}),
+  );
+
+export const markAllNotificationsRead = () =>
+  unwrap<Envelope<{ read: number }>>(
+    sendBody("POST", "/api/notifications/read-all", {}),
+  );
+
+/** "Send me a test" — POST /api/notifications/test (signed-in person,
+ *  no step-up: it only reaches the person's own devices). */
+export const sendTestNotification = () =>
+  unwrap<Envelope<NotifyOutcome>>(sendBody("POST", "/api/notifications/test", {}));
 
 // ===== Endpoints the client does NOT call yet =====
 // /api/projects/status, /api/source-control/*, /api/lab/*,
