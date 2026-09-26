@@ -2638,8 +2638,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
         # One rooms read per request, sharing the same 15 s cache (and 2 s
         # per-room timeout) as GET /api/rooms — never a second HTTP round.
-        # The snapshot never raises and never claims a dead room healthy.
-        rooms = await _ROOMS.snapshot()
+        # Caller-aware: forwarding rooms answer for THIS person, while
+        # their health stays estate-wide. The snapshot never raises and
+        # never claims a dead room healthy.
+        rooms = await _ROOMS.snapshot_for_principal(principal)
 
         def _compose() -> dict:
             # Who is credited (the Keeper and each system's resident) is
@@ -2767,6 +2769,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         ``reachable: false`` with its last-seen time, never claimed
         healthy.
 
+        A room whose registry entry opts in with ``forward_principal``
+        (and that has its own token) also learns WHO is asking, so its
+        cards and needs are fetched and cached per caller; another
+        caller's forwarded cards/needs can never appear here, while the
+        room's status/reachability/last-seen stay estate-wide.
+
         The room list itself is read at runtime: when a registry is
         configured (``PW_ROOMS_REGISTRY_URL``) it is refreshed on the
         snapshot cadence, so adding or removing a registry room takes
@@ -2776,7 +2784,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         the existing ``data``/``resume``/``summary`` envelope is
         unchanged.
         """
-        rows = await _ROOMS.snapshot()
+        rows = await _ROOMS.snapshot_for_principal(
+            getattr(request.state, "principal", None)
+        )
         state = rooms_visits.read_visits(_rooms_visit_path(request))
         _, crew_state = _crew_state(request)
         decorated = [

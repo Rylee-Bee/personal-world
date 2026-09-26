@@ -301,7 +301,12 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "`incompatible`, never healthy, with its cards/needs uncounted; "
             "each row carries an optional `public_url` (a registry entry's "
             "browser-reachable http(s) address, no userinfo) or an honest "
-            "null when absent/invalid"),
+            "null when absent/invalid. A registry room may opt in to "
+            "per-person forwarding (`forward_principal`, with its own "
+            "token): its cards/needs are then fetched and cached 15 s per "
+            "caller (bounded) while its status/reachability/last-seen stay "
+            "estate-wide; one caller's forwarded cards/needs never appear "
+            "in another's response"),
     _e("API-088-visit", "POST", "/api/rooms/{room_id}/visit", "rooms",
        "write", "none",
        note="Worlds-owned, caller-scoped visit state (never sent to a "
