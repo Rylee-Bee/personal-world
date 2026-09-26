@@ -11,6 +11,7 @@ cookie to set, and how to fail.
 """
 
 import logging
+import time
 import os
 import secrets
 from pathlib import Path
@@ -217,6 +218,44 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
         )
         return response
 
+    @app.get("/api/auth/oidc/step-up")
+    async def auth_oidc_step_up(request: Request, return_to: str = "/"):
+        """"Confirm it's you" by signing in to the provider again.
+
+        For people with no sign-in key (SSO or passkey only). Sends the
+        browser to the provider with ``prompt=login`` and ``max_age=0``;
+        the callback grants the usual 5-minute step-up to this session
+        only if the same person signed in just now, then returns to
+        ``return_to`` (a path on this site).
+        """
+        if not return_to.startswith("/") or return_to.startswith("//") or "\\" in return_to:
+            return_to = "/"
+        session_id = request.cookies.get(SESSION_COOKIE)
+        session = auth.validate_session(session_id) if session_id else None
+        if session is None:
+            raise HTTPException(401, "sign in first")
+        service = _oidc(request)
+        redirect_uri = f"{str(request.base_url).rstrip('/')}/api/auth/oidc/callback"
+        try:
+            client = service.client()
+            url, _pending, cookie = client.start_login(
+                redirect_uri, step_up_for=session.principal_id, return_to=return_to
+            )
+        except OIDCError as exc:
+            return _failure_response(request, exc)
+        response = RedirectResponse(
+            url, status_code=303, headers={"Cache-Control": "no-store"}
+        )
+        response.set_cookie(
+            FLOW_COOKIE,
+            cookie,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=600,
+        )
+        return response
+
     @app.post("/api/auth/oidc/link")
     async def auth_oidc_link(request: Request):
         """Start linking a provider sign-in to the signed-in person.
@@ -304,6 +343,30 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
                     error_code="oidc_state_mismatch",
                 )
             identity = client.complete_login(code, pending)
+            if pending.step_up_for:
+                current_id = request.cookies.get(SESSION_COOKIE) or ""
+                current = auth.validate_session(current_id) if current_id else None
+                if current is None or current.principal_id != pending.step_up_for:
+                    raise OIDCLoginError(
+                        "the person who asked to confirm is no longer signed in",
+                        error_code="oidc_step_up_session_changed",
+                        http_status=403,
+                    )
+                if not auth.grant_oidc_step_up(
+                    current_id, identity.sub, identity.auth_time, time.time()
+                ):
+                    raise OIDCLoginError(
+                        "that sign-in was not a fresh sign-in by the same person",
+                        error_code="oidc_step_up_refused",
+                        http_status=403,
+                    )
+                response = RedirectResponse(
+                    pending.return_to or "/",
+                    status_code=303,
+                    headers={"Cache-Control": "no-store"},
+                )
+                response.delete_cookie(FLOW_COOKIE)
+                return response
             if pending.link_to:
                 current_id = request.cookies.get(SESSION_COOKIE)
                 current = auth.validate_session(current_id) if current_id else None
@@ -429,6 +492,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
                 "principal_id": session.principal_id,
                 "auth_method": session.auth_method,
                 "has_step_up": session.has_step_up(session.principal_id),
+                "step_up_methods": auth.step_up_methods(session.principal_id),
             },
         }
 
