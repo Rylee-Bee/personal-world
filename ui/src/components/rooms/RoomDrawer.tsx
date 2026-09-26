@@ -52,20 +52,6 @@ const SECTION_TITLE =
 const SMALL = "text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]";
 const MICRO = "text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]";
 
-function ItemLink({ href, label }: { href: string; label: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`${label} (opens in a new tab)`}
-      className={`${LINK_BASE} border border-[var(--pw-border-subtle)] text-[var(--pw-text-primary)] underline`}
-    >
-      {label}
-    </a>
-  );
-}
-
 function CardRow({ row, card, now }: { row: RoomRow; card: RoomCard; now: number }) {
   const href = roomItemUrl(row, card.link);
   const stale = isStale(card, now);
@@ -88,7 +74,7 @@ function CardRow({ row, card, now }: { row: RoomRow; card: RoomCard; now: number
       </span>
       {href && (
         <span>
-          <ItemLink href={href} label={`Open “${card.title}”`} />
+          <OpenLink row={row} item={card} label={`Open “${card.title}”`} />
         </span>
       )}
     </li>
@@ -201,7 +187,7 @@ export function RoomDrawer({
                   {need.why && <span className={SMALL}>{need.why}</span>}
                   <span className={MICRO}>{`Waiting since ${formatTime(need.created_at)}`}</span>
                   <div className="flex flex-wrap gap-[var(--pw-spacing-sm)]">
-                    {href && <ItemLink href={href} label={`Open “${need.title}”`} />}
+                    {href && <OpenLink row={row} item={need} label={`Review “${need.title}”`} />}
                     <button
                       type="button"
                       disabled={markSeen.isPending}

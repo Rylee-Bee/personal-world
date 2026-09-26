@@ -317,6 +317,58 @@ describe("RoomsPanel", () => {
     expect(hookState.visit).toHaveBeenCalledWith({ roomId: "workshop", title: "Workshop" });
   });
 
+  it("reviews a need on the room's own site, and remembers the exact item", () => {
+    hookState.visit.mockClear();
+    setRooms([
+      {
+        ...WORKSHOP,
+        base_url: "https://workshop.test/app",
+        needs_you: [
+          {
+            id: "n1",
+            title: "Approve the plan",
+            why: "It's ready.",
+            actions: [],
+            created_at: "2026-09-25T09:00:00Z",
+            link: "/workshop?tab=tasks&task=7",
+          },
+        ],
+      },
+    ]);
+    render(<RoomsPanel />);
+    // A room's link is a path on the ROOM's site, never a Worlds path.
+    const review = screen.getByRole("link", { name: "Review “Approve the plan” in a new tab" });
+    expect(review).toHaveAttribute("href", "https://workshop.test/workshop?tab=tasks&task=7");
+    // The room's front door stays one click away.
+    expect(screen.getByRole("link", { name: "Open Workshop in a new tab" })).toHaveAttribute(
+      "href",
+      "https://workshop.test/app",
+    );
+    fireEvent.click(review);
+    expect(hookState.visit).toHaveBeenCalledWith({
+      roomId: "workshop",
+      title: "Approve the plan",
+      link: "/workshop?tab=tasks&task=7",
+    });
+  });
+
+  it("goes back to the exact item you left, when the room gave one", () => {
+    hookState.rooms = {
+      ...hookState.rooms,
+      data: {
+        ok: true,
+        data: [{ ...QUIET, base_url: "https://vefr.test" }],
+        resume: { room_id: "vefr", title: "Flight log", link: "/log/3", at: "2026-09-25T21:35:22Z" },
+        summary: { needs_you: 0, changed: 0, can_wait: 0, unknown: 0, unreachable: 0 },
+      },
+    };
+    render(<RoomsPanel />);
+    expect(screen.getByRole("link", { name: "Back to VEFR in a new tab" })).toHaveAttribute(
+      "href",
+      "https://vefr.test/log/3",
+    );
+  });
+
   it("says where you left off, and who kept your place when the crew is on", () => {
     const at = "2026-09-25T21:35:22Z";
     hookState.rooms = {
@@ -421,7 +473,7 @@ describe("RoomDrawer", () => {
     render(<RoomsPanel />);
     fireEvent.click(screen.getByRole("button", { name: "Look inside Workshop" }));
     const drawer = screen.getByRole("dialog");
-    expect(within(drawer).getByRole("link", { name: "Open “Approve the plan” (opens in a new tab)" })).toHaveAttribute(
+    expect(within(drawer).getByRole("link", { name: "Review “Approve the plan” in a new tab" })).toHaveAttribute(
       "href",
       "https://workshop.test/plans/1",
     );

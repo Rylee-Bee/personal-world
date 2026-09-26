@@ -6,30 +6,46 @@ import { useVisitRoom } from "../../data/hooks";
 import type { RoomKeeper, RoomRow } from "../../data/contract";
 import { CompanionFace } from "../crew/CompanionFace";
 import { keeperPortraitUrl } from "./crew";
-import { initial, LINK_BASE, roomName, statusWord } from "./format";
+import { initial, LINK_BASE, roomItemUrl, roomName, statusWord } from "./format";
 import { isUncertain } from "./groupRooms";
 import { useRoomDrawer } from "./drawerContext";
 
+/**
+ * Opens a room in a new tab, and that is the visit. With `item`, it opens
+ * the exact thing instead: the item's `link` is a path on the ROOM's own
+ * site, resolved against the room's address (never a Worlds path), and
+ * the visit remembers it so "Back to …" returns there. A link that fails
+ * the same-origin rules falls back to the room's front door.
+ */
 export function OpenLink({
   row,
   primary = false,
   label,
+  item,
 }: {
   row: RoomRow;
   primary?: boolean;
   label?: string;
+  item?: { title?: string | null; link?: string | null };
 }) {
   const name = roomName(row);
   const visit = useVisitRoom();
+  const itemHref = item ? roomItemUrl(row, item.link) : null;
   return (
     <a
-      href={row.base_url}
+      href={itemHref ?? row.base_url}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`${label ?? `Open ${name}`} in a new tab`}
       // Opening a room is the visit. Recorded after the tab opens, never
       // in its way; a failed write only leaves the old baseline.
-      onClick={() => visit.mutate({ roomId: row.id, title: name })}
+      onClick={() =>
+        visit.mutate({
+          roomId: row.id,
+          title: (itemHref && item?.title) || name,
+          ...(itemHref && item?.link ? { link: item.link } : {}),
+        })
+      }
       className={`${LINK_BASE} ${
         primary
           ? "bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)]"
