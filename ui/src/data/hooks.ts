@@ -797,8 +797,8 @@ export function useRooms() {
 export function useVisitRoom() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ roomId, title }: { roomId: string; title?: string }) =>
-      postRoomVisit(roomId, title ? { title } : {}),
+    mutationFn: ({ roomId, title, link }: { roomId: string; title?: string; link?: string }) =>
+      postRoomVisit(roomId, { ...(title ? { title } : {}), ...(link ? { link } : {}) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.rooms }),
   });
 }

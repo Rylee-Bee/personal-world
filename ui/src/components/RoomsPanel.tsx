@@ -50,7 +50,7 @@ import type {
   RoomsSummary,
 } from "../data/contract";
 import { interiorUrl } from "./rooms/crew";
-import { formatTime, LINK_BASE, plural, roomName } from "./rooms/format";
+import { formatTime, LINK_BASE, plural, roomItemUrl, roomName } from "./rooms/format";
 import { currentNeeds, groupRooms, isUncertain, seenNeeds } from "./rooms/groupRooms";
 import { Emblem, LookInside, OpenLink, StatusWord } from "./rooms/parts";
 import { RoomDrawerContext } from "./rooms/drawerContext";
@@ -102,6 +102,7 @@ function Doorway({
   const name = roomName(row);
   const needs = currentNeeds(row);
   const first = needs[0];
+  const firstHref = first ? roomItemUrl(row, first.link) : null;
   const interior = showInteriors ? interiorUrl(row.id, row.doorway) : null;
   const headingId = `room-${row.id}-name`;
   const markSeen = useMarkNeedSeen();
@@ -170,7 +171,19 @@ function Doorway({
           </p>
         )}
         <div className="mt-auto flex flex-wrap gap-[var(--pw-spacing-sm)] pt-[var(--pw-spacing-sm)]">
-          <OpenLink row={row} primary />
+          {firstHref && first ? (
+            <>
+              <OpenLink
+                row={row}
+                primary
+                item={first}
+                label={`Review “${first.title}”`}
+              />
+              <OpenLink row={row} />
+            </>
+          ) : (
+            <OpenLink row={row} primary />
+          )}
           <LookInside row={row} />
           {first && (
             <button
@@ -519,7 +532,7 @@ function ResumeLine({
           : `You were last in ${name}${what}`}
         {` · ${formatTime(resume.at)}`}
       </span>
-      <OpenLink row={row} label={`Back to ${name}`} />
+      <OpenLink row={row} label={`Back to ${name}`} item={resume} />
     </p>
   );
 }
