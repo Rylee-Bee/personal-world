@@ -13,6 +13,7 @@
  * place and retry once it succeeds. Invites, helpers, limits and guest
  * end dates arrive with roles step 2; nothing for them is shown yet.
  */
+import { Icon } from "../../components/Icon";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { useMe, usePeople, useSetRole, useStepUp, useTransferOwnership } from "../../data/hooks";
 import type { Person } from "../../data/contract";
@@ -43,7 +44,7 @@ function Initial({ name, agent = false }: { name: string; agent?: boolean }) {
       }`}
       style={SERIF}
     >
-      {agent ? "⚙" : name.slice(0, 1).toUpperCase()}
+      {agent ? <Icon name="agent" size={24} /> : name.slice(0, 1).toUpperCase()}
     </span>
   );
 }
@@ -392,7 +393,8 @@ export function People({ onBack }: { onBack: () => void }) {
     >
       <header className="mb-[var(--pw-spacing-2xl)] flex flex-col gap-[var(--pw-spacing-sm)]">
         <WorldButton variant="ghost" onPress={onBack} className="self-start">
-          ← Back to Settings
+          <Icon name="back" size={16} className="mr-[var(--pw-spacing-xs)]" />
+          Back to Settings
         </WorldButton>
         <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]" style={SERIF}>
           People in this World

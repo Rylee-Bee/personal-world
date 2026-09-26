@@ -2,6 +2,7 @@
  * Pieces shared by the Rooms panel and the room drawer: the Open link
  * (which records a visit), the status word, and a room's emblem.
  */
+import { Icon } from "../Icon";
 import { useVisitRoom } from "../../data/hooks";
 import type { RoomKeeper, RoomRow } from "../../data/contract";
 import { CompanionFace } from "../crew/CompanionFace";
@@ -46,13 +47,14 @@ export function OpenLink({
           ...(itemHref && item?.link ? { link: item.link } : {}),
         })
       }
-      className={`${LINK_BASE} ${
+      className={`${LINK_BASE} gap-[var(--pw-spacing-xs)] ${
         primary
           ? "bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)]"
           : "border border-[var(--pw-border-subtle)] text-[var(--pw-text-primary)] underline"
       }`}
     >
       {label ?? `Open ${name}`}
+      <Icon name="external" size={16} />
     </a>
   );
 }

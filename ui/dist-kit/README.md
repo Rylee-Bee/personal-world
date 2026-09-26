@@ -5,7 +5,7 @@ React + Tailwind web app, Studio's plain ES-module pages, the static
 dev-gallery site). It is plain CSS built on the Worlds design tokens — no
 build step, no framework, no Tailwind.
 
-- **Version:** `0.1.0+ca914a6e80`
+- **Version:** `0.1.0+c366946aee`
 - **Built:** `not recorded (content-addressed)`
 - **Source:** Personal Worlds (`ui/kit/src/base.css`, `design/tokens.json`,
   `design/themes/*.json`)
@@ -63,6 +63,22 @@ Set `data-theme="<name>"` on `<html>`. The available themes are:
 
 `station` is the `:root` fallback (no attribute needed); `starfield` is the
 Worlds product default. Switching the attribute re-themes the page instantly.
+
+## Icons
+
+`icons.svg` is the Worlds icon library as one sprite: 24px line glyphs in
+the text colour (see the list in `design/assets/icons/manifest.json` in
+personal-world). Draw one with the `wk-icon` class, always beside words:
+
+```html
+<a class="wk-btn" href="https://room.example/">
+  Open Studio <svg class="wk-icon wk-icon--sm" aria-hidden="true"><use href="icons.svg#icon-actions-external"/></svg>
+</a>
+```
+
+Ids are `icon-<category>-<name>`, for example `icon-actions-close`,
+`icon-navigation-back`, `icon-navigation-chevron-right`,
+`icon-status-feedback-check`, `icon-world-content-sparkle`.
 
 ## Minimum accessibility
 

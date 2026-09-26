@@ -111,6 +111,10 @@ for (const file of fontFiles) {
   cpSync(src, resolve(outDir, "fonts", file));
 }
 
+// The icon library's sprite travels with the kit (hand-drawn source in
+// design/assets/icons; never regenerated here).
+cpSync(resolve(repoRoot, "design/assets/icons/sprite.svg"), resolve(outDir, "icons.svg"));
+
 // Everything shipped so far + the templates below decide the version.
 version = `${semver}+${contentHash(outDir, [
   resolve(kitSrcDir, "README.md"),
@@ -160,3 +164,4 @@ console.log(`  built_at:      ${builtAt}`);
 console.log(`  default_theme: ${DEFAULT_THEME}`);
 console.log(`  themes:        ${themeNames.join(", ")}`);
 console.log(`  fonts:         ${fontFiles.join(", ")}`);
+console.log(`  icons:         icons.svg (the Worlds icon library sprite)`);

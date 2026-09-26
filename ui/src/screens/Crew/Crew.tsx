@@ -22,6 +22,7 @@
  * 44px minimum; results and failures are announced in words
  * (role=status / role=alert); no motion.
  */
+import { Icon } from "../../components/Icon";
 import { useId, useState, type FormEvent } from "react";
 import {
   useAddCrew,
@@ -105,7 +106,8 @@ export function Crew({ onBack }: { onBack: () => void }) {
     >
       <header className="mb-[var(--pw-spacing-2xl)] flex flex-col gap-[var(--pw-spacing-sm)]">
         <WorldButton variant="ghost" onPress={onBack} className="self-start">
-          ← Back to Settings
+          <Icon name="back" size={16} className="mr-[var(--pw-spacing-xs)]" />
+          Back to Settings
         </WorldButton>
         <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
           Your crew
@@ -610,7 +612,7 @@ function KeepersSection({
                     <img src={preview} alt="" className="max-h-full w-auto object-contain" />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center rounded-t-full rounded-b-[var(--pw-radius-sm)] border-2 border-[var(--pw-border-subtle)] text-[var(--pw-accent-warm)]">
-                      ✦
+                      <Icon name="sparkle" size={20} />
                     </span>
                   )}
                 </span>

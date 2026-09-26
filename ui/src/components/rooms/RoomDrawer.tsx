@@ -22,6 +22,7 @@
  * Opening the drawer is not a visit: the "changed" list stays put while
  * you read it. Opening the room itself is the visit.
  */
+import { Icon } from "../Icon";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMarkNeedSeen } from "../../data/hooks";
@@ -202,7 +203,7 @@ export function RoomDrawer({
           aria-label={`Close ${name} details`}
           className={`${LINK_BASE} border border-[var(--pw-border-subtle)] bg-transparent px-0 text-[var(--pw-text-secondary)]`}
         >
-          <span aria-hidden="true">✕</span>
+          <Icon name="close" size={20} />
         </button>
       </header>
 

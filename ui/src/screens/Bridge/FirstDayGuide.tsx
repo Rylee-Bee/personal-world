@@ -18,6 +18,7 @@
  * Hidden once put away (this device) or once every line is done; Settings
  * brings it back. No motion, no confetti: a finished line gets its tick.
  */
+import { Icon } from "../../components/Icon";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import type { BridgeData } from "../../data/contract";
 import type { WorldAreaId } from "../../data/types";
@@ -56,7 +57,7 @@ function Line({
             : "border-2 border-[var(--pw-text-muted)]"
         }`}
       >
-        {done ? "✓" : ""}
+        {done ? <Icon name="check" size={16} /> : null}
       </span>
       <div className="min-w-[14rem] flex-1">
         <p className="font-semibold text-[var(--pw-text-primary)]">{title}</p>

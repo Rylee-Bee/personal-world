@@ -459,7 +459,10 @@ Optional: a sheet of six states (rest, curious, attentive, engaged, protective, 
 It must still read at 24 px.
 ```
 
-## 11. Painted spot icons (requested 2026-09-26)
+## 11. Painted spot icons (requested and DELIVERED 2026-09-26)
+
+**Delivered:** all 16, in `design/assets/icons/spot/` (#124). `spot-unreachable`
+was re-rolled the same day so its fog sets it apart from `spot-limits`.
 
 The interface uses **line icons** (`design/assets/icons/`) for buttons and
 menus. This asks for their painted cousins: **spot icons**, one per idea,
@@ -515,7 +518,10 @@ spot-find (brass spyglass), spot-settings (brass cog with a star in the middle),
 spot-journal (quill resting on a rolled scroll), spot-crew (compass rose badge).
 ```
 
-## 12. Sol, four more moods (requested 2026-09-26)
+## 12. Sol, four more moods (requested and DELIVERED 2026-09-26)
+
+**Delivered:** all four, plus a re-centred `sol-hello` (the old one sat
+off-centre), in `design/assets/crew/sol/` (#124).
 
 Sol (the smiling ringed planet, the logo) has five moods: `sol-hello`,
 `sol-cheer`, `sol-curious`, `sol-rest` and the mark. Every empty or error
@@ -548,7 +554,11 @@ no outer glow. Each a transparent PNG, 1024×1024, readable at 48 px:
 4) sol-oops.png — sheepish smile, one small bandage on the planet, holding a tiny wrench.
 ```
 
-## 13. App icon (requested 2026-09-26)
+## 13. App icon (requested and DELIVERED 2026-09-26)
+
+**Delivered:** `design/assets/brand/app-icon.png`, cropped past a white margin
+in the original so it is navy to the edges, and a circle-safe
+`app-icon-maskable.png` (#124).
 
 Worlds has no proper icon for the browser tab, the phone home screen or
 installing it as an app. Sol is the mark, so the icon is Sol on a tile.
