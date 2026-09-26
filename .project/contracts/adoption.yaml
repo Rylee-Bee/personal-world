@@ -8,7 +8,7 @@ schema: play-nice/adoption-v1
 project: personal-world
 source:
   repository: Rylee-Bee/play-nice-contracts   # renamed from burgeswe/play-nice-contracts (account rename, 2026-09-12); old URL redirects
-  revision: 0a7fb10002396c4724b4fecd196308f786ee960d   # play-nice-contracts main 2026-09-26 (#34, ROOM 1.1.1); fast-forward from 613f780, read before pinning
+  revision: 48a59944ba532dfcb5606c71a06a8ae68cceb7c8   # play-nice-contracts main 2026-09-26 (#35-#37): adds the floor contract (floor 1.0.0, always resolved) and tool fixes; no existing contract changed. Fast-forward from 0a7fb10, read before pinning
   # Bump history: 2bb60b4 (v0.3.0) -> d6c97db (v0.5.0) -> 0cee065
   # (v0.6.0) -> f825ffb (v0.7.0, 2026-09-15). Each bump verified against the
   # live repository (commit exists, VERSION/CHANGELOG match,
