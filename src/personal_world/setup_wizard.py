@@ -14,8 +14,11 @@ by ``/setup`` instead of an auth wall. The wizard:
    secret value. "Test connection" fetches the issuer's OIDC discovery
    document and reports honestly (reachable / unreachable / bad
    config);
-4. offers two comfort defaults (larger text, gentle animation) applied
-   through the validated prefs vocabulary;
+4. offers comfort defaults (larger text, gentle animation, and the
+   residents/companion pack) applied through the validated prefs
+   vocabulary, and lets the person pick a companion from the drawn
+   starter crew — or none, the plain Assistant. The theme stays
+   device-local (``localStorage``); it is not a server setting.
 5. writes ``data/setup-complete``, mints a browser session so the
    person lands signed in, and redirects into the app.
 
@@ -356,9 +359,15 @@ def save_auth_choice(data_dir: Path, config_dir: Path, body: dict) -> dict:
 
 
 def apply_comfort(data_dir: Path, body: dict) -> dict:
-    """Two plain toggles, mapped onto the validated prefs vocabulary:
-    larger text (text_scale 1.25) and gentle animation (motion subtle).
-    Defaults (off) are the accessibility-floor values."""
+    """Three plain toggles, mapped onto the validated prefs vocabulary:
+    larger text (text_scale 1.25), gentle animation (motion subtle), and
+    the residents/companion pack (personality_pack "residents" | "off").
+    Comfort defaults (off) are the accessibility-floor values; the crew
+    default is on ("residents", owner decision 2026-09-25).
+
+    ``crew_on`` is opt-in to *change*: absent leaves whatever pack is
+    already chosen (and the shipped default, ``residents``) untouched.
+    """
     from . import prefs
     from .app import load_world, save_world
 
@@ -376,17 +385,100 @@ def apply_comfort(data_dir: Path, body: dict) -> dict:
         "text_scale": 1.25 if body.get("larger_text") else 1.0,
         "motion": "subtle" if body.get("gentle_animations") else "reduced",
     }
+    if "crew_on" in body:
+        # "residents" is the crew of companions reporting their systems;
+        # "off" is the one plain voice. Absent is left alone.
+        updates["personality_pack"] = (
+            "residents" if body.get("crew_on") else "off"
+        )
     effective = prefs.set_prefs(world, updates)
     save_world(world, world_path)
     comfort = {
         "larger_text": bool(body.get("larger_text")),
         "gentle_animations": bool(body.get("gentle_animations")),
+        "crew_on": effective["personality_pack"] == "residents",
     }
     _save_choices(data_dir, {"comfort": comfort})
     return {
-        "applied": {k: effective[k] for k in ("text_scale", "motion")},
+        "applied": {
+            k: effective[k]
+            for k in ("text_scale", "motion", "personality_pack")
+        },
         "comfort": comfort,
     }
+
+
+# ── the starter crew + the companion choice ──────────────────────────
+
+
+def starter_crew() -> list[dict[str, Any]]:
+    """The drawn starter crew as the wizard presents it.
+
+    Starter data only — id, name, blurb, portrait_asset — never a
+    principal's roster and never anything personal. Sol is deliberately
+    absent: she is the Worlds mark, never a companion.
+    """
+    from . import crew
+
+    return [
+        {
+            "id": spec["id"],
+            "name": spec["name"],
+            "blurb": spec["blurb"],
+            "portrait_asset": spec["portrait_asset"],
+        }
+        for spec in crew.STARTER_CREW
+    ]
+
+
+def _starter_ids() -> set[str]:
+    from . import crew
+
+    return {spec["id"] for spec in crew.STARTER_CREW}
+
+
+def apply_companion(data_dir: Path, body: dict) -> dict:
+    """Record the chosen starter companion in prefs, or ``null`` for the
+    plain voice (the Assistant), and in the setup record so a resumed
+    wizard shows it.
+
+    The vocabulary is the *starter* crew and nothing else: this early,
+    no principal's roster exists, Sol is never a companion, and an id
+    outside the drawn set is refused with a plain sentence (422).
+    """
+    from . import prefs
+    from .app import load_world, save_world
+
+    companion_id = body.get("companion_id")
+    if companion_id is not None and not isinstance(companion_id, str):
+        raise ValueError(
+            "companion_id must be a companion id from the starter crew, "
+            "or null for the plain voice (the Assistant)."
+        )
+    world_path = Path(data_dir) / "world.json"
+    try:
+        world = load_world(world_path)
+    except Exception as exc:
+        raise RuntimeError(
+            "Your world file could not be read, so the companion choice "
+            f"was not saved ({type(exc).__name__}). The 'getting things "
+            "ready' step may not have finished — go back a step and try "
+            "again."
+        ) from exc
+    try:
+        effective = prefs.set_prefs(
+            world, {"companion_id": companion_id}, companion_ids=_starter_ids()
+        )
+    except prefs.PrefsValueError as exc:
+        raise ValueError(
+            f"{companion_id!r} is not one of the starter companions. "
+            "Choose a companion from the list, or null for the plain "
+            "voice (the Assistant)."
+        ) from exc
+    save_world(world, world_path)
+    chosen = effective["companion_id"]
+    _save_choices(data_dir, {"companion_id": chosen})
+    return {"companion_id": chosen}
 
 
 def _choices_path(data_dir: Path) -> Path:
@@ -590,6 +682,49 @@ def register_setup_wizard(
             return JSONResponse(
                 {"ok": False, "status": "unavailable", "warnings": [str(exc)]},
                 status_code=500,
+            )
+        return {"ok": True, "data": result}
+
+    @app.get("/api/setup-wizard/crew")
+    async def wizard_crew() -> dict:
+        """The starter crew the wizard may offer (first-run only).
+
+        Exactly the drawn canon — id, name, blurb, portrait_asset — and
+        nothing personal. Read-only like ``/state``; no loopback gate.
+        """
+        _require_first_run()
+        return {"ok": True, "data": starter_crew()}
+
+    @app.post("/api/setup-wizard/companion")
+    async def wizard_companion(request: Request) -> dict:
+        """Set the chosen companion: a starter id, or null for the plain
+        voice (the Assistant). Loopback + first-run only, like the other
+        wizard writes. Unknown or non-starter id → 422 with a sentence.
+        """
+        _require_local_peer(request)
+        _require_first_run()
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="body must be JSON")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="body must be an object")
+        try:
+            result = await run_in_threadpool(apply_companion, data_dir, body)
+        except RuntimeError as exc:
+            return JSONResponse(
+                {"ok": False, "status": "unavailable", "warnings": [str(exc)]},
+                status_code=500,
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                {
+                    "ok": False,
+                    "status": "invalid_state",
+                    "detail": str(exc),
+                    "warnings": [str(exc)],
+                },
+                status_code=422,
             )
         return {"ok": True, "data": result}
 

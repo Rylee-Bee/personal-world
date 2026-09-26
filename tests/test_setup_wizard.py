@@ -20,6 +20,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from personal_world import crew as crew_mod  # noqa: E402
+
 
 def _client(tmp_path, monkeypatch):
     """Fresh app over empty data/config dirs. PW_API_TOKEN is always
@@ -423,3 +425,193 @@ class TestFirstRunWritesAreLoopbackOnly:
         assert r.status_code == 200, r.text
         # The credential file is never world-readable.
         assert (data_dir / ".env").stat().st_mode & 0o777 == 0o600
+
+
+def _remote_client(tmp_path, monkeypatch):
+    """A deliberately remote ASGI peer (writes must fail closed)."""
+    from personal_world.api import create_app
+
+    monkeypatch.delenv("PW_API_TOKEN", raising=False)
+    monkeypatch.setenv("PW_IDENTITY_MODE", "single")
+    data_dir = tmp_path / "data"
+    config_dir = tmp_path / "config"
+    c = TestClient(create_app(data_dir, config_dir), client=("203.0.113.9", 5555))
+    return c, data_dir, config_dir
+
+
+def _choices(data_dir: Path) -> dict:
+    path = data_dir / "setup-choices.json"
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+def _accessibility(data_dir: Path) -> dict:
+    return json.loads((data_dir / "world.json").read_text())["accessibility"]
+
+
+class TestComfortCrewOn:
+    """``crew_on`` toggles the residents pack ("residents" | "off") on the
+    comfort step; absent leaves the current choice (default: residents)."""
+
+    def _provision(self, client):
+        assert client.post("/api/setup-wizard/provision").json()["ok"]
+
+    def test_true_enables_residents(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        self._provision(client)
+        r = client.post("/api/setup-wizard/comfort", json={"crew_on": True})
+        body = r.json()
+        assert body["ok"] is True
+        assert body["data"]["applied"]["personality_pack"] == "residents"
+        assert body["data"]["comfort"]["crew_on"] is True
+        assert _accessibility(data_dir)["personality_pack"] == "residents"
+        assert _choices(data_dir)["comfort"]["crew_on"] is True
+
+    def test_false_is_off(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        self._provision(client)
+        r = client.post("/api/setup-wizard/comfort", json={"crew_on": False})
+        body = r.json()
+        assert body["data"]["applied"]["personality_pack"] == "off"
+        assert body["data"]["comfort"]["crew_on"] is False
+        assert _accessibility(data_dir)["personality_pack"] == "off"
+        assert _choices(data_dir)["comfort"]["crew_on"] is False
+
+    def test_absent_keeps_the_shipped_default(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        self._provision(client)
+        body = client.post("/api/setup-wizard/comfort", json={}).json()
+        assert body["data"]["applied"]["personality_pack"] == "residents"
+        assert body["data"]["comfort"]["crew_on"] is True
+
+    def test_absent_never_overwrites_an_explicit_choice(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        self._provision(client)
+        client.post("/api/setup-wizard/comfort", json={"crew_on": False})
+        body = client.post("/api/setup-wizard/comfort", json={}).json()
+        assert body["data"]["applied"]["personality_pack"] == "off"
+        assert body["data"]["comfort"]["crew_on"] is False
+        assert _accessibility(data_dir)["personality_pack"] == "off"
+
+
+class TestWizardStarterCrew:
+    """GET /api/setup-wizard/crew: the starter canon, nothing personal."""
+
+    _SHAPE = {"id", "name", "blurb", "portrait_asset"}
+
+    def test_lists_the_starter_crew(self, wizard_env):
+        client, _, _ = wizard_env
+        r = client.get("/api/setup-wizard/crew")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["ok"] is True
+        offered = body["data"]
+        assert isinstance(offered, list) and offered
+        expected = [spec["id"] for spec in crew_mod.STARTER_CREW]
+        assert [entry["id"] for entry in offered] == expected
+        for entry in offered:
+            assert set(entry) == self._SHAPE
+            assert entry["name"] and entry["blurb"]
+            assert entry["portrait_asset"].startswith("/assets/crew/")
+        # Sol is the Worlds mark — never a companion, never offered.
+        assert "sol" not in {entry["id"] for entry in offered}
+
+    def test_stays_starter_only_after_a_choice(self, wizard_env):
+        client, _, _ = wizard_env
+        client.post("/api/setup-wizard/provision")
+        client.post("/api/setup-wizard/companion", json={"companion_id": "bolt"})
+        ids = {
+            entry["id"]
+            for entry in client.get("/api/setup-wizard/crew").json()["data"]
+        }
+        assert ids == {spec["id"] for spec in crew_mod.STARTER_CREW}
+
+    def test_first_run_only(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        data_dir.mkdir(parents=True, exist_ok=True)
+        (data_dir / "setup-complete").write_text("ok")
+        assert client.get("/api/setup-wizard/crew").status_code == 404
+
+    def test_readable_from_a_remote_peer(self, tmp_path, monkeypatch):
+        """Read-only, like /state: no loopback gate."""
+        c, _, _ = _remote_client(tmp_path, monkeypatch)
+        assert c.get("/api/setup-wizard/crew").status_code == 200
+
+
+class TestCompanionChoice:
+    """POST /api/setup-wizard/companion: a starter id, or null."""
+
+    def _provision(self, client):
+        assert client.post("/api/setup-wizard/provision").json()["ok"]
+
+    def test_valid_starter_id_is_saved(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        self._provision(client)
+        r = client.post(
+            "/api/setup-wizard/companion", json={"companion_id": "bolt"}
+        )
+        assert r.status_code == 200
+        assert r.json()["data"]["companion_id"] == "bolt"
+        assert _accessibility(data_dir)["companion_id"] == "bolt"
+        assert _choices(data_dir)["companion_id"] == "bolt"
+
+    def test_null_is_the_plain_voice(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        self._provision(client)
+        r = client.post(
+            "/api/setup-wizard/companion", json={"companion_id": None}
+        )
+        assert r.status_code == 200
+        assert r.json()["data"]["companion_id"] is None
+        assert _accessibility(data_dir)["companion_id"] is None
+        assert _choices(data_dir)["companion_id"] is None
+
+    def test_unknown_id_refused_plainly(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        self._provision(client)
+        r = client.post(
+            "/api/setup-wizard/companion", json={"companion_id": "ghost"}
+        )
+        assert r.status_code == 422
+        assert r.json()["ok"] is False
+        assert "starter companion" in r.json()["warnings"][0].lower()
+        assert "companion_id" not in _choices(data_dir)
+
+    def test_sol_is_never_a_companion(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        self._provision(client)
+        r = client.post(
+            "/api/setup-wizard/companion", json={"companion_id": "sol"}
+        )
+        assert r.status_code == 422
+        assert "companion_id" not in _choices(data_dir)
+
+    def test_non_string_id_refused(self, wizard_env):
+        client, _, _ = wizard_env
+        self._provision(client)
+        r = client.post("/api/setup-wizard/companion", json={"companion_id": 7})
+        assert r.status_code == 422
+
+    def test_choice_persists_for_resume(self, wizard_env):
+        client, _, _ = wizard_env
+        self._provision(client)
+        client.post(
+            "/api/setup-wizard/companion", json={"companion_id": "renai"}
+        )
+        state = client.get("/api/setup-wizard/state").json()["data"]
+        assert state["choices"]["companion_id"] == "renai"
+
+    def test_remote_write_refused(self, tmp_path, monkeypatch):
+        c, data_dir, _ = _remote_client(tmp_path, monkeypatch)
+        r = c.post("/api/setup-wizard/companion", json={"companion_id": "bolt"})
+        assert r.status_code == 403
+        assert not (data_dir / "setup-choices.json").exists()
+
+    def test_refused_after_completion(self, wizard_env):
+        client, data_dir, _ = wizard_env
+        data_dir.mkdir(parents=True, exist_ok=True)
+        (data_dir / "setup-complete").write_text("ok")
+        r = client.post(
+            "/api/setup-wizard/companion", json={"companion_id": "bolt"}
+        )
+        assert r.status_code == 404
+        assert not (data_dir / "setup-choices.json").exists()
