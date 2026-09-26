@@ -75,21 +75,52 @@ export function toneWord(tone: string | null | undefined): string {
   return TONE_WORDS[tone ?? ""] ?? TONE_WORDS.update;
 }
 
+/** The room whose drawer shows Secrets (the backend reads the station
+ *  through it). */
+export const SECRETS_ROOM_ID = "workshop";
+
 /**
- * A room's link to one item, made absolute against the room's own
- * address — only when the room sent a same-origin path (starts with "/",
- * not "//", no scheme). Anything else is refused, never followed.
+ * Where a person's browser reaches a room: its registry `public_url` when
+ * that's a usable http(s) address, else `base_url` (which may only work
+ * from the station itself).
  */
-export function roomItemUrl(row: RoomRow, link: string | null | undefined): string | null {
+export function roomAddress(row: RoomRow): string {
+  const pub = row.public_url;
+  if (typeof pub === "string") {
+    try {
+      const u = new URL(pub);
+      if ((u.protocol === "http:" || u.protocol === "https:") && !u.username && !u.password) return pub;
+    } catch {
+      // fall through to base_url
+    }
+  }
+  return row.base_url;
+}
+
+/**
+ * A path on a site, made absolute against that site's address — only a
+ * same-origin path (starts with "/", not "//", no scheme). Anything else
+ * is refused, never followed.
+ */
+export function sitePathUrl(address: string, link: string | null | undefined): string | null {
   if (typeof link !== "string" || !link.startsWith("/") || link.startsWith("//")) return null;
-  if (/^[a-z][a-z0-9+.-]*:/i.test(link)) return null;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(link) || link.includes("\\")) return null;
   try {
-    const base = new URL(row.base_url);
+    const base = new URL(address);
     if (base.protocol !== "http:" && base.protocol !== "https:") return null;
     const url = new URL(link, base.origin);
     return url.origin === base.origin ? url.toString() : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * A room's link to one item, made absolute against the room's own
+ * address — only when the room sent a same-origin path (starts with "/",
+ * not "//", no scheme). Anything else is refused, never followed.
+ */
+export function roomItemUrl(row: RoomRow, link: string | null | undefined): string | null {
+  return sitePathUrl(roomAddress(row), link);
 }
 

@@ -373,6 +373,30 @@ function keeperOf(roomId) {
   };
 }
 
+const SECRETS_OVERVIEW = {
+  station: { configured: true, status: "ok", detail: null },
+  namespaces: [
+    { name: "rooms", keys: ["rooms/workshop-token", "rooms/studio-token"] },
+    { name: "mail", keys: ["mail/relay-password"] },
+  ],
+  key_count: 3,
+  bundle_last_change: "2026-09-25T22:52:00Z",
+  requests: [
+    {
+      id: "req-1",
+      key_path: "mail/relay-password",
+      reason: "The weekly digest can't send without the mail relay's password.",
+      requested_at: "2026-09-25T22:40:00Z",
+      link: "/secrets?request=req-1",
+    },
+  ],
+  recent_ops: [
+    { key_path: "rooms/workshop-token", state: "ok", deploy_state: "deployed", actor: "owner", created_at: "2026-09-25T09:12:00Z" },
+  ],
+  room_id: "workshop",
+  open_url: "https://room.test/secrets",
+};
+
 function decoratedRooms() {
   return ROOMS_FIXTURE.map((row) => ({
     ...row,
@@ -928,6 +952,11 @@ const server = http.createServer(async (req, res) => {
     const itemId = body.item_id === null || body.item_id === undefined ? null : String(body.item_id);
     PLACE = { system, item_id: itemId, updated_at: new Date().toISOString() };
     return json(res, 200, ok("healthy", { place: PLACE }));
+  }
+  // GET /api/secrets/overview — the Workshop's secrets by NAME (owner
+  // only; synthetic names, never a value).
+  if (method === "GET" && p === "/api/secrets/overview") {
+    return json(res, 200, { ok: true, data: SECRETS_OVERVIEW });
   }
   // GET /api/rooms — the estate's rooms (contract room/0): one honest
   // row per configured room. An unreachable room is data, not an error.

@@ -6,7 +6,7 @@ import { useVisitRoom } from "../../data/hooks";
 import type { RoomKeeper, RoomRow } from "../../data/contract";
 import { CompanionFace } from "../crew/CompanionFace";
 import { keeperPortraitUrl } from "./crew";
-import { initial, LINK_BASE, roomItemUrl, roomName, statusWord } from "./format";
+import { initial, LINK_BASE, roomAddress, roomItemUrl, roomName, statusWord } from "./format";
 import { isUncertain } from "./groupRooms";
 import { useRoomDrawer } from "./drawerContext";
 
@@ -33,7 +33,7 @@ export function OpenLink({
   const itemHref = item ? roomItemUrl(row, item.link) : null;
   return (
     <a
-      href={itemHref ?? row.base_url}
+      href={itemHref ?? roomAddress(row)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`${label ?? `Open ${name}`} in a new tab`}

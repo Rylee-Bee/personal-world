@@ -75,6 +75,7 @@ import type {
   PlaceData,
   PlacePutRequest,
   RoomsEnvelope,
+  SecretsOverview,
   RoomsResume,
   CrewEntry,
   RoomKeeper,
@@ -556,6 +557,13 @@ export const putPlace = (body: PlacePutRequest) =>
 // "unreachable · last seen …", never as healthy. Read-only.
 export const getRooms = () =>
   unwrap<RoomsEnvelope>(api.GET("/api/rooms", {}));
+
+// GET /api/secrets/overview: the Workshop's secrets by NAME, with station
+// health, agents' requests and recent changes. Owner only (403 for anyone
+// else). Never carries a value. A dead or unreadable station is data
+// (`station.status: "unknown"`), not an HTTP error.
+export const getSecretsOverview = () =>
+  unwrap<Envelope<SecretsOverview>>(api.GET("/api/secrets/overview", {}));
 
 // POST /api/rooms/{id}/visit: record THIS person's visit (private,
 // Worlds-owned; same-origin only). `link` must be a same-origin path, so

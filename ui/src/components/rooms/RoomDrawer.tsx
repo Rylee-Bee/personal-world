@@ -26,9 +26,19 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useMarkNeedSeen } from "../../data/hooks";
 import type { RoomCard, RoomKeeper, RoomRow } from "../../data/contract";
-import { formatTime, LINK_BASE, plural, relativeTime, roomItemUrl, roomName, toneWord } from "./format";
+import {
+  formatTime,
+  LINK_BASE,
+  plural,
+  relativeTime,
+  roomItemUrl,
+  roomName,
+  SECRETS_ROOM_ID,
+  toneWord,
+} from "./format";
 import { currentNeeds, isUncertain, seenNeeds } from "./groupRooms";
 import { Emblem, OpenLink, StatusWord } from "./parts";
+import { SecretsSection } from "./SecretsSection";
 import { useMinuteClock } from "./useRootAttribute";
 
 function isStale(card: RoomCard, now: number): boolean {
@@ -249,6 +259,8 @@ export function RoomDrawer({
         </section>
       )}
 
+      {row.id === SECRETS_ROOM_ID && <SecretsSection headingId={`${titleId}-secrets`} />}
+
       <section aria-labelledby={`${titleId}-source`} className="flex flex-col gap-[var(--pw-spacing-xs)]">
         <h3 id={`${titleId}-source`} className={SECTION_TITLE}>
           Where this comes from
@@ -271,6 +283,12 @@ export function RoomDrawer({
             <dd className="break-words">{row.room?.commit ?? "not reported"}</dd>
             <dt>Address</dt>
             <dd className="break-all">{row.base_url}</dd>
+            {row.public_url && row.public_url !== row.base_url && (
+              <>
+                <dt>Opens at</dt>
+                <dd className="break-all">{row.public_url}</dd>
+              </>
+            )}
             <dt>Last checked</dt>
             <dd>{formatTime(row.checked_at)}</dd>
             {row.error && (

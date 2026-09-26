@@ -21,12 +21,19 @@ const { hookState } = vi.hoisted(() => ({
     },
     visit: vi.fn(),
     markSeen: vi.fn(),
+    secrets: {
+      isPending: false,
+      isError: false,
+      error: undefined as unknown,
+      data: undefined as unknown,
+    },
   },
 }));
 
 vi.mock("../data/hooks", () => ({
   useRooms: () => hookState.rooms,
   useVisitRoom: () => ({ mutate: hookState.visit }),
+  useSecretsOverview: () => hookState.secrets,
   useMarkNeedSeen: () => ({
     mutate: hookState.markSeen,
     isPending: false,
@@ -37,6 +44,7 @@ vi.mock("../data/hooks", () => ({
 import { RoomsPanel } from "../components/RoomsPanel";
 import { groupRooms, MAX_DOORWAYS } from "../components/rooms/groupRooms";
 import type { RoomRow } from "../data/contract";
+import { ApiError } from "../data/api";
 
 function descriptor(name: string, status: string, id = name.toLowerCase()) {
   return {
@@ -523,5 +531,105 @@ describe("RoomDrawer", () => {
     const drawer = screen.getByRole("dialog");
     expect(within(drawer).getByText(/can’t reach .* right now/)).toBeInTheDocument();
     expect(within(drawer).queryByText("Should not show")).not.toBeInTheDocument();
+  });
+
+  it("prefers the room's public address for every link a person follows", () => {
+    setRooms([
+      {
+        ...WORKSHOP,
+        base_url: "http://10.0.0.5:8940",
+        public_url: "https://workshop.example.test",
+        needs_you: [
+          { id: "n1", title: "Approve the plan", why: "", actions: [], created_at: "2026-09-25T09:00:00Z", link: "/plans/1" },
+        ],
+      },
+    ]);
+    render(<RoomsPanel />);
+    expect(screen.getByRole("link", { name: "Open Workshop in a new tab" })).toHaveAttribute(
+      "href",
+      "https://workshop.example.test",
+    );
+    expect(screen.getByRole("link", { name: "Review “Approve the plan” in a new tab" })).toHaveAttribute(
+      "href",
+      "https://workshop.example.test/plans/1",
+    );
+  });
+
+  describe("Secrets in the Workshop's drawer", () => {
+    const OVERVIEW = {
+      station: { configured: true, status: "ok", detail: null },
+      namespaces: [
+        { name: "rooms", keys: ["rooms/workshop-token", "rooms/studio-token"] },
+        { name: "mail", keys: ["mail/relay-password"] },
+      ],
+      key_count: 3,
+      bundle_last_change: "2026-09-25T22:52:00Z",
+      requests: [
+        {
+          id: "req-1",
+          key_path: "mail/relay-password",
+          reason: "The digest can't send.",
+          requested_at: "2026-09-25T22:40:00Z",
+          link: "/secrets?request=req-1",
+        },
+      ],
+      recent_ops: [
+        { key_path: "rooms/workshop-token", state: "ok", deploy_state: "deployed", actor: "owner", created_at: "2026-09-25T09:12:00Z" },
+        { key_path: "rooms/studio-token", state: "ok", deploy_state: "pending", actor: "owner", created_at: "2026-09-25T09:13:00Z" },
+      ],
+      room_id: "workshop",
+      open_url: "https://workshop.example.test/secrets",
+    };
+
+    function openWorkshop(secrets: Partial<typeof hookState.secrets>) {
+      hookState.secrets = { isPending: false, isError: false, error: undefined, data: undefined, ...secrets };
+      setRooms([QUIET, { ...WORKSHOP, needs_you: [] }]);
+      render(<RoomsPanel />);
+      fireEvent.click(screen.getByRole("button", { name: "Look inside Workshop" }));
+      return screen.getByRole("dialog");
+    }
+
+    it("shows names, health in words, requests and changes, and never a value field", () => {
+      const drawer = openWorkshop({ data: { ok: true, data: OVERVIEW } });
+      expect(within(drawer).getByRole("heading", { name: "Secrets" })).toBeInTheDocument();
+      expect(within(drawer).getByText("The station is answering")).toBeInTheDocument();
+      expect(within(drawer).getByText(/3 keys in 2 groups/)).toBeInTheDocument();
+      expect(within(drawer).getByRole("link", { name: "Enter mail/relay-password in Project Home, in a new tab" })).toHaveAttribute(
+        "href",
+        "https://workshop.example.test/secrets?request=req-1",
+      );
+      // Groups start closed; opening one shows its names.
+      const rooms = within(drawer).getByRole("button", { name: /rooms/ });
+      expect(rooms).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(rooms);
+      expect(rooms).toHaveAttribute("aria-expanded", "true");
+      expect(within(drawer).getAllByText("rooms/workshop-token").length).toBeGreaterThan(0);
+      expect(within(drawer).getByText(/reached the station/)).toBeInTheDocument();
+      expect(within(drawer).getByText(/waiting for the station/)).toBeInTheDocument();
+      // Worlds never has a place to type a value.
+      expect(within(drawer).queryByRole("textbox")).toBeNull();
+      expect(drawer.querySelector("input[type=password]")).toBeNull();
+    });
+
+    it("rests only this section when the station is down", () => {
+      const drawer = openWorkshop({
+        data: { ok: true, data: { ...OVERVIEW, station: { configured: true, status: "unreachable", detail: null }, requests: [] } },
+      });
+      expect(within(drawer).getByText(/Secrets are resting: the station isn’t reachable/)).toBeInTheDocument();
+      expect(within(drawer).getByRole("heading", { name: /What Workshop is showing/ })).toBeInTheDocument();
+    });
+
+    it("isn't there at all for someone who isn't the owner", () => {
+      const drawer = openWorkshop({ isError: true, error: new ApiError(403, "admin only") });
+      expect(within(drawer).queryByRole("heading", { name: "Secrets" })).toBeNull();
+    });
+
+    it("isn't in any other room's drawer", () => {
+      hookState.secrets = { isPending: false, isError: false, error: undefined, data: { ok: true, data: OVERVIEW } };
+      setRooms([QUIET]);
+      render(<RoomsPanel />);
+      fireEvent.click(screen.getByRole("button", { name: "Look inside VEFR" }));
+      expect(within(screen.getByRole("dialog")).queryByRole("heading", { name: "Secrets" })).toBeNull();
+    });
   });
 });

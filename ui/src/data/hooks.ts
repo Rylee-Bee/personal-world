@@ -13,6 +13,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  ApiError,
+  getSecretsOverview,
   healthz,
   getStatus,
   getDaily,
@@ -138,6 +140,7 @@ export const queryKeys = {
   briefing: ["briefing"] as const,
   place: ["place"] as const,
   rooms: ["rooms"] as const,
+  secretsOverview: ["secrets", "overview"] as const,
   crew: ["crew"] as const,
 } as const;
 
@@ -788,6 +791,19 @@ export function useRooms() {
     queryKey: queryKeys.rooms,
     queryFn: getRooms,
     staleTime: 30_000,
+  });
+}
+
+/** The Workshop's secrets overview (names and health, never a value).
+ *  Only fetched where it's shown; a 403 means "not the owner" and is
+ *  not retried. The server caches 60 s. */
+export function useSecretsOverview(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.secretsOverview,
+    queryFn: getSecretsOverview,
+    enabled,
+    staleTime: 60_000,
+    retry: (count, error) => !(error instanceof ApiError && error.status === 403) && count < 2,
   });
 }
 
