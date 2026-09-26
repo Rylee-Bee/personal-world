@@ -1359,6 +1359,38 @@ class RoomsService:
         self._actions_cache[config.id] = (now, actions)
         return actions
 
+    async def _attach_actions(
+        self, configs: list[RoomConfig], rows: list[dict[str, Any]]
+    ) -> None:
+        """Put each room's own actions on its row as ``[{id, title, writes}]``
+        (from the 60 s action cache), so the UI can offer room-level
+        actions such as "Re-check the tickets". An unreachable room, or one
+        whose list can't be read, gets ``[]``; ``writes`` is ``None`` when
+        the room didn't say (the UI treats that as a write)."""
+        by_id = {c.id: c for c in configs}
+
+        async def one(row: dict[str, Any]) -> None:
+            config = by_id.get(row.get("id"))
+            if config is None or not row.get("reachable"):
+                row["actions"] = []
+                return
+            listed = await self._room_actions(config) or []
+            out = []
+            for a in listed:
+                aid = a.get("id")
+                if not isinstance(aid, str) or not aid:
+                    continue
+                title = a.get("label") or a.get("title") or aid
+                writes = a.get("writes")
+                out.append({
+                    "id": aid,
+                    "title": str(title),
+                    "writes": writes if isinstance(writes, bool) else None,
+                })
+            row["actions"] = out
+
+        await asyncio.gather(*(one(r) for r in rows))
+
     async def _fetch_room_actions(
         self, config: RoomConfig
     ) -> list[dict[str, Any]] | None:
@@ -1405,6 +1437,7 @@ class RoomsService:
         self._registry_report = report
         self._last_configs = configs
         rows = list(await asyncio.gather(*(self._probe(c) for c in configs)))
+        await self._attach_actions(configs, rows)
         self._cache = rows
         self._cache_at = now
         self._persist()  # room health outlives this process
