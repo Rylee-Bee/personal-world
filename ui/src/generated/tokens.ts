@@ -134,11 +134,12 @@ export function token(name: TokenName): string {
 }
 
 /** Theme names available (generated from design/themes/*.json) */
-export type ThemeName = "station" | "doorways" | "moss" | "ocean" | "plain" | "starfield";
+export type ThemeName = "station" | "daylight" | "doorways" | "moss" | "ocean" | "plain" | "starfield";
 
 /** All theme selectors (station is the :root fallback) */
 export const THEMES: Record<ThemeName, string> = {
   "station": ":root",
+  "daylight": '[data-theme="daylight"]',
   "doorways": '[data-theme="doorways"]',
   "moss": '[data-theme="moss"]',
   "ocean": '[data-theme="ocean"]',

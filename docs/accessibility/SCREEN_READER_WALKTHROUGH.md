@@ -134,8 +134,12 @@ plain words ("Runs this World", "Helps run this World", "Has their own
 space", "Has their own space, with limits", "Visiting"). **Change what
 {name} can do** opens a group of that name with radio buttons, **Not now**
 and **Save for {name}**; nobody sees a Change button for the owner or
-themselves. A write that needs it shows **Confirm it's you** in place, with
-focus on **Your sign-in key**. Results are a status line ("Saved. Alex:
+themselves. A write that needs it shows **Confirm it's you** in place. People who sign in
+through the provider get **Confirm with your sign-in** (focus on the "Confirm
+it's you" line); it signs them in again and brings them back to the same page
+with a status line, "You're confirmed for the next few minutes." People with a
+sign-in key get focus on **Your sign-in key** (or **Use your sign-in key
+instead** when they have both). Results are a status line ("Saved. Alex:
 Helps run this World."); focus returns to the Change button. **Hand this
 World over** (owner only) needs the new owner's name typed exactly before
 **Hand over to {name}** is enabled. Programs are in a separate disclosure,

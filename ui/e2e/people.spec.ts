@@ -65,3 +65,32 @@ test("handing the World over needs the name typed exactly", async ({ page }) => 
   await section.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(main.getByRole("status").filter({ hasText: "Jo now runs this World." })).toBeVisible();
 });
+
+test("with SSO, Confirm with your sign-in goes out and comes back to the same page", async ({ page }) => {
+  await page.route("**/api/auth/session", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    body.data = { ...body.data, step_up_methods: ["sso"] };
+    await route.fulfill({ response, json: body });
+  });
+  let wentOut = "";
+  await page.route("**/api/auth/oidc/step-up**", async (route) => {
+    wentOut = route.request().url();
+    // The provider signs the person in again and sends them back.
+    await route.fulfill({ status: 302, headers: { location: "/" } });
+  });
+
+  const main = await openPeople(page);
+  await main.getByRole("button", { name: "Change what Alex can do" }).click();
+  const group = main.getByRole("group", { name: "Change what Alex can do" });
+  await group.getByRole("radio", { name: /Helps run this World/ }).check();
+  await group.getByRole("button", { name: "Save for Alex" }).click();
+
+  await expect(group.getByText("Confirm it’s you")).toBeFocused();
+  await expect(group.getByLabel("Your sign-in key")).toHaveCount(0);
+  await group.getByRole("button", { name: "Confirm with your sign-in" }).click();
+
+  await expect(page.getByRole("main", { name: "People" })).toBeVisible();
+  expect(new URL(wentOut).searchParams.get("return_to")).toBe("/");
+  await expect(page.getByRole("status").filter({ hasText: "You’re confirmed for the next few minutes." })).toBeVisible();
+});

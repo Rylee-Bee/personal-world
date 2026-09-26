@@ -155,8 +155,8 @@ def id_token_claims(**overrides) -> dict:
         "iat": now,
         "auth_time": now,
         "nonce": "test-nonce",
-        "preferred_username": "rylee",
-        "email": "rylee@example.invalid",
+        "preferred_username": "sam",
+        "email": "sam@example.invalid",
     }
     claims.update(overrides)
     return {k: v for k, v in claims.items() if v is not None}
@@ -893,13 +893,13 @@ class TestDisplayEnrichment:
 
     def test_display_falls_back_to_userinfo(self, tmp_path):
         stub = StubIdP(
-            userinfo={"sub": "authelia-sub-1", "preferred_username": "rylee.h"}
+            userinfo={"sub": "authelia-sub-1", "preferred_username": "sam.p"}
         )
         stub.claims_override = {"preferred_username": None, "name": None, "email": None}
         client = self._client(tmp_path, stub)
         identity = client.complete_login("code", _pending())
         assert identity.sub == "authelia-sub-1"
-        assert identity.display_name == "rylee.h"
+        assert identity.display_name == "sam.p"
 
     def test_userinfo_about_another_subject_is_never_merged(self, tmp_path):
         stub = StubIdP(
@@ -926,8 +926,8 @@ class TestDisplayEnrichment:
         )
         client = self._client(tmp_path, stub)
         identity = client.complete_login("code", _pending())
-        assert identity.display_name == "rylee"
-        assert identity.email == "rylee@example.invalid"
+        assert identity.display_name == "sam"
+        assert identity.email == "sam@example.invalid"
         assert f"{ISSUER}/api/oidc/userinfo" not in stub.calls
 
 
@@ -1623,3 +1623,109 @@ class TestLinkSignIn:
         assert store.find_by_oidc_subject("sub-x")["user_id"] == "jo"
         store.disable_user("jo")
         assert store.find_by_oidc_subject("sub-x") is None
+
+
+# ===========================================================================
+# "Confirm it's you" by a fresh provider sign-in (step-up without a key)
+# ===========================================================================
+
+
+class TestOidcStepUp:
+    def _signed_in(self, tmp_path, monkeypatch, stub, mode="single"):
+        _with_secret(monkeypatch)
+        c = _app_client(
+            tmp_path, monkeypatch, mode=mode, oidc_config=CONFIG, transport=stub
+        )
+        params = _start_login(c, stub)
+        r = _callback(c, params)
+        assert r.status_code == 303, r.text
+        sid = _session_id(r)
+        c.cookies.set("pw_session", sid)
+        return c, sid
+
+    def _start_step_up(self, c, stub, return_to="/settings"):
+        r = c.get(
+            "/api/auth/oidc/step-up",
+            params={"return_to": return_to},
+            follow_redirects=False,
+        )
+        assert r.status_code == 303, r.text
+        params = {
+            k: v[0]
+            for k, v in urllib.parse.parse_qs(
+                r.headers["location"].partition("?")[2]
+            ).items()
+        }
+        stub.nonce = params["nonce"]
+        stub.expected_challenge = params["code_challenge"]
+        return params
+
+    def _session(self, c):
+        return c.get("/api/auth/session").json()["data"]
+
+    def test_fresh_sign_in_grants_step_up_and_returns(self, tmp_path, monkeypatch):
+        stub = StubIdP()
+        c, _ = self._signed_in(tmp_path, monkeypatch, stub)
+        assert self._session(c)["has_step_up"] is False
+        params = self._start_step_up(c, stub)
+        assert params["prompt"] == "login"
+        assert params["max_age"] == "0"
+        stub.claims_override = {"auth_time": int(time.time())}
+        r = _callback(c, params)
+        assert r.status_code == 303, r.text
+        assert r.headers["location"] == "/settings"
+        assert self._session(c)["has_step_up"] is True
+
+    def test_stale_sign_in_is_refused(self, tmp_path, monkeypatch):
+        stub = StubIdP()
+        c, _ = self._signed_in(tmp_path, monkeypatch, stub)
+        params = self._start_step_up(c, stub)
+        stub.claims_override = {"auth_time": int(time.time()) - 3600}
+        r = _callback(c, params, accept="application/json")
+        assert r.status_code == 403
+        assert r.json()["error_code"] == "oidc_step_up_refused"
+        assert self._session(c)["has_step_up"] is False
+
+    def test_a_different_person_cannot_confirm(self, tmp_path, monkeypatch):
+        from personal_world.identity import IdentityStore
+
+        stub = StubIdP()
+        stub.sub = "sub-jo"
+        IdentityStore(tmp_path).create_user("jo", "Jo")
+        IdentityStore(tmp_path).create_user("kit", "Kit")
+        IdentityStore(tmp_path).link_oidc_subject("jo", "sub-jo")
+        IdentityStore(tmp_path).link_oidc_subject("kit", "sub-kit")
+        c, _ = self._signed_in(tmp_path, monkeypatch, stub, mode="multi")
+        params = self._start_step_up(c, stub)
+        stub.sub = "sub-kit"  # someone else signs in at the provider
+        stub.claims_override = {"auth_time": int(time.time())}
+        r = _callback(c, params, accept="application/json")
+        assert r.status_code == 403
+        assert self._session(c)["has_step_up"] is False
+
+    def test_return_to_stays_on_this_site(self, tmp_path, monkeypatch):
+        stub = StubIdP()
+        c, _ = self._signed_in(tmp_path, monkeypatch, stub)
+        for bad in ("https://evil.test/", "//evil.test/x", "/\\evil.test"):
+            params = self._start_step_up(c, stub, return_to=bad)
+            stub.claims_override = {"auth_time": int(time.time())}
+            r = _callback(c, params)
+            assert r.headers["location"] == "/", bad
+
+    def test_needs_a_session(self, tmp_path, monkeypatch):
+        _with_secret(monkeypatch)
+        stub = StubIdP()
+        c = _app_client(tmp_path, monkeypatch, oidc_config=CONFIG, transport=stub)
+        r = c.get("/api/auth/oidc/step-up", follow_redirects=False)
+        assert r.status_code == 401
+
+    def test_session_lists_how_to_confirm(self, tmp_path, monkeypatch):
+        from personal_world.identity import IdentityStore
+
+        stub = StubIdP()
+        stub.sub = "sub-jo"
+        IdentityStore(tmp_path).create_user("jo", "Jo")
+        IdentityStore(tmp_path).link_oidc_subject("jo", "sub-jo")
+        c, _ = self._signed_in(tmp_path, monkeypatch, stub, mode="multi")
+        # Jo signs in only through the provider: no key, but SSO works.
+        assert self._session(c)["step_up_methods"] == ["sso"]
