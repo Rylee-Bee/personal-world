@@ -1,13 +1,16 @@
 # Records API — structured person data inside Memory
 
-**Status:** Lane R-BE (backend). Owner-approved product language in
-`PRODUCT-LANGUAGE.md` §"Records vs Vault"; this document is the API + storage
-contract that follows from it.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the `/api/records*` contract (Records inside Memory) · **Read this if:** you are reading or changing the Records surface, its storage, or its gating.
 
-**Kind:** reference for the `/api/records*` surface. It refines nothing that
-[ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](../SECURITY.md), or the
-identity boundary ([IDENTITY-BOUNDARY.md](IDENTITY-BOUNDARY.md)) own — it sits
-under them.
+**In short:** **Records** are a person's durable structured facts (medical
+info, work history, identity documents, emergency contacts), stored inside
+**Memory** as categories and served by `/api/records*`. Records are *not*
+the Vault. This page is the API and storage contract; the product-language
+rationale is in `PRODUCT-LANGUAGE.md` §"Records vs Vault". It sits under
+[ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](../SECURITY.md), and the
+identity boundary ([IDENTITY-BOUNDARY.md](IDENTITY-BOUNDARY.md)).
+
+**Lane:** R-BE (backend).
 
 ---
 

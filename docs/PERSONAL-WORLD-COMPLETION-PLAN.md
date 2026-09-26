@@ -1,17 +1,17 @@
-# Project Worlds — Completion Plan
+# Project Worlds — Completion Plan (historical)
 
-(Formerly "Personal World" — product renamed 2026-09-12; the filename and
-cross-links keep the historical identifier. Technical identifiers unchanged.)
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../.project/CURRENT.md)) · **Read this if:** you want the dated v1 execution plan for provenance · **Superseded by:** [`.project/PLAN.md`](../.project/PLAN.md) for direction and [`.project/CURRENT.md`](../.project/CURRENT.md) for state.
 
-**Status:** Dated execution plan — **v1, 2026-09-10** (with a 2026-09-14
-progress note). It records dependency-ordered phases and acceptance
-criteria toward the finish line; it is **not** a current-state document.
-Current state is [`.project/CURRENT.md`](../.project/CURRENT.md); product
-direction is [`../ROADMAP.md`](../ROADMAP.md); the verified wiring map is
-[repo/WIRING-READINESS.md](repo/WIRING-READINESS.md). Phase statuses and
-counts below predate the T15 React cutover, the Workshop v3 design
-authority, and the 2026-09-15 finish pass — verify against the code
-before treating any phase status here as current.
+**In short:** the dated **v1, 2026-09-10** execution plan (with a
+2026-09-14 progress note): dependency-ordered phases and acceptance
+criteria toward the finish line. It is a past record, not current state.
+Since it was written, the interface flipped to the React rebuild in `ui/`
+(2026-09-22, Bridge is now home), the server-rendered Station became a
+theme package, and the rooms/registry/crew/doorways architecture landed —
+so every phase status and count below must be re-verified against the code
+before it is treated as current. (Formerly "Personal World"; the filename
+and cross-links keep the historical identifier — technical identifiers
+are unchanged.)
 
 > **Progress note (2026-09-14):** the architecture branch merged to main
 > via PR #42 and PR #43. Several A0 findings are resolved: the reminder

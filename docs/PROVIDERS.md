@@ -1,7 +1,12 @@
 # Writing a Provider
 
-A provider maps one capability to one real system, without modifying
-that system. The core never requires any specific provider.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** how to write and wire a capability provider · **Read this if:** you are adding or replacing one real system behind a capability.
+
+**In short:** a **provider** maps one capability to one real system
+without modifying that system; the core never requires any specific
+provider. This is the how-to: pick a capability, implement the contract,
+wire it in the registry, and prove substitution. Source of truth for the
+status vocabulary is `src/personal_world/status.py`.
 
 Capabilities are core-owned; your provider implements or enriches one
 (see `docs/NATIVE-BASELINE-AND-ENRICHMENT.md` and
@@ -40,7 +45,10 @@ Rules:
 ## 3. Wire it in `build_registry`
 
 Add a branch in `src/personal_world/app.py::build_registry` keyed on a
-`type` string, then declare connections in `config/connections.json`:
+`type` string, then declare connections. `ConnectionManager` merges the
+tracked `config/connections.json` with the private
+`config/connections.local.json` (real endpoints and anything
+environment-specific go in the private file); the shape is:
 
 ```json
 {
@@ -140,7 +148,7 @@ gives it useful local meaning with **zero providers connected**
 If you are writing design handoff documentation, keep it tool-neutral.
 Suggested verbatim section:
 
-> Project Worlds design semantics are core-owned and live in the
+> Worlds design semantics are core-owned and live in the
 > repository: `design/tokens.json` (semantic tokens:
 > `surface.canvas`, `text.primary`, `status.healthy`, `focus.ring`,
 > `motion.reduced`), the `Accessibility` model (motion, contrast,
@@ -150,7 +158,7 @@ Suggested verbatim section:
 > source. This document is a design implementation handoff: it must
 > remain usable to brief another design tool without reconstructing
 > the product from source code. Navigation and presentation are
-> organized around World concepts and user tasks (currently Today / Chat /
-> World / Journal / Vault / Settings), never third-party product names; provider
+> organized around Worlds concepts and user tasks (currently Overview /
+> Memory / Chat / Settings), never third-party product names; provider
 > deep links are secondary navigation. A Figma-specific section may
 > exist within this handoff; Figma-as-architecture does not.

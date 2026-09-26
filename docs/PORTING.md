@@ -1,5 +1,12 @@
 # PORTING & CONTRIBUTING — the seams, so "someday" is bounded
-*How to move or extend Project Worlds without breaking its soul.*
+
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the swap-and-contribute seams (what any port must keep) · **Read this if:** you want to move, extend, or contribute to Worlds without breaking its non-negotiables.
+
+**In short:** this names the four things any port must preserve (the DNA,
+the accessibility floor, honesty, the Play-Nice contracts) and the seams
+you may swap underneath them. It is a how-to, not a roadmap.
+
+*How to move or extend Worlds without breaking its soul.*
 
 ## What must survive any port (the soul)
 1. **The DNA:** smallest-reliable-first · depth-on-demand · soft-by-default ·
@@ -19,12 +26,13 @@
 | Brain | `reasoning` capability (local Ollama default) | any model that can tool-call |
 | Storage | `data/` boundary (`docs/IDENTITY-BOUNDARY.md`) | any durable store |
 | Auth | local token/session **or** generic OIDC | any IdP |
+| Rooms | the Play-Nice ROOM contract `room/0` (`.project/contracts/adoption.yaml`) | any independent service that serves the contract |
 | Templates/personas | `config/prompts/**` (plain markdown) | your own words |
 
 ## Contributing (play nice)
 - One checkout per lane; never `git add -A`; use `scripts/safe-commit.sh`.
-- Tests are the gate: `uv run pytest --timeout=30` and
-  `uv run personal-world framework validate --json`.
+- Tests are the gate: `uv run --extra test --extra crypto pytest --timeout=60 -o addopts="" -q`
+  and `uv run personal-world framework validate --json`.
 - Dev loop: `scripts/dev.sh up` / `newest` / `wipe` / `status` / `logs`.
 - New user-facing copy: plain words, active voice, no guilt, no jargon.
 

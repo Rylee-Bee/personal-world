@@ -1,11 +1,19 @@
 # Repository Inventory — Project Worlds
 
-Verified against code at SHA `60823ae` (the D1–D3 auth/authority
-checkpoint on branch `docs/repo-inventory-reorg`; that branch landed on
-`main` via PR #50, merge commit `1701476`). Read-only extraction; no
-runtime behavior was changed by this pass. Counts and per-file line
-references here are a dated snapshot at that SHA; where a claim here and
-the code disagree, the code wins.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../../.project/CURRENT.md)) · **Read this if:** you need the dated SHA `60823ae` inventory of the repo for provenance · **Superseded by:** the running code and [`.project/CURRENT.md`](../../.project/CURRENT.md).
+
+**In short:** a read-only extraction of what every major artifact is and
+its status, taken at SHA `60823ae` (the D1–D3 auth/authority checkpoint)
+before the 2026-09-22 interface flip. Counts and per-file line references
+here are a dated snapshot at that SHA; where a claim here and the code
+disagree, the code wins. In particular, the React SPA (`frontend/`)
+described below was removed in the Station-only cutover: `frontend/` is
+now only the Playwright browser gate, the interface is the React rebuild
+in `ui/`, and rows mentioning `frontend/src/**`, `PW_FRONTEND*`, or
+`docs/screenshots/*` describe the pre-cutover state.
+
+**Provenance:** branch `docs/repo-inventory-reorg`; landed on `main` via
+PR #50 (merge `1701476`). No runtime behavior was changed by this pass.
 
 ## Truth-state convention
 
@@ -18,13 +26,6 @@ Findings that depend on branch/lane context are labelled explicitly:
 
 An unmerged lane fix does **not** make a BASE defect GREEN. The base
 remains broken until the fix is integrated.
-
-> **2026-09-16 update.** The React SPA (`frontend/`) described below was
-> removed in the single-branch Station-only cutover. `frontend/` is now
-> only the Playwright browser gate; the Station is the product UI and
-> `/login` + `/setup` are server-rendered. Rows mentioning
-> `frontend/src/**`, `PW_FRONTEND*`, or `docs/screenshots/*` describe the
-> pre-cutover state.
 
 Companion docs:
 

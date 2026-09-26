@@ -1,15 +1,18 @@
-# Project Worlds — Finish Line
+# Worlds — Finish Line
 
-> **Superseded as direction by [`TRUE-NORTH.md`](./TRUE-NORTH.md)
-> (owner-approved 2026-09-22).** TRUE-NORTH owns the vision, scope, and
-> recut alpha gates; this finish line remains the target-experience detail
-> where TRUE-NORTH is silent. It still does not override architecture,
-> security, accessibility, or human-reliability contracts.
+> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** the target-experience detail where [`TRUE-NORTH.md`](./TRUE-NORTH.md) is silent · **Read this if:** you are planning toward "finished enough to live in every day" and need the experience-level target.
 
-(Formerly "Personal World" — product renamed 2026-09-12; the filename and
-cross-links keep the historical identifier. Technical identifiers unchanged.)
+**In short:** what "finished enough to live in every day" means, at the
+level of the experience rather than the code. It is direction, not a
+promise that every idea ships. Where direction conflicts, newer wins:
+[`.project/PLAN.md`](../.project/PLAN.md) (owner-approved 2026-09-25)
+supersedes TRUE-NORTH on scope and sequencing, and TRUE-NORTH supersedes
+this file; this file still does not override architecture, security,
+accessibility, or human-reliability contracts. (Formerly "Personal World";
+the filename and cross-links keep the historical identifier — technical
+identifiers are unchanged.)
 
-This document defines what “finished enough to live in every day” means for Project Worlds.
+This document defines what “finished enough to live in every day” means for Worlds.
 
 It is product intent, not a promise that every future idea belongs in the current release. When planning toward completion, this finish line outranks speculative roadmap items. Existing architecture, security, accessibility, and human-reliability contracts still apply.
 
@@ -21,7 +24,7 @@ It is product intent, not a promise that every future idea belongs in the curren
 
 ## Product goal
 
-Project Worlds should be the place Rylee can stay in all day for the ordinary parts of her digital life.
+Worlds should be the place Rylee can stay in all day for the ordinary parts of her digital life.
 
 It is not just a dashboard and not just a chat app. It is a personal operating environment that combines:
 
@@ -89,13 +92,13 @@ Examples:
 - Project chat understands the selected repository, CI state, runtime, logs, issues, and project docs.
 - Lab chat understands services, health, deployments, and repair actions.
 
-There should also be a global chat capable of crossing the entire Project Worlds when authorized.
+There should also be a global chat capable of crossing the entire Worlds when authorized.
 
 Different capabilities may intentionally use different providers/models. Media discovery does not need the same brain as Git operations. Provider/model choice is backend policy and configuration, not hard-coded frontend behavior.
 
 ## Actions, approvals, and trusted automation
 
-Project Worlds supports both:
+Worlds supports both:
 
 - propose → explain → user approves → act
 - user-defined trusted automation that may act within previously approved boundaries
@@ -108,7 +111,7 @@ High-risk or destructive changes, access to sensitive vault material, and securi
 
 ## Native mini-apps, not clones
 
-Project Worlds should provide the useful everyday subset of the systems it integrates with.
+Worlds should provide the useful everyday subset of the systems it integrates with.
 
 Examples:
 
@@ -120,7 +123,7 @@ Examples:
 
 The native view should handle common daily work. Advanced or uncommon operations may open the original application.
 
-Underlying systems should not be completely hidden. Project Worlds should make their important state understandable in an easy-to-digest form and expose the technical guts when requested.
+Underlying systems should not be completely hidden. Worlds should make their important state understandable in an easy-to-digest form and expose the technical guts when requested.
 
 ## Projects workspace
 
@@ -128,7 +131,7 @@ Projects is a reusable mission-control shell.
 
 Selecting a project or repository re-contextualizes the whole workspace to that project.
 
-For the selected project, Project Worlds should be able to surface, when applicable:
+For the selected project, Worlds should be able to surface, when applicable:
 
 - repository and branch state
 - pull requests and issues
@@ -143,11 +146,11 @@ For the selected project, Project Worlds should be able to surface, when applica
 - project-specific chat and tools
 - safe build/test/deploy actions
 
-Switching from Project Worlds to VEFR, Burrito Journalism, MUNR, or another project should reuse the same conceptual shell while loading that project’s own context and capabilities.
+Switching from Worlds to VEFR, Burrito Journalism, MUNR, or another project should reuse the same conceptual shell while loading that project’s own context and capabilities.
 
 ## Interests and Candy Dispenser
 
-Project Worlds should contain a curated, non-critical discovery space for things Rylee enjoys.
+Worlds should contain a curated, non-critical discovery space for things Rylee enjoys.
 
 This includes, for example:
 
@@ -160,7 +163,7 @@ This includes, for example:
 The experience should support both:
 
 - things Rylee explicitly follows/configures
-- things Project Worlds predicts she may enjoy
+- things Worlds predicts she may enjoy
 
 Each item should support simple feedback such as thumbs up, thumbs down, save, and mute/not interested.
 
@@ -187,11 +190,11 @@ It should support:
 
 Routine healthy infrastructure stays quiet; problems surface clearly.
 
-Maintenance agents such as Tiny Gherkin should operate as bounded Project Worlds capabilities rather than as a separate destination.
+Maintenance agents such as Tiny Gherkin should operate as bounded Worlds capabilities rather than as a separate destination.
 
 ## Memory, journal, lore, and rewind
 
-Project Worlds must make it easy to recover context after time away.
+Worlds must make it easy to recover context after time away.
 
 Durable human-readable files, especially Markdown, are preferred as the canonical memory/lore layer where practical. Search indexes, vector stores, semantic caches, and derived indexes are acceleration and should be rebuildable rather than becoming hidden sources of truth.
 
@@ -211,7 +214,7 @@ The journal should make it possible to understand exactly what happened and why.
 
 The default interface should be calm and easy to digest.
 
-When requested, Project Worlds should become very technical.
+When requested, Worlds should become very technical.
 
 Progressive disclosure may expose details such as:
 
@@ -233,7 +236,7 @@ Do not hide important uncertainty merely to preserve a clean UI.
 
 ## Vault and secrets
 
-Project Worlds must include a usable native vault experience while preserving a provider-neutral secret boundary.
+Worlds must include a usable native vault experience while preserving a provider-neutral secret boundary.
 
 The UI should make it easy to use the built-in vault or connect/swap to an external vault provider without requiring an agent or manual code edits.
 
@@ -245,7 +248,7 @@ Sensitive vault access requires appropriate re-authentication/step-up behavior.
 
 Authentication is a finish-line requirement, not a later nice-to-have.
 
-Project Worlds should have a provider-neutral authentication layer capable of integrating with existing identity systems.
+Worlds should have a provider-neutral authentication layer capable of integrating with existing identity systems.
 
 The first finished version must prove a secure real-world SSO path. Authelia may be one supported deployment, but the architecture must not depend on Authelia specifically.
 
@@ -265,7 +268,7 @@ Native multi-user operation, household sharing, and collaboration are not requir
 
 Settings is a first-class product surface, not an afterthought.
 
-The product should expose coherent controls for as much of the Project Worlds as safely practical, including:
+The product should expose coherent controls for as much of the Worlds as safely practical, including:
 
 - section visibility/order/layout
 - provider/model per capability or surface
@@ -287,7 +290,7 @@ The product should expose coherent controls for as much of the Project Worlds as
 
 Extensibility itself is part of the product.
 
-It should be possible to adapt useful interaction patterns or components from other tools into Project Worlds without turning the product into a pile of unrelated embedded web apps.
+It should be possible to adapt useful interaction patterns or components from other tools into Worlds without turning the product into a pile of unrelated embedded web apps.
 
 The user-facing experience should remain internally coherent even when implementation components are swapped.
 
@@ -295,7 +298,7 @@ The user-facing experience should remain internally coherent even when implement
 
 Cuteness is non-negotiable.
 
-Project Worlds should be:
+Worlds should be:
 
 - modern
 - polished
@@ -342,7 +345,7 @@ Voice is desirable. Include it in the finish-line implementation only if it can 
 
 ## Definition of done
 
-Project Worlds is “finished enough” when Rylee can realistically choose it as her normal daily environment instead of routinely opening Homepage, source-control UIs, SOPS-over-SSH workflows, notes tools, separate media managers, infrastructure dashboards, and scattered project tools for ordinary tasks.
+Worlds is “finished enough” when Rylee can realistically choose it as her normal daily environment instead of routinely opening Homepage, source-control UIs, SOPS-over-SSH workflows, notes tools, separate media managers, infrastructure dashboards, and scattered project tools for ordinary tasks.
 
 Opening a specialized upstream application should feel like an exception for deep or unique functionality, not the normal path.
 
@@ -350,7 +353,7 @@ The finished experience should make Rylee want to stay in it all day: calm when 
 
 ## Guidance for planning agents
 
-When asked to plan or finish Project Worlds:
+When asked to plan or finish Worlds:
 
 1. Inspect the real current implementation before assuming roadmap items are missing.
 2. Compare actual behavior to this finish line.

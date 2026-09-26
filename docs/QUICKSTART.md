@@ -1,14 +1,20 @@
-# QUICKSTART — give Project Worlds to anyone
-*One command. No config. No computer degree. Written for tired people and disabled people first, everyone else second.*
+# QUICKSTART — give Worlds to anyone
+
+> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** installing and first-running Worlds · **Read this if:** you want to run Worlds on your own machine, or you need the plain-language on-ramp.
+
+**In short:** one command installs Worlds and a setup wizard walks you
+through the rest in plain words. No config files, no pasted tokens, no
+computer degree — this page is written for tired people and disabled
+people first.
 
 ---
 
 ## What this is
-Project Worlds is a **gentle, private home for your thoughts and your life**.
-It opens as a calm hub — Overview, Memory, Chat, Settings — not a
-dashboard, not a feed, not a wall of red badges. It stays quiet until
-something genuinely needs you,
-and it never tells you how to feel.
+Worlds is a **gentle, private home for your thoughts and your life**.
+It opens on a calm home screen (the **Bridge**) with Memory, Chat and
+Settings a tap away — not a dashboard, not a feed, not a wall of red
+badges. It stays quiet until something genuinely needs you, and it never
+tells you how to feel.
 
 It runs on **your own machine** — or on a server you reach over SSH:
 setup writes are loopback-only by design, so on a remote box open an
@@ -65,12 +71,12 @@ still a bug we want — not your fault.
 
 ## Where your stuff lives · how to not lose it
 - Everything lives in one place on your machine (the `world-data` volume).
-- **Back it up encrypted, any time:** the **"Back up my world" button in
-  Settings** (step-up gated), or from the command line on a compose
+- **Back it up encrypted, any time,** from the command line on a compose
   install:
   `docker compose exec core personal-world worlds backup ~/my-worlds-backup.pwbackup`
   You choose a passphrase; it is never stored anywhere. Keep the
-  passphrase somewhere safe.
+  passphrase somewhere safe. (There is no in-app backup button today;
+  see `docs/RECOVERY-BOUNDARY.md` for what a backup actually restores.)
 - Restore on a fresh machine:
   `docker compose exec core personal-world worlds restore <file>` — then
   run the normal first-run setup once (it mints this box's own token;
@@ -79,10 +85,9 @@ still a bug we want — not your fault.
 ---
 
 ## Getting help
-- In-app: **"Help & quiet mode"** (top-right) is always there; it lowers the
-  demands, never judges.
-- Docs: `docs/ROADMAP-AND-TODO.md` (what's done/next) ·
-  `docs/WORLDS-BACKUP.md` (SOS procedure) ·
-  `docs/PRODUCT-VISION-HANDOFF.md` (why it's built this way).
+- Docs: `docs/INDEX.md` (the full map of the documentation) ·
+  `docs/WORLDS-BACKUP.md` and `docs/RECOVERY-BOUNDARY.md` (backup and SOS) ·
+  `.project/CURRENT.md` (where the project actually is) ·
+  `docs/accessibility/ACCESSIBILITY_CONTRACT.md` (the accessibility floor).
 
 *Soft by default. Deep when you ask. Everyone, at any level, included.*
