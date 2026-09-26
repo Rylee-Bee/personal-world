@@ -136,7 +136,7 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew }: BridgeProps)
     return (
       <BridgeFrame>
         <div className="flex items-center gap-[var(--pw-spacing-md)]">
-          <SolMoment mood="curious" />
+          <SolMoment mood="searching" />
           <p className="text-[var(--pw-text-muted)]">Gathering your world…</p>
         </div>
       </BridgeFrame>
@@ -147,7 +147,7 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew }: BridgeProps)
     return (
       <BridgeFrame>
         <div className="flex items-center gap-[var(--pw-spacing-md)]">
-          <SolMoment mood="rest" />
+          <SolMoment mood="sleeping" />
           <p className="text-[var(--pw-text-secondary)]">
             Couldn't reach your world right now.
           </p>

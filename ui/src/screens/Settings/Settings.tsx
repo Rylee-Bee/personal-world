@@ -53,6 +53,7 @@ import {
   STATUS_LABELS,
   toCapabilityStatus,
 } from "../../data/types";
+import { SpotArt } from "../../components/SpotArt";
 import { WorldButton } from "../../components/WorldButton";
 import { CompanionFace } from "../../components/crew/CompanionFace";
 import { setFirstDayHidden, useFirstDayHidden } from "../Bridge/firstDay";
@@ -736,12 +737,17 @@ export function Settings({
         className="relative z-10 p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)] max-w-[720px]"
       >
         <header className="mb-[var(--pw-spacing-2xl)]">
-          <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
-            Settings
-          </h1>
-          <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-            Configure your environment
-          </p>
+          <div className="flex items-center gap-[var(--pw-spacing-md)]">
+            <SpotArt name="settings" size={64} />
+            <div>
+              <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+                Settings
+              </h1>
+              <p className="mt-[var(--pw-spacing-xs)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+                Your crew, your messages, and how Worlds looks.
+              </p>
+            </div>
+          </div>
         </header>
 
         {onOpenCrew && (

@@ -113,7 +113,7 @@ function SettledIn() {
       aria-labelledby="settled-in-heading"
       className="bridge-firstday flex flex-wrap items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-lg)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
     >
-      <SolMoment mood="cheer" size={64} />
+      <SolMoment mood="proud" size={72} />
       <div className="min-w-[14rem] flex-1">
         <h2
           id="settled-in-heading"

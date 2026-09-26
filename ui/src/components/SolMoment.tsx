@@ -4,10 +4,23 @@
  * moments all over).
  *
  * She is the logo, not a companion: she never speaks, so she is always
- * decoration beside Worlds' own words (alt="" and aria-hidden). Her full
- * cutouts only (never the peeking hello crop), and never animated.
+ * decoration beside Worlds' own words (alt="" and aria-hidden). Full
+ * cutouts only, all framed alike so moods swap cleanly; never animated.
+ *
+ * hello · cheer (good news) · curious (keeping watch) · rest (quiet day)
+ * searching (loading) · sleeping (can't reach) · proud (all done)
+ * oops (something went wrong, nothing lost) · mark (the logo)
  */
-export type SolMood = "mark" | "cheer" | "curious" | "rest";
+export type SolMood =
+  | "mark"
+  | "hello"
+  | "cheer"
+  | "curious"
+  | "rest"
+  | "searching"
+  | "sleeping"
+  | "proud"
+  | "oops";
 
 export function SolMoment({ mood, size = 56, className = "" }: { mood: SolMood; size?: number; className?: string }) {
   return (

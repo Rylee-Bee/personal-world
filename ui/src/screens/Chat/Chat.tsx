@@ -16,6 +16,7 @@ import {
 } from "../../data/hooks";
 import { CompanionFace } from "../../components/crew/CompanionFace";
 import { SolMoment } from "../../components/SolMoment";
+import { SpotArt } from "../../components/SpotArt";
 import type { ChatEntry } from "../../data/hooks";
 import { chatToneCopy } from "../../language/tone";
 import { WorldButton } from "../../components/WorldButton";
@@ -268,7 +269,8 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
           role="alert"
           className="border-t border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-xl)] py-[var(--pw-spacing-md)]"
         >
-          <p className="text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
+          <p className="flex items-center gap-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">
+            <SolMoment mood="oops" size={40} />
             {toneCopy.unavailableHeading}
           </p>
           <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
@@ -334,7 +336,8 @@ function SkipLink() {
 /** Empty state when no messages exist. */
 function EmptyState({ copy }: { copy: string }) {
   return (
-    <div className="flex flex-1 items-center justify-center py-[var(--pw-spacing-3xl)]">
+    <div className="flex flex-1 flex-col items-center justify-center gap-[var(--pw-spacing-md)] py-[var(--pw-spacing-3xl)]">
+      <SpotArt name="chat" size={96} />
       <p className="text-center text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-muted)]">
         {copy}
       </p>

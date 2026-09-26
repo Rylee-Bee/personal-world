@@ -39,6 +39,7 @@ import { crewAssetUrl } from "../../data/types";
 import { describeError } from "../../data/errors";
 import { WorldButton } from "../../components/WorldButton";
 import { CompanionFace } from "../../components/crew/CompanionFace";
+import { SpotArt } from "../../components/SpotArt";
 import {
   DOORWAYS,
   drawnInteriorUrl,
@@ -107,9 +108,12 @@ export function Crew({ onBack }: { onBack: () => void }) {
         <WorldButton variant="ghost" onPress={onBack} className="self-start">
           ← Back to Settings
         </WorldButton>
-        <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
-          Your crew
-        </h1>
+        <div className="flex items-center gap-[var(--pw-spacing-md)]">
+          <SpotArt name="crew" size={64} />
+          <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-primary)]">
+            Your crew
+          </h1>
+        </div>
         <p className={`${NOTE} max-w-[60ch]`}>
           Companions you’ve invited aboard. Add your own, and choose which rooms, if
           any, each one keeps. A room doesn’t need a companion, and a companion
