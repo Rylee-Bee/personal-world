@@ -649,4 +649,33 @@ describe("RoomDrawer", () => {
       expect(within(screen.getByRole("dialog")).queryByRole("heading", { name: "Secrets" })).toBeNull();
     });
   });
+
+  describe("Many rooms: Find a room", () => {
+    const NAMES = ["Studio", "Stables", "Atlas", "Bakery", "Cinema", "Dojo", "Echo", "Forge", "Garden", "Harbor", "Inkwell", "Jukebox", "Kiln"];
+    const many = () => NAMES.map((n) => room(n.toLowerCase(), n, "healthy"));
+
+    it("isn't there with fewer than twelve rooms", () => {
+      setRooms(many().slice(0, 11));
+      render(<RoomsPanel />);
+      expect(screen.queryByRole("searchbox", { name: "Find a room" })).toBeNull();
+    });
+
+    it("narrows the corridor by name, says so in words, and clears", () => {
+      setRooms(many());
+      render(<RoomsPanel />);
+      const box = screen.getByRole("searchbox", { name: "Find a room" });
+      expect(screen.getByText("13 rooms below. Type part of a name to narrow them.")).toBeInTheDocument();
+      fireEvent.change(box, { target: { value: "st" } });
+      expect(screen.getByText("2 of 13 rooms below match “st”.")).toBeInTheDocument();
+      // Quiet rooms open while searching, and only matches show.
+      expect(screen.getByRole("link", { name: "Open Studio in a new tab" })).toBeVisible();
+      expect(screen.getByRole("link", { name: "Open Stables in a new tab" })).toBeVisible();
+      expect(screen.queryByRole("link", { name: "Open Kiln in a new tab" })).toBeNull();
+      fireEvent.change(box, { target: { value: "zzz" } });
+      expect(screen.getByText("No room below matches “zzz”.")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+      expect(box).toHaveValue("");
+      expect(screen.getByText("13 rooms below. Type part of a name to narrow them.")).toBeInTheDocument();
+    });
+  });
 });
