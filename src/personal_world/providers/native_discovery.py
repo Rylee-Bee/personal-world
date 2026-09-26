@@ -140,7 +140,7 @@ class NativeDiscovery(StatusContract):
                 for i in data.get("interests", []):
                     payload = dict(i)
                     # created_at round-trips through JSON as an ISO
-                    # string; rehydrate it so to_dict() stays honest
+                    # string; rehydrate it so to_dict() stays accurate
                     if isinstance(payload.get("created_at"), str):
                         try:
                             payload["created_at"] = datetime.fromisoformat(
@@ -210,7 +210,7 @@ class NativeDiscovery(StatusContract):
 
     def _discover_engine(self, source: DiscoverySource) -> list[ContentItem]:
         """Engine-backed sources (github_releases, …) run through the
-        vendored per-world seam: per-source state, capture mode (the world
+        vendored per-world entry point: per-source state, capture mode (the world
         surfaces finds natively — no push channel required), the engine's
         own dedup/cap/isolation guarantees preserved."""
         state_path = self.config_path.parent / f"{self.config_path.name}.{source.id}.engine.json"

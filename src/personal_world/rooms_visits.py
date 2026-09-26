@@ -2,10 +2,10 @@
 
 The Room contract (``room/0``) is a front-door interface: a room knows
 nothing about who is looking. This module is the *Worlds* half of that
-seam — it remembers, for one principal, which room they last visited,
+entry point — it remembers, for one principal, which room they last visited,
 which needs they have already marked seen, and therefore what has
 changed since. None of it is ever forwarded to a room, and it is stored
-on the existing per-principal JSON seam
+on the existing per-principal JSON entry point
 (``identity.principal_scoped_path``, kind ``rooms_visits``) with the
 same atomic write every other Worlds state file uses — no new store,
 no new format family.
@@ -17,7 +17,7 @@ The stored shape (one file per principal)::
       "rooms": {"<room_id>": {"last_visited_at": "...", "needs_seen": ["..."]}}
     }
 
-Honesty rules:
+Accuracy rules:
 
 * A never-visited room has ``last_visited_at: null`` and
   ``changed_since_visit: 0`` — never "everything changed".
@@ -50,7 +50,7 @@ NEED_ID_MAX = 200
 
 
 def empty_state() -> dict[str, Any]:
-    """A fresh, honest empty state: no visit, no seen needs."""
+    """A fresh, empty state: no visit, no seen needs."""
     return {"last_visit": None, "rooms": {}}
 
 
@@ -71,7 +71,7 @@ def _parse_iso(value: Any) -> datetime | None:
 
 
 def valid_same_origin_link(link: Any) -> bool:
-    """True only for a same-origin path the front door may follow.
+    """True only for a same-origin path the main app may follow.
 
     Starts with ``/``, does not start with ``//``, carries no scheme, no
     backslash, and no control characters. ``//evil.com`` and
@@ -88,7 +88,7 @@ def valid_same_origin_link(link: Any) -> bool:
 
 
 def read_visits(path: Path) -> dict[str, Any]:
-    """Load one principal's visit state. Missing/corrupt → honest empty."""
+    """Load one principal's visit state. Missing/corrupt → empty."""
     if not path.exists():
         return empty_state()
     try:
@@ -190,7 +190,7 @@ def mark_need_seen(
 
 
 def resume_of(state: dict[str, Any]) -> dict[str, Any] | None:
-    """The last visit, or an honest null."""
+    """The last visit, or a null."""
     last_visit = state.get("last_visit")
     return last_visit if isinstance(last_visit, dict) else None
 

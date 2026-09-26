@@ -177,7 +177,7 @@ class AuthManager:
     Every successful login resolves a canonical ``Principal`` through
     ``identity.py`` first; the session stores only that principal's id.
     That makes a browser session a first-class credential on the same
-    seam as a bearer token rather than a parallel credential system.
+    entry point as a bearer token rather than a parallel credential system.
     """
 
     def __init__(self, data_dir: Path, config_dir: Path, identity: dict | None = None):
@@ -185,7 +185,7 @@ class AuthManager:
         self._config_dir = config_dir
         self._oidc_config: OIDCConfig | None = None
         self._bootstrap_token: str | None = None
-        # The app's identity seam state ({mode, store, instance_token}),
+        # The app's identity entry point state ({mode, store, instance_token}),
         # used to resolve local/browser/OIDC logins onto the same
         # Principal the bearer path produces. Optional so direct
         # construction (tests, tooling) still works.
@@ -213,7 +213,7 @@ class AuthManager:
     def login_local(self, token: str) -> Session | None:
         """Login with the instance/bootstrap credential.
 
-        Resolved through the identity seam so a browser session lands on
+        Resolved through the identity entry point so a browser session lands on
         the same Principal as a bearer request (in multi mode this is
         the user that owns the token, not a fixed string).
         """
@@ -226,7 +226,7 @@ class AuthManager:
             except NoPrincipalError:
                 return None
             return self.sessions.create(principal.id, "local")
-        # No seam wired (direct construction): legacy bootstrap compare.
+        # No entry point wired (direct construction): legacy bootstrap compare.
         if self._bootstrap_token and secrets.compare_digest(
             token, self._bootstrap_token
         ):
@@ -240,7 +240,7 @@ class AuthManager:
         """Login after OIDC callback verification.
 
         The verified subject is mapped onto a local principal through
-        the same seam. Single mode maps to the bootstrap primary person;
+        the same entry point. Single mode maps to the bootstrap primary person;
         multi mode requires an existing enabled local record and raises
         ``NoPrincipalError`` otherwise (an unknown IdP identity never
         silently creates an account).
@@ -260,7 +260,7 @@ class AuthManager:
     def verify_step_up_credential(self, session: Session, token: str | None) -> bool:
         """Verify a credential presented for step-up.
 
-        The presented credential is resolved through the canonical seam
+        The presented credential is resolved through the canonical entry point
         and must belong to the same principal the session was created
         for. This is the credential event that makes step-up a fresh
         elevation rather than a bare flag.

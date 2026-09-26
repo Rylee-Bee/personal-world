@@ -12,7 +12,7 @@ Design rules enforced here:
 
 * **Failure isolation.** One failing source makes only its own system
   ``unavailable``; the briefing is still returned, never a 500.
-* **Honesty.** Nothing is invented. Counts and titles come only from the
+* **Accuracy.** Nothing is invented. Counts and titles come only from the
   sources; a missing configuration is ``not_configured``; an answer older
   than 24h is ``stale``.
 * **Purity where possible.** No I/O of its own: sources are injected and
@@ -54,7 +54,7 @@ ROOM_NEED_RANK = 1
 #: vocabulary. ``unreachable`` maps to the existing ``unavailable`` word
 #: — never ``healthy``. ``degraded``/``unhealthy`` reuse the words the
 #: UI already carries (``warning`` / ``needs_attention``); no new words.
-#: ``incompatible`` (a contract this front door does not support) maps to
+#: ``incompatible`` (a contract this main app does not support) maps to
 #: ``needs_attention`` — the existing not-healthy word the UI renders as
 #: "Needs attention": a definite mismatch the person should act on, not
 #: the softer "unknown".
@@ -185,7 +185,7 @@ ASSISTANT_RESIDENT: dict = {
 def _resident_summary(entry: dict) -> dict:
     """A crew entry as a briefing resident: its current name and portrait.
 
-    ``portrait`` is the entry's own ``portrait_asset`` or an honest null;
+    ``portrait`` is the entry's own ``portrait_asset`` or a null;
     nothing is substituted. The key is the crew id — the legacy
     ``personal-world`` key is never emitted.
     """
@@ -205,7 +205,7 @@ def keeper_resident(pref_values: dict | None, crew_state: dict | None) -> dict:
     and falls back to the Assistant for every non-usable id (none,
     unknown, hidden, deleted, voiceless). ``personal-world`` is never
     emitted. A crew read that is absent or failed confirms nothing, so it
-    resolves to the one honest fallback, never an invented person.
+    resolves to the one fallback, never an invented person.
     """
     values = pref_values if isinstance(pref_values, dict) else {}
     if str(values.get("personality_pack") or voice_mod.PACK_OFF) != (
@@ -222,7 +222,7 @@ def keeper_resident(pref_values: dict | None, crew_state: dict | None) -> dict:
     )
     if entry is None:
         # resolve_voice confirmed the entry; the roster changed between
-        # the two reads. Honest fallback, never a guess.
+        # the two reads. fallback, never a guess.
         return dict(ASSISTANT_RESIDENT)
     return _resident_summary(entry)
 
@@ -233,7 +233,7 @@ def system_resident(system_id: str, crew_state: dict | None) -> dict | None:
     The id comes only from the canon map (``crew.SYSTEM_RESIDENT``); the
     name and portrait are the roster's current ones, so a rename is
     credited. Hidden, deleted, unnamed, or an unconfirmable crew reads as
-    an honest null (the plain emblem) — never an invented resident.
+    a null (the plain emblem) — never an invented resident.
     """
     companion_id = crew_registry.SYSTEM_RESIDENT.get(system_id)
     if not companion_id:
@@ -295,7 +295,7 @@ def _system_id_for_room(row: dict) -> str | None:
 def system_id_for_room_id(room_id: str) -> str | None:
     """The briefing system a configured room id names, or None.
 
-    The one public seam over the fold above, so a second reader (the crew
+    The one public entry point over the fold above, so a second reader (the crew
     registry's canon keeper defaults) resolves a room id exactly as the
     briefing does instead of growing a parallel rule.
     """
@@ -652,7 +652,7 @@ def _interests(source, now: datetime) -> _System:
     sources = data.get("sources")
     if status == Status.UNAVAILABLE.value:
         return _empty("interests", Status.UNAVAILABLE.value)
-    # Zero configured sources is an honest "nothing connected", not health.
+    # Zero configured sources is a "nothing connected", not health.
     if not sources:
         return _empty("interests", Status.NOT_CONFIGURED.value)
 
@@ -678,7 +678,7 @@ def _interests(source, now: datetime) -> _System:
 
 
 def _news(now: datetime) -> _System:
-    # Media capability is not wired in slice 1b: honest not_configured.
+    # Media capability is not wired in slice 1b: not_configured.
     return _empty("news", Status.NOT_CONFIGURED.value)
 
 
@@ -734,7 +734,7 @@ def _records(journal, now: datetime) -> tuple[_System, dict | None]:
     observed = _parse_dt(_event_ts(personal[0])) if personal else None
     # A readable journal is healthy even with no personal entries yet:
     # only an actual read failure is unknown/unavailable. With no new
-    # entries the resident's voice falls through to its honest "quiet".
+    # entries the resident's voice falls through to its "quiet".
     status = Status.HEALTHY.value
     return _System(
         spec=_spec("records"),
@@ -858,7 +858,7 @@ def build_briefing(
     Sources are injected so tests (and the route) can pass fakes or real
     providers; each is observed under its own failure isolation.
 
-    ``rooms`` is one honest row per configured room (contract room/0),
+    ``rooms`` is one row per configured room (contract room/0),
     already read once by the caller. A room that names a system is that
     system's source — its status and needs-you replace the older direct
     provider's for that system; every room's needs-you also joins the
@@ -869,7 +869,7 @@ def build_briefing(
     resolve who is credited on each row (see :func:`keeper_resident` and
     :func:`system_resident`). Presentation only: no status, count, or
     item is affected. Absent crew or prefs confirms no one, so the
-    briefing credits the honest fallback rather than inventing a resident.
+    briefing credits the fallback rather than inventing a resident.
     """
     now = now or datetime.now().astimezone()
     if now.tzinfo is None:

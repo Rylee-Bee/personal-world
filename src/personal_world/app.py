@@ -215,7 +215,7 @@ def build_registry(
             registry.native_baselines.discard("source_control")
 
     # Traefik ingress rollups (ROADMAP Next): read-only over the LAN
-    # router API; degrades honestly when the API is missing.
+    # router API; reports a degraded state when the API is missing.
     try:
         from .providers.traefik_ingress import TraefikIngress
 
@@ -591,7 +591,7 @@ def build_registry(
 
     # workbench: podman/distrobox attached environments (ADR-0003
     # spike). OFF BY DEFAULT — PW_WORKBENCH=1 registers the provider;
-    # without it the capability honestly reports not_configured
+    # without it the capability reports not_configured
     # (zero-provider boot preserved). run_task fails closed unless an
     # allowlist is configured (connections.json "workbench" or
     # PW_WORKBENCH_CONTAINERS). Findings: docs/adr/WORKBENCH-SPIKE-FINDINGS.md.
@@ -604,7 +604,7 @@ def build_registry(
             "workbench",
             "workbench-podman",
             workbench,
-            # the honest status lives in observe() (not_configured /
+            # the status is in observe() (not_configured /
             # unavailable / healthy); a failing health check here would
             # mask the specific reason with a generic 'unavailable'
             health_check=lambda: True,
@@ -619,7 +619,7 @@ def build_registry(
     execution_viewer = ExecutionViewer(data_dir or Path("./data"))
 
     # Chat/reasoning native baseline: absent a configured provider the
-    # capability is honestly not_configured (zero-AI boot is supported).
+    # capability is not_configured (zero-AI boot is supported).
     if not any(c.get("capability") == "reasoning" for c in connections):
         registry.define_capability("reasoning", StatusContract)
 

@@ -37,7 +37,7 @@ this module additionally strips any inline secret-shaped key/value it
 finds in that file before archiving, and says so in the report.
 
 Ordinary exports (``export.settings_export`` / ``export.world_export``)
-remain secret-free by construction; this module is the disaster-
+remain secret-free by design; this module is the disaster-
 recovery path, not a sharing path.
 """
 
@@ -144,10 +144,10 @@ def _unrecognized_data_entries(data_dir: Path) -> list[str]:
     These are REPORTED, not silently dropped: a future local store under
     ``data/`` must show up in every backup report as NOT archived.
     Vanishing from an "SOS backup" without a word is how a backup turns
-    into a lie (lane B restore drill finding, 2026-09-22). Operational
+    into a false claim (lane B restore drill finding, 2026-09-22). Operational
     and never-archived names are exempt — the module docstring already
     accounts for them, and re-listing them every run is noise, not
-    honesty.
+    accuracy.
     """
     covered = set(DATA_BOUNDARY_FILES) | set(DATA_BOUNDARY_TREES) | {"vault.enc"}
     notes: list[str] = []
@@ -516,8 +516,7 @@ def restore(
     Verifies header, auth tag, and manifest hash BEFORE writing
     anything. Decrypts to a temp dir, then copies create-if-absent
     (default) or replaces (``overwrite=True``). Ephemeral members
-    (sessions/fts5) are refused even if present. Returns an honest
-    per-file report: restored / skipped / refused. Fails closed on
+    (sessions/fts5) are refused even if present. Returns a per-file report: restored / skipped / refused. Fails closed on
     wrong passphrase, tampering, or missing cryptography.
     """
     if not _HAS_CRYPTO:
@@ -658,7 +657,7 @@ _PENDING_DOWNLOADS: dict[str, tuple[Path, float]] = {}
 _DOWNLOAD_TTL_SECONDS = 300.0
 
 
-# Request models live at module level on purpose: with
+# Request models are at module level on purpose: with
 # `from __future__ import annotations`, FastAPI resolves route
 # annotations against the *module* globals — models defined inside the
 # registration closure would be invisible to it. The SAME rule applies

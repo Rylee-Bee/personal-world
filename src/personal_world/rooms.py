@@ -1,11 +1,11 @@
-"""Rooms — the front door renders other small backends (contract: room/0).
+"""Rooms — the main app renders other small backends (contract: room/0).
 
 Worlds shows rooms; it never copies their code. A *room* is any service
 that serves the five ``/room`` endpoints defined by the canonical Room
 contract (``room/0``). This module is the front-door half: it learns
 each room's address from the operator's environment, reads the
 read-only endpoints (``GET /room``, ``GET /room/cards`` and
-``GET /room/needs-you``) concurrently, and reports an honest row per
+``GET /room/needs-you``) concurrently, and reports a row per
 room. It owns no room's code
 and adds no new listening port to Worlds — rooms are reached outbound,
 same-origin behind the estate's own auth proxy in production.
@@ -31,24 +31,24 @@ cached 60 s; a bearer token is read from the env var named by
 returned field), and ``PW_ROOMS_REGISTRY_INSECURE_TLS=1`` accepts a
 self-signed registry certificate. On a successful fetch the enabled
 rooms are used and persisted as last-known-good (``rooms-registry.json``
-under the data dir, the same atomic seam as ``rooms-state.json``); on a
+under the data dir, the same atomic entry point as ``rooms-state.json``); on a
 fetch failure the last-known-good is served and the problem is surfaced
-honestly in the snapshot's registry report. Only when neither a
+ in the snapshot's registry report. Only when neither a
 successful registry read nor a last-known-good exists does the module
 fall back to ``PW_ROOMS`` — today's behaviour, unchanged.
 
-Honesty posture: this module never raises out of :meth:`RoomsService
+Error handling: this module never raises out of :meth:`RoomsService
 .snapshot`. A room that cannot be reached, times out, answers malformed
 JSON, or speaks an unsupported contract value is reported as such —
 never ``healthy``. ``unknown`` is not ``healthy`` and it is not failed;
 an unreachable room renders as ``unreachable`` with its last-seen time,
-and a room whose contract this front door does not support renders as
+and a room whose contract this main app does not support renders as
 ``incompatible`` with the reason — its cards and needs are never
 counted.
 
 A registry entry may also name an optional ``public_url``: a
 browser-reachable ``http(s)`` address (no userinfo) for the room. It
-rides each row as ``public_url`` and is an honest ``null`` when absent
+rides each row as ``public_url`` and is a ``null`` when absent
 or invalid; consumers then fall back to ``base_url``. The entry itself
 is never dropped for a bad ``public_url``.
 
@@ -86,7 +86,7 @@ room's own default, non-personal view.
 read-only Secrets board: it finds the room named ``workshop`` and reads
 its ``GET /api/secrets/summary`` with that room's token/TLS policy (3 s
 timeout, cached 60 s). It reports names and health only — never a value
-— and any failure is an honest ``unknown`` station with a plain-words
+— and any failure is an ``unknown`` station with a plain-words
 detail, never an invented key and never a raised exception.
 
 ``last_seen``/``last_status`` persist to ``rooms-state.json`` under the
@@ -218,14 +218,14 @@ PRINCIPAL_HEADER = "X-Worlds-Principal"
 MAX_FORWARD_PRINCIPALS = 64
 
 #: Where per-room health (last-seen / last-declared-status) is persisted
-#: under the data dir. Plain JSON on the same atomic-write seam every
+#: under the data dir. Plain JSON on the same atomic-write entry point every
 #: other Worlds state file uses: rooms are global estate health, not
 #: per-person state, so this is deliberately one shared file (not a
 #: per-principal scoped kind).
 STATE_FILENAME = "rooms-state.json"
 
 #: Last-known-good registry payload (rooms + updated_at) persisted under
-#: the data dir on the same atomic seam — so a registry outage still
+#: the data dir on the same atomic entry point — so a registry outage still
 #: serves the estate the registry last named.
 REGISTRY_STATE_FILENAME = "rooms-registry.json"
 
@@ -321,7 +321,7 @@ def parse_rooms(env: dict | None = None) -> list[RoomConfig]:
 
     Duplicate ids keep the first entry. An entry with no id is skipped
     (there is nothing to address it by); an entry with an id but an
-    unusable URL is kept, so the front door can report it honestly.
+    unusable URL is kept, so the main app can report it.
     """
     env = os.environ if env is None else env
     raw = (env.get(ROOMS_ENV) or "").strip()
@@ -427,7 +427,7 @@ def _parse_registry_entries(
         ):
             public_url = None
         # A display name is optional and never drops the entry; a
-        # missing/non-string/empty value is honestly None (consumers fall
+        # missing/non-string/empty value is None (consumers fall
         # back to the id).
         name = entry.get("name")
         if not isinstance(name, str) or not name.strip():
@@ -523,7 +523,7 @@ def _registry_report(
 
 
 #: The closed station statuses the Secrets summary may declare. Anything
-#: else is reported honestly as ``unknown`` — never guessed healthy.
+#: else is reported as ``unknown`` — never guessed healthy.
 _STATION_STATUSES = frozenset({"ok", "unreachable", "not_configured"})
 
 #: The fields copied off a summary's ``requests`` / ``recent_ops`` rows.
@@ -534,7 +534,7 @@ _OP_KEYS = ("key_path", "state", "deploy_state", "actor", "created_at")
 
 
 def _empty_secrets_summary() -> dict[str, Any]:
-    """The honest empty summary — the shape every overview response keeps."""
+    """The empty summary — the shape every overview response keeps."""
     return {
         "station": {"configured": False, "status": "not_configured", "detail": None},
         "namespaces": [],
@@ -563,7 +563,7 @@ def _open_secrets_url(config: RoomConfig, trusted_form: str) -> str | None:
 def _unknown_secrets_overview(
     detail: str, config: RoomConfig | None = None
 ) -> dict[str, Any]:
-    """The honest "cannot read it" overview: unknown station, empty rest.
+    """The "cannot read it" overview: unknown station, empty rest.
 
     Never invents a namespace, key, request or op. ``room_id`` is always
     stated; ``open_url`` is stated only when a usable room address is
@@ -720,7 +720,7 @@ def _is_json_object(raw: bytes) -> bool:
     """True when a forwarded action body is JSON and an object.
 
     The *contents* are the room's business (validation is its job); this
-    only keeps the envelope shape honest.
+    only keeps the envelope shape .
     """
     try:
         return isinstance(json.loads(raw), dict)
@@ -812,7 +812,7 @@ class RoomsService:
         self._load_persisted()
 
         # Registry state (Gap 1): the last-known-good payload, the cached
-        # resolution (60 s), and the honest report served as a sibling of
+        # resolution (60 s), and the report served as a sibling of
         # ``data`` in GET /api/rooms.
         self._registry_state_path: Path | None = (
             Path(registry_state_path) if registry_state_path is not None else None
@@ -832,7 +832,7 @@ class RoomsService:
         self._secrets_cache_at: float = float("-inf")
 
         # Each room's own ``GET /room/actions`` list, cached per room (NOT
-        # per person) for 60 s. ``None`` is an honest "could not read the
+        # per person) for 60 s. ``None`` is a "could not read the
         # list" — the action gate then fails closed. A failed read is
         # cached too, so one dead room is not hammered by every caller.
         self._actions_cache: dict[
@@ -862,13 +862,13 @@ class RoomsService:
         self._load_registry_lkg()
 
     def registry_report(self) -> dict[str, Any]:
-        """The honest registry state behind the last snapshot."""
+        """The registry state behind the last snapshot."""
         return dict(self._registry_report)
 
     def known_ids(self) -> list[str]:
         """The ids of the last resolved room list (registry or env).
 
-        The synchronous seam the api's room-id validators use; before any
+        The synchronous entry point the api's room-id validators use; before any
         snapshot it falls back to the configured ``PW_ROOMS``.
         """
         if self._last_configs is not None:
@@ -876,8 +876,7 @@ class RoomsService:
         return [c.id for c in parse_rooms()]
 
     def _load_persisted(self) -> None:
-        """Best-effort restore. A missing/corrupt file is an honest
-        empty state, never a fabricated last-seen."""
+        """Best-effort restore. A missing/corrupt file is an empty state, never a fabricated last-seen."""
         self._last_seen = {}
         self._last_status = {}
         if self._state_path is None or not self._state_path.exists():
@@ -928,7 +927,7 @@ class RoomsService:
     def _load_registry_lkg(self) -> None:
         """Best-effort restore of the last-known-good registry payload.
 
-        A missing/corrupt file is an honest "no last-known-good", never a
+        A missing/corrupt file is a "no last-known-good", never a
         fabricated room list. Only the sanitized fields are kept.
         """
         self._lkg = None
@@ -1205,7 +1204,7 @@ class RoomsService:
 
         Returns ``(http_status, receipt)``. The receipt is always the
         allow-listed shape (:data:`RECEIPT_FIELDS`) — the room's own when
-        it answered with one, or an honest local one otherwise. Rules,
+        it answered with one, or a local one otherwise. Rules,
         in order:
 
         * a malformed room/action id, an unconfigured/disabled room, an
@@ -1228,7 +1227,7 @@ class RoomsService:
         with HTTP 200 whatever its status code (the receipt's own ``ok``
         says whether anything changed). A room that cannot be reached,
         times out, fails, or answers something that is not a receipt gets
-        an honest ``ok: false`` receipt with HTTP 200 — this method never
+        an ``ok: false`` receipt with HTTP 200 — this method never
         raises on a room's behalf. ``PW_API_TOKEN`` and the human session
         are never sent. After a receipt with ``ok: true`` the shared
         snapshot (and this caller's forwarded row) is dropped so the next
@@ -1319,7 +1318,7 @@ class RoomsService:
                 follow_redirects=False,
             ) as client:
                 resp = await client.post(url, headers=headers, content=raw)
-        except Exception:  # noqa: BLE001 — a dead room must not break the front door
+        except Exception:  # noqa: BLE001 — a dead room must not break the main app
             return 200, self._action_failure(config, action_id)
         try:
             payload = resp.json()
@@ -1338,7 +1337,7 @@ class RoomsService:
         self, config: RoomConfig
     ) -> list[dict[str, Any]] | None:
         """The room's own action list, cached 60 s per room (never per
-        person — the list is estate-wide). ``None`` is an honest "could
+        person — the list is estate-wide). ``None`` is a "could
         not read it"; the caller fails closed. A failed read is cached
         too, so a dead room is not hammered."""
         now = self._clock()
@@ -1367,7 +1366,7 @@ class RoomsService:
                 follow_redirects=False,
             ) as client:
                 resp = await client.get(base + ACTIONS_PATH, headers=headers)
-        except Exception:  # noqa: BLE001 — a dead room must not break the front door
+        except Exception:  # noqa: BLE001 — a dead room must not break the main app
             return None
         if not (200 <= resp.status_code < 300):
             return None
@@ -1378,7 +1377,7 @@ class RoomsService:
         return _parse_room_actions(payload)
 
     def _action_failure(self, config: RoomConfig, action_id: str) -> dict[str, Any]:
-        """The honest "nothing changed" receipt for a room that could not
+        """The "nothing changed" receipt for a room that could not
         answer with a receipt of its own."""
         name = config.name or config.id
         return _receipt(
@@ -1386,7 +1385,7 @@ class RoomsService:
         )
 
     async def snapshot(self, env: dict | None = None) -> list[dict[str, Any]]:
-        """One honest row per resolved room. Never raises."""
+        """One row per resolved room. Never raises."""
         env = os.environ if env is None else env
         now = self._clock()
         if self._cache is not None and (now - self._cache_at) < CACHE_TTL_SECONDS:
@@ -1415,7 +1414,7 @@ class RoomsService:
         usable id, or no forwarding rooms, gets exactly the shared rows:
         one principal's forwarded fetch can never appear in another's.
 
-        This is the caller-aware seam for ``GET /api/rooms`` and the
+        This is the caller-aware entry point for ``GET /api/rooms`` and the
         briefing. :meth:`snapshot` (no principal) is what background
         jobs and the digest use: forwarding rooms answer it with their
         own default, non-personal view because the header is not sent.
@@ -1499,7 +1498,7 @@ class RoomsService:
     ) -> dict[str, Any]:
         checked_at = _iso_now()
         if config.contract not in SUPPORTED_CONTRACTS:
-            # A registry entry this front door cannot understand: never
+            # A registry entry this main app cannot understand: never
             # loaded, never healthy, and its cards/needs are nothing.
             return self._row(
                 config,
@@ -1644,7 +1643,7 @@ class RoomsService:
 def _parse_cards(resp: Any) -> tuple[list, str | None]:
     """``(cards, error)`` from a cards response or exception.
 
-    Same posture as ``_parse_needs_you``: a reachable room whose cards
+    Same setting as ``_parse_needs_you``: a reachable room whose cards
     list is unreadable is still reachable; the failure is named and
     ``cards`` stays empty — never invented. Malformed individual cards
     are dropped rather than crashing the estate; a card the contract

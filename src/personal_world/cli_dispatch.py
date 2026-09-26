@@ -30,7 +30,7 @@ TestCliPrefs`` asserts ``prefs set`` mutates immediately). This module is
 additive and clobbers nothing. Retiring the legacy verbs onto this
 surface is an owner decision, not a lane-local one.
 
-Transports (both honest about what they need):
+Transports (both about what they need):
 
 * ``service`` — the default. The wrapper calls the SAME canonical service
   function the API handler calls (``prefs.set_prefs``,
@@ -51,7 +51,7 @@ WRITE SAFETY (the part a bot must not have to think about):
   nothing. It prints ``proposal_id`` and exits 4.
 * Acting requires BOTH ``--approve`` and the step-up credential in the
   environment (``PW_STEP_UP_TOKEN``), which must resolve — through
-  ``identity.resolve_principal``, the same single seam the API uses — to
+  ``identity.resolve_principal``, the same single entry point the API uses — to
   the calling principal. A bare flag never mutates anything.
 * Reads need no approval.
 * ``--approve`` files the proposal first, then approves it through
@@ -75,7 +75,7 @@ mapping):
        surface is person-only). Exit 4 is NOT an error.
 
 Every command prints the ``envelope.Result`` JSON with ``--json`` and a
-short human rendering without it. Statuses are honest, in the established
+short human rendering without it. Statuses are accurate, in the established
 free-form style (``healthy``, ``not_configured``, ``unavailable``,
 ``proposed``, ``needs_approval``, ``needs_step_up``, ``denied``,
 ``person_only``, ``not_found``, ``invalid_args``, ``unsupported``,
@@ -98,8 +98,8 @@ KNOWN LIMITS (stated, not hidden — see ``docs/CLI-REFERENCE.md``):
   correct. Closing the gap needs a create/reload route in
   ``api.py``/``tool_registry.py`` (out of this lane).
 * ``cli.*`` proposal types are executed by this module's actor table.
-  ``POST /api/proposals/{id}/execute`` answers ``unsupported`` for them —
-  honestly, never silently.
+  ``POST /api/proposals/{id}/execute`` answers ``unsupported`` for them,
+  visibly, never silently.
 * In-process writes make the CLI a second writer of ``world.json`` /
   ``reminders.json`` alongside a running backend (the documented
   multi-writer gap in ``docs/repo/WIRING-READINESS.md``). Write wrappers
@@ -379,10 +379,10 @@ class Ctx:
     def principal(self):
         """The canonical Principal for this invocation, or None.
 
-        Resolved through ``identity.resolve_principal`` — the one seam.
+        Resolved through ``identity.resolve_principal`` — the one entry point.
         None means "no credential store is configured": the CLI still has
         the local owner's filesystem authority (as every existing
-        ``cli.py`` write does), but writes report that honestly.
+        ``cli.py`` write does), but writes report that.
         """
         from .identity import NoPrincipalError, resolve_principal
 
@@ -501,7 +501,7 @@ class Ctx:
     def step_up_gate(self, action: Action) -> Result | None:
         """The in-process analogue of ``require_step_up``.
 
-        Same rules, same seam: a person, re-presenting a credential that
+        Same rules, same entry point: a person, re-presenting a credential that
         resolves to the same principal. No bare flags.
         """
         p = self.principal
@@ -741,7 +741,7 @@ class Ctx:
             # A cemented policy refuses every non-user mutation path, the
             # CLI included. Refusal, not a crash — and nothing changed.
             r = fail("denied", warnings=[str(exc)])
-        except Exception as exc:  # honest failure, never a fake success
+        except Exception as exc:  # failure, never a fake success
             r = fail("unhealthy", warnings=[f"execute failed: {exc}"])
         self._mark(proposal_id, "executed" if r.ok else "failed", r)
         if r.ok:
@@ -761,7 +761,7 @@ class Ctx:
         """Record the terminal status through the store's own atomic write.
 
         ``ProposalStore`` has no public "mark executed" for a type it does
-        not own, so the CLI actor path uses the store's persistence seam
+        not own, so the CLI actor path uses the store's persistence entry point
         directly (no logic duplicated: the actor did the work, the store
         keeps the audit). Extending ``ProposalStore.execute`` in
         ``tool_registry.py`` is the clean fix and belongs to that module's
@@ -866,7 +866,7 @@ class Ctx:
 
 
 def _result_from_http(code: int, raw: str, where: dict[str, Any]) -> Result:
-    """Map one HTTP response onto the envelope, honestly."""
+    """Map one HTTP response onto the envelope,."""
     body: Any
     try:
         body = json.loads(raw) if raw.strip() else None
@@ -991,7 +991,7 @@ def _journal_history(ctx: Ctx) -> Result:
         return fail("invalid_args", warnings=["--ts is required"])
     entry = ctx.journal.by_ts(ts)
     if entry is None:
-        # Same honest status the API returns for a missing entry.
+        # Same status the API returns for a missing entry.
         return fail("not_configured", warnings=[f"no journal entry found at {ts}"])
     chain = ctx.journal.history_of(entry)
     return ok("healthy", data={"entries": [e.model_dump(mode="json") for e in chain]})
@@ -1246,7 +1246,7 @@ def _auth_session(ctx: Ctx) -> Result:
 
 
 def _oidc_status(ctx: Ctx) -> Result:
-    """The same honest four-state report GET /api/auth/oidc/status gives."""
+    """The same four-state report GET /api/auth/oidc/status gives."""
     from .oidc import OIDCService
 
     report = OIDCService(ctx.config_dir).status()
@@ -1315,7 +1315,7 @@ def _act_journal_supersede(ctx: Ctx, p: dict[str, Any]) -> Result:
             )
     try:
         # proposed_by is free text in journal.supersede; the API coerces
-        # unknown values to "the Journal screen", which would be a lie
+        # unknown values to "the Journal screen", which would be a false claim
         # here. The audit line's trailing "approved by the owner via the
         # Journal screen" is journal.py's own template wording.
         current, audit = ctx.journal.supersede(
@@ -2481,7 +2481,7 @@ def _dispatch(world: Any, registry: Any, journal: Any, args: Any) -> int:
 
     ``cli.py`` calls ``args.fn(world, registry, journal, args)`` and
     catches only ``MutationDenied``; this catches everything else so a bot
-    gets an honest envelope and an exit code, never a traceback.
+    gets an envelope and an exit code, never a traceback.
     """
     action: Action | None = getattr(args, "action", None)
     ctx = Ctx(args, world, registry, journal)
@@ -2510,7 +2510,7 @@ def _dispatch(world: Any, registry: Any, journal: Any, args: Any) -> int:
                 warnings=[f"{action.command} failed: {type(exc).__name__}: {exc}"],
                 data={"mutated": False},
             )
-    if not isinstance(result, Result):  # a handler returned a dict, honestly
+    if not isinstance(result, Result):  # a handler returned a dict,
         result = ok("healthy", data=result)
     return _emit(result, ctx.as_json)
 

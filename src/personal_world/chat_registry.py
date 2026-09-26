@@ -288,7 +288,7 @@ def _tool_response(
     Native tool_calls win. Otherwise the content goes through lenient
     small-model parsing: recovered calls are returned as tool_calls,
     plain (or cleaned) text is returned as the reply. An empty response
-    with nothing recoverable stays an honest failure.
+    with nothing recoverable stays a failure.
     """
     tool_calls = message.get("tool_calls")
     if isinstance(tool_calls, list) and tool_calls:
@@ -313,7 +313,7 @@ class ChatContract:
     """Provider-neutral conversation contract."""
 
     def health(self) -> Result:
-        """Cheap reachability probe. Contract seam used by
+        """Cheap reachability probe. Contract entry point used by
         registry health_check lambdas; default to observe()."""
         return self.observe()
 
@@ -438,7 +438,7 @@ class OllamaChat(ChatContract):
         of native tool_calls, so the response also goes through the
         lenient parser in ``_tool_response`` — stray
         ``<|tool_call_start|>`` wrappers and malformed JSON are
-        recovered or degraded to honest text, never a crash and never
+        recovered or degraded to text, never a crash and never
         an invented result.
         """
         body: dict[str, Any] = {

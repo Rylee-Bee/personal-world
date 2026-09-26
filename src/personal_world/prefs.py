@@ -1,8 +1,8 @@
 """Presentation preference state: the accessibility contract.
 
 Every preference carries a default that satisfies the owner's
-accessibility floor, a closed set of allowed values (only >= floor),
-and the floor itself. Values below the floor are rejected, never
+minimum accessibility settings, a closed set of allowed values (only >= minimum),
+and the minimum itself. Values below the minimum are rejected, never
 silently clamped. Application is native construction: the server
 renders preferences into CSS custom properties and data-* attributes
 so the dashboard honors them with JavaScript disabled.
@@ -31,7 +31,7 @@ DENSITY_FLOOR = "compact"
 
 
 class PrefsValueError(ValueError):
-    """Preference value below the accessibility floor or outside the
+    """Preference value below the minimum accessibility settings or outside the
     allowed vocabulary."""
 
 
@@ -39,7 +39,7 @@ class UnknownCompanionId(PrefsValueError):
     """``companion_id`` names no usable companion in this principal's crew.
 
     A distinct type because the write surfaces answer it differently from a
-    below-floor value: an unknown or hidden id is a 422 ("the roster is the
+    below-minimum value: an unknown or hidden id is a 422 ("the roster is the
     vocabulary, and it does not have that"), not a 400. Resolution never
     relies on it — an id that stops resolving falls back to the one voice.
     """
@@ -125,7 +125,7 @@ class CompanionIdPref:
     (``crew.is_safe_id``), so a value that no roster could ever hold is
     rejected rather than stored.
 
-    There is no below-floor direction: ``None`` (no companion → the plain one
+    There is no below-minimum direction: ``None`` (no companion → the plain one
     voice) is the fail-safe default, and every failure — an unknown id, a
     hidden one, a deleted one, a malformed stored value — resolves to it.
     ``floor`` is carried as ``None`` for the shared schema shape only.
@@ -245,14 +245,14 @@ ACCENT = EnumPref(
 )
 # Voice prefs (TRUE-NORTH § Voice, owner ruling 2026-09-22). These are
 # phrasing/comfort prefs, not accessibility prefs: every value sits at
-# or above the honesty floor (warmth never costs exactness) and none
-# touches the accessibility floor. `tone` selects the register of the
+# or above the accuracy rule (warmth never costs exactness) and none
+# touches the minimum accessibility settings. `tone` selects the register of the
 # ONE Worlds voice; `personality_pack` gates the optional residents /
 # two-voice character pack (kept canon: docs/CHARACTER-HANDBOOK.md,
 # docs/COMPANION-CANON.md), ON by default since 2026-09-25 (owner:
 # "turn it on"; PLAN.md 1b, personality ships now). The `floor` slot carries
 # the default-safe first value (EnumPref requires one); there is no
-# below-floor direction here.
+# below-minimum direction here.
 TONE = EnumPref(
     key="tone", default="warm",
     allowed=("warm", "concise", "playful", "formal"), floor="warm",
@@ -352,7 +352,7 @@ def coerce_value(key: str, raw: Any) -> Any:
 
 def normalize_prefs(prefs: dict[str, Any] | None = None) -> dict[str, Any]:
     """Effective preferences: absent or invalid stored values fall back
-    to the accessible defaults, never to below-floor values.
+    to the accessible defaults, never to below-minimum values.
 
     ``companion_id`` additionally applies the lazy legacy migration
     (:func:`companion_id_from`) — but only for a stored dict that has no
@@ -375,7 +375,7 @@ def normalize_prefs(prefs: dict[str, Any] | None = None) -> dict[str, Any]:
 def get_prefs(world: Any) -> dict[str, Any]:
     """Effective presentation preferences for a World (settings absent
     -> defaults). Reads the world's accessibility settings; anything
-    outside the contract falls back to the floor-satisfying default."""
+    outside the contract falls back to the minimum-satisfying default."""
     stored = getattr(world, "accessibility", None)
     return normalize_prefs(stored if isinstance(stored, dict) else None)
 
@@ -387,7 +387,7 @@ def set_prefs(
     companion_ids: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     """Validate and apply preference updates. Raises PrefsValueError on
-    any unknown key, below-floor value, or out-of-vocabulary value;
+    any unknown key, below-minimum value, or out-of-vocabulary value;
     nothing is applied unless every key validates.
 
     ``companion_ids`` is the caller's *usable* crew ids (existing and not
@@ -445,7 +445,7 @@ def set_prefs(
 
 def prefs_to_css_variables(prefs: dict[str, Any] | None = None) -> dict[str, str]:
     """CSS custom properties (--pw-*). The target-size variable is
-    clamped to the 44px floor regardless of density, so compact can
+    clamped to the 44px minimum regardless of density, so compact can
     never shrink hit targets.
 
     An unset ``companion_id`` emits an empty value (valid for a custom

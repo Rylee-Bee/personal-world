@@ -1,8 +1,8 @@
-"""Project Worlds seam: per-world discovery runs, no module globals.
+"""Project Worlds entry point: per-world discovery runs, no module globals.
 
 The legacy loop (engine.run_once) was built for the standalone container:
 it reads module-level config set from environment variables by
-dispenser.py, so two worlds cannot safely share one process. This seam is
+dispenser.py, so two worlds cannot safely share one process. This entry point is
 what Project Worlds consumes — pass a loaded world dict + a state path,
 and everything flows from that world's own config.
 

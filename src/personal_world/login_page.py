@@ -7,7 +7,7 @@ replaces that with a tiny, dependency-free page that posts to the existing
 ``POST /api/auth/login`` (which owns the session cookie) and links to OIDC
 when the operator has configured it.
 
-Additive and honest: before first-run completes it sends the visitor to
+Additive and : before first-run completes it sends the visitor to
 ``/setup``; if the static file is missing it answers 503 rather than a
 fabricated page. No secret is ever embedded here.
 """

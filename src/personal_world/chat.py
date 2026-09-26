@@ -7,14 +7,14 @@ provider-neutral ChatContract -> local model endpoint.
 This module owns the provider-neutral loop pieces: message building
 (system prompt + persona/templates + context), the ONE tool-calling
 loop (``chat_with_tools_loop``), assistant-drafted proposal extraction,
-and ``chat_once``. The provider classes themselves live in
+and ``chat_once``. The provider classes themselves are in
 ``chat_registry`` (single implementation — the former orphan copies in
 this module were removed, ORPH-03) and are re-exported here for
 compatibility.
 
 The local AI is optional and replaceable. With no provider configured
 the capability reports ``not_configured`` and the core still boots;
-the dashboard degrades to an honest "AI not connected" state rather
+the dashboard degrades to an "AI not connected" state rather
 than a fake conversation.
 
 Adapters in this module never log or persist secret material; keys
@@ -30,7 +30,7 @@ from .envelope import Result, fail, ok
 
 # ONE set of live provider classes (ORPH-03 de-duplication): the
 # provider implementations, the builder, and the lenient small-model
-# tool-call parser all live in ``chat_registry``. This module keeps the
+# tool-call parser all are in ``chat_registry``. This module keeps the
 # chat-loop machinery (message building, proposal extraction, the single
 # tool-calling loop) and re-exports the provider names so historical
 # ``from personal_world.chat import OllamaChat`` keeps working against
@@ -50,7 +50,7 @@ state cannot silently exceed a small local model's context window."""
 
 PARTIAL_FINDINGS_MAX = 6
 """How many tool results the loop-limit reply may carry (LANG-034):
-partial honesty, bounded."""
+partial accuracy, bounded."""
 
 PARTIAL_SUMMARY_CHARS = 240
 """Per-finding summary cap, so a fat tool payload cannot bloat the
@@ -83,7 +83,7 @@ def _repair_tool_arguments(raw: Any) -> tuple[dict[str, Any] | None, bool]:
     """Parse a tool-call ``arguments`` payload into a dict.
 
     Returns ``(args, repaired)``. ``args is None`` means the arguments
-    are unrecoverable — the loop reports an honest invalid_args tool
+    are unrecoverable — the loop reports an invalid_args tool
     result instead of invoking with invented defaults. ``repaired``
     marks lenient recoveries (trailing commas, truncation, python-ish
     literals) so the loop can journal what happened.
@@ -129,7 +129,7 @@ def chat_with_tools_loop(
 
     Lenient by design (small local brains, ADR 0002): malformed
     ``arguments`` JSON is repaired when unambiguous; when it is not, the
-    tool is NOT invoked and an honest ``invalid_args`` result goes back
+    tool is NOT invoked and an ``invalid_args`` result goes back
     to the model. Tool results are never invented. ``max_rounds`` bounds
     the loop; a provider crash becomes an ``unavailable`` Result.
     """
@@ -179,7 +179,7 @@ def chat_with_tools_loop(
             tool_call_id = tc.get("id", "")
 
             if tool_args is None:
-                # Unrecoverable arguments: honest failure back to the
+                # Unrecoverable arguments: failure back to the
                 # model, the tool is never invoked with invented args.
                 tool_result: Result = fail(
                     "invalid_args",
@@ -215,7 +215,7 @@ def chat_with_tools_loop(
 
         # Continue the loop — the model now sees the real tool results.
 
-    # Max rounds reached: report honestly what was gathered, and INCLUDE
+    # Max rounds reached: report what was gathered, and INCLUDE
     # the partial tool results already in hand (LANG-034) instead of
     # promising findings the visible reply never carried. An additive
     # payload field, no contract break; `reply` is the canonical
@@ -260,17 +260,17 @@ def build_chat_messages(
     compose output: core instructions, companion personality, surface
     focus). Templates LEAD the system prompt — a small model weighs the
     first lines heaviest — and the built-in identity below stays as the
-    guaranteed floor (truth rules, status vocabulary, proposal
+    guaranteed minimum (truth rules, status vocabulary, proposal
     contract) so an empty or malformed template tree can never remove
     the safety text.
 
     ``tone`` selects the register of the ONE voice (TRUE-NORTH § Voice;
     ``voice.tone_instruction``): warm (default) · concise · playful ·
     formal. The tone block sits between the persona and the identity
-    floor and changes phrasing only — an unknown or absent tone adds no
-    block, and no tone can remove or weaken the floor. With the
+    minimum and changes phrasing only — an unknown or absent tone adds no
+    block, and no tone can remove or weaken the minimum. With the
     personality pack off (on by default since 2026-09-25), the caller passes no companion
-    persona, so tone + the one voice floor is the whole identity.
+    persona, so tone + the one voice minimum is the whole identity.
 
     SUGGESTIONS, not authority: the prompt teaches ONE tiny fenced
     proposal block the assistant MAY use when it notices a Journal
@@ -293,8 +293,8 @@ def build_chat_messages(
     if persona and persona.strip():
         persona_block = persona.strip() + "\n\n"
     # The one voice's tone register (TRUE-NORTH § Voice). Unknown or
-    # absent tones produce no block: the identity floor below is
-    # register-neutral, so the reply stays honest rather than adopting
+    # absent tones produce no block: the identity minimum below is
+    # register-neutral, so the reply stays accurate rather than adopting
     # an invented register.
     from .voice import tone_instruction
 

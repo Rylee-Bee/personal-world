@@ -30,7 +30,7 @@ def fetch_tmdb_discover(kind, page=1):
 
     `kind` is "movie" or "tv". Sorted newest-first so page 1 is the only
     page worth polling daily -- older entries were already seen on an
-    earlier cycle and live in the state file.
+    earlier cycle and are in the state file.
     """
     if not TMDB_READ_TOKEN:
         return []

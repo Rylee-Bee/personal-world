@@ -35,7 +35,7 @@ class Template:
     def _derive_description(content: str) -> str:
         """First meaningful line of the body, bounded — a template
         without an explicit ``description:`` front-matter field still
-        gets an honest one-line summary for listings."""
+        gets an one-line summary for listings."""
         for line in (content or "").splitlines():
             line = line.strip()
             if line:

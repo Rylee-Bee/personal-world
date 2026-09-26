@@ -9,7 +9,7 @@ its output into this dashboard's status vocabulary. Nothing in this
 module invents state: on any failure it returns 'unavailable' or
 'unknown', never a guessed row.
 
-Secrets posture: the packet is metadata + prose only. This module
+Secrets setting: the packet is metadata + prose only. This module
 passes the payload through structurally and performs no credential
 lookup, so no secret material can enter via this path.
 """
@@ -49,7 +49,7 @@ KNOWN_ROWS = (
 
 
 def _first_available_lab() -> str:
-    """First lab CLI that exists on this host. Honest unknown if none:
+    """First lab CLI that exists on this host. unknown if none:
     the caller renders 'unavailable' and the packet stays absent."""
     for candidate in LAB_CANDIDATES:
         if Path(candidate).exists():
@@ -90,7 +90,7 @@ class LabState(StatusContract):
                 "generated_at": packet.get("generated_at", ""),
                 # Packet-level summary fields, passed through structurally
                 # (additive): the Worlds briefing reads overall_state to
-                # render 'unknown' honestly, and next_action verbatim.
+                # render 'unknown', and next_action verbatim.
                 "overall_state": packet.get("overall_state"),
                 "next_action": packet.get("next_action"),
             },

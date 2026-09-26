@@ -129,7 +129,7 @@ class ToolRegistry:
             logger.debug("tool %s rejected args: %s: %s", tool_id, type(e).__name__, e)
             return fail("invalid_args", warnings=[f"tool '{tool_id}': {e}"])
         except Exception as e:
-            # The envelope stays honest for the caller; the server log
+            # The envelope stays accurate for the caller; the server log
             # keeps the trace for the human.
             logger.exception("tool %s failed: %s: %s", tool_id, type(e).__name__, e)
             return fail("unavailable", warnings=[f"tool '{tool_id}' failed: {e}"])
@@ -155,7 +155,7 @@ def build_default_tools(
     ``world_path`` / ``scheduler`` / ``memory_provider`` wire the write
     executors and reminder reads to the SAME authoritative paths the
     API uses (single source of truth); older callers omit them and
-    write tools answer honestly that persistence is not wired.
+    write tools answer that persistence is not wired.
     ``connection_manager`` (origin/main) routes media engine
     construction through merged config.
     ``proposal_store`` / ``discovery_config_path`` scope proposals and
@@ -1104,7 +1104,7 @@ class ProposalStore:
                 )
 
             elif ptype == "reconciler_apply":
-                # No reconciliation adapter exists yet. Honesty over a
+                # No reconciliation adapter exists yet. Accuracy over a
                 # fake success: the proposal is NOT consumed and nothing
                 # is applied.
                 proposal["status"] = "pending"
@@ -1125,7 +1125,7 @@ class ProposalStore:
             return fail("unavailable", warnings=[f"execute failed: {e}"])
         finally:
             # Persist the terminal status (executed/failed/left-pending)
-            # so a restart sees an honest, non-replayable proposal state.
+            # so a restart sees an accurate, non-replayable proposal state.
             with self.lock:
                 self._persist_locked()
 
@@ -1133,7 +1133,7 @@ class ProposalStore:
 class _GlobalProposalStore(ProposalStore):
     """The historical instance-global store.
 
-    Its state lives in the long-standing module-level names
+    Its state is in the long-standing module-level names
     (``_proposals``/``_proposal_path``/``_proposal_counter``/
     ``_proposal_journal``/``_proposal_lock``) so embedded callers and
     existing fixtures keep working byte-identically.
@@ -1377,7 +1377,7 @@ def get_proposal(
 def _search_journal(journal: Any, query: str, memory_provider: Any = None) -> Result:
     """Search journal entries through the canonical memory/search
     implementation (FTS index over the journal — the same source
-    /api/memory/search reads). Falls back to an honest unavailable
+    /api/memory/search reads). Falls back to an unavailable
     result; it never pretends to have searched."""
     if memory_provider is None or not hasattr(memory_provider, "search"):
         return fail(
@@ -1728,7 +1728,7 @@ def _discovery_discover(source: str | None = None, config_path: Any = None) -> R
 
 
 def _vault_status(vault: Any) -> Result:
-    """Get vault status (never secrets). Reports encryption honestly:
+    """Get vault status (never secrets). Reports encryption:
     true only when real Fernet encryption is active. Without the
     `cryptography` extra the vault fails closed, so this reports
     `encrypted: false` and carries the vault's own warning text."""
@@ -1752,7 +1752,7 @@ def _vault_status(vault: Any) -> Result:
 def _reminders(scheduler: Any = None) -> Result:
     """List reminders through the Scheduler (the single reminder
     domain). No parallel JSON reader: when no scheduler is wired the
-    honest answer is unavailable, not a raw file scrape."""
+    answer is unavailable, not a raw file scrape."""
     try:
         if scheduler is None or not hasattr(scheduler, "list_reminders"):
             return fail(

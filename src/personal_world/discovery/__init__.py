@@ -6,7 +6,7 @@ dispenser — her first build she thought might be worth something. It was.
 Two production worlds (media, homelab-firmware) and 30 tests came with it.
 
 The legacy env-globals loop (engine.run_once) is preserved for the
-standalone container; Project Worlds consumes the per-world seam in
+standalone container; Project Worlds consumes the per-world entry point in
 world_run.run_world — no module globals, per-world state, capture mode
 when no push channel is configured.
 """

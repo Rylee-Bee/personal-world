@@ -4,12 +4,12 @@ Pure functions: no I/O, no clock beyond the current UTC date, which is
 used only to pick a stable variant so lines vary day to day but not per
 refresh.
 
-The full, curated line tables live in ``briefing_voice_lines.py`` (owned
+The full, curated line tables are in ``briefing_voice_lines.py`` (owned
 separately). When that module is present its ``LINES`` /
 ``KEEPER_LINES`` are used; otherwise this module falls back to a minimal
-built-in table of plain honest lines so a briefing never lacks a voice.
+built-in table of plain lines so a briefing never lacks a voice.
 
-Honesty floor (outranks every voice rule, per docs/CHARACTER-HANDBOOK.md):
+Accuracy minimum (outranks every voice rule, per docs/CHARACTER-HANDBOOK.md):
 a line may only state a status and, where the table asks for one, a count
 that came from a source. Nothing is invented; counts are the only numbers.
 """
@@ -40,7 +40,7 @@ SYSTEM_RESIDENTS: dict[str, str] = {
     "threads": "world-tree-squirrel",
 }
 
-#: Minimal built-in fallback: plain, honest, in no particular character.
+#: Minimal built-in fallback: plain and accurate, in no particular character.
 #: Used only when the curated table module is absent (or a key is missing).
 _FALLBACK_LINES: dict[str, list[str]] = {
     "arrivals": [
@@ -175,7 +175,7 @@ def _situation(status, counts: dict) -> str:
 
 
 def resident_line(system_id: str, status, counts: dict | None, since_is_set: bool) -> str:
-    """One honest, in-character line for a system's resident."""
+    """One accurate, in-character line for a system's resident."""
     counts = counts or {}
     situation = _situation(status, counts)
     resident_key = SYSTEM_RESIDENTS.get(system_id, system_id)
@@ -187,7 +187,7 @@ def resident_line(system_id: str, status, counts: dict | None, since_is_set: boo
 
 
 def keeper_line(mood: str, totals: dict | None, name_hint: str | None = None) -> str:
-    """One honest line from the Keeper, in its voice."""
+    """One line from the Keeper, in its voice."""
     totals = dict(totals or {})
     if name_hint:
         totals["name"] = name_hint

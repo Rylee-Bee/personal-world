@@ -39,7 +39,7 @@ USER_AGENT = os.environ.get(
 def trakt_headers():
     """Trakt request headers.
 
-    The User-Agent is load-bearing, not cosmetic: api.trakt.tv sits behind
+    The User-Agent is relied on, not cosmetic: api.trakt.tv sits behind
     Cloudflare, which rejects urllib's default `Python-urllib/3.12` UA with
     `403 error code: 1010` before the request ever reaches Trakt. Verified
     2026-08-30 -- the identical request via curl returned 200. Without an

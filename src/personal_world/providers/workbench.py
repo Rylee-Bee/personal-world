@@ -2,10 +2,10 @@
 workspaces (ADR-0003 thin-slice spike, backend only).
 
 OFF BY DEFAULT. PW_WORKBENCH=1 registers the provider; without it the
-capability honestly reports not_configured like every other unconnected
+capability reports not_configured like every other unconnected
 capability (zero-provider boot preserved, ADR-0003 Rule 2).
 
-Trust-class floor — the terminal/exec broker boundary (ADR-0003 D4),
+Trust-class minimum — the terminal/exec broker boundary (ADR-0003 D4),
 non-negotiable and each item proven by tests/test_workbench_spike.py:
 - container must match an explicit allowlist (default: empty -> run_task
   refuses everything; fail closed);
@@ -85,7 +85,7 @@ class WorkbenchPodman(StatusContract):
     ) -> None:
         config = config or {}
         self.journal = journal
-        # test/owner seam: find this binary via PATH, no absolute default
+        # test/owner entry point: find this binary via PATH, no absolute default
         self.podman_bin = str(config.get("podman_bin", "podman"))
         self._allowlist_cfg = config.get("allowed_containers")
         default = config.get("default_timeout", DEFAULT_TIMEOUT)
@@ -166,7 +166,7 @@ class WorkbenchPodman(StatusContract):
     # ── capability surface ──────────────────────────────────────────
 
     def observe(self) -> Result:
-        """Honest status: not_configured when off, unavailable when
+        """status: not_configured when off, unavailable when
         podman cannot answer, healthy with the real environment list
         otherwise. Never a fabricated list."""
         if not self.enabled():
@@ -279,7 +279,7 @@ class WorkbenchPodman(StatusContract):
         event_id = str(uuid.uuid4())
         label = f"task {task_id} ({container})"
 
-        # ── security floor, evaluated before anything is launched ──
+        # ── security minimum, evaluated before anything is launched ──
         if not self.enabled():
             self._journal_security(
                 f"workbench run_task refused: {WORKBENCH_ENV} not set ({label})"
@@ -358,7 +358,7 @@ class WorkbenchPodman(StatusContract):
             stderr = (_as_text(e.stderr) + f"\nkilled after {budget}s timeout").strip()
         except OSError as e:
             # exec itself failed (binary vanished, fork limits): nothing
-            # verifiably ran, so no TASK claim is recorded — honest error only.
+            # verifiably ran, so no TASK claim is recorded — error only.
             return self._fail("unavailable", f"cannot launch '{self.podman_bin}': {e}")
 
         finished = now().isoformat()
