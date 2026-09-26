@@ -73,8 +73,8 @@
     "size_lead":  "18px",
     "size_body":  "16px",
     "size_small": "14px",
-    "size_micro": "12px",
-    "size_label": "12.5px"
+    "size_micro": "13px",
+    "size_label": "13px"
   },
 
   "density": {
