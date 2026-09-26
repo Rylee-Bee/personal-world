@@ -322,6 +322,40 @@ class IdentityStore:
                 return u
         return None
 
+    def find_by_oidc_subject(self, sub: str) -> dict | None:
+        """The enabled person whose linked sign-ins include ``sub``."""
+        if not sub:
+            return None
+        for u in self._load().get("users", []):
+            if sub in (u.get("oidc_subjects") or []) and u.get("enabled", False):
+                return u
+        return None
+
+    def link_oidc_subject(self, user_id: str, sub: str) -> dict:
+        """Link a verified provider subject to one person's account.
+
+        A subject belongs to at most one person: linking a subject that
+        is already linked to someone else raises ``ValueError``. Linking
+        it again to the same person is a no-op.
+        """
+        if not sub:
+            raise ValueError("empty subject")
+        payload = self._load()
+        target = None
+        for u in payload.get("users", []):
+            subs = u.get("oidc_subjects") or []
+            if sub in subs and u.get("user_id") != user_id:
+                raise ValueError("subject is linked to another account")
+            if u.get("user_id") == user_id and u.get("enabled", False):
+                target = u
+        if target is None:
+            raise ValueError("no such account")
+        subs = target.setdefault("oidc_subjects", [])
+        if sub not in subs:
+            subs.append(sub)
+            self._save(payload)
+        return target
+
     # -- agent principals (phase 3) --------------------------------------
     def create_agent(
         self,
@@ -545,6 +579,9 @@ def resolve_oidc_principal(
     sign-in can never silently mint an account. Fail closed.
     """
     if mode == "multi" and store is not None:
+        linked = store.find_by_oidc_subject(sub or "")
+        if linked is not None:
+            return principal_from_record(linked, source="oidc", store=store)
         for candidate in (sub, display_name):
             record = store.get_principal_record(candidate or "")
             if record is not None:

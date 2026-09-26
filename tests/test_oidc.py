@@ -1153,13 +1153,13 @@ class TestCallbackStateAndReplay:
     def test_mapped_identity_in_multi_mode_signs_in(self, tmp_path, monkeypatch):
         _with_secret(monkeypatch)
         stub = StubIdP()
-        stub.sub = "rylee"
+        stub.sub = "sam"
         c = _app_client(
             tmp_path, monkeypatch, mode="multi", oidc_config=CONFIG, transport=stub
         )
         from personal_world.identity import IdentityStore
 
-        IdentityStore(tmp_path).create_user("rylee", "Rylee")
+        IdentityStore(tmp_path).create_user("sam", "Sam")
         params = _start_login(c, stub)
         r = _callback(c, params)
         assert r.status_code == 303, r.text
@@ -1167,7 +1167,7 @@ class TestCallbackStateAndReplay:
         sess = c.get(
             "/api/auth/session", headers={"Cookie": f"pw_session={sid}"}
         ).json()["data"]
-        assert sess["principal_id"] == "rylee"
+        assert sess["principal_id"] == "sam"
         assert sess["auth_method"] == "oidc"
 
     def test_oidc_session_cannot_step_up_without_a_credential(
@@ -1503,3 +1503,123 @@ class TestPKCE:
             hashlib.sha256(verifier.encode()).digest()
         )
         assert oidc_module.new_code_verifier() != verifier
+
+
+# ===========================================================================
+# Linking a provider sign-in to an existing account (multi mode)
+# ===========================================================================
+
+
+def _local_session_with_step_up(client, token="tok-1") -> str:
+    r = client.post("/api/auth/login", json={"token": token})
+    assert r.status_code == 200, r.text
+    sid = r.cookies.get("pw_session") or _session_id(r)
+    r = client.post(
+        "/api/auth/step-up",
+        json={"token": token},
+        headers={"Cookie": f"pw_session={sid}"},
+    )
+    assert r.status_code == 200, r.text
+    return sid
+
+
+def _start_link(client, stub, sid, origin="https://pw.test"):
+    headers = {"Cookie": f"pw_session={sid}"}
+    if origin:
+        headers["Origin"] = origin
+    r = client.post("/api/auth/oidc/link", headers=headers, follow_redirects=False)
+    if r.status_code != 303:
+        return r, None
+    params = {
+        k: v[0]
+        for k, v in urllib.parse.parse_qs(r.headers["location"].partition("?")[2]).items()
+    }
+    stub.nonce = params["nonce"]
+    stub.expected_challenge = params["code_challenge"]
+    return r, params
+
+
+class TestLinkSignIn:
+    def _client(self, tmp_path, monkeypatch, stub):
+        _with_secret(monkeypatch)
+        return _app_client(
+            tmp_path, monkeypatch, mode="multi", oidc_config=CONFIG, transport=stub
+        )
+
+    def test_owner_links_then_signs_in_with_the_provider(self, tmp_path, monkeypatch):
+        stub = StubIdP()
+        stub.sub = "opaque-sub-owner"
+        c = self._client(tmp_path, monkeypatch, stub)
+        sid = _local_session_with_step_up(c)
+        _, params = _start_link(c, stub, sid)
+        c.cookies.set("pw_session", sid)
+        r = _callback(c, params)
+        assert r.status_code == 303, r.text
+        c.cookies.clear()
+
+        # A fresh provider sign-in now resolves to the owner.
+        params = _start_login(c, stub)
+        r = _callback(c, params)
+        assert r.status_code == 303, r.text
+        sess = c.get(
+            "/api/auth/session", headers={"Cookie": f"pw_session={_session_id(r)}"}
+        ).json()["data"]
+        assert sess["principal_id"] == "primary"
+        assert sess["auth_method"] == "oidc"
+
+    def test_link_needs_step_up(self, tmp_path, monkeypatch):
+        stub = StubIdP()
+        c = self._client(tmp_path, monkeypatch, stub)
+        r = c.post("/api/auth/login", json={"token": "tok-1"})
+        sid = r.cookies.get("pw_session") or _session_id(r)
+        r, _ = _start_link(c, stub, sid)
+        assert r.status_code == 403
+
+    def test_link_needs_same_origin(self, tmp_path, monkeypatch):
+        stub = StubIdP()
+        c = self._client(tmp_path, monkeypatch, stub)
+        sid = _local_session_with_step_up(c)
+        r, _ = _start_link(c, stub, sid, origin="https://evil.test")
+        assert r.status_code == 403
+        r, _ = _start_link(c, stub, sid, origin="")
+        assert r.status_code == 403
+
+    def test_link_needs_a_session(self, tmp_path, monkeypatch):
+        stub = StubIdP()
+        c = self._client(tmp_path, monkeypatch, stub)
+        r = c.post(
+            "/api/auth/oidc/link",
+            headers={"Origin": "https://pw.test"},
+            follow_redirects=False,
+        )
+        assert r.status_code == 401
+
+    def test_callback_refuses_link_when_signed_out_meanwhile(
+        self, tmp_path, monkeypatch
+    ):
+        stub = StubIdP()
+        stub.sub = "opaque-sub-2"
+        c = self._client(tmp_path, monkeypatch, stub)
+        sid = _local_session_with_step_up(c)
+        _, params = _start_link(c, stub, sid)
+        c.cookies.delete("pw_session")
+        r = _callback(c, params, accept="application/json")
+        assert r.status_code == 403
+        assert r.json()["error_code"] == "oidc_link_session_changed"
+        from personal_world.identity import IdentityStore
+
+        assert IdentityStore(tmp_path).find_by_oidc_subject("opaque-sub-2") is None
+
+    def test_a_subject_links_to_one_account_only(self, tmp_path, monkeypatch):
+        from personal_world.identity import IdentityStore
+
+        store = IdentityStore(tmp_path)
+        store.create_user("jo", "Jo")
+        store.create_user("kit", "Kit")
+        store.link_oidc_subject("jo", "sub-x")
+        store.link_oidc_subject("jo", "sub-x")  # again: no-op
+        with pytest.raises(ValueError):
+            store.link_oidc_subject("kit", "sub-x")
+        assert store.find_by_oidc_subject("sub-x")["user_id"] == "jo"
+        store.disable_user("jo")
+        assert store.find_by_oidc_subject("sub-x") is None

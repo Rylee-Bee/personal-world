@@ -613,6 +613,9 @@ class PendingLogin:
     nonce: str
     redirect_uri: str
     issued_at: float
+    # Set only when a signed-in person started "link my sign-in": the
+    # local principal id the verified subject will be linked to.
+    link_to: str | None = None
 
 
 class FlowCodec:
@@ -643,6 +646,7 @@ class FlowCodec:
                     "nonce": pending.nonce,
                     "redirect_uri": pending.redirect_uri,
                     "issued_at": pending.issued_at,
+                    "link_to": pending.link_to,
                 },
                 separators=(",", ":"),
             ).encode("utf-8")
@@ -670,6 +674,7 @@ class FlowCodec:
                 nonce=str(data["nonce"]),
                 redirect_uri=str(data["redirect_uri"]),
                 issued_at=float(data["issued_at"]),
+                link_to=(str(data["link_to"]) if data.get("link_to") else None),
             )
         except Exception:
             raise OIDCLoginError(
@@ -1144,7 +1149,9 @@ class OIDCClient:
 
     # -- login ------------------------------------------------------------
 
-    def start_login(self, redirect_uri: str) -> tuple[str, PendingLogin, str]:
+    def start_login(
+        self, redirect_uri: str, link_to: str | None = None
+    ) -> tuple[str, PendingLogin, str]:
         """Build the authorization redirect for one fresh login attempt.
 
         Returns ``(authorization_url, pending, cookie_value)``. PKCE S256
@@ -1158,6 +1165,7 @@ class OIDCClient:
             nonce=secrets.token_urlsafe(24),
             redirect_uri=redirect_uri,
             issued_at=self._clock(),
+            link_to=link_to,
         )
         params = {
             "response_type": "code",
