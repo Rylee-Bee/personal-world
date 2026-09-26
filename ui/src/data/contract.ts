@@ -855,6 +855,17 @@ export interface CrewEntry {
 
 // ─── Secrets overview (GET /api/secrets/overview, owner only) ─────────
 /** Names and health only: a value is structurally absent. */
+/** A room/0 action's receipt, passed through by
+ *  POST /api/rooms/{id}/actions/{action_id}. Refusals carry one too
+ *  (with the refusal's HTTP status); `ok` is the room's own truth. */
+export interface RoomActionReceipt {
+  action_id: string;
+  ok: boolean;
+  summary: string;
+  changed: string[];
+  at: string | null;
+}
+
 export interface SecretsOverview {
   station: {
     configured: boolean;

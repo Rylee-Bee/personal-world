@@ -124,3 +124,20 @@ export function roomItemUrl(row: RoomRow, link: string | null | undefined): stri
   return sitePathUrl(roomAddress(row), link);
 }
 
+
+/** The Workshop's approval id for a need that can be decided from
+ *  Worlds: the need id after "approval:", when the need offers both
+ *  approve and decline. Anything else is null (Review opens the room). */
+export function approvalId(need: { id: string; actions: string[] }): string | null {
+  if (!need.id.startsWith("approval:")) return null;
+  if (!need.actions.includes("approve") || !need.actions.includes("decline")) return null;
+  const id = need.id.slice("approval:".length);
+  return id.length > 0 ? id : null;
+}
+
+/** A fresh Idempotency-Key for one press (never reused across presses). */
+export function idempotencyKey(): string {
+  const c = globalThis.crypto;
+  if (c && typeof c.randomUUID === "function") return c.randomUUID();
+  return `k-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}

@@ -86,6 +86,7 @@ import {
   getRooms,
   postRoomVisit,
   postNeedSeen,
+  postRoomAction,
   getCrew,
   addCrew,
   patchCrew,
@@ -826,6 +827,28 @@ export function useMarkNeedSeen() {
     mutationFn: ({ roomId, needId }: { roomId: string; needId: string }) =>
       postNeedSeen(roomId, needId),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.rooms }),
+  });
+}
+
+/** One room/0 action. Only a receipt with ok: true refreshes the
+ *  rooms (the need is gone); a refusal changes nothing. */
+export function useRoomAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      roomId,
+      actionId,
+      body,
+      key,
+    }: {
+      roomId: string;
+      actionId: string;
+      body: object;
+      key: string;
+    }) => postRoomAction(roomId, actionId, body, key),
+    onSuccess: (receipt) => {
+      if (receipt.ok) qc.invalidateQueries({ queryKey: queryKeys.rooms });
+    },
   });
 }
 

@@ -22,11 +22,12 @@
  * Opening the drawer is not a visit: the "changed" list stays put while
  * you read it. Opening the room itself is the visit.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMarkNeedSeen } from "../../data/hooks";
-import type { RoomCard, RoomKeeper, RoomRow } from "../../data/contract";
+import type { RoomActionReceipt, RoomCard, RoomKeeper, RoomNeed, RoomRow } from "../../data/contract";
 import {
+  approvalId,
   formatTime,
   LINK_BASE,
   plural,
@@ -39,6 +40,7 @@ import {
 import { currentNeeds, isUncertain, seenNeeds } from "./groupRooms";
 import { Emblem, OpenLink, StatusWord } from "./parts";
 import { SecretsSection } from "./SecretsSection";
+import { ApprovalReview } from "./ApprovalReview";
 import { useAskInChat } from "../../app/askInChat";
 import { useMinuteClock } from "./useRootAttribute";
 
@@ -92,6 +94,37 @@ function CardRow({ row, card, now }: { row: RoomRow; card: RoomCard; now: number
   );
 }
 
+interface Decided {
+  need: RoomNeed;
+  verb: "approve" | "decline";
+  receipt: RoomActionReceipt;
+}
+
+/** Shown only from the room's receipt (ok: true), never on send. It
+ *  takes focus, because the need it replaces has just gone. */
+function DecidedNotice({ item, name }: { item: Decided; name: string }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+  return (
+    <li className="flex flex-col gap-[var(--pw-spacing-xs)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)]">
+      <p
+        ref={ref}
+        tabIndex={-1}
+        role="status"
+        className="text-[length:var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)] focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent-primary)]"
+      >
+        {item.verb === "approve" ? "Approved" : "Declined"}
+      </p>
+      <span className={SMALL}>{item.receipt.summary}</span>
+      <span className={MICRO}>
+        {item.receipt.at ? `${name} confirmed at ${formatTime(item.receipt.at)}.` : `${name} confirmed it.`}
+      </span>
+    </li>
+  );
+}
+
 /** The question "Ask about … in Chat" writes for the person: the room,
  *  what changed since their last visit and what needs them, in words
  *  the chat can use. It is only ever a draft; the person sends it. */
@@ -121,8 +154,9 @@ export function RoomDrawer({
     headingRef.current?.focus();
   }, [row.id]);
 
+  const [decided, setDecided] = useState<Decided[]>([]);
   const uncertain = isUncertain(row);
-  const needs = currentNeeds(row);
+  const needs = currentNeeds(row).filter((n) => !decided.some((d) => d.need.id === n.id));
   const seen = seenNeeds(row);
   const cards = uncertain ? [] : (row.cards ?? []);
   const changed = cards.filter((c) => changedSinceVisit(c, row.last_visited_at));
@@ -186,6 +220,19 @@ export function RoomDrawer({
         </p>
       )}
 
+      {decided.length > 0 && (
+        <section aria-labelledby={`${titleId}-decided`}>
+          <h3 id={`${titleId}-decided`} className={SECTION_TITLE}>
+            Decided just now
+          </h3>
+          <ul className="flex flex-col gap-[var(--pw-spacing-md)]">
+            {decided.map((d) => (
+              <DecidedNotice key={d.need.id} item={d} name={name} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       {needs.length > 0 && (
         <section aria-labelledby={`${titleId}-needs`}>
           <h3 id={`${titleId}-needs`} className={SECTION_TITLE}>
@@ -194,6 +241,7 @@ export function RoomDrawer({
           <ul className="flex flex-col gap-[var(--pw-spacing-md)]">
             {needs.map((need) => {
               const href = roomItemUrl(row, need.link);
+              const approval = uncertain ? null : approvalId(need);
               return (
                 <li
                   key={need.id}
@@ -220,6 +268,17 @@ export function RoomDrawer({
                     >
                       Mark as seen
                     </button>
+                    {approval && (
+                      <ApprovalReview
+                        roomId={row.id}
+                        roomName={name}
+                        need={need}
+                        approval={approval}
+                        onDecided={(verb, receipt) =>
+                          setDecided((all) => [...all, { need, verb, receipt }])
+                        }
+                      />
+                    )}
                   </div>
                 </li>
               );
