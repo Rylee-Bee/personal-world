@@ -1,11 +1,8 @@
 # PROJECT WORLDS — COHERENCE DECISION PREP
 
-> **HISTORICAL (pre-wiring) — retained for provenance; not current
-> guidance.** Decision preparation absorbed into
-> [`../repo/WIRING-READINESS.md`](../repo/WIRING-READINESS.md). Its
-> vault findings (below: `encrypted: true` hardcoded, base64 fallback)
-> were fixed by the 2026-09-15 finish pass — the vault now reports real
-> Fernet state and fails closed with no fallback.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`../repo/WIRING-READINESS.md`](../repo/WIRING-READINESS.md)) · **Read this if:** you want the dated pre-wiring decision prep behind the D1–D12 calls · **Superseded by:** [`../repo/WIRING-READINESS.md`](../repo/WIRING-READINESS.md) and the code
+
+**In short:** A dated, pre-wiring decision-preparation pass over three clusters (auth/identity, brain/tools, providers/storage) that produced the D1–D12 human decisions. It is retained for provenance, not as current guidance. Its vault findings (below: `encrypted: true` hardcoded, base64 fallback) were fixed by the 2026-09-15 finish pass — the vault now reports real Fernet state and fails closed with no fallback.
 
 Read-only decision-prep pass over three clusters, built entirely on the
 surface registry (`docs/surfaces/`). Baseline: branch
@@ -14,6 +11,11 @@ surface registry (`docs/surfaces/`). Baseline: branch
 new surfaces are introduced. Where the registry left a question
 unresolved, the specific implementation line was checked — those checks
 are cited inline.
+
+**What changed since:** the auth/identity findings above were superseded by the
+2026-09-15 D1–D3 convergence (one `require_auth` seam; session + OIDC resolve to
+one `Principal`); the interface is now `ui/`, and the product's core architecture
+is **rooms** — neither is in this pass.
 
 ---
 

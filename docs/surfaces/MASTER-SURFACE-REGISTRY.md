@@ -1,5 +1,11 @@
 # Master Surface Registry — Project Worlds
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (the code and `.project/CURRENT.md` win) · **Read this if:** you need a stable ID (`UI-001`, `API-003`, `PROV-001`, …) and a dated extraction of what existed on 2026-09-14 · **Superseded by:** the code and `.project/CURRENT.md`; current backend maps live in the sibling `docs/surfaces/` matrices
+
+**In short:** A dated, read-only index of every meaningful surface extracted on 2026-09-14 (with a 2026-09-15 correction pass). Its **IDs are still the stable index** other docs resolve against, but the rows that cite `frontend/` describe the retired pre-flip SPA, not today's interface. Treat every "State" cell as point-in-time; verify against the code before relying on it.
+
+**What changed since this extraction:** the product is called **Worlds** in prose; the interface is `ui/` (Bridge home, Memory, Chat, Settings, Crew, Interests — 2026-09-22 flip, Bridge 2026-09-25); the core architecture is now **rooms** (services serving the Play-Nice `room/0` contract, read from a runtime registry), with per-person **crew**, **keepers** and **doorways**; and Discovery/Candy extraction is in progress. None of those are in the tables below.
+
 Extraction pass, 2026-09-14. Read-only index of every meaningful
 surface. Baseline: branch `docs/current-product-refresh`, SHA
 `2e728fd050b3a67bd7e62afeaf6a0be7fb7d645a`. Product renamed

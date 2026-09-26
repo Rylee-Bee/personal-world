@@ -1,6 +1,16 @@
 # DUPLICATE / COMPETING SYSTEMS — Project Worlds
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** known duplicate/competing systems · **Read this if:** two code paths look like they do the same job and you want to know which is live
+
+**In short:** The known places where two surfaces do the same job. Reality only — no winner recommended except where a dated pass resolved one. Sibling: `ORPHANS.md`.
+
 Only known duplicates. Reality only; no winner recommended.
+
+**Note (2026-09-26):** the `api.py:NNN-NNN` line numbers and any `frontend/` paths
+below were captured in the 2026-09-15/17 passes and may have drifted (the
+`frontend/` tree is deleted; today's interface is `ui/`); find the named function
+instead. The rows about auth, reminders, and tool approvals are **resolved**
+(struck through, kept for provenance).
 
 > **Update 2026-09-15 (D1–D3 auth/authority pass).** The two auth rows
 > below were **resolved**: bearer, browser session (local/OIDC), and the

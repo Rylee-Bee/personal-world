@@ -1,7 +1,19 @@
 # TOOL → DOMAIN MATRIX — Project Worlds
 
-Code-observed count: 29 registered tools (mission brief said 26;
-repository truth wins). TOOL-000 is the container.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the brain's registered tools and how they read/write · **Read this if:** you need to know what a model can inspect or propose
+
+**In short:** Every tool the brain can call, whether it reads or proposes a write, and which domain/store it touches. The model can propose but never approve or execute.
+
+Code-observed count: **32 registered tools (as of 2026-09-26)** — `GET /api/tools`
+is the live list; TOOL-000 is the container. The extraction below is numbered for
+the 2026-09-14/17 set, so later additions keep their names, not a new number.
+
+| Added since the extraction (2026-09-26) | Read/Write | Domain target |
+|---|---|---|
+| `list_content`, `list_content_repos`, `search_content` | Read | `providers/content_db.py` (content database) |
+
+**Note:** `tool_registry.py:NNN` line numbers below are from the 2026-09-17 pass
+and may have drifted; find the named tool instead.
 
 | Tool ID | Read/Write | Proposal? | Approval? | Executor | Domain target | State |
 |---|---|---|---|---|---|---|

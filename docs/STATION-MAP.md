@@ -1,16 +1,19 @@
 # The Station — deck map
 
-> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
-> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
-> server-rendered Station is retired (kept as a theme package); `frontend/`
-> paths here are the deleted pre-flip tree. Direction lives in
-> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/PLAN.md`) · **Read this if:** you want the dated eight-deck design record behind today's crew and doorways · **Superseded by:** [`.project/PLAN.md`](../.project/PLAN.md) (current product shape); crew/room canon lives in [`docs/COMPANION-CANON.md`](COMPANION-CANON.md) and [`docs/CHARACTER-HANDBOOK.md`](CHARACTER-HANDBOOK.md)
 
-**Status:** Owner canon. Deck names re-anchored to **plain job words** by owner
+**In short:** A dated record of the eight-deck "Station" plan and its design dialects, kept for provenance. Since the 2026-09-22 flip the interface is `ui/` (the Bridge is home) and the server-rendered Station is retired as a **theme package**; the `frontend/` paths once referenced here are the deleted pre-flip tree. This is not current state.
+
+**Owner canon.** Deck names were re-anchored to **plain job words** by owner
 direction 2026-09-18 (*accessibility over cuteness when forced: the plain word is
 the label, the dialect is the delight*). The logical deck plan of **The Station**
 (Project Worlds): eight decks, each named for the job done there, each with a
 resident — except `Settings`, which is an icon.
+
+**What changed since:** the current architecture is **rooms** (independent services
+Worlds renders) plus a per-person **crew**, **keepers** and a closed list of
+**doorways** — the deck names below survive as canon, but the product shape is in
+`.project/PLAN.md`, and residents/rooms in `docs/COMPANION-CANON.md`.
 
 - **Character and voice truth** (who each resident is) →
   [`docs/CHARACTER-HANDBOOK.md`](CHARACTER-HANDBOOK.md).

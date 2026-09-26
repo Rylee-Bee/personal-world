@@ -1,11 +1,16 @@
 # Security policy
 
-Project Worlds supports both a single-user identity mode and a
-multi-principal mode (`PW_IDENTITY_MODE=multi`, per-person data
-scoping); security fixes target the current `main` branch; there is no
-supported stable release series yet. The browser front-end is the
-server-served Station UI at `/station/` (the Vite/SPA browser build was
-removed on 2026-09-16); entry points are server-rendered.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the security policy and public-repository boundary · **Read this if:** you found a vulnerability, or you are about to add config, a hostname, or a credential to this public repo
+
+**In short:** Worlds is a self-hosted app that runs one private place for one person (or a household). This page says how to report a security problem privately, and what must never be committed to this public repository. The automated gate that enforces the boundary is `tests/test_public_safety.py`.
+
+Worlds (the product was called "Project Worlds", then "Personal World") supports
+both a single-user identity mode and a multi-principal mode
+(`PW_IDENTITY_MODE=multi`, per-person data scoping); security fixes target the
+current `main` branch; there is no supported stable release series yet. The
+browser front-end is the `ui/` React app, built into the image and served
+same-origin at `/` by the backend; the older server-rendered Station and the
+first Vite SPA are retired (the Station survives only as a theme package).
 
 ## Report privately
 
@@ -33,6 +38,12 @@ protected requests when authentication is missing; this is not a substitute for
 network access controls. Do not expose an experimental deployment to the internet
 without reviewing its deployment and authentication boundaries.
 
+Rooms — the independent services Worlds renders — hold their own bearer tokens in
+Worlds' environment, named by indirection (`PW_ROOM_*_TOKEN`, and a registry
+`token_env` name); the values live only in the host's `.env` (mode 600), never in
+git. Worlds never forwards the human's session token to a room; a per-person room
+gets a principal header (`X-Worlds-Principal`) alongside its own room token.
+
 ## If a credential was published
 
 Revoke or rotate it immediately with its issuer, then investigate use. Report
@@ -51,7 +62,10 @@ referenced by indirection (`api_key_env`, `token_env`, `secret_ref`); a
 deliberate synthetic canary in a test must carry the marker
 `pw-safety: synthetic` on the same line so the exception stays visible.
 
-Nothing served to the browser may ever hold a credential: Station
-static assets are served same-origin by the server, and the former
-Vite bundle inlining (`import.meta.env`) was removed with the SPA
-cutover.
+Nothing served to the browser may ever hold a credential: the `ui/` build is
+served same-origin by the backend, and the former Vite bundle inlining
+(`import.meta.env`) was removed with the 2026-09-16 SPA cutover. Production
+runs on the **transcode host** (a LAN machine) at `/opt/personal-world` behind
+the homelab reverse proxy; that proxy carries the security headers middleware but
+no forward-auth, because Worlds owns its own auth (bearer token, sign-in,
+optional OIDC via Authelia as an identity provider).

@@ -1,5 +1,9 @@
 # Worlds backup & restore — the SOS escape hatch
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the encrypted full-instance backup/restore (`pw-worlds-backup/1`) · **Read this if:** you need to save or move a whole Worlds instance
+
+**In short:** One encrypted file plus a passphrase is enough to rebuild the same instance on a fresh machine. This page is the how-to, the archive format, and the honest boundary of what is and is not inside.
+
 > One encrypted file. One passphrase. Enough to be the same instance
 > again on a fresh machine.
 
@@ -163,10 +167,11 @@ encrypted, and only ever restored by someone holding the passphrase.
 
 ## HTTP routes (wired, step-up gated)
 
-`worlds_backup.register_worlds_backup(app, ...)` is mounted in `api.py`;
-the Settings page carries the "Back up my world" control. All routes are
-**step-up gated** (backup/restore hand over or replace the whole world,
-so a fresh session must re-prove identity first):
+`worlds_backup.register_worlds_backup(app, ...)` is mounted in `api.py`.
+All routes are **step-up gated** (backup/restore hand over or replace the whole
+world, so a fresh session must re-prove identity first). No current UI control was
+found (as of 2026-09-26): the routes are present in `ui/`'s generated API types,
+but no screen calls them — use the CLI, or call the routes directly:
 
 ```text
 POST /api/worlds/backup                   {passphrase, include_vault}
@@ -195,13 +200,10 @@ register_worlds_backup(
 )
 ```
 
-The Station UI hook lives at
-`design/opendesign-exploration/station/backup-ui.js`: it renders a
-"Back up my world" / "Restore my world" panel when a
-`#settings-backup` mount exists on the settings page, prompts for the
-passphrase client-side (never logged, cleared after use), and shows
-honest loading / error / not-wired-in-this-build states. It is not
-mounted into any HTML yet.
+The old Station UI hook (`design/opendesign-exploration/station/backup-ui.js`,
+a `#settings-backup` panel) was removed with the retired Station tree on
+2026-09-22; the current `ui/` app has no backup panel. (UNVERIFIED 2026-09-26: no
+in-flight replacement UI was found in the tree.)
 
 ## Threat notes (what this does and does not protect against)
 

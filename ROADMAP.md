@@ -1,9 +1,10 @@
 # Roadmap
 
-> **Superseded as direction by [`docs/TRUE-NORTH.md`](./docs/TRUE-NORTH.md)
-> (owner-approved 2026-09-22).** TRUE-NORTH owns current direction; this
-> file remains as the historical horizon record. Git history preserves all
-> prior content.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/PLAN.md`) · **Read this if:** you want the dated horizon record, not current direction · **Superseded by:** [`.project/PLAN.md`](./.project/PLAN.md) (current direction) and [`docs/TRUE-NORTH.md`](./docs/TRUE-NORTH.md) (principles; its scope is itself superseded by PLAN)
+
+**In short:** This is the old roadmap — a horizon record re-verified on 2026-09-17, before the `ui/` flip. It no longer describes how Worlds is built. Read `.project/PLAN.md` for what we are doing now.
+
+What changed since this record was written: the interface is `ui/` (the Bridge is home, 2026-09-25), the product is called **Worlds** in prose, rooms/registry/crew/doorways are the core architecture, and Discovery/Candy extraction is in progress. The Station is a theme package, not the product UI.
 
 Direction, not promises. Project Worlds is developed by one human with
 an AI-agent workflow; items move between horizons freely and nothing

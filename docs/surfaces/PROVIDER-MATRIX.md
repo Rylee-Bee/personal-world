@@ -1,6 +1,14 @@
 # PROVIDER MATRIX — Project Worlds
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the capability → provider registration map · **Read this if:** you need to know how a capability gets its provider, and whether it is live
+
+**In short:** Each capability, the provider that fills it, how that provider registers, and whether it is actually live. Registration = how the provider enters the live Registry.
+
 Registration = how the provider enters the live Registry.
+
+**Note (2026-09-26):** the `app.py:NNN` line numbers below are from the
+2026-09-14/15 extraction and may have drifted — find the named provider instead.
+Rooms (below) are **not** providers; see the note after the table.
 
 | Capability ID | Provider ID | Registration | Active? | Reads | Writes | UI | API | CLI | Tool |
 |---|---|---|---|---|---|---|---|---|---|
@@ -40,3 +48,31 @@ Registration = how the provider enters the live Registry.
 | — chat (CLI-less) | PROV-031 ChatProviderRegistry class | exists in chat_registry.py | NO (orphan) | — | — | — | — | — | — |
 
 Duplicate/competing provider notes are in DUPLICATES.md.
+
+## Not providers: rooms and the runtime registry (2026-09-26)
+
+**Rooms are not capabilities or providers.** A room is any independent service
+that serves the Play-Nice `room/0` contract (`GET /room`, `/room/cards`,
+`/room/needs-you`, `/room/actions`, `POST /room/actions/{id}`). Worlds renders
+them through `/api/rooms` (`API-088`); it never wraps a room as a Registry
+provider. Newer sources that *are* providers/adapters but not in the table:
+
+| Module | What it is |
+|---|---|
+| `providers/project_home.py` | Project Home source; token indirection `PW_PH_TOKEN_ENV` |
+| `providers/content_db.py` | content provider behind the `list_content` / `search_content` tools |
+| `providers/workbench.py` | Workbench provider, gated behind `PW_WORKBENCH` (off) |
+
+**Runtime registry (Gap 1):** Worlds reads its **room list** from Project Home
+`GET /api/rooms/registry` (`PW_ROOMS_REGISTRY_URL`, token env named by
+`PW_ROOMS_REGISTRY_TOKEN_ENV`, cached 60 s, last-known-good persisted as
+`rooms-registry.json`). `PW_ROOMS` is only a fallback. A room whose contract is
+not in `SUPPORTED_CONTRACTS={room/0}` is reported `incompatible`. Registry row
+fields: `id`, `name`, `base_url`, `public_url`, `contract`, `token_env`,
+`insecure_tls`, `forward_principal`, `enabled`; `token_env` must match
+`^PW_ROOM_[A-Z0-9_]+_TOKEN$`.
+
+Live rooms (2026-09-26): **Workshop** (Project Home), **Studio**, **Engine room**
+(homelab `lab room serve`), **Candy** (discovery). Room bearer tokens live in
+Worlds' environment (names like `PW_ROOM_WORKSHOP_TOKEN`), values only in the
+host's `.env` (mode 600). Source of truth: `src/personal_world/rooms.py`.
