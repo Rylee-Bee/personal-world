@@ -700,3 +700,21 @@ def test_two_users_owner_can_write_second_user_cannot(tmp_path, monkeypatch):
     assert seen and all(auth == f"Bearer {TOKEN_VALUE}" for _, _, auth in paths)
     assert {pid for _, pid, _ in paths} == {"primary", "beta"}
     assert all("instancetoken" not in (auth or "") for _, _, auth in paths)
+
+# ── Actions on each rooms row (design ask, 2026-09-26) ──────────────
+
+
+class TestActionsOnRows:
+    def test_row_lists_the_rooms_actions_with_title_and_writes(self):
+        svc = RoomsService(transport=_transport())
+        rows = run(svc.snapshot(_env()))
+        assert rows[0]["actions"] == [
+            {"id": "approve", "title": "Approve", "writes": True},
+            {"id": "refresh", "title": "Refresh", "writes": False},
+            {"id": "mystery", "title": "Mystery", "writes": None},
+        ]
+
+    def test_unreadable_action_list_gives_an_empty_list(self):
+        svc = RoomsService(transport=_transport(actions=None))
+        rows = run(svc.snapshot(_env()))
+        assert rows[0]["actions"] == []

@@ -161,7 +161,10 @@ class TestSnapshot:
         assert row["last_status"] == "healthy"
         assert row["cards"] == []  # an absent cards list is honest, not invented
         # All three read-only endpoints were read.
-        assert set(calls) == {rooms.ROOM_PATH, rooms.CARDS_PATH, rooms.NEEDS_YOU_PATH}
+        # plus the room's action list (cached 60 s), shown on the row
+        assert set(calls) == {
+            rooms.ROOM_PATH, rooms.CARDS_PATH, rooms.NEEDS_YOU_PATH, rooms.ACTIONS_PATH,
+        }
 
     def test_connect_error_is_unreachable_not_healthy(self):
         def boom(request: httpx.Request) -> httpx.Response:
