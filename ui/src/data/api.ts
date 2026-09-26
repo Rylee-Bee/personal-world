@@ -82,6 +82,7 @@ import type {
   RoomActionReceipt,
   Me,
   Person,
+  DirectoryPerson,
   Invite,
   HelperGrant,
   HelpedBy,
@@ -649,7 +650,7 @@ export const postTransferOwnership = (to: string) =>
 // Invites (manage_people). The one-time code comes back once, at creation.
 export const getInvites = () => unwrap<Envelope<Invite[]>>(getRequest("/api/people/invites"));
 export const postInvite = (body: { role: string; display_name: string; expires_in_hours?: number; guest_until?: string }) =>
-  unwrap<Envelope<{ invite_id: string; role: string; display_name: string; expires_at: string; guest_until: string | null; token: string }>>(
+  unwrap<Envelope<{ invite_id: string; role: string; display_name: string; expires_at: string; guest_until: string | null; token: string; link?: string }>>(
     sendBody("POST", "/api/people/invites", body),
   );
 export const deleteInvite = (id: string) =>
@@ -661,6 +662,8 @@ export const postMyHelper = (body: { helper_id: string; can_act: boolean; until?
   unwrap<Envelope<HelperGrant>>(sendBody("POST", "/api/me/helpers", body));
 export const deleteMyHelper = (grantId: string) =>
   unwrap<Envelope<{ grant_id: string }>>(sendBody("DELETE", `/api/me/helpers/${encodeURIComponent(grantId)}`, {}));
+// GET /api/people/directory: names only, for choosing a helper (own_space).
+export const getDirectory = () => unwrap<Envelope<DirectoryPerson[]>>(getRequest("/api/people/directory"));
 export const getHelpedBy = () => unwrap<Envelope<HelpedBy[]>>(getRequest("/api/me/helped-by"));
 
 // Limits: set for a supervised person (manage_people or their guardian).

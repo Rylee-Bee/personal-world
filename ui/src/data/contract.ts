@@ -868,7 +868,7 @@ export interface Me {
   /** Live helper grants this person has given. */
   helpers_granted?: number;
   /** People this person may help right now. */
-  helping?: { person_id: string; until: string | null; can_act: boolean }[];
+  helping?: { person_id: string; person_name?: string | null; until: string | null; can_act: boolean }[];
   /** A supervised person's own limits, and who set them. */
   limits?: MyLimits;
   /** A guest's end of visit (ISO). */
@@ -879,6 +879,8 @@ export interface Me {
 export interface MyLimits {
   limits: { chat_quiet_hours?: string; no_outside_sharing?: boolean; content_boundary?: "gentle" | "standard" };
   set_by: string | null;
+  /** The setter's name; null when that person is gone. */
+  set_by_name?: string | null;
   set_at: string | null;
 }
 
@@ -899,6 +901,9 @@ export interface Invite {
 export interface HelperGrant {
   grant_id: string;
   helper_id: string;
+  /** Names beside ids; null when that person is gone. */
+  helper_name?: string | null;
+  person_name?: string | null;
   can_act: boolean;
   until: string | null;
   created_at: string | null;
@@ -911,9 +916,17 @@ export interface HelperGrant {
 export interface HelpedBy {
   at: string;
   helper_id: string;
+  helper_name?: string | null;
   action: string;
   summary: string;
   undoable: boolean;
+}
+
+/** One row of GET /api/people/directory: names only, for pickers.
+ *  People who live here can read it; guests can't. */
+export interface DirectoryPerson {
+  id: string;
+  display_name: string | null;
 }
 
 /** One row of GET /api/people (manage_people only). Agents carry

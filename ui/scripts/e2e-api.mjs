@@ -587,9 +587,11 @@ let PEOPLE_STEP_UP = false;
 let INVITES = [];
 let GRANTS = [];
 let HELPED_BY = [
-  { at: "2026-09-26T11:02:00Z", helper_id: "person:jo", action: "need_seen", summary: "Jo marked “Backups finished” as seen.", undoable: false },
+  { at: "2026-09-26T11:02:00Z", helper_id: "person:jo", helper_name: "Jo", action: "need_seen", summary: "Jo marked “Backups finished” as seen.", undoable: false },
 ];
 let LIMITS = {};
+// Names beside ids, like the server: null when the person is gone.
+const personName = (id) => PEOPLE.find((x) => x.id === id && x.kind === "person")?.display_name ?? null;
 const OWNER_PERMISSIONS = ["own_space", "see_shared", "approve", "manage_people", "manage_rooms", "estate_secrets", "updates", "transfer_ownership"];
 const ADMIN_PERMISSIONS = OWNER_PERMISSIONS.filter((x) => x !== "transfer_ownership");
 
@@ -1302,7 +1304,7 @@ const server = http.createServer(async (req, res) => {
       used_at: null, created_by: "person:operator", expired: false,
     };
     INVITES.push(invite);
-    return json(res, 200, { ok: true, data: { invite_id: invite.invite_id, role: invite.role, display_name: invite.display_name, expires_at: invite.expires_at, guest_until: invite.guest_until, token: "made-up-one-time-code" } });
+    return json(res, 200, { ok: true, data: { invite_id: invite.invite_id, role: invite.role, display_name: invite.display_name, expires_at: invite.expires_at, guest_until: invite.guest_until, token: "made-up-one-time-code", link: "http://127.0.0.1:4174/invite#made-up-one-time-code" } });
   }
   const invDel = p.match(/^\/api\/people\/invites\/([^/]+)$/);
   if (method === "DELETE" && invDel) {
@@ -1316,7 +1318,7 @@ const server = http.createServer(async (req, res) => {
   if (method === "POST" && p === "/api/me/helpers") {
     if (!PEOPLE_STEP_UP) return json(res, 403, { detail: "write requires step-up auth" });
     const body = (await readBody(req)) ?? {};
-    const grant = { grant_id: `g-${GRANTS.length + 1}`, helper_id: body.helper_id, can_act: Boolean(body.can_act), until: body.until ?? null, created_at: "2026-09-26T12:00:00Z", revoked_at: null, revoked_by: null, live: true };
+    const grant = { grant_id: `g-${GRANTS.length + 1}`, helper_id: body.helper_id, helper_name: personName(body.helper_id), person_name: "Sam", can_act: Boolean(body.can_act), until: body.until ?? null, created_at: "2026-09-26T12:00:00Z", revoked_at: null, revoked_by: null, live: true };
     GRANTS.push(grant);
     return json(res, 200, { ok: true, data: grant });
   }
@@ -1337,8 +1339,12 @@ const server = http.createServer(async (req, res) => {
     const body = (await readBody(req)) ?? {};
     const limits = {};
     for (const item of body.limits ?? []) limits[item.key] = item.value;
-    LIMITS[decodeURIComponent(limMatch[1])] = { limits, set_by: "person:operator", set_at: "2026-09-26T12:00:00Z" };
+    LIMITS[decodeURIComponent(limMatch[1])] = { limits, set_by: "person:operator", set_by_name: "Sam", set_at: "2026-09-26T12:00:00Z" };
     return json(res, 200, { ok: true, data: LIMITS[decodeURIComponent(limMatch[1])] });
+  }
+  if (method === "GET" && p === "/api/people/directory") {
+    const rows = PEOPLE.filter((x) => x.kind === "person" && !x.expired).map((x) => ({ id: x.id, display_name: x.display_name }));
+    return json(res, 200, { ok: true, data: rows });
   }
   if (method === "GET" && p === "/api/people") {
     return json(res, 200, { ok: true, data: PEOPLE });

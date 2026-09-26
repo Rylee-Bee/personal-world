@@ -805,7 +805,7 @@ export function Settings({
           </section>
         )}
 
-        {myLimits && <MyLimits data={myLimits} />}
+        {myLimits && <MyLimits data={myLimits} setByName={myLimits.set_by_name?.trim() || undefined} />}
 
         {guestUntil && (
           <section className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">

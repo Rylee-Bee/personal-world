@@ -5,7 +5,7 @@
  * Journals, notes, chats and secrets are never part of helping.
  */
 import { useId, useState, type FormEvent } from "react";
-import { useGrantHelper, useHelpedBy, useMe, useMyHelpers, usePeople, useRevokeHelper } from "../../data/hooks";
+import { useGrantHelper, useHelpedBy, useMe, useMyHelpers, useDirectory, useRevokeHelper } from "../../data/hooks";
 import type { HelperGrant } from "../../data/contract";
 import { describeError } from "../../data/errors";
 import { WorldButton } from "../../components/WorldButton";
@@ -35,8 +35,9 @@ const LENGTHS = [
 export function Helpers({ onBack }: { onBack: () => void }) {
   const id = useId();
   const me = useMe();
-  const canList = me.data?.data?.permissions.includes("manage_people") ?? false;
-  const people = usePeople(canList);
+  const canList = me.data?.data?.permissions.includes("own_space") ?? false;
+  const canInvite = me.data?.data?.permissions.includes("manage_people") ?? false;
+  const people = useDirectory(canList);
   const grants = useMyHelpers();
   const log = useHelpedBy();
   const grant = useGrantHelper();
@@ -49,9 +50,11 @@ export function Helpers({ onBack }: { onBack: () => void }) {
   const [problem, setProblem] = useState<string | null>(null);
 
   const myId = me.data?.data?.id;
-  const choices = (people.data?.data ?? []).filter((p) => p.kind === "person" && p.id !== myId && !p.expired);
-  const nameFor = (pid: string) =>
-    (people.data?.data ?? []).find((p) => p.id === pid)?.display_name?.trim() || pid.replace(/^person:/, "");
+  const choices = (people.data?.data ?? []).filter((p) => p.id !== myId);
+  // Names come beside ids from the server; the directory fills gaps. A
+  // person who's gone has no name, and we never show a raw id instead.
+  const nameFor = (pid: string, given?: string | null) =>
+    given?.trim() || (people.data?.data ?? []).find((p) => p.id === pid)?.display_name?.trim() || "Someone who’s left";
   const live = (grants.data?.data ?? []).filter((g: HelperGrant) => g.live);
   const helping = me.data?.data?.helping ?? [];
 
@@ -82,7 +85,7 @@ export function Helpers({ onBack }: { onBack: () => void }) {
   };
 
   const stop = (g: HelperGrant) => {
-    const helperName = nameFor(g.helper_id);
+    const helperName = nameFor(g.helper_id, g.helper_name);
     confirm.run((onError) =>
       revoke.mutate(g.grant_id, {
         onSuccess: () => setMessage(`${helperName} can’t help any more. They’ll get a plain note that it ended.`),
@@ -121,12 +124,17 @@ export function Helpers({ onBack }: { onBack: () => void }) {
         <h2 id={`${id}-grant`} className={HEADING} style={SERIF}>
           Choose a helper
         </h2>
-        {canList && choices.length === 0 && !people.isPending ? (
-          <p className={`${NOTE} mt-[var(--pw-spacing-sm)]`}>There’s nobody else here yet. Invite someone from People first.</p>
+        {canList && people.isError ? (
+          <p className={`${NOTE} mt-[var(--pw-spacing-sm)]`}>Couldn’t load the people here. Try again in a moment.</p>
+        ) : canList && choices.length === 0 && !people.isPending ? (
+          <p className={`${NOTE} mt-[var(--pw-spacing-sm)]`}>
+            {canInvite
+              ? "There’s nobody else here yet. Invite someone from People first."
+              : "There’s nobody else here yet."}
+          </p>
         ) : !canList ? (
           <p className={`${NOTE} mt-[var(--pw-spacing-sm)]`}>
-            Choosing a helper from a list of people is coming next. Until then, ask the person who runs
-            this World.
+            Visitors can’t choose a helper. Ask the person who runs this World if you need one.
           </p>
         ) : (
           <form onSubmit={submit} className="mt-[var(--pw-spacing-md)] flex flex-col gap-[var(--pw-spacing-md)]">
@@ -200,10 +208,10 @@ export function Helpers({ onBack }: { onBack: () => void }) {
             {live.map((g) => (
               <li key={g.grant_id} className="flex flex-wrap items-center gap-[var(--pw-spacing-md)] border-t border-[var(--pw-border-subtle)] py-[var(--pw-spacing-md)]">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-[var(--pw-text-primary)]">{nameFor(g.helper_id)}</p>
+                  <p className="font-semibold text-[var(--pw-text-primary)]">{nameFor(g.helper_id, g.helper_name)}</p>
                   <p className={NOTE}>{`${g.can_act ? "Can act for you" : "Can see what needs you"} · until ${dayWords(g.until)}`}</p>
                 </div>
-                <WorldButton aria-label={`Stop ${nameFor(g.helper_id)}’s help now`} onPress={() => stop(g)} isDisabled={revoke.isPending}>
+                <WorldButton aria-label={`Stop ${nameFor(g.helper_id, g.helper_name)}’s help now`} onPress={() => stop(g)} isDisabled={revoke.isPending}>
                   Stop now
                 </WorldButton>
               </li>
@@ -225,7 +233,7 @@ export function Helpers({ onBack }: { onBack: () => void }) {
             {(log.data?.data ?? []).map((row, i) => (
               <li key={`${row.at}-${i}`} className="grid grid-cols-[minmax(0,1fr)] gap-[var(--pw-spacing-xs)] border-t border-[var(--pw-border-subtle)] py-[var(--pw-spacing-sm)] min-[640px]:grid-cols-[160px_minmax(0,1fr)]">
                 <span className={MICRO}>{new Date(row.at).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" })}</span>
-                <span className="text-[var(--pw-text-primary)]">{row.summary || `${nameFor(row.helper_id)}: ${row.action}`}</span>
+                <span className="text-[var(--pw-text-primary)]">{row.summary || `${nameFor(row.helper_id, row.helper_name)}: ${row.action}`}</span>
               </li>
             ))}
           </ul>
@@ -240,7 +248,7 @@ export function Helpers({ onBack }: { onBack: () => void }) {
           <ul className="mt-[var(--pw-spacing-sm)]">
             {helping.map((h) => (
               <li key={h.person_id} className="border-t border-[var(--pw-border-subtle)] py-[var(--pw-spacing-sm)] text-[var(--pw-text-primary)]">
-                {`${nameFor(h.person_id)} · ${h.can_act ? "you can act for them" : "you can see what needs them"} · until ${dayWords(h.until)}`}
+                {`${nameFor(h.person_id, h.person_name)} · ${h.can_act ? "you can act for them" : "you can see what needs them"} · until ${dayWords(h.until)}`}
               </li>
             ))}
           </ul>

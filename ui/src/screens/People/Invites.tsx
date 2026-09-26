@@ -98,7 +98,7 @@ export function InviteSection({ canInviteAdmin }: { canInviteAdmin: boolean }) {
             setProblem("The link didn’t come back. Try again.");
             return;
           }
-          setMade({ name: data.display_name, link: inviteLink(data.token), expires: dayWords(data.expires_at) });
+          setMade({ name: data.display_name, link: data.link ?? inviteLink(data.token), expires: dayWords(data.expires_at) });
           setName("");
           setOpen(false);
         },
