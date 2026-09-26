@@ -684,3 +684,14 @@ dated entry superseding the old one (append-only, like the journal).
   mark beside Worlds' plain voice (crew off) and the commbadge for a chosen
   companion with no picture; Sol never speaks. Studio has no default keeper
   (owner nixed it, #85).
+- **2026-09-26 — First Light is the real /setup wizard.** Owner: "yes". The
+  server-rendered wizard now follows the First Light design: six steps
+  (welcome with the bridge portal and Sol, getting ready, sign-in, comfort,
+  companion, welcome aboard). Comfort adds colours (Starfield default,
+  Doorways, Plain; previewed live, saved on this device under the key the
+  app reads) and "Meet the crew" (`crew_on`, #89). The companion step offers
+  the Assistant (default, the plain voice) and the starter crew
+  (`/api/setup-wizard/crew`, `/api/setup-wizard/companion`), and steps aside
+  when the crew is off. Every safeguard is unchanged: loopback-only writes,
+  first-run only, the same provisioning, sign-in and finish code. No
+  motion: the progress dots and the lamp are static.
