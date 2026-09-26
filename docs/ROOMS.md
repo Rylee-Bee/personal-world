@@ -77,6 +77,13 @@ Code: `src/personal_world/rooms.py` (`RoomsService`, `_parse_registry_entries`).
   when it was last seen. `unknown` is not `healthy` and not failed.
 - **One snapshot for everyone,** cached 15 s (`CACHE_TTL_SECONDS`), except the
   per-person parts below.
+- **Looking inside a room** opens its drawer: status in words, cards, needs,
+  and **Ask about {room} in Chat**, which drafts a question about what changed
+  and what needs you (only a draft; you send it). Code:
+  `ui/src/components/rooms/RoomDrawer.tsx`.
+- **Many rooms:** once there are 12 or more (`FIND_AT` in
+  `ui/src/components/RoomsPanel.tsx`), the Bridge offers **Find a room**, a
+  filter over the rooms.
 - **Links open on the room's own site,** in a new tab. There is no proxy:
   serving rooms from Worlds' own address would hand every room Worlds'
   cookies. A need or card `link` must be a same-origin path (`/tasks/2`), never

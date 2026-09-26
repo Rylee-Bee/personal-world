@@ -35,7 +35,7 @@
       "alt": "The Worlds Bridge with a briefing at the top and room doorway cards below.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "aea10d6"
+      "commit": "7777a62"
     },
     {
       "id": "room-drawer-studio",
@@ -53,7 +53,7 @@
       "alt": "The Studio room drawer open over the Bridge.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "aea10d6"
+      "commit": "7777a62"
     },
     {
       "id": "room-drawer-workshop-secrets",
@@ -71,7 +71,7 @@
       "alt": "The Workshop room drawer showing a Secrets section with station health and key names.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "aea10d6"
+      "commit": "7777a62"
     },
     {
       "id": "memory",
@@ -81,7 +81,7 @@
       "alt": "The Memory screen listing journal entries.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "aea10d6"
+      "commit": "7777a62"
     },
     {
       "id": "chat",
@@ -91,7 +91,7 @@
       "alt": "The Chat screen.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "aea10d6"
+      "commit": "7777a62"
     },
     {
       "id": "settings",
@@ -101,7 +101,7 @@
       "alt": "The Settings screen.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "aea10d6"
+      "commit": "7777a62"
     },
     {
       "id": "crew",
@@ -120,7 +120,7 @@
       "status": "captured",
       "notes": "If the Settings screen's way into Crew has a different accessible name, fix the step, not the UI.",
       "captured_at": "2026-09-26",
-      "commit": "aea10d6"
+      "commit": "7777a62"
     },
     {
       "id": "interests",
@@ -130,7 +130,7 @@
       "alt": "The Interests screen.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "aea10d6"
+      "commit": "7777a62"
     },
     {
       "id": "projects-placeholder",
@@ -140,7 +140,7 @@
       "alt": "The Projects placeholder screen.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "aea10d6"
+      "commit": "7777a62"
     },
     {
       "id": "first-light",

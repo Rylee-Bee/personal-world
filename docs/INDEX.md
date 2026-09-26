@@ -126,7 +126,7 @@ are unchanged.)
 
 Generated from each page's status line (2026-09-26). If a page is missing here, it has no status line: add one.
 
-### Current (8)
+### Current (9)
 
 | Page | Read this if |
 |---|---|
@@ -137,9 +137,10 @@ Generated from each page's status line (2026-09-26). If a page is missing here, 
 | [QUICKSTART.md](QUICKSTART.md) | you want to run Worlds on your own machine, or you need the plain-language on-ramp |
 | [ROOMS.md](ROOMS.md) | you want to add a room, understand a room's status, or change how Worlds talks to rooms |
 | [WHERE-WE-ARE.md](WHERE-WE-ARE.md) | you don't remember where things stand. That's okay |
+| [accessibility/SCREEN_READER_WALKTHROUGH.md](accessibility/SCREEN_READER_WALKTHROUGH.md) | you use a screen reader, or you are changing labels, landmarks or focus in `ui/` |
 | [gallery/README.md](gallery/README.md) | you want to see Worlds without running it, or you are refreshing the pictures after a UI change |
 
-### Reference (46)
+### Reference (45)
 
 | Page | Read this if |
 |---|---|
@@ -173,7 +174,6 @@ Generated from each page's status line (2026-09-26). If a page is missing here, 
 | [WORLDS-BACKUP.md](WORLDS-BACKUP.md) | you need to save or move a whole Worlds instance |
 | [accessibility/ACCESSIBILITY_CONTRACT.md](accessibility/ACCESSIBILITY_CONTRACT.md) | you are designing, building or reviewing anything a person perceives or operates |
 | [accessibility/RESPONSIVE_RULES.md](accessibility/RESPONSIVE_RULES.md) | you are changing layout, navigation or a screen's narrow-width behaviour |
-| [accessibility/SCREEN_READER_WALKTHROUGH.md](accessibility/SCREEN_READER_WALKTHROUGH.md) | you are checking what a screen reader encounters before changing a screen or the shell |
 | [adr/0001-capabilities-core-owned-providers-optional.md](adr/0001-capabilities-core-owned-providers-optional.md) | you are adding or changing a capability, a provider, or anything that could make a vendor's shape into product truth |
 | [adr/0002-default-brain-selection.md](adr/0002-default-brain-selection.md) | you are changing the default brain, the fallback, or the `reasoning` provider |
 | [brain-templates.md](brain-templates.md) | you are editing chat prompt text or adding a persona/surface/task template |
