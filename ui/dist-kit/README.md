@@ -5,7 +5,7 @@ React + Tailwind web app, Studio's plain ES-module pages, the static
 dev-gallery site). It is plain CSS built on the Worlds design tokens — no
 build step, no framework, no Tailwind.
 
-- **Version:** `0.1.0+23592393af`
+- **Version:** `0.1.0+3cf3e35ff5`
 - **Built:** `not recorded (content-addressed)`
 - **Source:** Personal Worlds (`ui/kit/src/base.css`, `design/tokens.json`,
   `design/themes/*.json`)
@@ -64,7 +64,7 @@ Set `data-theme="<name>"` on `<html>`. The available themes are:
 `station` is the `:root` fallback (no attribute needed); `starfield` is the
 Worlds product default. Switching the attribute re-themes the page instantly.
 
-## Accessibility floor
+## Minimum accessibility
 
 Every `wk-` component keeps Worlds' accessibility contract:
 
@@ -73,7 +73,7 @@ Every `wk-` component keeps Worlds' accessibility contract:
 - status is carried **in words**, never by colour alone;
 - motion is reduced to nothing under `prefers-reduced-motion`.
 
-Do not override these when adapting the kit — the classes are a floor, not a
+Do not override these when adapting the kit. They are the minimum, not a
 suggestion.
 
 ## Keeping it current

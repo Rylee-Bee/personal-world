@@ -59,7 +59,7 @@ Set `data-theme="<name>"` on `<html>`. The available themes are:
 `station` is the `:root` fallback (no attribute needed); `starfield` is the
 Worlds product default. Switching the attribute re-themes the page instantly.
 
-## Accessibility floor
+## Minimum accessibility
 
 Every `wk-` component keeps Worlds' accessibility contract:
 
@@ -68,7 +68,7 @@ Every `wk-` component keeps Worlds' accessibility contract:
 - status is carried **in words**, never by colour alone;
 - motion is reduced to nothing under `prefers-reduced-motion`.
 
-Do not override these when adapting the kit — the classes are a floor, not a
+Do not override these when adapting the kit. They are the minimum, not a
 suggestion.
 
 ## Keeping it current

@@ -18,7 +18,7 @@
  * for how Worlds looks (ui/src/components/World*.tsx, RoomsPanel.tsx,
  * rooms/*).
  *
- * Accessibility floor (docs/accessibility/ACCESSIBILITY_CONTRACT.md):
+ * Minimum accessibility (docs/accessibility/ACCESSIBILITY_CONTRACT.md):
  *   - interactive targets are never smaller than --pw-targets-minimum (44px);
  *   - focus is always visible (:focus-visible ring, accent-coloured);
  *   - status is carried in words, never by colour alone;
@@ -66,7 +66,7 @@
   src: url(fonts/young-serif-latin.woff2) format('woff2');
 }
 
-/* Type sizes: every size resolves through max(theme token, floor). The
+/* Type sizes: every size resolves through max(theme token, minimum). The
    owner brief (2026-09-25) is body text at least 16px and no label under
    13px; the kit never renders smaller, whatever a theme's tokens say. */
 
@@ -173,7 +173,7 @@ a:hover {
 }
 
 /* ── Reduced motion ───────────────────────────────────────────────────────
-   Source: world.css §6.2. The OS floor wins; nothing animates. */
+   Source: world.css §6.2. The system setting wins; nothing animates. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -420,7 +420,7 @@ a:hover {
 
 /* ── Form fields ──────────────────────────────────────────────────────────
    Source: the interface's form vocabulary (Settings / Journal / Vault) —
-   raised surface, subtle border, small radius, 44px floor for every control. */
+   raised surface, subtle border, small radius, at least 44px for every control. */
 .wk-field {
   display: flex;
   flex-direction: column;
