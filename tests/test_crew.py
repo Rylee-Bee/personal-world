@@ -210,6 +210,7 @@ class TestKeeperDefaults:
             "observatory": "mira",
             "newsstand": "scoop",
             "world-tree": "ratatoskr",
+            "studio": "mira",  # owner decision 2026-09-26
         }
         # Renai reports no system and is never seeded as a keeper.
         assert "renai" not in keepers.values()
@@ -225,7 +226,7 @@ class TestKeeperDefaults:
         path = tmp_path / "crew.json"
         path.write_text(json.dumps({"crew": crew.starter_entries()}))
         state = crew.read_crew(path, room_ids=["workshop", "studio"])
-        assert state["keepers"] == {"workshop": "bolt"}
+        assert state["keepers"] == {"workshop": "bolt", "studio": "mira"}
 
     def test_a_seeded_keeper_the_roster_no_longer_has_is_not_written(self, tmp_path):
         """A hand-edited file with an emptied roster gets no phantom
@@ -235,13 +236,16 @@ class TestKeeperDefaults:
         path.write_text(json.dumps({"crew": []}))
         assert crew.read_crew(path, room_ids=["workshop"])["keepers"] == {}
 
-    def test_present_keepers_key_is_never_reseeded(self, tmp_path):
+    def test_never_assigned_room_gets_its_default_but_a_clear_stays(self, tmp_path):
         path = tmp_path / "crew.json"
         path.write_text(
             json.dumps({"crew": crew.starter_entries(), "keepers": {}})
         )
-        state = crew.read_crew(path, room_ids=["workshop"])
-        assert state["keepers"] == {}
+        assert crew.read_crew(path, room_ids=["workshop"])["keepers"] == {"workshop": "bolt"}
+        path.write_text(
+            json.dumps({"crew": crew.starter_entries(), "keepers": {"workshop": None}})
+        )
+        assert crew.read_crew(path, room_ids=["workshop"])["keepers"] == {"workshop": None}
 
     def test_unaddressable_stored_entries_are_dropped(self, tmp_path):
         """A hand-edited file cannot smuggle in a traversal id, a blank
@@ -506,8 +510,8 @@ class TestKeepers:
         rows = _rows(client)
         assert rows["workshop"]["keeper"]["id"] == "bolt"
         assert rows["workshop"]["keeper"]["initial"] == "B"
-        # "studio" names no canon system → honestly no companion
-        assert rows["studio"]["keeper"] is None
+        # "studio" names no canon system; Mira keeps it by owner decision (2026-09-26)
+        assert rows["studio"]["keeper"]["id"] == "mira"
 
     def test_assigning_moves_the_room_but_not_the_crew(self, client, monkeypatch):
         _install(monkeypatch)
@@ -976,3 +980,17 @@ class TestPrincipalIsolation:
         client.patch("/api/crew/bolt", json={"hidden": True}, headers=_auth())
         assert _crew(client)["bolt"]["hidden"] is True
         assert _crew(client, beta)["bolt"]["hidden"] is False
+
+def test_studio_defaults_to_mira_but_an_explicit_clear_stays(tmp_path):
+    """Owner decision 2026-09-26: Mira keeps Studio by default."""
+    import json
+    from personal_world import crew
+
+    path = tmp_path / "crew.json"
+    assert crew.read_crew(path, room_ids=["workshop", "studio"])["keepers"] == {"workshop": "bolt", "studio": "mira"}
+    # an existing file that predates Studio gets the default for the new room
+    path.write_text(json.dumps({"crew": crew.starter_entries(), "keepers": {"workshop": "bolt"}}))
+    assert crew.read_crew(path, room_ids=["workshop", "studio"])["keepers"]["studio"] == "mira"
+    # an explicit clear is respected
+    path.write_text(json.dumps({"crew": crew.starter_entries(), "keepers": {"workshop": "bolt", "studio": None}}))
+    assert crew.read_crew(path, room_ids=["workshop", "studio"])["keepers"]["studio"] is None
