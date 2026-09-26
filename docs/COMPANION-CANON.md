@@ -96,6 +96,25 @@ The Station and the server are two stores that are **not synchronized**
 (`real-data.js` L94–98: the Station control saves in this browser, the server
 keeps its own value). The mapping above is the translation, not a live sync.
 
+> **Crew ids (owner decision 2026-09-25, companions addendum item 4).** The
+> chosen companion is now a reference into the person's own crew registry
+> (`src/personal_world/crew.py`, preference `companion_id`), not one of the
+> old server keys. The starter crew keeps these canon residents, and the old
+> server key still reads as the crew id below — one-time and lazy
+> (`prefs.LEGACY_COMPANION_IDS`), rendered in `crew.STARTER_CREW`:
+>
+> | Old server key | Crew id |
+> |---|---|
+> | `mermaid` | `renai` |
+> | `robot` | `bolt` |
+> | `world-tree-squirrel` | `ratatoskr` |
+> | `taco-news-truck` | `scoop` |
+> | `assistant`, `personal-world` | *(none — the one plain voice)* |
+>
+> Sol is still not a crew entry, and no crew id above is a rename of an
+> existing identifier: the display name is canonical for humans, the crew id
+> for the registry, exactly as the server keys were before.
+
 ---
 
 ## 3. Naming rules

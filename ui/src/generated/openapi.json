@@ -2377,7 +2377,27 @@
         },
         "summary": "Prefs Get"
       },
+      "patch": {
+        "description": "Partial preference update — the PUT alias (see ``prefs_put``).",
+        "operationId": "prefs_patch_api_prefs_patch",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Prefs Patch Api Prefs Patch",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Prefs Patch"
+      },
       "put": {
+        "description": "Save preference updates (step-up gated).\n\nThe handler has always applied exactly the keys it was given, so\n``PATCH`` is registered as an alias for clients that name a partial\nupdate: same body, same validation, same gate.",
         "operationId": "prefs_put_api_prefs_put",
         "responses": {
           "200": {
@@ -2398,7 +2418,7 @@
     },
     "/api/prefs/schema": {
       "get": {
-        "description": "Read-only preference vocabulary (spec §2.5): the Settings\nsurface can only offer values the server accepts.",
+        "description": "Read-only preference vocabulary (spec §2.5): the Settings\nsurface can only offer values the server accepts.\n\n``companion_id`` is the one row with no closed list — its vocabulary\nis the caller's own crew (GET /api/crew), stated in the row's note.",
         "operationId": "prefs_schema_api_prefs_schema_get",
         "responses": {
           "200": {

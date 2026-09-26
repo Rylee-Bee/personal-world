@@ -1633,13 +1633,24 @@ export interface paths {
         };
         /** Prefs Get */
         get: operations["prefs_get_api_prefs_get"];
-        /** Prefs Put */
+        /**
+         * Prefs Put
+         * @description Save preference updates (step-up gated).
+         *
+         *     The handler has always applied exactly the keys it was given, so
+         *     ``PATCH`` is registered as an alias for clients that name a partial
+         *     update: same body, same validation, same gate.
+         */
         put: operations["prefs_put_api_prefs_put"];
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Prefs Patch
+         * @description Partial preference update — the PUT alias (see ``prefs_put``).
+         */
+        patch: operations["prefs_patch_api_prefs_patch"];
         trace?: never;
     };
     "/api/prefs/schema": {
@@ -1653,6 +1664,9 @@ export interface paths {
          * Prefs Schema
          * @description Read-only preference vocabulary (spec §2.5): the Settings
          *     surface can only offer values the server accepts.
+         *
+         *     ``companion_id`` is the one row with no closed list — its vocabulary
+         *     is the caller's own crew (GET /api/crew), stated in the row's note.
          */
         get: operations["prefs_schema_api_prefs_schema_get"];
         put?: never;
@@ -5101,6 +5115,28 @@ export interface operations {
         };
     };
     prefs_put_api_prefs_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    prefs_patch_api_prefs_patch: {
         parameters: {
             query?: never;
             header?: never;

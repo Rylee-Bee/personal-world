@@ -41,6 +41,7 @@ class TestDefaultsSatisfyFloor:
             "density": "comfortable",
             "target_size": 44,
             "companion": "assistant",
+            "companion_id": None,
             "accent": "world-keeper",
             "tone": "warm",
             "personality_pack": "residents",

@@ -175,7 +175,7 @@ The following inventory reflects implemented routes, not deployment acceptance:
 | GET /api/memory/search | semantic recall via the memory provider |
 | POST /api/chat; GET /api/chat/providers | Read-only world-snapshot conversation and reasoning-provider status |
 | POST /api/chat/test | Provider probe (changes no local state); requires authentication, no elevation |
-| GET /api/prefs; PUT /api/prefs | Read/save validated presentation preferences; writes use require_step_up |
+| GET /api/prefs; PUT /api/prefs (PATCH alias) | Read/save validated presentation preferences; writes use require_step_up. `companion_id` is validated against the caller's own crew (`GET /api/crew`) — unknown or hidden id → 422 |
 | GET /api/apps; PUT /api/apps | Optional services launcher registry in data/apps.json; replacement is step-up gated and journaled |
 | GET /api/source-control/status, /api/source-control/history, /api/source-control/enrichment | Native repository status/history and optional forge enrichment |
 | GET /api/ingress/rollups | Optional ingress summary |
