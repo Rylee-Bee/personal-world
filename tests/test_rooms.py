@@ -201,7 +201,7 @@ class TestSnapshot:
         assert row["status"] == rooms.UNREACHABLE
         assert row["error"] == "malformed JSON"
 
-    def test_unknown_contract_value_fails_clearly(self):
+    def test_unsupported_descriptor_contract_is_incompatible(self):
         bad = dict(DESCRIPTOR, contract="room/9")
         svc = RoomsService(
             transport=httpx.MockTransport(
@@ -211,8 +211,12 @@ class TestSnapshot:
         row = run(svc.snapshot({"PW_ROOMS": "studio=http://room.test"}))[0]
         assert row["reachable"] is True  # it answered
         assert row["room"] is None  # but we do not understand it
-        assert row["status"] == "unknown"
+        assert row["status"] == rooms.INCOMPATIBLE
+        assert row["status"] != "healthy"
         assert "room/9" in row["error"]
+        # An incompatible descriptor's cards/needs are never used.
+        assert row["cards"] == []
+        assert row["needs_you"] == []
 
     def test_last_seen_survives_a_later_outage(self):
         state = {"up": True}
@@ -399,6 +403,81 @@ class TestRoomsRoute:
         assert payload["data"][0]["id"] == "studio"
         assert payload["data"][0]["reachable"] is True
 
+    def test_registry_field_is_additive_and_honest(self, client, monkeypatch):
+        import personal_world.api as api_mod
+
+        monkeypatch.setattr(
+            api_mod,
+            "_ROOMS",
+            RoomsService(
+                transport=httpx.MockTransport(
+                    _handler(descriptor=_ok_descriptor, needs=_ok_needs)
+                )
+            ),
+        )
+        monkeypatch.setenv("PW_ROOMS", "studio=http://room.test")
+        payload = client.get(
+            "/api/rooms", headers={"Authorization": "Bearer instancetoken"}
+        ).json()
+        # The existing envelope is untouched…
+        assert payload["ok"] is True
+        assert payload["data"][0]["id"] == "studio"
+        assert "resume" in payload and "summary" in payload
+        # …and the registry report is a new sibling, honestly "env".
+        assert payload["registry"]["source"] == "env"
+        assert payload["registry"]["status"] == "not_configured"
+
+    def test_registry_room_is_addressable_without_restart(self, client, monkeypatch):
+        """A registry-only room id passes the visit route's 404 gate.
+
+        The id is not in PW_ROOMS (unset); it is known only because the
+        registry snapshot resolved it at runtime.
+        """
+        import personal_world.api as api_mod
+
+        def handle(request: httpx.Request) -> httpx.Response:
+            if request.url.host == "registry.test":
+                return httpx.Response(
+                    200,
+                    json={
+                        "updated_at": "2026-09-25T12:00:00Z",
+                        "rooms": [
+                            {
+                                "id": "workshop",
+                                "name": "Workshop",
+                                "base_url": "http://room.test",
+                                "contract": "room/0",
+                                "token_env": None,
+                                "insecure_tls": False,
+                                "enabled": True,
+                            }
+                        ],
+                    },
+                )
+            if request.url.path == rooms.ROOM_PATH:
+                return _ok_descriptor()
+            if request.url.path == rooms.CARDS_PATH:
+                return httpx.Response(200, json=[])
+            if request.url.path == rooms.NEEDS_YOU_PATH:
+                return httpx.Response(200, json=[])
+            return httpx.Response(404)
+
+        monkeypatch.setattr(
+            api_mod,
+            "_ROOMS",
+            RoomsService(transport=httpx.MockTransport(handle)),
+        )
+        monkeypatch.delenv("PW_ROOMS", raising=False)
+        monkeypatch.setenv("PW_ROOMS_REGISTRY_URL", "https://registry.test/api/rooms/registry")
+        auth = {"Authorization": "Bearer instancetoken"}
+
+        listed = client.get("/api/rooms", headers=auth).json()
+        assert [r["id"] for r in listed["data"]] == ["workshop"]
+        assert listed["registry"]["source"] == "registry"
+
+        assert client.post("/api/rooms/workshop/visit", json={}, headers=auth).status_code == 200
+        assert client.post("/api/rooms/studio/visit", json={}, headers=auth).status_code == 404
+
 
 class TestBriefingReadsRooms:
     """The briefing reads the same one cached snapshot — no second round."""
@@ -454,3 +533,46 @@ class TestBriefingReadsRooms:
         )
         assert agents["status"] == "unavailable"
         assert agents["status"] != "healthy"
+
+    def test_incompatible_room_never_reports_the_system_healthy(
+        self, client, monkeypatch
+    ):
+        """An unsupported contract maps to the existing not-healthy word
+        ``needs_attention`` and its needs are never counted."""
+        import personal_world.api as api_mod
+
+        bad = dict(DESCRIPTOR, contract="room/9")
+        svc = RoomsService(
+            transport=httpx.MockTransport(
+                _handler(
+                    descriptor=lambda: httpx.Response(200, json=bad),
+                    needs=_ok_needs,
+                )
+            )
+        )
+        monkeypatch.setattr(api_mod, "_ROOMS", svc)
+        monkeypatch.setenv("PW_ROOMS", "workshop=http://room.test")
+
+        body = client.get(
+            "/api/briefing", headers={"Authorization": "Bearer instancetoken"}
+        ).json()
+        agents = next(
+            s for s in body["data"]["systems"] if s["id"] == "agents"
+        )
+        assert agents["status"] == "needs_attention"
+        assert agents["status"] != "healthy"
+        assert agents["counts"]["have_tos"] == 0
+        assert body["data"]["have_tos_total"] == 0
+
+def test_registry_token_env_must_name_a_room_token():
+    """A registry entry can't make Worlds send PW_API_TOKEN (or any other
+    secret) to a room URL: only PW_ROOM_*_TOKEN names are honoured."""
+    from personal_world import rooms
+
+    env = {"PW_API_TOKEN": "secret-api", "PW_ROOM_WORKSHOP_TOKEN": "room-tok"}
+    good = {"id": "workshop", "base_url": "https://w.test", "contract": "room/0", "token_env": "PW_ROOM_WORKSHOP_TOKEN"}
+    bad = {"id": "evil", "base_url": "https://evil.test", "contract": "room/0", "token_env": "PW_API_TOKEN"}
+    parsed, _dropped = rooms._parse_registry_entries([good, bad], env)
+    configs = {c.id: c for c in parsed}
+    assert configs["workshop"].token == "room-tok"
+    assert not configs["evil"].token and not configs["evil"].token_env

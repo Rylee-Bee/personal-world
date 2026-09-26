@@ -52,14 +52,16 @@ import { useMinuteClock, useRootAttribute } from "./rooms/useRootAttribute";
 /** How old a check can be before the panel says so in words. */
 const STALE_AFTER_MS = 15 * 60 * 1000;
 
-/** The five honest words a room row can carry. `unreachable` is the
- *  front door's own word, added for a room that did not answer. */
+/** The six honest words a room row can carry. `unreachable` and
+ *  `incompatible` are the front door's own words: a room that did not
+ *  answer, and one whose contract this front door does not support. */
 const STATUS_WORDS: Record<string, string> = {
   healthy: "Healthy",
   degraded: "Degraded",
   unhealthy: "Unhealthy",
   unknown: "Unknown",
   unreachable: "Unreachable",
+  incompatible: "Incompatible",
 };
 
 function statusWord(raw: string): string {
@@ -91,6 +93,11 @@ function plural(n: number, one: string, many: string): string {
 
 /** One line under a room's name: what it needs, or why we can't say. */
 function detailLine(row: RoomRow): string {
+  if (row.status === "incompatible") {
+    return row.error
+      ? `not compatible with this front door · ${row.error}`
+      : "not compatible with this front door";
+  }
   if (!row.reachable) {
     return `unreachable · ${
       row.last_seen ? `last seen ${formatTime(row.last_seen)}` : "never reached"
@@ -150,7 +157,9 @@ function OpenLink({
 function StatusWord({ row }: { row: RoomRow }) {
   return (
     <span className="shrink-0 text-[length:var(--pw-typography-size_micro)] font-medium text-[var(--pw-text-secondary)]">
-      {row.reachable ? statusWord(row.status) : "Unreachable"}
+      {row.reachable || row.status === "incompatible"
+        ? statusWord(row.status)
+        : "Unreachable"}
     </span>
   );
 }
@@ -469,7 +478,9 @@ function RoomsBody({
     serverSummary && serverSummary.changed > 0
       ? `${serverSummary.changed} new since you last looked`
       : null,
-    groups.uncertain.length > 0 ? `${groups.uncertain.length} unknown or unreachable` : null,
+    groups.uncertain.length > 0
+      ? `${groups.uncertain.length} unknown, unreachable or incompatible`
+      : null,
     serverSummary && serverSummary.unknown > 0
       ? `${plural(serverSummary.unknown, "need", "needs")} we can't check right now`
       : null,
@@ -511,7 +522,7 @@ function RoomsBody({
       )}
 
       <CorridorGroup title="Also needs you" rows={groups.alsoNeeds} showInteriors={showInteriors} showKeepers={showKeepers} />
-      <CorridorGroup title="Unknown or unreachable" rows={groups.uncertain} showInteriors={showInteriors} showKeepers={showKeepers} />
+      <CorridorGroup title="Unknown, unreachable or incompatible" rows={groups.uncertain} showInteriors={showInteriors} showKeepers={showKeepers} />
       <CorridorGroup title="Other rooms" rows={groups.other} showInteriors={showInteriors} showKeepers={showKeepers} />
 
       {groups.quiet.length > 0 && (

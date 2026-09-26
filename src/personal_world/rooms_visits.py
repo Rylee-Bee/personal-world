@@ -248,8 +248,8 @@ def summarize(rows: list[dict[str, Any]], state: dict[str, Any]) -> dict[str, in
     * ``changed`` — sum of ``changed_since_visit``.
     * ``can_wait`` — cards whose tone is ``when_ready`` (an absent or
       unknown tone is not ``when_ready``).
-    * ``unknown`` — needs from unreachable/unknown rooms; stale needs
-      are never promoted to current.
+    * ``unknown`` — needs from unreachable/unknown/incompatible rooms;
+      stale needs are never promoted to current.
     * ``unreachable`` — rooms that did not answer.
     """
     needs_you = changed = can_wait = unknown = unreachable = 0
@@ -276,9 +276,11 @@ def summarize(rows: list[dict[str, Any]], state: dict[str, Any]) -> dict[str, in
             )
         else:
             unseen = 0
-        if reachable and status != "unknown":
+        # Only a reachable room we understand contributes current needs;
+        # an incompatible room's needs are never current (room/0 rule 14).
+        if reachable and status not in ("unknown", "incompatible"):
             needs_you += unseen
-        elif status == "unknown" or not reachable:
+        elif status in ("unknown", "incompatible") or not reachable:
             unknown += unseen
 
         value = row.get("changed_since_visit")

@@ -47,7 +47,8 @@ from .briefing import build_briefing, SYSTEM_IDS
 from .providers.lab_state import DEFAULT_LAB, LabState
 from .providers.project_home import ProjectHomeSource
 from .providers.registry import Registry
-from .rooms import RoomsService, parse_rooms, STATE_FILENAME as ROOMS_STATE_FILENAME
+from .rooms import RoomsService, STATE_FILENAME as ROOMS_STATE_FILENAME
+from .rooms import REGISTRY_STATE_FILENAME as ROOMS_REGISTRY_STATE_FILENAME
 from . import crew, rooms_visits
 from .source_control import (
     discover_repositories,
@@ -400,9 +401,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     # Room health (last-seen / last-declared-status) persists under the
     # data dir so an unreachable room survives a restart with its real
-    # last-seen time (room/0 rule 12). The service stays the one
-    # module-level reader; it just learns where to persist.
+    # last-seen time (room/0 rule 12). The last-known-good registry
+    # payload persists next to it (rooms-registry.json) so a registry
+    # outage still serves the estate the registry last named. The service
+    # stays the one module-level reader; it just learns where to persist.
     _ROOMS.set_state_path(data_dir / ROOMS_STATE_FILENAME)
+    _ROOMS.set_registry_state_path(data_dir / ROOMS_REGISTRY_STATE_FILENAME)
 
     # Vault: one instance per app, survives across requests
     from .vault import Vault
@@ -2656,12 +2660,16 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return _scoped_path(request.state.principal, "rooms_visits")
 
     def _room_configured(room_id: str) -> bool:
-        """An id is addressable only if PW_ROOMS configured it."""
-        return any(c.id == room_id for c in parse_rooms())
+        """An id is addressable only if the resolved room list named it.
+
+        The list is the registry's latest snapshot when one is
+        configured, else ``PW_ROOMS`` (Gap 1: rooms are read at runtime).
+        """
+        return room_id in _ROOMS.known_ids()
 
     def _configured_room_ids() -> list[str]:
-        """The configured room ids, in PW_ROOMS order."""
-        return [c.id for c in parse_rooms()]
+        """The resolved room ids, in snapshot (registry or env) order."""
+        return _ROOMS.known_ids()
 
     def _crew_path(request: Request) -> Path:
         """The caller's own crew registry file (per-principal seam)."""
@@ -2744,6 +2752,15 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         on a room's behalf: an unreachable room is reported
         ``reachable: false`` with its last-seen time, never claimed
         healthy.
+
+        The room list itself is read at runtime: when a registry is
+        configured (``PW_ROOMS_REGISTRY_URL``) it is refreshed on the
+        snapshot cadence, so adding or removing a registry room takes
+        effect on the next refresh with no restart. A new sibling
+        ``registry`` states where the list came from and whether the
+        registry read was ok, unreachable or not configured — additive:
+        the existing ``data``/``resume``/``summary`` envelope is
+        unchanged.
         """
         rows = await _ROOMS.snapshot()
         state = rooms_visits.read_visits(_rooms_visit_path(request))
@@ -2757,6 +2774,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             "data": decorated,
             "resume": rooms_visits.resume_of(state),
             "summary": rooms_visits.summarize(decorated, state),
+            "registry": _ROOMS.registry_report(),
         }
 
     @app.post("/api/rooms/{room_id}/visit", dependencies=[Depends(require_auth)])

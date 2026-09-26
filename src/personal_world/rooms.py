@@ -21,11 +21,30 @@ Configuration (read at request time, never written anywhere):
 * ``PW_ROOM_<ID>_INSECURE_TLS=1`` — accept a self-signed certificate on
   a LAN room's HTTPS address.
 
+Runtime room list (Gap 1 / ROOM clause 15): when
+``PW_ROOMS_REGISTRY_URL`` names Project Home's ``GET
+/api/rooms/registry``, Worlds reads its room list from that registry at
+snapshot time instead of static env — adding or removing a room takes
+effect on the next refresh, with no restart. The registry payload is
+cached 60 s; a bearer token is read from the env var named by
+``PW_ROOMS_REGISTRY_TOKEN_ENV`` (same indirection, never a value in a
+returned field), and ``PW_ROOMS_REGISTRY_INSECURE_TLS=1`` accepts a
+self-signed registry certificate. On a successful fetch the enabled
+rooms are used and persisted as last-known-good (``rooms-registry.json``
+under the data dir, the same atomic seam as ``rooms-state.json``); on a
+fetch failure the last-known-good is served and the problem is surfaced
+honestly in the snapshot's registry report. Only when neither a
+successful registry read nor a last-known-good exists does the module
+fall back to ``PW_ROOMS`` — today's behaviour, unchanged.
+
 Honesty posture: this module never raises out of :meth:`RoomsService
 .snapshot`. A room that cannot be reached, times out, answers malformed
-JSON, or speaks an unknown contract value is reported as such — never
-``healthy``. ``unknown`` is not ``healthy`` and it is not failed; an
-unreachable room renders as ``unreachable`` with its last-seen time.
+JSON, or speaks an unsupported contract value is reported as such —
+never ``healthy``. ``unknown`` is not ``healthy`` and it is not failed;
+an unreachable room renders as ``unreachable`` with its last-seen time,
+and a room whose contract this front door does not support renders as
+``incompatible`` with the reason — its cards and needs are never
+counted.
 
 ``last_seen``/``last_status`` persist to ``rooms-state.json`` under the
 data dir (rule 12's "persists last-seen timestamps"), so an unreachable
@@ -55,6 +74,18 @@ _logger = logging.getLogger("personal_world.rooms")
 #: Env var holding the room list (``id=baseURL`` comma-separated).
 ROOMS_ENV = "PW_ROOMS"
 
+#: Registry env (Gap 1): the full URL of Project Home's
+#: ``GET /api/rooms/registry``, the env var NAME holding the registry
+#: bearer token (same indirection as ``PW_ROOM_<ID>_TOKEN_ENV``), and an
+#: optional "1" to accept a self-signed registry certificate.
+REGISTRY_URL_ENV = "PW_ROOMS_REGISTRY_URL"
+REGISTRY_TOKEN_ENV_ENV = "PW_ROOMS_REGISTRY_TOKEN_ENV"
+REGISTRY_INSECURE_TLS_ENV = "PW_ROOMS_REGISTRY_INSECURE_TLS"
+
+#: Registry HTTP cache (rule: 60 s) and hard timeout (rule: 3 s).
+REGISTRY_CACHE_TTL_SECONDS = 60.0
+REGISTRY_TIMEOUT_SECONDS = 3.0
+
 #: Per-room env var suffixes. ``<ID>`` is the room id upper-cased with
 #: every non-alphanumeric character folded to ``_`` (so ``my-room``
 #: reads ``PW_ROOM_MY_ROOM_TOKEN_ENV``). ``*_TOKEN_ENV`` holds the
@@ -68,8 +99,11 @@ ROOM_PATH = "/room"
 CARDS_PATH = "/room/cards"
 NEEDS_YOU_PATH = "/room/needs-you"
 
-#: The interface version this consumer understands (rule 14).
+#: The interface version this consumer understands (rule 14). An entry
+#: (registry) or descriptor contract outside this set is ``incompatible``
+#: — never rendered, never healthy, and never guessed.
 CONTRACT_VALUE = "room/0"
+SUPPORTED_CONTRACTS = frozenset({CONTRACT_VALUE})
 
 #: The four statuses a descriptor may declare (rule 2).
 ROOM_STATUSES = frozenset({"healthy", "degraded", "unhealthy", "unknown"})
@@ -80,6 +114,11 @@ CARD_TONES = frozenset({"good_news", "update", "when_ready"})
 
 #: The front-door word for a room that did not answer (rule 12).
 UNREACHABLE = "unreachable"
+
+#: The front-door word for a room whose contract (registry entry or its
+#: own descriptor) this consumer does not support — a distinct fact from
+#: "unreachable": it answered, or was refused before it was loaded.
+INCOMPATIBLE = "incompatible"
 
 #: Hard timeout per outbound request — a dead room degrades, never hangs.
 TIMEOUT_SECONDS = 2.0
@@ -94,12 +133,24 @@ CACHE_TTL_SECONDS = 15.0
 #: per-principal scoped kind).
 STATE_FILENAME = "rooms-state.json"
 
+#: Last-known-good registry payload (rooms + updated_at) persisted under
+#: the data dir on the same atomic seam — so a registry outage still
+#: serves the estate the registry last named.
+REGISTRY_STATE_FILENAME = "rooms-registry.json"
+
 _ID_UNSAFE = re.compile(r"[^A-Za-z0-9]")
+
+#: A registry room id: lower-case letter/digit start, then letters,
+#: digits and hyphens (the shared interface's ``^[a-z0-9][a-z0-9-]*$``).
+_VALID_ROOM_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+
+#: Registry token_env must name a room token, e.g. PW_ROOM_WORKSHOP_TOKEN.
+_ROOM_TOKEN_ENV_RE = re.compile(r"^PW_ROOM_[A-Z0-9_]+_TOKEN$")
 
 def env_name(room_id: str, suffix: str) -> str:
     """``("studio", "_TOKEN_ENV") -> "PW_ROOM_STUDIO_TOKEN_ENV"``.
@@ -121,11 +172,17 @@ def _valid_absolute_http_url(url: str) -> bool:
 
 @dataclass(frozen=True)
 class RoomConfig:
-    """One configured room, resolved from the environment.
+    """One configured room, resolved from the environment or a registry.
 
     ``invalid_reason`` is set when the entry could not be used as
     configured (a missing/relative URL). Such a room is reported as
     unreachable with that reason rather than silently dropped.
+    ``contract`` is the interface version the source claimed (``room/0``
+    for env entries); a value outside :data:`SUPPORTED_CONTRACTS` makes
+    the row ``incompatible``. ``token_env`` is the **name** of the env
+    var the token was read from (or ``None``) — carried so a
+    last-known-good can re-read the token on a later boot; the token
+    value itself is never persisted or returned.
     """
 
     id: str
@@ -133,6 +190,8 @@ class RoomConfig:
     token: str | None = None
     insecure_tls: bool = False
     invalid_reason: str | None = None
+    contract: str = CONTRACT_VALUE
+    token_env: str | None = None
 
 
 def parse_rooms(env: dict | None = None) -> list[RoomConfig]:
@@ -179,9 +238,104 @@ def parse_rooms(env: dict | None = None) -> list[RoomConfig]:
                 token=token or None,
                 insecure_tls=insecure,
                 invalid_reason=reason,
+                token_env=token_env_name or None,
             )
         )
     return rooms
+
+
+def _parse_registry_entries(
+    entries: Any, env: dict
+) -> tuple[list[RoomConfig], int]:
+    """``(configs, dropped)`` from a registry ``rooms`` list.
+
+    Malformed entries are dropped, never guessed: a missing/bad id, a
+    non-http(s) ``base_url``, a non-string ``contract``, or a non-string
+    ``token_env``. An ``enabled: false`` entry is skipped (the registry
+    returns it; consumers do not load it) and is not counted as dropped.
+    A ``contract`` outside :data:`SUPPORTED_CONTRACTS` is kept as an
+    ``incompatible`` row so the person can see why it is not loaded.
+    """
+    if not isinstance(entries, list):
+        return [], 0
+    configs: list[RoomConfig] = []
+    dropped = 0
+    seen: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            dropped += 1
+            continue
+        room_id = entry.get("id")
+        if (
+            not isinstance(room_id, str)
+            or not _VALID_ROOM_ID.match(room_id)
+            or room_id in seen
+        ):
+            dropped += 1
+            continue
+        if entry.get("enabled") is False:
+            continue  # returned by the registry, deliberately not loaded
+        base = entry.get("base_url")
+        if not isinstance(base, str) or not _valid_absolute_http_url(base):
+            dropped += 1
+            continue
+        contract = entry.get("contract")
+        if not isinstance(contract, str) or not contract:
+            dropped += 1
+            continue
+        token_env_name = entry.get("token_env")
+        if token_env_name is not None and not isinstance(token_env_name, str):
+            dropped += 1
+            continue
+        token_env_name = (token_env_name or "").strip()
+        # The registry names WHICH env var holds a room's token, and that token
+        # is then sent to the room's base_url. Only room-token names are
+        # honoured, so an entry can never make Worlds send PW_API_TOKEN or a
+        # provider key to an arbitrary URL; anything else is ignored.
+        if token_env_name and not _ROOM_TOKEN_ENV_RE.match(token_env_name):
+            token_env_name = ""
+        token = (env.get(token_env_name) or "").strip() if token_env_name else ""
+        seen.add(room_id)
+        configs.append(
+            RoomConfig(
+                id=room_id,
+                base_url=base,
+                token=token or None,
+                insecure_tls=entry.get("insecure_tls") is True,
+                contract=contract,
+                token_env=token_env_name or None,
+            )
+        )
+    return configs, dropped
+
+
+def _parse_registry_payload(
+    payload: Any, env: dict
+) -> tuple[list[RoomConfig], int] | None:
+    """``(configs, dropped)`` from a registry payload, or ``None`` when the
+    payload as a whole is malformed (not an object, or no ``rooms`` list) —
+    the caller treats that as a failed fetch, not an empty registry."""
+    if not isinstance(payload, dict):
+        return None
+    rooms = payload.get("rooms")
+    if not isinstance(rooms, list):
+        return None
+    return _parse_registry_entries(rooms, env)
+
+
+def _lkg_entries(configs: list[RoomConfig]) -> list[dict]:
+    """The sanitized, persistable last-known-good entries: only the known
+    registry fields, and never a token value (only its env var NAME)."""
+    return [
+        {
+            "id": c.id,
+            "base_url": c.base_url,
+            "contract": c.contract,
+            "token_env": c.token_env,
+            "insecure_tls": c.insecure_tls,
+        }
+        for c in configs
+    ]
 
 
 def _reason(exc: BaseException) -> str:
@@ -195,6 +349,31 @@ def _reason(exc: BaseException) -> str:
     return f"request failed ({type(exc).__name__})"
 
 
+def _registry_report(
+    source: str,
+    status: str,
+    checked_at: str | None,
+    error: str | None,
+    updated_at: str | None,
+    dropped: int,
+) -> dict[str, Any]:
+    """The registry half of the snapshot, stated plainly.
+
+    ``source`` is where the room list came from (``registry`` |
+    ``last_known_good`` | ``env``); ``status`` is the registry read
+    itself (``ok`` | ``unreachable`` | ``not_configured``); ``error`` is a
+    short failure class only — never a URL, token, or payload.
+    """
+    return {
+        "source": source,
+        "status": status,
+        "checked_at": checked_at,
+        "error": error,
+        "updated_at": updated_at,
+        "dropped": dropped,
+    }
+
+
 class RoomsService:
     """Reads every configured room; caches one snapshot for 15 s.
 
@@ -203,11 +382,22 @@ class RoomsService:
     still reports when it was last reached — across a restart, not just
     for the process lifetime. With no ``state_path`` the service keeps
     them in memory only (tests, and any embedding that wants no disk).
-    Inject ``transport`` (an ``httpx`` transport) and ``clock`` in tests;
+
+    The room list itself is resolved per snapshot: from a configured
+    registry (``PW_ROOMS_REGISTRY_URL``, cached 60 s) with last-known-good
+    persisted through ``registry_state_path``, falling back to
+    ``PW_ROOMS`` only when the registry yields nothing. Inject
+    ``transport`` (an ``httpx`` transport) and ``clock`` in tests;
     production uses the network and ``time.monotonic``.
     """
 
-    def __init__(self, transport=None, clock=None, state_path=None) -> None:
+    def __init__(
+        self,
+        transport=None,
+        clock=None,
+        state_path=None,
+        registry_state_path=None,
+    ) -> None:
         self._transport = transport
         self._clock = clock or time.monotonic
         self._cache: list[dict[str, Any]] | None = None
@@ -220,6 +410,23 @@ class RoomsService:
         self._dirty = False
         self._load_persisted()
 
+        # Registry state (Gap 1): the last-known-good payload, the cached
+        # resolution (60 s), and the honest report served as a sibling of
+        # ``data`` in GET /api/rooms.
+        self._registry_state_path: Path | None = (
+            Path(registry_state_path) if registry_state_path is not None else None
+        )
+        self._lkg: dict[str, Any] | None = None
+        self._resolved: tuple[list[RoomConfig], dict[str, Any]] | None = None
+        self._resolved_at: float = float("-inf")
+        self._last_configs: list[RoomConfig] | None = None
+        self._registry_report: dict[str, Any] = _registry_report(
+            "env", "not_configured", None, None, None, 0
+        )
+        self._load_registry_lkg()
+
+    # -- app wiring ------------------------------------------------------
+
     def set_state_path(self, state_path) -> None:
         """Point the service at a persistent state file (app wiring).
 
@@ -228,6 +435,31 @@ class RoomsService:
         """
         self._state_path = Path(state_path) if state_path is not None else None
         self._load_persisted()
+
+    def set_registry_state_path(self, registry_state_path) -> None:
+        """Point the service at the last-known-good registry file.
+
+        Idempotent; re-reads it so a restart can serve the registry's
+        last room list while the registry is unreachable.
+        """
+        self._registry_state_path = (
+            Path(registry_state_path) if registry_state_path is not None else None
+        )
+        self._load_registry_lkg()
+
+    def registry_report(self) -> dict[str, Any]:
+        """The honest registry state behind the last snapshot."""
+        return dict(self._registry_report)
+
+    def known_ids(self) -> list[str]:
+        """The ids of the last resolved room list (registry or env).
+
+        The synchronous seam the api's room-id validators use; before any
+        snapshot it falls back to the configured ``PW_ROOMS``.
+        """
+        if self._last_configs is not None:
+            return [c.id for c in self._last_configs]
+        return [c.id for c in parse_rooms()]
 
     def _load_persisted(self) -> None:
         """Best-effort restore. A missing/corrupt file is an honest
@@ -277,17 +509,172 @@ class RoomsService:
         except OSError as exc:
             _logger.warning("rooms state persist failed: %s", exc)
 
+    # -- registry (Gap 1) ------------------------------------------------
+
+    def _load_registry_lkg(self) -> None:
+        """Best-effort restore of the last-known-good registry payload.
+
+        A missing/corrupt file is an honest "no last-known-good", never a
+        fabricated room list. Only the sanitized fields are kept.
+        """
+        self._lkg = None
+        if self._registry_state_path is None or not self._registry_state_path.exists():
+            return
+        try:
+            stored = json.loads(self._registry_state_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return
+        if not isinstance(stored, dict) or not isinstance(stored.get("rooms"), list):
+            return
+        updated_at = stored.get("updated_at")
+        self._lkg = {
+            "updated_at": updated_at if isinstance(updated_at, str) else None,
+            "fetched_at": (
+                stored.get("fetched_at")
+                if isinstance(stored.get("fetched_at"), str)
+                else None
+            ),
+            "rooms": stored["rooms"],
+        }
+
+    def _persist_registry_lkg(self) -> None:
+        """Persist the last-known-good atomically (0600); a write failure
+        is logged and never breaks a snapshot."""
+        if self._registry_state_path is None or self._lkg is None:
+            return
+        try:
+            self._registry_state_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self._registry_state_path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(self._lkg), encoding="utf-8")
+            tmp.chmod(0o600)
+            os.replace(tmp, self._registry_state_path)  # atomic: no half state
+        except OSError as exc:
+            _logger.warning("rooms registry persist failed: %s", exc)
+
+    def _configs_from_lkg(self, env: dict) -> tuple[list[RoomConfig], int]:
+        if self._lkg is None:
+            return [], 0
+        return _parse_registry_entries(self._lkg.get("rooms"), env)
+
+    def _resolve_without_registry(
+        self, env: dict
+    ) -> tuple[list[RoomConfig], dict[str, Any]]:
+        """No registry URL configured: serve the last-known-good if one
+        exists (the operator paused the registry, not the estate), else
+        today's ``PW_ROOMS`` env — unchanged."""
+        checked_at = _iso_now()
+        if self._lkg is not None:
+            configs, dropped = self._configs_from_lkg(env)
+            return configs, _registry_report(
+                "last_known_good",
+                "not_configured",
+                checked_at,
+                "registry not configured; serving last-known-good",
+                self._lkg.get("updated_at"),
+                dropped,
+            )
+        return (
+            parse_rooms(env),
+            _registry_report("env", "not_configured", checked_at, None, None, 0),
+        )
+
+    def _registry_failure(
+        self, reason: str, checked_at: str, env: dict
+    ) -> tuple[list[RoomConfig], dict[str, Any]]:
+        """A failed registry read: last-known-good if present, else env."""
+        if self._lkg is not None:
+            configs, dropped = self._configs_from_lkg(env)
+            return configs, _registry_report(
+                "last_known_good",
+                "unreachable",
+                checked_at,
+                reason,
+                self._lkg.get("updated_at"),
+                dropped,
+            )
+        return (
+            parse_rooms(env),
+            _registry_report("env", "unreachable", checked_at, reason, None, 0),
+        )
+
+    async def _fetch_registry(
+        self, env: dict
+    ) -> tuple[list[RoomConfig], dict[str, Any]]:
+        """Fetch the registry once. Never raises; a failure falls back."""
+        url = (env.get(REGISTRY_URL_ENV) or "").strip()
+        checked_at = _iso_now()
+        token_env_name = (env.get(REGISTRY_TOKEN_ENV_ENV) or "").strip()
+        token = (env.get(token_env_name) or "").strip() if token_env_name else ""
+        insecure = (env.get(REGISTRY_INSECURE_TLS_ENV) or "").strip() == "1"
+        headers = {"Accept": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(REGISTRY_TIMEOUT_SECONDS),
+                verify=not insecure,
+                transport=self._transport,
+                follow_redirects=False,
+            ) as client:
+                resp = await client.get(url, headers=headers)
+        except Exception as exc:  # noqa: BLE001 — a dead registry must not break the estate
+            return self._registry_failure(_reason(exc), checked_at, env)
+        if not (200 <= resp.status_code < 300):
+            return self._registry_failure(f"HTTP {resp.status_code}", checked_at, env)
+        try:
+            payload = resp.json()
+        except (ValueError, UnicodeDecodeError):
+            return self._registry_failure("malformed JSON", checked_at, env)
+        parsed = _parse_registry_payload(payload, env)
+        if parsed is None:
+            return self._registry_failure(
+                "registry payload has no rooms list", checked_at, env
+            )
+        configs, dropped = parsed
+        updated_at = payload.get("updated_at")
+        self._lkg = {
+            "updated_at": updated_at if isinstance(updated_at, str) else None,
+            "fetched_at": checked_at,
+            "rooms": _lkg_entries(configs),
+        }
+        self._persist_registry_lkg()
+        return configs, _registry_report(
+            "registry", "ok", checked_at, None, self._lkg["updated_at"], dropped
+        )
+
+    async def _resolve_configs(
+        self, env: dict
+    ) -> tuple[list[RoomConfig], dict[str, Any]]:
+        """Resolve this snapshot's rooms: registry (cached 60 s) with
+        last-known-good and env fallbacks. Never raises."""
+        url = (env.get(REGISTRY_URL_ENV) or "").strip()
+        if not url:
+            return self._resolve_without_registry(env)
+        now = self._clock()
+        if (
+            self._resolved is not None
+            and (now - self._resolved_at) < REGISTRY_CACHE_TTL_SECONDS
+        ):
+            return self._resolved
+        resolved = await self._fetch_registry(env)
+        self._resolved = resolved  # cache the attempt too: no hammering
+        self._resolved_at = now
+        return resolved
+
     def invalidate(self) -> None:
         """Drop the cached snapshot (tests and explicit refresh)."""
         self._cache = None
         self._cache_at = float("-inf")
 
     async def snapshot(self, env: dict | None = None) -> list[dict[str, Any]]:
-        """One honest row per configured room. Never raises."""
+        """One honest row per resolved room. Never raises."""
+        env = os.environ if env is None else env
         now = self._clock()
         if self._cache is not None and (now - self._cache_at) < CACHE_TTL_SECONDS:
             return self._cache
-        configs = parse_rooms(env)
+        configs, report = await self._resolve_configs(env)
+        self._registry_report = report
+        self._last_configs = configs
         rows = list(await asyncio.gather(*(self._probe(c) for c in configs)))
         self._cache = rows
         self._cache_at = now
@@ -296,6 +683,19 @@ class RoomsService:
 
     async def _probe(self, config: RoomConfig) -> dict[str, Any]:
         checked_at = _iso_now()
+        if config.contract not in SUPPORTED_CONTRACTS:
+            # A registry entry this front door cannot understand: never
+            # loaded, never healthy, and its cards/needs are nothing.
+            return self._row(
+                config,
+                reachable=False,
+                room=None,
+                cards=[],
+                needs_you=[],
+                error=f"unsupported contract {config.contract!r}",
+                status=INCOMPATIBLE,
+                checked_at=checked_at,
+            )
         if config.invalid_reason is not None:
             return self._row(
                 config,
@@ -346,18 +746,19 @@ class RoomsService:
             return self._unreachable(config, "descriptor is not an object", checked_at)
 
         contract = descriptor.get("contract")
-        if contract is not None and contract != CONTRACT_VALUE:
+        if contract is not None and contract not in SUPPORTED_CONTRACTS:
             # Rule 14: a consumer that does not understand a contract
             # value fails clearly rather than guessing. The room answered
-            # — it is reachable — but its descriptor is not rendered.
+            # — it is reachable — but its descriptor, cards and needs are
+            # not rendered and never counted.
             return self._row(
                 config,
                 reachable=True,
                 room=None,
-                cards=cards,
-                needs_you=needs_you,
+                cards=[],
+                needs_you=[],
                 error=f"unexpected contract {contract!r}",
-                status="unknown",
+                status=INCOMPATIBLE,
                 checked_at=checked_at,
             )
 
@@ -402,7 +803,11 @@ class RoomsService:
     ) -> dict[str, Any]:
         if reachable:
             self._last_seen[config.id] = checked_at
-            self._last_status[config.id] = status
+            # Only a declared, understood status is remembered; an
+            # incompatible descriptor declares no usable status, so the
+            # last real one is kept.
+            if status in ROOM_STATUSES:
+                self._last_status[config.id] = status
             self._dirty = True
         return {
             "id": config.id,

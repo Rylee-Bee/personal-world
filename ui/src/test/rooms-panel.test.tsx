@@ -155,7 +155,7 @@ describe("RoomsPanel", () => {
     render(<RoomsPanel />);
     const region = screen.getByRole("region", { name: "Rooms" });
     expect(
-      within(region).getByText("2 rooms need you · 3 unknown or unreachable · 1 quiet."),
+      within(region).getByText("2 rooms need you · 3 unknown, unreachable or incompatible · 1 quiet."),
     ).toBeInTheDocument();
 
     const doorway = screen.getByRole("article", { name: "Workshop" });
@@ -176,7 +176,7 @@ describe("RoomsPanel", () => {
     render(<RoomsPanel />);
     expect(screen.getByText(/^unreachable · last seen /)).toBeInTheDocument();
     expect(screen.getByText("unreachable · never reached")).toBeInTheDocument();
-    expect(screen.getByText("Unknown or unreachable · 3")).toBeInTheDocument();
+    expect(screen.getByText("Unknown, unreachable or incompatible · 3")).toBeInTheDocument();
   });
 
   it("offers Open as a real labelled anchor in a new tab with a 44px target", () => {

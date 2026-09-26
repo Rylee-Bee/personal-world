@@ -696,13 +696,16 @@ export interface PlacePutRequest {
 // value arrives as "unknown", never as a guess.
 
 /** `status` is exactly one of these for a reachable room; the front
- *  door adds `unreachable` for one that did not answer. */
+ *  door adds `unreachable` for one that did not answer and
+ *  `incompatible` for one whose contract (registry entry or its own
+ *  descriptor) this front door does not support. */
 export type RoomStatus =
   | "healthy"
   | "degraded"
   | "unhealthy"
   | "unknown"
-  | "unreachable";
+  | "unreachable"
+  | "incompatible";
 
 export interface RoomDescriptor {
   contract: string;
@@ -797,10 +800,30 @@ export interface RoomsSummary {
   unreachable: number;
 }
 
-/** GET /api/rooms: `resume` and `summary` travel beside `data`. */
+/** Where the room list came from this snapshot (Gap 1: the list is read
+ *  at runtime from Project Home's registry when one is configured). */
+export interface RoomsRegistry {
+  /** `registry` — the configured registry answered; `last_known_good` —
+   *  it did not, and the persisted last good list is served; `env` —
+   *  `PW_ROOMS`. */
+  source: "registry" | "last_known_good" | "env";
+  /** The registry read itself: ok | unreachable | not_configured. */
+  status: "ok" | "unreachable" | "not_configured";
+  /** When the registry was last checked (ISO), or null. */
+  checked_at: string | null;
+  /** A short failure class only, or null. Never a URL, token or payload. */
+  error?: string | null;
+  /** The registry's own `updated_at`, or null. */
+  updated_at?: string | null;
+  /** Entries the registry returned that were malformed and dropped. */
+  dropped?: number;
+}
+
+/** GET /api/rooms: `resume`, `summary` and `registry` travel beside `data`. */
 export interface RoomsEnvelope extends Envelope<RoomRow[]> {
   resume?: RoomsResume | null;
   summary?: RoomsSummary;
+  registry?: RoomsRegistry;
 }
 
 /** One companion in this person's crew (GET /api/crew, crew.py). */
