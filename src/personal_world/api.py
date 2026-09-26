@@ -160,6 +160,28 @@ def _token() -> str | None:
     return os.environ.get("PW_API_TOKEN")
 
 
+#: git's own default abbreviation, and the widest short form a person
+#: can reasonably compare against `main` by eye.
+_SHORT_COMMIT_LEN = 7
+_HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
+
+
+def _commit() -> str | None:
+    """Short SHA of the commit this build runs, or None.
+
+    publish-image.yml passes the validated main commit as the PW_COMMIT
+    build arg and the Dockerfile bakes it into the image env; /healthz
+    reports the short form so Project Home can compare what is live
+    against main. Local/dev runs carry no value → null. Only a hex SHA
+    (7–40 chars) is trusted — anything else is reported as unknown,
+    never echoed back.
+    """
+    value = os.environ.get("PW_COMMIT", "").strip()
+    if _SHORT_COMMIT_LEN <= len(value) <= 40 and all(c in _HEX_DIGITS for c in value):
+        return value[:_SHORT_COMMIT_LEN]
+    return None
+
+
 def _reconcile_boot_token(data_dir: Path) -> None:
     """Survive a restart after first-run setup (P2 auth groundwork).
 
@@ -500,6 +522,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             # assert) that loopback dev bypass is on. Always false in
             # production defaults.
             "dev_bypass": dev_bypass_enabled(),
+            # What this build is running (see _commit). A public repo's
+            # commit is safe on this public route; null when unknown.
+            "commit": _commit(),
         }
 
     @app.get("/api/setup/status")

@@ -46,8 +46,15 @@ RUN test -f src/personal_world/static/app/index.html \
 # tree from the image.
 RUN uv pip install --no-cache-dir .
 
+# The commit this image was built from. publish-image.yml passes the
+# validated main SHA as a build arg; /healthz reports its first 7 chars
+# so Project Home can compare what is live against main. A local
+# `docker build` passes nothing and the value is empty (reported null).
+ARG PW_COMMIT=""
+
 ENV PW_DATA_DIR=/data \
-    PW_CONFIG_DIR=/config
+    PW_CONFIG_DIR=/config \
+    PW_COMMIT=$PW_COMMIT
 # What this image serves: the interface at / (built above), the API at
 # /api/*, and server-rendered /login and /setup. The retired /station and
 # /vnext paths only redirect to /. The vanilla Station is no longer

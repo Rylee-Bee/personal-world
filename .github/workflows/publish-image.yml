@@ -93,6 +93,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Same validated SHA as the label above, but inside the image
+          # too: /healthz reports its short form so a running Worlds can
+          # be compared against main without inspecting image metadata.
+          build-args: |
+            PW_COMMIT=${{ steps.sha.outputs.head_sha }}
           # Public visibility — Rylee-Bee/personal-world is a public
           # repo and the image carries source only (no secrets, no
           # private endpoints, no deployment topology — verified
