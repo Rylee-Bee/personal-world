@@ -370,3 +370,106 @@ describe("RoomsPanel", () => {
     expect(screen.getByText(/^Last checked .*You're seeing what the rooms said then\.$/)).toBeInTheDocument();
   });
 });
+
+// ─── The room drawer (Spec-Drawer) ──────────────────────────────────
+
+describe("RoomDrawer", () => {
+  const card = (id: string, title: string, observed: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    title,
+    body: `About ${title}.`,
+    link: `/items/${id}`,
+    lane: "personal",
+    freshness: { observed_at: observed, stale_after_s: 10 * 365 * 24 * 3600 },
+    ...extra,
+  });
+
+  it("opens from Look inside as a labelled dialog, focuses its heading, and returns focus on close", () => {
+    setRooms([WORKSHOP]);
+    render(<RoomsPanel />);
+    const opener = screen.getByRole("button", { name: "Look inside Workshop" });
+    expect(opener).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(opener);
+    const drawer = screen.getByRole("dialog", { name: "Workshop" });
+    expect(within(drawer).getByRole("heading", { level: 2, name: "Workshop" })).toHaveFocus();
+    expect(opener).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(within(drawer).getByRole("button", { name: "Close Workshop details" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
+  });
+
+  it("closes on Escape", () => {
+    setRooms([WORKSHOP]);
+    render(<RoomsPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Look inside Workshop" }));
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("lists what needs you, with the room's safe link and Mark as seen", () => {
+    hookState.markSeen.mockClear();
+    setRooms([
+      {
+        ...WORKSHOP,
+        base_url: "https://workshop.test/app",
+        needs_you: [
+          { id: "n1", title: "Approve the plan", why: "It's ready.", actions: [], created_at: "2026-09-25T09:00:00Z", link: "/plans/1" },
+          { id: "n2", title: "Evil link", why: "", actions: [], created_at: "2026-09-25T09:00:00Z", link: "//evil.test/x" },
+        ],
+      },
+    ]);
+    render(<RoomsPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Look inside Workshop" }));
+    const drawer = screen.getByRole("dialog");
+    expect(within(drawer).getByRole("link", { name: "Open “Approve the plan” (opens in a new tab)" })).toHaveAttribute(
+      "href",
+      "https://workshop.test/plans/1",
+    );
+    // A link that isn't a same-origin path is refused, never followed.
+    expect(within(drawer).queryByRole("link", { name: /Evil link/ })).not.toBeInTheDocument();
+    fireEvent.click(within(drawer).getByRole("button", { name: "Mark “Approve the plan” as seen" }));
+    expect(hookState.markSeen).toHaveBeenCalledWith({ roomId: "workshop", needId: "n1" });
+  });
+
+  it("splits what changed since your last visit from everything else, with tone in words", () => {
+    setRooms([
+      {
+        ...QUIET,
+        last_visited_at: "2026-09-25T10:00:00Z",
+        cards: [
+          card("a", "Checks passed", "2026-09-25T11:00:00Z", { tone: "good_news" }),
+          card("b", "Old note", "2026-09-25T08:00:00Z", { tone: "something-new" }),
+          card("c", "Later please", "2026-09-25T09:00:00Z", { tone: "when_ready" }),
+        ],
+      },
+    ]);
+    render(<RoomsPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Look inside VEFR" }));
+    const drawer = screen.getByRole("dialog");
+    const changed = within(drawer).getByRole("region", { name: "Changed since you last looked · 1" });
+    expect(within(changed).getByText("Checks passed")).toBeInTheDocument();
+    expect(within(changed).getByText("Good news")).toBeInTheDocument();
+    const rest = within(drawer).getByRole("region", { name: "Everything else · 2" });
+    // An unknown tone reads as "A small update" (room/0), never dropped.
+    expect(within(rest).getByText("A small update")).toBeInTheDocument();
+    expect(within(rest).getByText("When you’re ready")).toBeInTheDocument();
+  });
+
+  it("says when a card may be out of date", () => {
+    setRooms([
+      { ...QUIET, cards: [card("s", "Stale thing", "2020-01-01T00:00:00Z", { freshness: { observed_at: "2020-01-01T00:00:00Z", stale_after_s: 60 } })] },
+    ]);
+    render(<RoomsPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Look inside VEFR" }));
+    expect(within(screen.getByRole("dialog")).getByText(/may be out of date/)).toBeInTheDocument();
+  });
+
+  it("shows nothing as current for an unreachable room, and says why", () => {
+    setRooms([{ ...UNREACHABLE_SEEN, cards: [card("x", "Should not show", "2026-09-25T11:00:00Z")] }]);
+    render(<RoomsPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /^Look inside / }));
+    const drawer = screen.getByRole("dialog");
+    expect(within(drawer).getByText(/can’t reach .* right now/)).toBeInTheDocument();
+    expect(within(drawer).queryByText("Should not show")).not.toBeInTheDocument();
+  });
+});

@@ -731,6 +731,9 @@ export interface RoomNeed {
   why: string;
   actions: string[];
   created_at: string;
+  /** room/0 1.1.0, optional: a same-origin path to the exact item. Only
+   *  followed when it starts with "/" (not "//") and has no scheme. */
+  link?: string | null;
 }
 
 export interface RoomRow {
