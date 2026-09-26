@@ -16,6 +16,7 @@
  * No reveal, no copy, no export, no delete. If the station is down, only
  * this section rests; the rest of the drawer carries on.
  */
+import { Icon } from "../Icon";
 import { useId, useState } from "react";
 import { ApiError } from "../../data/api";
 import { useSecretsOverview } from "../../data/hooks";
@@ -114,8 +115,8 @@ function Namespace({ name, keys }: { name: string; keys: string[] }) {
         onClick={() => setOpen(!open)}
         className="flex min-h-[var(--pw-targets-minimum)] w-full items-center gap-[var(--pw-spacing-sm)] bg-transparent text-left font-semibold text-[var(--pw-text-primary)]"
       >
-        <span aria-hidden="true" className="w-4 text-[var(--pw-accent-warm)]">
-          {open ? "▾" : "▸"}
+        <span aria-hidden="true" className="flex w-4 text-[var(--pw-accent-warm)]">
+          <Icon name={open ? "chevron-down" : "chevron-right"} size={16} />
         </span>
         <span className="min-w-0 flex-1 break-words">{name}</span>
         <span className={`${SMALL} font-normal`}>{plural(keys.length, "key", "keys")}</span>
@@ -217,9 +218,10 @@ function SecretsBody({ data, trusted }: { data: SecretsOverview; trusted: string
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`Enter ${req.key_path} in Project Home, in a new tab`}
-                        className={`${LINK_BASE} bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)]`}
+                        className={`${LINK_BASE} gap-[var(--pw-spacing-xs)] bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)]`}
                       >
                         Enter it in Project Home
+                        <Icon name="external" size={16} />
                       </a>
                     </span>
                   )}
@@ -278,9 +280,10 @@ function SecretsBody({ data, trusted }: { data: SecretsOverview; trusted: string
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Set a secret in Project Home, in a new tab"
-            className={`${LINK_BASE} border border-[var(--pw-border-subtle)] text-[var(--pw-text-primary)] underline`}
+            className={`${LINK_BASE} gap-[var(--pw-spacing-xs)] border border-[var(--pw-border-subtle)] text-[var(--pw-text-primary)] underline`}
           >
             Set a secret in Project Home
+            <Icon name="external" size={16} />
           </a>
         </span>
       )}

@@ -732,3 +732,21 @@ pre.wk-code {
   overflow-x: auto;
   white-space: pre-wrap;
 }
+/* ── Icons ────────────────────────────────────────────────────────────────
+   One glyph from the Worlds icon library (icons.svg, shipped beside this
+   file), drawn in the text colour. Icons never carry meaning alone: keep
+   the words, and mark the svg aria-hidden="true".
+     <svg class="wk-icon" aria-hidden="true"><use href="icons.svg#icon-actions-close"/></svg> */
+.wk-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: -0.25em;
+  color: currentColor;
+}
+.wk-icon--sm { width: 1em; height: 1em; vertical-align: -0.15em; }
+.wk-icon--lg { width: 1.5em; height: 1.5em; }
+@media (forced-colors: active) {
+  .wk-icon { color: CanvasText; }
+}

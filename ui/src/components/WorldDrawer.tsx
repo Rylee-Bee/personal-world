@@ -14,6 +14,7 @@
  * Native dialog semantics (a11y contract §3.6).
  */
 
+import { Icon } from "./Icon";
 import { useEffect, useRef } from "react";
 
 interface WorldDrawerProps {
@@ -87,7 +88,7 @@ export function WorldDrawer({
           className="flex min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] items-center justify-center rounded-[var(--pw-radius-sm)] text-[var(--pw-text-secondary)] hover:bg-[var(--pw-accent-teal_soft)] hover:text-[var(--pw-text-primary)]"
           aria-label="Close drawer"
         >
-          ✕
+          <Icon name="close" size={20} />
         </button>
       </div>
       {children}

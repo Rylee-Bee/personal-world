@@ -40,6 +40,7 @@
  * animation.
  */
 
+import { Icon } from "./Icon";
 import { useId, useRef, useState } from "react";
 import { useMarkNeedSeen, useRooms } from "../data/hooks";
 import type {
@@ -123,7 +124,7 @@ function Doorway({
           <img src={interior} alt="" className="h-full w-auto object-contain" />
         ) : (
           <span className="flex h-full w-40 flex-col items-center justify-center gap-[var(--pw-spacing-sm)] rounded-t-full rounded-b-[var(--pw-radius-md)] border-2 border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] text-[var(--pw-accent-warm)]">
-            <span className="text-2xl">✦</span>
+            <Icon name="sparkle" size={32} />
           </span>
         )}
         <span className="absolute bottom-[-6px] left-0">

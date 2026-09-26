@@ -458,3 +458,135 @@ Deliver, each as a transparent PNG:
 Optional: a sheet of six states (rest, curious, attentive, engaged, protective, giving space).
 It must still read at 24 px.
 ```
+
+## 11. Painted spot icons (requested and DELIVERED 2026-09-26)
+
+**Delivered:** all 16, in `design/assets/icons/spot/` (#124). `spot-unreachable`
+was re-rolled the same day so its fog sets it apart from `spot-limits`.
+
+The interface uses **line icons** (`design/assets/icons/`) for buttons and
+menus. This asks for their painted cousins: **spot icons**, one per idea,
+for empty states, section headers, cards and the People page. They are what
+makes a screen feel like Worlds at a glance. Owner rule: *if we can add
+whimsy, whimsy is an obligation.*
+
+**Style.** The same language as the lower rows of the Icon Atlas
+(`icons/Personal Worlds Icon Atlas.png`): a small painted object, crisp dark
+outline, deep navy body, warm gold trim, one tiny sparkle, soft cozy light.
+**Objects only: no faces, no characters, no text.** Each must still read at
+**32 px**, so one clear silhouette per icon.
+
+**Deliver:** 16 PNGs, **512 × 512, real transparency**, the object centred
+with about 10% empty margin, no shadow or glow outside the object.
+
+| File | Object | Where it shows |
+| --- | --- | --- |
+| `spot-memory.png` | An open book with a small star rising from the pages | Memory, empty journal |
+| `spot-chat.png` | A round speech bubble with a sparkle inside | Chat, empty conversation |
+| `spot-secrets.png` | An ornate gold key | Secrets section, "Confirm it's you" |
+| `spot-room.png` | A small arched doorway with warm light inside | Rooms, "No rooms yet" |
+| `spot-people.png` | Two mugs side by side, steam curling together | People page |
+| `spot-helper.png` | Two cupped hands holding a small star | "Let someone help me" |
+| `spot-limits.png` | A lantern, softly lit | "Your limits" |
+| `spot-guest.png` | A ticket with a star punched in it | Guests |
+| `spot-candy.png` | A wrapped sweet with a starry wrapper | Candy, discovery |
+| `spot-approve.png` | A wax seal pressed with a star | Approvals, "Decided just now" |
+| `spot-quiet.png` | A crescent moon with a small star, sleepy | Quiet days, nothing needs you |
+| `spot-unreachable.png` | A small lantern behind a wisp of fog | A room Worlds can't reach |
+| `spot-find.png` | A brass spyglass | Find a room, search empty |
+| `spot-settings.png` | A brass cog with a star in the middle | Settings |
+| `spot-journal.png` | A quill resting on a rolled scroll | Writing a note |
+| `spot-crew.png` | A compass rose badge | Your crew |
+
+**Copy-paste request:**
+
+```
+Paint a set of 16 small spot icons for the Project Worlds app, matching the painted
+object icons on the Worlds Icon Atlas: warm, painterly, crisp dark outlines, deep navy
+bodies with warm gold trim, one tiny sparkle each, soft cozy light. Objects only: no
+faces, no characters, no text. Each icon is one clear silhouette that still reads at
+32 px. Deliver each as its own transparent PNG, 512×512, object centred with ~10%
+margin, no outer glow or shadow:
+spot-memory (open book, a small star rising from the pages), spot-chat (round speech
+bubble with a sparkle inside), spot-secrets (ornate gold key), spot-room (small arched
+doorway with warm light inside), spot-people (two mugs side by side, steam curling
+together), spot-helper (two cupped hands holding a small star), spot-limits (softly lit
+lantern), spot-guest (ticket with a star punched in it), spot-candy (wrapped sweet with
+a starry wrapper), spot-approve (wax seal pressed with a star), spot-quiet (sleepy
+crescent moon with a small star), spot-unreachable (small lantern behind a wisp of fog),
+spot-find (brass spyglass), spot-settings (brass cog with a star in the middle),
+spot-journal (quill resting on a rolled scroll), spot-crew (compass rose badge).
+```
+
+## 12. Sol, four more moods (requested and DELIVERED 2026-09-26)
+
+**Delivered:** all four, plus a re-centred `sol-hello` (the old one sat
+off-centre), in `design/assets/crew/sol/` (#124).
+
+Sol (the smiling ringed planet, the logo) has five moods: `sol-hello`,
+`sol-cheer`, `sol-curious`, `sol-rest` and the mark. Every empty or error
+state should have a Sol that fits, so Worlds never needs extra words to feel
+kind. Sol stays **voiceless**: these are faces, not speech.
+
+**Deliver:** 4 PNGs, **1024 × 1024, real transparency**, framed exactly like
+`design/assets/crew/sol/sol-cheer.png` (same size and position of the planet
+and ring), no text, no glow outside the art. Must read at 48 px.
+
+| File | Mood | Where it shows |
+| --- | --- | --- |
+| `sol-searching.png` | Peering through a tiny brass telescope, one eye closed, curious smile | Searching, "Finding who's here…", loading |
+| `sol-sleeping.png` | Eyes closed, snug under a little cloud blanket, three tiny stars floating up (no "Zz" letters) | Offline, "Can't reach Worlds" |
+| `sol-proud.png` | Beaming, eyes happy arcs, a small gold ribbon medal on the ring | "You're all settled in", everything done |
+| `sol-oops.png` | Sheepish smile, one small bandage on the planet, holding a tiny wrench on the ring | Something went wrong (nothing lost) |
+
+**Copy-paste request:**
+
+```
+Paint four more moods for Sol, the Project Worlds logo: the same smiling ringed planet
+as sol-cheer.png (blue-green planet, gold ring, rosy cheeks, big friendly eyes), in the
+same warm painterly style with crisp dark outlines. Keep the planet and ring exactly the
+same size and position as sol-cheer.png so the moods swap cleanly. No text, no letters,
+no outer glow. Each a transparent PNG, 1024×1024, readable at 48 px:
+1) sol-searching.png — peering through a tiny brass telescope, one eye closed, curious smile.
+2) sol-sleeping.png — eyes closed, snug under a little cloud blanket, three tiny stars
+   floating up (no Zz letters).
+3) sol-proud.png — beaming, eyes as happy arcs, a small gold ribbon medal on the ring.
+4) sol-oops.png — sheepish smile, one small bandage on the planet, holding a tiny wrench.
+```
+
+## 13. App icon (requested and DELIVERED 2026-09-26)
+
+**Delivered:** `design/assets/brand/app-icon.png`, cropped past a white margin
+in the original so it is navy to the edges, and a circle-safe
+`app-icon-maskable.png` (#124).
+
+Worlds has no proper icon for the browser tab, the phone home screen or
+installing it as an app. Sol is the mark, so the icon is Sol on a tile.
+
+**Deliver:** `app-icon.png`, **1024 × 1024, no transparency**: Sol (the
+`sol-mark` pose) centred on a deep navy (#161a30 to #1f2442) rounded tile
+with a few tiny gold stars. Keep everything that matters inside the **middle
+80%** (phones crop the corners to circles or squircles). Must read at
+**16 px** in a browser tab, so the planet and ring should fill most of that
+middle space and small stars must not crowd it.
+
+Claude exports the favicon, apple-touch and app-install sizes from it, and
+builds the GitHub social preview image (1280 × 640) from the showcase art.
+
+**Copy-paste request:**
+
+```
+Make the Project Worlds app icon: Sol, the smiling ringed planet logo (same design as
+sol-mark.png), centred on a deep navy rounded-square tile (#161a30 to #1f2442) with a few
+tiny gold stars. Warm painterly style, crisp dark outlines. 1024×1024 PNG, no
+transparency. Keep everything important inside the middle 80% so it survives circle and
+squircle crops, and make Sol large enough to read at 16 px. No text.
+```
+
+### Where to put the files (11 to 13)
+
+Drop everything in `design/owner/crew/newassets/` (or send a zip). Claude
+checks each file for real transparency and size, curates the masters into
+`design/assets/icons/spot/`, `design/assets/crew/sol/` and
+`design/assets/brand/`, exports the WebP sizes into `ui/public/assets/`, and
+wires them in.

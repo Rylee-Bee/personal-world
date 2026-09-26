@@ -657,6 +657,96 @@
       "color": "canonical companion palette",
       "viewBox": "0 0 24 24",
       "source": "design/assets/companions/personal-world/personal-world-source-rig.svg"
+    },
+    {
+      "name": "close",
+      "component": "Icon/Actions/Close",
+      "category": "actions",
+      "file": "svg/actions--close.svg",
+      "semantic": "close",
+      "color": "currentColor",
+      "viewBox": "0 0 24 24",
+      "added": "2026-09-26"
+    },
+    {
+      "name": "external",
+      "component": "Icon/Actions/External",
+      "category": "actions",
+      "file": "svg/actions--external.svg",
+      "semantic": "external",
+      "color": "currentColor",
+      "viewBox": "0 0 24 24",
+      "added": "2026-09-26"
+    },
+    {
+      "name": "back",
+      "component": "Icon/Navigation/Back",
+      "category": "navigation",
+      "file": "svg/navigation--back.svg",
+      "semantic": "back",
+      "color": "currentColor",
+      "viewBox": "0 0 24 24",
+      "added": "2026-09-26"
+    },
+    {
+      "name": "chevron-right",
+      "component": "Icon/Navigation/ChevronRight",
+      "category": "navigation",
+      "file": "svg/navigation--chevron-right.svg",
+      "semantic": "chevron-right",
+      "color": "currentColor",
+      "viewBox": "0 0 24 24",
+      "added": "2026-09-26"
+    },
+    {
+      "name": "chevron-down",
+      "component": "Icon/Navigation/ChevronDown",
+      "category": "navigation",
+      "file": "svg/navigation--chevron-down.svg",
+      "semantic": "chevron-down",
+      "color": "currentColor",
+      "viewBox": "0 0 24 24",
+      "added": "2026-09-26"
+    },
+    {
+      "name": "check",
+      "component": "Icon/Status-Feedback/Check",
+      "category": "status-feedback",
+      "file": "svg/status-feedback--check.svg",
+      "semantic": "check",
+      "color": "currentColor",
+      "viewBox": "0 0 24 24",
+      "added": "2026-09-26"
+    },
+    {
+      "name": "key",
+      "component": "Icon/System-Device/Key",
+      "category": "system-device",
+      "file": "svg/system-device--key.svg",
+      "semantic": "key",
+      "color": "currentColor",
+      "viewBox": "0 0 24 24",
+      "added": "2026-09-26"
+    },
+    {
+      "name": "door",
+      "component": "Icon/World-Content/Door",
+      "category": "world-content",
+      "file": "svg/world-content--door.svg",
+      "semantic": "door",
+      "color": "currentColor",
+      "viewBox": "0 0 24 24",
+      "added": "2026-09-26"
+    },
+    {
+      "name": "sparkle",
+      "component": "Icon/World-Content/Sparkle",
+      "category": "world-content",
+      "file": "svg/world-content--sparkle.svg",
+      "semantic": "sparkle",
+      "color": "currentColor",
+      "viewBox": "0 0 24 24",
+      "added": "2026-09-26"
     }
   ]
 }
