@@ -603,6 +603,14 @@ export const uploadCrewPortrait = (id: string, contentType: string, dataBase64: 
     }),
   );
 
+// PUT /api/rooms/{id}/doorway: a library doorway id, or null for none.
+export const putRoomDoorway = (roomId: string, doorwayId: string | null) =>
+  unwrap<Envelope<{ room_id: string; doorway: string | null }>>(
+    sendBody("PUT", `/api/rooms/${encodeURIComponent(roomId)}/doorway`, {
+      doorway_id: doorwayId,
+    }),
+  );
+
 // PUT /api/rooms/{id}/keeper: one keeper per room, or null for none.
 export const putRoomKeeper = (roomId: string, companionId: string | null) =>
   unwrap<Envelope<{ room_id: string; keeper: RoomKeeper | null }>>(

@@ -12,14 +12,16 @@ export const MAX_DOORWAYS = 3;
  *  needs are unknown, not zero and not current — and only the ones this
  *  person hasn't marked seen (the server's summary counts the same way). */
 export function currentNeeds(row: RoomRow): RoomNeed[] {
-  if (!row.reachable) return [];
+  // An incompatible room's needs are never current (room/0 rule 14).
+  if (!row.reachable || row.status === "incompatible") return [];
   const seen = new Set(row.needs_seen ?? []);
   return (row.needs_you ?? []).filter((n) => !seen.has(n.id));
 }
 
 /** Needs still open in the room that this person has already seen. */
 export function seenNeeds(row: RoomRow): RoomNeed[] {
-  if (!row.reachable) return [];
+  // An incompatible room's needs are never current (room/0 rule 14).
+  if (!row.reachable || row.status === "incompatible") return [];
   const seen = new Set(row.needs_seen ?? []);
   return (row.needs_you ?? []).filter((n) => seen.has(n.id));
 }

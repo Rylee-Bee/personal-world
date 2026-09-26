@@ -676,3 +676,11 @@ dated entry superseding the old one (append-only, like the journal).
   The doorway choice is device-local for now (like the theme) until the
   station has somewhere to keep it. Reason: owner direction; art never
   implies a fact about a room.
+- **2026-09-26 — Doorway choices move to the station; the Bridge credits the
+  plain voice to Worlds.** With #86 live, a room's doorway is read from and
+  written to the server (`doorway` on each room row, PUT
+  /api/rooms/{id}/doorway), so it follows the person across devices; the
+  device-local store is removed. With #88 live, the Bridge shows Sol's small
+  mark beside Worlds' plain voice (crew off) and the commbadge for a chosen
+  companion with no picture; Sol never speaks. Studio has no default keeper
+  (owner nixed it, #85).

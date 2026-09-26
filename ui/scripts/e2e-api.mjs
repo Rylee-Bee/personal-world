@@ -311,7 +311,7 @@ function bridgeFixture() {
     keeper: {
       line: "Two things need you, and the Workshop has been busy. Take your time — the bridge holds.",
       mood: "busy",
-      resident: bridgeResident("personal-world", "Personal World", "/assets/characters/personal-world.png"),
+      resident: bridgeResident("assistant", "Assistant", "/assets/crew/assistant.svg"),
     },
     systems: BRIDGE_SYSTEMS,
     have_tos: haveTo.slice(0, 3),
@@ -351,7 +351,11 @@ const STARTER_CREW = [
   source: "starter",
   hidden: false,
 }));
-const KEEPERS_SEED = { workshop: "bolt", studio: "mira" };
+// crew.default_keepers: only Workshop starts with a keeper (Bolt, canon);
+// Studio has none until the person picks one (owner nixed a default, #85).
+const KEEPERS_SEED = { workshop: "bolt" };
+let DOORWAYS = {};
+const DOORWAY_IDS = new Set(["study", "archive", "garden", "kitchen", "lounge", "music", "observatory", "post", "travel", "vault", "wellness", "hallway"]);
 let CREW = structuredClone(STARTER_CREW);
 let KEEPERS = { ...KEEPERS_SEED };
 let VISITS = {};
@@ -376,6 +380,7 @@ function decoratedRooms() {
     needs_seen: SEEN[row.id] ?? [],
     changed_since_visit: 0,
     keeper: keeperOf(row.id),
+    doorway: DOORWAYS[row.id] ?? null,
   }));
 }
 
@@ -933,6 +938,17 @@ const server = http.createServer(async (req, res) => {
     SEEN[roomId] = [...new Set([...(SEEN[roomId] ?? []), needId])];
     return json(res, 200, { ok: true, data: { room_id: roomId, need_id: needId, needs_seen: SEEN[roomId] } });
   }
+  const doorMatch = p.match(/^\/api\/rooms\/([^/]+)\/doorway$/);
+  if (method === "PUT" && doorMatch) {
+    const roomId = decodeURIComponent(doorMatch[1]);
+    if (!ROOMS_FIXTURE.some((r) => r.id === roomId)) return json(res, 404, { detail: "unknown room" });
+    const body = (await readBody(req)) ?? {};
+    if (!("doorway_id" in body)) return json(res, 422, { detail: "doorway_id is required" });
+    const id = body.doorway_id;
+    if (id !== null && !DOORWAY_IDS.has(id)) return json(res, 422, { detail: "doorway_id must be one of the library" });
+    DOORWAYS[roomId] = id;
+    return json(res, 200, { ok: true, data: { room_id: roomId, doorway: DOORWAYS[roomId] ?? null } });
+  }
   const keeperMatch = p.match(/^\/api\/rooms\/([^/]+)\/keeper$/);
   if (method === "PUT" && keeperMatch) {
     const roomId = decodeURIComponent(keeperMatch[1]);
@@ -995,6 +1011,7 @@ const server = http.createServer(async (req, res) => {
     PLACE = null;
     CREW = structuredClone(STARTER_CREW);
     KEEPERS = { ...KEEPERS_SEED };
+    DOORWAYS = {};
     VISITS = {};
     RESUME = null;
     for (const k of Object.keys(SEEN)) delete SEEN[k];
