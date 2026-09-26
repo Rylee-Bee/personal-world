@@ -336,6 +336,57 @@ function bridgeFixture() {
 // `since` would carry.
 let PLACE = null;
 
+// ── Notifications fixtures (Web Push; docs/NOTIFICATIONS.md) ────────
+// Same wire contract as api.py push_* / notifications_*: devices list
+// labels and times (never endpoints or browser keys — the real server
+// does not send them either, and a mock that does would train the UI
+// to expect a leak), prefs with the server's quiet-by-default shape,
+// and a history list. Fiction only; reset by /api/__test/reset.
+const MOCK_VAPID_PUBLIC_KEY =
+  "BMockVapidPublicKeyForE2E-runs-locally-no-real-push-service-aaaaaaa" +
+  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+const NOTIF_PREFS_SEED = {
+  tiers: { good_news: true, update: true, when_ready: false },
+  sources: {},
+  quiet_hours: { on: true, start: "21:00", end: "08:00", tz: null },
+};
+
+const NOTIF_ITEMS_SEED = [
+  {
+    id: "e2e-note-1",
+    tier: "good_news",
+    tier_words: "GOOD NEWS",
+    source: "vefr",
+    title: "The tomatoes ripened",
+    body: "All three at once. Eat one today.",
+    link: "/today",
+    created_at: NOW_ISO,
+    read_at: null,
+    state: "delivered",
+  },
+];
+
+let PUSH_DEVICES = [];
+let NOTIF_PREFS = structuredClone(NOTIF_PREFS_SEED);
+let NOTIF_ITEMS = structuredClone(NOTIF_ITEMS_SEED);
+let PUSH_SEQ = 0;
+
+function notifyOutcome(tier, source, title, body, link) {
+  const id = `e2e-note-${++PUSH_SEQ}`;
+  const tierWords = { good_news: "GOOD NEWS", update: "A SMALL UPDATE", when_ready: "WHEN YOU'RE READY" }[tier] ?? "";
+  NOTIF_ITEMS.push({
+    id, tier, tier_words: tierWords, source, title, body, link: link ?? null,
+    created_at: NOW_ISO, read_at: null, state: PUSH_DEVICES.length ? "delivered" : "no_devices",
+  });
+  return {
+    id,
+    delivered: PUSH_DEVICES.length,
+    deferred: false,
+    state: PUSH_DEVICES.length ? "delivered" : "no_devices",
+  };
+}
+
 // ── Rooms fixtures (contract room/0) ─────────────────────────────────
 // The front door renders other small backends without owning their
 // code. One healthy room with a need, one degraded room with none, and
@@ -1114,6 +1165,10 @@ const server = http.createServer(async (req, res) => {
     INVITES = [];
     GRANTS = [];
     LIMITS = {};
+    PUSH_DEVICES = [];
+    NOTIF_PREFS = structuredClone(NOTIF_PREFS_SEED);
+    NOTIF_ITEMS = structuredClone(NOTIF_ITEMS_SEED);
+    PUSH_SEQ = 0;
     return json(res, 200, ok("healthy", { reset: true }));
   }
   if (method === "GET" && p === "/api/journal") {
@@ -1431,6 +1486,122 @@ const server = http.createServer(async (req, res) => {
       SECRETS.delete(name);
       return json(res, 200, { ok: true, data: { deleted: name } });
     }
+  }
+  // ── Notifications (Web Push; docs/NOTIFICATIONS.md) ────────────────
+  if (method === "GET" && p === "/api/push/public-key") {
+    return json(res, 200, { ok: true, data: { public_key: MOCK_VAPID_PUBLIC_KEY } });
+  }
+  if (method === "POST" && p === "/api/push/subscriptions") {
+    const body = (await readBody(req)) ?? {};
+    const sub = body.subscription ?? {};
+    if (typeof sub.endpoint !== "string" || !sub.endpoint.startsWith("https://")) {
+      return json(res, 422, { detail: "subscription endpoint must be an https address" });
+    }
+    if (!sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+      return json(res, 422, { detail: "subscription is missing its browser keys" });
+    }
+    const label = String(body.device_label ?? "").slice(0, 80) || "this device";
+    const existing = PUSH_DEVICES.find((d) => d.endpoint === sub.endpoint);
+    if (existing) {
+      existing.device_label = label;
+      return json(res, 200, { ok: true, data: { id: existing.id, created: false } });
+    }
+    const rec = {
+      id: `e2e-dev-${++PUSH_SEQ}`,
+      endpoint: sub.endpoint,
+      device_label: label,
+      created_at: NOW_ISO,
+      last_ok_at: null,
+      last_error: null,
+    };
+    PUSH_DEVICES.push(rec);
+    return json(res, 200, { ok: true, data: { id: rec.id, created: true } });
+  }
+  if (method === "GET" && p === "/api/push/subscriptions") {
+    // Public rows only: endpoints and keys never come back here either —
+    // the mock mirrors the real server's privacy property on purpose.
+    return json(res, 200, {
+      ok: true,
+      data: PUSH_DEVICES.map((d) => ({
+        id: d.id,
+        device_label: d.device_label,
+        created_at: d.created_at,
+        last_ok_at: d.last_ok_at,
+        last_error: d.last_error,
+      })),
+    });
+  }
+  const deviceMatch = p.match(/^\/api\/push\/subscriptions\/([^/]+)$/);
+  if (method === "DELETE" && deviceMatch) {
+    const id = decodeURIComponent(deviceMatch[1]);
+    if (!PUSH_DEVICES.some((d) => d.id === id)) {
+      return json(res, 404, { detail: "no such device" });
+    }
+    PUSH_DEVICES = PUSH_DEVICES.filter((d) => d.id !== id);
+    return json(res, 200, { ok: true, data: { id, removed: true } });
+  }
+  if (method === "GET" && p === "/api/notifications") {
+    let items = NOTIF_ITEMS;
+    if (url.searchParams.get("unread") === "1") items = items.filter((i) => !i.read_at);
+    const limit = Number(url.searchParams.get("limit") ?? 20);
+    return json(res, 200, { ok: true, data: [...items].reverse().slice(0, limit) });
+  }
+  if (p === "/api/notifications/prefs") {
+    if (method === "GET") return json(res, 200, { ok: true, data: NOTIF_PREFS });
+    if (method === "PUT") {
+      const body = (await readBody(req)) ?? {};
+      NOTIF_PREFS = {
+        tiers: { ...NOTIF_PREFS.tiers, ...(body.tiers ?? {}) },
+        sources: { ...NOTIF_PREFS.sources, ...(body.sources ?? {}) },
+        quiet_hours: { ...NOTIF_PREFS.quiet_hours, ...(body.quiet_hours ?? {}) },
+      };
+      return json(res, 200, { ok: true, data: NOTIF_PREFS });
+    }
+  }
+  if (method === "POST" && p === "/api/notifications/read-all") {
+    let n = 0;
+    NOTIF_ITEMS = NOTIF_ITEMS.map((i) => {
+      if (i.read_at) return i;
+      n += 1;
+      return { ...i, read_at: NOW_ISO };
+    });
+    return json(res, 200, { ok: true, data: { read: n } });
+  }
+  const readMatch = p.match(/^\/api\/notifications\/([^/]+)\/read$/);
+  if (method === "POST" && readMatch) {
+    const id = decodeURIComponent(readMatch[1]);
+    const item = NOTIF_ITEMS.find((i) => i.id === id);
+    if (!item) return json(res, 404, { detail: "no such notification" });
+    item.read_at = NOW_ISO;
+    return json(res, 200, { ok: true, data: { id, read: true } });
+  }
+  if (method === "POST" && p === "/api/notifications/test") {
+    return json(res, 200, {
+      ok: true,
+      data: notifyOutcome(
+        "good_news",
+        "worlds",
+        "Worlds",
+        "🌳 The World Tree is awake. Everyone is home.",
+        "/",
+      ),
+    });
+  }
+  if (method === "POST" && p === "/api/notify") {
+    const body = (await readBody(req)) ?? {};
+    if (!["good_news", "update", "when_ready"].includes(body.tier)) {
+      return json(res, 422, { detail: "tier is good_news, update or when_ready" });
+    }
+    return json(res, 200, {
+      ok: true,
+      data: notifyOutcome(
+        body.tier,
+        String(body.source ?? "api"),
+        String(body.title ?? ""),
+        String(body.body ?? ""),
+        body.link,
+      ),
+    });
   }
   if (method === "OPTIONS" && (p.startsWith("/api") || p === "/healthz")) {
     res.writeHead(204, {

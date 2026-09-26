@@ -983,3 +983,56 @@ export interface SecretsOverview {
    *  address is known. The only place a value is ever typed. */
   open_url: string | null;
 }
+
+// ─── Notifications (Web Push; docs/NOTIFICATIONS.md) ──────────────
+
+/** The three tiers, and the words a phone shows in front of each.
+ *  `when_ready` is history-only unless the person turns it on. */
+export type TierName = "good_news" | "update" | "when_ready";
+
+/** One device of GET /api/push/subscriptions. Labels and times only:
+ *  endpoints and browser keys are credentials and never reach the UI. */
+export interface PushDevice {
+  id: string;
+  device_label: string;
+  created_at: string | null;
+  last_ok_at: string | null;
+  last_error: string | null;
+}
+
+/** GET/PUT /api/notifications/prefs — the person's delivery shape. */
+export interface NotificationPrefs {
+  tiers: Record<TierName, boolean>;
+  sources: Record<string, boolean>;
+  quiet_hours: {
+    on: boolean;
+    /** "HH:MM" wall times, quiet window may wrap midnight. */
+    start: string;
+    end: string;
+    tz: string | null;
+  };
+}
+
+/** One item of GET /api/notifications (newest first). */
+export interface NotificationItem {
+  id: string;
+  tier: TierName;
+  tier_words: string;
+  source: string;
+  title: string;
+  body: string;
+  link: string | null;
+  created_at: string | null;
+  read_at: string | null;
+  /** delivered | failed | no_devices | not_configured | deferred |
+   *  history_only | summarized | duplicate | quiet_summary */
+  state: string;
+}
+
+/** The answer of POST /api/notify and POST /api/notifications/test. */
+export interface NotifyOutcome {
+  id: string;
+  delivered: number;
+  deferred: boolean;
+  state: string;
+}

@@ -633,6 +633,58 @@ def cmd_worlds_backup(world, registry, journal, args) -> int:
     return _emit(result, args.json)
 
 
+# ── Web Push (native notifications, docs/NOTIFICATIONS.md) ──────────
+
+
+def cmd_push_keygen(world, registry, journal, args) -> int:
+    """Print a fresh VAPID key pair for the operator.
+
+    The private key belongs in the environment
+    (PW_VAPID_PRIVATE_KEY — the PEM block printed here, or a base64url
+    raw key); the public key is derived at runtime, and is printed only
+    because it is the value a stranger could compute anyway. This
+    command writes nothing and calls nothing: no server, no network."""
+    from . import push as push_mod
+
+    pair = push_mod.generate_keypair()
+    if args.json:
+        print(json.dumps(pair, indent=2))
+        return EXIT_OK
+    print("# VAPID key pair for Web Push — see docs/NOTIFICATIONS.md.")
+    print("# Put the private key below into PW_VAPID_PRIVATE_KEY (an env")
+    print("# file is fine); the app reads it and never writes it down.")
+    print(pair["private_pem"].rstrip())
+    print("# The browser-facing public key (derived at runtime too):")
+    print(pair["public_key"])
+    return EXIT_OK
+
+
+def cmd_notify(world, registry, journal, args) -> int:
+    """Publish one notification through POST /api/notify on a running
+    backend, authenticated with the instance credential (PW_API_TOKEN,
+    or the token in <data-dir>/.env — the same resolution the api
+    command uses). Prints whatever the API decided, including when the
+    notification only entered history (quiet hours, tier off, no
+    devices)."""
+    from .cli_dispatch import Ctx
+
+    ctx = Ctx(args, world, registry, journal)
+    payload: dict = {
+        "tier": args.tier,
+        "source": args.source,
+        "title": args.title,
+        "body": args.body,
+    }
+    if args.link:
+        payload["link"] = args.link
+    if args.to:
+        payload["to"] = args.to
+    if args.dedupe_key:
+        payload["dedupe_key"] = args.dedupe_key
+    result = ctx.http("POST", "/api/notify", payload)
+    return _emit(result, args.json)
+
+
 def cmd_worlds_restore(world, registry, journal, args) -> int:
     from . import worlds_backup
 
@@ -830,6 +882,38 @@ def main(argv: list[str] | None = None) -> int:
         "--overwrite",
         action="store_true",
         help="replace existing files (default: keep them, report skipped)",
+    )
+
+    # Web Push (native notifications, docs/NOTIFICATIONS.md): one operator
+    # tool that outputs keys, and one publish tool that talks to a running
+    # backend like every other dispatch command does.
+    push_p = sub.add_parser("push", help="Web Push key pair tooling (operator)")
+    push_sub = push_p.add_subparsers(dest="push_cmd", required=True)
+    pk = push_sub.add_parser(
+        "keygen",
+        help="print a fresh VAPID key pair to stdout (writes nothing)",
+    )
+    pk.add_argument("--json", action="store_true")
+    pk.set_defaults(fn=cmd_push_keygen)
+
+    n = add(
+        "notify",
+        cmd_notify,
+        help="publish one notification through POST /api/notify (PW_API_TOKEN)",
+    )
+    n.add_argument(
+        "--tier",
+        required=True,
+        choices=["good_news", "update", "when_ready"],
+        help="how much attention this asks for",
+    )
+    n.add_argument("--source", default="cli", help="who this came from (e.g. cli)")
+    n.add_argument("--title", required=True)
+    n.add_argument("--body", required=True)
+    n.add_argument("--link", default=None, help="path on this site, e.g. /today")
+    n.add_argument("--to", default=None, help="person id (manage_people only)")
+    n.add_argument(
+        "--dedupe-key", dest="dedupe_key", default=None, help="same key = one send"
     )
 
     # Decision #19 CLI-parity surface (additive; clobbers nothing cli.py

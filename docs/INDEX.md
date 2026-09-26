@@ -140,7 +140,7 @@ Generated from each page's status line (2026-09-26). If a page is missing here, 
 | [accessibility/SCREEN_READER_WALKTHROUGH.md](accessibility/SCREEN_READER_WALKTHROUGH.md) | you use a screen reader, or you are changing labels, landmarks or focus in `ui/` |
 | [gallery/README.md](gallery/README.md) | you want to see Worlds without running it, or you are refreshing the pictures after a UI change |
 
-### Reference (45)
+### Reference (46)
 
 | Page | Read this if |
 |---|---|
@@ -164,6 +164,7 @@ Generated from each page's status line (2026-09-26). If a page is missing here, 
 | [IDENTITY-BOUNDARY.md](IDENTITY-BOUNDARY.md) | you are adding per-person state or working on multi-user mode |
 | [INGRESS-AND-TLS.md](INGRESS-AND-TLS.md) | you are putting Worlds behind Traefik, nginx, or Caddy and need cookies and OIDC redirects to work |
 | [NATIVE-BASELINE-AND-ENRICHMENT.md](NATIVE-BASELINE-AND-ENRICHMENT.md) | you are adding a capability or provider, or checking what may become a hidden dependency |
+| [NOTIFICATIONS.md](NOTIFICATIONS.md) | you want notifications on your phone, or you run a World and need to switch the whole thing on |
 | [OPERATIONS.md](OPERATIONS.md) | you are operating an instance — local CLI, containers, production deploy, backups, or chat providers |
 | [PORTING.md](PORTING.md) | you want to move, extend, or contribute to Worlds without breaking its non-negotiables |
 | [PRODUCT-LANGUAGE.md](PRODUCT-LANGUAGE.md) | you are writing user-facing copy or deciding where a feature surfaces |
