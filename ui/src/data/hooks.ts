@@ -82,6 +82,14 @@ import {
   getPlace,
   putPlace,
   getRooms,
+  postRoomVisit,
+  postNeedSeen,
+  getCrew,
+  addCrew,
+  patchCrew,
+  deleteCrew,
+  uploadCrewPortrait,
+  putRoomKeeper,
 } from "./api";
 import type {
   Actor,
@@ -99,7 +107,7 @@ import type {
 } from "./types";
 import {
   capabilityDisplayName,
-  COMPANION_RESIDENTS,
+  companionResident,
   plainAttention,
   toCapabilityStatus,
 } from "./types";
@@ -129,6 +137,7 @@ export const queryKeys = {
   briefing: ["briefing"] as const,
   place: ["place"] as const,
   rooms: ["rooms"] as const,
+  crew: ["crew"] as const,
 } as const;
 
 // ===== Health =====
@@ -781,6 +790,71 @@ export function useRooms() {
   });
 }
 
+/** Record this person's visit to a room. Fire-and-forget from the Open
+ *  link: a failed write never blocks opening the room, it only means
+ *  the "changed since your visit" count keeps its old baseline. */
+export function useVisitRoom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ roomId, title }: { roomId: string; title?: string }) =>
+      postRoomVisit(roomId, title ? { title } : {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.rooms }),
+  });
+}
+
+/** Mark one need seen (per person, idempotent). */
+export function useMarkNeedSeen() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ roomId, needId }: { roomId: string; needId: string }) =>
+      postNeedSeen(roomId, needId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.rooms }),
+  });
+}
+
+/** This person's crew (GET /api/crew), hidden companions included. */
+export function useCrew() {
+  return useQuery({
+    queryKey: queryKeys.crew,
+    queryFn: getCrew,
+    staleTime: 60_000,
+  });
+}
+
+/** Crew writes change what rooms show (keeper names, portraits) and who
+ *  the companion is, so each one refreshes crew, rooms and prefs. */
+function useCrewMutation<V, R>(fn: (vars: V) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.crew });
+      qc.invalidateQueries({ queryKey: queryKeys.rooms });
+      qc.invalidateQueries({ queryKey: queryKeys.prefs });
+    },
+  });
+}
+
+export const useAddCrew = () => useCrewMutation(addCrew);
+
+export const usePatchCrew = () =>
+  useCrewMutation(({ id, ...body }: { id: string } & Parameters<typeof patchCrew>[1]) =>
+    patchCrew(id, body),
+  );
+
+export const useDeleteCrew = () => useCrewMutation((id: string) => deleteCrew(id));
+
+export const useUploadCrewPortrait = () =>
+  useCrewMutation(
+    ({ id, contentType, dataBase64 }: { id: string; contentType: string; dataBase64: string }) =>
+      uploadCrewPortrait(id, contentType, dataBase64),
+  );
+
+export const usePutRoomKeeper = () =>
+  useCrewMutation(({ roomId, companionId }: { roomId: string; companionId: string | null }) =>
+    putRoomKeeper(roomId, companionId),
+  );
+
 // ===== Identity =====
 export function usePrincipal() {
   return useQuery({
@@ -870,7 +944,8 @@ export function useMediaActivity() {
 //   GET /api/status  → {ok, status, data:{capabilities, actors, …}}
 //   GET /api/daily   → {ok, status, …, data:{world, capabilities, attention}}
 //   GET /api/actors  → {ok, data: Actor[]}  (provider staff directory)
-//   GET /api/prefs   → {ok, data:{companion, …}}  (names the resident)
+//   GET /api/prefs   → {ok, data:{companion_id, companion, …}}  (names the resident)
+//   GET /api/crew    → {ok, data: CrewEntry[]}  (the person's own companions)
 
 export function useTodaySummary(): {
   data: TodaySummary | undefined;
@@ -880,6 +955,9 @@ export function useTodaySummary(): {
   const status = useStatus();
   const daily = useDaily();
   const prefs = usePrefs();
+  // Not awaited: the resident only needs the crew for a user's own
+  // companion; until it loads a known face or the Assistant shows.
+  const crew = useCrew();
 
   const isLoading = status.isLoading || daily.isLoading || prefs.isLoading;
   const error = status.error ?? daily.error ?? prefs.error ?? undefined;
@@ -921,12 +999,12 @@ export function useTodaySummary(): {
   // Residents speak only when the personality pack is on (TRUE-NORTH
   // § Voice, W1-B): one voice by default; pack off means no resident
   // presence in the summary — honest quiet, never a guess.
-  const companion = prefs.data?.data?.companion;
-  const pack = prefs.data?.data?.personality_pack;
-  const resident: Resident | undefined =
-    companion && pack === "residents"
-      ? COMPANION_RESIDENTS[companion]
-      : undefined;
+  // The face follows the same resolution as the voice: companion_id
+  // (null → the Assistant), falling back to the old key by canon.
+  const resident: Resident | undefined = companionResident(
+    prefs.data?.data,
+    crew.data?.data,
+  );
 
   return {
     data: {

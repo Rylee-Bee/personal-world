@@ -74,7 +74,10 @@ import type {
   BridgeData,
   PlaceData,
   PlacePutRequest,
-  RoomRow,
+  RoomsEnvelope,
+  RoomsResume,
+  CrewEntry,
+  RoomKeeper,
 } from "./contract";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -552,7 +555,61 @@ export const putPlace = (body: PlacePutRequest) =>
 // (`reachable: false`), not an HTTP error; the panel renders it as
 // "unreachable · last seen …", never as healthy. Read-only.
 export const getRooms = () =>
-  unwrap<Envelope<RoomRow[]>>(api.GET("/api/rooms", {}));
+  unwrap<RoomsEnvelope>(api.GET("/api/rooms", {}));
+
+// POST /api/rooms/{id}/visit: record THIS person's visit (private,
+// Worlds-owned; same-origin only). `link` must be a same-origin path, so
+// a room on another host is recorded by title alone.
+export const postRoomVisit = (roomId: string, body: { title?: string; link?: string }) =>
+  unwrap<Envelope<{ room_id: string; last_visited_at: string; resume: RoomsResume | null }>>(
+    sendBody("POST", `/api/rooms/${encodeURIComponent(roomId)}/visit`, body),
+  );
+
+// POST /api/rooms/{id}/needs/{need_id}/seen: idempotent, per person.
+export const postNeedSeen = (roomId: string, needId: string) =>
+  unwrap<Envelope<{ room_id: string; need_id: string; needs_seen: string[] }>>(
+    sendBody(
+      "POST",
+      `/api/rooms/${encodeURIComponent(roomId)}/needs/${encodeURIComponent(needId)}/seen`,
+      {},
+    ),
+  );
+
+// GET /api/crew: this person's own companions, hidden ones included.
+export const getCrew = () => unwrap<Envelope<CrewEntry[]>>(getRequest("/api/crew"));
+
+// POST /api/crew: add a companion of their own (source "user").
+export const addCrew = (body: { name: string; blurb?: string; voice_label?: string }) =>
+  unwrap<Envelope<CrewEntry>>(sendBody("POST", "/api/crew", body));
+
+// PATCH /api/crew/{id}: rename, reword, hide (starters included).
+export const patchCrew = (
+  id: string,
+  body: { name?: string; blurb?: string | null; voice_label?: string | null; hidden?: boolean },
+) => unwrap<Envelope<CrewEntry>>(sendBody("PATCH", `/api/crew/${encodeURIComponent(id)}`, body));
+
+// DELETE /api/crew/{id}: a person's own companion only (starters → 409).
+export const deleteCrew = (id: string) =>
+  unwrap<Envelope<{ id: string; deleted: boolean; keepers_cleared: string[] }>>(
+    sendBody("DELETE", `/api/crew/${encodeURIComponent(id)}`, {}),
+  );
+
+// POST /api/crew/{id}/portrait: PNG/JPEG/WebP ≤ 5 MB as base64 JSON.
+export const uploadCrewPortrait = (id: string, contentType: string, dataBase64: string) =>
+  unwrap<Envelope<CrewEntry>>(
+    sendBody("POST", `/api/crew/${encodeURIComponent(id)}/portrait`, {
+      content_type: contentType,
+      data_base64: dataBase64,
+    }),
+  );
+
+// PUT /api/rooms/{id}/keeper: one keeper per room, or null for none.
+export const putRoomKeeper = (roomId: string, companionId: string | null) =>
+  unwrap<Envelope<{ room_id: string; keeper: RoomKeeper | null }>>(
+    sendBody("PUT", `/api/rooms/${encodeURIComponent(roomId)}/keeper`, {
+      companion_id: companionId,
+    }),
+  );
 
 // ===== Identity =====
 export const getPrincipal = () =>

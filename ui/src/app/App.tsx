@@ -30,6 +30,7 @@ import { Memory } from "../screens/Memory/Memory";
 import { Interests } from "../screens/Interests/Interests";
 import { Chat } from "../screens/Chat/Chat";
 import { Settings } from "../screens/Settings/Settings";
+import { Crew } from "../screens/Crew/Crew";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
 import { useHealthz, usePrefs, usePrefsSchema, useSections } from "../data/hooks";
@@ -114,7 +115,9 @@ function useApplyPrefsChrome(): void {
 
 export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeArea, setActiveArea] = useState<WorldAreaId>("overview");
+  // "crew" is a page inside Settings, not a nav landmark: the skeleton
+  // stays Overview · Memory · Chat · Settings.
+  const [activeArea, setActiveArea] = useState<WorldAreaId | "crew">("overview");
   const { skeleton, personal } = useWorldAreas();
 
   // Prefs chrome: server truth lands on the document (C12).
@@ -143,7 +146,9 @@ export function App() {
       case "chat":
         return <Chat />;
       case "settings":
-        return <Settings />;
+        return <Settings onOpenCrew={() => setActiveArea("crew")} />;
+      case "crew":
+        return <Crew onBack={() => setActiveArea("settings")} />;
       case "interests":
         return <Interests />;
       default: {
@@ -175,7 +180,7 @@ export function App() {
     <li key={area.id}>
       <WorldAreaLink
         area={area}
-        isActive={area.id === activeArea}
+        isActive={area.id === activeArea || (activeArea === "crew" && area.id === "settings")}
         onClick={() => setActiveArea(area.id)}
       />
     </li>

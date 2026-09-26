@@ -148,6 +148,18 @@ export interface PrefsSchemaEntry {
   allowed: readonly PrefsValue[] | null;
   integer: boolean;
   unit: string;
+  /** Display names for values the schema can't name itself (the
+   *  companion row's crew ids, filled in from GET /api/crew). */
+  labels?: Readonly<Record<string, string>>;
+}
+
+/** The companion row's stand-in for `null` (no companion → the plain
+ *  voice, shown as the Assistant). A <select> can't hold null; the save
+ *  turns this back into null (companionPatchValue). */
+export const NO_COMPANION = "";
+
+export function companionPatchValue(key: string, value: PrefsValue): PrefsValue | null {
+  return key === "companion_id" && value === NO_COMPANION ? null : value;
 }
 
 export interface ParsedPrefsSchema {
@@ -165,6 +177,20 @@ export interface PrefsChange {
 function parseSchemaEntry(key: string, raw: unknown): PrefsSchemaEntry | null {
   if (!isRecord(raw)) return null;
   const type = raw["type"];
+  if (type === "companion_id") {
+    // The one open vocabulary: the person's own crew. Parsed as an enum
+    // whose only built-in value is "no companion"; SettingsRoom adds the
+    // crew's ids once GET /api/crew answers.
+    return {
+      key,
+      type: "enum",
+      default: NO_COMPANION,
+      floor: NO_COMPANION,
+      allowed: [NO_COMPANION],
+      integer: false,
+      unit: "",
+    };
+  }
   if (type !== "enum" && type !== "number") return null;
 
   if (type === "enum") {
@@ -220,7 +246,12 @@ export function parsePrefsSchema(raw: unknown): ParsedPrefsSchema {
   const entries: PrefsSchemaEntry[] = [];
   const rejectedKeys: string[] = [];
   if (!isRecord(data)) return { entries, rejectedKeys: ["(unparseable body)"] };
+  // Once the server publishes `companion_id`, the old `companion` enum
+  // is superseded: editing it would change nothing the person can hear
+  // (prefs.companion_id_from), so it isn't offered at all.
+  const superseded = new Set(isRecord(data["companion_id"]) ? ["companion"] : []);
   for (const [key, spec] of Object.entries(data)) {
+    if (superseded.has(key)) continue;
     const entry = parseSchemaEntry(key, spec);
     if (entry) entries.push(entry);
     else rejectedKeys.push(key);
@@ -272,6 +303,8 @@ export function prefKeyLabel(key: string): string {
       return "Voice tone";
     case "personality_pack":
       return "Personality pack";
+    case "companion_id":
+      return "Companion";
     default:
       return key
         .replace(/_/g, " ")
@@ -280,6 +313,12 @@ export function prefKeyLabel(key: string): string {
 }
 
 export function prefValueLabel(entry: PrefsSchemaEntry, value: PrefsValue): string {
+  const named = entry.labels?.[String(value)];
+  if (named) return named;
+  if (entry.key === "companion_id") {
+    // An id the crew list doesn't (yet) name shows as itself, never a guess.
+    return value === NO_COMPANION ? "Assistant (default, the plain voice)" : String(value);
+  }
   if (typeof value === "number") {
     if (entry.key === "text_scale") {
       if (value === 1) return "Default";

@@ -34,6 +34,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import {
+  useCrew,
   usePrefs,
   usePrefsSchema,
   usePutPrefs,
@@ -52,8 +53,10 @@ import {
 // ─── Refresh rule: component files export components only). ───
 
 import {
+  companionPatchValue,
   diffPrefs,
   isRecord,
+  NO_COMPANION,
   parsePrefsSchema,
   prefKeyLabel,
   prefValueLabel,
@@ -166,9 +169,15 @@ function PrefsControl({
           </>
         ) : entry.key === "personality_pack" ? (
           <>
-            Off (default) speaks as the one Worlds voice. “Residents”
-            adds the optional character crew as flavor on top — the
-            truth rules are identical either way.
+            “Residents” (the default) adds the character crew as flavor
+            on top of the one Worlds voice; Off speaks plainly. The truth
+            rules are identical either way.
+          </>
+        ) : entry.key === "companion_id" ? (
+          <>
+            Who keeps you company in chat and on Overview. The Assistant
+            is the plain voice with a friendly screen for a face. A
+            companion changes how things are phrased, never what’s true.
           </>
         ) : (
           <>
@@ -193,10 +202,25 @@ export function SettingsRoom() {
   const sessionQuery = useSession();
   const putPrefs = usePutPrefs();
 
-  const parsedSchema = useMemo(
-    () => parsePrefsSchema(schemaQuery.data),
-    [schemaQuery.data],
-  );
+  const crewQuery = useCrew();
+  const parsedSchema = useMemo(() => {
+    const parsed = parsePrefsSchema(schemaQuery.data);
+    // The companion row's choices are the person's own crew (hidden
+    // companions left out; the server refuses them anyway).
+    const crew = (crewQuery.data?.data ?? []).filter((c) => !c.hidden);
+    return {
+      ...parsed,
+      entries: parsed.entries.map((entry) =>
+        entry.key === "companion_id"
+          ? {
+              ...entry,
+              allowed: [NO_COMPANION, ...crew.map((c) => c.id)],
+              labels: Object.fromEntries(crew.map((c) => [c.id, c.name])),
+            }
+          : entry,
+      ),
+    };
+  }, [schemaQuery.data, crewQuery.data]);
   const serverValues = useMemo(
     () => readPrefsValues(prefsQuery.data, parsedSchema.entries),
     [prefsQuery.data, parsedSchema.entries],
@@ -238,8 +262,8 @@ export function SettingsRoom() {
 
   const applyChanges = useCallback(() => {
     setNote(null);
-    const patch: Record<string, PrefsValue> = {};
-    for (const change of changes) patch[change.key] = change.to;
+    const patch: Record<string, PrefsValue | null> = {};
+    for (const change of changes) patch[change.key] = companionPatchValue(change.key, change.to);
     // The patch keys are server-driven (GET /api/prefs/schema) and
     // validated server-side (set_prefs rejects anything else with a
     // 400 + reason) — this body is a runtime vocabulary, not a

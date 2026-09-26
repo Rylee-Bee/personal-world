@@ -425,6 +425,10 @@ export interface PrefsData {
   density: string;
   target_size: number;
   companion: string;
+  /** The chosen companion: a crew id (GET /api/crew), or null for the
+   *  plain voice — shown as the Assistant. Supersedes `companion` once
+   *  stored; the server migrates the old key by canon (prefs.py). */
+  companion_id?: string | null;
   accent: string;
   tone?: string;
   personality_pack?: string;
@@ -732,7 +736,81 @@ export interface RoomRow {
    *  "malformed JSON", …) or null. Never a token or payload. */
   error: string | null;
   checked_at: string;
-  /** Last time this room was reachable, kept in the server's memory;
-   *  null when it has never answered. */
+  /** Last time this room was reachable, persisted across restarts
+   *  (rooms-state.json); null when it has never answered. */
   last_seen: string | null;
+  /** The status it had when last seen (persisted with last_seen). */
+  last_status?: string | null;
+  /** The room's cards (room/0). Optional: older fixtures omit them. */
+  cards?: RoomCard[];
+  // ── The caller's own, Worlds-owned visit state (never sent to rooms) ──
+  /** When THIS person last opened the room; null = never. */
+  last_visited_at?: string | null;
+  /** Need ids this person has marked seen. */
+  needs_seen?: string[];
+  /** Cards observed strictly after the last visit; 0 when never visited
+   *  or when no card says when it was observed (unknown is not changed). */
+  changed_since_visit?: number;
+  /** The companion this person put on the room, or null (the room shows
+   *  its own emblem). A keeper never changes a room's status. */
+  keeper?: RoomKeeper | null;
+}
+
+export interface RoomCard {
+  id: string;
+  title: string;
+  body?: string;
+  link?: string | null;
+  lane?: string;
+  /** room/0 1.1.0, optional: "when_ready" means it can wait. */
+  tone?: string | null;
+  freshness?: { observed_at?: string; stale_after_s?: number } | null;
+}
+
+/** crew.keeper_of: who keeps a room, for this person. */
+export interface RoomKeeper {
+  id: string;
+  name: string;
+  /** A frontend asset path (/assets/crew/…) or the same-origin upload
+   *  route; null when the companion has no picture. */
+  portrait_url: string | null;
+  /** Shown in a ring when there is no portrait. */
+  initial: string;
+}
+
+/** The last room this person opened (rooms_visits.resume_of). */
+export interface RoomsResume {
+  room_id: string;
+  title: string | null;
+  link: string | null;
+  at: string;
+}
+
+/** rooms_visits.summarize over this person's rows. */
+export interface RoomsSummary {
+  /** Unseen needs across reachable, understood rooms. */
+  needs_you: number;
+  changed: number;
+  can_wait: number;
+  /** Needs from rooms we can't currently read — not current. */
+  unknown: number;
+  unreachable: number;
+}
+
+/** GET /api/rooms: `resume` and `summary` travel beside `data`. */
+export interface RoomsEnvelope extends Envelope<RoomRow[]> {
+  resume?: RoomsResume | null;
+  summary?: RoomsSummary;
+}
+
+/** One companion in this person's crew (GET /api/crew, crew.py). */
+export interface CrewEntry {
+  id: string;
+  name: string;
+  blurb?: string | null;
+  voice_label?: string | null;
+  portrait_asset?: string | null;
+  full_body_asset?: string | null;
+  source: "starter" | "user";
+  hidden: boolean;
 }

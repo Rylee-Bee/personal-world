@@ -47,6 +47,8 @@ import type {
   BridgeSystem,
   BridgeSystemId,
   RoomRow,
+  CrewEntry,
+  RoomKeeper,
 } from "../data/contract";
 
 // ─── Server-shaped fixtures ──────────────────────────────────────────
@@ -659,10 +661,42 @@ function bridgeHandlers(): RequestHandler[] {
     // answers, or a story's Bridge fetch would bypass MSW to a real
     // (unreachable) station.
     http.get("/api/rooms", () =>
-      HttpResponse.json({ ok: true, data: ROOMS_FIXTURE }),
+      HttpResponse.json({
+        ok: true,
+        data: ROOMS_FIXTURE.map((row) => ({ ...row, keeper: MOCK_KEEPERS[row.id] ?? null })),
+      }),
     ),
+    // GET /api/crew — the starter crew (crew.STARTER_CREW), read-only here.
+    http.get("/api/crew", () => HttpResponse.json({ ok: true, data: MOCK_CREW })),
   ];
 }
+
+const MOCK_CREW: CrewEntry[] = (
+  [
+    ["renai", "Renai", "renai-hello"],
+    ["bolt", "Bolt", "bolt-portrait"],
+    ["hekek", "Hekek", "hekek-portrait"],
+    ["ratatoskr", "Ratatoskr", "ratatoskr-portrait"],
+    ["bruma", "Bruma", "bruma-portrait"],
+    ["mira", "Mira", "mira-portrait"],
+    ["scoop", "Scoop", "scoop-portrait"],
+  ] as const
+).map(([id, name, stem]) => ({
+  id,
+  name,
+  blurb: null,
+  voice_label: null,
+  portrait_asset: `/assets/crew/512/${stem}.webp`,
+  full_body_asset: null,
+  source: "starter" as const,
+  hidden: false,
+}));
+
+/** Canon seed (crew.default_keepers): Bolt keeps Workshop, Mira Studio. */
+const MOCK_KEEPERS: Record<string, RoomKeeper> = {
+  workshop: { id: "bolt", name: "Bolt", portrait_url: "/assets/crew/512/bolt-portrait.webp", initial: "B" },
+  studio: { id: "mira", name: "Mira", portrait_url: "/assets/crew/512/mira-portrait.webp", initial: "M" },
+};
 
 // ─── Journal fixtures (model.JournalEvent) ───────────────────────────
 

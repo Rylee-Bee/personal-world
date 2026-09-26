@@ -41,6 +41,8 @@ vi.mock("../data/api", () => ({
   setVaultSecret: vi.fn(),
   deleteVaultSecret: vi.fn(),
   getPrefs: vi.fn(),
+  // The crew never answers here: the resident must resolve without it.
+  getCrew: vi.fn(() => new Promise(() => {})),
   putPrefs: vi.fn(),
   getPrefsSchema: vi.fn(),
   getSections: vi.fn(),

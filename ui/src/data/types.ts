@@ -5,6 +5,8 @@
  * The API boundary (api.ts) translates provider types into these.
  */
 
+import type { CrewEntry } from "./contract";
+
 // ─── Status ─────────────────────────────────────────────
 
 /**
@@ -111,7 +113,73 @@ export const COMPANION_RESIDENTS: Record<string, Resident> = {
   mermaid: { id: "renai", name: "Renai", role: "Personal companion" },
   robot: { id: "bolt", name: "Bolt", role: "Lab helper" },
   "world-tree-squirrel": { id: "ratatoskr", name: "Ratatoskr", role: "Lore keeper" },
-  "taco-news-truck": { id: "burrito", name: "Scoop", role: "Burrito Journalism's truck" },
+  "taco-news-truck": { id: "scoop", name: "Scoop", role: "Burrito Journalism's truck" },
+};
+
+/** The plain default: what you hear when you haven't picked anyone.
+ *  The server calls this "no companion" (companion_id null, the one
+ *  plain voice); people see it as the Assistant, a screen with a
+ *  friendly face (owner, 2026-09-25). */
+export const ASSISTANT_RESIDENT: Resident = {
+  id: "assistant",
+  name: "Assistant",
+  role: "Default helper",
+};
+
+/**
+ * Crew art paths the server hands out (`portrait_asset`,
+ * `keeper.portrait_url`) are either frontend asset paths
+ * ("/assets/crew/512/…", joined against BASE_URL so a path-prefixed
+ * deploy still finds them) or the same-origin upload route, used as-is.
+ */
+export function crewAssetUrl(path: string | null | undefined): string | undefined {
+  const p = path?.trim();
+  if (!p) return undefined;
+  return p.startsWith("/assets/") ? `${import.meta.env.BASE_URL}${p.slice(1)}` : p;
+}
+
+/**
+ * Who is shown as your companion (Overview), resolved the way the server
+ * resolves the voice (voice.resolve_voice): the pack off → nobody;
+ * `companion_id` null, unknown or hidden → the Assistant; a crew id →
+ * that companion. A stored `companion_id` always wins; without one the
+ * old `companion` key is read through the same canon mapping the server
+ * uses (prefs.LEGACY_COMPANION_IDS), so the face and the voice agree.
+ */
+export function companionResident(
+  prefs: { companion?: string; companion_id?: string | null; personality_pack?: string } | undefined,
+  crew: readonly CrewEntry[] | undefined,
+): Resident | undefined {
+  if (!prefs || prefs.personality_pack !== "residents") return undefined;
+  const id =
+    "companion_id" in prefs && prefs.companion_id !== undefined
+      ? prefs.companion_id
+      : (LEGACY_COMPANION_IDS[prefs.companion ?? ""] ?? null);
+  if (!id) return ASSISTANT_RESIDENT;
+  const entry = crew?.find((c) => c.id === id && !c.hidden);
+  if (entry) {
+    return {
+      id: entry.id,
+      name: entry.name,
+      role: entry.blurb ?? undefined,
+      artwork: crewAssetUrl(entry.portrait_asset),
+    };
+  }
+  // The crew answered and doesn't have them (unknown or hidden): the
+  // voice falls back to the plain one, so the face does too.
+  if (crew) return ASSISTANT_RESIDENT;
+  // The crew hasn't loaded yet: a known drawn resident keeps its face.
+  return Object.values(COMPANION_RESIDENTS).find((r) => r.id === id) ?? ASSISTANT_RESIDENT;
+}
+
+/** prefs.LEGACY_COMPANION_IDS, mirrored: old enum value → crew id. */
+const LEGACY_COMPANION_IDS: Record<string, string | null> = {
+  assistant: null,
+  "personal-world": null,
+  mermaid: "renai",
+  robot: "bolt",
+  "world-tree-squirrel": "ratatoskr",
+  "taco-news-truck": "scoop",
 };
 
 // ─── Attention language (Overview cards) ─────────────────

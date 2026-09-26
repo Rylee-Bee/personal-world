@@ -331,6 +331,61 @@ let PLACE = null;
 // code. One healthy room with a need, one degraded room with none, and
 // one unreachable room that keeps a last-seen time — so the estate
 // panel always exercises all three honest states. Fiction only.
+// The person's crew (crew.py): starter crew, keepers, and visits.
+// Mutable for the crew page's flows; reset by DELETE /api/__test/reset.
+const STARTER_CREW = [
+  ["renai", "Renai", "renai-hello"],
+  ["bolt", "Bolt", "bolt-portrait"],
+  ["hekek", "Hekek", "hekek-portrait"],
+  ["ratatoskr", "Ratatoskr", "ratatoskr-portrait"],
+  ["bruma", "Bruma", "bruma-portrait"],
+  ["mira", "Mira", "mira-portrait"],
+  ["scoop", "Scoop", "scoop-portrait"],
+].map(([id, name, stem]) => ({
+  id,
+  name,
+  blurb: null,
+  voice_label: null,
+  portrait_asset: `/assets/crew/512/${stem}.webp`,
+  full_body_asset: null,
+  source: "starter",
+  hidden: false,
+}));
+const KEEPERS_SEED = { workshop: "bolt", studio: "mira" };
+let CREW = structuredClone(STARTER_CREW);
+let KEEPERS = { ...KEEPERS_SEED };
+let VISITS = {};
+let RESUME = null;
+const SEEN = {};
+
+function keeperOf(roomId) {
+  const entry = CREW.find((c) => c.id === KEEPERS[roomId]);
+  if (!entry) return null;
+  return {
+    id: entry.id,
+    name: entry.name,
+    portrait_url: entry.portrait_asset,
+    initial: entry.name.trim().charAt(0).toUpperCase(),
+  };
+}
+
+function decoratedRooms() {
+  return ROOMS_FIXTURE.map((row) => ({
+    ...row,
+    last_visited_at: VISITS[row.id] ?? null,
+    needs_seen: SEEN[row.id] ?? [],
+    changed_since_visit: 0,
+    keeper: keeperOf(row.id),
+  }));
+}
+
+function slug(name) {
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "companion";
+  let id = base;
+  for (let i = 2; CREW.some((c) => c.id === id); i++) id = `${base}-${i}`;
+  return id;
+}
+
 const ROOMS_FIXTURE = [
   {
     id: "studio",
@@ -843,7 +898,91 @@ const server = http.createServer(async (req, res) => {
   // GET /api/rooms — the estate's rooms (contract room/0): one honest
   // row per configured room. An unreachable room is data, not an error.
   if (method === "GET" && p === "/api/rooms") {
-    return json(res, 200, ok("healthy", ROOMS_FIXTURE));
+    const rows = decoratedRooms();
+    const needs = rows.reduce(
+      (n, r) => n + (r.reachable ? r.needs_you.filter((x) => !r.needs_seen.includes(x.id)).length : 0),
+      0,
+    );
+    return json(res, 200, {
+      ...ok("healthy", rows),
+      resume: RESUME,
+      summary: {
+        needs_you: needs,
+        changed: 0,
+        can_wait: 0,
+        unknown: 0,
+        unreachable: rows.filter((r) => !r.reachable).length,
+      },
+    });
+  }
+  const visitMatch = p.match(/^\/api\/rooms\/([^/]+)\/visit$/);
+  if (method === "POST" && visitMatch) {
+    const roomId = decodeURIComponent(visitMatch[1]);
+    if (!ROOMS_FIXTURE.some((r) => r.id === roomId)) return json(res, 404, { detail: "unknown room" });
+    const body = (await readBody(req)) ?? {};
+    const at = new Date().toISOString();
+    VISITS[roomId] = at;
+    RESUME = { room_id: roomId, title: body.title ?? null, link: body.link ?? null, at };
+    return json(res, 200, { ok: true, data: { room_id: roomId, last_visited_at: at, resume: RESUME } });
+  }
+  const seenMatch = p.match(/^\/api\/rooms\/([^/]+)\/needs\/([^/]+)\/seen$/);
+  if (method === "POST" && seenMatch) {
+    const roomId = decodeURIComponent(seenMatch[1]);
+    const needId = decodeURIComponent(seenMatch[2]);
+    if (!ROOMS_FIXTURE.some((r) => r.id === roomId)) return json(res, 404, { detail: "unknown room" });
+    SEEN[roomId] = [...new Set([...(SEEN[roomId] ?? []), needId])];
+    return json(res, 200, { ok: true, data: { room_id: roomId, need_id: needId, needs_seen: SEEN[roomId] } });
+  }
+  const keeperMatch = p.match(/^\/api\/rooms\/([^/]+)\/keeper$/);
+  if (method === "PUT" && keeperMatch) {
+    const roomId = decodeURIComponent(keeperMatch[1]);
+    if (!ROOMS_FIXTURE.some((r) => r.id === roomId)) return json(res, 404, { detail: "unknown room" });
+    const body = (await readBody(req)) ?? {};
+    const id = body.companion_id ?? null;
+    if (id !== null && !CREW.some((c) => c.id === id)) return json(res, 422, { detail: "unknown companion" });
+    KEEPERS[roomId] = id;
+    return json(res, 200, { ok: true, data: { room_id: roomId, keeper: keeperOf(roomId) } });
+  }
+  // Crew (api.py crew_*): per person; starters are hidden, never deleted.
+  if (method === "GET" && p === "/api/crew") {
+    return json(res, 200, { ok: true, data: CREW });
+  }
+  if (method === "POST" && p === "/api/crew") {
+    const body = (await readBody(req)) ?? {};
+    const name = String(body.name ?? "").trim();
+    if (!name) return json(res, 422, { detail: "name is required" });
+    const entry = {
+      id: slug(name),
+      name,
+      blurb: body.blurb ?? null,
+      voice_label: body.voice_label ?? null,
+      portrait_asset: null,
+      full_body_asset: null,
+      source: "user",
+      hidden: false,
+    };
+    CREW.push(entry);
+    return json(res, 200, { ok: true, data: entry });
+  }
+  const crewMatch = p.match(/^\/api\/crew\/([^/]+)$/);
+  if (crewMatch && (method === "PATCH" || method === "DELETE")) {
+    const id = decodeURIComponent(crewMatch[1]);
+    const entry = CREW.find((c) => c.id === id);
+    if (!entry) return json(res, 404, { detail: "unknown companion" });
+    if (method === "DELETE") {
+      if (entry.source === "starter") {
+        return json(res, 409, { detail: "starter companions cannot be deleted; hide it instead" });
+      }
+      CREW = CREW.filter((c) => c.id !== id);
+      const cleared = Object.keys(KEEPERS).filter((r) => KEEPERS[r] === id).sort();
+      for (const r of cleared) KEEPERS[r] = null;
+      return json(res, 200, { ok: true, data: { id, deleted: true, keepers_cleared: cleared } });
+    }
+    const body = (await readBody(req)) ?? {};
+    for (const key of ["name", "blurb", "voice_label", "hidden"]) {
+      if (key in body) entry[key] = body[key];
+    }
+    return json(res, 200, { ok: true, data: entry });
   }
   // Test-only fixture reset (see CURRENT_SEED) — restores the seeded
   // journal/superseded/draft state. Never mirrored in api.py by design.
@@ -854,6 +993,11 @@ const server = http.createServer(async (req, res) => {
     SUPERSEDED.push(...structuredClone(SUPERSEDED_SEED));
     DRAFT = null;
     PLACE = null;
+    CREW = structuredClone(STARTER_CREW);
+    KEEPERS = { ...KEEPERS_SEED };
+    VISITS = {};
+    RESUME = null;
+    for (const k of Object.keys(SEEN)) delete SEEN[k];
     return json(res, 200, ok("healthy", { reset: true }));
   }
   if (method === "GET" && p === "/api/journal") {

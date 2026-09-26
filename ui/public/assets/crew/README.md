@@ -11,6 +11,9 @@ Contents: `sol-mark`, `sol-mark-mono`, `sol-badge`, Sol's moods (`sol-hello`, `s
 Bolt, Hekek, Ratatoskr, Bruma, Mira, Scoop; room interiors `room-worlds`, `workshop-doorway`,
 `play-nice-doorway`, `vefr-doorway`, `memomancer-doorway`.
 
+The shared library (masters in `design/assets/library/`): 12 `doorway-*` interiors anyone can
+choose for a room, and 16 `pick-*` faces anyone can give a companion they add.
+
 This is the **starter crew**, not a fixed cast: people can add their own companions and
 choose whether a room has one at all. Load from code with `import.meta.env.BASE_URL`
 (see `ResidentPresence.tsx`) so a path-prefixed deploy still finds them. All art is

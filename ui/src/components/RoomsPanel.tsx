@@ -14,11 +14,20 @@
  *      waiting) and a collapsible "Quiet" group (healthy, nothing
  *      waiting).
  *
- * Art is an optional slot: room interiors only in the Doorways theme,
+ * Art is an optional slot: room interiors only in the Doorways theme (a
+ * doorway the person chose on the Crew page, else the room's own drawn
+ * interior, else the plain arch — never assigned automatically),
  * keeper portraits only when the personality pack is on. Both are
  * decorative (alt="", aria-hidden) — every fact they could suggest is
- * already in words. A room with no art shows its initial in a lantern
- * ring.
+ * already in words. A room with no keeper shows its own initial in a
+ * lantern ring; a keeper with no picture wears the crew commbadge with
+ * their initial.
+ *
+ * Per-person state (GET /api/rooms, Worlds-owned, never sent to rooms):
+ * who keeps each room (`keeper`), which needs you've marked seen,
+ * what changed since your last visit, and where you left off (`resume`).
+ * Opening a room records a visit; "Mark as seen" quiets one need without
+ * pretending the room fixed it.
  *
  * Honesty (room/0 rules 11–12): an unreachable room reads
  * "unreachable · last seen <time>" or "unreachable · never reached" —
@@ -32,15 +41,12 @@
  */
 
 import { useState } from "react";
-import { useRooms } from "../data/hooks";
-import type { RoomRow } from "../data/contract";
-import {
-  interiorUrl,
-  keeperPortraitUrl,
-  starterKeeper,
-  type StarterKeeper,
-} from "./rooms/crew";
-import { currentNeeds, groupRooms, isUncertain } from "./rooms/groupRooms";
+import { useMarkNeedSeen, useRooms, useVisitRoom } from "../data/hooks";
+import type { RoomKeeper, RoomRow, RoomsResume, RoomsSummary } from "../data/contract";
+import { interiorUrl, keeperPortraitUrl } from "./rooms/crew";
+import { useDoorwayChoices } from "./rooms/doorwayChoice";
+import { CompanionFace } from "./crew/CompanionFace";
+import { currentNeeds, groupRooms, isUncertain, seenNeeds } from "./rooms/groupRooms";
 import { useMinuteClock, useRootAttribute } from "./rooms/useRootAttribute";
 
 /** How old a check can be before the panel says so in words. */
@@ -95,8 +101,14 @@ function detailLine(row: RoomRow): string {
   if (needs.length > 0 && first) {
     return `${plural(needs.length, "need", "needs")} you · ${first.title}`;
   }
-  if (row.status === "unknown") return "Answering, but hasn't reported a status.";
-  return "Nothing needs you right now.";
+  const parts: string[] = [];
+  if (row.status === "unknown") parts.push("Answering, but hasn't reported a status");
+  else parts.push("Nothing new needs you");
+  const seen = seenNeeds(row).length;
+  if (seen > 0) parts.push(`${plural(seen, "need", "needs")} you've seen`);
+  const changed = row.changed_since_visit ?? 0;
+  if (changed > 0) parts.push(`${changed} new since you last looked`);
+  return `${parts.join(" · ")}.`;
 }
 
 // ─── Shared pieces ───────────────────────────────────────────────────
@@ -104,21 +116,33 @@ function detailLine(row: RoomRow): string {
 const LINK_BASE =
   "inline-flex min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] items-center justify-center rounded-[var(--pw-radius-sm)] px-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] font-semibold focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
 
-function OpenLink({ row, primary = false }: { row: RoomRow; primary?: boolean }) {
+function OpenLink({
+  row,
+  primary = false,
+  label,
+}: {
+  row: RoomRow;
+  primary?: boolean;
+  label?: string;
+}) {
   const name = roomName(row);
+  const visit = useVisitRoom();
   return (
     <a
       href={row.base_url}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`Open ${name} in a new tab`}
+      aria-label={`${label ?? `Open ${name}`} in a new tab`}
+      // Opening a room is the visit. Recorded after the tab opens, never
+      // in its way; a failed write only leaves the old baseline.
+      onClick={() => visit.mutate({ roomId: row.id, title: name })}
       className={`${LINK_BASE} ${
         primary
           ? "bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)]"
           : "border border-[var(--pw-border-subtle)] text-[var(--pw-text-primary)] underline"
       }`}
     >
-      Open {name}
+      {label ?? `Open ${name}`}
     </a>
   );
 }
@@ -131,17 +155,30 @@ function StatusWord({ row }: { row: RoomRow }) {
   );
 }
 
-/** A room's face: its keeper's portrait (pack on) or its initial. */
+/** A room's face: its keeper (pack on) — their picture, or the crew
+ *  commbadge with their initial — or, with no keeper, the room's own
+ *  initial in a lantern ring. */
 function Emblem({
   row,
   keeper,
   size,
 }: {
   row: RoomRow;
-  keeper: StarterKeeper | null;
+  keeper: RoomKeeper | null;
   size: "sm" | "lg";
 }) {
   const dim = isUncertain(row);
+  if (keeper) {
+    return (
+      <CompanionFace
+        name={keeper.name}
+        initial={keeper.initial}
+        portrait={keeperPortraitUrl(keeper)}
+        size={size}
+        dim={dim}
+      />
+    );
+  }
   const box = size === "lg" ? "h-20 w-20 text-3xl" : "h-10 w-10 text-lg";
   return (
     <span
@@ -150,15 +187,7 @@ function Emblem({
         dim ? "border-dashed border-[var(--pw-text-muted)]" : "border-[var(--pw-accent-warm)]"
       } bg-[var(--pw-surface-hull)] font-semibold text-[var(--pw-accent-warm)]`}
     >
-      {keeper ? (
-        <img
-          src={keeperPortraitUrl(keeper)}
-          alt=""
-          className={`h-full w-full object-cover ${dim ? "opacity-60 saturate-50" : ""}`}
-        />
-      ) : (
-        initial(row)
-      )}
+      {initial(row)}
     </span>
   );
 }
@@ -172,13 +201,16 @@ function Doorway({
 }: {
   row: RoomRow;
   showInteriors: boolean;
-  keeper: StarterKeeper | null;
+  keeper: RoomKeeper | null;
 }) {
   const name = roomName(row);
   const needs = currentNeeds(row);
   const first = needs[0];
-  const interior = showInteriors ? interiorUrl(row.id) : null;
+  const doorways = useDoorwayChoices();
+  const interior = showInteriors ? interiorUrl(row.id, doorways[row.id]) : null;
   const headingId = `room-${row.id}-name`;
+  const markSeen = useMarkNeedSeen();
+  const changed = row.changed_since_visit ?? 0;
 
   return (
     <article
@@ -226,6 +258,7 @@ function Doorway({
           {[
             needs.length > 1 ? plural(needs.length, "need", "needs") : null,
             first ? `waiting since ${formatTime(first.created_at)}` : null,
+            changed > 0 ? `${changed} new since you last looked` : null,
             keeper ? `kept by ${keeper.name}` : null,
           ]
             .filter(Boolean)
@@ -236,8 +269,24 @@ function Doorway({
             {`Couldn't read all of its needs: ${row.error}`}
           </p>
         )}
-        <div className="mt-auto pt-[var(--pw-spacing-sm)]">
+        {markSeen.isError && (
+          <p role="alert" className="text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
+            Couldn't mark that as seen. It's still waiting.
+          </p>
+        )}
+        <div className="mt-auto flex flex-wrap gap-[var(--pw-spacing-sm)] pt-[var(--pw-spacing-sm)]">
           <OpenLink row={row} primary />
+          {first && (
+            <button
+              type="button"
+              disabled={markSeen.isPending}
+              onClick={() => markSeen.mutate({ roomId: row.id, needId: first.id })}
+              aria-label={`Mark “${first.title}” as seen`}
+              className={`${LINK_BASE} border border-[var(--pw-border-subtle)] bg-transparent text-[var(--pw-text-primary)] disabled:opacity-60`}
+            >
+              {markSeen.isPending ? "Marking…" : "Mark as seen"}
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -253,10 +302,11 @@ function CorridorRow({
 }: {
   row: RoomRow;
   showInteriors: boolean;
-  keeper: StarterKeeper | null;
+  keeper: RoomKeeper | null;
 }) {
   const name = roomName(row);
-  const interior = showInteriors ? interiorUrl(row.id) : null;
+  const doorways = useDoorwayChoices();
+  const interior = showInteriors ? interiorUrl(row.id, doorways[row.id]) : null;
   const dim = isUncertain(row);
   return (
     <li className="flex flex-wrap items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)]">
@@ -314,7 +364,7 @@ function CorridorGroup({
             key={row.id}
             row={row}
             showInteriors={showInteriors}
-            keeper={showKeepers ? starterKeeper(row.id) : null}
+            keeper={showKeepers ? (row.keeper ?? null) : null}
           />
         ))}
       </ul>
@@ -378,6 +428,8 @@ export function RoomsPanel() {
       ) : (
         <RoomsBody
           rows={rows}
+          resume={rooms.data?.resume ?? null}
+          summary={rooms.data?.summary}
           showInteriors={showInteriors}
           showKeepers={showKeepers}
           quietChoice={quietChoice}
@@ -390,12 +442,16 @@ export function RoomsPanel() {
 
 function RoomsBody({
   rows,
+  resume,
+  summary: serverSummary,
   showInteriors,
   showKeepers,
   quietChoice,
   onToggleQuiet,
 }: {
   rows: RoomRow[];
+  resume: RoomsResume | null;
+  summary: RoomsSummary | undefined;
   showInteriors: boolean;
   showKeepers: boolean;
   quietChoice: boolean | null;
@@ -410,7 +466,13 @@ function RoomsBody({
     needingCount > 0
       ? `${plural(needingCount, "room needs", "rooms need")} you`
       : "Nothing needs you right now",
+    serverSummary && serverSummary.changed > 0
+      ? `${serverSummary.changed} new since you last looked`
+      : null,
     groups.uncertain.length > 0 ? `${groups.uncertain.length} unknown or unreachable` : null,
+    serverSummary && serverSummary.unknown > 0
+      ? `${plural(serverSummary.unknown, "need", "needs")} we can't check right now`
+      : null,
     groups.quiet.length > 0 ? `${groups.quiet.length} quiet` : null,
   ]
     .filter(Boolean)
@@ -427,6 +489,8 @@ function RoomsBody({
         {summary}.
       </p>
 
+      <ResumeLine resume={resume} rows={rows} showKeepers={showKeepers} />
+
       {stale && (
         <p className="rounded-[var(--pw-radius-sm)] border border-dashed border-[var(--pw-text-muted)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
           {`Last checked ${formatTime(new Date(newestCheck).toISOString())}. You're seeing what the rooms said then.`}
@@ -440,7 +504,7 @@ function RoomsBody({
               key={row.id}
               row={row}
               showInteriors={showInteriors}
-              keeper={showKeepers ? starterKeeper(row.id) : null}
+              keeper={showKeepers ? (row.keeper ?? null) : null}
             />
           ))}
         </div>
@@ -467,12 +531,45 @@ function RoomsBody({
                 key={row.id}
                 row={row}
                 showInteriors={showInteriors}
-                keeper={showKeepers ? starterKeeper(row.id) : null}
+                keeper={showKeepers ? (row.keeper ?? null) : null}
               />
             ))}
           </ul>
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Where you left off: the last room you opened, in words, with a way
+ * back. The keeper "kept your place" only when the personality pack is
+ * on and that room has one — flavour on top of the same fact.
+ */
+function ResumeLine({
+  resume,
+  rows,
+  showKeepers,
+}: {
+  resume: RoomsResume | null;
+  rows: RoomRow[];
+  showKeepers: boolean;
+}) {
+  if (!resume) return null;
+  const row = rows.find((r) => r.id === resume.room_id);
+  if (!row) return null;
+  const name = roomName(row);
+  const keeper = showKeepers ? row.keeper : null;
+  const what = resume.title && resume.title !== name ? ` · ${resume.title}` : "";
+  return (
+    <p className="flex flex-wrap items-center gap-x-[var(--pw-spacing-md)] gap-y-[var(--pw-spacing-xs)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+      <span>
+        {keeper
+          ? `${keeper.name} kept your place in ${name}${what}`
+          : `You were last in ${name}${what}`}
+        {` · ${formatTime(resume.at)}`}
+      </span>
+      <OpenLink row={row} label={`Back to ${name}`} />
+    </p>
   );
 }
