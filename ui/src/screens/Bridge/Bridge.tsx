@@ -475,14 +475,23 @@ function BriefingPanel({
         {system.name}
       </h2>
       <div className="mt-[var(--pw-spacing-md)]">
-        <ResidentPresence
-          size="sm"
-          resident={{
-            id: system.resident.key,
-            name: system.resident.name,
-            artwork: system.resident.portrait,
-          }}
-        />
+        {system.resident !== null ? (
+          <ResidentPresence
+            size="sm"
+            resident={{
+              id: system.resident.key ?? "",
+              name: system.resident.name,
+              artwork: system.resident.portrait ?? undefined,
+            }}
+          />
+        ) : (
+          /* A hidden or gone companion: the plain emblem, never a face
+           * borrowed from someone else (no invented presence). */
+          <span
+            aria-hidden="true"
+            className="inline-block h-12 w-12 shrink-0 rounded-full border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]"
+          />
+        )}
       </div>
 
       <p className="mt-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] font-medium text-[var(--pw-text-primary)]">

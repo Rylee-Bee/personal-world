@@ -592,9 +592,11 @@ export type BridgeFreshness = "fresh" | "stale" | "unknown";
 export type BridgeItemKind = "arrival" | "have_to" | "thread" | "interest";
 
 export interface BridgeResident {
-  key: string;
+  /** The crew id, or null for Worlds (the place, not a companion). */
+  key: string | null;
   name: string;
-  portrait: string;
+  /** The companion's own portrait path, or an honest null. */
+  portrait: string | null;
 }
 
 export interface BridgeCounts {
@@ -633,7 +635,10 @@ export interface BridgeItem {
 export interface BridgeSystem {
   id: BridgeSystemId;
   name: string;
-  resident: BridgeResident;
+  /** The starter companion reporting this system, or null when that
+   *  companion is hidden or gone from the person's crew (plain emblem);
+   *  never an invented resident. */
+  resident: BridgeResident | null;
   status: string;
   voice: string;
   counts: BridgeCounts;

@@ -2,7 +2,11 @@
 
 Contract: ``worlds-briefing/1``. Six fixed systems (agents / estate /
 records / interests / news / threads), each with a resident who reports
-it. The Keeper (server key ``personal-world``) summarizes.
+it. Who is credited is resolved per caller from the person's own crew
+(``crew.py``): the Keeper is the chosen companion (or the Assistant, or
+Worlds when the personality pack is off), and each system's resident is
+that system's starter companion as this person's roster holds it.
+Residents are presentation only — never a status, never invented.
 
 Design rules enforced here:
 
@@ -23,6 +27,8 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
+from . import crew as crew_registry
+from . import voice as voice_mod
 from .briefing_voice import keeper_line, resident_line
 from .status import Status, worst
 
@@ -66,53 +72,21 @@ ROOM_STATUS_TO_SYSTEM_STATUS = {
 #: system while ``engine-room`` matches "Engine room".
 _ROOM_KEY_UNSAFE = re.compile(r"[^a-z0-9]+")
 
-#: Fixed systems and residents for v1 (contract table).
+#: Fixed systems for v1 (contract table). A system carries no resident of
+#: its own: who reports it is resolved per caller from that person's crew
+#: (``crew.SYSTEM_RESIDENT``, the canonical system → starter companion
+#: map), so a renamed companion is credited by its new name and a hidden
+#: or deleted one reads as null rather than a stale hard-coded name.
 SYSTEM_SPECS: tuple[dict, ...] = (
-    {
-        "id": "agents", "name": "Workshop",
-        "resident": {"key": "robot", "name": "Bolt",
-                     "portrait": "/assets/characters/bolt.png"},
-        "source_name": "Project Home",
-    },
-    {
-        "id": "estate", "name": "Engine room",
-        "resident": {"key": "hekek", "name": "Hekek",
-                     "portrait": "/assets/characters/hekek.png"},
-        "source_name": "Lab",
-    },
-    {
-        "id": "records", "name": "Archive",
-        "resident": {"key": "bruma", "name": "Bruma",
-                     "portrait": "/assets/characters/bruma.png"},
-        "source_name": "Journal",
-    },
-    {
-        "id": "interests", "name": "Observatory",
-        "resident": {"key": "mira", "name": "Mira",
-                     "portrait": "/assets/characters/mira.png"},
-        "source_name": "Discovery",
-    },
-    {
-        "id": "news", "name": "Newsstand",
-        "resident": {"key": "taco-news-truck", "name": "Burrito Journalism",
-                     "portrait": "/assets/characters/burrito.png"},
-        "source_name": "Media",
-    },
-    {
-        "id": "threads", "name": "World tree",
-        "resident": {"key": "world-tree-squirrel", "name": "Ratatoskr",
-                     "portrait": "/assets/characters/ratatoskr.png"},
-        "source_name": "Place",
-    },
+    {"id": "agents", "name": "Workshop", "source_name": "Project Home"},
+    {"id": "estate", "name": "Engine room", "source_name": "Lab"},
+    {"id": "records", "name": "Archive", "source_name": "Journal"},
+    {"id": "interests", "name": "Observatory", "source_name": "Discovery"},
+    {"id": "news", "name": "Newsstand", "source_name": "Media"},
+    {"id": "threads", "name": "World tree", "source_name": "Place"},
 )
 
 SYSTEM_IDS: frozenset[str] = frozenset(spec["id"] for spec in SYSTEM_SPECS)
-
-KEEPER = {
-    "key": "personal-world",
-    "name": "Personal World",
-    "portrait": "/assets/characters/personal-world.png",
-}
 
 #: statuses that mean "we looked and have an answer"
 _OK_STATUSES = frozenset({"healthy", "warning", "needs_attention"})
@@ -194,8 +168,87 @@ def _mk_item(
     return item
 
 
-def _resident(spec: dict) -> dict:
-    return dict(spec["resident"])
+#: The keeper resident when the personality pack is off: Worlds itself —
+#: the place, never a companion and never a voice (owner canon 2026-09-25).
+WORLDS_RESIDENT: dict = {"key": None, "name": "Worlds", "portrait": None}
+
+#: The keeper resident when the pack is on but no usable companion is
+#: chosen (none, unknown, hidden, deleted, voiceless, malformed): the
+#: Assistant — the plain default helper with a screen for a face.
+ASSISTANT_RESIDENT: dict = {
+    "key": "assistant",
+    "name": "Assistant",
+    "portrait": "/assets/crew/assistant.svg",
+}
+
+
+def _resident_summary(entry: dict) -> dict:
+    """A crew entry as a briefing resident: its current name and portrait.
+
+    ``portrait`` is the entry's own ``portrait_asset`` or an honest null;
+    nothing is substituted. The key is the crew id — the legacy
+    ``personal-world`` key is never emitted.
+    """
+    portrait = entry.get("portrait_asset")
+    return {
+        "key": entry.get("id"),
+        "name": entry.get("name"),
+        "portrait": portrait if isinstance(portrait, str) and portrait else None,
+    }
+
+
+def keeper_resident(pref_values: dict | None, crew_state: dict | None) -> dict:
+    """Who speaks the briefing, resolved for this caller.
+
+    Mirrors ``voice.resolve_voice``: pack ``off`` (or absent/unknown) is
+    Worlds; a pack-on companion resolves through *this* principal's crew
+    and falls back to the Assistant for every non-usable id (none,
+    unknown, hidden, deleted, voiceless). ``personal-world`` is never
+    emitted. A crew read that is absent or failed confirms nothing, so it
+    resolves to the one honest fallback, never an invented person.
+    """
+    values = pref_values if isinstance(pref_values, dict) else {}
+    if str(values.get("personality_pack") or voice_mod.PACK_OFF) != (
+        voice_mod.PACK_RESIDENTS
+    ):
+        return dict(WORLDS_RESIDENT)
+    companion = voice_mod.resolve_voice(values, crew_state).companion
+    if companion is None:
+        return dict(ASSISTANT_RESIDENT)
+    entry = (
+        crew_registry.find(crew_state, companion.id)
+        if isinstance(crew_state, dict)
+        else None
+    )
+    if entry is None:
+        # resolve_voice confirmed the entry; the roster changed between
+        # the two reads. Honest fallback, never a guess.
+        return dict(ASSISTANT_RESIDENT)
+    return _resident_summary(entry)
+
+
+def system_resident(system_id: str, crew_state: dict | None) -> dict | None:
+    """The starter companion who reports one system, from this caller's crew.
+
+    The id comes only from the canon map (``crew.SYSTEM_RESIDENT``); the
+    name and portrait are the roster's current ones, so a rename is
+    credited. Hidden, deleted, unnamed, or an unconfirmable crew reads as
+    an honest null (the plain emblem) — never an invented resident.
+    """
+    companion_id = crew_registry.SYSTEM_RESIDENT.get(system_id)
+    if not companion_id:
+        return None
+    entry = (
+        crew_registry.find(crew_state, companion_id)
+        if isinstance(crew_state, dict)
+        else None
+    )
+    if entry is None or entry.get("hidden") is True:
+        return None
+    name = entry.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return None
+    return _resident_summary(entry)
 
 
 @dataclass
@@ -797,6 +850,8 @@ def build_briefing(
     rooms: list[dict] | None = None,
     now: datetime | None = None,
     name_hint: str | None = None,
+    crew_state: dict | None = None,
+    pref_values: dict | None = None,
 ) -> dict:
     """Compose the briefing. Returns the full ``{ok, status, data}`` body.
 
@@ -808,6 +863,13 @@ def build_briefing(
     system's source — its status and needs-you replace the older direct
     provider's for that system; every room's needs-you also joins the
     top-level list. No rooms means the briefing is exactly as before.
+
+    ``crew_state`` is *this caller's* crew registry (``crew.read_crew``)
+    and ``pref_values`` their normalized preferences; together they
+    resolve who is credited on each row (see :func:`keeper_resident` and
+    :func:`system_resident`). Presentation only: no status, count, or
+    item is affected. Absent crew or prefs confirms no one, so the
+    briefing credits the honest fallback rather than inventing a resident.
     """
     now = now or datetime.now().astimezone()
     if now.tzinfo is None:
@@ -887,7 +949,7 @@ def build_briefing(
         system_rows.append({
             "id": s.spec["id"],
             "name": s.spec["name"],
-            "resident": _resident(s.spec),
+            "resident": system_resident(s.spec["id"], crew_state),
             "status": s.status,
             "voice": resident_line(
                 s.spec["id"], s.status, counts, since_dt is not None
@@ -910,7 +972,7 @@ def build_briefing(
             "greeting": _greeting(now),
             "name": keeper_name,
             "mood": mood,
-            "resident": dict(KEEPER),
+            "resident": keeper_resident(pref_values, crew_state),
         },
         "systems": system_rows,
         "have_tos": have_tos_pool[:3],

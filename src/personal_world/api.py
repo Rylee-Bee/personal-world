@@ -2632,7 +2632,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """
         principal = getattr(request.state, "principal", None)
         _require_person(principal)
-        _, _, uj = _state_for(request)
+        world, _, uj = _state_for(request)
         journal_target = journal if uj == journal.path else Journal(uj)
         place = _read_place(request)
 
@@ -2642,6 +2642,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         rooms = await _ROOMS.snapshot()
 
         def _compose() -> dict:
+            # Who is credited (the Keeper and each system's resident) is
+            # resolved per caller from THIS person's prefs and crew. Each
+            # read is guarded on its own so a failed read confirms nobody —
+            # the honest fallback — rather than breaking the briefing.
+            try:
+                pref_values = prefs.get_prefs(world)
+            except Exception:
+                pref_values = None
+            try:
+                _, crew_state = _crew_state(request)
+            except Exception:
+                crew_state = None
             return build_briefing(
                 project_home=ProjectHomeSource.from_env(),
                 lab=LabState(lab_path=os.environ.get("PW_LAB_CLI", DEFAULT_LAB)),
@@ -2650,6 +2662,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 place=place,
                 rooms=rooms,
                 name_hint=getattr(principal, "display_name", None),
+                crew_state=crew_state,
+                pref_values=pref_values,
             )
 
         # Sources shell out / fetch; keep the event loop free.
