@@ -4,7 +4,7 @@
 
 **In short:** the Authelia client block to paste into your own Authelia config, plus the matching `config/oidc.json` on the Worlds side. Authelia is an **identity provider** here (Worlds owns its own auth and session); it is not a forward-auth proxy in front of Worlds. No secret value lives in this repo — `<GENERATE>` is a placeholder you fill from your own secret store.
 
-*No secrets live in this repo. `<GENERATE>` means: generate a long random string
+*No secrets are stored in this repo. `<GENERATE>` means: generate a long random string
 in your homelab secret store, then put the SAME value in Worlds' env as
 `OIDC_CLIENT_SECRET`. Never commit either copy.*
 

@@ -45,7 +45,7 @@ renders rooms; it never copies another tool's code. Pin:
   whose contract is not in `SUPPORTED_CONTRACTS` (`{"room/0"}`) shows as
   `incompatible`; one that does not answer shows as `unreachable` with its
   last-seen time, and one failing room never blanks the rest.
-- **Tokens.** Each room's token lives in Worlds' environment under a name
+- **Tokens.** Each room's token is in Worlds' environment under a name
   like `PW_ROOM_WORKSHOP_TOKEN`; a registry row names that variable in
   `token_env` (must match `^PW_ROOM_[A-Z0-9_]+_TOKEN$`). Values live only in
   the host's `.env` (mode 600), never in git.
@@ -157,7 +157,7 @@ exports/logs; secure retrieval is an explicit exceptional workflow.
 
 ## Auth
 
-**Current implementation:** `require_auth` is the single credential seam:
+**Current implementation:** `require_auth` is the one place credentials are checked:
 every accepted credential — bearer token, browser session (local or
 OIDC), or the explicit loopback development bypass — resolves to exactly
 one `Principal` on `request.state.principal` before handler code runs.
@@ -170,10 +170,10 @@ current enabled identity records, so disabling a user revokes their
 browser session exactly like their token. Default
 `PW_IDENTITY_MODE=single` resolves the bootstrap primary person;
 optional `multi` uses local hashed user/agent token records. OIDC maps a
-verified subject through the same seam: single mode → the bootstrap
+verified subject through the same function: single mode → the bootstrap
 primary person; multi mode requires an existing enabled local record, and
 an unmapped IdP identity never mints an account. Provisioning routes and
-selected per-user paths exist and resolve through one seam
+selected per-user paths exist and resolve through one function
 (`identity.principal_scoped_path`): world/journal/preferences/sections,
 reminders, proposals, chat history, and interests are scoped to the
 calling principal in multi mode, while the single-user default keeps
@@ -182,7 +182,7 @@ Vault, the memory FTS index, and the instance status/daily surfaces
 still use instance-level state; the foundation is not a complete
 household isolation or SSO product.
 
-`require_step_up` is one seam with three ordered mechanisms:
+`require_step_up` is one check with three mechanisms, tried in order:
 a canonical, time-bounded, principal-bound session grant minted by
 `POST /api/auth/step-up` after the caller re-presents a credential
 (the instance token as a bearer header or in the body);
@@ -198,15 +198,15 @@ verified fresh authentication/MFA**; the OIDC-session step-up path
 still requires the instance credential. External forward-auth may be a
 deployment layer, but it does not replace application authorization.
 
-**Finish-line target:** authentication becomes provider-neutral at the
-application seam. A real SSO/identity provider may supply normal sign-in,
+**Finish-line target:** authentication works with any identity provider,
+at the application boundary. A real SSO/identity provider may supply normal sign-in,
 while Worlds retains its own authorization/ownership rules. The
 finished path must support step-up authentication for severe/destructive
 changes and sensitive vault/secure-note access, plus recoverable
 bootstrap/break-glass access when an external identity provider is
 unavailable. The boundary must not depend on Authelia specifically and
 should remain suitable for future non-browser clients. `require_auth`
-remains the architectural seam unless implementation evidence justifies a
+remains the single entry point unless implementation evidence justifies a
 narrower refactor.
 
 ## API
@@ -295,7 +295,7 @@ Review first-run exposure separately from normal protected API access.
   multi-principal mode it is stored per principal
   (`_scoped_path(principal, "proposals")` in `api.py` — verified by
   `tests/test_identity_boundary.py`); in single mode (and background
-  seams with no principal) it remains instance-global. The approval
+  code paths with no principal) it remains instance-global. The approval
   evidence is server-held and persisted.
 - Session step-up re-presents an application credential. An OIDC-only browser
   session cannot mint a grant without the instance token; a fresh OIDC

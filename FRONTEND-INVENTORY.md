@@ -34,7 +34,7 @@ history is the archive); the Station survives only as a **theme package**.
 | **Chat** | One companion voice, with tone registers |
 | **Settings** | Preferences, themes, accessibility, connections; opens **Crew** |
 | **Crew** | Your companions, per-room keepers, and doorway choices (also reachable from the Bridge) |
-| **Interests** | Discovery — moving to Candy, but the code still lives in Worlds today (`src/personal_world/discovery/`) |
+| **Interests** | Discovery — moving to Candy, but the code is still in Worlds today (`src/personal_world/discovery/`) |
 
 Projects and Systems are labelled placeholders; they have no screen yet.
 
@@ -76,7 +76,7 @@ derivation (`types.ts`), and the draft-sync helper (`draft-sync.ts`).
   `ui/src/generated/`** — run the generator. Drift gate:
   `npm run tokens:check`.
 - **Minimum text size.** Every theme meets it: body ≥ 16px, labels ≥ 13px.
-- **Accessibility floor.** 44px targets, status always in words, visible focus,
+- **Minimum accessibility.** 44px targets, status always in words, visible focus,
   no sideways scroll at 390px, no motion by default.
 - **Worlds kit** (`ui/dist-kit/`, kit.json version `0.1.0+<content hash>`): a
   framework-free export of the design language — `tokens.css` (all themes),

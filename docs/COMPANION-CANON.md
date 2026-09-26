@@ -27,7 +27,7 @@ Not a replacement for `design/COMPANION_INTEGRATION.md` (design/art authority),
 > - **Worlds is a place, not a companion.** A "Worlds" room has no resident.
 > - The burrito truck's name is **Scoop**, from *Burrito Journalism* (the game keeps its name).
 > - Ratatoskr is confirmed as the squirrel of Norse fame.
-> Art for these lives in `design/assets/crew/{sol,renai,portraits,doorways}` (see its README).
+> Art for these is in `design/assets/crew/{sol,renai,portraits,doorways}` (see its README).
 
 Two truths coexist and must not be silently merged:
 
@@ -148,7 +148,7 @@ Station's browser-side companion ids are history only (tag
 companion source rigs, the Mermaid master Lottie
 (`design/assets/mermaid-companion-master.lottie` — byte-identical by decision),
 the icon library, or the screen SVGs. A display-name change is a copy change, not
-an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
+an art change. The rules are in `AGENTS.md` ("Do not casually regenerate"),
 `docs/CREW-AND-STATION-THESIS.md` §3.6, and
 `.agents/skills/personal-world-implement-figma/SKILL.md` (L150–156).
 
@@ -168,7 +168,7 @@ an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
   (`robot` stays `robot`).
 - **Personal World — Station id UNKNOWN/absent.** The Station "Your companion"
   control (`settings.html` L371–376) offers only `mermaid`, `ratatoskr`, `robot`,
-  `burrito`; `personal-world` exists only as a server value/floor. Whether the
+  `burrito`; `personal-world` exists only as a server value (the default). Whether the
   Station should expose it is UNKNOWN.
 - **"Tacos & the Morning Paper" retirement date UNKNOWN.** Reconcile to Burrito
   Journalism (display name **Scoop**, owner canon 2026-09-25); when the repo

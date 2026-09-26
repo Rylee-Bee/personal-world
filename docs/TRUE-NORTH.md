@@ -2,7 +2,7 @@
 
 > **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** vision, the five commitments, and the accuracy and accessibility principles · **Read this if:** you need *why* Worlds is designed this way; for *what we are building now* read [`.project/PLAN.md`](../.project/PLAN.md) first
 
-**In short:** This is the owner-approved direction: the vision, the five commitments (fast · flexible · warm · polite · accessible DNA), the daily home loop, and the alpha gates. Its **scope and sequencing are superseded by `.project/PLAN.md`** (owner-approved 2026-09-25) — where they conflict on scope or order, PLAN wins. The accuracy and accessibility principles here still hold.
+**In short:** This is the owner-approved direction: the vision, the five commitments (fast · flexible · warm · polite · accessible by default), the daily home loop, and the alpha gates. Its **scope and sequencing are superseded by `.project/PLAN.md`** (owner-approved 2026-09-25) — where they conflict on scope or order, PLAN wins. The accuracy and accessibility principles here still hold.
 
 **Provenance:** canonical direction, owner-approved (human, Rylee) 2026-09-22 with four refinements; built from a three-round owner interview (18 taps + typed answers) after a 24-product research pass. **Supersedes as direction:** `WORLDS-DELIVERY-ORCHESTRATION-PLAN-2026-09-21.md` (historical record), `docs/PERSONAL-WORLD-FINISH-LINE.md`, `ROADMAP.md` (both remain as historical detail where this doc is silent).
 

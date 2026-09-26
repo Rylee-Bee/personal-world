@@ -1,6 +1,6 @@
 # DEV-ENVIRONMENT — setting up to work on Worlds
 
-> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the dev-setup floor (tools, verify commands, environment hygiene) · **Read this if:** you are about to run, test, or contribute to Worlds.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the minimum dev setup (tools, verify commands, environment hygiene) · **Read this if:** you are about to run, test, or contribute to Worlds.
 
 **In short:** the minimum toolchain to clone, run and test Worlds, plus a few hard-won environment rules. One canonical install per tool; this is a floor, not a manual. For the user-facing install, see [QUICKSTART.md](QUICKSTART.md).
 

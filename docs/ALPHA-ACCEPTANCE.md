@@ -114,7 +114,7 @@ private operator docs.
 - [ ] **Local-token break-glass.** How: with OIDC deliberately unreachable
   (e.g. stop briefly, or a canary issuer), sign in at `/login` with the
   instance token — the same credential the bootstrap token or the
-  setup wizard created (`PW_API_TOKEN`; the setup-created value lives in
+  setup wizard created (`PW_API_TOKEN`; the setup-created value is in
   `<data_dir>/.env` and is preferred at boot). Record: date, that recovery
   worked, and which token source resolved.
   Pass: a working provider outage does **not** lock you out; the local
@@ -123,7 +123,7 @@ private operator docs.
 
 ## 3. Backup and restore drill
 
-State lives in the docker volume `world-data` (known-good copy ⇒ restore),
+State is in the docker volume `world-data` (known-good copy ⇒ restore),
 plus the app-level encrypted archive path (`docs/WORLDS-BACKUP.md`).
 `/api/backup` is *not* a full-volume backup — do not treat it as one.
 
@@ -172,12 +172,12 @@ internal-only pattern of `docs/INGRESS-AND-TLS.md` (generic, no topology
 here).
 
 - [ ] **Exposure intent is written down.** In the private operator log,
-  record the chosen posture: **LAN/VPN-only** (default recommendation for
+  record the chosen exposure: **LAN/VPN-only** (default recommendation for
   technical alpha) or **internet-reachable**, and *which interface* the
   reverse proxy publishes.
-  Pass: one of the two postures is chosen explicitly, with the reasoning
+  Pass: one of the two options is chosen explicitly, with the reasoning
   and date recorded privately.
-- [ ] **Posture enforced.** How: from outside the intended boundary
+- [ ] **Exposure enforced.** How: from outside the intended boundary
   (a different network / offline curl), `https://<worlds-host>` must be
   unreachable *or* reach only the proxy you own. The proxy port is
   firewall-restricted or the entryPoint is not published externally.
@@ -221,7 +221,7 @@ color-contrast enabled), security gates, and framework conformance.
 
 ## 6. Accessibility smoke pass
 
-Floor is
+The minimum is
 [`docs/accessibility/ACCESSIBILITY_CONTRACT.md`](accessibility/ACCESSIBILITY_CONTRACT.md)
 (human-readable: 44px targets, luminance-only rank encoding with explicit
 text labels, motion reduced by default; OS `prefers-reduced-motion`

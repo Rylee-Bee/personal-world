@@ -31,14 +31,14 @@ secret material.
 > **Memory must open with every model turned off.** Records are stored as core
 > World state and served deterministically; no reasoning/chat provider is ever
 > required to browse or edit them. AI may recall or suggest, but it is never
-> the only door.
+> the only way to reach them.
 
 ---
 
 ## Storage — reuse, invent nothing
 
 A record is a **World `Fact`** (the core's existing structured key→value store)
-persisted to the **caller's own `world.json`** through the per-principal seam
+persisted to the **caller's own `world.json`** through the per-principal storage function
 (`_user_paths` → `identity.principal_scoped_path`, decision #13).
 
 Why Facts and not a new table or a provider:
@@ -49,8 +49,8 @@ Why Facts and not a new table or a provider:
   (`export.world_export` carries intents/policies/lore only) and appear solely
   in the encrypted backup artifact — precisely what personal records need.
   Records are additionally stored with `classification = private`.
-- **Isolation.** Because they ride the caller's `world.json`, per-person
-  isolation is inherited for free — the same seam that isolates prefs, layout,
+- **Isolation.** Because they are stored in the caller's `world.json`, per-person
+  isolation comes automatically: the same function that isolates prefs, layout,
   journal, reminders, and proposals (see
   [IDENTITY-BOUNDARY.md](IDENTITY-BOUNDARY.md)).
 - **No new backend.** Facts, `save_world`/`load_world`, and the JSON store all
@@ -68,7 +68,7 @@ caller's own journal** — the same *state-in-the-World + audit-in-the-Journal*
 split `PUT /api/sections` uses. The audit is **content-free**: it names the
 category and the action (`record updated…`, `… pinned`, `… deleted`), never the
 record's title or field values. The journal is append-only; the record's
-*current* value lives in the World.
+*current* value is stored in the World.
 
 The module (`src/personal_world/records.py`) holds pure functions over a
 `World` — mirroring `prefs.py` / `sections.py` — so it is unit-testable without
@@ -88,14 +88,14 @@ HTTP. `api.py` adds only thin, guarded route handlers.
 | DELETE | `/api/records` | `require_step_up` (person) | Delete a record. |
 
 - **Writes are the step-up ACT.** Every mutation depends on `require_step_up` —
-  the repo's server-side human-approval seam — matching `/api/world/fact` and
+  the repo's server-side human-approval check, matching `/api/world/fact` and
   `PUT /api/sections`. The elevation is resolved by `_step_up_authorized`
   (a real session grant, true loopback, or a delegated proxy header that also
   carries a matching `X-PW-Proxy-StepUp-Secret`). **Client trust is never
   sufficient**: `X-PW-StepUp: 1` alone, with no proxy secret, is denied.
 - **Locked-category reads.** Reading a locked category (`?category=<locked>`)
   returns an **HTTP 409 `status: "locked"`** envelope **unless that same
-  request carries fresh step-up**, checked server-side with the same seam. The
+  request carries fresh step-up**, checked server-side by the same function. The
   category's name, count, and `locked` flag stay visible without elevation (so
   a person always knows what to unlock); the record titles and field values do
   not.
@@ -103,7 +103,7 @@ HTTP. `api.py` adds only thin, guarded route handlers.
   like the journal and prefs screens. `403 step-up is person-only` on writes;
   `403 person-only surface` on reads.
 
-### Find — `?q=` (the G-memory door, models off)
+### Find: `?q=` (works with models off; gate G-memory)
 
 `GET /api/records?q=<terms>` is the deterministic lexical find required by the
 TRUE-NORTH **G-memory** gate ("pin + find a record with all models off"). It is
@@ -117,12 +117,12 @@ and with `?category=` (find inside one category).
 
 **Locking fails closed against find.** Locked-category records join `q` results
 only when the request carries a server-verified step-up (`_step_up_authorized`,
-the same seam as the locked-category read); without elevation they are simply
+the same check as the locked-category read); without elevation they are simply
 absent — the query never errors, never leaks, and never reveals which locked
 category would have matched. `?category=<locked>&q=` still returns the hard
 **409** before any search happens.
 
-> AI may add conversational recall on top (Chat is a shortcut), but this door
+> AI may add conversational recall on top (Chat is a shortcut), but this route
 > is the base function: it never gates on, waits for, or degrades with any
 > model. Proven by `tests/test_memory_models_off.py`.
 

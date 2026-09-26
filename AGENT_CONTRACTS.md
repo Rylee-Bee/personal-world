@@ -35,8 +35,8 @@ Contracts are operating constraints, not background reading.
 - **Applies:** Always
 - **Purpose:** Accessibility requirements are architectural
   requirements, not polish. Governs visual experience, screen-reader
-  experience, responsive behavior, and the preference accessibility
-  floor.
+  experience, responsive behavior, and the minimum accessibility
+  settings.
 - **Contract:** [`docs/accessibility/ACCESSIBILITY_CONTRACT.md`](docs/accessibility/ACCESSIBILITY_CONTRACT.md)
   — canonical, all 9 sections.
 
@@ -44,7 +44,7 @@ Companion canonical sources, governed by the same contract:
 
 - [`docs/accessibility/SCREEN_READER_WALKTHROUGH.md`](docs/accessibility/SCREEN_READER_WALKTHROUGH.md) — announced experience, screen by screen.
 - [`docs/accessibility/RESPONSIVE_RULES.md`](docs/accessibility/RESPONSIVE_RULES.md) — breakpoints and adaptation rules.
-- [`docs/accessibility/PREFERENCES_SCHEMA.json`](docs/accessibility/PREFERENCES_SCHEMA.json) — preference schema with its accessibility floor.
+- [`docs/accessibility/PREFERENCES_SCHEMA.json`](docs/accessibility/PREFERENCES_SCHEMA.json) — preference schema with its minimum accessibility settings.
 
 Load the canonical contract in full before designing or implementing
 anything a person perceives or interacts with.
@@ -52,7 +52,7 @@ anything a person perceives or interacts with.
 ### Human Reliability
 
 - **Applies:** Always
-- **Purpose:** Governs cognitive load, visible state, calm defaults,
+- **Purpose:** Governs cognitive load, visible state, low-stimulation defaults,
   accurate status (`PASS` / `FAIL` / `N/A` / `UNKNOWN`), recoverability,
   and healthy agent/human collaboration.
 - **Contract:** [`docs/HUMAN_RELIABILITY_CONTRACT.md`](docs/HUMAN_RELIABILITY_CONTRACT.md)

@@ -8,7 +8,7 @@ Worlds is a **universal** self-hosted app. During development, sessions
 are **ephemeral**: we wipe generated state and return to a clean first-run
 (setup wizard) rather than accumulating personal or experimental data.
 
-Your real data lives in your separate data repo and is **not** part of this
+Your real data is in your separate data repo and is **not** part of this
 repository. Git/GitHub is the time machine for code; `data/` is disposable.
 
 ## Wipe a dev instance
