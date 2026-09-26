@@ -68,6 +68,13 @@ jobs:
           npm run tokens:generate
           git diff --exit-code src/generated
 
+      - name: Worlds kit drift gate + preview checks
+        # ui/dist-kit is committed for other tool UIs to vendor; a rebuild
+        # must be a no-op, and the preview must stay accessible at 390/1440.
+        run: |
+          npm run kit:check
+          npm run kit:test:e2e
+
       - name: Typecheck
         run: npx tsc -b
 
