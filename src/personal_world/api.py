@@ -2734,8 +2734,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         also carries the CALLER's private, Worlds-owned visit fields:
         ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,
         plus ``keeper`` — the companion the caller put on that room, or an
-        honest ``null``. A keeper never changes the room's status; status
-        still comes only from the room. ``resume`` and ``summary`` travel
+        honest ``null`` — and ``doorway`` — the presentation-only doorway
+        id the caller chose, or an honest ``null``. Neither a keeper nor a
+        doorway changes the room's status; status still comes only from
+        the room. ``resume`` and ``summary`` travel
         as siblings of ``data`` so the existing list envelope stays
         byte-compatible. Fetching is concurrent with a 2 s per-request
         timeout and the snapshot is cached 15 s. This handler never raises
@@ -2957,6 +2959,39 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             "data": {
                 "room_id": room_id,
                 "keeper": crew.keeper_of(state, room_id),
+            },
+        }
+
+    @app.put("/api/rooms/{room_id}/doorway", dependencies=[Depends(require_auth)])
+    async def rooms_doorway(room_id: str, request: Request) -> dict:
+        """Choose (or clear) the caller's doorway for one configured room.
+
+        Body: ``{doorway_id}`` — an id from the closed
+        :data:`crew.DOORWAYS` list, or ``null`` for "no doorway". A
+        doorway is presentation only: it records which door the person
+        sees for the room and nothing else — private, per principal,
+        never sent to the room and never a status. Unconfigured room →
+        404; an id outside the closed list (or not a string/null) → 422.
+        """
+        if not _room_configured(room_id):
+            raise HTTPException(status_code=404, detail="unknown room")
+        body = await _json_body(request)
+        if "doorway_id" not in body:
+            raise HTTPException(status_code=422, detail="doorway_id is required")
+        doorway_id = body["doorway_id"]
+        if doorway_id is not None and not crew.is_doorway(doorway_id):
+            raise HTTPException(
+                status_code=422,
+                detail="doorway_id must be one of: " + ", ".join(crew.DOORWAYS),
+            )
+        path, state = _crew_state(request)
+        state.setdefault("doorways", {})[room_id] = doorway_id
+        crew.write_crew(path, state)
+        return {
+            "ok": True,
+            "data": {
+                "room_id": room_id,
+                "doorway": crew.doorway_of(state, room_id),
             },
         }
 

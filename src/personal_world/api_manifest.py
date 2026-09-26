@@ -311,6 +311,12 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "may keep several; 404 for an unconfigured room, 422 for an "
             "unknown companion; records who the person put there and "
             "never the room's status"),
+    _e("API-088-doorway", "PUT", "/api/rooms/{room_id}/doorway", "rooms",
+       "write", "none",
+       note="the caller's doorway for one configured room ({doorway_id} "
+            "from the closed list, or null): presentation only, private, "
+            "never sent to the room and never the room's status; 404 for "
+            "an unconfigured room, 422 for an id outside the closed list"),
     # Crew — companions are user-owned (owner decision 2026-09-25). The
     # drawn crew is a starter set; a person adds, renames, hides and
     # deletes their own. Private, per principal, never sent to a room or

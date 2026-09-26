@@ -3080,7 +3080,7 @@
     },
     "/api/rooms": {
       "get": {
-        "description": "The estate's rooms (contract: room/0) plus the caller's visit state.\n\nOne honest row per configured room — its descriptor, cards, the\nneeds it is charging attention for, whether it is reachable, and\nwhen it was last reached (persisted across restarts). Each row\nalso carries the CALLER's private, Worlds-owned visit fields:\n``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,\nplus ``keeper`` — the companion the caller put on that room, or an\nhonest ``null``. A keeper never changes the room's status; status\nstill comes only from the room. ``resume`` and ``summary`` travel\nas siblings of ``data`` so the existing list envelope stays\nbyte-compatible. Fetching is concurrent with a 2 s per-request\ntimeout and the snapshot is cached 15 s. This handler never raises\non a room's behalf: an unreachable room is reported\n``reachable: false`` with its last-seen time, never claimed\nhealthy.",
+        "description": "The estate's rooms (contract: room/0) plus the caller's visit state.\n\nOne honest row per configured room — its descriptor, cards, the\nneeds it is charging attention for, whether it is reachable, and\nwhen it was last reached (persisted across restarts). Each row\nalso carries the CALLER's private, Worlds-owned visit fields:\n``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,\nplus ``keeper`` — the companion the caller put on that room, or an\nhonest ``null`` — and ``doorway`` — the presentation-only doorway\nid the caller chose, or an honest ``null``. Neither a keeper nor a\ndoorway changes the room's status; status still comes only from\nthe room. ``resume`` and ``summary`` travel\nas siblings of ``data`` so the existing list envelope stays\nbyte-compatible. Fetching is concurrent with a 2 s per-request\ntimeout and the snapshot is cached 15 s. This handler never raises\non a room's behalf: an unreachable room is reported\n``reachable: false`` with its last-seen time, never claimed\nhealthy.",
         "operationId": "rooms_view_api_rooms_get",
         "responses": {
           "200": {
@@ -3097,6 +3097,48 @@
           }
         },
         "summary": "Rooms View"
+      }
+    },
+    "/api/rooms/{room_id}/doorway": {
+      "put": {
+        "description": "Choose (or clear) the caller's doorway for one configured room.\n\nBody: ``{doorway_id}`` — an id from the closed\n:data:`crew.DOORWAYS` list, or ``null`` for \"no doorway\". A\ndoorway is presentation only: it records which door the person\nsees for the room and nothing else — private, per principal,\nnever sent to the room and never a status. Unconfigured room →\n404; an id outside the closed list (or not a string/null) → 422.",
+        "operationId": "rooms_doorway_api_rooms__room_id__doorway_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "room_id",
+            "required": true,
+            "schema": {
+              "title": "Room Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rooms Doorway Api Rooms  Room Id  Doorway Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rooms Doorway"
       }
     },
     "/api/rooms/{room_id}/keeper": {

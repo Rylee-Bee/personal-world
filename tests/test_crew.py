@@ -630,6 +630,174 @@ class TestKeepers:
         assert r.status_code == 422, r.text
 
 
+# ── API: doorways ─────────────────────────────────────────────────────
+
+
+class TestDoorways:
+    def test_route_requires_auth(self, client, monkeypatch):
+        _install(monkeypatch)
+        r = client.put(
+            "/api/rooms/workshop/doorway", json={"doorway_id": "garden"}
+        )
+        assert r.status_code == 401
+
+    def test_no_default_doorway_is_ever_seeded(self, client, monkeypatch):
+        _install(monkeypatch)
+        assert _rows(client)["workshop"]["doorway"] is None
+
+    @pytest.mark.parametrize("doorway_id", list(crew.DOORWAYS))
+    def test_every_closed_list_id_can_be_set(self, client, monkeypatch, doorway_id):
+        _install(monkeypatch)
+        r = client.put(
+            "/api/rooms/workshop/doorway",
+            json={"doorway_id": doorway_id},
+            headers=_auth(),
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["data"]["doorway"] == doorway_id
+        assert _rows(client)["workshop"]["doorway"] == doorway_id
+
+    def test_set_persists_across_reads_and_on_disk(self, client, monkeypatch, tmp_path):
+        _install(monkeypatch)
+        client.put(
+            "/api/rooms/workshop/doorway",
+            json={"doorway_id": "garden"},
+            headers=_auth(),
+        )
+        assert _rows(client)["workshop"]["doorway"] == "garden"
+        # the existing atomic write really stored it on the caller's file
+        stored = json.loads((tmp_path / "crew.json").read_text())
+        assert stored["doorways"] == {"workshop": "garden"}
+
+    def test_clearing_returns_null_and_stays_cleared(self, client, monkeypatch):
+        _install(monkeypatch)
+        client.put(
+            "/api/rooms/workshop/doorway",
+            json={"doorway_id": "vault"},
+            headers=_auth(),
+        )
+        r = client.put(
+            "/api/rooms/workshop/doorway",
+            json={"doorway_id": None},
+            headers=_auth(),
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["data"]["doorway"] is None
+        # Re-read: the person cleared it, and nothing re-seeds a doorway.
+        assert _rows(client)["workshop"]["doorway"] is None
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            {},
+            {"doorway_id": "attic"},
+            {"doorway_id": "Garden"},
+            {"doorway_id": ""},
+            {"doorway_id": 7},
+            {"doorway_id": ["garden"]},
+            {"doorway_id": {"id": "garden"}},
+        ],
+    )
+    def test_unknown_or_malformed_doorway_is_422(self, client, monkeypatch, body):
+        _install(monkeypatch)
+        r = client.put("/api/rooms/workshop/doorway", json=body, headers=_auth())
+        assert r.status_code == 422, r.text
+        assert _rows(client)["workshop"]["doorway"] is None  # nothing stored
+
+    def test_unconfigured_room_is_404(self, client, monkeypatch):
+        _install(monkeypatch)
+        r = client.put(
+            "/api/rooms/nope/doorway",
+            json={"doorway_id": "garden"},
+            headers=_auth(),
+        )
+        assert r.status_code == 404
+
+    def test_doorway_never_changes_room_status(self, client, monkeypatch):
+        _install(monkeypatch)
+        before = _rows(client)["workshop"]
+        assert before["status"] == "healthy" and before["reachable"] is True
+        client.put(
+            "/api/rooms/workshop/doorway",
+            json={"doorway_id": "garden"},
+            headers=_auth(),
+        )
+        after = _rows(client)["workshop"]
+        assert after["status"] == "healthy"
+        assert after["reachable"] is True
+        assert after["error"] is None
+        assert after["last_status"] == before["last_status"]
+        # a keeper and a doorway are independent choices on one row
+        assert after["keeper"]["id"] == "bolt"
+
+    def test_doorway_never_changes_an_unreachable_room_either(
+        self, client, monkeypatch
+    ):
+        def down(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("down")
+
+        _install(monkeypatch, handler=down)
+        assert _rows(client)["workshop"]["status"] == "unreachable"
+        client.put(
+            "/api/rooms/workshop/doorway",
+            json={"doorway_id": "lounge"},
+            headers=_auth(),
+        )
+        row = _rows(client)["workshop"]
+        assert row["status"] == "unreachable"
+        assert row["doorway"] == "lounge"  # the person's choice, not health
+
+    def test_an_unknown_stored_id_reads_as_null(self, client, monkeypatch, tmp_path):
+        _install(monkeypatch)
+        (tmp_path / "crew.json").write_text(
+            json.dumps(
+                {"crew": [], "keepers": {}, "doorways": {"workshop": "attic"}}
+            )
+        )
+        assert _rows(client)["workshop"]["doorway"] is None
+
+
+class TestDoorwayState:
+    def test_no_file_has_no_doorways(self, tmp_path):
+        assert crew.read_crew(tmp_path / "crew.json")["doorways"] == {}
+
+    def test_a_non_dict_doorways_reads_as_empty(self, tmp_path):
+        path = tmp_path / "crew.json"
+        path.write_text(
+            json.dumps(
+                {"crew": crew.starter_entries(), "doorways": ["garden"]}
+            )
+        )
+        assert crew.read_crew(path)["doorways"] == {}
+
+    def test_unknown_stored_ids_read_as_absent(self, tmp_path):
+        path = tmp_path / "crew.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "crew": crew.starter_entries(),
+                    "doorways": {"workshop": "attic", "studio": "garden"},
+                }
+            )
+        )
+        state = crew.read_crew(path)
+        assert crew.doorway_of(state, "workshop") is None
+        assert crew.doorway_of(state, "studio") == "garden"
+        assert crew.doorway_of(state, "never-set") is None
+
+    def test_a_round_trip_keeps_the_choice(self, tmp_path):
+        path = tmp_path / "crew.json"
+        crew.write_crew(
+            path,
+            {
+                "crew": crew.starter_entries(),
+                "keepers": {},
+                "doorways": {"workshop": "garden"},
+            },
+        )
+        assert crew.doorway_of(crew.read_crew(path), "workshop") == "garden"
+
+
 # ── API: portraits ────────────────────────────────────────────────────
 
 
@@ -843,6 +1011,29 @@ class TestNeverSentOutward:
             assert "keeper" not in blob.lower()
             assert "companion" not in blob.lower()
 
+    def test_a_room_never_learns_the_caller_doorway(self, client, monkeypatch):
+        """A doorway is presentation only and Worlds-private: the outbound
+        room probe carries no doorway id and nothing about the choice."""
+        seen: list[httpx.Request] = []
+
+        def recording(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return _handler()(request)
+
+        _install(monkeypatch, handler=recording)
+        client.put(
+            "/api/rooms/workshop/doorway",
+            json={"doorway_id": "vault"},
+            headers=_auth(),
+        )
+        assert _rows(client)["workshop"]["doorway"] == "vault"
+
+        assert seen, "the room was probed"
+        for request in seen:
+            blob = f"{request.url} {request.headers} {request.content!r}"
+            assert "doorway" not in blob.lower()
+            assert "vault" not in blob.lower()
+
 
 class TestTraversalRefused:
     @pytest.mark.parametrize(
@@ -976,3 +1167,15 @@ class TestPrincipalIsolation:
         client.patch("/api/crew/bolt", json={"hidden": True}, headers=_auth())
         assert _crew(client)["bolt"]["hidden"] is True
         assert _crew(client, beta)["bolt"]["hidden"] is False
+
+    def test_doorways_are_per_principal(self, tmp_path, monkeypatch):
+        client, beta = self._two_people(tmp_path, monkeypatch)
+        client.put(
+            "/api/rooms/workshop/doorway",
+            json={"doorway_id": "garden"},
+            headers=_auth(),
+        )
+        assert _rows(client)["workshop"]["doorway"] == "garden"
+        # Beta has no doorway at all — never Alpha's, and never a default.
+        assert _rows(client, beta)["workshop"]["doorway"] is None
+
