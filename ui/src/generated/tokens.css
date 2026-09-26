@@ -88,6 +88,69 @@
 
 }
 
+[data-theme="daylight"] {
+  --pw-surface-void: #fffdf8;
+  --pw-surface-canvas: #f4efe6;
+  --pw-surface-hull: #ece5d8;
+  --pw-surface-panel: #fbf8f2;
+  --pw-surface-elevated: #fffdf8;
+  --pw-surface-raised: #e9e1d2;
+
+  --pw-accent-primary: #8a4f0f;
+  --pw-accent-on_primary: #fffdf8;
+  --pw-accent-secondary: #1f6b67;
+  --pw-accent-warm: #8a4f0f;
+  --pw-accent-warm_soft: rgba(138, 79, 15, 0.10);
+  --pw-accent-gold: #735608;
+  --pw-accent-gold_soft: rgba(115, 86, 8, 0.10);
+  --pw-accent-green: #3d6b39;
+  --pw-accent-green_soft: rgba(61, 107, 57, 0.10);
+  --pw-accent-coral: #9a4a3a;
+  --pw-accent-coral_soft: rgba(154, 74, 58, 0.10);
+  --pw-accent-teal: #1f6b67;
+  --pw-accent-teal_soft: rgba(31, 107, 103, 0.10);
+  --pw-accent-lavender: #574a8c;
+  --pw-accent-lavender_soft: rgba(87, 74, 140, 0.10);
+
+  --pw-text-primary: #2a2433;
+  --pw-text-secondary: #473f4f;
+  --pw-text-muted: #5a5263;
+
+  --pw-border-subtle: rgba(42, 36, 51, 0.14);
+  --pw-border-strong: rgba(42, 36, 51, 0.26);
+  --pw-border-hover: rgba(42, 36, 51, 0.32);
+
+  --pw-spacing-xs: 4px;
+  --pw-spacing-sm: 8px;
+  --pw-spacing-md: 12px;
+  --pw-spacing-lg: 16px;
+  --pw-spacing-xl: 24px;
+  --pw-spacing-2xl: 32px;
+  --pw-spacing-3xl: 48px;
+  --pw-spacing-4xl: 64px;
+
+  --pw-radius-sm: 10px;
+  --pw-radius-md: 14px;
+  --pw-radius-lg: 24px;
+  --pw-radius-full: 9999px;
+
+  --pw-shadow-soft: 0 10px 30px rgba(42,36,51,0.12);
+  --pw-shadow-warm: 0 4px 24px rgba(138,79,15,0.10);
+  --pw-shadow-glow: 0 0 20px rgba(138,79,15,0.14);
+
+  --pw-typography-font_sans: 'Atkinson Hyperlegible Next', 'Public Sans', system-ui, sans-serif;
+  --pw-typography-font_serif: 'Fraunces', Georgia, serif;
+  --pw-typography-font_mono: 'JetBrains Mono', ui-monospace, monospace;
+  --pw-typography-size_h1: clamp(28px, 4vw, 40px);
+  --pw-typography-size_lead: 18px;
+  --pw-typography-size_body: 16px;
+  --pw-typography-size_small: 14px;
+  --pw-typography-size_micro: 13px;
+  --pw-typography-size_label: 13px;
+
+
+}
+
 [data-theme="doorways"] {
   --pw-surface-void: #0F1226;
   --pw-surface-canvas: #161A30;

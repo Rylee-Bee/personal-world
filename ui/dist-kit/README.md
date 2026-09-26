@@ -5,7 +5,7 @@ React + Tailwind web app, Studio's plain ES-module pages, the static
 dev-gallery site). It is plain CSS built on the Worlds design tokens — no
 build step, no framework, no Tailwind.
 
-- **Version:** `0.1.0+c366946aee`
+- **Version:** `0.1.0+c87ed71c66`
 - **Built:** `not recorded (content-addressed)`
 - **Source:** Personal Worlds (`ui/kit/src/base.css`, `design/tokens.json`,
   `design/themes/*.json`)
@@ -55,6 +55,7 @@ relative path.
 Set `data-theme="<name>"` on `<html>`. The available themes are:
 
 - `station`
+- `daylight`
 - `doorways`
 - `moss`
 - `ocean`

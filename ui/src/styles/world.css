@@ -239,6 +239,17 @@ body {
   top: 0;
 }
 
+/* Daylight: the one light pack. Native controls and scrollbars follow it,
+   and the starry backdrop (made for dark skies) steps aside. */
+[data-theme="daylight"] { color-scheme: light; }
+[data-theme="daylight"] .starfield-bg,
+[data-theme="daylight"] .grid-overlay { display: none; }
+/* Rank by contrast: dark ink at the dark packs' strengths. */
+[data-theme="daylight"] [data-pw-rank="good"] { background-color: rgba(42, 36, 51, 0.20); }
+[data-theme="daylight"] [data-pw-rank="update"] { background-color: rgba(42, 36, 51, 0.35); }
+[data-theme="daylight"] [data-pw-rank="waiting"] { background-color: rgba(42, 36, 51, 0.55); }
+[data-theme="daylight"] [data-pw-rank="critical"] { background-color: rgba(42, 36, 51, 0.80); }
+
 /* Starfield atmosphere — subtle, non-distracting */
 .starfield-bg {
   position: fixed;

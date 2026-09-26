@@ -730,3 +730,14 @@ dated entry superseding the old one (append-only, like the journal).
   seconds (newer news waits and is batched), dismissible, silent on quiet
   days and while the first-day guide speaks; device-local setting: when
   something happens · only when something needs me · off.
+
+## 2026-09-26 — Daylight, a light theme pack (owner approved)
+
+The owner approved the "Theme · a light option" board ("love them all").
+Daylight is an optional pack (`design/themes/daylight.json`); dark stays the
+default. Warm paper (#f4efe6), never white; text #2a2433; links, focus and
+primary buttons in a deep amber (#8a4f0f) with cream labels, because labels
+use `surface.void`. Every text and accent colour passes 4.5:1 on every
+surface (worst 4.7:1). The starry backdrop is hidden in Daylight, native
+controls follow it (`color-scheme: light`), and WorldSignal's rank dots use
+dark ink at the same strengths, so rank is still encoded by contrast alone.
