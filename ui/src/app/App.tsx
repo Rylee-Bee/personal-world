@@ -27,7 +27,7 @@
 import { noteCurrentArea, takeConfirmReturn } from "./confirmReturn";
 import { WorldButton } from "../components/WorldButton";
 import { SolMoment } from "../components/SolMoment";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { Bridge } from "../screens/Bridge/Bridge";
 import { Memory } from "../screens/Memory/Memory";
 import { Interests } from "../screens/Interests/Interests";
@@ -150,6 +150,24 @@ export function App() {
     applyThemeToDocument(readStoredTheme() ?? DEFAULT_THEME);
   }, []);
 
+  // After moving to another page, put focus on its heading so keyboard
+  // and screen-reader users start at the top of what they chose (the
+  // walkthrough's open question). Not on first load, and not when the new
+  // page already placed focus itself (Ask in Chat focuses the message box).
+  const firstArea = useRef(true);
+  useEffect(() => {
+    if (firstArea.current) {
+      firstArea.current = false;
+      return;
+    }
+    const main = document.getElementById("main-content");
+    if (!main || main.contains(document.activeElement)) return;
+    const heading = main.querySelector<HTMLElement>("h1");
+    if (!heading) return;
+    if (!heading.hasAttribute("tabindex")) heading.setAttribute("tabindex", "-1");
+    heading.focus({ preventScroll: false });
+  }, [activeArea]);
+
   function renderScreen() {
     switch (activeArea) {
       case "overview":
@@ -258,17 +276,20 @@ export function App() {
               phones). The landmark group and the personal group are
               separate lists INSIDE that scroller — the divider
               between them is a boundary, not a second scrollbar. */}
-          <div className="flex items-center gap-[var(--pw-spacing-md)] min-w-0 overflow-x-auto overscroll-x-contain">
+          {/* Phones: the personal sections wrap onto their own row, so
+              nothing hides past the edge of a scroller with no hint. From
+              640px up it is one row again. */}
+          <div className="flex flex-wrap items-center gap-x-[var(--pw-spacing-md)] gap-y-[var(--pw-spacing-xs)] min-w-0 py-[var(--pw-spacing-xs)] sm:flex-nowrap sm:py-0 sm:overflow-x-auto sm:overscroll-x-contain">
             <ul
               aria-label="World landmarks"
-              className="flex gap-[var(--pw-spacing-xs)] shrink-0"
+              className="flex gap-[var(--pw-spacing-xs)] max-sm:w-full max-sm:min-w-0 max-sm:overflow-x-auto max-sm:overscroll-x-contain sm:shrink-0"
             >
               {skeleton.map(navButton)}
             </ul>
             {personal.length > 0 && (
               <ul
                 aria-label="Personal sections"
-                className="flex gap-[var(--pw-spacing-xs)] shrink-0 border-l border-[var(--pw-border-subtle)] pl-[var(--pw-spacing-md)]"
+                className="flex flex-wrap gap-[var(--pw-spacing-xs)] sm:shrink-0 sm:flex-nowrap sm:border-l sm:border-[var(--pw-border-subtle)] sm:pl-[var(--pw-spacing-md)]"
               >
                 {personal.map(navButton)}
               </ul>

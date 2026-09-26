@@ -33,8 +33,11 @@ regression gate.
 4. A **footer** status strip says the connection state in words ("Scanner
    online…").
 
-Changing page swaps the main region; focus does not move to the new heading
-automatically, so use the skip link or heading navigation after a change.
+Changing page swaps the main region and moves focus to the new page's h1, so
+the reader starts at the top of what you chose. The first load leaves focus
+alone (Skip to main content comes first), and a page that places focus itself
+keeps it (Ask about a room in Chat lands in the message box). On a phone the
+personal sections wrap onto their own row under the landmarks.
 
 ## Bridge (home)
 
@@ -163,8 +166,8 @@ technology.
 
 - Real screen-reader output (VoiceOver, NVDA) for the drawer, the Find a room
   status and the first-day guide.
-- Route-change focus: the app does not move focus to the new h1; decide
-  whether it should.
+- Real VoiceOver output: follow `VOICEOVER_PASS.md` and note anything that
+  differs from this page.
 - Mobile sheets that trap focus and dangerous-action confirmations (contract
   sections 3 and 7) as they are added: they start on the safe action and say
   the consequence.
