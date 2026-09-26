@@ -43,6 +43,7 @@ import {
   useSections,
   usePutSections,
   usePutPrincipal,
+  useMe,
 } from "../../data/hooks";
 import { describeError } from "../../data/errors";
 import {
@@ -659,7 +660,12 @@ function ThemeSection({
 
 // ─── Main Settings screen ────────────────────────────────
 
-export function Settings({ onOpenCrew }: { onOpenCrew?: () => void } = {}) {
+export function Settings({
+  onOpenCrew,
+  onOpenPeople,
+}: { onOpenCrew?: () => void; onOpenPeople?: () => void } = {}) {
+  const me = useMe();
+  const canManagePeople = me.data?.data?.permissions.includes("manage_people") ?? false;
   // Server state
   const { data: status, isLoading: isStatusLoading } = useStatus();
   const { data: session, isLoading: isSessionLoading } = useSession();
@@ -764,6 +770,27 @@ export function Settings({ onOpenCrew }: { onOpenCrew?: () => void } = {}) {
             <WorldButton variant="primary" onPress={onOpenCrew}>
               Open your crew
             </WorldButton>
+          </section>
+        )}
+
+        {onOpenPeople && canManagePeople && (
+          <section
+            aria-labelledby="settings-people-heading"
+            className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+          >
+            <div className="min-w-0 flex-1">
+              <h2
+                id="settings-people-heading"
+                className={`mb-[var(--pw-spacing-xs)] ${SECTION_HEADING}`}
+                style={SERIF}
+              >
+                People in this World
+              </h2>
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+                Who’s here and what each person can do.
+              </p>
+            </div>
+            <WorldButton onPress={onOpenPeople}>Open people</WorldButton>
           </section>
         )}
 

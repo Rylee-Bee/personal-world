@@ -855,6 +855,26 @@ export interface CrewEntry {
 
 // ─── Secrets overview (GET /api/secrets/overview, owner only) ─────────
 /** Names and health only: a value is structurally absent. */
+/** GET /api/me: who the caller is and what the server says they may
+ *  do. The UI shows or hides affordances from `permissions` only; the
+ *  server enforces the same answer. */
+export interface Me {
+  id: string;
+  display_name: string | null;
+  role: string | null;
+  permissions: string[];
+}
+
+/** One row of GET /api/people (manage_people only). Agents carry
+ *  `role: null`. No content, secrets or tokens are ever in it. */
+export interface Person {
+  id: string;
+  display_name: string | null;
+  role: string | null;
+  kind: "person" | "agent";
+  created_at: string | null;
+}
+
 /** A room/0 action's receipt, passed through by
  *  POST /api/rooms/{id}/actions/{action_id}. Refusals carry one too
  *  (with the refusal's HTTP status); `ok` is the room's own truth. */
