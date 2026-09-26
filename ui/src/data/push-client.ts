@@ -17,7 +17,7 @@ import { registerPushSubscription } from "./api";
 /** The prefs shape before the server's answer arrives — identical to
  *  the server defaults (quiet by default). */
 export const DEFAULT_NOTIFICATION_PREFS = {
-  tiers: { good_news: true, update: true, when_ready: false },
+  tiers: { good_news: true, update: false, when_ready: false },
   sources: {},
   quiet_hours: { on: true, start: "21:00", end: "08:00", tz: null },
 } as const;
