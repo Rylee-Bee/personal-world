@@ -66,13 +66,17 @@
   src: url(fonts/young-serif-latin.woff2) format('woff2');
 }
 
+/* Type sizes: every size resolves through max(theme token, floor). The
+   owner brief (2026-09-25) is body text at least 16px and no label under
+   13px; the kit never renders smaller, whatever a theme's tokens say. */
+
 /* ── Document & body base ─────────────────────────────────────────────────
    Source: ui/src/styles/world.css (html/body reset). */
 html {
   background-color: var(--pw-surface-canvas);
   color: var(--pw-text-primary);
   font-family: var(--pw-typography-font_sans);
-  font-size: var(--pw-typography-size_body);
+  font-size: max(var(--pw-typography-size_body), 16px);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -100,11 +104,11 @@ h6 {
   letter-spacing: -0.01em;
 }
 h1 { font-size: var(--pw-typography-size_h1); }
-h2 { font-size: var(--pw-typography-size_lead); }
-h3 { font-size: var(--pw-typography-size_body); }
+h2 { font-size: max(var(--pw-typography-size_lead), 18px); }
+h3 { font-size: max(var(--pw-typography-size_body), 16px); }
 h4,
 h5,
-h6 { font-size: var(--pw-typography-size_small); }
+h6 { font-size: max(var(--pw-typography-size_small), 14px); }
 
 /* Doorways: the storybook serif on the top three heading levels. */
 [data-theme="doorways"] h1,
@@ -213,7 +217,7 @@ a:hover {
   background: var(--pw-surface-panel);
   color: var(--pw-text-primary);
   font-family: inherit;
-  font-size: var(--pw-typography-size_small);
+  font-size: max(var(--pw-typography-size_small), 14px);
   font-weight: 500;
   line-height: 1.2;
   text-decoration: none;
@@ -299,13 +303,13 @@ a:hover {
 }
 .wk-card__title {
   margin: 0;
-  font-size: var(--pw-typography-size_lead);
+  font-size: max(var(--pw-typography-size_lead), 18px);
   font-weight: 600;
   color: var(--pw-text-primary);
 }
 .wk-card__meta {
   margin: 0;
-  font-size: var(--pw-typography-size_micro);
+  font-size: max(var(--pw-typography-size_micro), 13px);
   color: var(--pw-text-muted);
 }
 
@@ -317,7 +321,7 @@ a:hover {
   padding: 2px var(--pw-spacing-sm);
   border: 1px solid var(--pw-border-subtle);
   border-radius: var(--pw-radius-sm);
-  font-size: var(--pw-typography-size_label);
+  font-size: max(var(--pw-typography-size_label), 13px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -338,7 +342,7 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: var(--pw-spacing-xs);
-  font-size: var(--pw-typography-size_micro);
+  font-size: max(var(--pw-typography-size_micro), 13px);
   font-weight: 500;
   color: var(--pw-text-secondary);
 }
@@ -384,13 +388,13 @@ a:hover {
 }
 .wk-signal__title {
   margin: 0;
-  font-size: var(--pw-typography-size_small);
+  font-size: max(var(--pw-typography-size_small), 14px);
   font-weight: 500;
   color: var(--pw-text-primary);
 }
 .wk-signal__desc {
   margin: var(--pw-spacing-xs) 0 0;
-  font-size: var(--pw-typography-size_small);
+  font-size: max(var(--pw-typography-size_small), 14px);
   color: var(--pw-text-secondary);
 }
 .wk-signal--good {
@@ -423,12 +427,12 @@ a:hover {
   gap: var(--pw-spacing-xs);
 }
 .wk-label {
-  font-size: var(--pw-typography-size_small);
+  font-size: max(var(--pw-typography-size_small), 14px);
   font-weight: 600;
   color: var(--pw-text-primary);
 }
 .wk-hint {
-  font-size: var(--pw-typography-size_micro);
+  font-size: max(var(--pw-typography-size_micro), 13px);
   color: var(--pw-text-muted);
 }
 /* Error stays in the highest-contrast text token; the coral is a non-text
@@ -436,7 +440,7 @@ a:hover {
 .wk-error {
   padding-left: var(--pw-spacing-sm);
   border-left: 2px solid var(--pw-accent-coral);
-  font-size: var(--pw-typography-size_micro);
+  font-size: max(var(--pw-typography-size_micro), 13px);
   color: var(--pw-text-primary);
 }
 .wk-input,
@@ -450,7 +454,7 @@ a:hover {
   background: var(--pw-surface-raised);
   color: var(--pw-text-primary);
   font-family: inherit;
-  font-size: var(--pw-typography-size_body);
+  font-size: max(var(--pw-typography-size_body), 16px);
 }
 .wk-select {
   cursor: pointer;
@@ -481,13 +485,13 @@ a:hover {
 .wk-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--pw-typography-size_small);
+  font-size: max(var(--pw-typography-size_small), 14px);
   color: var(--pw-text-primary);
 }
 .wk-table caption {
   margin-bottom: var(--pw-spacing-sm);
   text-align: left;
-  font-size: var(--pw-typography-size_label);
+  font-size: max(var(--pw-typography-size_label), 13px);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -497,7 +501,7 @@ a:hover {
   padding: var(--pw-spacing-sm) var(--pw-spacing-md);
   border-bottom: 1px solid var(--pw-border-strong);
   text-align: left;
-  font-size: var(--pw-typography-size_label);
+  font-size: max(var(--pw-typography-size_label), 13px);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -528,7 +532,7 @@ a:hover {
   background: transparent;
   color: var(--pw-text-secondary);
   font-family: inherit;
-  font-size: var(--pw-typography-size_small);
+  font-size: max(var(--pw-typography-size_small), 14px);
   font-weight: 500;
   cursor: pointer;
 }
@@ -577,7 +581,7 @@ a:hover {
 .wk-drawer__title {
   margin: 0;
   font-family: var(--pw-typography-font_serif);
-  font-size: var(--pw-typography-size_lead);
+  font-size: max(var(--pw-typography-size_lead), 18px);
   font-weight: 600;
   color: var(--pw-text-primary);
 }
@@ -593,7 +597,7 @@ a:hover {
   background: transparent;
   color: var(--pw-text-secondary);
   font-family: inherit;
-  font-size: var(--pw-typography-size_body);
+  font-size: max(var(--pw-typography-size_body), 16px);
   cursor: pointer;
 }
 .wk-drawer__close:hover {
@@ -671,7 +675,7 @@ a:hover {
 }
 .wk-empty__body {
   margin: 0;
-  font-size: var(--pw-typography-size_small);
+  font-size: max(var(--pw-typography-size_small), 14px);
   color: var(--pw-text-secondary);
 }
 
@@ -691,12 +695,12 @@ a:hover {
 .wk-banner__title {
   margin: 0;
   font-weight: 600;
-  font-size: var(--pw-typography-size_small);
+  font-size: max(var(--pw-typography-size_small), 14px);
   color: var(--pw-text-primary);
 }
 .wk-banner__body {
   margin: 0;
-  font-size: var(--pw-typography-size_small);
+  font-size: max(var(--pw-typography-size_small), 14px);
   color: var(--pw-text-secondary);
 }
 .wk-banner--info { border-left-color: var(--pw-accent-teal); }
@@ -719,7 +723,7 @@ a:hover {
   background: var(--pw-surface-hull);
   color: var(--pw-text-secondary);
   font-family: var(--pw-typography-font_mono);
-  font-size: var(--pw-typography-size_micro);
+  font-size: max(var(--pw-typography-size_micro), 13px);
   overflow-wrap: anywhere;
 }
 pre.wk-code {
