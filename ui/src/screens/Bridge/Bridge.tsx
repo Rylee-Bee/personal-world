@@ -25,6 +25,7 @@
  * and is switched off by OS prefers-reduced-motion.
  */
 
+import { SolMoment } from "../../components/SolMoment";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useBriefing, usePlace, useSetPlace } from "../../data/hooks";
 import { STATUS_LABELS, toCapabilityStatus, type WorldAreaId } from "../../data/types";
@@ -133,7 +134,10 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew }: BridgeProps)
   if (briefing.isPending) {
     return (
       <BridgeFrame>
-        <p className="text-[var(--pw-text-muted)]">Gathering your world…</p>
+        <div className="flex items-center gap-[var(--pw-spacing-md)]">
+          <SolMoment mood="curious" />
+          <p className="text-[var(--pw-text-muted)]">Gathering your world…</p>
+        </div>
       </BridgeFrame>
     );
   }
@@ -141,9 +145,12 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew }: BridgeProps)
   if (briefing.isError || briefing.data?.ok !== true || data === undefined) {
     return (
       <BridgeFrame>
-        <p className="text-[var(--pw-text-secondary)]">
-          Couldn't reach your world right now.
-        </p>
+        <div className="flex items-center gap-[var(--pw-spacing-md)]">
+          <SolMoment mood="rest" />
+          <p className="text-[var(--pw-text-secondary)]">
+            Couldn't reach your world right now.
+          </p>
+        </div>
         <p className="mt-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">
           {briefing.error instanceof Error && briefing.error.message
             ? briefing.error.message

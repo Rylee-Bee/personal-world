@@ -24,6 +24,7 @@
  * Status readouts are derived from the live /healthz probe — never hardcoded.
  */
 
+import { SolMoment } from "../components/SolMoment";
 import { useMemo, useState, useEffect } from "react";
 import { Bridge } from "../screens/Bridge/Bridge";
 import { Memory } from "../screens/Memory/Memory";
@@ -205,9 +206,7 @@ export function App() {
         {/* Brand — "The frontend is Worlds. Station is a theme." The
             old "Station vNext" chrome label retired with that rule. */}
         <div className="flex items-center gap-[var(--pw-spacing-sm)] shrink-0">
-          <div className="w-8 h-8 rounded-full bg-[var(--pw-accent-primary)]/10 border border-[var(--pw-accent-primary)]/30 flex items-center justify-center">
-            <span className="text-[var(--pw-accent-primary)] text-sm">✦</span>
-          </div>
+          <SolMoment mood="mark" size={36} />
           <div className="hidden sm:block">
             <p className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.14em] text-[var(--pw-text-primary)]">
               Worlds

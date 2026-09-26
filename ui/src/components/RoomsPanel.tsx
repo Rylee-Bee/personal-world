@@ -53,6 +53,7 @@ import { interiorUrl } from "./rooms/crew";
 import { formatTime, LINK_BASE, plural, roomItemUrl, roomName } from "./rooms/format";
 import { currentNeeds, groupRooms, isUncertain, seenNeeds } from "./rooms/groupRooms";
 import { Emblem, LookInside, OpenLink, StatusWord } from "./rooms/parts";
+import { SolMoment } from "./SolMoment";
 import { RoomDrawerContext } from "./rooms/drawerContext";
 import { RoomDrawer } from "./rooms/RoomDrawer";
 import { RoomsExplainer } from "./rooms/RoomsExplainer";
@@ -446,8 +447,10 @@ function RoomsBody({
 
   return (
     <>
-      <p className="-mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-        {summary}.
+      <p className="-mt-[var(--pw-spacing-sm)] flex items-center gap-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        {/* A quiet day: nothing needs you and nothing is in doubt. */}
+        {needingCount === 0 && groups.uncertain.length === 0 && <SolMoment mood="rest" size={32} />}
+        <span>{summary}.</span>
       </p>
 
       <RegistryNotice registry={registry} />

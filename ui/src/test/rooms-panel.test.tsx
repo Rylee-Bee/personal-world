@@ -377,6 +377,16 @@ describe("RoomsPanel", () => {
     );
   });
 
+  it("shows Sol at rest on a quiet day, and not when something needs you", () => {
+    setRooms([QUIET]);
+    const { container, unmount } = render(<RoomsPanel />);
+    expect(container.querySelector("img[data-sol-mood='rest']")).toHaveAttribute("aria-hidden", "true");
+    unmount();
+    setRooms([WORKSHOP]);
+    const again = render(<RoomsPanel />);
+    expect(again.container.querySelector("img[data-sol-mood='rest']")).toBeNull();
+  });
+
   it("says where you left off, and who kept your place when the crew is on", () => {
     const at = "2026-09-25T21:35:22Z";
     hookState.rooms = {
