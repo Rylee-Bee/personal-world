@@ -45,6 +45,7 @@ import { RoomsPanel } from "../components/RoomsPanel";
 import { groupRooms, MAX_DOORWAYS } from "../components/rooms/groupRooms";
 import type { RoomRow } from "../data/contract";
 import { ApiError } from "../data/api";
+import { AskInChatContext } from "../app/askInChat";
 
 function descriptor(name: string, status: string, id = name.toLowerCase()) {
   return {
@@ -647,6 +648,38 @@ describe("RoomDrawer", () => {
       render(<RoomsPanel />);
       fireEvent.click(screen.getByRole("button", { name: "Look inside VEFR" }));
       expect(within(screen.getByRole("dialog")).queryByRole("heading", { name: "Secrets" })).toBeNull();
+    });
+  });
+
+  describe("Ask about a room in Chat", () => {
+    it("writes a question naming the room, what changed and what needs you, then closes the drawer", () => {
+      const ask = vi.fn();
+      setRooms([
+        {
+          ...QUIET,
+          last_visited_at: "2026-09-25T10:00:00Z",
+          cards: [card("a", "Checks passed", "2026-09-25T11:00:00Z", { tone: "good_news" })],
+        },
+      ]);
+      render(
+        <AskInChatContext.Provider value={ask}>
+          <RoomsPanel />
+        </AskInChatContext.Provider>,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Look inside VEFR" }));
+      fireEvent.click(screen.getByRole("button", { name: "Ask about VEFR in Chat" }));
+      expect(ask).toHaveBeenCalledTimes(1);
+      const q = ask.mock.calls[0][0] as string;
+      expect(q).toMatch(/^What changed in VEFR since I last looked/);
+      expect(q).toContain("“Checks passed”");
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("isn't offered where there's no Chat to open", () => {
+      setRooms([QUIET]);
+      render(<RoomsPanel />);
+      fireEvent.click(screen.getByRole("button", { name: "Look inside VEFR" }));
+      expect(screen.queryByRole("button", { name: /in Chat/ })).toBeNull();
     });
   });
 });

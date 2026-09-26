@@ -1,0 +1,31 @@
+/**
+ * "Ask about this in Chat": another screen hands Chat a question; it
+ * lands in the box unsent, and only the person's own Send sends it.
+ */
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+
+const send = vi.fn();
+vi.mock("../data/hooks", () => ({
+  useChatHistory: () => ({ isLoading: false, data: { ok: true, data: { entries: [] } } }),
+  useChatProviders: () => ({ data: { ok: true, data: { active: "ollama", providers: [{ name: "ollama", available: true }] } } }),
+  useSendChat: () => ({ mutate: send, isPending: false, isError: false }),
+  useToneRegister: () => "warm",
+}));
+
+import { Chat } from "../screens/Chat/Chat";
+
+describe("Chat — a question from another screen", () => {
+  afterEach(cleanup);
+
+  it("starts with the question in the box, unsent", () => {
+    render(<Chat draft={{ id: 1, text: "What changed in Studio since I last looked?" }} />);
+    expect(screen.getByRole("textbox")).toHaveValue("What changed in Studio since I last looked?");
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("starts empty with no question", () => {
+    render(<Chat />);
+    expect(screen.getByRole("textbox")).toHaveValue("");
+  });
+});

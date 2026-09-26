@@ -39,6 +39,7 @@ import {
 import { currentNeeds, isUncertain, seenNeeds } from "./groupRooms";
 import { Emblem, OpenLink, StatusWord } from "./parts";
 import { SecretsSection } from "./SecretsSection";
+import { useAskInChat } from "../../app/askInChat";
 import { useMinuteClock } from "./useRootAttribute";
 
 function isStale(card: RoomCard, now: number): boolean {
@@ -91,6 +92,17 @@ function CardRow({ row, card, now }: { row: RoomRow; card: RoomCard; now: number
   );
 }
 
+/** The question "Ask about … in Chat" writes for the person: the room,
+ *  what changed since their last visit and what needs them, in words
+ *  the chat can use. It is only ever a draft; the person sends it. */
+function askQuestion(row: RoomRow, name: string, changed: RoomCard[], needs: RoomRow["needs_you"]): string {
+  const since = row.last_visited_at ? ` since I last looked (${formatTime(row.last_visited_at)})` : "";
+  const parts = [`What changed in ${name}${since}?`];
+  if (changed.length > 0) parts.push(`${name} is showing: ${changed.map((c) => `“${c.title}”`).join(", ")}.`);
+  if (needs.length > 0) parts.push(`It needs me for: ${needs.map((n) => `“${n.title}”`).join(", ")}.`);
+  return parts.join(" ");
+}
+
 export function RoomDrawer({
   row,
   keeper,
@@ -116,6 +128,7 @@ export function RoomDrawer({
   const changed = cards.filter((c) => changedSinceVisit(c, row.last_visited_at));
   const rest = cards.filter((c) => !changed.includes(c));
   const titleId = `room-drawer-${row.id}-title`;
+  const ask = useAskInChat();
 
   // Portalled to <body>: the Bridge's main area is its own stacking
   // context, and the panel must sit above the app's top bar.
@@ -303,6 +316,18 @@ export function RoomDrawer({
 
       <footer className="mt-auto flex flex-wrap gap-[var(--pw-spacing-sm)] border-t border-[var(--pw-border-subtle)] pt-[var(--pw-spacing-md)]">
         <OpenLink row={row} primary />
+        {ask && (
+          <button
+            type="button"
+            onClick={() => {
+              ask(askQuestion(row, name, changed, needs));
+              onClose();
+            }}
+            className={`${LINK_BASE} border border-[var(--pw-border-subtle)] bg-transparent text-[var(--pw-text-primary)]`}
+          >
+            {`Ask about ${name} in Chat`}
+          </button>
+        )}
       </footer>
     </aside>,
     document.body,
