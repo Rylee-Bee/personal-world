@@ -6,12 +6,12 @@ masters live in `design/assets/crew/` (see its README); edit those, never these.
 - `256/`: portholes, corridor thumbnails, pop-ups, nav marks (use for anything shown at 128 px or less)
 - `512/`: doorways, drawer headers, empty states (anything shown larger than 128 px)
 
-Contents: `sol-mark`, `sol-mark-mono`, `sol-badge`, Sol's moods (`sol-hello`, `sol-cheer`,
+Contents: the Assistant (`assistant-portrait`, `assistant-listening`, `assistant-hello`; `assistant.svg` stays as a vector fallback), `sol-mark`, `sol-mark-mono`, `sol-badge`, Sol's moods (`sol-hello`, `sol-cheer`,
 `sol-curious`, `sol-rest`); `renai-hello`, `renai-listening`, `renai-lantern`; portraits for
 Bolt, Hekek, Ratatoskr, Bruma, Mira, Scoop; room interiors `room-worlds`, `workshop-doorway`,
 `play-nice-doorway`, `vefr-doorway`, `memomancer-doorway`.
 
-The shared library (masters in `design/assets/library/`): 12 `doorway-*` interiors anyone can
+The shared library (masters in `design/assets/library/`): 13 `doorway-*` interiors anyone can
 choose for a room, and 16 `pick-*` faces anyone can give a companion they add.
 
 This is the **starter crew**, not a fixed cast: people can add their own companions and

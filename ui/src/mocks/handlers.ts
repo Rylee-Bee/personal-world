@@ -542,7 +542,7 @@ function bridgeFixture(): BridgeData {
         "Two things need you, and the Workshop has been busy. Take your time — the bridge holds.",
       mood: "busy",
       // Sol never speaks: with no companion chosen it's the Assistant.
-      resident: bridgeResident("assistant", "Assistant", "/assets/crew/assistant.svg"),
+      resident: bridgeResident("assistant", "Assistant", "/assets/crew/256/assistant-portrait.webp"),
     },
     systems: BRIDGE_SYSTEMS,
     have_tos: haveTo.slice(0, 3),

@@ -120,7 +120,7 @@ const BRIEFING = {
     keeper: {
       line: "Two things need you, and the Workshop has been busy.",
       mood: "busy",
-      resident: { key: "assistant", name: "Assistant", portrait: "/assets/crew/assistant.svg" },
+      resident: { key: "assistant", name: "Assistant", portrait: "/assets/crew/256/assistant-portrait.webp" },
     },
     systems: SYSTEM_LIST,
     // Five total, three shown — the tray cap under test.

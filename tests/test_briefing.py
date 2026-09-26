@@ -620,7 +620,7 @@ SCOOP_PORTRAIT = "/assets/crew/512/scoop-portrait.webp"
 ASSISTANT = {
     "key": "assistant",
     "name": "Assistant",
-    "portrait": "/assets/crew/assistant.svg",
+    "portrait": "/assets/crew/256/assistant-portrait.webp",
 }
 WORLDS = {"key": None, "name": "Worlds", "portrait": None}
 

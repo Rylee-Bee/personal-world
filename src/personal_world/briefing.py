@@ -178,7 +178,7 @@ WORLDS_RESIDENT: dict = {"key": None, "name": "Worlds", "portrait": None}
 ASSISTANT_RESIDENT: dict = {
     "key": "assistant",
     "name": "Assistant",
-    "portrait": "/assets/crew/assistant.svg",
+    "portrait": "/assets/crew/256/assistant-portrait.webp",
 }
 
 

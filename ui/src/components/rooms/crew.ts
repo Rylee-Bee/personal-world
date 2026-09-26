@@ -45,6 +45,7 @@ export const DOORWAYS: ReadonlyArray<{ id: string; label: string }> = [
   { id: "vault", label: "Vault" },
   { id: "wellness", label: "Infirmary" },
   { id: "hallway", label: "Hallway" },
+  { id: "servers", label: "Server room" },
 ];
 
 const DOORWAY_IDS = new Set(DOORWAYS.map((d) => d.id));

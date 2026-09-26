@@ -213,7 +213,7 @@ function YourCompanion({
           <CompanionFace name={chosen.name} portrait={crewAssetUrl(chosen.portrait_asset)} size="lg" />
         ) : (
           <img
-            src={`${import.meta.env.BASE_URL}assets/crew/assistant.svg`}
+            src={`${import.meta.env.BASE_URL}assets/crew/256/assistant-portrait.webp`}
             alt=""
             aria-hidden="true"
             className="h-20 w-20 shrink-0 object-contain"
