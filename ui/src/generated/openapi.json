@@ -3375,6 +3375,48 @@
         "summary": "Wizard Comfort"
       }
     },
+    "/api/setup-wizard/companion": {
+      "post": {
+        "description": "Set the chosen companion: a starter id, or null for the plain\nvoice (the Assistant). Loopback + first-run only, like the other\nwizard writes. Unknown or non-starter id → 422 with a sentence.",
+        "operationId": "wizard_companion_api_setup_wizard_companion_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Wizard Companion Api Setup Wizard Companion Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Wizard Companion"
+      }
+    },
+    "/api/setup-wizard/crew": {
+      "get": {
+        "description": "The starter crew the wizard may offer (first-run only).\n\nExactly the drawn canon — id, name, blurb, portrait_asset — and\nnothing personal. Read-only like ``/state``; no loopback gate.",
+        "operationId": "wizard_crew_api_setup_wizard_crew_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Wizard Crew Api Setup Wizard Crew Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Wizard Crew"
+      }
+    },
     "/api/setup-wizard/finish": {
       "post": {
         "operationId": "wizard_finish_api_setup_wizard_finish_post",

@@ -2260,6 +2260,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/setup-wizard/companion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wizard Companion
+         * @description Set the chosen companion: a starter id, or null for the plain
+         *     voice (the Assistant). Loopback + first-run only, like the other
+         *     wizard writes. Unknown or non-starter id → 422 with a sentence.
+         */
+        post: operations["wizard_companion_api_setup_wizard_companion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup-wizard/crew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Crew
+         * @description The starter crew the wizard may offer (first-run only).
+         *
+         *     Exactly the drawn canon — id, name, blurb, portrait_asset — and
+         *     nothing personal. Read-only like ``/state``; no loopback gate.
+         */
+        get: operations["wizard_crew_api_setup_wizard_crew_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/setup-wizard/finish": {
         parameters: {
             query?: never;
@@ -5992,6 +6037,50 @@ export interface operations {
         };
     };
     wizard_comfort_api_setup_wizard_comfort_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    wizard_companion_api_setup_wizard_companion_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    wizard_crew_api_setup_wizard_crew_get: {
         parameters: {
             query?: never;
             header?: never;
