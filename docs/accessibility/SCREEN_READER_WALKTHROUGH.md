@@ -77,7 +77,13 @@ above the page. Focus moves to the room's heading; **Escape** closes it and
 focus returns to the button that opened it (or to the Rooms heading if that
 button is gone); the page behind stays usable. Sections, each with a heading:
 
-- Needs you: each need with **Review "…"** and **Mark "…" as seen**.
+- Needs you: each need with **Review "…"** and **Mark "…" as seen**. A
+  Workshop approval also has **Approve or decline "…"**: a group named
+  "Approve "…"?" opens with focus on **Not now**, then **Decline** and
+  **Approve**. Sending says "Approving…" (status, static); only the room's
+  receipt brings **Approved** (status, focused, under "Decided just now"). A
+  refusal is an alert, "Nothing changed", with the room's reason and
+  **Review again**.
 - Changed since you last looked, then What <room> is showing, where the tone
   is a word: Good news · A small update · When you're ready.
 - **Secrets** (Workshop only, the owner only): station health in words; asks

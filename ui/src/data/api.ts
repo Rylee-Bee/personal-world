@@ -79,6 +79,7 @@ import type {
   RoomsResume,
   CrewEntry,
   RoomKeeper,
+  RoomActionReceipt,
 } from "./contract";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -582,6 +583,44 @@ export const postNeedSeen = (roomId: string, needId: string) =>
       {},
     ),
   );
+
+function asReceipt(value: unknown): RoomActionReceipt | null {
+  if (!value || typeof value !== "object") return null;
+  const r = value as Partial<RoomActionReceipt>;
+  if (typeof r.ok !== "boolean" || typeof r.summary !== "string") return null;
+  return {
+    action_id: typeof r.action_id === "string" ? r.action_id : "",
+    ok: r.ok,
+    summary: r.summary,
+    changed: Array.isArray(r.changed) ? r.changed.filter((c) => typeof c === "string") : [],
+    at: typeof r.at === "string" ? r.at : null,
+  };
+}
+
+// POST /api/rooms/{id}/actions/{action_id}: one room/0 action, passed
+// through with a fresh Idempotency-Key. The room's receipt comes back
+// even for refusals (403/404/409 carry it too), so a refusal is an
+// answer, not an error. Anything without a receipt throws.
+export async function postRoomAction(
+  roomId: string,
+  actionId: string,
+  body: object,
+  idempotencyKey: string,
+): Promise<RoomActionReceipt> {
+  const call = api.POST as (
+    p: string,
+    o: { body: unknown; headers: Record<string, string> },
+  ) => Promise<FetchResult>;
+  const result = await call(
+    `/api/rooms/${encodeURIComponent(roomId)}/actions/${encodeURIComponent(actionId)}`,
+    { body, headers: { "Idempotency-Key": idempotencyKey } },
+  );
+  const envelope = (result.data ?? result.error) as { data?: unknown } | undefined;
+  const receipt = asReceipt(envelope?.data);
+  if (receipt) return receipt;
+  await unwrap<unknown>(Promise.resolve(result));
+  throw new ApiError(result.response.status, "The room answered without a receipt.");
+}
 
 // GET /api/crew: this person's own companions, hidden ones included.
 export const getCrew = () => unwrap<Envelope<CrewEntry[]>>(getRequest("/api/crew"));

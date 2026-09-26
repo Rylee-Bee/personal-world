@@ -8,7 +8,7 @@
  * with 44px targets, and decorative art that only appears in its theme.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, within, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, within, fireEvent, act } from "@testing-library/react";
 
 const { hookState } = vi.hoisted(() => ({
   hookState: {
@@ -21,6 +21,7 @@ const { hookState } = vi.hoisted(() => ({
     },
     visit: vi.fn(),
     markSeen: vi.fn(),
+    roomAction: vi.fn(),
     secrets: {
       isPending: false,
       isError: false,
@@ -34,6 +35,7 @@ vi.mock("../data/hooks", () => ({
   useRooms: () => hookState.rooms,
   useVisitRoom: () => ({ mutate: hookState.visit }),
   useSecretsOverview: () => hookState.secrets,
+  useRoomAction: () => ({ mutate: hookState.roomAction }),
   useMarkNeedSeen: () => ({
     mutate: hookState.markSeen,
     isPending: false,
@@ -712,3 +714,98 @@ describe("RoomDrawer", () => {
     });
   });
 });
+
+describe("Approving from Worlds (Spec-Approve)", () => {
+  const APPROVAL = {
+    ...WORKSHOP,
+    needs_you: [
+      {
+        id: "approval:a1",
+        title: "Bolt's icon changes",
+        why: "6 files.",
+        actions: ["approve", "decline"],
+        created_at: "2026-09-25T09:00:00Z",
+      },
+      {
+        id: "plain",
+        title: "Something else",
+        why: "",
+        actions: [],
+        created_at: "2026-09-25T09:00:00Z",
+      },
+    ],
+  };
+
+  type Callbacks = { onSuccess: (r: unknown) => void; onError: (e: unknown) => void };
+  function openDrawer() {
+    setRooms([APPROVAL]);
+    render(<RoomsPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Look inside Workshop" }));
+    return screen.getByRole("dialog", { name: "Workshop" });
+  }
+
+  it("offers Approve or decline only on a need the room can decide here", () => {
+    const drawer = openDrawer();
+    expect(within(drawer).getAllByRole("button", { name: /^Approve or decline/ })).toHaveLength(1);
+    expect(within(drawer).getByRole("button", { name: "Approve or decline “Bolt's icon changes”" })).toBeInTheDocument();
+  });
+
+  it("starts the review on Not now, and Not now sends nothing", () => {
+    hookState.roomAction.mockClear();
+    const drawer = openDrawer();
+    fireEvent.click(within(drawer).getByRole("button", { name: /^Approve or decline/ }));
+    const notNow = within(drawer).getByRole("button", { name: "Not now" });
+    expect(notNow).toHaveFocus();
+    expect(within(drawer).getByRole("group", { name: "Approve “Bolt's icon changes”?" })).toBeInTheDocument();
+    fireEvent.click(notNow);
+    expect(hookState.roomAction).not.toHaveBeenCalled();
+    expect(within(drawer).getByRole("button", { name: /^Approve or decline/ })).toHaveFocus();
+  });
+
+  it("says Approving… until the receipt, and Approved only from the receipt", () => {
+    hookState.roomAction.mockClear();
+    const drawer = openDrawer();
+    fireEvent.click(within(drawer).getByRole("button", { name: /^Approve or decline/ }));
+    fireEvent.click(within(drawer).getByRole("button", { name: "Approve" }));
+    const [vars, cb] = hookState.roomAction.mock.calls[0] as [Record<string, unknown>, Callbacks];
+    expect(vars).toMatchObject({ roomId: "workshop", actionId: "approve", body: { approval_id: "a1" } });
+    expect(typeof vars.key).toBe("string");
+    expect(within(drawer).getByText("Approving…")).toBeInTheDocument();
+    expect(within(drawer).queryByText("Approved")).toBeNull();
+    act(() =>
+      cb.onSuccess({ action_id: "approve", ok: true, summary: "Approved: Bolt's icon changes.", changed: [], at: "2026-09-25T19:44:00Z" }),
+    );
+    expect(within(drawer).getByText("Approved")).toHaveFocus();
+    expect(within(drawer).getByText("Approved: Bolt's icon changes.")).toBeInTheDocument();
+    expect(within(drawer).queryByText("Bolt's icon changes")).toBeNull();
+  });
+
+  it("says Nothing changed with the room's reason on a refusal, and can review again", () => {
+    hookState.roomAction.mockClear();
+    const drawer = openDrawer();
+    fireEvent.click(within(drawer).getByRole("button", { name: /^Approve or decline/ }));
+    fireEvent.click(within(drawer).getByRole("button", { name: "Decline" }));
+    const [vars, cb] = hookState.roomAction.mock.calls[0] as [Record<string, unknown>, Callbacks];
+    expect(vars.actionId).toBe("decline");
+    expect(within(drawer).getByText("Declining…")).toBeInTheDocument();
+    act(() =>
+      cb.onSuccess({ action_id: "decline", ok: false, summary: "That request isn't here any more.", changed: [], at: null }),
+    );
+    expect(within(drawer).getByRole("alert")).toHaveTextContent("Nothing changed");
+    expect(within(drawer).getByText("That request isn't here any more.")).toBeInTheDocument();
+    fireEvent.click(within(drawer).getByRole("button", { name: "Review again" }));
+    expect(within(drawer).getByRole("button", { name: "Not now" })).toHaveFocus();
+  });
+
+  it("never claims success when Worlds can't be reached", () => {
+    hookState.roomAction.mockClear();
+    const drawer = openDrawer();
+    fireEvent.click(within(drawer).getByRole("button", { name: /^Approve or decline/ }));
+    fireEvent.click(within(drawer).getByRole("button", { name: "Approve" }));
+    const [, cb] = hookState.roomAction.mock.calls[0] as [unknown, Callbacks];
+    act(() => cb.onError(new Error("offline")));
+    expect(within(drawer).getByRole("alert")).toHaveTextContent("Nothing changed");
+    expect(within(drawer).queryByText("Approved")).toBeNull();
+  });
+});
+
