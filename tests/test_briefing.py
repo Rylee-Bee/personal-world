@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from personal_world import crew  # noqa: E402
 from personal_world.briefing import SYSTEM_IDS, build_briefing  # noqa: E402
 from personal_world.briefing_voice import resident_line  # noqa: E402
 from personal_world.envelope import ok  # noqa: E402
@@ -562,7 +563,11 @@ class TestFlagsAndMood:
         assert [s["id"] for s in data["systems"]] == [
             "agents", "estate", "records", "interests", "news", "threads",
         ]
-        assert data["keeper"]["resident"]["key"] == "personal-world"
+        # No prefs/crew confirms no companion: the Keeper credits Worlds,
+        # never the legacy Sol key (owner canon 2026-09-25).
+        assert data["keeper"]["resident"] == {
+            "key": None, "name": "Worlds", "portrait": None,
+        }
         assert data["keeper"]["greeting"] in {
             "Good morning", "Good afternoon", "Good evening", "Hello",
         }
@@ -599,6 +604,191 @@ class TestKeeperVoice:
         ]}
         brief = _brief(project_home=_ph(snapshot))
         assert brief["data"]["arrivals"] and len(brief["data"]["arrivals"]) == 5
+
+
+# ── who is credited (owner decisions 2026-09-26; presentation only) ──
+def _state(entries=None):
+    """A crew registry state as ``crew.read_crew`` serves it."""
+    return {
+        "crew": crew.starter_entries() if entries is None else entries,
+        "keepers": {},
+    }
+
+
+RENAI_PORTRAIT = "/assets/crew/512/renai-hello.webp"
+SCOOP_PORTRAIT = "/assets/crew/512/scoop-portrait.webp"
+ASSISTANT = {
+    "key": "assistant",
+    "name": "Assistant",
+    "portrait": "/assets/crew/assistant.svg",
+}
+WORLDS = {"key": None, "name": "Worlds", "portrait": None}
+
+
+def _keeper(brief):
+    return brief["data"]["keeper"]["resident"]
+
+
+class TestKeeperResident:
+    """Slice 1: the briefing is spoken by the person's chosen companion."""
+
+    def test_pack_off_is_worlds(self):
+        brief = _brief(
+            crew_state=_state(), pref_values={"personality_pack": "off"}
+        )
+        assert _keeper(brief) == WORLDS
+
+    def test_pack_on_without_a_companion_is_the_assistant(self):
+        brief = _brief(
+            crew_state=_state(), pref_values={"personality_pack": "residents"}
+        )
+        assert _keeper(brief) == ASSISTANT
+
+    def test_a_chosen_companion_is_credited(self):
+        brief = _brief(
+            crew_state=_state(),
+            pref_values={"personality_pack": "residents", "companion_id": "renai"},
+        )
+        assert _keeper(brief) == {
+            "key": "renai", "name": "Renai", "portrait": RENAI_PORTRAIT,
+        }
+
+    def test_a_renamed_companion_is_credited_by_its_new_name(self):
+        state = _state()
+        crew.find(state, "bolt")["name"] = "Bench"
+        brief = _brief(
+            crew_state=state,
+            pref_values={"personality_pack": "residents", "companion_id": "bolt"},
+        )
+        assert _keeper(brief)["name"] == "Bench"
+        assert _keeper(brief)["key"] == "bolt"
+
+    def test_legacy_companion_enum_migrates_to_the_crew_id(self):
+        # No companion_id: the stored old `companion` enum resolves through
+        # the canon map exactly as voice.resolve_voice does.
+        brief = _brief(
+            crew_state=_state(),
+            pref_values={"personality_pack": "residents", "companion": "mermaid"},
+        )
+        assert _keeper(brief)["key"] == "renai"
+
+    def test_a_hidden_companion_is_the_assistant(self):
+        state = _state()
+        crew.find(state, "bolt")["hidden"] = True
+        brief = _brief(
+            crew_state=state,
+            pref_values={"personality_pack": "residents", "companion_id": "bolt"},
+        )
+        assert _keeper(brief) == ASSISTANT
+
+    def test_a_deleted_companion_is_the_assistant(self):
+        state = _state()
+        entry = crew.add(state, name="Nova")
+        chosen = {
+            "personality_pack": "residents",
+            "companion_id": entry["id"],
+        }
+        assert _keeper(_brief(crew_state=state, pref_values=chosen))["key"] == "nova"
+        crew.remove(state, entry["id"])
+        # The preference still names the gone companion: fail safe.
+        assert _keeper(_brief(crew_state=state, pref_values=chosen)) == ASSISTANT
+
+    def test_an_unknown_companion_is_the_assistant(self):
+        brief = _brief(
+            crew_state=_state(),
+            pref_values={"personality_pack": "residents", "companion_id": "ghost"},
+        )
+        assert _keeper(brief) == ASSISTANT
+
+    def test_personal_world_is_never_emitted(self):
+        # Sol is the Worlds mark and has no voice: even a hand-edited pref
+        # naming her legacy key keeps the one plain voice (Assistant).
+        for pref in (
+            {"personality_pack": "residents", "companion_id": "personal-world"},
+            {"personality_pack": "residents", "companion": "personal-world"},
+        ):
+            brief = _brief(crew_state=_state(), pref_values=pref)
+            assert _keeper(brief) != {
+                "key": "personal-world", "name": "Personal World",
+                "portrait": "/assets/characters/personal-world.png",
+            }
+            assert _keeper(brief)["key"] != "personal-world"
+            assert _keeper(brief) == ASSISTANT
+
+    def test_a_missing_crew_read_confirms_nobody(self):
+        # crew_state=None means the roster could not be read: the honest
+        # fallback, never an invented companion.
+        brief = _brief(
+            crew_state=None, pref_values={"personality_pack": "residents"}
+        )
+        assert _keeper(brief) == ASSISTANT
+
+    def test_the_keeper_line_text_is_unchanged(self):
+        # Only who is credited changes; the honest line template is fixed.
+        base = _brief(pref_values={"personality_pack": "off"}, crew_state=_state())
+        chosen = _brief(
+            crew_state=_state(),
+            pref_values={"personality_pack": "residents", "companion_id": "renai"},
+        )
+        assert base["data"]["keeper"]["line"] == chosen["data"]["keeper"]["line"]
+        assert base["data"]["keeper"]["mood"] == chosen["data"]["keeper"]["mood"]
+
+
+class TestSystemResidents:
+    """Slice 2: each system's resident follows the person's crew."""
+
+    def _resident(self, brief, system_id):
+        return _system(brief, system_id)["resident"]
+
+    def test_news_resident_is_scoop(self):
+        # Canon display name is Scoop (was "Burrito Journalism").
+        resident = self._resident(_brief(crew_state=_state()), "news")
+        assert resident == {
+            "key": "scoop", "name": "Scoop", "portrait": SCOOP_PORTRAIT,
+        }
+
+    def test_every_system_uses_its_canon_starter(self):
+        brief = _brief(crew_state=_state())
+        for system_id, companion_id in crew.SYSTEM_RESIDENT.items():
+            resident = self._resident(brief, system_id)
+            assert resident is not None, system_id
+            assert resident["key"] == companion_id
+
+    def test_a_renamed_starter_is_credited_by_its_new_name(self):
+        state = _state()
+        crew.find(state, "mira")["name"] = "Lookout"
+        resident = self._resident(_brief(crew_state=state), "interests")
+        assert resident["key"] == "mira"
+        assert resident["name"] == "Lookout"
+
+    def test_a_hidden_starter_reads_null(self):
+        state = _state()
+        crew.find(state, "scoop")["hidden"] = True
+        assert self._resident(_brief(crew_state=state), "news") is None
+
+    def test_a_deleted_starter_reads_null(self):
+        entries = [
+            e for e in crew.starter_entries() if e["id"] != "scoop"
+        ]
+        brief = _brief(crew_state={"crew": entries, "keepers": {}})
+        assert self._resident(brief, "news") is None
+
+    def test_a_missing_crew_read_credits_nobody(self):
+        # Never invent one: no crew means the plain emblem on every deck.
+        brief = _brief(crew_state=None)
+        assert all(
+            _system(brief, sid)["resident"] is None for sid in SYSTEM_IDS
+        )
+
+    def test_residents_are_presentation_only_status_voice_unchanged(self):
+        without = _brief()
+        with_crew = _brief(crew_state=_state())
+        for sid in SYSTEM_IDS:
+            a, b = _system(without, sid), _system(with_crew, sid)
+            assert a["status"] == b["status"]
+            assert a["voice"] == b["voice"]
+            assert a["counts"] == b["counts"]
+            assert a["items"] == b["items"]
 
 
 # ── routes ───────────────────────────────────────────────────────────
@@ -725,6 +915,140 @@ class TestAgentRefused:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert r.status_code == 403
+
+
+class TestBriefingResidentRoutes:
+    """The route resolves who is credited per caller, end to end."""
+
+    def _briefing(self, client, token=None):
+        headers = {"Authorization": f"Bearer {token}"} if token else AUTH
+        r = client.get("/api/briefing", headers=headers)
+        assert r.status_code == 200, r.text
+        return r.json()["data"]
+
+    def _set_prefs(self, client, **body):
+        r = client.put("/api/prefs", json=body, headers=AUTH)
+        assert r.status_code == 200, r.text
+
+    def test_default_route_credits_the_assistant_and_scoop(self, client):
+        data = self._briefing(client)
+        # Default prefs: pack on, no companion_id -> the Assistant.
+        assert data["keeper"]["resident"] == ASSISTANT
+        assert _system({"data": data}, "news")["resident"]["name"] == "Scoop"
+
+    def test_pack_off_route_shows_worlds(self, client):
+        self._set_prefs(client, personality_pack="off")
+        assert self._briefing(client)["keeper"]["resident"] == WORLDS
+
+    def test_chosen_companion_route_is_credited(self, client):
+        self._set_prefs(
+            client, personality_pack="residents", companion_id="renai"
+        )
+        resident = self._briefing(client)["keeper"]["resident"]
+        assert resident == {
+            "key": "renai", "name": "Renai", "portrait": RENAI_PORTRAIT,
+        }
+
+    def test_a_rename_reaches_the_briefing(self, client):
+        r = client.patch(
+            "/api/crew/bolt", json={"name": "Bench"}, headers=AUTH
+        )
+        assert r.status_code == 200, r.text
+        data = self._briefing(client)
+        assert _system({"data": data}, "agents")["resident"]["name"] == "Bench"
+
+    def test_a_hidden_starter_reads_null_on_the_route(self, client):
+        r = client.patch(
+            "/api/crew/scoop", json={"hidden": True}, headers=AUTH
+        )
+        assert r.status_code == 200, r.text
+        assert _system({"data": self._briefing(client)}, "news")["resident"] is None
+
+    def test_a_hidden_chosen_companion_falls_back_to_the_assistant(self, client):
+        self._set_prefs(
+            client, personality_pack="residents", companion_id="renai"
+        )
+        client.patch("/api/crew/renai", json={"hidden": True}, headers=AUTH)
+        assert self._briefing(client)["keeper"]["resident"] == ASSISTANT
+
+    def test_the_route_never_emits_personal_world(self, client):
+        # Sol is not a crew entry: her legacy key cannot even be stored as
+        # a companion_id (the roster is the vocabulary).
+        refused = client.put(
+            "/api/prefs",
+            json={"personality_pack": "residents",
+                  "companion_id": "personal-world"},
+            headers=AUTH,
+        )
+        assert refused.status_code == 422
+        # The old `companion` enum is still readable, but it names no
+        # companion — the route credits the Assistant, never Sol.
+        self._set_prefs(
+            client, personality_pack="residents", companion="personal-world"
+        )
+        assert self._briefing(client)["keeper"]["resident"] == ASSISTANT
+
+    def test_crediting_never_moves_a_status(self, client):
+        before = self._briefing(client)
+        self._set_prefs(
+            client, personality_pack="residents", companion_id="renai"
+        )
+        client.patch("/api/crew/scoop", json={"hidden": True}, headers=AUTH)
+        after = self._briefing(client)
+        for sid in SYSTEM_IDS:
+            assert _system({"data": before}, sid)["status"] == (
+                _system({"data": after}, sid)["status"]
+            )
+            assert _system({"data": before}, sid)["voice"] == (
+                _system({"data": after}, sid)["voice"]
+            )
+
+
+class TestResidentPrincipalIsolation:
+    """Two people, two crews: the briefing credits each their own."""
+
+    def _two_people(self, tmp_path, monkeypatch):
+        from personal_world.api import create_app
+        from personal_world.init import init_world
+
+        monkeypatch.setenv("PW_API_TOKEN", "instancetoken")
+        monkeypatch.setenv("PW_IDENTITY_MODE", "multi")
+        monkeypatch.setenv("PW_DATA_DIR", str(tmp_path))
+        monkeypatch.setenv("PW_CONFIG_DIR", str(tmp_path))
+        monkeypatch.setenv("PW_LAB_CLI", "/nonexistent/lab")
+        init_world(tmp_path, tmp_path)
+        (tmp_path / "setup-complete").write_text("ok")
+        c = TestClient(create_app(tmp_path, tmp_path))
+        r = c.post(
+            "/api/identity/users",
+            json={"user_id": "beta", "display_name": "Beta"},
+            headers={**AUTH, "X-PW-StepUp": "1"},
+        )
+        assert r.status_code == 200, r.text
+        return c, r.json()["data"]["token"]
+
+    def test_one_persons_companion_never_speaks_for_another(
+        self, tmp_path, monkeypatch
+    ):
+        client, beta = self._two_people(tmp_path, monkeypatch)
+        # Alpha chooses Renai and hides Scoop.
+        assert client.put(
+            "/api/prefs",
+            json={"personality_pack": "residents", "companion_id": "renai"},
+            headers=AUTH,
+        ).status_code == 200
+        client.patch("/api/crew/scoop", json={"hidden": True}, headers=AUTH)
+
+        alpha = client.get("/api/briefing", headers=AUTH).json()["data"]
+        assert alpha["keeper"]["resident"]["key"] == "renai"
+        assert _system({"data": alpha}, "news")["resident"] is None
+
+        # Beta still has the default Assistant and a visible Scoop.
+        b = client.get(
+            "/api/briefing", headers={"Authorization": f"Bearer {beta}"}
+        ).json()["data"]
+        assert b["keeper"]["resident"] == ASSISTANT
+        assert _system({"data": b}, "news")["resident"]["key"] == "scoop"
 
 
 class TestKnownSystems:

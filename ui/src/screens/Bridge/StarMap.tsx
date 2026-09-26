@@ -52,14 +52,18 @@ export function StarMap({ keeper, systems, selectedId, onSelect, statusWord }: S
         <ellipse cx="50" cy="50" rx="38" ry="38" />
       </svg>
 
-      {/* The Keeper — the one voice of the briefing. */}
+      {/* The Keeper — the one voice of the briefing. Worlds has no
+          portrait (the pack is off): the plain emblem, never a borrowed
+          face. */}
       <div className="starmap__keeper">
-        <img
-          src={publicAsset(keeper.resident.portrait)}
-          alt=""
-          aria-hidden="true"
-          className="starmap__globe"
-        />
+        {keeper.resident.portrait !== null && (
+          <img
+            src={publicAsset(keeper.resident.portrait)}
+            alt=""
+            aria-hidden="true"
+            className="starmap__globe"
+          />
+        )}
         <p className="starmap__speech" aria-live="polite" aria-atomic="true">
           {greeting && <span className="starmap__greeting">{greeting} </span>}
           <span>{keeper.line}</span>
@@ -74,6 +78,12 @@ export function StarMap({ keeper, systems, selectedId, onSelect, statusWord }: S
           const active = system.id === selectedId;
           const dim = DIM_STATUSES.has(system.status);
           const lit = system.counts.arrivals > 0 || system.counts.have_tos > 0;
+          const resident = system.resident;
+          // A hidden/gone companion is credited to no one: the label names
+          // the system alone and the deck shows its plain emblem.
+          const label = resident
+            ? `${system.name} — ${resident.name} — ${word}, ${system.counts.arrivals} new, ${system.counts.have_tos} need you`
+            : `${system.name} — ${word}, ${system.counts.arrivals} new, ${system.counts.have_tos} need you`;
           return (
             <li
               key={system.id}
@@ -84,19 +94,21 @@ export function StarMap({ keeper, systems, selectedId, onSelect, statusWord }: S
                 type="button"
                 onClick={() => onSelect(system.id)}
                 aria-current={active ? "true" : undefined}
-                aria-label={`${system.name} — ${system.resident.name} — ${word}, ${system.counts.arrivals} new, ${system.counts.have_tos} need you`}
+                aria-label={label}
                 className="starmap__deck"
                 data-active={active || undefined}
                 data-dim={dim || undefined}
                 data-lit={lit || undefined}
                 style={{ ["--bob-delay" as string]: `${index * -0.9}s` }}
               >
-                <img
-                  src={publicAsset(system.resident.portrait)}
-                  alt=""
-                  aria-hidden="true"
-                  className="starmap__figure"
-                />
+                {resident?.portrait != null && (
+                  <img
+                    src={publicAsset(resident.portrait)}
+                    alt=""
+                    aria-hidden="true"
+                    className="starmap__figure"
+                  />
+                )}
                 <span className="starmap__base" aria-hidden="true" />
                 <span className="starmap__name" aria-hidden="true">
                   {system.name}
