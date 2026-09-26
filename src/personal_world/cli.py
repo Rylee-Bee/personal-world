@@ -702,7 +702,7 @@ def main(argv: list[str] | None = None) -> int:
     prefs_p = add(
         "prefs",
         cmd_prefs,
-        help="presentation preferences (accessibility floor enforced)",
+        help="presentation preferences (minimum accessibility settings enforced)",
     )
     prefs_sub = prefs_p.add_subparsers(dest="prefs_cmd", required=True)
     prefs_show = prefs_sub.add_parser("show", help="effective preferences")

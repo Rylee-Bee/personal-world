@@ -558,7 +558,7 @@ class Ctx:
                 "denied",
                 warnings=[
                     f"{STEP_UP_ENV} was rejected: it does not resolve to a "
-                    "principal through the identity seam"
+                    "principal through identity resolution"
                 ],
                 data={"mutated": False},
             )
@@ -1917,7 +1917,7 @@ ACTIONS: tuple[Action, ...] = (
         verb="set",
         ids=("API-030-put",),
         person_only=True,
-        help="file a preference change (propose by default; accessibility floor enforced)",
+        help="file a preference change (propose by default; minimum accessibility settings enforced)",
         run=_prefs_set,
         args=(
             A("key", help="preference key (see `do prefs schema`)"),
@@ -2576,7 +2576,7 @@ def register_cli_dispatch(subparsers: Any) -> None:
             "Generic authenticated call against the local backend. Any row "
             "of `personal-world api-manifest` is reachable through here, so "
             "a capability with no friendly wrapper is never out of reach. "
-            "Prints the backend's own JSON envelope; honest HTTP statuses; "
+            "Prints the backend's own JSON envelope and HTTP status; "
             f"exit codes: {EXIT_OK} ok, {EXIT_USAGE} usage, "
             f"{EXIT_UNAVAILABLE} unreachable/not configured, "
             f"{EXIT_NEEDS_APPROVAL} denied, {EXIT_ERROR} error."

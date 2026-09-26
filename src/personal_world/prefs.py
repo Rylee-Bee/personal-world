@@ -67,7 +67,7 @@ class EnumPref:
             )
         if self.allowed.index(value) < self.allowed.index(self.floor):
             raise PrefsValueError(
-                f"{self.key}: {value!r} is below the accessibility floor "
+                f"{self.key}: {value!r} is below the minimum allowed value "
                 f"({self.floor!r})"
             )
         return value
@@ -92,7 +92,7 @@ class NumberPref:
         num = float(value)
         if num < self.floor:
             raise PrefsValueError(
-                f"{self.key}: {value!r} is below the accessibility floor "
+                f"{self.key}: {value!r} is below the minimum allowed value "
                 f"({self.floor:g})"
             )
         if self.allowed is not None and num not in self.allowed:

@@ -173,8 +173,8 @@ def app_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
     allowlist = build_allowlist(root)
     if not allowlist:
         _logger.warning(
-            "interface build not installed (%s); / will report it "
-            "honestly instead of serving",
+            "interface build not installed (%s); / will report that "
+            "instead of serving the app",
             root.name or "unset",
         )
 

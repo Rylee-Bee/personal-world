@@ -181,7 +181,7 @@ class TestBuildChatMessagesTone:
         system = msgs[0]["content"]
         assert "Tone register: concise." in system
         assert system.index("Tone register: concise.") < system.index(
-            "You are the Project Worlds assistant"
+            "You are the Worlds assistant"
         )
         # The floor survives every tone: truth rule + status vocabulary.
         assert "ONLY the context block below" in system
@@ -190,7 +190,7 @@ class TestBuildChatMessagesTone:
     def test_no_tone_means_no_block_and_floor_intact(self):
         system = build_chat_messages("hi", "ctx")[0]["content"]
         assert "Tone register:" not in system
-        assert "You are the Project Worlds assistant" in system
+        assert "You are the Worlds assistant" in system
 
     def test_unknown_tone_adds_nothing(self):
         system = build_chat_messages("hi", "ctx", tone="bogus")[0]["content"]
@@ -293,7 +293,7 @@ class TestChatEndpointVoice:
         # The kept residents path still works, unchanged, behind the flag.
         assert "You speak as Mermaid" in system
         # …and the truth floor still leads/anchors it.
-        assert "You are the Project Worlds assistant" in system
+        assert "You are the Worlds assistant" in system
         assert "Tone register: warm." in system
 
     def test_pack_off_again_removes_the_persona(self, chat_client):

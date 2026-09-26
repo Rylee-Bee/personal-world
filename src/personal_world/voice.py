@@ -100,14 +100,14 @@ _TONE_INSTRUCTIONS: dict[str, str] = {
 
 _TRUTH_SENTENCE = (
     " This tone changes phrasing only: facts, statuses, and uncertainty "
-    "stay exact, degraded and unavailable states are still labeled "
-    "honestly, and the truth rules below are unchanged."
+    "stay exact, degraded and unavailable states are still labeled as such, "
+    "and the accuracy rules below are unchanged."
 )
 
 _COMPANION_TRUTH_SENTENCE = (
     " This companion changes phrasing only: facts, statuses, and uncertainty "
-    "stay exact, degraded and unavailable states are still labeled honestly, "
-    "and the truth rules below are unchanged."
+    "stay exact, degraded and unavailable states are still labeled as such, "
+    "and the accuracy rules below are unchanged."
 )
 
 

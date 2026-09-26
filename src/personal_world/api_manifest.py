@@ -272,7 +272,7 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     _e("API-008", "GET", "/api/journal/history", "journal", "read", "none"),
     _e("API-084", "GET", "/api/journal/last", "journal", "read", "none",
        note="newest CURRENT entry (calm-view tail) for the daily home "
-            "loop's thread deep-link; honest null when empty; person "
+            "loop's thread deep-link; null when empty; person "
             "principals only"),
     # Worlds briefing / place continuity (contract: worlds-briefing/1).
     _e("API-085", "GET", "/api/briefing", "briefing", "read", "none",
@@ -297,10 +297,10 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "runtime from Project Home's registry when PW_ROOMS_REGISTRY_URL "
             "is set (cached 60 s, last-known-good persisted, env fallback) "
             "and a sibling `registry` states its source/status; a room "
-            "whose contract this front door does not support is "
+            "whose contract Worlds does not support is "
             "`incompatible`, never healthy, with its cards/needs uncounted; "
             "each row carries an optional `public_url` (a registry entry's "
-            "browser-reachable http(s) address, no userinfo) or an honest "
+            "browser-reachable http(s) address, no userinfo) or "
             "null when absent/invalid. A registry room may opt in to "
             "per-person forwarding (`forward_principal`, with its own "
             "token): its cards/needs are then fetched and cached 15 s per "
@@ -335,7 +335,7 @@ ENDPOINTS: tuple[Endpoint, ...] = (
        note="pass one room/0 action through to its room and return the "
             "room's own receipt ({action_id, ok, summary, changed, at}) "
             "with HTTP 200 whatever the room's status; a room that cannot "
-            "answer yields an honest ok:false 'nothing changed' receipt, "
+            "answer yields an ok:false 'nothing changed' receipt, "
             "never a 500. Owner-only for writes: the room's own GET "
             "/room/actions list (cached 60 s per room) decides whether the "
             "action exists (404 otherwise) and whether it writes (a write "
@@ -366,7 +366,7 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     _e("API-089", "GET", "/api/crew", "crew", "read", "none",
        note="the caller's own crew (private, per principal), "
             "starter-seeded on first read; includes hidden entries so "
-            "the front door decides what to filter"),
+            "Worlds decides what to filter"),
     _e("API-089-create", "POST", "/api/crew", "crew", "write", "none",
        note="{name, blurb?, voice_label?} → source 'user', id = a unique "
             "slug of the name; strings only, name ≤ 60 / blurb ≤ 280 / "
