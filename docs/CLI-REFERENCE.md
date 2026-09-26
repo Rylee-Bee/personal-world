@@ -1,6 +1,10 @@
 # CLI reference
 
-Project Worlds has one CLI surface, bound to one source of truth.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the `personal-world` CLI surface and its wrappers · **Read this if:** you want to call the API from a script or bot without thinking about routes.
+
+**In short:** the CLI's three commands (`api-manifest`, `api`, `do`), the friendly `do` wrappers, and the write-safety and exit-code rules. Every wrapper derives from the same route table the API serves, so it cannot drift.
+
+Worlds has one CLI surface, bound to one source of truth.
 Decision #19: *everything the product can do has a simple CLI wrapper
 and an API route, and both derive from the same table* — so a small agent
 or bot does not have to think, it just files things the right way.
@@ -14,7 +18,7 @@ restated. A binding check runs at import, so the map cannot silently drift.
 
 | Command | What it does |
 |---|---|
-| `personal-world api-manifest` | The bot's map: 110 curated endpoints, each with its gate and the shell command that files it, plus explicit coverage counts. |
+| `personal-world api-manifest` | The bot's map: 134 curated endpoints (as of 2026-09-26), each with its gate and the shell command that files it, plus explicit coverage counts. |
 | `personal-world api <METHOD> <path>` | The generic authenticated escape hatch against a running local backend. Any row of the map is callable. |
 | `personal-world do <noun> <verb>` | The friendly wrappers — one verb per action. Bare `do` prints the table below. |
 
@@ -67,9 +71,9 @@ pins its exact shape).
 
 ## Coverage
 
-- 34/110 curated rows have a friendly wrapper.
-- 13 live rows are uncurated (reachable through `personal-world api`).
-- The map reports this itself (`data.cli.coverage`); it does not imply completeness.
+- 34/134 curated rows have a friendly wrapper (as of 2026-09-26); the count in the table above is the wrappers themselves.
+- 19 live rows are uncurated (reachable through `personal-world api`).
+- The map reports this itself (`data.cli.coverage`); it does not imply completeness. Re-run `personal-world api-manifest` for today's numbers.
 
 ## Write safety
 

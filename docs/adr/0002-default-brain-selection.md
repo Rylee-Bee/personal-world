@@ -1,5 +1,9 @@
 # Small Model Decision — Project Worlds
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** which small local model Worlds defaults to, and why · **Read this if:** you are changing the default brain, the fallback, or the `reasoning` provider.
+
+**In short:** the default small brain is **Qwen3 1.7B Q4_K_M**, with **LFM2.5 2.6B Q4_K_M** as fallback — chosen from a 14-task, CPU-only pass on 2026-09-13. The brain is wired through the optional `reasoning` capability; it helps the world operate without ever having write access to world state.
+
 Date: 2026-09-13
 Benchmark commit: 78e3fb0
 
@@ -51,6 +55,6 @@ The brain helps the world operate without becoming the world. It does not have w
 
 ## Files
 
-- Quick-final results: `bench/finals/runs/quick-worlds-qwen3-1.7b-*.jsonl`
-- Decision packet: `bench/finals/DECISION-PACKET.md`
+- Quick-final results: `bench/finals/runs/quick-worlds-qwen3-1.7b-*.jsonl` — **(UNVERIFIED 2026-09-26: no `bench/` directory exists in this repo today; the raw run files are not tracked here)**
+- Decision packet: `bench/finals/DECISION-PACKET.md` — same; not present in the repo
 - This document: `docs/adr/0002-default-brain-selection.md`

@@ -1,5 +1,11 @@
 # ADR-0007: Secrets = Worlds Vault → OpenBao → scoped temporary credential
 
+> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** the brokered-secrets direction (proposed, review-only) · **Read this if:** you are touching Vault, SOPS/OpenBao, or how tasks receive credentials.
+
+**Scope note:** proposed and review-only. `.project/PLAN.md` wins on scope and sequencing.
+
+**In short:** proposed, not accepted. If accepted, Worlds stays the user-facing secret experience (policy, step-up, audit) while OpenBao/SOPS provide the mechanics and tasks get short-lived scoped credentials instead of the master secret. Today there is no OpenBao adapter; the native Fernet Vault and the SOPS read-through adapter are what exist.
+
 - Status: **proposed** (review-only per owner D22; not yet accepted)
 - Date: 2026-09-21
 - Supersedes: none (upgrades the existing "SOPS/OpenBao remain target work" note into a decided direction)

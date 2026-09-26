@@ -1,5 +1,10 @@
 # Worlds — Screen Reader Walkthrough
 
+> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** what a screen reader hears in the Worlds interface · **Read this if:** you use a screen reader, or you are changing labels, landmarks or focus in `ui/`.
+
+**In short:** a walk through every screen as a screen reader announces it,
+using the real labels from the code.
+
 This walkthrough describes the current Worlds interface in `ui/` (the React
 app that became the interface on 2026-09-22), at `main` `d9e9546` plus
 "Ask about … in Chat" (#106) and "Find a room" (#107). It replaces the

@@ -1,5 +1,9 @@
 # Companion Canon — names, roles, and the id mapping
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** companion display names, roles, and the id mapping (station id ↔ server key ↔ crew id) · **Read this if:** you are naming a companion in copy, or mapping a legacy key to a crew id.
+
+**In short:** the human-readable name, role, and machine identifiers for each resident — and the rule that display names are canon for people while ids are canon for the code. Some historical evidence and open questions below are kept as records; the crew-id table in §2 is what the current code reads.
+
 **Status:** Canonical for companion **display names** (owner-stated, 2026-09-17).
 Not a replacement for `design/COMPANION_INTEGRATION.md` (design/art authority),
 `docs/accessibility/ACCESSIBILITY_CONTRACT.md` (accessibility), or
@@ -71,11 +75,12 @@ stylized bed icon in the crew icon language
 
 ## 2. Server key ↔ station name mapping
 
-Evidence: `design/opendesign-exploration/station/real-data.js` L94–99,
-`design/opendesign-exploration/station/station.js` L30–35,
-`design/opendesign-exploration/station/settings.html` L371–376
-(the Station's "Your companion" control), and
-`src/personal_world/prefs.py` L134–142 (the server `COMPANION` preference).
+Evidence: the retired Station's "Your companion" control and
+`src/personal_world/prefs.py` (the server companion preference and
+`LEGACY_COMPANION_IDS`). **(UNVERIFIED 2026-09-26: the cited
+`design/opendesign-exploration/station/*` files were removed with the
+Station; the mapping below is retained because the ids are unchanged, and
+the crew-id table is what the current code reads.)**
 
 | Station value (browser) | Server value (`prefs.py`) | Binding | Notes |
 |---|---|---|---|
@@ -134,7 +139,8 @@ keeps its own value). The mapping above is the translation, not a live sync.
   Renai (id `mermaid`) is the personal companion / operator theme. Do not use
   "Mermaid" as her name in human-facing copy — it is the artwork form and the id.
 - **"Personal World" is overloaded.** It is both the resident and the product's
-  former name (renamed *Project Worlds* 2026-09-12). The resident keeps the name;
+  former name — the product is now **Worlds** (it went "Personal World" →
+  *Project Worlds*, 2026-09-12 → **Worlds**). The resident keeps the name;
   the product does not.
 - **Ratatoskr is the squirrel, not the tree.** Do not address the character as
   "World-tree Squirrel" (repo descriptor) or as "Yggdrasil" (the world tree).
@@ -157,11 +163,13 @@ an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
 
 ## 4. OPEN and UNKNOWN
 
-- **Renai — name missing from the repo.** `rg -i 'renai'` returns 0 matches.
-  The repo labels her "Mermaid" everywhere. Which surface adopts "Renai" first,
-  and whether the id `mermaid` ever changes, is **UNKNOWN** (do not change ids
-  without an explicit decision). *(Earlier working draft name "Willow" is retired —
-  do not reintroduce it; it was too close to personal information.)*
+- **Renai — resolved in code.** The crew id is `renai` (`src/personal_world/crew.py`;
+  the drawn companion's persona template `config/prompts/personas/mermaid.md`),
+  and the legacy server key `mermaid` migrates to it lazily via
+  `prefs.LEGACY_COMPANION_IDS`. The raw id `mermaid` is unchanged. Some older
+  prose and design filenames still read "Mermaid". *(Earlier working draft name
+  "Willow" is retired — do not reintroduce it; it was too close to personal
+  information.)*
 - **Bolt — resolved.** The robot's personal name is **Bolt** (owner-stated
   2026-09-17); "Little Helper Robot" remains the role/descriptor. No id changes
   (`robot` stays `robot`).
@@ -170,7 +178,9 @@ an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
   `burrito`; `personal-world` exists only as a server value/floor. Whether the
   Station should expose it is UNKNOWN.
 - **"Tacos & the Morning Paper" retirement date UNKNOWN.** Reconcile to Burrito
-  Journalism; when the repo label is retired is not yet decided.
+  Journalism (display name **Scoop**, owner canon 2026-09-25); when the repo
+  label is retired everywhere is not yet decided. The crew id is `scoop`, and
+  the legacy server key `taco-news-truck` migrates to it.
 - **Hekek, Bruma, Mira — ids proposed, not implemented.** Owner canon adds three
   area residents (2026-09-17). Their station ids / server keys are **proposed**
   as `hekek`, `bruma`, `mira` (exact binding), but no code, asset, or Station
@@ -184,19 +194,19 @@ an art change. Rules live in `AGENTS.md` ("Do not casually regenerate"),
 
 Recorded by `rg -i 'renai|ratatoskr|world-tree|tacos & the morning paper|burrito journalism'`:
 
-- `README.md` L3 spells **`Ratataskor`** (typo, missing the second `r`); L252 uses
-  the descriptor **"world-tree squirrel and the taco news truck"**. Not fixed.
-- `CHANGELOG.md` L221–222 and `design/assets/README.md` / `icons/README.md` still
-  use **"Tacos & the Morning Paper"** and **"World-tree Squirrel"** descriptors.
-  Not fixed.
-- `docs/CREW-AND-STATION-THESIS.md` §2 and `design/COMPANION_INTEGRATION.md` L29–33
-  still head their tables with the repo descriptors, not the canon names. Pointer
-  added; tables not rewritten.
-- `docs/STATION-GAP-ANALYSIS.md` L114–117 already records the
-  `ratatoskr`/`burrito` ↔ `world-tree-squirrel`/`taco-news-truck` drift. Left as-is;
-  this file is the mapping.
-- `src/personal_world/prefs.py` L137 and `src/personal_world/api.py` L2907 keep the
-  server keys and art filename. Correct — identifiers are not renamed.
+- `README.md` still uses the descriptor **"world-tree squirrel and the taco news
+  truck"** in an image alt near the end. (The earlier `Ratataskor` typo in the
+  intro was fixed.) Not otherwise rewritten.
+- `CHANGELOG.md` (2026-09-07 entries) and `design/assets/README.md` /
+  `icons/README.md` still use **"Tacos & the Morning Paper"** and
+  **"World-tree Squirrel"** descriptors. Not fixed.
+- `docs/CREW-AND-STATION-THESIS.md` §2 and `design/COMPANION_INTEGRATION.md`
+  still head their residents tables with the repo descriptors, not the canon
+  names. Pointer added; tables not rewritten.
+- `docs/STATION-GAP-ANALYSIS.md` already records the `ratatoskr`/`burrito` ↔
+  `world-tree-squirrel`/`taco-news-truck` drift. Left as-is; this file is the mapping.
+- `src/personal_world/prefs.py` and `api.py` keep the server keys and art
+  filenames. Correct — identifiers are not renamed.
 
 Names below remain **UNKNOWN** in the repo: **Renai** (absent from copy; the id
 stays `mermaid`), and the new area crew **Hekek**, **Bruma**, **Mira** (owner

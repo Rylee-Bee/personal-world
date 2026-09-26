@@ -6,6 +6,10 @@ Before doing substantive work, read [`AGENT_POLICY.md`](./AGENT_POLICY.md) and f
 
 # AGENTS.md
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the working-tree rules and where each kind of truth lives · **Read this if:** you are about to edit, stage, or commit in this repo.
+
+**In short:** the repo's shared-working-tree rules (one worktree per lane, stage explicit paths, never `git add -A`) and the routing map for truth — current state, direction, design, accessibility, security. Read it before you edit or commit.
+
 Shared-working-tree and truth-routing rules for every agent and human
 working in this repo. Keep it short: add a rule only when it earns its
 place.
@@ -44,11 +48,13 @@ agent's WIP into its commit. The rules:
 - **Current architecture:** `docs/ARCHITECTURE.md`. World model and
   invariants: `docs/NATIVE-BASELINE-AND-ENRICHMENT.md` (normative,
   enforced by `personal-world framework validate`).
-- **Canonical direction:** `docs/TRUE-NORTH.md` (owner-approved 2026-09-22).
-  Vision, five commitments, the daily home loop, scope rulings, and the
-  recut alpha gates. It owns **direction only** — ADRs and the contract
-  system retain their own authority, and `.project/DECISIONS.md` remains
-  the append-only decision history.
+- **Canonical direction:** `.project/PLAN.md` (owner-approved 2026-09-25)
+  supersedes `docs/TRUE-NORTH.md`'s scope and sequencing; TRUE-NORTH's
+  honesty and accessibility principles still hold. TRUE-NORTH
+  (2026-09-22) owns vision, the five commitments, the daily home loop,
+  and the recut alpha gates; ADRs and the contract system retain their
+  own authority, and `.project/DECISIONS.md` remains the append-only
+  decision history.
 - **Product finish line (historical target):**
   `docs/PERSONAL-WORLD-FINISH-LINE.md` — superseded as direction by
   `docs/TRUE-NORTH.md` (2026-09-22); remains the target-experience detail
@@ -56,14 +62,17 @@ agent's WIP into its commit. The rules:
   accessibility, or human-reliability contracts.
 - **First-release product language & IA:** `docs/PRODUCT-LANGUAGE.md`
   (owner-approved 2026-09-21). Canonical product-facing vocabulary, the stable
-  skeleton (`Overview · Memory · Chat · Settings`), the personal-section model, the
+  nav landmarks (`Overview · Memory · Chat · Settings`), the personal-section model, the
   Records-vs-Vault distinction, plain dark-warm theme principles, and the theme
-  boundary. It refines the finish line's older section names for the first release;
-  where they differ, it is the current product language.
-- **Design truth:** `design/tokens.json` and
-  `docs/DESIGN-HANDOFF.md` are canonical for the V0.1/current-baseline
-  design; `ui/THEMES.md` is the theme-pack and token-consumption contract
-  for the live interface. `docs/PERSONAL-WORLD-FINISH-LINE.md` supplies
+  boundary. The area id `overview` renders the **Bridge** — the home screen
+  (Keeper + briefing + rooms) — not the older `Overview.tsx`, which remains in
+  the repo but is not rendered (`ui/src/app/App.tsx`). Where PRODUCT-LANGUAGE
+  and the finish line differ, it is the current product language.
+- **Design truth:** `design/tokens.json` is canonical for token values;
+  `docs/DESIGN-HANDOFF.md` is the **V0.1 historical baseline** (superseded
+  by `.project/CURRENT.md`); `ui/THEMES.md` is the theme-pack and
+  token-consumption contract for the live interface, and
+  `ui/dist-kit/` ships the Worlds kit. `docs/PERSONAL-WORLD-FINISH-LINE.md` supplies
   target-completion detail where TRUE-NORTH is silent. `design/handoff/` is
   an archived spec package — historical, never edit it to change design.
   `design/COMPANION_INTEGRATION.md` is the current companion/chat

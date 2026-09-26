@@ -1,5 +1,9 @@
 # Alpha acceptance runbook — declaring PRIVATE technical alpha
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the procedure an owner follows to declare private technical alpha · **Read this if:** you are deciding whether a deployment is ready for private technical alpha.
+
+**In short:** a checklist-procedure for verifying an existing deployment before declaring private technical alpha. It never authorizes deployment changes or exposure, and it carries no secrets or topology — evidence lives in the owner's private log. Hosts in examples are `…example.invalid` placeholders.
+
 *Owner checklist for the decision to declare **READY-FOR-PRIVATE-TECHNICAL-ALPHA**.
 Every checkbox is ticked in the owner's private operator documentation — this
 repository carries the procedure, never the evidence or the topology.
@@ -98,7 +102,7 @@ private operator docs.
   never secret values). Then sign in once in a browser at
   `https://<worlds-host>/login` with your provider (passkey satisfies a
   `one_factor` policy). Record: status response summary (redact issuer if
-  it is private), sign-in date, resulting page (`/` → `/station/`).
+  it is private), sign-in date, resulting page (`/`, the Bridge home screen).
   Pass: full round-trip succeeds and the session cookie survives a
   container restart.
 - [ ] **Logout.** How: sign out from the app
@@ -192,7 +196,7 @@ here).
 ## 5. CI validation, image publish and browser gates
 
 The tracked CI (`validate` workflow) runs pytest, compose config +
-image build, the Playwright Station suite (real server, axe with
+image build, the Playwright browser suite (real server, axe with
 color-contrast enabled), security gates, and framework conformance.
 `publish-image` only fires after `validate` succeeds on `main`.
 
@@ -211,9 +215,9 @@ color-contrast enabled), security gates, and framework conformance.
   Pass: a successful publish for the same sha; the workflow_run gate means
   a failed validate never ships an image.
 - [ ] **Browser/a11y job green** (`browser` job in `validate` — Playwright
-  Station accessibility / honest-state / keyboard / motion suite with axe,
+  accessibility / honest-state / keyboard / motion suite with axe,
   color-contrast rules enabled). Pass: `success` for the deployed sha.
-  You may also re-run locally: `cd frontend && npx playwright test`.
+  You may also re-run locally: `cd ui && npx playwright test`.
 
 ## 6. Accessibility smoke pass
 
@@ -232,10 +236,10 @@ human gate on the deployed build.
   shimmer/pulse/animated skeletons in default presentation and companion
   animation stays restrained. Pass: motion reduced state is respected and
   is the application default.
-- [ ] **Phone-width pass.** How: ~360px viewport. Bottom sheets trap
+- [ ] **Phone-width pass.** How: ~360px viewport. Sheets/drawers trap
   focus with an explicit close; no control hides under browser UI
   (safe-area insets). Pass: no clipping or unreachable control.
-- [ ] **200% zoom pass.** How: real browser zoom at 200% on the Station.
+- [ ] **200% zoom pass.** How: real browser zoom at 200% on the app.
   Pass: layout survives reflow without clipping, truncation, or
   horizontal page scroll.
 - [ ] **Rank encoding.** How: do status words appear next to every color/

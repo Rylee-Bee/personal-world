@@ -1,13 +1,21 @@
 # CI Environment Notes — the traps we already ate
 
-A new contributor's environment must match `.github/workflows/validate.yml`
-exactly, or a green suite locally turns red in CI (and the reverse). Each
-claim below is dated-verified against this repo's own files and the live
-venv, 2026-09-20.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the CI environment traps a local run must match · **Read this if:** your local suite passes but CI fails (or the reverse), or you are setting up a new machine.
+
+**In short:** the handful of environment mismatches that have silently flipped a suite green locally and red in CI. Most of it is one idea: sync the same extras CI does (`--extra test --extra crypto`) and always read a checker's real exit code, not its piped output.
+
+A new contributor's environment must match CI's, or a green suite locally
+turns red in CI (and the reverse). The traps below were first verified
+2026-09-20. Since then the workflow's *mechanics* moved to
+`Rylee-Bee/ci-harness` (reusable workflows); this repo's
+`.github/workflows/validate.yml` now passes only the arguments, so the
+Python and `uv` versions are no longer in this repo — see that harness.
+**(UNVERIFIED 2026-09-26: the exact Python and `uv` versions.)**
 
 ## 1. The sync line is `uv sync --frozen --extra test --extra crypto`
 
-The CI `test` job pins Python 3.12, `uv==0.11.28`, and syncs:
+The CI `test` job syncs `sync-args: "--extra test --extra crypto"` and runs
+pytest with `--timeout=30` (both set in `.github/workflows/validate.yml`):
 
 ```bash
 uv sync --frozen --extra test --extra crypto

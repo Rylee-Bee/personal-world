@@ -1,6 +1,10 @@
 # The Crew & The Station — family thesis
 
-**Status:** Canonical thesis (2026-09-17), amended in role by the 2026-09-22 rulings: the **crew, voices, and companion truths here remain canonical**; the *Station as the primary experience* is superseded — Station is kept as a theme package behind the stable skeleton, never deleted, and the default is a complete existing theme pack (see `docs/TRUE-NORTH.md`, `docs/PRODUCT-LANGUAGE.md`, `ui/THEMES.md`). One statement every future design task obeys. It does not replace the accessibility contract; where they conflict, the contract wins and the conflict is recorded back here. The briefs imply this thesis in three places but never state it once — this file states it and flags where the sources still disagree.
+> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** the crew/family thesis and the family rules design work obeys · **Read this if:** you are touching companion art, voice, or the crew's place in the product.
+
+**In short:** one sentence every design task obeys — the residents are siblings in art direction with distinct silhouettes and roles, and accessibility, protected attention, and inclusion are the home itself, not add-ons. The crew, voices, and companion truths here are canonical (2026-09-17, amended in role by the 2026-09-22 rulings); the *Station as the primary experience* is superseded — Station survives as a theme package behind the stable skeleton, never deleted. It does not replace the accessibility contract; where they conflict, the contract wins and the conflict is recorded back here. Scope and sequencing for current direction are owned by `.project/PLAN.md`.
+
+The briefs imply this thesis in three places but never state it once — this file states it and flags where the sources still disagree.
 
 ---
 
@@ -35,7 +39,7 @@ Source: `design/COMPANION_INTEGRATION.md` L27–33.
 | **Tacos & the Morning Paper** | Journalism / stories / city life | Burrito Journalism, reporting, news, city stories | `companions/taco-news-truck/taco-news-truck-source-rig.svg` |
 | **Personal World** | Default system companion | System default, generic theme, product identity | `companions/personal-world/personal-world-source-rig.svg` |
 
-**Names:** display canon (Renai, Ratatoskr, Bolt, Burrito Journalism, Personal World) and the station-id ↔ server-key mapping live in [COMPANION-CANON.md](COMPANION-CANON.md).
+**Names:** display canon — **Renai**, **Ratatoskr**, **Bolt**, **Scoop** (the burrito truck), **Sol**, **Assistant** — and the station-id ↔ server-key ↔ crew-id mapping live in [COMPANION-CANON.md](COMPANION-CANON.md). The table above keeps the design-file descriptors on purpose; the canon names are what people read.
 
 **Owner canon 2026-09-17 adds three area residents** — Hekek (Systems), Bruma (Records), Mira (Interests) — and makes residents **assignable to decks**: the crew above is the *starter crew*, not the only possible one. See [STATION-MAP.md](STATION-MAP.md) §3 and [CHARACTER-HANDBOOK.md](CHARACTER-HANDBOOK.md). The five rigs in this table remain the original companion set.
 
@@ -46,7 +50,7 @@ Sibling rules (same file, L35, L219–221): shared art direction, distinct silho
 - **Personal Companion** — chosen by theme or user preference, persistent across the product. Presence.
 - **Contextual Character** — tied to the current world/project context. Context.
 
-They do not both flood the screen: personal = presence, contextual = identity. Example: Mermaid is the personal companion; World-tree Squirrel appears as the VEFR contextual identity (`chat-contextual-vefr`).
+They do not both flood the screen: personal = presence, contextual = identity. Example: the mermaid (canon name **Renai**) is the personal companion; the world-tree squirrel (canon name **Ratatoskr**) appears as the VEFR contextual identity (`chat-contextual-vefr`).
 
 ---
 
@@ -68,7 +72,7 @@ Read top-down; each layer is authoritative only for what it owns.
 1. **Figma — visual composition only.** Per `.project/participants/figma/participant.yaml`: authoritative for `visual-composition` (approved frames), hierarchy, spacing, frame relationships; **not** for `token-canonicality`, `canonical-token-values`, runtime/API/deployment truth, or accessibility requirements that conflict with literal visual choices.
    - Current Workshop v3 file: **`Wbg1rdt9fVCjWAXEKI1pTc`** (`.project/design/CURRENT.md` L43; `.project/CURRENT.md` L233–235). V0.1-era frames live in the older product file `VATVojyJZT9HKx0CrDS0yr` (the file named in `participant.yaml`).
    - Current vs superseded is answered by `.project/design/CURRENT.md` and `.project/design/WORKSHOP-V3-MANIFEST.yaml`.
-2. **Repo tokens own the VALUES.** `design/tokens.json` is canonical; design tools derive from it and are never the source (`design/tokens.json` `_comment`; `participant.yaml` `not_authoritative_for`). Generated `frontend/src/tokens.css` is derived, never hand-edited.
+2. **Repo tokens own the VALUES.** `design/tokens.json` is canonical; design tools derive from it and are never the source (`design/tokens.json` `_comment`; `participant.yaml` `not_authoritative_for`). The generated CSS (`ui/src/generated/tokens.css`) is derived, never hand-edited.
 3. **Local vendored reference.** When the Figma bridge is unavailable, the working local reference is the vendored exports in `design/owner/` (SVG + PNG), plus the archived inventory `design/handoff/FRAME_INDEX.md` (historical — its statuses are provenance, not current approval).
 
 **Bridge status:** the Figma desktop Dev Mode MCP server is reached via the SSH reverse tunnel documented in `.project/CURRENT.md` ("Figma bridge"). It has gone down mid-run before (`CHANGELOG.md`, 2026-09-13), and **its current online status is UNKNOWN** — verify before assuming. `get_design_context` also requires the target frame to be selected/open in Figma Dev Mode. **When the bridge is OFFLINE, `design/owner/` is the working local reference**, and work proceeds read-only mapping first, never from memory (skill L107–111).

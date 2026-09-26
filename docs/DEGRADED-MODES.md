@@ -1,5 +1,9 @@
 # Project Worlds — Degraded Modes Matrix (G-degrade)
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** what the product says and does when a part of it is missing, unreachable, refused, or unauthenticated · **Read this if:** you are changing a fail-closed path or a degraded label and need the contract it must keep.
+
+**In short:** a tested matrix of the G-degrade states — brain absent, provider down, a refused error envelope, setup incomplete, auth unconfigured, non-loopback dev bypass, provider-less memory, and the storage/backup boundary. Each row lists what still serves, the exact label it shows, and the test that proves it. Every tested cell is honest: `unavailable` / `stale` / `not_configured` stated plainly, never a fake success, never a dead button wearing a live one.
+
 **Kind:** tested state matrix — what the product says and does when a part of it
 is missing, unreachable, refused, or unauthenticated.
 **Contract it serves:** the product-language contract at `docs/PRODUCT-LANGUAGE.md`
@@ -7,9 +11,10 @@ is missing, unreachable, refused, or unauthenticated.
 must be **honest**. Never a fake success, never a dead button wearing a live one,
 `unavailable` / `stale` / `not_configured` stated plainly, never blame.
 **Enforcement:** [`../tests/test_degraded_modes.py`](../tests/test_degraded_modes.py)
-(32 tests, ids `a1`–`h4` cited below). Where an earlier test already pins the same
-cell, its id is cited too.
-**Status:** all rows verified green on branch `lane/degraded-matrix` @ `58f3b5e`.
+(32 tests, ids `a1`–`h4` cited below, as of 2026-09-26). Where an earlier test already
+pins the same cell, its id is cited too.
+**Verified green on:** branch `lane/degraded-matrix` @ `58f3b5e` (2026-09-21 run). Re-run
+`uv run --extra test pytest -q tests/test_degraded_modes.py` for today's result.
 **No defects found** — every tested cell behaves to contract. Two *label observations*
 are recorded at the bottom; neither breaks the honesty floor.
 
@@ -36,7 +41,7 @@ digest treats it as one: no alert noise for empty slots.
 | | |
 | --- | --- |
 | **Still works** | Everything deterministic: `/api/status`, `/api/daily`, journal, sections, settings, vault, backup boundary |
-| **Says it plainly** | `/api/chat` → HTTP 200 `{ok:false, status:"not_configured"}` with a "no chat provider configured" warning · `/api/chat/test` → same label · `/api/chat/providers` → `active: null` · capability grid: `reasoning: not_configured` · Overview attention **excludes** vacancies (a gap is not an alarm) |
+| **Says it plainly** | `/api/chat` → HTTP 200 `{ok:false, status:"not_configured"}` with a "no chat provider configured" warning · `/api/chat/test` → same label · `/api/chat/providers` → `active: null` · capability grid: `reasoning: not_configured` · the Bridge's attention line **excludes** vacancies (a gap is not an alarm) |
 | **Proven by** | `DM:TestBrainAbsent::a1–a5`; pre-existing: `test_chat.py::TestChatEndpoint::test_no_provider_is_not_configured` |
 
 ## (b) Brain configured, provider unreachable
@@ -48,7 +53,7 @@ monkeypatched network lie.
 | | |
 | --- | --- |
 | **Still works** | Core boots and stays 200: `/healthz`, `/api/status`, `/api/daily` (digest itself is `ok:true`) |
-| **Says it plainly** | Capability grid: `reasoning: unavailable` · Overview attention line `reasoning: unavailable` (this is the "reasoning: unavailable" the honest Overview renders — see Observations for where it's surfaced visually) · `/api/chat` → 200 `{ok:false, status:"unavailable"}`, **no fabricated reply** · `/api/chat/providers` lists the provider with `ok:false` and its real status |
+| **Says it plainly** | Capability grid: `reasoning: unavailable` · the Bridge's attention line reads `reasoning: unavailable` (the home screen is the **Bridge**, area id `overview`; see Observations for where it is surfaced visually) · `/api/chat` → 200 `{ok:false, status:"unavailable"}`, **no fabricated reply** · `/api/chat/providers` lists the provider with `ok:false` and its real status |
 | **Proven by** | `DM:TestBrainUnreachable::b1–b4` |
 | **Not simulated** | A *hung* (non-refusing) endpoint: same except-path after `CHAT_TIMEOUT_SECONDS`, but a timeout-lengthened test is deliberately not added (flaky-value, slow) — **UNTESTABLE here — timing-dependent; refusal path proven, hang path shares it** |
 

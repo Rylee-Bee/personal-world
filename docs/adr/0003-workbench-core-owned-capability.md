@@ -1,5 +1,11 @@
 # ADR-0003: The Workbench is a core-owned capability (attach-existing, broker-scoped)
 
+> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** the Workbench direction (proposed, review-only) · **Read this if:** you are touching workbench/terminal/exec/preview work.
+
+**Scope note:** proposed and review-only. `.project/PLAN.md` wins on scope and sequencing; this record owns only the decision below.
+
+**In short:** proposed, not accepted. If accepted, the Workbench (terminal · task · preview · artifact) is a core-owned capability over the existing estate — attaching to the existing `ai-distrobox`, with terminal/exec behind a capability-scoped broker, never a raw host shell or container socket. A spike proved the registry seam fits; see `docs/adr/WORKBENCH-SPIKE-FINDINGS.md`.
+
 - Status: **proposed** (review-only per owner D22; not yet accepted)
 - Date: 2026-09-21
 - Supersedes: none
