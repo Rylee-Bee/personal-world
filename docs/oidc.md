@@ -2,7 +2,7 @@
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** OIDC/SSO wiring — config file, routes, flow, error codes, limits · **Read this if:** you want to sign in through your own identity provider (Authelia, Keycloak, Authentik, …).
 
-**In short:** Worlds ships local token auth by default and can also sign people in through any conformant OIDC provider. This page is the operational truth for the wiring — the `oidc.json` config, the authorization-code + PKCE flow, the honest status states, and what is deliberately not implemented.
+**In short:** Worlds ships local token auth by default and can also sign people in through any conformant OIDC provider. This page is the operational reference for the wiring — the `oidc.json` config, the authorization-code + PKCE flow, the status states it reports, and what is deliberately not implemented.
 
 Worlds is self-hosted and universal: you point it at **your own**
 identity provider.
@@ -140,7 +140,7 @@ Authorization code + PKCE (S256), no implicit flow, no token in a URL:
 2. The in-flight attempt (`state`, PKCE verifier, `nonce`, exact
    `redirect_uri`) is stored in a **signed HttpOnly `pw_oidc_state`
    cookie** — not in the database, and it expires in ten minutes. The
-   signature key is per-process, so a restart honestly ends in-flight
+   signature key is per-process, so a restart ends in-flight
    logins rather than trusting a stale cookie.
 3. The person authenticates at the provider (their MFA, their policy —
    Worlds never sees a password).
@@ -170,7 +170,7 @@ RS256/RS384/RS512 verify with the standard library alone, so a minimal
 install (`uv sync --extra test`) still has working SSO. With the
 `cryptography` extra installed — the shipped container has it — PS*, ES*
 and EdDSA also verify. An algorithm this install cannot verify is
-**refused**, never accepted unverified; the honest reason is
+**refused**, never accepted unverified; the reason is
 `oidc_verification_unavailable` and the fix is `uv sync --extra crypto`.
 
 No token is retained: the `id_token` and `access_token` are verified and
@@ -180,7 +180,7 @@ discarded. Sessions hold a principal id, not a credential.
 
 | Route | Purpose |
 |---|---|
-| `GET /api/auth/oidc/status` | Honest state + discovery metadata, no secrets. Read-only. |
+| `GET /api/auth/oidc/status` | Current state + discovery metadata, no secrets. Read-only. |
 | `GET /api/auth/oidc/config` | Legacy alias of status, flattened for the login screen. |
 | `GET /api/auth/oidc/login` | Start a sign-in (303 to the provider). |
 | `GET /api/auth/oidc/callback` | Finish a sign-in (303 to `/` on success). |
@@ -246,7 +246,7 @@ is never mistaken for a live one.
 Browser navigations degrade to `303 /login?pw_auth_error=<code>` (the SPA
 presents it; the server does not render pages). API callers that send
 `Accept: application/json` get `{"ok": false, "status", "error_code",
-"detail"}` with an honest HTTP status. Codes are short and secret-free:
+"detail"}` with the matching HTTP status. Codes are short and secret-free:
 `oidc_not_configured`, `oidc_misconfigured`, `oidc_unreachable`,
 `oidc_state_mismatch`, `oidc_state_invalid`, `oidc_attempt_expired`,
 `oidc_missing_state`, `oidc_provider_denied`,
@@ -267,7 +267,7 @@ Because no `id_token` is retained, no `id_token_hint` is sent; some
 providers then ask the person to confirm the logout. That is the
 deliberate trade for never storing a credential we do not need.
 
-## Current limits (honest, not aspirational)
+## Current limits
 
 - **Step-up is unchanged.** An OIDC sign-in proves identity to the
   provider; it does **not** mint a step-up grant. `POST

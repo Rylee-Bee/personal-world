@@ -316,7 +316,7 @@ class MAMRSSSource:
 
 
 # ---------------------------------------------------------------------------
-# Hardcover source (lives in same file per spec)
+# Hardcover source (is in same file per spec)
 # ---------------------------------------------------------------------------
 
 

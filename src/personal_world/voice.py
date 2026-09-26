@@ -2,7 +2,7 @@
 
 The product speaks with ONE default voice — the World's voice from
 ``docs/CHARACTER-HANDBOOK.md`` §10(1): calm, plain, warm, technically
-honest — across chat and attention surfaces. What the person selects
+— across chat and attention surfaces. What the person selects
 is a *tone register* (``warm`` default · ``concise`` · ``playful`` ·
 ``formal``), persisted through the existing preferences schema
 (``prefs.TONE``) and applied to model prompting here.
@@ -11,7 +11,7 @@ The companion a person chats with is their own crew-registry entry
 (owner decision 2026-09-25, companions addendum item 4): ``resolve_voice``
 takes the ``companion_id`` preference and resolves it against *this
 principal's* roster. A user companion's ``voice_label`` is phrasing only —
-it may flavor wording, and it can never weaken the honesty floor (no
+it may flavor wording, and it can never weaken the accuracy rule (no
 invented facts, status words unchanged, the same safety and tone rules as
 the one voice). An id that names nothing usable — unknown, hidden, deleted,
 malformed — resolves to the one voice, never to an invented persona.
@@ -25,14 +25,14 @@ kept canon: a drawn companion keeps the persona template its canon names
 (``config/prompts/personas/``); the rest of the crew is spoken by name.
 Code and canon are kept, never deleted; only the routing is flagged.
 
-Honesty floor is register-independent (PRODUCT-LANGUAGE.md principle 3:
+Accuracy minimum is register-independent (PRODUCT-LANGUAGE.md principle 3:
 warm in tone, exact in facts): a tone — or a companion's voice label —
 changes phrasing, never exactness. Every phrasing instruction therefore
-carries the same truth sentence, and the built-in identity floor in
+carries the same truth sentence, and the built-in identity minimum in
 ``chat.build_chat_messages`` (truth rules, status vocabulary, never invent
 state) stays below it — so no register, voice label, pack, or
 empty/malformed template tree can remove the safety text. Degraded and
-model-off states are labeled honestly in whatever voice is active; this
+model-off states are labeled in whatever voice is active; this
 module never produces a reply itself.
 """
 
@@ -46,7 +46,7 @@ TONES = ("warm", "concise", "playful", "formal")
 """The starter tone-register set (TRUE-NORTH § Voice; owner reacts on
 experience). Order is preference order, not rank: no tone is 'better'
 or more accessible than another — they are phrasing registers over an
-unchanged honesty floor."""
+unchanged accuracy rule."""
 
 DEFAULT_TONE = "warm"
 
@@ -61,7 +61,7 @@ PACK_RESIDENTS = "residents"
 """Personality-pack vocabulary (prefs.PERSONALITY_PACK). ``off`` (the
 default) speaks as the one Worlds voice; ``residents`` enables the
 optional character crew (kept canon: CHARACTER-HANDBOOK.md,
-COMPANION-CANON.md) as flavor on top of the same floor."""
+COMPANION-CANON.md) as flavor on top of the same minimum."""
 
 #: Crew ids whose canon names a persona template that actually ships in
 #: ``config/prompts/personas/`` — the drawn companion keeps the voice the
@@ -100,23 +100,23 @@ _TONE_INSTRUCTIONS: dict[str, str] = {
 
 _TRUTH_SENTENCE = (
     " This tone changes phrasing only: facts, statuses, and uncertainty "
-    "stay exact, degraded and unavailable states are still labeled "
-    "honestly, and the truth rules below are unchanged."
+    "stay exact, degraded and unavailable states are still labeled as such, "
+    "and the accuracy rules below are unchanged."
 )
 
 _COMPANION_TRUTH_SENTENCE = (
     " This companion changes phrasing only: facts, statuses, and uncertainty "
-    "stay exact, degraded and unavailable states are still labeled honestly, "
-    "and the truth rules below are unchanged."
+    "stay exact, degraded and unavailable states are still labeled as such, "
+    "and the accuracy rules below are unchanged."
 )
 
 
 def tone_instruction(tone: str | None) -> str:
     """The prompt block for one tone register.
 
-    Unknown, empty, or absent tones degrade to "" — the identity floor
+    Unknown, empty, or absent tones degrade to "" — the identity minimum
     in ``chat.build_chat_messages`` (which is register-neutral) then
-    speaks on its own, honestly, rather than with an invented register.
+    speaks on its own,, rather than with an invented register.
     """
     body = _TONE_INSTRUCTIONS.get(str(tone or ""))
     if body is None:
@@ -249,7 +249,7 @@ def companion_instruction(selection: VoiceSelection | None) -> str:
     the person wrote, rides along as *phrasing*: it is collapsed to one line
     (a multi-line or backticked label must not restructure the prompt) and
     it is followed by the same truth sentence every register carries, so no
-    label can widen the honesty floor.
+    label can widen the accuracy rule.
     """
     companion = (
         selection.companion if isinstance(selection, VoiceSelection) else None

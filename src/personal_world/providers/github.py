@@ -8,11 +8,11 @@ ADDS remote information — canonical repository identity, open pull
 requests, open issues, default branch, repository metadata — and
 never overwrites a native field. Local truth survives the remote
 provider: if `gh` is missing, unauthenticated, rate-limited, or the
-network is down, every call degrades to an honest 'unavailable' or
+network is down, every call degrades to an 'unavailable' or
 'not_configured' and Project Worlds remains fully useful from local
 Git alone.
 
-Credential posture (deliberate): this module shells the existing
+Credential setting (deliberate): this module shells the existing
 `gh` CLI and uses whatever session `gh` already has (keyring, token
 file, or GH_TOKEN/GITHUB_TOKEN env). It never reads, stores, logs,
 or manages credentials itself — no second credential system. The
@@ -36,7 +36,7 @@ GH_TIMEOUT_SECONDS = 10
 
 def _gh_binary() -> str | None:
     """The gh CLI if present, else None. No PATH tricks: shutil.which
-    only. 'gh missing' is an honest unavailable state, never fatal."""
+    only. 'gh missing' is an unavailable state, never fatal."""
     return shutil.which("gh")
 
 
@@ -73,7 +73,7 @@ class GitHubEnrichment(StatusContract):
     def _slug(remote_url: str | None) -> str | None:
         """owner/repo from a git remote URL, or None when the remote
         is not a GitHub remote (or missing). Supports both SSH and
-        HTTPS spellings; other forges are honestly 'not GitHub'."""
+        HTTPS spellings; other forges are 'not GitHub'."""
         if not remote_url:
             return None
         url = remote_url.strip().rstrip("/")
@@ -93,7 +93,7 @@ class GitHubEnrichment(StatusContract):
     def enrich_repo(self, remote_url: str | None) -> Result:
         """Remote facts for ONE repository, keyed by its git remote.
 
-        Fields (all remote-observed, all optional-but-honest):
+        Fields (all remote-observed, all optional-but-):
           slug            canonical "owner/repo" identity on GitHub
           url             canonical browser URL
           default_branch  remote default branch (may differ locally)
@@ -108,7 +108,7 @@ class GitHubEnrichment(StatusContract):
         Any failure is a structured state; 'not_github' is a valid,
         non-error answer for remotes hosted elsewhere."""
         # The remote's identity is a LOCAL fact (from the git remote
-        # URL): a non-GitHub remote is honestly 'not_github' even when
+        # URL): a non-GitHub remote is 'not_github' even when
         # gh is entirely absent. Only remote-observed fields need gh.
         slug = self._slug(remote_url)
         if slug is None:
@@ -125,7 +125,7 @@ class GitHubEnrichment(StatusContract):
         # Exact counts: search total_count is the true total (a plain
         # list endpoint is bounded by per_page and would only prove
         # "at least N"). Search needs a qualifier; in: is required by
-        # GitHub to keep search in scope. None -> honest 'unknown'
+        # GitHub to keep search in scope. None -> 'unknown'
         # counts, never a guessed number.
         open_prs: int | None = None
         open_issues: int | None = None

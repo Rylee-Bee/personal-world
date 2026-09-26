@@ -19,7 +19,7 @@ The briefs imply this thesis in three places but never state it once — this fi
 
 **Why the product exists, tied to the thesis:**
 
-- **Accessibility** — the floor is layered and never violated downward (`docs/accessibility/ACCESSIBILITY_CONTRACT.md` §6.1); difference is allowed *above* the floor, the floor itself never moves.
+- **Accessibility**: the minimum requirements are layered and nothing may go below them (`docs/accessibility/ACCESSIBILITY_CONTRACT.md` §6.1); anything above the minimum may vary, but the minimum never changes.
 - **Protected attention** — the world asks only when it truly needs you, and quiet is a valid rendered state (`PLAY-NICE-CONFORMANCE.md` attention-and-focus, quiet-when-healthy). Optimise for maximum warmth per unit of attention, not maximum cute (`docs/STATION-ALIVE-RESEARCH.md` Part 1).
 - **Inclusion** — themes, companions, and sections are user-owned and swappable; the Station is "a home people add to, not a product imposed on them" (`PLAY-NICE-CONFORMANCE.md` themes-and-personalization).
 
@@ -91,6 +91,6 @@ Read top-down; each layer is authoritative only for what it owns.
 - **Never edit authority downward.** Composition from Figma, values from `design/tokens.json`, art from the canonical rigs — resolve gaps in canonical tokens or ask the owner, never by sampling a screenshot hex or tracing art.
 - **Design for companion-off and reduced motion first**, then add the delightful layer on top. If the screen only works with motion or the mascot, it fails.
 - **Reuse the five; do not invent a sixth — *amended by owner, 2026-09-17*.** A new identity is still a **pack/theme concern with provenance and install/uninstall**, never a one-off character hard-coded into a screen (`PLAY-NICE-CONFORMANCE.md`; `PRODUCT-VISION-HANDOFF.md` decision #21). The owner concept of 2026-09-17 makes that path first-class: **the shipped crew is the default crew, and which resident takes which deck is a setting** — anyone may create their own residents and assign them to any deck ([STATION-MAP.md](STATION-MAP.md) §3). Creating new residents is now owner-sanctioned *through the pack mechanism*; inventing throwaway characters inside screens is still wrong.
-- **Record, don't silently resolve.** When the frame and the floor disagree, the floor wins and the conflict is written back as an owner-facing reservation (`.project/design/WORKSHOP-V3-MANIFEST.yaml` is the pattern).
+- **Record, don't silently resolve.** When a design frame and the accessibility minimum disagree, the minimum wins and the conflict is written back as an owner-facing reservation (`.project/design/WORKSHOP-V3-MANIFEST.yaml` is the pattern).
 
 *Stated in-repo 2026-09-17. Sources cited above are authoritative within their own scope; this file is the single statement design work obeys.*

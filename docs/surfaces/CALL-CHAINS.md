@@ -9,7 +9,7 @@
 Compact chains from the registry. IDs resolve in
 MASTER-SURFACE-REGISTRY.md.
 
-## Rooms, briefing and crew (current front door, 2026-09-26)
+## Rooms, briefing and crew (current app, 2026-09-26)
 
 ```text
 Bridge (ui/) → GET /api/briefing (API-085, require_auth + person)

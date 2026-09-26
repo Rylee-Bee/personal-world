@@ -23,7 +23,7 @@ def _age_words(age_seconds: int) -> str:
     """Compact relative age for the assistant context — ONE wording
     for the whole backend ("4 minutes", "1 hour", "just now").
     The model gets the age as prose so it can answer "how fresh?"
-    without doing date math, and can honestly hedge when stale."""
+    without doing date math, and can hedge when stale."""
     if age_seconds < 60:
         return "just now"
     minutes = age_seconds // 60
@@ -138,7 +138,7 @@ def build_ui_context(
     This is provenance, NOT canonical truth: the client says where in
     the interface the person is; the server trusts it only as a hint
     ("observed from the UI") and never as world state. Anything missing
-    or unrecognized renders as honest `unknown` rather than being
+    or unrecognized renders as `unknown` rather than being
     dropped silently — a stale tab must not produce a confident lie.
     Returns None when the caller sends nothing (global chat), in which
     case no UI-location block is injected at all.

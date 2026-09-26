@@ -592,7 +592,7 @@ class TestPersonaPrompt:
 
     def test_no_persona_keeps_floor(self):
         msgs = build_chat_messages("hi", "ctx")
-        assert msgs[0]["content"].startswith("You are the Project Worlds assistant")
+        assert msgs[0]["content"].startswith("You are the Worlds assistant")
 
 
 # ── 6. template loading + /api/templates shape ──────────────────────
@@ -643,7 +643,7 @@ class TestTemplateDiscovery:
         out = reg.compose(surface="lab", persona="mermaid")
         assert "Mermaid" in out  # persona consumed
         assert "what needs attention" in out  # surface.lab consumed
-        assert "Project Worlds assistant" in out  # core always
+        assert "Worlds assistant" in out  # core always
         # an unknown persona is a silent no-op, never an error
         assert reg.compose(persona="does-not-exist")
 

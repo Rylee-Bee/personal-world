@@ -13,7 +13,7 @@ CORS exception anywhere, and the API needs no browser-only token path.
 
 Boundaries this module keeps:
 
-* **Authorization reuses the canonical seam.** Nothing here re-implements
+* **Authorization reuses the canonical entry point.** Nothing here re-implements
   a credential check: ``api.require_auth`` decides, and this module only
   maps its verdict onto a browser-appropriate response (a redirect to
   ``/login``) instead of a JSON 401.
@@ -30,7 +30,7 @@ Boundaries this module keeps:
   the SPA fallback never swallows a namespace it does not own.
 * **Only web assets, never documentation.** ``.md`` files are excluded on
   purpose; ``_``-prefixed directories stay out entirely.
-* **Honest absence.** When the build is not staged, ``/`` says so plainly
+* **absence.** When the build is not staged, ``/`` says so plainly
   (503) with the operator's actual fix, and never echoes a filesystem
   path. The container image builds the UI itself, so a missing build
   means a broken image build, not a silent hole.
@@ -173,8 +173,8 @@ def app_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
     allowlist = build_allowlist(root)
     if not allowlist:
         _logger.warning(
-            "interface build not installed (%s); / will report it "
-            "honestly instead of serving",
+            "interface build not installed (%s); / will report that "
+            "instead of serving the app",
             root.name or "unset",
         )
 
@@ -243,7 +243,7 @@ def app_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
             return _file(request, full_path)
         # React SPA: any other unknown path is client-side routing —
         # serve index so deep links work. A missing build still reports
-        # honestly through _index.
+        # through _index.
         blocked = await _gate(request)
         if blocked is not None:
             return blocked

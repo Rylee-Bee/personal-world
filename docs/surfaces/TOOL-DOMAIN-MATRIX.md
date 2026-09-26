@@ -44,7 +44,7 @@ and may have drifted; find the named tool instead.
 | TOOL-025 propose_world_intent | Write | Yes | Same as above | _execute_approved_write → world.set_intent | WORLD-002 | ACTIVE |
 | TOOL-026 propose_world_fact | Write | Yes | Same as above | _execute_approved_write → world.record_fact | WORLD-001 | ACTIVE |
 | TOOL-027 propose_reminder | Write | Yes | Server-held owner approval | executor writes through wired `Scheduler.add` (`tool_registry.py:799-817`) | STORE-006 | ACTIVE (persists via Scheduler; D1–D3) |
-| TOOL-028 propose_reconciler_apply | Write | Yes | Server-held owner approval | honest `unsupported`; proposal left `pending`, nothing applied (`tool_registry.py:819-830`) | PROV-014 | PARTIAL (honest unsupported; no adapter yet) |
+| TOOL-028 propose_reconciler_apply | Write | Yes | Server-held owner approval | returns `unsupported`; proposal left `pending`, nothing applied (`tool_registry.py:819-830`) | PROV-014 | PARTIAL (unsupported; no adapter yet) |
 | TOOL-029 execute_approved_write | Write | No (is the executor) | Server-side check: `status == "approved"` only; no model-supplied boolean | durable `proposals.json` (atomic); execution only via step-up API (`api.py:979-1004`) | JOURNAL-001 / WORLD-001 / WORLD-002 | ACTIVE (execution structurally blocked from the model, `tool_registry.py:96-127`) |
 
 Cross-cutting observations (reality, not fixes):
@@ -61,4 +61,4 @@ Cross-cutting observations (reality, not fixes):
   discovery.json.
 - TOOL-019 reads reminders through a wired `Scheduler`
   (`tool_registry.py:1154-1168`), not a parallel file read; with no
-  scheduler it answers `unavailable` honestly.
+  scheduler it answers `unavailable`.

@@ -51,7 +51,7 @@ pins its exact shape).
 | `personal-world do proposals execute` | write | proposal | `POST /api/proposals/{proposal_id}/execute` | execute an APPROVED proposal (dry-run without --approve) |
 | `personal-world do prefs get` | read | none | `GET /api/prefs` | effective presentation preferences (read-only) |
 | `personal-world do prefs schema` | read | none | `GET /api/prefs/schema` | the writable preference vocabulary and floors (read-only) |
-| `personal-world do prefs set` | write | step-up | `PUT /api/prefs` | file a preference change (propose by default; accessibility floor enforced) |
+| `personal-world do prefs set` | write | step-up | `PUT /api/prefs` | file a preference change (propose by default; minimum accessibility settings enforced) |
 | `personal-world do interests list` | read | none | `GET /api/discovery/interests` | list discovery interests (read-only) |
 | `personal-world do interests add` | write | step-up | `POST /api/discovery/interests` | file a new interest (propose by default) |
 | `personal-world do discovery status` | read | none | `GET /api/discovery/status` | discovery engine status (read-only) |

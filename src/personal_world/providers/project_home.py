@@ -9,7 +9,7 @@ Two transports, resolved from the environment at request time:
   holds a bearer token -> ``GET <url>/api/home`` (a bare dict, no
   envelope).
 
-Honesty posture: this module invents nothing. No transport configured ->
+Error handling: this module invents nothing. No transport configured ->
 ``not_configured``; any failure (timeout, bad JSON, HTTP error) ->
 ``unavailable`` with a short reason that names the failure class only.
 The bearer token is read from its named env var and appears in no
@@ -149,7 +149,7 @@ class ProjectHomeSource:
         self.cli = cli
         self.url = url
         self.token = token
-        #: Injection seams for tests; default is the real machinery.
+        #: Injection entry points for tests; default is the real machinery.
         self._runner = runner or subprocess.run
         self._opener = opener or urllib.request.build_opener(_NoRedirect)
 

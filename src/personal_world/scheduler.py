@@ -154,7 +154,7 @@ class Scheduler:
     def _deliver(self, text: str) -> str | None:
         """Attempt delivery through the injected notifier.
 
-        Returns a short, honest outcome string for the journal record, or
+        Returns a short, outcome string for the journal record, or
         None when no notifier is configured (the reminder is still
         journaled). Never raises: a delivery problem must not kill a tick
         or lose the reminder record.

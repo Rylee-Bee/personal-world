@@ -1,6 +1,6 @@
 """Traefik ingress rollups capability.
 
-Read-only against the router API. Honors the "degrades honestly"
+Read-only against the router API. Honors the "reports a degraded state"
 rule: if the API is unreachable, the capability returns UNKNOWN
 (never fake HEALTHY).
 

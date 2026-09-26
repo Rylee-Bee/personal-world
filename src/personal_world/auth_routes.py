@@ -5,9 +5,9 @@ generic OIDC login both end at ``AuthManager``/``identity.py``, which
 resolve a canonical ``Principal``; neither route invents its own
 credential system.
 
-OIDC specifics live in ``oidc.py`` (discovery, PKCE, id_token
+OIDC specifics are in ``oidc.py`` (discovery, PKCE, id_token
 verification). This file only speaks HTTP: where to redirect, which
-cookie to set, and how to fail honestly.
+cookie to set, and how to fail.
 """
 
 import logging
@@ -59,7 +59,7 @@ def _failure_response(request: Request, exc: OIDCError):
 
     A browser navigating the sign-in flow gets a redirect to the login
     page with a short, non-secret error code (the SPA presents it). An
-    API caller that asked for JSON gets the honest reason in the body.
+    API caller that asked for JSON gets the reason in the body.
     Neither ever receives a credential, a token, or an identity claim,
     and the detail is logged once server-side for the operator.
     """
@@ -92,7 +92,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
     def _oidc(request: Request) -> OIDCService:
         """The process-wide OIDC service, resolved off ``app.state``.
 
-        Kept on app.state (not closed over) for two honest reasons: the
+        Kept on app.state (not closed over) for two reasons: the
         setup wizard can call ``reload()`` after it writes
         ``config/oidc.json``, and tests can substitute a stub transport
         without reaching into module globals.
@@ -131,7 +131,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
 
     @app.get("/api/auth/oidc/status")
     async def auth_oidc_status(request: Request) -> dict:
-        """Honest OIDC state for the login screen and the setup wizard.
+        """OIDC state for the login screen and the setup wizard.
 
         Read-only and unauthenticated by necessity (it is consulted
         before anyone can sign in), and therefore deliberately bounded:
@@ -154,7 +154,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
     async def auth_oidc_config(request: Request) -> dict:
         """Legacy alias of ``/api/auth/oidc/status``.
 
-        Same honest payload, plus the flat keys the earlier shape used.
+        Same payload, plus the flat keys the earlier shape used.
         ``/api/auth/oidc/login`` is the canonical entry point for a
         browser: the server owns the discovery-derived authorize URL, so
         no client needs to construct one (or to know PKCE exists).
@@ -239,7 +239,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
         service = _oidc(request)
         if error:
             # The provider itself refused (user cancelled, policy, ...).
-            # Honest and specific, without echoing its prose into a URL.
+            # and specific, without echoing its prose into a URL.
             _logger.warning(
                 "oidc provider returned an error: %s (%s)",
                 error,
@@ -269,7 +269,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
             except NoPrincipalError:
                 # Verified by the IdP but not mapped onto a local
                 # principal: never silently mint an account. Fail closed
-                # with an honest reason the operator can act on.
+                # with a reason the operator can act on.
                 raise OIDCLoginError(
                     "this identity is not mapped to a local account",
                     error_code="oidc_identity_not_mapped",
@@ -294,7 +294,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
         that is unreachable can never leave a signed-in session behind.
         We do not retain the id_token, so no ``id_token_hint`` is sent —
         some providers then ask the person to confirm, which is the
-        honest cost of not storing a credential we do not need.
+        cost of not storing a credential we do not need.
         """
         session_id = request.cookies.get(SESSION_COOKIE)
         if session_id:

@@ -3,7 +3,7 @@
 A provider is registered against a capability and implements whatever
 subset of the contract it supports. The registry fails closed: a missing
 or unhealthy provider yields 'unavailable', never an exception, and
-never a silent lie.
+never a silently wrong value.
 
 Capabilities are core-owned (framework invariant): a provider may
 implement or enrich a capability, never define it. See

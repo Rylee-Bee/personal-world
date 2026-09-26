@@ -12,7 +12,7 @@ row by row at file level, and emits:
      homelab/reports/PARITY-AUTOMATION-NOTE.md — read that file before
      changing anything about the shape below)
 
-Determinism + honesty rules honoured (PARITY-AUTOMATION-NOTE §"rules"):
+Determinism + accuracy rules honoured (PARITY-AUTOMATION-NOTE §"rules"):
   · items sort by id; ids = "parity-" + sha256(surface + \\x00 +
     mainline_path)[:8] — re-runs update, never renumber;
   · re-running on unchanged inputs reproduces byte-identical `items`;
@@ -72,7 +72,7 @@ def git(*args: str) -> str:
 
 # ─── The curated divergence table ─────────────────────────────────────
 # One row per frozen-surface FILE. station=None means no rebuild
-# counterpart exists (honestly missing, not stubbed to look covered).
+# counterpart exists (reported as missing, not stubbed to look covered).
 # `status` here is the ANALYST claim; the script then re-verifies it
 # against the tree (parity requires the cited station files to exist)
 # and downgrades — never upgrades — on mismatch.
@@ -336,7 +336,7 @@ def main() -> int:
 
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     station_ref = f"{git('branch', '--show-current')}@{git('rev-parse', 'HEAD')}"
-    # The frozen surface lives in THIS repo; mainline_ref records the
+    # The frozen surface is in THIS repo; mainline_ref records the
     # trunk commit the old Station sits at (read-only ref, never touched).
     try:
         mainline_sha = git("rev-parse", "origin/main")

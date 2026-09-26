@@ -42,7 +42,7 @@ to be installed.
 (the exact package named in that message depends on the starlette version in
 the lock: 1.6.0 prefers `httpx2` and warns that plain `httpx` is deprecated;
 older builds said "the httpx package" — same trap, one rename). The fix is
-never to install anything ad-hoc: `httpx` lives in the `test` extra in
+never to install anything ad-hoc: `httpx` is in the `test` extra in
 `pyproject.toml`, so line 1 above already carries it. Symptom check:
 
 ```bash

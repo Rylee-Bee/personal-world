@@ -138,7 +138,7 @@ def validate_connections(
 
 def validate_compose_file(path: Path, provider_service_names: set[str]) -> ValidationResult:
     """Reject core compose boot dependencies on provider services
-    (framework Rule 6: providers cannot quietly become required)."""
+    (framework Rule 6: providers cannot silently become required)."""
     out = ValidationResult()
     if not path.exists():
         return out
@@ -194,7 +194,7 @@ def validate_participant_packs(
     """Validate participant packs under ``participants_dir``.
 
     This is the canonical Play-Nice participant-pack gate for Project
-    Worlds. It is intentionally project-neutral (lives in the
+    Worlds. It is intentionally project-neutral (is in the
     ``personal_world`` package, not in any harness config) so it can be
     driven from any agent harness, CI, or a human running pytest.
 

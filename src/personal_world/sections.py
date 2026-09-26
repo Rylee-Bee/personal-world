@@ -1,7 +1,7 @@
 """Section registry and per-person layout (docs/p1/FOUNDATION-SPEC.md §2).
 
 The registry (``SECTIONS``) is tracked code: defaults only, never the
-owner's state. The owner's layout (order + hidden) lives in the
+owner's state. The owner's layout (order + hidden) is in the
 caller's ``world.json`` under ``World.layout["sections"]`` and is
 world-classified (in ``world-export``, never in ``settings-export``).
 

@@ -12,7 +12,7 @@ by ``/setup`` instead of an auth wall. The wizard:
    or their own SSO (OIDC). OIDC collection stores the issuer, client
    id, and the NAME of the env var holding the client secret — never a
    secret value. "Test connection" fetches the issuer's OIDC discovery
-   document and reports honestly (reachable / unreachable / bad
+   document and reports (reachable / unreachable / bad
    config);
 4. offers comfort defaults (larger text, gentle animation, and the
    residents/companion pack) applied through the validated prefs
@@ -153,7 +153,7 @@ def provision(data_dir: Path, config_dir: Path, journal=None) -> dict:
 
     try:
         changed, skipped = init_stores(data_dir, config_dir)
-    except Exception as exc:  # honest failure, plain words
+    except Exception as exc:  # failure, plain words
         raise RuntimeError(f"could not initialize the data stores: {exc}") from exc
 
     # 3. Full-text search index: rebuildable and disposable by design;
@@ -182,7 +182,7 @@ def provision(data_dir: Path, config_dir: Path, journal=None) -> dict:
     }
 
 
-# ── OIDC collection + honest discovery test ──────────────────────────
+# ── OIDC collection + discovery test ──────────────────────────
 
 
 def _normalize_issuer(raw: Any) -> tuple[str | None, str | None]:
@@ -200,7 +200,7 @@ def _normalize_issuer(raw: Any) -> tuple[str | None, str | None]:
 
 def test_oidc_discovery(issuer_url: str) -> dict:
     """Fetch ``{issuer}/.well-known/openid-configuration`` and report
-    honestly. Never includes a secret (none is involved); never claims
+    the result. Never includes a secret (none is involved); never claims
     success it did not observe."""
     url, err = _normalize_issuer(issuer_url)
     if err:
@@ -362,7 +362,7 @@ def apply_comfort(data_dir: Path, body: dict) -> dict:
     """Three plain toggles, mapped onto the validated prefs vocabulary:
     larger text (text_scale 1.25), gentle animation (motion subtle), and
     the residents/companion pack (personality_pack "residents" | "off").
-    Comfort defaults (off) are the accessibility-floor values; the crew
+    Comfort defaults (off) are the accessibility-minimum values; the crew
     default is on ("residents", owner decision 2026-09-25).
 
     ``crew_on`` is opt-in to *change*: absent leaves whatever pack is
@@ -528,7 +528,7 @@ def _require_local_peer(request: Request) -> None:
     The wizard provisions the instance credential and stores, so a
     remote peer must never be able to claim a fresh, unauthenticated
     instance. GET state routes stay readable; the TestClient's ASGI
-    peer ("testclient") is loopback by construction, so tests that
+    peer ("testclient") is loopback by design, so tests that
     exercise the wizard keep working.
     """
     from .api import _is_true_loopback

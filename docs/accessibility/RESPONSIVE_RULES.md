@@ -21,7 +21,7 @@ Navigation is a landmark group plus the person's sections; it is always before `
 
 Main content padding and max width are set per screen (for example the Settings screen uses `max-w-[720px]`). The header and footer carry the safe-area insets (`--pw-safe-area-inset-top/bottom/left/right`) so chrome clears notches and the home indicator.
 
-Type scales from tokens in `ui/src/generated/tokens.css`, generated from `design/themes/*.json`. Every theme meets the type floor (body ≥16px, labels ≥13px). The prefs layer (`data-pw-*` attributes and `--pw-*` variables) applies text scale, contrast, density and targets on top of the tokens.
+Type scales from tokens in `ui/src/generated/tokens.css`, generated from `design/themes/*.json`. Every theme meets the minimum text size (body ≥16px, labels ≥13px). The prefs layer (`data-pw-*` attributes and `--pw-*` variables) applies text scale, contrast, density and targets on top of the tokens.
 
 ## Accessibility requirements
 
@@ -39,6 +39,6 @@ Future drawers and sheets must follow Accessibility contract section 3: non-moda
 
 ## Verification scope
 
-Automated gates live in `ui/`: `npx vitest run`, `npx tsc -b`, `npm run lint`, the Playwright e2e suite (`npm run test:e2e`) for accessibility / honest-state / keyboard / motion / reflow, and the kit suite (`npm run kit:test:e2e`) which checks axe, 44px targets, focus, and no sideways scroll at 390/1440. See `ui/package.json` for the exact scripts; do not trust a test count in prose.
+Automated gates live in `ui/`: `npx vitest run`, `npx tsc -b`, `npm run lint`, the Playwright e2e suite (`npm run test:e2e`) for accessibility / accurate-state / keyboard / motion / reflow, and the kit suite (`npm run kit:test:e2e`) which checks axe, 44px targets, focus, and no sideways scroll at 390/1440. See `ui/package.json` for the exact scripts; do not trust a test count in prose.
 
 Source/test evidence is not a manual screen-reader or device acceptance result. Browser acceptance should still cover keyboard use, 200% zoom, safe areas, 44px targets, text scaling, and composer overlap around the 860px boundary.

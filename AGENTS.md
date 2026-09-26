@@ -2,17 +2,17 @@
 
 Before doing substantive work, read [`AGENT_POLICY.md`](./AGENT_POLICY.md) and follow the canonical contract/index system it references.
 
-**Repository truth outranks inference. Unknown is a valid state. Make honesty cheaper than fabrication.**
+**What the repo shows beats what you infer. "Unknown" is a valid answer. Say you don't know rather than guess.**
 
 # AGENTS.md
 
-> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the working-tree rules and where each kind of truth lives · **Read this if:** you are about to edit, stage, or commit in this repo.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the working-tree rules and where each kind of source of truth is · **Read this if:** you are about to edit, stage, or commit in this repo.
 
-**In short:** the repo's shared-working-tree rules (one worktree per lane, stage explicit paths, never `git add -A`) and the routing map for truth — current state, direction, design, accessibility, security. Read it before you edit or commit.
+**In short:** the repo's shared-working-tree rules (one worktree per lane, stage explicit paths, never `git add -A`) and where to find the source of truth for current state, direction, design, accessibility and security. Read it before you edit or commit.
 
-Shared-working-tree and truth-routing rules for every agent and human
-working in this repo. Keep it short: add a rule only when it earns its
-place.
+Working-tree rules, and where to find each source of truth, for every agent
+and human working in this repo. Keep it short: add a rule only when it is
+needed.
 
 ## Shared checkouts and worktrees
 
@@ -30,7 +30,7 @@ agent's WIP into its commit. The rules:
   paths, refuses when >5 unrelated files are modified outside them
   (override: `--force`), and runs pytest before committing.
 
-## Where truth lives (read before trusting)
+## Where the sources of truth are (read before trusting anything else)
 
 - **Current state:** `.project/CURRENT.md` is the one current-state
   pointer. It routes to the canonical files below; when it and a
@@ -38,7 +38,7 @@ agent's WIP into its commit. The rules:
   `.agent/STATE.md` are retired pointers to it.
 - **Play-Nice adoption:** `.project/contracts/adoption.yaml` is the one
   adoption manifest (declared by `.project/project.yaml`). Contracts
-  live in the shared library; none are copied here.
+  are in the shared library; none are copied here.
 - **Figma-to-code workflow:** use
   [personal-world-implement-figma](.agents/skills/personal-world-implement-figma/SKILL.md)
   for approved-frame implementation, repo token/component/art reuse, and
@@ -50,7 +50,7 @@ agent's WIP into its commit. The rules:
   enforced by `personal-world framework validate`).
 - **Canonical direction:** `.project/PLAN.md` (owner-approved 2026-09-25)
   supersedes `docs/TRUE-NORTH.md`'s scope and sequencing; TRUE-NORTH's
-  honesty and accessibility principles still hold. TRUE-NORTH
+  accuracy and accessibility principles still hold. TRUE-NORTH
   (2026-09-22) owns vision, the five commitments, the daily home loop,
   and the recut alpha gates; ADRs and the contract system retain their
   own authority, and `.project/DECISIONS.md` remains the append-only
@@ -76,19 +76,19 @@ agent's WIP into its commit. The rules:
   target-completion detail where TRUE-NORTH is silent. `design/handoff/` is
   an archived spec package — historical, never edit it to change design.
   `design/COMPANION_INTEGRATION.md` is the current companion/chat
-  architecture. Companion display names and the station-id ↔ server-key
-  mapping are canonical in `docs/COMPANION-CANON.md`. Character and voice
-  truth — who each resident is, the two voices, and the attention voices —
-  is canonical in `docs/CHARACTER-HANDBOOK.md`.
+  architecture. Companion display names and crew ids (with the old keys they
+  replace) are canonical in `docs/COMPANION-CANON.md`. Character and voice
+  rules (who each resident is, the two voices, and the attention voices)
+  are canonical in `docs/CHARACTER-HANDBOOK.md`.
 - **Accessibility is non-negotiable and canonical at
   `docs/accessibility/ACCESSIBILITY_CONTRACT.md`.** Any UI change —
   screens, components, CSS, tokens — answers that contract first
   (44px targets, luminance-only rank encoding, motion reduced by
   default, dark-mode default; OS `prefers-reduced-motion` overrides
   application motion preferences). The screen-reader walkthrough,
-  responsive rules, and the preference schema floor live alongside
+  responsive rules, and the minimum preference schema are next to
   it in `docs/accessibility/`. Do not edit files under
-  `design/handoff/` to change accessibility truth; the canonical
+  `design/handoff/` to change accessibility rules; the canonical
   copies are in `docs/accessibility/`.
 - **Do not casually regenerate:** the Mermaid master
   (`design/assets/mermaid-companion-master.lottie` — byte-identical
@@ -108,7 +108,7 @@ agent's WIP into its commit. The rules:
   root. CI runs the same.
 - **UI behaviour gate:** `cd ui && npx playwright test`. Playwright boots
   the real app against the seeded fixture API (`ui/scripts/e2e-api.mjs`)
-  and runs the accessibility / honest-state / keyboard / motion / reflow
+  and runs the accessibility / accurate-state / keyboard / motion / reflow
   suite, including axe with color-contrast ENABLED. The old `frontend/`
   suite was removed 2026-09-16; `ui/` IS the interface (2026-09-22 flip).
 - **Trunk:** `origin/main`. A local `main` ref can lag it by many
@@ -133,7 +133,7 @@ replace any contract above.
 - **No core paid gate.** No core Worlds capability may require a commercial/Enterprise-only
   feature. Commercial hosting/support around an open tool is fine; an essential capability
   behind a paid gate is not suitable as foundational infrastructure.
-- **Licensing floor.** A foundational dependency must provide every capability Worlds relies on
+- **Licensing minimum.** A foundational dependency must provide every capability Worlds relies on
   in its self-hosted open-source distribution under an OSI-recognized license. Copyleft
   (AGPL/GPL) is acceptable **only as an external service behind a clean API boundary** — never
   linked into or absorbed by Worlds.
@@ -148,8 +148,8 @@ replace any contract above.
   broker (allow-listed commands, scoped workdir, container-confined) — never a raw
   Podman/Docker socket, never arbitrary host shell. "Open Host Shell" is an explicit,
   separate privileged path.
-- **Remote degrades honestly.** Loss of a remote Node, edge VPS, or external capability must
-  not break Worlds Core; surface `unavailable`/`stale` honestly (Play-Nice
+- **Remote failures are reported, not hidden.** Losing a remote Node, edge VPS, or external
+  capability must not break Worlds Core; show `unavailable` or `stale` (Play-Nice
   `failure-and-degradation`).
 - **The Agent is the enabler, not the product.** The Workbench / primary-viewport experience
   is the product direction; the Node/Agent/network layer extends it and must not turn Worlds
@@ -157,12 +157,12 @@ replace any contract above.
 - **The frontend is Worlds; Station is a theme.** The stable skeleton (`Bridge · Memory · Chat ·
   Settings` + personal sections; the Bridge's area id is still `overview`) is the navigation — **not** a star-map/constellation drill (that model
   belongs to the later Station theme package; Station is kept, never deleted). The default is a
-  **complete existing theme pack** (full color — plain means calm structure, not colorless), never a
+  **complete existing theme pack** (full color; "plain" means a simple layout, not colorless), never a
   hand-built partial shell or the aubergine station palette. See `docs/PRODUCT-LANGUAGE.md`.
 
 ## No new ports into Worlds
 
-Worlds is the front door plus the Self room (Keeper, memory, journal,
+Worlds is the main app plus its own personal screens (Keeper, memory, journal,
 briefing). It never copies another tool's code. New capabilities arrive as
 rooms that serve the Play-Nice ROOM interface contract — `room/0`:
 `GET /room`, `/room/cards`, `/room/needs-you`, `/room/actions`,

@@ -26,7 +26,7 @@ def _notify_batch(state, source, candidates, render, ntfy_tags, *, ntfy_config, 
             continue
         new.append(c)
 
-    # PW seam: with no push channel configured, discoveries are CAPTURED
+    # PW entry point: with no push channel configured, discoveries are CAPTURED
     # into state for the world itself to surface (journal events / Interests
     # view) instead of requiring ntfy. Dedup + per-poll cap semantics are
     # identical; only the delivery differs.

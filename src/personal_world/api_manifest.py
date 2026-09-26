@@ -26,11 +26,11 @@ Vocabulary (deliberately small):
   beyond authentication. `none` means "no elevation gate"; it never
   means "unauthenticated" (see `auth`).
 * `auth`: `public` | `authenticated` — whether a credential is required
-  at all. `authenticated` is the single `require_auth` seam (bearer,
+  at all. `authenticated` is the single `require_auth` entry point (bearer,
   browser session, or the opt-in loopback dev bypass).
 * `present`: the route is registered in the running app.
 
-Honesty note on the enum: a few real writes (`POST /api/vault/set`,
+Accuracy note on the enum: a few real writes (`POST /api/vault/set`,
 `DELETE /api/vault/{name}`, `POST /api/chat`, `POST /api/setup`) are
 gated by `require_auth` only — `docs/surfaces/AUTH-MATRIX.md` records
 the Vault ones as a documented divergence from step-up. The three-value
@@ -38,7 +38,7 @@ the Vault ones as a documented divergence from step-up. The three-value
 claiming `step-up` for them would be a fabrication that sends clients
 chasing a grant they do not need. They keep `gate: "none"` and are
 listed explicitly, by name, in `writes_without_elevation` — visible
-rather than quietly normalized. Credential-lifecycle rows (sign-in and
+rather than silently normalized. Credential-lifecycle rows (sign-in and
 first-run bootstrap: capability `auth`/`setup`, or a `/api/auth/` or
 `/api/setup` path) are excluded from that list because they mutate
 session/marker state, not world state; they stay fully visible in
@@ -272,7 +272,7 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     _e("API-008", "GET", "/api/journal/history", "journal", "read", "none"),
     _e("API-084", "GET", "/api/journal/last", "journal", "read", "none",
        note="newest CURRENT entry (calm-view tail) for the daily home "
-            "loop's thread deep-link; honest null when empty; person "
+            "loop's thread deep-link; null when empty; person "
             "principals only"),
     # Worlds briefing / place continuity (contract: worlds-briefing/1).
     _e("API-085", "GET", "/api/briefing", "briefing", "read", "none",
@@ -284,7 +284,7 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     _e("API-087", "PUT", "/api/place", "briefing", "write", "none",
        note="stores the caller's last place; authenticated, not "
             "elevation-gated; person principals only"),
-    # Rooms — the front door renders other small backends (room/0).
+    # Rooms — the main app renders other small backends (room/0).
     # Read-only: it fetches each configured room outbound and never
     # mutates local state; an unreachable room is reported, not raised.
     _e("API-088", "GET", "/api/rooms", "rooms", "read", "none",
@@ -297,10 +297,10 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "runtime from Project Home's registry when PW_ROOMS_REGISTRY_URL "
             "is set (cached 60 s, last-known-good persisted, env fallback) "
             "and a sibling `registry` states its source/status; a room "
-            "whose contract this front door does not support is "
+            "whose contract Worlds does not support is "
             "`incompatible`, never healthy, with its cards/needs uncounted; "
             "each row carries an optional `public_url` (a registry entry's "
-            "browser-reachable http(s) address, no userinfo) or an honest "
+            "browser-reachable http(s) address, no userinfo) or "
             "null when absent/invalid. A registry room may opt in to "
             "per-person forwarding (`forward_principal`, with its own "
             "token): its cards/needs are then fetched and cached 15 s per "
@@ -335,7 +335,7 @@ ENDPOINTS: tuple[Endpoint, ...] = (
        note="pass one room/0 action through to its room and return the "
             "room's own receipt ({action_id, ok, summary, changed, at}) "
             "with HTTP 200 whatever the room's status; a room that cannot "
-            "answer yields an honest ok:false 'nothing changed' receipt, "
+            "answer yields an ok:false 'nothing changed' receipt, "
             "never a 500. Owner-only for writes: the room's own GET "
             "/room/actions list (cached 60 s per room) decides whether the "
             "action exists (404 otherwise) and whether it writes (a write "
@@ -362,11 +362,11 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     # Crew — companions are user-owned (owner decision 2026-09-25). The
     # drawn crew is a starter set; a person adds, renames, hides and
     # deletes their own. Private, per principal, never sent to a room or
-    # a model. Same per-principal seam as rooms visits; no new store.
+    # a model. Same per-principal entry point as rooms visits; no new store.
     _e("API-089", "GET", "/api/crew", "crew", "read", "none",
        note="the caller's own crew (private, per principal), "
             "starter-seeded on first read; includes hidden entries so "
-            "the front door decides what to filter"),
+            "Worlds decides what to filter"),
     _e("API-089-create", "POST", "/api/crew", "crew", "write", "none",
        note="{name, blurb?, voice_label?} → source 'user', id = a unique "
             "slug of the name; strings only, name ≤ 60 / blurb ≤ 280 / "

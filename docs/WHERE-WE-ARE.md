@@ -8,7 +8,7 @@ in plain words.
 
 ## What Worlds is
 
-**Worlds** is your front door: one calm place that brings things to you
+**Worlds** is one place that shows you what matters
 (what changed, what needs you, what can wait) instead of making you go and
 look. It runs on your own machine, keeps your data yours, and never does
 anything important without asking you first.
@@ -53,11 +53,11 @@ says `personal_world` in places. That's fine; the name you'll see is Worlds.
 2. One box can serve several people, and each person's stuff stays theirs.
 3. Backups may include the encrypted vault; never plaintext secrets.
 4. One way to update, and it always asks first.
-5. Worlds is the general look and the front door; tools become rooms.
+5. Worlds is the main app and sets the look; other tools become rooms.
 6. Rooms open on their own sites in a new tab. No proxy.
 7. Candy takes over discovery, media, calendars and notifications. It's
    multi-user and behind your sign-in.
-8. Station is a theme you can keep, not the shape of the app.
+8. Station is a theme you can keep, not the layout of the app.
 9. Starfield is the default theme.
 
 ## What's being built next
@@ -76,5 +76,5 @@ question, with a recommendation first.
 
 ## If your head hurts right now
 
-Close the laptop. The work holds itself. It will still be here, exactly where
-you left it, and it will be gentler than whatever you're fearing it is.
+Close the laptop. Everything is saved, and it will be here, exactly as you left
+it, when you come back.

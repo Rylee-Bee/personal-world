@@ -23,22 +23,22 @@ This is the product layer. It does **not** reverse the Workbench/Node architectu
 
 ## Product sentence
 
-> Worlds is one calm place to reach everything that matters to you — **without hunting** —
-> customizable enough to become yours, accessible whether you have a lot or a little to give.
+> Worlds is one place to reach everything that matters to you **without searching for it**,
+> customizable enough to feel like yours, and usable whether you have a lot or a little energy.
 
 > **The frontend is Worlds. Station is a theme.**
 
 ## Two principles
 
-1. **Customizable enough to become yours, while accessible whether you have a lot or a little to give.**
+1. **Customizable enough to feel like yours, and usable whether you have a lot or a little energy.**
 2. **Customization must never make Worlds harder to recover or navigate at low capacity.** Someone may
    customize deeply on a good day; on a migraine day, a stressful appointment, or an emergency, the basic
    landmarks stay predictable. You never have to remember how you customized Worlds to find something important.
-3. **Warm in tone, exact in facts.** The product may be friendly — but the moment warmth costs honesty it stops
-   being trustworthy, and that is the one failure it must never commit. Warmth sits *on top of* an honesty
-   floor, never over it. Concretely: never soften a failure into a "looks fine," never fake data or a dead
-   button, `unavailable`/`stale`/`not_configured` stated plainly, and never hide real uncertainty to keep a
-   clean UI. Kind is allowed; kind-by-lying is not.
+3. **Warm in tone, exact in facts.** The product can be friendly, but a friendly tone must never make a
+   statement less accurate. Concretely: never describe a failure as "looks fine", never show fake data or a
+   button that does nothing, always say `unavailable`, `stale` or `not_configured` when that's the state,
+   and never hide real uncertainty to keep the screen tidy. Being kind is fine; being kind by saying
+   something untrue is not.
 
 ---
 
@@ -69,7 +69,7 @@ It answers **"what matters right now?"** by aggregating each enabled section's h
 - other enabled sections → their current headline
 
 The person taps through to the deeper section. Overview is part of the accessibility model:
-**one predictable place to orient yourself without hunting.** Product-facing term is **Overview**; existing
+**one predictable place to orient yourself without searching.** Product-facing term is **Overview**; existing
 `/api/daily` / `Today` implementation concepts remain underneath but must not create competing product language.
 
 ### Memory
@@ -85,7 +85,7 @@ A deterministic **place**, not an AI feature. It must:
 - require **step-up for sensitive categories**
 
 AI may summarize, suggest, retrieve conversationally, and connect related things — but **AI must never be the
-only route to stored information.** Rule: **Chat is a shortcut, never the only door.** The first plain release
+only route to stored information.** Rule: **Chat is a shortcut, never the only way in.** The first plain release
 stays fully usable with Qwen or any model completely unavailable.
 
 ### Records vs Vault — distinct concepts (do not conflate)
@@ -167,7 +167,7 @@ technical name; **installation language is human** — e.g. *"Connect this compu
 
 ## The default theme — a full pack, not a shell
 
-**"Plain" means the structure, not the color.** Plain = calm, predictable, low-cognitive-load, accessible.
+**"Plain" means the structure, not the color.** Plain = low-stimulation, predictable, easy to take in, accessible.
 It does **not** mean colorless, gray, or minimal. **Worlds ships a full, complete, multi-color theme
 pack** — every token of the `--pw-*` system filled (surface ladder · the accent set · text · borders ·
 warmth gradients · shadows · typography · density).
@@ -175,15 +175,15 @@ warmth gradients · shadows · typography · density).
 - **Use a complete existing pack as the starting default.** The theme engine already produces full packs; the
   current set all passes `lab design theme validate` (WCAG). **Do not hand-author a partial palette** (a
   shell forces the "all the other work" later). A bespoke pack is available via `lab design theme make` only
-  if none of the existing full packs feels like home — not as a starting task.
+  if none of the existing full packs suits you; it is not a starting task.
 - > **Updated 2026-09-25:** the first-run default is `starfield`, and `.project/PLAN.md` (owner-approved 2026-09-25) takes the Constellation star map as the starting direction. Where this section says otherwise, PLAN.md and `.project/DECISIONS.md` win.
 - **The *default theme* is not Station.** What defers to a later theme is the **constellation star-map
-  navigation model** and Station-as-default — **not the product's personality.** Character art, a quiet
-  sci-fi **aroma**, and companions-as-presence stay part of Worlds' soul (the README art stays). "Keep
-  Station" means it's a later selectable *experience* theme on the same bones — not that the warmth leaves.
+  navigation model** and Station-as-default, **not the product's personality.** Character art, a light
+  sci-fi feel, and visible companions stay part of Worlds (the README art stays). "Keep Station" means it
+  becomes a selectable theme later on the same structure; the friendly feel stays.
 - **Plain does not mean** sterile · gray enterprise · generic admin · featureless · a partial palette ·
-  personality-free. **Calm *and* full of character are both required** (the DNA: "soft by default, deep on
-  demand" — and plain ≠ colorless).
+  personality-free. **Low-stimulation *and* full of character are both required** (the rule: "soft by
+  default, deep on demand"; plain does not mean colorless).
 - **Personality:** a recognizable Worlds identity via typography, spacing, softness, interaction quality,
   character art, and a light sci-fi feeling. Only the **full Station skin** (map-as-navigation + its own room
   vocabulary) is a later theme package; it never defines the stable skeleton.
@@ -192,7 +192,7 @@ warmth gradients · shadows · typography · density).
 (a complete, WCAG-validated palette). Its `"Adapted from the constellation portfolio"` provenance line is
 an internal lineage note only: the palette carries no lore, no companion, and no star-map navigation.
 The other shipped themes are `doorways`, `station`, `moss`, `ocean`, and `plain`; all are switchable and
-reversible at any time, and every theme meets the type floor (body ≥16px, labels ≥13px).
+reversible at any time, and every theme meets the minimum text size (body ≥16px, labels ≥13px).
 **`plain`** (warm-neutral charcoal + teal primary `#72B1B1` + amber `#D4A057` as the rare highlight +
 Young Serif display headings) remains a full, WCAG-validated pack — plain means the structure, not the
 color. No palette reintroduces the Station experience; the star-map/constellation *navigation* ban (above)
@@ -215,8 +215,8 @@ predictable location of information · required actions · accessibility semanti
 **Station is a later theme package, not the product.** The whole star-map / constellation *navigation* model
 (map-as-frontend, seven constellations, drill-through, companion orbs) moves into the Station theme. **The
 stable skeleton is the real navigation now**, and it is deterministic and direct — a person must never have
-to "fly the map" to reach something. This supersedes the 2026-09-16 structural assumption "Station map = the
-frontend" (master handoff decision 11) — a theme assumption that had quietly become load-bearing.
+to navigate a map to reach something. This supersedes the 2026-09-16 structural assumption "Station map = the
+frontend" (master handoff decision 11): a theme choice that other decisions had started to depend on without anyone deciding it.
 
 Station is **kept, not deleted** — its palettes, art, and map views become selectable theme/experience packs
 later. What is rejected is Station as the *default, the baseline palette, or the required vocabulary.*
@@ -251,7 +251,7 @@ from themes · multiple routes to the same concept when one will do.
 **Never cut:** meaningful existing capabilities · customization · Setup · Overview · Discovery · Memory ·
 theme infrastructure · working integrations · accessibility features · product depth.
 
-> **Goal: less hunting, less explanation, less duplication — not fewer useful things.**
+> **Goal: less searching, less explanation, less duplication; not fewer useful things.**
 
 ---
 

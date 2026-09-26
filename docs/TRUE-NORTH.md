@@ -1,8 +1,8 @@
 # TRUE-NORTH — Worlds
 
-> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** vision, the five commitments, and the honesty and accessibility principles · **Read this if:** you need *why* Worlds is shaped this way; for *what we are building now* read [`.project/PLAN.md`](../.project/PLAN.md) first
+> **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** vision, the five commitments, and the accuracy and accessibility principles · **Read this if:** you need *why* Worlds is designed this way; for *what we are building now* read [`.project/PLAN.md`](../.project/PLAN.md) first
 
-**In short:** This is the owner-approved direction: the vision, the five commitments (fast · flexible · warm · polite · accessible DNA), the daily home loop, and the alpha gates. Its **scope and sequencing are superseded by `.project/PLAN.md`** (owner-approved 2026-09-25) — where they conflict on scope or order, PLAN wins. The honesty and accessibility principles here still hold.
+**In short:** This is the owner-approved direction: the vision, the five commitments (fast · flexible · warm · polite · accessible by default), the daily home loop, and the alpha gates. Its **scope and sequencing are superseded by `.project/PLAN.md`** (owner-approved 2026-09-25) — where they conflict on scope or order, PLAN wins. The accuracy and accessibility principles here still hold.
 
 **Provenance:** canonical direction, owner-approved (human, Rylee) 2026-09-22 with four refinements; built from a three-round owner interview (18 taps + typed answers) after a 24-product research pass. **Supersedes as direction:** `WORLDS-DELIVERY-ORCHESTRATION-PLAN-2026-09-21.md` (historical record), `docs/PERSONAL-WORLD-FINISH-LINE.md`, `ROADMAP.md` (both remain as historical detail where this doc is silent).
 
@@ -16,10 +16,10 @@ authority** in their domains. This doc routes; it does not overrule.
 
 ## Vision
 
-> Worlds is a **fast, flexible, warm, polite personal OS** — one calm hub
-> where everything that matters is reachable **without hunting** —
-> **accessible in its DNA, not as an addon** — built for Rylee's daily life
-> first, shareable by construction.
+> Worlds is a **fast, flexible, warm, polite personal app**: one place where
+> everything that matters is reachable **without searching for it**,
+> **accessible from the start rather than as an add-on**, built for Rylee's
+> daily life first and designed so others can use it too.
 
 ## Owner's philosophy (verbatim, 2026-09-22)
 
@@ -38,33 +38,33 @@ authority** in their domains. This doc routes; it does not overrule.
 > "The companion IS the world. **'My little World lives here.'**"
 > — `design/handoff/WORLD_KEEPER.md`, day one
 
-A warm little world that lives with you **and tells you the truth**. The
-World Keeper globe is **the one heartbeat**: it greets, celebrates, sleeps —
-never telemetry, never a status badge (its founding rule stands).
+In practice: a friendly app that is **always accurate**. The World Keeper globe
+is a character, not a status indicator: it greets, celebrates and sleeps, and
+it never shows telemetry or status (its founding rule stands).
 
 ## Five commitments (from the research)
 
 | Word | Commitment | Doctrine source |
 |---|---|---|
 | **fast** | Felt responsiveness: skeleton screens instant, light assets, no spinners between landmarks | Linear ("never slow"), Glance |
-| **flexible** | Opinionated defaults + complexity-on-demand. Never a blank page. Customization never removes the low-capacity path | Notion/Dashy counter-proofs; the complexity-on-demand contract |
+| **flexible** | Good defaults, with more options available when wanted. No empty starting page. Customizing never removes the simple path for low-energy days | Notion/Dashy counter-proofs; the complexity-on-demand contract |
 | **warm** | Remembered ritual: greet · remember · keep cadence · never interrupt · never guilt | Pi, Stardew, Replika's good half; guilt-on-exit dark patterns banned |
-| **polite** | Small batch + earned cadence. Pull by default; push only by invitation | Discover Weekly mixtape pattern, Are.na |
-| **accessible DNA** | The calm mode IS the product. Luminance-only state, motion reduced by default, migraine-safe first — not a toggle layer | Mini Metro ambient-state doctrine; the unsaturated-market finding |
+| **polite** | A few items at a time, at a pace the person has accepted. The person asks by default; notifications only when they opt in | Discover Weekly mixtape pattern, Are.na |
+| **accessible by default** | The low-stimulation mode is the normal mode, not a setting. State shown by brightness, not color alone; motion reduced by default; safe for migraines first | Mini Metro ambient-state doctrine; the unsaturated-market finding |
 
 ## The one daily job — the daily home loop
 
 *(Owner refinement 1: the loop is the daily homecoming, **not exclusively a
 morning activity**. Any time of day, any device, under five minutes.)*
 
-1. **Orient** — the Keeper greets; Overview shows the honest state of your
-   estate and attention: real data or `no source yet` / `unavailable` /
-   `stale`. Never fabricated.
+1. **Orient**: the Keeper greets; the home screen shows the real state of
+   your systems and what needs you: real data, or `no source yet` /
+   `unavailable` / `stale`. Never made up.
 2. **Remember** — Memory surfaces what matters from where you left off.
 3. **Resume** — yesterday's thread, one tap to pick back up.
 4. **Discover** — one small **"brought to you"** card (interests, small
-   batch, cadenced — the mixtape pattern inside Overview; honest empty
-   until wired). No separate discovery surface in the first release.
+   batch, on a schedule, like a curated playlist on the home screen; shown
+   as empty until a source is connected). No separate discovery surface in the first release.
 
 **Loop before scope:** the owner experiences the actual daily loop before
 any scope expansion (ruling 2026-09-22).
@@ -77,18 +77,18 @@ any scope expansion (ruling 2026-09-22).
 - The residents and the two-voice system become an **optional personality
   pack** (switchable; on by default since 2026-09-25, owner: "turn it on"). `docs/CHARACTER-HANDBOOK.md` and
   `docs/COMPANION-CANON.md` survive as the pack's canon — kept, never deleted.
-- Honesty floor unchanged: warmth never costs exactness; degraded/off states
-  are labeled honestly in whatever voice is active.
+- Accuracy comes first: a friendly tone never makes a statement less exact, and
+  degraded or off states are labelled as such in every voice.
 
-## Scope — the calm hub (first release)
+## Scope: the first release
 
 **Core, deep:** `Bridge · Memory · Chat · Settings` (the stable skeleton).
 
 | Screen | Depth target |
 |---|---|
-| Overview | the daily home loop: greet + honest status + thread + discovery sliver |
+| Overview (now the Bridge) | the daily home loop: greeting + real status + yesterday's thread + a small discovery card |
 | Memory | journal + records; deterministic place; works with **all models off**; step-up for locked categories |
-| Chat | the one voice + tone registers; honest-off reachable; contextual |
+| Chat | the one voice + tone registers; clearly shows when it is off; aware of context |
 | Settings | preferences, tone, themes (starfield default since 2026-09-25 · others optional), accessibility prefs |
 
 **Projects ruling (owner refinement 2):** Projects stays **parked as a full
@@ -96,7 +96,7 @@ surface**, but Overview's project status must keep a **deterministic path
 from source to details** — every status row links to its authoritative
 source — and **agent-sync remains the authoritative feed**.
 
-**Parked, honest (no build lanes):** Interests (full surface), Map,
+**Parked, labelled as such (not being built):** Interests (full surface), Map,
 Media/Music — remain specimen / `no source yet`, never faked. Workbench
 stays merged **behind `PW_WORKBENCH`, off**. Theme packs beyond plain +
 starfield: Phase C.
@@ -117,8 +117,8 @@ Alpha = all of these green **and** Rylee lives in Worlds daily for a week:
 |---|---|
 | **G-ritual** | the daily home loop completes end-to-end on phone + desktop, <5 min, any time of day, from a real deployment |
 | **G-fast** | unambiguous, measured budgets — *(owner refinement 3)* the measurement definition ships **as code with the gate**: named interaction set, measurement points, percentiles (proposal: p95 interaction <100ms local, first paint <2s LAN). Numbers live in the gate, not vibes |
-| **G-real** | all four skeleton screens: real endpoint data or honest empty/unavailable; zero fabricated data or alt-text |
-| **G-voice** | one voice across chat+attention; tone switch works; model-off and degraded states honest |
+| **G-real** | all four main screens: real data from the API, or a clear empty/unavailable state; no made-up data or alt text |
+| **G-voice** | one voice across chat and attention messages; the tone switch works; model-off and degraded states are labelled |
 | **G-memory** | pin + find a record with all models off; layout stable; locked categories need step-up |
 | **G-safe** | step-up + true-loopback + friend-write-gated-until-approve end-to-end (backend done; the frontend half closes it) |
 | **G-a11y** | automated suite green **and** a real screen-reader + keyboard-only walk of the daily home loop |
@@ -139,7 +139,7 @@ nobody commits but the orchestrator; explicit paths only.
 
 | Wave | Lanes (disjoint files) |
 |---|---|
-| **1** | A: daily home loop in Overview (Keeper greet + honest status + thread + discovery sliver + project-status source links) · B: voice unification (one voice + tone registers; residents → pack flag) · C: Memory deep (deterministic place, records categories, models-off) · D: doctrine collapse (this doc canonical; plan/finish-line/ROADMAP → pointers; DECISIONS record) |
+| **1** | A: daily home loop in Overview (Keeper greeting + real status + thread + discovery card + project-status source links) · B: voice unification (one voice + tone registers; residents → pack flag) · C: Memory deep (deterministic place, records categories, models-off) · D: doctrine collapse (this doc canonical; plan/finish-line/ROADMAP → pointers; DECISIONS record) |
 | **2** | G-fast measurement harness + budgets · G-a11y real AT walk · G-degrade matrix cells · G-safe frontend step-up UI · Node limb continues (own lane, ADR rules) |
 | **3** | Vault-portability decision (owner tap) → G-recover timed restore drill · R6 taste-pass sitting on the new hub · owner daily-use week → **alpha** |
 
@@ -150,7 +150,7 @@ L-CI parked · L-CONTRACT continues (contracts kept by ruling).
 ## Anti-sprawl rules (kill criteria)
 
 1. A new surface must serve the daily home loop, or it doesn't ship.
-2. New machinery parks by default and re-earns its place through the loop.
+2. New features are parked by default and are added back only when the daily loop needs them.
 3. Every new doc collapses under TRUE-NORTH or exists as a pointer.
 4. Flexibility additions must preserve the low-capacity path — configuration
    is never required to reach a landmark.

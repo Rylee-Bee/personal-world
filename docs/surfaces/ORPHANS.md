@@ -22,13 +22,13 @@ pre-flip UI; today's interface is `ui/`.
 | API-065 | Themes API | PARTIAL | GET /api/themes(/{name}) implemented; no frontend consumer found | MEDIUM |
 | STORE-013 | data/theme-packs runtime integration | PARTIAL | Registry reads manifests; ARCHITECTURE.md says "not full frontend pack integration" | HIGH |
 | TOOL-027 | propose_reminder executor | RESOLVED (D1–D3) | Executor persists via wired `Scheduler.add` (tool_registry.py:799-817) | HIGH |
-| TOOL-028 | propose_reconciler_apply executor | PARTIAL (honest) | Returns `unsupported`, leaves proposal `pending`, applies nothing (tool_registry.py:819-830) — no fake success | HIGH |
+| TOOL-028 | propose_reconciler_apply executor | PARTIAL (labelled) | Returns `unsupported`, leaves proposal `pending`, applies nothing (tool_registry.py:819-830) — no fake success | HIGH |
 | TOOL-013 | inspect_reconciler_diff | PARTIAL | Returns desired state only; "Observed state not available for diff" | HIGH |
 | TOOL-029 | execute_approved_write approval semantics | RESOLVED (D1–D3) | Requires durable `status == "approved"`; approval server-held via step-up API; no model-supplied boolean (tool_registry.py:722-885, api.py:979-1004) | HIGH |
 | PROV-011 | NativeDeploymentProvider (compose/systemd adapters) | PARTIAL | Registered; status/observe only; no live deploy caller | MEDIUM |
 | PROV-009 (send) | NativeNotificationsProvider.send (webhook/ntfy) | PARTIAL | Provider registered and observed; no current send() caller in api/cli/tools | MEDIUM |
 | CAP-013 | scheduler capability (no provider registered) | PARTIAL | Capability defined; Scheduler used directly, not via capability | HIGH |
-| UI-023 | "interface not built" page | INTERNAL | Deliberate honest-missing state when the `ui/` build is absent from the image (`station_ui.py`); no legacy fallback | HIGH |
+| UI-023 | "interface not built" page | INTERNAL | Deliberate, labelled missing state when the `ui/` build is absent from the image (`station_ui.py`); no legacy fallback | HIGH |
 | PROV-024 | CandyDispenser | INTERNAL | Demo/reference provider behind explicit connections type=candy | HIGH |
 | PROV-003 | FakeSourceControl | INTERNAL | Substitution-proof machinery for tests | HIGH |
 | PROV-028 | FakeUpdateProvider | INTERNAL | Update state-machine reference for tests | HIGH |

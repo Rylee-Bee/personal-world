@@ -69,7 +69,7 @@ Restored byte-identical (data/config/home members):
 
 | Not in the bundle | Evidence / status |
 | --- | --- |
-| `vault.enc` (instance + per-user) | Drill: excluded note verbatim; B has no `vault.enc`; `GET /api/vault/status` on B honestly reports `locked: true, encrypted: false`. Opt in with `--include-vault`. |
+| `vault.enc` (instance + per-user) | Drill: excluded note verbatim; B has no `vault.enc`; `GET /api/vault/status` on B reports `locked: true, encrypted: false`. Opt in with `--include-vault`. |
 | Instance credential: `PW_API_TOKEN` / `data/.env` | Never archived. The restored box runs on a **freshly supplied** token (drill B used a new one; CI test pins the absence). Credentials not being portable is the point. |
 | `setup-complete` marker | ⚠️ **Found gap — see below.** Not archived; a restored data dir is not boot-complete until a first-run pass (`personal-world init`, or the setup wizard) re-creates it. |
 | `sessions.json`, `memory.fts5.db*`, `updates-session.json` | Never archived and refused even if a hostile archive carries them (drill + unit test). Expected: you re-authenticate; the search index rebuilds from the journal. |

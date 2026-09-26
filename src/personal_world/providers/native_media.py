@@ -6,7 +6,7 @@ It provides capabilities for:
 - Activity/queue monitoring (downloading, queued, completed, failed)
 - Recently added content
 - Search across connected providers
-- Honest degradation when providers are absent or unreachable
+- degradation when providers are absent or unreachable
 
 Supported providers: Plex, Sonarr, Radarr, Lidarr.
 Users configure their own instances through connection config.
@@ -1055,7 +1055,7 @@ def _is_secret_ref(config: dict[str, Any], field: str) -> bool:
 
     Real credentials (API keys, tokens) do not match that name shape,
     so inline credentials stay accepted for backward compatibility.
-    Anything ambiguous is treated as a reference and refused honestly.
+    Anything ambiguous is treated as a reference and refused.
     """
     value = config.get(field)
     if not value or not isinstance(value, str):
@@ -1082,7 +1082,7 @@ def build_media_engine_from_config(config_dir):
     THE one construction path (BATCH 9): the API route module and the
     tool registry both call this, so media engine behavior cannot
     drift between surfaces. Absent/unreadable config yields an empty
-    engine (honest degradation, no crash). Adapters whose credential
+    engine (degradation, no crash). Adapters whose credential
     env is unset are skipped by build_adapter.
     """
     import json as _json
@@ -1111,7 +1111,7 @@ def build_media_engine_from_connections(
     Companion to build_media_engine_from_config for callers whose
     config is merged in memory (ConnectionManager). Filters to the
     media connection types; the engine itself drops connections whose
-    credentials do not resolve (honest degradation).
+    credentials do not resolve (degradation).
     """
     return NativeMediaEngine(
         [
@@ -1126,7 +1126,7 @@ class NativeMediaEngine(Contract):
     """Orchestrator that aggregates media providers into a unified view.
 
     Takes a list of configured provider connections, normalizes all data
-    into MediaItem/MediaLibrary/MediaActivity, and provides honest
+    into MediaItem/MediaLibrary/MediaActivity, and provides 
     degradation when providers are absent or unreachable.
     """
 

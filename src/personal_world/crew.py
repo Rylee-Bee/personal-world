@@ -6,9 +6,9 @@ room may have no companion at all. Sol stays the Worlds mark (the primary
 logo) and is deliberately *not* a crew entry; Worlds is a place, not a
 companion (owner canon 2026-09-25).
 
-This is the Worlds half of the seam: private, per principal, never sent to
+This is the Worlds half of the entry point: private, per principal, never sent to
 a room and never sent to a model. It rides the existing per-principal JSON
-seam (``identity.principal_scoped_path``, kind ``crew``) with the same
+entry point (``identity.principal_scoped_path``, kind ``crew``) with the same
 atomic write every other Worlds state file uses — no new store, no new
 format family. Portrait *bytes* are the one addition, and they are files
 under the principal's own scoped data directory (a sibling of this state
@@ -27,7 +27,7 @@ The stored shape (one file per principal)::
       "doorways": {"workshop": "garden"}
     }
 
-Honesty rules:
+Accuracy rules:
 
 * First read with no file (or an unreadable one) seeds the starter crew —
   the drawn crew — and nothing else. A stored file is authoritative: an
@@ -278,7 +278,7 @@ def initial_of(name: str) -> str:
 
 
 def empty_state() -> dict[str, Any]:
-    """An honest empty crew: no companions, no keepers, no doorways."""
+    """An empty crew: no companions, no keepers, no doorways."""
     return {"crew": [], "keepers": {}, "doorways": {}}
 
 
@@ -342,7 +342,7 @@ def read_crew(path: Path, *, room_ids: Iterable[str] = ()) -> dict[str, Any]:
             if not isinstance(room_id, str) or not room_id:
                 continue
             # A keeper that no longer exists reads as no keeper — never as
-            # a dangling id the front door would have to guess at.
+            # a dangling id the main app would have to guess at.
             state["keepers"][room_id] = (
                 companion_id
                 if isinstance(companion_id, str) and companion_id in known
@@ -381,7 +381,7 @@ def _normalize_entry(item: Any) -> dict[str, Any] | None:
     if not is_safe_id(companion_id) or not isinstance(name, str):
         return None
     # A nameless companion has no initial and cannot be rendered: a
-    # hand-edited file that blanks the name drops the entry, honestly.
+    # hand-edited file that blanks the name drops the entry,.
     name = name.strip()[:NAME_MAX]
     if not name:
         return None
@@ -480,7 +480,7 @@ def remove(
 
 
 def keeper_of(state: dict[str, Any], room_id: Any) -> dict[str, Any] | None:
-    """The keeper summary for one room row, or an honest null."""
+    """The keeper summary for one room row, or a null."""
     keepers = state.get("keepers")
     if not isinstance(keepers, dict) or not isinstance(room_id, str):
         return None
@@ -499,10 +499,10 @@ def keeper_of(state: dict[str, Any], room_id: Any) -> dict[str, Any] | None:
 
 
 def doorway_of(state: dict[str, Any], room_id: Any) -> str | None:
-    """The caller's doorway id for one room row, or an honest null.
+    """The caller's doorway id for one room row, or a null.
 
     A stored id that is not in the closed list (or an explicit clear)
-    reads as no doorway — never a guess the front door would have to
+    reads as no doorway — never a guess the main app would have to
     render.
     """
     doorways = state.get("doorways")
@@ -544,7 +544,7 @@ def sniff_image_type(data: bytes) -> str | None:
 
 
 def image_type_for_path(path: Path) -> str:
-    """The media type for a stored portrait file, honestly.
+    """The media type for a stored portrait file,.
 
     Derived from the extension this module wrote, and never guessed past
     it: an unknown suffix serves as ``application/octet-stream`` rather

@@ -130,7 +130,7 @@ class Provider(BaseModel):
     """Mapping of a capability to a concrete system. Never hardcoded.
 
     Optional is the default; ``required: true`` is an explicit, rare,
-    justified exception (framework Rule: providers cannot quietly
+    justified exception (framework Rule: providers cannot silently
     become required).
     """
 

@@ -9,7 +9,7 @@ contract and in code: this module never imports or touches ``vault``.
 Storage — reuse, invent nothing
     A record is a World ``Fact`` (the core's structured key-value store),
     keyed under a namespace and persisted to the CALLER's own ``world.json``
-    through the existing per-principal seam (``api._user_paths`` →
+    through the existing per-principal entry point (``api._user_paths`` →
     ``identity.principal_scoped_path``, decision #13). Facts are the right
     home because their disclosure profile already matches durable personal
     data: they are *excluded* from shareable exports (``export.world_export``
@@ -21,8 +21,8 @@ Storage — reuse, invent nothing
 
     Every mutation also appends a ``JournalKind.SETTINGS_CHANGE`` event to the
     caller's own journal. This is the same state-plus-audit split
-    ``PUT /api/sections`` uses: the record's *current* value lives in the
-    World, the append-only *history* of who changed what lives in the Journal.
+    ``PUT /api/sections`` uses: the record's *current* value is in the
+    World, the append-only *history* of who changed what is in the Journal.
     No new storage mechanism is introduced.
 
 Locking and step-up
@@ -57,7 +57,7 @@ _MAX_FIELD_VALUE = 2000
 
 class RecordError(ValueError):
     """A record write failed validation. The caller turns this into an
-    honest 4xx; nothing is applied when it is raised."""
+    4xx; nothing is applied when it is raised."""
 
 
 # ── keys ─────────────────────────────────────────────────────────────

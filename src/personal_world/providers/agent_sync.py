@@ -15,7 +15,7 @@ Project Worlds. Git owns Git truth; agent-sync interprets
 project/repository state; Project Worlds consumes and presents
 that interpretation.
 
-Failure model (all honest, none fatal):
+Failure model (every failure is reported, none is fatal):
   - command absent   -> 'unavailable'; Project Worlds continues
   - timeout          -> 'unavailable' (bounded; no request hangs)
   - malformed JSON   -> 'unavailable'; records are never partially
@@ -23,14 +23,14 @@ Failure model (all honest, none fatal):
   - one bad project  -> agent-sync itself isolates per-repo
                         failure into an `error` record; other
                         records survive and the bad one is kept
-                        with its honest error text
+                        with its error text
   - remote unknown   -> safe_to_leave='unknown' is PRESERVED,
                         never converted to healthy or unhealthy
 
 Exit-code semantics (from agent_status.py cmd_status): exit 0 =
 all settled; exit 1 = valid observation but some project needs
 attention ("work to do" signal, NOT a provider failure — the JSON
-is still complete and honest); exit 2 = no projects found. Only
+is still complete and ); exit 2 = no projects found. Only
 non-zero-and-unparseable output is a provider failure.
 
 Cache: none. agent-sync owns computation; every call is a fresh
@@ -50,7 +50,7 @@ from .registry import StatusContract
 
 SYNC_TIMEOUT_SECONDS = 60
 
-#: Observation staleness floor — the SAME product-wide freshness
+#: Observation staleness minimum — the SAME product-wide freshness
 #: convention as providers/lab_state.py's FRESHNESS (30 minutes).
 #: Staleness is a claim about evidence AGE, never about state truth:
 #: a stale observation of "diverged" is still a diverged observation,
@@ -59,7 +59,7 @@ SYNC_TIMEOUT_SECONDS = 60
 STALE_AFTER = timedelta(minutes=30)
 
 #: closed vocabularies straight from agent_status.py — anything
-#: outside these sets is normalized to None (honest unknown), never
+#: outside these sets is normalized to None (unknown), never
 #: guessed, never silently dropped.
 PUBLISH_STATES = {"match", "ahead", "behind", "diverged"}
 SAFE_STATES = {"yes", "published-with-local-work", "no", "unknown"}
@@ -72,7 +72,7 @@ SCHEMA = "play-nice/repo-status-v1"
 
 def _sync_binary() -> str | None:
     """The agent-sync CLI if present, else None. shutil.which only;
-    'command absent' is an honest unavailable state, never fatal."""
+    'command absent' is an unavailable state, never fatal."""
     return shutil.which("agent-sync")
 
 
@@ -89,7 +89,7 @@ def _coerce_count(value: Any) -> int:
 def parse_observed_at(value: Any) -> datetime | None:
     """agent-sync's observed_at -> aware datetime, or None.
 
-    Honest None for missing/invalid timestamps — an age line that
+    None for missing/invalid timestamps — an age line that
     cannot be computed is simply not shown; no age is ever
     fabricated from a bad clock reading."""
     if not isinstance(value, str) or not value:
@@ -132,7 +132,7 @@ def _normalize(record: dict[str, Any]) -> dict[str, Any]:
 
     Unknown is preserved as None; closed vocabularies are enforced;
     nothing is invented. Per-repo `error` records (agent-sync's own
-    isolation of a failed project) survive as honest error_text."""
+    isolation of a failed project) survive as error_text."""
     play_nice = record.get("play_nice") or {}
     tree = record.get("working_tree") or {}
     publish = record.get("publish_state")
@@ -209,7 +209,7 @@ class AgentSyncProjectSensor(StatusContract):
                         rewrites state)
           age_seconds   seconds since observed_at (None when unknown)
           projects      list of normalized project records
-        Honest empty list when the registry is empty (that is an
+        empty list when the registry is empty (that is an
         agent-sync configuration question, not a Project Worlds
         failure to be guessed around)."""
         records = self._run_all()

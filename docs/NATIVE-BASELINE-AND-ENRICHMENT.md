@@ -54,7 +54,7 @@ vocabulary:
 | `enrichment` | Optional third-party richness (the default) | capability degrades gracefully, never breaks |
 | `replacement` | Swaps the native baseline for another system | still substitutable like any provider |
 
-Separately, availability is honest state, never silent:
+Separately, availability is always reported, never silent:
 `healthy / warning / unknown / needs_attention / unavailable / stale /
 disabled / not_configured` (`src/personal_world/status.py`). Absence
 of a provider is reported as `not_configured`; a dead provider as
@@ -73,7 +73,7 @@ Each rule cites its enforcement path.
 | 3 | Optional enrichment: providers declare mode against a closed vocabulary | `validate_connections` provider-mode check |
 | 4 | Provider removal is safe: no corruption, baseline remains, fidelity degrades visibly | `TestProviderLifecycle` |
 | 5 | Provider failure is not core failure: unrelated capabilities unaffected | `TestProviderLifecycle.test_provider_unavailable_...` |
-| 6 | Providers cannot quietly become required: no hidden boot deps, required = explicit + justified | `validate_compose_file`, `validate_connections` optional-default check |
+| 6 | Providers cannot become required without anyone deciding it: no hidden boot deps, required = explicit + justified | `validate_compose_file`, `validate_connections` optional-default check |
 | 7 | User-facing meaning is provider-neutral: semantic vocabulary, not vendor shape | manifest key test, capability contracts |
 | 8 | Provider-specific data is namespaced: generic state portable, details optional | capability contracts return semantic `data`; vendor fields never canonical |
 | 9 | Provider-specific actions do not pollute core actions | generic action set only; deep work hands off to provider UI |
@@ -202,7 +202,7 @@ design provider / implementation tool
         └── future tools
 ```
 
-- Canonical design truth lives in repo-native, portable formats
+- Canonical design sources are kept in repo-native, portable formats
   (`design/tokens.json`, dashboard HTML/CSS, accessibility model).
 - Never a `.fig`, Figma project ID, Figma API response, or
   Figma-specific component structure as canonical product truth.
@@ -227,7 +227,7 @@ design provider / implementation tool
 - **B. Provider added:** capability richer; canonical concept
   unchanged (`test_provider_added_capability_richer_concept_unchanged`).
 - **C. Provider unavailable:** core healthy; degraded reported
-  honestly; unrelated capabilities unaffected (`test_provider_unavailable_...`).
+  as unavailable; unrelated capabilities unaffected (`test_provider_unavailable_...`).
 - **D. Provider removed:** no corruption; baseline remains;
   provider-specific data does not masquerade as current
   (`test_provider_removed_no_corruption`).

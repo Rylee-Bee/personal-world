@@ -2,7 +2,7 @@
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the rule that capabilities are core-owned and providers are optional · **Read this if:** you are adding or changing a capability, a provider, or anything that could make a vendor's shape into product truth.
 
-**In short:** capabilities (`source_control`, `memory`, `journal`, …) belong to the core and are provider-neutral; providers only implement or enrich them, and their absence degrades honestly. Accepted 2026-09-06, executed by `personal-world framework validate` and `tests/test_framework.py`. Rationale doc for the wider session: `docs/NATIVE-BASELINE-AND-ENRICHMENT.md`.
+**In short:** capabilities (`source_control`, `memory`, `journal`, …) belong to the core and are provider-neutral; providers only implement or enrich them, and when one is missing the capability reports `not_configured` or `unavailable`. Accepted 2026-09-06, executed by `personal-world framework validate` and `tests/test_framework.py`. Rationale doc for the wider session: `docs/NATIVE-BASELINE-AND-ENRICHMENT.md`.
 
 - Status: accepted
 - Date: 2026-09-06

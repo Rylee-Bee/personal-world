@@ -107,7 +107,7 @@ Register `https://<your-host>/api/auth/oidc/callback` with the provider
 (and run uvicorn with `--proxy-headers` behind a reverse proxy, so the
 redirect URI matches).
 
-`GET /api/auth/oidc/status` reports the honest state —
+`GET /api/auth/oidc/status` reports the real state:
 `not_configured`, `configured`, `unreachable`, or `misconfigured` — plus
 provider discovery metadata and the *name* of the secret variable with a
 boolean saying whether it is set. It never returns a secret value, and it
@@ -228,7 +228,7 @@ machine-specific and intentionally non-portable.
 access is a separate check. The container refuses startup with an empty token.
 Docker health status alone does not restart an unhealthy running container.
 
-Unavailable providers must degrade honestly while core capabilities remain
+Unavailable providers must report `unavailable` while core capabilities remain
 usable. Missing providers are `not_configured`, not falsely healthy. The daily
 loop is on request. A separate reminder scheduler now runs with the API process;
 it does not turn the daily loop into a scheduled job.
@@ -244,7 +244,7 @@ Do not put backups, journal exports or diagnostic dumps in this public repo.
 The Chat surface is a provider-neutral conversation over a read-only
 world snapshot. With no chat provider configured the capability reports
 `not_configured` and every other surface works unchanged; an unreachable
-model degrades to an honest inline error, never a fake reply.
+model shows an inline error, never a fake reply.
 
 Wire a provider in your **private** runtime config
 (`config.local/connections.json`). The tracked `config/connections.json`

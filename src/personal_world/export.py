@@ -104,7 +104,7 @@ def settings_export(world: World) -> dict[str, Any]:
 
 def world_export(world: World) -> dict[str, Any]:
     """Portable personal configuration. World-classified state only;
-    raw secrets are structurally absent (they live in the secret store,
+    raw secrets are structurally absent (they are in the secret store,
     referenced by name at most). Treat the output as personal data."""
     def clean_private(items: dict[str, Any]) -> dict[str, Any]:
         return {k: v for k, v in items.items()

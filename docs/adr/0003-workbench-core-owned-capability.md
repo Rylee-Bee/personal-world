@@ -27,7 +27,7 @@ governs this shape.
 
 1. **`workbench` (with `terminal`, `task`, `preview`, `artifact`) are core-owned, provider-neutral
    capabilities.** They belong to Worlds; providers implement or enrich them.
-2. **Native baseline = honest `not_configured`.** The core boots with zero workspace providers (preserves
+2. **Native baseline = `not_configured`.** The core boots with zero workspace providers (preserves
    the zero-provider-boot rule). "Feels native" is a *surface priority*, not a boot dependency.
 3. **Podman, Dev Containers, Task, and Dagger are `enrichment`/`replacement` providers** behind adapters.
    The first Workbench **attaches to the existing `ai-distrobox`** — no new runtime, no new installer.

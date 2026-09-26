@@ -24,7 +24,7 @@ Truth boundaries (deliberate, and the reason this file exists):
   stdlib RSA PKCS#1 v1.5 verifier otherwise, so RS256/384/512 — what
   Authelia and most IdPs use by default — still verify on a minimal
   install. Algorithms that need ``cryptography`` fail closed with an
-  honest reason; an unverified id_token is never accepted.
+  reason; an unverified id_token is never accepted.
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ _logger = logging.getLogger("personal_world.oidc")
 
 # Optional extra, same convention as vault.py: present in the shipped
 # image and in a `--extra crypto` dev install, absent in the minimal
-# test install. Absence degrades honestly, never silently.
+# test install. Absence reports a degraded state, never silently.
 try:  # pragma: no cover - depends on the install
     from cryptography.exceptions import InvalidSignature as _InvalidSignature
     from cryptography.hazmat.primitives import hashes as _hashes
@@ -97,7 +97,7 @@ TOKEN_TIMEOUT = 15.0
 JWKS_TIMEOUT = 10.0
 USERINFO_TIMEOUT = 10.0
 
-# Honest status vocabulary for GET /api/auth/oidc/status.
+# status vocabulary for GET /api/auth/oidc/status.
 NOT_CONFIGURED = "not_configured"
 CONFIGURED = "configured"
 UNREACHABLE = "unreachable"
@@ -140,7 +140,7 @@ def supported_algorithms() -> tuple[str, ...]:
 
 
 def signature_verification_state() -> dict[str, Any]:
-    """Honest capability report — never a promise we cannot keep."""
+    """capability report — never a promise we cannot keep."""
     if _HAS_CRYPTO:
         return {
             "available": True,
@@ -283,7 +283,7 @@ class OIDCSettings:
         """The secret value, read from the named env var on every call.
 
         Never cached on the object, never logged, never serialised. An
-        unset variable yields ``""`` so callers can report the honest
+        unset variable yields ``""`` so callers can report the 
         'secret not set' state instead of crashing mid-login.
         """
         if not self.client_secret_env:
@@ -553,7 +553,7 @@ def parse_discovery(
     return replace(discovery, warnings=tuple(warnings))
 
 
-# --- HTTP seam ----------------------------------------------------------
+# --- HTTP entry point ----------------------------------------------------------
 
 Transport = Callable[..., tuple[int, bytes]]
 
@@ -1256,7 +1256,7 @@ class OIDCClient:
         try:
             jwk = _select_jwk(self.jwks(), header, alg)
         except _KeyNotFound:
-            # Key rotation: refresh once, then fail honestly.
+            # Key rotation: refresh once, then fail.
             try:
                 jwk = _select_jwk(self.jwks(force=True), header, alg)
             except _KeyNotFound:
@@ -1328,7 +1328,7 @@ class OIDCClient:
 
         We deliberately do not retain the id_token, so no
         ``id_token_hint`` is sent: the provider may ask the person to
-        confirm logout. That is the honest trade for never storing a
+        confirm logout. That is the trade for never storing a
         credential we do not need.
         """
         try:
@@ -1417,7 +1417,7 @@ class OIDCService:
             self._load_error = exc
 
     def settings(self) -> OIDCSettings:
-        """Current settings, or the honest reason there are none."""
+        """Current settings, or the reason there are none."""
         self._sync()
         if self._load_error is not None:
             raise self._load_error
@@ -1444,7 +1444,7 @@ class OIDCService:
         self._stamp = (-1, -1)
         self._sync()
 
-    # -- honest status -----------------------------------------------------
+    # -- status -----------------------------------------------------
 
     def status(self) -> dict[str, Any]:
         """The state an owner or a setup wizard can act on.
@@ -1510,7 +1510,7 @@ class OIDCService:
             _degrade(exc)
             discovery = client.cached_discovery()
             if discovery is not None:
-                # Honest about provenance: this metadata is what the
+                # about provenance: this metadata is what the
                 # provider said earlier, not what it says now.
                 data["discovery_stale"] = True
         data["discovery"] = discovery.public_dict() if discovery else None

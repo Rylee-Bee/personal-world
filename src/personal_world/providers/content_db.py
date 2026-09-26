@@ -1,7 +1,7 @@
 """Content database provider: thin wrapper around agent-config's
 ContentMaster for the personal-world Registry/Contract pattern.
 
-The core DB logic lives in agent-config. This module adapts it to
+The core DB logic is in agent-config. This module adapts it to
 personal-world's Result envelope and provider registry.
 """
 
@@ -13,7 +13,7 @@ from ..status import Status
 from .registry import Contract
 
 # Try to import from agent-config. If not installed, the provider
-# reports unavailable honestly — never pretends.
+# reports unavailable — never pretends.
 try:
     import sys
 

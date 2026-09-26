@@ -1,4 +1,4 @@
-"""Principal resolution: the single identity seam.
+"""Principal resolution: the single identity entry point.
 
 Every protected route sees only a Principal (id, kind, owner_id,
 scopes, auth_level, source). The trust root is local users
@@ -9,7 +9,7 @@ headers are never authorization, only possible login convenience.
 Identity modes via PW_IDENTITY_MODE ("single" | "multi"):
 - "single" (default): the legacy single-token gate continues to work.
   The principal is the instance bootstrap person, id "primary".
-- "multi": tokens live in data/users.json (hashed); each token maps
+- "multi": tokens are in data/users.json (hashed); each token maps
   to exactly one local user (or agent principal).
 
 The single-user install remains byte-identical after every phase.
@@ -345,7 +345,7 @@ def resolve_principal(
     mode: str,
     instance_token: str | None,
 ) -> Principal:
-    """The single seam. No handler ever sees the raw token."""
+    """The single entry point. No handler ever sees the raw token."""
     if mode == "multi" and store is not None:
         found = store.match_token(token or "")
         if not found:
@@ -373,7 +373,7 @@ def resolve_session_principal(
     mode: str,
     auth_method: str = "local",
 ) -> Principal:
-    """Resolve a browser session through the same canonical seam.
+    """Resolve a browser session through the same canonical entry point.
 
     A session stores only the id of the principal it was created for;
     it carries no credential. Resolution therefore re-reads the current
@@ -463,19 +463,19 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     # like every other kind so single/multi mode resolve identically.
     "journal_draft": "journal-draft.json",
     # edit-pair capture v0 (B5, DRAFT-SYNC-SPEC §capture lineage): one
-    # BOT→Rylee edit pair per NDJSON line, per principal, same seam.
+    # BOT→Rylee edit pair per NDJSON line, per principal, same entry point.
     "journal_edit_pairs": "journal-edit-pairs.ndjson",
     # Briefing continuity: where the person last was, so a later visit
-    # can say "arrived while you were away". Same per-principal seam as
+    # can say "arrived while you were away". Same per-principal entry point as
     # drafts; the briefing contract (worlds-briefing/1) owns the shape.
     "last_place": "last-place.json",
     # Rooms visit state: which room the person last visited and which of
     # its needs they have already marked seen (Worlds-owned, private,
-    # never sent to a room). Same per-principal seam as drafts/place.
+    # never sent to a room). Same per-principal entry point as drafts/place.
     "rooms_visits": "rooms-visits.json",
     # Crew registry (owner decision 2026-09-25): the person's own
     # companions and which of them keeps which room. Worlds-owned,
-    # private, never sent to a room or a model. Same per-principal seam
+    # private, never sent to a room or a model. Same per-principal entry point
     # as drafts/place; uploaded portrait bytes are files under a sibling
     # directory of this file (crew.portrait_dir), not a new store.
     "crew": "crew.json",
@@ -509,7 +509,7 @@ def principal_scoped_path(
 
     Rules (in order):
     - unknown kind → ValueError (fail closed, never a guessed path)
-    - single mode, or no principal (background/scheduler seams) →
+    - single mode, or no principal (background/scheduler entry points) →
       the legacy instance path, byte-identical to today's behavior
     - multi mode → data/users/<id>/<file>, where <id> is the person's
       id, or an agent's OWNER id (agents act on their owner's tree, so

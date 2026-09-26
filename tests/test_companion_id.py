@@ -459,12 +459,12 @@ class TestHonestyFloorHoldsForCompanions:
     def test_every_tone_keeps_the_floor_with_a_companion(self, tone):
         system = self._system("brisk", tone=tone)
         assert "facts, statuses, and uncertainty stay exact" in system
-        assert "You are the Project Worlds assistant" in system
+        assert "You are the Worlds assistant" in system
 
     def test_the_companion_line_leads_the_floor_and_never_replaces_it(self):
         system = self._system("brisk")
         assert system.index("You speak as Ada.") < system.index(
-            "You are the Project Worlds assistant"
+            "You are the Worlds assistant"
         )
 
     def test_a_starter_persona_template_cannot_drop_the_floor(self):
@@ -698,4 +698,4 @@ class TestChatEndpointCompanion:
         c.post("/api/chat", json={"message": "hi"})
         system = _system_prompt(fake)
         assert "You speak as" not in system
-        assert "You are the Project Worlds assistant" in system
+        assert "You are the Worlds assistant" in system

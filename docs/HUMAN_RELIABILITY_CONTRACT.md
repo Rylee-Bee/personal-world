@@ -2,12 +2,12 @@
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the human-reliability contract (safe, understandable, recoverable operation under low attention/energy) · **Read this if:** you are designing or reviewing any human-facing surface, agent behavior, or operational workflow.
 
-**In short:** Worlds must stay safe, understandable and calmly operable when the person is tired, foggy, or interrupted. Human reliability is an architectural requirement, not polish — this page lists the rules and acceptance questions that enforce it.
+**In short:** Worlds must stay safe, understandable and easy to operate when the person is tired, unfocused, or interrupted. Human reliability is an architectural requirement, not polish — this page lists the rules and acceptance questions that enforce it.
 
 ## Purpose
 
 Worlds must remain safe, understandable, recoverable, and
-calmly operable when the person using or maintaining it is not
+easy to operate when the person using or maintaining it is not
 operating at maximum attention, memory, energy, or tolerance for
 complexity.
 
@@ -86,7 +86,7 @@ here as acceptance criteria:
 - What is unknown?
 - Can the person recover without understanding implementation internals?
 
-The calm/simple interface must not depend on hiding important truth.
+Keep the interface simple without hiding important information.
 
 ## Explicit State
 
@@ -140,7 +140,7 @@ Stop, preserve state, and report when:
 - the next action would materially increase risk;
 - verification cannot currently be completed.
 
-Stopping with an honest `WAITING`, `BLOCKED`, `UNKNOWN`, or `DEFERRED`
+Stopping with an explicit `WAITING`, `BLOCKED`, `UNKNOWN`, or `DEFERRED`
 state is preferable to manufacturing progress.
 
 ## Closure Is Part of the Work
@@ -217,7 +217,7 @@ The goal is not to eliminate complexity. The goal is to make
 complexity navigable.
 
 A successful Worlds can support deep engineering when the
-person wants depth while remaining calm, safe, and understandable when
+person wants depth while staying low-stimulation, safe, and understandable when
 the person needs simplicity.
 
 The operator should not have to be at their best for the system to

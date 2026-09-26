@@ -2,7 +2,7 @@
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the agent decision policy (product/decision/ownership/security rules and the definition of done) · **Read this if:** you are an AI agent deciding what to do here, or how to say whether it worked.
 
-**In short:** the mandatory entry point for agents. It states how Worlds makes decisions — human intent over provider UI, honesty over fabrication, explicit ownership, fail-closed security — and the "final truth report" shape to end substantial work with. It does not copy the contracts; it tells you to load them.
+**In short:** the mandatory entry point for agents. It states how Worlds makes decisions — what the person wants over what a provider's UI suggests, admitting uncertainty over making things up, explicit ownership, and failing safe on security. It also gives the report format to end substantial work with. It does not copy the contracts; it tells you to load them.
 
 (Formerly "Personal World" — product renamed 2026-09-12; technical identifiers unchanged. Direction is owned by `.project/PLAN.md`, which supersedes TRUE-NORTH's scope and sequencing.)
 
@@ -17,7 +17,7 @@ Before planning, researching, designing, modifying, reviewing, merging, or relea
 5. Identify whose state, data, or experience a change affects.
 6. Determine how the result will be verified.
 
-**Repository truth outranks inference. Unknown is a valid state. Make honesty cheaper than fabrication.**
+**What the repo shows beats what you infer. "Unknown" is a valid answer. Say you don't know rather than guess.**
 
 ## Product rule
 
@@ -47,7 +47,7 @@ Examples:
 Prefer designs where:
 
 - the correct behavior is the easiest behavior
-- truth is easier to retrieve than fabricate
+- looking up the real answer is easier than making one up
 - accessibility is the default
 - private state is private by default
 - ownership is explicit
@@ -92,7 +92,7 @@ Do not weaken accessibility floors for visual preference or implementation conve
 
 Use progressive disclosure.
 
-Do not make the calm/simple interface dependent on hiding important truth.
+Keep the interface simple without hiding important information.
 
 ## Ownership
 
@@ -151,7 +151,7 @@ Evaluate relevant contracts as:
 
 Never silently convert `UNKNOWN` into `PASS`.
 
-## Final truth report
+## Final report
 
 Substantial work ends with:
 
@@ -160,12 +160,12 @@ Substantial work ends with:
 **CONTRACTS:** contract status  
 **ACCESSIBILITY:** relevant verification  
 **OWNERSHIP/SECURITY:** relevant verification  
-**UNKNOWN:** unresolved truth  
+**UNKNOWN:** what is still not known  
 **DEFERRED:** intentional future work  
 **NEXT:** legitimate next action or `nothing required`
 
 ## Core principle
 
-> **Make honesty cheaper than fabrication.**
+> **Make saying "I don't know" easier than making something up.**
 
-Worlds should make the safe, accessible, truthful, understandable path the natural path—for its users and for the agents building it.
+Worlds should make the safe, accessible, accurate and understandable choice the easiest one, for its users and for the agents building it.

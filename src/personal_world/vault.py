@@ -59,7 +59,7 @@ class Vault:
 
     The vault is unlocked with a master passphrase. Secrets are
     encrypted at rest and decrypted only in memory. The passphrase
-    is never stored — only a derived key lives in memory.
+    is never stored — only a derived key is in memory.
     """
 
     def __init__(self, path: Path, master_passphrase: str | None = None) -> None:

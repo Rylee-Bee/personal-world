@@ -100,7 +100,7 @@ def _probe_url(
     """Shared adapter probe: URL-validated, redirects never followed.
 
     2xx/3xx count as reachable — a refused redirect surfaces the 3xx
-    status itself (honest), instead of silently chasing it.
+    status itself (), instead of silently chasing it.
     """
     if not _valid_http_url(url):
         return {
@@ -244,7 +244,7 @@ def _current_session(request: Request):
 
 
 def _step_up_authorized(request: Request, principal: Any = None) -> bool:
-    """Single step-up seam: one ordering, three documented mechanisms.
+    """Single step-up entry point: one ordering, three documented mechanisms.
 
     1. **Canonical elevation** — a live, time-bounded session grant
        minted by ``POST /api/auth/step-up`` after re-presenting a
@@ -313,7 +313,7 @@ def _is_true_loopback(request: Request) -> bool:
     client = request.client.host if request.client else ""
     if client in ("testclient",):
         # FastAPI TestClient connects over the ASGI transport; its peer
-        # is the test process itself (loopback by construction).
+        # is the test process itself (loopback by design).
         return True
     import ipaddress as _ipa
 
@@ -325,7 +325,7 @@ def _is_true_loopback(request: Request) -> bool:
 
 
 async def require_auth(request: Request) -> None:
-    """Gate + canonical principal resolution (the single seam).
+    """Gate + canonical principal resolution (the single entry point).
 
     Every accepted credential — bearer token, browser session (local or
     OIDC), or the explicit loopback development bypass — resolves to
@@ -378,7 +378,7 @@ async def require_auth(request: Request) -> None:
         # fail closed instead of silently falling through to a cookie.
         raise HTTPException(status_code=503, detail="auth not configured")
 
-    # 3. Browser session (local or OIDC), same seam.
+    # 3. Browser session (local or OIDC), same entry point.
     session = _current_session(request)
     if session is not None:
         try:
@@ -420,7 +420,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # redirect. `/login` and `/setup` stay server-rendered
     # (login_page.py / setup_wizard.py).
 
-    # Identity seam state (issue #8 phase 0/1, per multi-user review
+    # Identity entry point state (issue #8 phase 0/1, per multi-user review
     # 2026-09-09): local users as trust root, PW_IDENTITY_MODE picks
     # single (bootstrap-primary bypass) or multi (hashed-token users).
     # Boot-time token reconciliation FIRST so every reader below sees
@@ -445,7 +445,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .model import JournalKind
 
     app = FastAPI(title="Project Worlds", version="0.2.0")
-    # issue #8, phase 0: the identity seam state lives on app.state so
+    # issue #8, phase 0: the identity entry point state is on app.state so
     # single-mode behavior is byte-identical and multi-mode lights up
     # without changing how the client calls the API.
     # Multi-mode bootstrap: the instance token remains the primary
@@ -467,7 +467,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .auth import AuthManager
     from .auth_routes import register_auth_routes
 
-    # Pass the identity seam state so browser local/OIDC logins resolve
+    # Pass the identity entry point state so browser local/OIDC logins resolve
     # to the same Principal the bearer path produces (D1 convergence).
     _auth = AuthManager(data_dir, config_dir, identity=app.state.identity)
     register_auth_routes(app, _auth)
@@ -614,10 +614,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return getattr(request.state, "principal", None)
 
     def _scoped_path(principal, kind: str) -> Path:
-        """Canonical per-principal data path (single seam for storage
+        """Canonical per-principal data path (single entry point for storage
         partitioning — identity.principal_scoped_path, decision #13).
 
-        Single mode (and background seams with no principal) resolves to
+        Single mode (and background entry points with no principal) resolves to
         the legacy instance paths current installs already use; multi
         mode resolves each person — and each agent via its owner — into
         data/users/<id>/. See docs/IDENTITY-BOUNDARY.md.
@@ -725,14 +725,14 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         The deep-link contract for the daily home loop's "Resume —
         yesterday's thread" beat (TRUE-NORTH): one deterministic answer
         with every model off, safe for Overview to link to. Never
-        mutates anything. An empty journal is an honest ``entry: null``,
+        mutates anything. An empty journal is an ``entry: null``,
         not a 404 and not a fabrication. Superseded originals never
         surface. The contract is the CALM-VIEW TAIL: the answer always
         equals the newest entry GET /api/journal shows (same kinds, same
         ordering — a correction ACT appends the correction and then its
         APPROVAL audit line, and whichever is newest IS the last entry;
         consumers wanting narrative-only may filter by ``kind``).
-        Person-only, caller-scoped, the same seam as every other journal
+        Person-only, caller-scoped, the same entry point as every other journal
         read.
         """
         _require_person(getattr(request.state, "principal", None))
@@ -770,7 +770,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # resumes on ANY device. Deliberate contract choices (spec:
     # DRAFT-SYNC-SPEC-2026-09-20): NOT elevation-gated (a draft mutates
     # nothing a publish doesn't), response NEVER echoes draft text,
-    # storage rides the single per-principal seam (decision #13).
+    # storage rides the single per-principal entry point (decision #13).
     _DRAFT_MAX = 100_000
 
     def _draft_file(request: Request) -> Path:
@@ -819,8 +819,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # ── Journal EDIT-PAIR capture v0 (B5; lineage: DRAFT-SYNC-SPEC
     # §capture, Meeting #4 §B11 — Sol's nine fields). The capture
     # ENDPOINT only, no UI: one BOT→Rylee edit pair per NDJSON line on
-    # the same per-principal scoped seam as drafts. Same rules as the
-    # draft seam: the response reports {stored} and NEVER echoes
+    # the same per-principal scoped entry point as drafts. Same rules as the
+    # draft entry point: the response reports {stored} and NEVER echoes
     # content, capture is automatic and therefore NOT an elevation
     # event (gate: none beyond authentication), and every field rides a
     # size cap so one render cannot bloat a personal store.
@@ -877,7 +877,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         provenance = body.get("model_provenance")
         record = {
             # Exactly the nine §capture lineage fields, in spec order.
-            # Absent optionals stay honest: null / [] — never invented.
+            # Absent optionals stay accurate: null / [] — never invented.
             "original": original,
             "edited": edited,
             "diff": _text(body.get("diff")) or None,
@@ -894,7 +894,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         with open(path, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
         path.chmod(0o600)  # personal data, private bits (same rule as drafts)
-        # Anti-echo, the draft-seam rule: report, never quote.
+        # Anti-echo, the draft-entry point rule: report, never quote.
         return {"ok": True, "data": {"stored": True}}
 
     # ── Journal correction workflow (second propose→approve→act
@@ -940,7 +940,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         target = journal if uj == journal.path else Journal(uj)
         old = target.by_ts(target_ts)
         if old is None:
-            # Missing/invalid entry: nothing changes; say so honestly.
+            # Missing/invalid entry: nothing changes; say so.
             return {
                 "ok": False,
                 "status": "not_configured",
@@ -1044,10 +1044,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     #
     # Backing: Records are a Memory feature, so every route checks the SAME
     # memory-capability provider /api/memory/search checks, and degrades to
-    # the identical honest "no memory provider" envelope when it is absent —
+    # the identical "no memory provider" envelope when it is absent —
     # never a fake-empty success (capability-grid truth: off / no provider).
     #
-    # Writes: gated with require_step_up — the repo's human-approval seam —
+    # Writes: gated with require_step_up — the repo's human-approval entry point —
     # matching /api/world/fact and PUT /api/sections (the two closest
     # structured-state writers) and the journal supersede ACT. The elevation
     # is enforced server-side (_step_up_authorized), never from client trust;
@@ -1071,7 +1071,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     def _records_audit(uj, summary: str) -> None:
         """Append a private, content-free audit line to the CALLER's own
         journal (shared journal in single mode). Field values are never
-        copied here — the record content lives in world.json, not the
+        copied here — the record content is in world.json, not the
         journal; the audit names the action and category only."""
         target = journal if uj == journal.path else Journal(uj)
         target.record(
@@ -1098,8 +1098,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         pinned: bool = False,
         q: str | None = None,
     ) -> dict:
-        """List records. With a category: a locked category yields an honest
-        409 'locked' envelope unless THIS request carries fresh step-up.
+        """List records. With a category: a locked category yields a 409 'locked' envelope unless THIS request carries fresh step-up.
         Without a category: the unlocked browse view; ``?pinned=true`` narrows
         it to the Overview feed. A locked category is never aggregated in.
 
@@ -1107,7 +1106,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         model off — records.search_records, no index/provider/embeddings):
         case-insensitive AND-substring over title, category name, and field
         keys/values. Locked categories contribute to ``q`` results ONLY when
-        this request carries a server-verified step-up (fail closed, same seam
+        this request carries a server-verified step-up (fail closed, same entry point
         as the locked-category read above); the pinned filter still applies.
         """
         world, _registry, _uj, _uw, degrade = _records_person_guard(request)
@@ -1184,7 +1183,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     @app.post("/api/records", dependencies=[Depends(require_step_up)])
     async def records_write(request: Request) -> dict:
         """Create or update a record. Step-up gated (the human-approval ACT,
-        same seam as /api/world/fact and PUT /api/sections). Optional
+        same entry point as /api/world/fact and PUT /api/sections). Optional
         ``locked`` sets the category's lock in the same authorized write;
         records are stored as World Facts on the caller's own world.json."""
         _world, _registry, uj, uw, degrade = _records_person_guard(request)
@@ -1276,7 +1275,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         _records_audit(uj, f"record deleted from category '{slug}'")
         return {"ok": True, "status": "healthy", "data": {"deleted": True}}
 
-    # The tool-calling chat loop lives in ``chat.chat_with_tools_loop``
+    # The tool-calling chat loop is in ``chat.chat_with_tools_loop``
     # (ONE loop for every provider; lenient small-model argument
     # handling; execution tools structurally blocked by the registry).
 
@@ -1287,7 +1286,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         Read-only: the model observes a rendered world snapshot and
         returns text. No tool execution, no mutations. With no chat
         provider configured the endpoint answers 'not_configured' so
-        the dashboard can degrade honestly."""
+        the dashboard can report a degraded state."""
         body: dict
         try:
             body = await request.json()
@@ -1375,7 +1374,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         # Contextual chat (Finish Line "Contextual chat and model
         # routing"): the caller may describe WHERE in the UI the person
         # is. Provenance, not truth: an unknown section_id degrades to
-        # an honest "unknown" block rather than being trusted or
+        # an "unknown" block rather than being trusted or
         # rejected — a stale tab must not break conversation.
         ui_block = None
         if isinstance(ui, dict):
@@ -2075,7 +2074,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     @app.get("/api/exports/world", dependencies=[Depends(require_auth)])
     async def world_export() -> dict:
         """Portable personal configuration: world-classified state only;
-        raw secrets are structurally absent (they live in the secret
+        raw secrets are structurally absent (they are in the secret
         store, referenced by name at most). Treat the output as personal
         data."""
         world, _ = _state()
@@ -2141,7 +2140,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         roster is the vocabulary, per person. An unknown or hidden id is a
         422 with a sentence, never a stored id that would silently fall back
         to the one voice; every other rejection keeps the 400 the
-        accessibility floor has always answered with.
+        minimum accessibility settings has always answered with.
         """
         _require_person(getattr(request.state, "principal", None))
         world, _, uj = _state_for(request)
@@ -2591,8 +2590,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # The briefing is what the world knows; place is where the person last
     # was, so a later visit can say "arrived while you were away". Both are
     # person-only (agents are refused) and both ride the per-principal
-    # scoped seam (decision #13) — place exactly mirrors the journal-draft
-    # seam: no step-up (it mutates nothing a visit doesn't already imply),
+    # scoped entry point (decision #13) — place exactly mirrors the journal-draft
+    # entry point: no step-up (it mutates nothing a visit doesn't already imply),
     # atomic os.replace, never a response echo of more than it stored.
     _PLACE_MAX_BYTES = 2048
     _PLACE_ITEM_MAX = 200
@@ -2601,8 +2600,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return _scoped_path(request.state.principal, "last_place")
 
     def _read_place(request: Request) -> dict | None:
-        """The stored place, or an honest None. A corrupt/foreign file is
-        never guessed at: the caller sees no place rather than a lie."""
+        """The stored place, or a None. A corrupt/foreign file is
+        never guessed at: the caller sees no place rather than a false claim."""
         path = _place_path(request)
         if not path.exists():
             return None
@@ -2648,7 +2647,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             # Who is credited (the Keeper and each system's resident) is
             # resolved per caller from THIS person's prefs and crew. Each
             # read is guarded on its own so a failed read confirms nobody —
-            # the honest fallback — rather than breaking the briefing.
+            # the fallback — rather than breaking the briefing.
             try:
                 pref_values = prefs.get_prefs(world)
             except Exception:
@@ -2673,7 +2672,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return await run_in_threadpool(_compose)
 
     def _rooms_visit_path(request: Request) -> Path:
-        """The caller's own visit-state file (per-principal seam)."""
+        """The caller's own visit-state file (per-principal entry point)."""
         return _scoped_path(request.state.principal, "rooms_visits")
 
     def _room_configured(room_id: str) -> bool:
@@ -2689,7 +2688,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return _ROOMS.known_ids()
 
     def _crew_path(request: Request) -> Path:
-        """The caller's own crew registry file (per-principal seam)."""
+        """The caller's own crew registry file (per-principal entry point)."""
         return _scoped_path(request.state.principal, "crew")
 
     def _crew_state(request: Request) -> tuple[Path, dict]:
@@ -2753,14 +2752,14 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     async def rooms_view(request: Request) -> dict:
         """The estate's rooms (contract: room/0) plus the caller's visit state.
 
-        One honest row per configured room — its descriptor, cards, the
+        One row per configured room — its descriptor, cards, the
         needs it is charging attention for, whether it is reachable, and
         when it was last reached (persisted across restarts). Each row
         also carries the CALLER's private, Worlds-owned visit fields:
         ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,
         plus ``keeper`` — the companion the caller put on that room, or an
-        honest ``null`` — and ``doorway`` — the presentation-only doorway
-        id the caller chose, or an honest ``null``. Neither a keeper nor a
+        ``null`` — and ``doorway`` — the presentation-only doorway
+        id the caller chose, or a ``null``. Neither a keeper nor a
         doorway changes the room's status; status still comes only from
         the room. ``resume`` and ``summary`` travel
         as siblings of ``data`` so the existing list envelope stays
@@ -2833,7 +2832,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         Updates the caller's ``last_visited_at`` for the room and the
         top-level ``resume``. Idempotent in effect: repeating converges
         on one stored visit. No step-up — a visit mutates nothing a
-        visit doesn't already imply (same posture as drafts/place). An
+        visit doesn't already imply (same setting as drafts/place). An
         unconfigured room id is a 404; ``link`` must be a same-origin
         path or it is refused 422 rather than stored.
         """
@@ -2916,7 +2915,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         caller's ``X-Worlds-Principal``, and that key — never the human
         session or ``PW_API_TOKEN``. The room's answer is allow-listed to
         a receipt and returned with HTTP 200 whatever the room's status;
-        a room that cannot answer honestly yields an ``ok: false``
+        a room that cannot answer yields an ``ok: false``
         "nothing changed" receipt, never a 500. A successful action drops
         the cached snapshot so the need disappears on the next
         ``GET /api/rooms``.
@@ -2938,7 +2937,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # ── Crew: companions are user-owned (owner decision 2026-09-25) ─────
     # The person's own crew registry and keepers: private, per principal,
     # never sent to a room or a model. Stored on the same per-principal
-    # JSON seam as every other Worlds state file (kind "crew"). The drawn
+    # JSON entry point as every other Worlds state file (kind "crew"). The drawn
     # crew is a STARTER set — add, rename, hide, delete; a room may have
     # no companion at all. Sol is the Worlds mark, never a crew entry.
 
@@ -2946,8 +2945,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     async def crew_view(request: Request) -> dict:
         """The caller's own crew, starter-seeded on first read.
 
-        Honest roster: every entry is a companion the person has (drawn or
-        their own), including hidden ones — the front door decides what to
+        roster: every entry is a companion the person has (drawn or
+        their own), including hidden ones — the main app decides what to
         filter. An emptied roster stays empty.
         """
         _, state = _crew_state(request)
@@ -2958,7 +2957,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """Add a companion of the caller's own (``source: "user"``).
 
         Body: ``{name, blurb?, voice_label?}``. The id is a slug of the
-        name made unique against the caller's roster. Same auth posture as
+        name made unique against the caller's roster. Same auth setting as
         the other POST routes; no step-up — a roster entry mutates nothing
         a visit doesn't already imply.
         """
@@ -3159,7 +3158,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         ``Cache-Control: private`` and ``X-Content-Type-Options: nosniff``
         with the type the *stored bytes* are (never a declared one). No
         uploaded portrait, or an unknown companion → 404 — the shipped
-        asset path is what the front door uses until someone uploads.
+        asset path is what the main app uses until someone uploads.
         """
         path, state = _crew_state(request)
         entry = crew.find(state, companion_id)
@@ -3204,14 +3203,14 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.get("/api/place", dependencies=[Depends(require_auth)])
     def place_get(request: Request) -> dict:
-        """The caller's last place, or an honest null."""
+        """The caller's last place, or a null."""
         _require_person(getattr(request.state, "principal", None))
         return {"ok": True, "data": {"place": _read_place(request)}}
 
     @app.put("/api/place", dependencies=[Depends(require_auth)])
     async def place_put(request: Request) -> dict:
         """Store the caller's last place. No step-up: continuity mutates
-        nothing a visit doesn't already imply (same posture as drafts)."""
+        nothing a visit doesn't already imply (same setting as drafts)."""
         _require_person(getattr(request.state, "principal", None))
         raw = await request.body()
         if len(raw) > _PLACE_MAX_BYTES:
@@ -3523,7 +3522,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     )
 
     # Per-user reminders (decision #13): in multi mode each person's
-    # reminders live in their own tree (data/users/<id>/reminders.json)
+    # reminders are in their own tree (data/users/<id>/reminders.json)
     # and fire into their own journal. Single mode — and the legacy
     # instance file — keep using the one scheduler above, byte-identical.
     _scoped_schedulers: dict[str, Scheduler] = {}
@@ -3594,7 +3593,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     app.router.lifespan_context = lifespan
 
     # -- identity admin (issue #8 phase 2/3) -----------------------------
-    # The rule lives in identity.is_admin (one shared definition), so the
+    # The rule is in identity.is_admin (one shared definition), so the
     # rooms owner-only action gate and this admin gate can never drift.
     from .identity import is_admin as _is_admin
 
@@ -3821,7 +3820,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         Local Git stays canonical — this only ADDS remote facts; the
         native status shape is unchanged. Quiet degradation is the
         contract: gh missing / unauthenticated / offline / non-GitHub
-        remote each return their own honest status ('unavailable',
+        remote each return their own status ('unavailable',
         'not_github', 'not_configured'), never a crash and never a
         guessed field. Read-only; no credentials are read, stored, or
         logged here — the gh CLI's own session is used as-is."""
@@ -3862,7 +3861,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         `play-nice/repo-status-v1` records. Project Worlds adds no
         Git-state computation of its own. Quiet degradation is the
         contract: command absent / timeout / malformed output each
-        return an honest 'unavailable' envelope — Project Worlds
+        return an 'unavailable' envelope — Project Worlds
         stays fully useful without the sensor. The observation carries
         agent-sync's own `observed_at` so it stays visibly a dated
         observation, never timeless truth."""
@@ -3930,7 +3929,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
         Optional provider: absent configuration is a known state, not
         a crash — an unconfigured router answers not_configured with
-        context, matching the honest-degradation contract."""
+        context, matching the -degradation contract."""
         from .providers.traefik_ingress import (
             TraefikIngress,
             TRAEFIK_ENV,
@@ -4114,7 +4113,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # the product frontend). Mounted LAST so its SPA fallback can never
     # shadow an API route; it serves / and the staged build, redirects the
     # retired /station and /vnext paths, and answers reserved namespaces
-    # with JSON 404. Same auth seam as every other route.
+    # with JSON 404. Same auth entry point as every other route.
     from .station_ui import app_router
 
     app.include_router(app_router(data_dir))

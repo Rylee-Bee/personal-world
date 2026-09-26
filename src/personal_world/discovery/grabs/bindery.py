@@ -495,7 +495,7 @@ def auto_grab_mam_item(item):
         return False
 
     # Import here to avoid circular dependency; parse_author_from_rss_item
-    # lives in sources.mam_rss but is called during MAM poll flow
+    # is in sources.mam_rss but is called during MAM poll flow
     from personal_world.discovery.sources.mam_rss import parse_author_from_rss_item
 
     title = item.get("title", "")
