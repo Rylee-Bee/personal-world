@@ -53,6 +53,8 @@ import {
   STATUS_LABELS,
   toCapabilityStatus,
 } from "../../data/types";
+import { MyLimits } from "../People/Limits";
+import { dayWords } from "../People/dates";
 import { SpotArt } from "../../components/SpotArt";
 import { WorldButton } from "../../components/WorldButton";
 import { CompanionFace } from "../../components/crew/CompanionFace";
@@ -664,8 +666,11 @@ function ThemeSection({
 export function Settings({
   onOpenCrew,
   onOpenPeople,
-}: { onOpenCrew?: () => void; onOpenPeople?: () => void } = {}) {
+  onOpenHelpers,
+}: { onOpenCrew?: () => void; onOpenPeople?: () => void; onOpenHelpers?: () => void } = {}) {
   const me = useMe();
+  const myLimits = me.data?.data?.role === "supervised" ? me.data?.data?.limits : undefined;
+  const guestUntil = me.data?.data?.guest_until;
   const canManagePeople = me.data?.data?.permissions.includes("manage_people") ?? false;
   // Server state
   const { data: status, isLoading: isStatusLoading } = useStatus();
@@ -797,6 +802,37 @@ export function Settings({
               </p>
             </div>
             <WorldButton onPress={onOpenPeople}>Open people</WorldButton>
+          </section>
+        )}
+
+        {myLimits && <MyLimits data={myLimits} />}
+
+        {guestUntil && (
+          <section className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
+            <SpotArt name="guest" size={56} />
+            <p className="min-w-0 flex-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+              {`You’re visiting until ${dayWords(guestUntil)}. You see only what’s shared with you.`}
+            </p>
+          </section>
+        )}
+
+        {onOpenHelpers && me.data?.data && me.data.data.role !== "guest" && (
+          <section
+            aria-labelledby="settings-helpers-heading"
+            className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+          >
+            <SpotArt name="helper" size={56} />
+            <div className="min-w-0 flex-1">
+              <h2 id="settings-helpers-heading" className={`mb-[var(--pw-spacing-xs)] ${SECTION_HEADING}`} style={SERIF}>
+                Let someone help you
+              </h2>
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+                {me.data.data.helpers_granted
+                  ? `${me.data.data.helpers_granted} ${me.data.data.helpers_granted === 1 ? "person is" : "people are"} helping you now.`
+                  : "For bad days: someone you trust can see what needs you, or act for you, for a while."}
+              </p>
+            </div>
+            <WorldButton onPress={onOpenHelpers}>Open helpers</WorldButton>
           </section>
         )}
 

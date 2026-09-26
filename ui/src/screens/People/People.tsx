@@ -21,6 +21,9 @@ import type { Person } from "../../data/contract";
 import { describeError, needsConfirm } from "../../data/errors";
 import { WorldButton } from "../../components/WorldButton";
 import { ASSIGNABLE_ROLES, ROLE_CHOICE_HINT, roleWords } from "./roleWords";
+import { InviteSection } from "./Invites";
+import { LimitsEditor } from "./Limits";
+import { dayWords } from "./dates";
 
 const SECTION =
   "mb-[var(--pw-spacing-2xl)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]";
@@ -164,7 +167,14 @@ function PersonRow({
     }
   }, [open, changeId]);
   const name = nameOf(person);
-  const words = roleWords(person.role);
+  const base = roleWords(person.role);
+  const words =
+    person.role === "guest" && person.guest_until
+      ? person.expired
+        ? { label: "Visit ended", detail: `Their visit ended ${dayWords(person.guest_until)}.` }
+        : { label: `Visiting until ${dayWords(person.guest_until)}`, detail: base.detail }
+      : base;
+  const [limitsOpen, setLimitsOpen] = useState(false);
   return (
     <li className="border-t border-[var(--pw-border-subtle)] py-[var(--pw-spacing-md)]">
       <div className="flex items-center gap-[var(--pw-spacing-md)]">
@@ -177,12 +187,27 @@ function PersonRow({
           <p className="text-[var(--pw-text-secondary)]">{words.label}</p>
           <p className={MICRO}>{words.detail}</p>
         </div>
-        {canChange && !open && (
+        {canChange && !open && !limitsOpen && person.role === "supervised" && (
+          <WorldButton onPress={() => setLimitsOpen(true)} aria-label={`Set limits for ${name}`}>
+            Limits
+          </WorldButton>
+        )}
+        {canChange && !open && !limitsOpen && (
           <WorldButton id={changeId} onPress={() => setOpen(true)} aria-label={`Change what ${name} can do`}>
             Change
           </WorldButton>
         )}
       </div>
+      {limitsOpen && (
+        <LimitsEditor
+          personId={person.id}
+          name={name}
+          onDone={(message) => {
+            setLimitsOpen(false);
+            if (message) onChanged(message);
+          }}
+        />
+      )}
       {open && (
         <ChangeRole
           person={person}
@@ -365,7 +390,8 @@ export function People({ onBack }: { onBack: () => void }) {
             </h2>
             {alone ? (
               <p className={`${NOTE} mt-[var(--pw-spacing-sm)]`}>
-                It’s just you here, and that’s fine. Everything works for one person.
+                It’s just you here, and that’s fine. Everything works for one person. If you ever want
+                company, invite someone below.
               </p>
             ) : null}
             <ul className="mt-[var(--pw-spacing-sm)]">
@@ -399,6 +425,7 @@ export function People({ onBack }: { onBack: () => void }) {
               </details>
             )}
           </section>
+          <InviteSection canInviteAdmin={canHandOver} />
           {canHandOver && !alone && <HandOver admins={admins} onDone={setMessage} />}
         </>
       )}

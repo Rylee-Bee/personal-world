@@ -865,6 +865,55 @@ export interface Me {
   display_name: string | null;
   role: string | null;
   permissions: string[];
+  /** Live helper grants this person has given. */
+  helpers_granted?: number;
+  /** People this person may help right now. */
+  helping?: { person_id: string; until: string | null; can_act: boolean }[];
+  /** A supervised person's own limits, and who set them. */
+  limits?: MyLimits;
+  /** A guest's end of visit (ISO). */
+  guest_until?: string | null;
+}
+
+/** Supervised limits: a closed set, with who set them and when. */
+export interface MyLimits {
+  limits: { chat_quiet_hours?: string; no_outside_sharing?: boolean; content_boundary?: "gentle" | "standard" };
+  set_by: string | null;
+  set_at: string | null;
+}
+
+/** An open invite link (never its code, which is shown once at creation). */
+export interface Invite {
+  invite_id: string;
+  role: string;
+  display_name: string;
+  created_at: string | number | null;
+  expires_at: string | number | null;
+  guest_until: string | null;
+  used_at: string | number | null;
+  created_by: string | null;
+  expired: boolean;
+}
+
+/** A helper grant this person gave. */
+export interface HelperGrant {
+  grant_id: string;
+  helper_id: string;
+  can_act: boolean;
+  until: string | null;
+  created_at: string | null;
+  revoked_at: string | null;
+  revoked_by: string | null;
+  live: boolean;
+}
+
+/** One line of "Who helped me". */
+export interface HelpedBy {
+  at: string;
+  helper_id: string;
+  action: string;
+  summary: string;
+  undoable: boolean;
 }
 
 /** One row of GET /api/people (manage_people only). Agents carry
@@ -875,6 +924,9 @@ export interface Person {
   role: string | null;
   kind: "person" | "agent";
   created_at: string | null;
+  /** Guests: the end of the visit, and whether it has passed. */
+  guest_until?: string | null;
+  expired?: boolean;
 }
 
 /** A room/0 action's receipt, passed through by

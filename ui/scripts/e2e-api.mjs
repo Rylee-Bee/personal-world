@@ -578,11 +578,18 @@ const PEOPLE_SEED = [
   { id: "person:jo", display_name: "Jo", role: "admin", kind: "person", created_at: "2026-09-02T09:00:00Z" },
   { id: "person:alex", display_name: "Alex", role: "member", kind: "person", created_at: "2026-09-03T09:00:00Z" },
   { id: "person:robin", display_name: "Robin", role: "supervised", kind: "person", created_at: "2026-09-04T09:00:00Z" },
-  { id: "person:kit", display_name: "Kit", role: "guest", kind: "person", created_at: "2026-09-05T09:00:00Z" },
+  { id: "person:kit", display_name: "Kit", role: "guest", kind: "person", created_at: "2026-09-05T09:00:00Z", guest_until: "2099-10-03T21:00:00Z", expired: false },
   { id: "agent:bolt", display_name: "Bolt", role: null, kind: "agent", created_at: "2026-09-06T09:00:00Z" },
 ];
 let PEOPLE = structuredClone(PEOPLE_SEED);
 let PEOPLE_STEP_UP = false;
+// Roles step 2: invites, helper grants, the helped-by log, limits.
+let INVITES = [];
+let GRANTS = [];
+let HELPED_BY = [
+  { at: "2026-09-26T11:02:00Z", helper_id: "person:jo", action: "need_seen", summary: "Jo marked “Backups finished” as seen.", undoable: false },
+];
+let LIMITS = {};
 const OWNER_PERMISSIONS = ["own_space", "see_shared", "approve", "manage_people", "manage_rooms", "estate_secrets", "updates", "transfer_ownership"];
 const ADMIN_PERMISSIONS = OWNER_PERMISSIONS.filter((x) => x !== "transfer_ownership");
 
@@ -1102,6 +1109,9 @@ const server = http.createServer(async (req, res) => {
     for (const k of Object.keys(SEEN)) delete SEEN[k];
     PEOPLE = structuredClone(PEOPLE_SEED);
     PEOPLE_STEP_UP = false;
+    INVITES = [];
+    GRANTS = [];
+    LIMITS = {};
     return json(res, 200, ok("healthy", { reset: true }));
   }
   if (method === "GET" && p === "/api/journal") {
@@ -1277,7 +1287,58 @@ const server = http.createServer(async (req, res) => {
   if (method === "GET" && p === "/api/me") {
     const me = PEOPLE.find((x) => x.id === "person:operator");
     const perms = me.role === "owner" ? OWNER_PERMISSIONS : me.role === "admin" ? ADMIN_PERMISSIONS : ["own_space", "see_shared"];
-    return json(res, 200, { ok: true, data: { id: me.id, display_name: me.display_name, role: me.role, permissions: perms } });
+    return json(res, 200, { ok: true, data: { id: me.id, display_name: me.display_name, role: me.role, permissions: perms, helpers_granted: GRANTS.filter((g) => g.live).length, helping: [] } });
+  }
+  if (method === "GET" && p === "/api/people/invites") {
+    return json(res, 200, { ok: true, data: INVITES });
+  }
+  if (method === "POST" && p === "/api/people/invites") {
+    if (!PEOPLE_STEP_UP) return json(res, 403, { detail: "write requires step-up auth" });
+    const body = (await readBody(req)) ?? {};
+    if (!["member", "supervised", "guest", "admin"].includes(body.role)) return json(res, 422, { detail: "role must be member, supervised, guest or admin" });
+    const invite = {
+      invite_id: `inv-${INVITES.length + 1}`, role: body.role, display_name: String(body.display_name ?? "").trim(),
+      created_at: "2026-09-26T12:00:00Z", expires_at: "2099-09-29T12:00:00Z", guest_until: body.guest_until ?? null,
+      used_at: null, created_by: "person:operator", expired: false,
+    };
+    INVITES.push(invite);
+    return json(res, 200, { ok: true, data: { invite_id: invite.invite_id, role: invite.role, display_name: invite.display_name, expires_at: invite.expires_at, guest_until: invite.guest_until, token: "made-up-one-time-code" } });
+  }
+  const invDel = p.match(/^\/api\/people\/invites\/([^/]+)$/);
+  if (method === "DELETE" && invDel) {
+    if (!PEOPLE_STEP_UP) return json(res, 403, { detail: "write requires step-up auth" });
+    INVITES = INVITES.filter((i) => i.invite_id !== decodeURIComponent(invDel[1]));
+    return json(res, 200, { ok: true, data: { invite_id: decodeURIComponent(invDel[1]), deleted: true } });
+  }
+  if (method === "GET" && p === "/api/me/helpers") {
+    return json(res, 200, { ok: true, data: GRANTS });
+  }
+  if (method === "POST" && p === "/api/me/helpers") {
+    if (!PEOPLE_STEP_UP) return json(res, 403, { detail: "write requires step-up auth" });
+    const body = (await readBody(req)) ?? {};
+    const grant = { grant_id: `g-${GRANTS.length + 1}`, helper_id: body.helper_id, can_act: Boolean(body.can_act), until: body.until ?? null, created_at: "2026-09-26T12:00:00Z", revoked_at: null, revoked_by: null, live: true };
+    GRANTS.push(grant);
+    return json(res, 200, { ok: true, data: grant });
+  }
+  const grantDel = p.match(/^\/api\/me\/helpers\/([^/]+)$/);
+  if (method === "DELETE" && grantDel) {
+    if (!PEOPLE_STEP_UP) return json(res, 403, { detail: "write requires step-up auth" });
+    const g = GRANTS.find((x) => x.grant_id === decodeURIComponent(grantDel[1]));
+    if (!g) return json(res, 404, { detail: "no such grant" });
+    g.live = false; g.revoked_at = "2026-09-26T12:05:00Z"; g.revoked_by = "person:operator";
+    return json(res, 200, { ok: true, data: { grant_id: g.grant_id, revoked: true } });
+  }
+  if (method === "GET" && p === "/api/me/helped-by") {
+    return json(res, 200, { ok: true, data: HELPED_BY });
+  }
+  const limMatch = p.match(/^\/api\/people\/([^/]+)\/limits$/);
+  if (method === "PUT" && limMatch) {
+    if (!PEOPLE_STEP_UP) return json(res, 403, { detail: "write requires step-up auth" });
+    const body = (await readBody(req)) ?? {};
+    const limits = {};
+    for (const item of body.limits ?? []) limits[item.key] = item.value;
+    LIMITS[decodeURIComponent(limMatch[1])] = { limits, set_by: "person:operator", set_at: "2026-09-26T12:00:00Z" };
+    return json(res, 200, { ok: true, data: LIMITS[decodeURIComponent(limMatch[1])] });
   }
   if (method === "GET" && p === "/api/people") {
     return json(res, 200, { ok: true, data: PEOPLE });

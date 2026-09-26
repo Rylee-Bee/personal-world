@@ -36,6 +36,7 @@ import { AskInChatContext } from "./askInChat";
 import { Settings } from "../screens/Settings/Settings";
 import { Crew } from "../screens/Crew/Crew";
 import { People } from "../screens/People/People";
+import { Helpers } from "../screens/Helpers/Helpers";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
 import { useHealthz, usePrefs, usePrefsSchema, useSections } from "../data/hooks";
@@ -125,8 +126,8 @@ export function App() {
   // Coming back from "Confirm with your sign-in" reopens the page the
   // person was on, with one line saying they're confirmed.
   const [returned] = useState(() => takeConfirmReturn());
-  const [activeArea, setActiveArea] = useState<WorldAreaId | "crew" | "people">(
-    () => (returned as WorldAreaId | "crew" | "people" | null) ?? "overview",
+  const [activeArea, setActiveArea] = useState<WorldAreaId | "crew" | "people" | "helpers">(
+    () => (returned as WorldAreaId | "crew" | "people" | "helpers" | null) ?? "overview",
   );
   const [confirmedNote, setConfirmedNote] = useState(returned !== null);
   useEffect(() => {
@@ -170,12 +171,15 @@ export function App() {
           <Settings
             onOpenCrew={() => setActiveArea("crew")}
             onOpenPeople={() => setActiveArea("people")}
+            onOpenHelpers={() => setActiveArea("helpers")}
           />
         );
       case "crew":
         return <Crew onBack={() => setActiveArea("settings")} />;
       case "people":
         return <People onBack={() => setActiveArea("settings")} />;
+      case "helpers":
+        return <Helpers onBack={() => setActiveArea("settings")} />;
       case "interests":
         return <Interests />;
       default: {
@@ -209,7 +213,7 @@ export function App() {
         area={area}
         isActive={
           area.id === activeArea ||
-          ((activeArea === "crew" || activeArea === "people") && area.id === "settings")
+          ((activeArea === "crew" || activeArea === "people" || activeArea === "helpers") && area.id === "settings")
         }
         onClick={() => setActiveArea(area.id)}
       />
