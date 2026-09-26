@@ -51,7 +51,6 @@ from personal_world.rooms import RoomsService
 OWNER_TOKEN = "instancetoken"
 OWNER = {"Authorization": f"Bearer {OWNER_TOKEN}", "X-PW-StepUp": "1"}
 
-PASSWORD = "made-up-password-1"
 
 
 def _app(tmp_path, monkeypatch):
@@ -95,8 +94,8 @@ def _make_invite(c, *, role="member", display_name="Sam Person", **extra):
     return r.json()["data"]
 
 
-def _accept(c, token, password=PASSWORD):
-    return c.post("/api/invites/accept", json={"token": token, "password": password})
+def _accept(c, token):
+    return c.post("/api/invites/accept", json={"token": token})
 
 
 # ── 1. Invites ────────────────────────────────────────────────────────
@@ -113,8 +112,10 @@ class TestInvites:
         data = r.json()["data"]
         assert data["role"] == "member"
         assert data["user_id"] == "sam-person"
-        # The chosen password is the account's credential from now on.
-        me = c.get("/api/me", headers=_h(PASSWORD, step_up=False))
+        # The sign-in key returned once is the account's credential.
+        key = data["sign_in_key"]
+        assert len(key) >= 40
+        me = c.get("/api/me", headers=_h(key, step_up=False))
         assert me.status_code == 200
         assert me.json()["data"]["role"] == "member"
         # The link works once.
@@ -138,8 +139,8 @@ class TestInvites:
         assert token not in json.dumps(rows)
         assert "token_hash" not in json.dumps(rows)
         assert {row["invite_id"] for row in rows} == {invite["invite_id"]}
-        # The accepted password is not stored in the clear either (no
-        # display prefix for a password-credential).
+        # The sign-in key is not stored in the clear either (no display
+        # prefix).
         user = IdentityStore(tmp_path).get_user("sam-person")
         assert user["token_prefixes"] == []
         assert user["hashed_tokens"]
@@ -309,9 +310,16 @@ class TestInvites:
         assert _accept(c, "not-a-real-token").status_code == 403
         assert _accept(c, "").status_code == 422
         invite = _make_invite(c)
-        # A short password is refused; no account is burned by it.
-        assert _accept(c, invite["token"], password="short").status_code == 422
-        assert _accept(c, invite["token"], password=PASSWORD).status_code == 200
+        assert _accept(c, invite["token"]).status_code == 200
+
+    def test_each_accepted_invite_gets_its_own_key(self, tmp_path, monkeypatch):
+        c = _app(tmp_path, monkeypatch)
+        a = _accept(c, _make_invite(c, display_name="Jo One")["token"]).json()["data"]
+        b = _accept(c, _make_invite(c, display_name="Jo Two")["token"]).json()["data"]
+        assert a["sign_in_key"] != b["sign_in_key"]
+        for row in (a, b):
+            me = c.get("/api/me", headers=_h(row["sign_in_key"], step_up=False))
+            assert me.json()["data"]["id"] == row["user_id"]
 
 
 # ── 2. Guests ─────────────────────────────────────────────────────────
@@ -326,7 +334,8 @@ class TestGuests:
         )
         data = _accept(c, invite["token"]).json()["data"]
         assert data["guest_until"] == until
-        me = c.get("/api/me", headers=_h(PASSWORD, step_up=False)).json()["data"]
+        key = data["sign_in_key"]
+        me = c.get("/api/me", headers=_h(key, step_up=False)).json()["data"]
         assert me["role"] == "guest"
         # A guest holds only see_shared.
         assert me["permissions"] == ["see_shared"]
@@ -337,10 +346,10 @@ class TestGuests:
         # Time passes (simulated honestly: the record's until moves).
         store = IdentityStore(tmp_path)
         store.set_guest_until("kit-guest", _future_iso(-5))
-        assert c.get("/api/me", headers=_h(PASSWORD, step_up=False)).status_code == 401
-        assert c.get("/api/prefs", headers=_h(PASSWORD, step_up=False)).status_code == 401
+        assert c.get("/api/me", headers=_h(key, step_up=False)).status_code == 401
+        assert c.get("/api/prefs", headers=_h(key, step_up=False)).status_code == 401
         # The store resolves the credential to nothing, both paths.
-        assert store.match_token(PASSWORD) is None
+        assert store.match_token(key) is None
         assert store.get_principal_record("kit-guest") is None
         people = c.get("/api/people", headers=OWNER).json()["data"]
         row = next(p for p in people if p["id"] == "kit-guest")

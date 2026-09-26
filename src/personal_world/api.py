@@ -4398,20 +4398,18 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     async def invites_accept(request: Request) -> dict:
         """Accept an invite. No sign-in: the one-time token is the proof.
 
-        Body: ``{token, password}``. The link works once, before it
-        expires, and creates a local account with the invite's role (a
-        guest also gets the invite's ``guest_until``). The password is
-        stored only as a hash, never as a prefix or in a log.
+        Body: ``{token}``. The link works once, before it expires, and
+        creates a local account with the invite's role (a guest also gets
+        the invite's ``guest_until``). The response carries the new
+        person's sign-in key ONCE; only its hash is stored. A key, not a
+        chosen password: stored credentials are unsalted hashes matched
+        across all accounts, so they must be long and random. People who
+        use SSO link their provider sign-in afterwards.
         """
         body = await _json_body(request)
         token = str(body.get("token") or "").strip()
-        password = str(body.get("password") or "")
         if not token:
             raise HTTPException(status_code=422, detail="token is required")
-        if len(password) < 8 or len(password) > 200:
-            raise HTTPException(
-                status_code=422, detail="password must be 8-200 characters"
-            )
         invite = _invites.find_by_token(token)
         if invite is None or invite.get("used_at"):
             raise HTTPException(
@@ -4448,7 +4446,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 role=role,
                 guest_until=invite.get("guest_until") if role == "guest" else None,
             )
-            _identity_store.attach_hashed_token(user_id, password)
+            sign_in_key = secrets.token_urlsafe(32)
+            _identity_store.attach_hashed_token(user_id, sign_in_key)
         except ValueError:
             raise HTTPException(
                 status_code=409, detail="an account already exists for that invite"
@@ -4465,6 +4464,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 "display_name": u.get("display_name"),
                 "role": role,
                 "guest_until": u.get("guest_until"),
+                # Shown once; keep it somewhere safe.
+                "sign_in_key": sign_in_key,
             },
         }
 

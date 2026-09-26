@@ -865,9 +865,9 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "write",
         "none",
         "public",
-        "accept a one-time link: {token, password} creates the local "
+        "accept a one-time link: {token} creates the local "
         "account with the invite's role; single-use and expiry enforced; "
-        "the password is stored only as a hash",
+        "returns a random sign-in key once; only its hash is stored",
     ),
     _e(
         "API-097-list",
