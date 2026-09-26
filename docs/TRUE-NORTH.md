@@ -1,4 +1,4 @@
-# TRUE-NORTH — Project Worlds
+# TRUE-NORTH — Worlds
 
 > **Status:** Direction · **Verified:** 2026-09-26 · **Canonical for:** vision, the five commitments, and the honesty and accessibility principles · **Read this if:** you need *why* Worlds is shaped this way; for *what we are building now* read [`.project/PLAN.md`](../.project/PLAN.md) first
 
@@ -82,7 +82,7 @@ any scope expansion (ruling 2026-09-22).
 
 ## Scope — the calm hub (first release)
 
-**Core, deep:** `Overview · Memory · Chat · Settings` (the stable skeleton).
+**Core, deep:** `Bridge · Memory · Chat · Settings` (the stable skeleton).
 
 | Screen | Depth target |
 |---|---|

@@ -1,4 +1,4 @@
-# DUPLICATE / COMPETING SYSTEMS — Project Worlds
+# DUPLICATE / COMPETING SYSTEMS — Worlds
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** known duplicate/competing systems · **Read this if:** two code paths look like they do the same job and you want to know which is live
 

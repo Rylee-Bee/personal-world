@@ -1,4 +1,4 @@
-# ORPHAN / SUPERSEDED INDEX — Project Worlds
+# ORPHAN / SUPERSEDED INDEX — Worlds
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** orphan / superseded / intentional-headless surfaces · **Read this if:** you found code with no caller and want to know whether it is dead, deliberate, or already resolved
 

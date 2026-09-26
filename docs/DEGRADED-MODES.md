@@ -1,4 +1,4 @@
-# Project Worlds — Degraded Modes Matrix (G-degrade)
+# Worlds — Degraded Modes Matrix (G-degrade)
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** what the product says and does when a part of it is missing, unreachable, refused, or unauthenticated · **Read this if:** you are changing a fail-closed path or a degraded label and need the contract it must keep.
 

@@ -202,8 +202,8 @@ register_worlds_backup(
 
 The old Station UI hook (`design/opendesign-exploration/station/backup-ui.js`,
 a `#settings-backup` panel) was removed with the retired Station tree on
-2026-09-22; the current `ui/` app has no backup panel. (UNVERIFIED 2026-09-26: no
-in-flight replacement UI was found in the tree.)
+2026-09-22; the current `ui/` app has no backup panel (checked 2026-09-26: no screen
+under `ui/src/screens/` offers backup; use the CLI or API).
 
 ## Threat notes (what this does and does not protect against)
 

@@ -1,4 +1,4 @@
-# Project Worlds Accessibility Contract
+# Worlds Accessibility Contract
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the accessibility floor every screen, component, token and theme must meet · **Read this if:** you are designing, building or reviewing anything a person perceives or operates.
 

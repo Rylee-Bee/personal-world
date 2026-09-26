@@ -10,7 +10,7 @@
 > dependency.**
 
 Worlds is a standalone OSS product (formerly "Personal World", then
-"Project Worlds"; technical identifiers unchanged) with its own CLI, API, and
+"Worlds"; technical identifiers unchanged) with its own CLI, API, and
 dashboard. External systems — Gitea, GitHub, Forgejo, Traefik, Komodo,
 OpenWebUI, Home Assistant, candy-dispenser, model runtimes, Figma —
 may enrich it. None may become a hidden requirement.

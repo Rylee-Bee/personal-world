@@ -1,4 +1,4 @@
-# Agent Policy — Project Worlds Decision Kernel
+# Agent Policy — Worlds Decision Kernel
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the agent decision policy (product/decision/ownership/security rules and the definition of done) · **Read this if:** you are an AI agent deciding what to do here, or how to say whether it worked.
 

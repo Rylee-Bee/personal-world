@@ -1,4 +1,4 @@
-# Small Model Decision — Project Worlds
+# Small Model Decision — Worlds
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** which small local model Worlds defaults to, and why · **Read this if:** you are changing the default brain, the fallback, or the `reasoning` provider.
 
@@ -55,6 +55,6 @@ The brain helps the world operate without becoming the world. It does not have w
 
 ## Files
 
-- Quick-final results: `bench/finals/runs/quick-worlds-qwen3-1.7b-*.jsonl` — **(UNVERIFIED 2026-09-26: no `bench/` directory exists in this repo today; the raw run files are not tracked here)**
+- Quick-final results: `bench/finals/runs/quick-worlds-qwen3-1.7b-*.jsonl` — these raw run files are not tracked in this repo (there is no `bench/` directory as of 2026-09-26); the numbers above are the record
 - Decision packet: `bench/finals/DECISION-PACKET.md` — same; not present in the repo
 - This document: `docs/adr/0002-default-brain-selection.md`

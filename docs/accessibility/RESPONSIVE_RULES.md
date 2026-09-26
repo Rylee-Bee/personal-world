@@ -1,4 +1,4 @@
-# Project Worlds — Responsive Rules
+# Worlds — Responsive Rules
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** how the interface adapts to viewport width and reflow · **Read this if:** you are changing layout, navigation or a screen's narrow-width behaviour.
 

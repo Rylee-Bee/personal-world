@@ -1,4 +1,4 @@
-# Authelia client for Project Worlds (paste into YOUR homelab Authelia)
+# Authelia client for Worlds (paste into YOUR homelab Authelia)
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the Authelia OIDC client configuration Worlds signs in against · **Read this if:** you are wiring Authelia as Worlds' identity provider.
 
@@ -14,7 +14,7 @@ Add this under `identity_providers.oidc.clients:` in your Authelia config
 
 ```yaml
       - client_id: "project-worlds"
-        client_name: "Project Worlds"
+        client_name: "Worlds"
         # Confidential client: Worlds authenticates with HTTP Basic.
         client_secret: "<GENERATE>"          # Authelia-side copy (your secret store)
         authorization_policy: "two_factor"    # or one_factor if you prefer

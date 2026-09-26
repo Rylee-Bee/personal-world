@@ -1,4 +1,4 @@
-# AUTH MATRIX — Project Worlds
+# AUTH MATRIX — Worlds
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the authentication surface (`AUTH-*`, `API-*` rows) · **Read this if:** you need to know which credential or elevation a surface requires
 

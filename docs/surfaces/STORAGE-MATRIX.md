@@ -1,4 +1,4 @@
-# STORAGE MATRIX — Project Worlds
+# STORAGE MATRIX — Worlds
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the on-disk stores and what backs up · **Read this if:** you need to know where a piece of state lives and whether the backup covers it
 

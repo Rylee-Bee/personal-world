@@ -10,7 +10,8 @@ turns red in CI (and the reverse). The traps below were first verified
 `Rylee-Bee/ci-harness` (reusable workflows); this repo's
 `.github/workflows/validate.yml` now passes only the arguments, so the
 Python and `uv` versions are no longer in this repo — see that harness.
-**(UNVERIFIED 2026-09-26: the exact Python and `uv` versions.)**
+As of 2026-09-26 its `reusable-python.yml` defaults are Python `3.12` and
+`uv` `0.11.28`, and this repo passes neither, so it uses those defaults.
 
 ## 1. The sync line is `uv sync --frozen --extra test --extra crypto`
 

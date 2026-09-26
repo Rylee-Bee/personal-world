@@ -1,4 +1,4 @@
-# MAJOR CALL CHAINS — Project Worlds
+# MAJOR CALL CHAINS — Worlds
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the end-to-end call chains across the backend · **Read this if:** you want to trace how a feature travels from surface to store
 

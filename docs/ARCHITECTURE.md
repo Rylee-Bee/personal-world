@@ -1,4 +1,4 @@
-# Project Worlds Architecture
+# Worlds Architecture
 
 > **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** how Worlds is structured — world model, rooms, API surface, identity/auth, Vault, exports · **Read this if:** you need to know where something lives before changing it.
 
@@ -226,8 +226,8 @@ routes, not deployment acceptance:
 | GET /api/rooms | the estate's rooms: descriptor, cards, needs, reachability, last-seen, status, public_url, plus the caller's visit/keeper/doorway state (snapshot cached 15 s) |
 | POST /api/rooms/{room_id}/visit, /needs/{need_id}/seen; PUT /api/rooms/{room_id}/keeper, /doorway | per-person room state (visit, need-seen, keeper, doorway) |
 | GET /api/secrets/overview | read-only secrets names + health for the Workshop room's drawer (admin-only) |
-| GET /api/crew; POST /api/crew; PATCH/DELETE /api/crew/{companion_id}; POST/GET /api/crew/{companion_id}/portrait | per-person crew: companions, keepers, doorways |
-| GET /api/setup-wizard/* | First Light first-run setup (crew on/off, companion choice) |
+| GET/POST /api/crew; PATCH/DELETE /api/crew/{companion_id}; GET/POST/DELETE /api/crew/{companion_id}/portrait | per-person crew: companions and their portraits (keepers and doorways are set per room, below) |
+| GET /api/setup-wizard/state, /crew; POST /api/setup-wizard/provision, /test-oidc, /auth-choice, /comfort, /companion, /finish | First Light first-run setup (`src/personal_world/setup_wizard.py`): sign-in choice, comfort settings, crew on/off, companion choice |
 | GET /api/daily | present the daily digest (read-only; never mutates) |
 | POST /api/daily | run the daily loop: journal observations, record facts, save |
 | GET /api/journal | recent events |
@@ -265,8 +265,8 @@ through `require_step_up`; individual routes may add further restrictions.
 fonts/icons/companions are browser entry/assets. `/` serves the React
 interface (`ui/`, built into `static/app/` and mounted by
 `station_ui.app_router` — the module name is from the retired Station
-era; the home screen is the **Bridge**, whose nav landmark is still
-labelled Overview): first-run redirects to `/setup`, an unauthenticated
+era; the home screen is the **Bridge**, labelled "Bridge" in the navigation
+though its internal area id is still `overview`): first-run redirects to `/setup`, an unauthenticated
 browser redirects to `/login`, and a valid `pw_session` cookie is sufficient —
 which is why its API calls need no CORS and no browser-side token.
 Only web assets from an allowlist built at boot are served; internal

@@ -1,4 +1,4 @@
-# PROVIDER MATRIX — Project Worlds
+# PROVIDER MATRIX — Worlds
 
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the capability → provider registration map · **Read this if:** you need to know how a capability gets its provider, and whether it is live
 

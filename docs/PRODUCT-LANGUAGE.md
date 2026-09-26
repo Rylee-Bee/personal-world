@@ -3,7 +3,7 @@
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** first-release product language, vocabulary, and information architecture · **Read this if:** you are writing user-facing copy or deciding where a feature surfaces.
 
 **In short:** the durable contract for what things are called and how the
-product is laid out (`Overview · Memory · Chat · Settings` skeleton, plus
+product is laid out (`Bridge · Memory · Chat · Settings` skeleton, plus
 chosen personal sections). It refines presentation and IA; it does not
 replace `docs/ARCHITECTURE.md`, `SECURITY.md`, the accessibility contract,
 or the human-reliability contract. Where direction conflicts,
@@ -46,7 +46,7 @@ This is the product layer. It does **not** reverse the Workbench/Node architectu
 
 ### Stable skeleton — always easy to find (theme-proof, customization-proof)
 
-`Overview · Memory · Chat · Settings`
+`Bridge · Memory · Chat · Settings`
 
 ### Personal sections — chosen, pinned, ordered, hidden by the person
 
@@ -148,7 +148,7 @@ or separate product modes.
 
 ### User-facing (product language)
 
-`Overview · Memory · Chat · Settings · Customize / Customize Worlds · Projects · Interests · Computer ·
+`Bridge · Memory · Chat · Settings · Customize / Customize Worlds · Projects · Interests · Computer ·
 Terminal · Desktop · Files · Build · Preview · Run · Output · Services · Records`
 
 Decisions: **Run** (not Job) · **Output** (not Result) · **Services** stays · the attached-machine word is
@@ -227,7 +227,7 @@ later. What is rejected is Station as the *default, the baseline palette, or the
 
 Preserve and **coherently present the existing product** — do not flatten it to a generic shell:
 
-Overview · Memory · Chat · Settings · Setup/Customize · Discovery · Projects · the existing world/journal
+Bridge · Memory · Chat · Settings · Setup/Customize · Discovery · Projects · the existing world/journal
 capabilities · existing auth/security behavior · existing real integrations/capabilities · accessibility ·
 theme infrastructure · the Workbench thin slice (where it belongs in the roadmap).
 

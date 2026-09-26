@@ -62,7 +62,7 @@ agent's WIP into its commit. The rules:
   accessibility, or human-reliability contracts.
 - **First-release product language & IA:** `docs/PRODUCT-LANGUAGE.md`
   (owner-approved 2026-09-21). Canonical product-facing vocabulary, the stable
-  nav landmarks (`Overview · Memory · Chat · Settings`), the personal-section model, the
+  nav landmarks (`Bridge · Memory · Chat · Settings`), the personal-section model, the
   Records-vs-Vault distinction, plain dark-warm theme principles, and the theme
   boundary. The area id `overview` renders the **Bridge** — the home screen
   (Keeper + briefing + rooms) — not the older `Overview.tsx`, which remains in
@@ -154,8 +154,8 @@ replace any contract above.
 - **The Agent is the enabler, not the product.** The Workbench / primary-viewport experience
   is the product direction; the Node/Agent/network layer extends it and must not turn Worlds
   into an RMM.
-- **The frontend is Worlds; Station is a theme.** The stable skeleton (`Overview · Memory · Chat ·
-  Settings` + personal sections) is the navigation — **not** a star-map/constellation drill (that model
+- **The frontend is Worlds; Station is a theme.** The stable skeleton (`Bridge · Memory · Chat ·
+  Settings` + personal sections; the Bridge's area id is still `overview`) is the navigation — **not** a star-map/constellation drill (that model
   belongs to the later Station theme package; Station is kept, never deleted). The default is a
   **complete existing theme pack** (full color — plain means calm structure, not colorless), never a
   hand-built partial shell or the aubergine station palette. See `docs/PRODUCT-LANGUAGE.md`.
@@ -170,3 +170,23 @@ rooms that serve the Play-Nice ROOM interface contract — `room/0`:
 providers are being moved out per the estate plan
 `docs/orchestration/ORCHESTRATION-PLAN-2026-09-25.md` in the estate root;
 reference that path, do not copy it here.
+
+Rooms, in one breath (full guide: `docs/ROOMS.md`):
+
+- The room list comes from Project Home's registry at runtime
+  (`PW_ROOMS_REGISTRY_URL`); `PW_ROOMS` is only a fallback. Rooms not on
+  `room/0` show as `incompatible`; unreachable ones as `unreachable` with a
+  last-seen time. Never let one room blank the rest.
+- Room tokens are env var **names** matching `^PW_ROOM_[A-Z0-9_]+_TOKEN$`;
+  values live only on the host. Never forward the human's session token or
+  `PW_API_TOKEN` to a room.
+- Per-person rooms (`forward_principal: true`, Candy first) get
+  `X-Worlds-Principal` alongside their own token; keep one person's cards out
+  of another's answer.
+- Room links open on the room's own site in a new tab; there is no proxy.
+- Discovery, media, calendars and notifications are moving to the **Candy**
+  room. They still exist in Worlds today; remove them only in the planned
+  order, never ad hoc.
+- The look is exported as the Worlds kit (`ui/dist-kit/`, `npm run kit:check`
+  in CI). Other repos vendor it with `npm run kit:stamp`; never hand-edit a
+  vendored copy.
