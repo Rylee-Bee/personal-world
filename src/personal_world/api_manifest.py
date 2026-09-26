@@ -823,6 +823,117 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         note="owner only (transfer_ownership); target must already be an "
         "admin; the old owner becomes an admin; journalled",
     ),
+    # People screens step 2 (owner-approved 2026-09-26): invites, helper
+    # grants, supervised limits, guests. Identity-level metadata; no route
+    # reads another person's content.
+    _e(
+        "API-095-list",
+        "GET",
+        "/api/people/invites",
+        "identity",
+        "read",
+        "none",
+        note="open invite links (role, who for, expiry, used?); "
+        "manage_people-gated; never a token or hash",
+    ),
+    _e(
+        "API-095-create",
+        "POST",
+        "/api/people/invites",
+        "identity",
+        "write",
+        "step-up",
+        note="manage_people-gated; {role, display_name, "
+        "expires_in_hours?, guest_until?}; the one-time token is returned "
+        "once and only its hash is stored; the owner is never invitable "
+        "(422) and only the owner may invite an admin (403)",
+    ),
+    _e(
+        "API-095-delete",
+        "DELETE",
+        "/api/people/invites/{invite_id}",
+        "identity",
+        "write",
+        "step-up",
+        note="cancel an invite link; manage_people-gated",
+    ),
+    _e(
+        "API-096",
+        "POST",
+        "/api/invites/accept",
+        "identity",
+        "write",
+        "none",
+        "public",
+        "accept a one-time link: {token, password} creates the local "
+        "account with the invite's role; single-use and expiry enforced; "
+        "the password is stored only as a hash",
+    ),
+    _e(
+        "API-097-list",
+        "GET",
+        "/api/me/helpers",
+        "identity",
+        "read",
+        "none",
+        note="grants the caller issued, including revoked ones so an "
+        "owner's emergency revocation stays visible",
+    ),
+    _e(
+        "API-097-grant",
+        "POST",
+        "/api/me/helpers",
+        "identity",
+        "write",
+        "step-up",
+        note="a person grants helper access: {helper_id, can_act?, "
+        "until?}; until must be a future ISO time within 30 days "
+        "(default 7); the person grants, never an admin",
+    ),
+    _e(
+        "API-097-revoke",
+        "DELETE",
+        "/api/me/helpers/{grant_id}",
+        "identity",
+        "write",
+        "step-up",
+        note="revoke a grant any time; the person who granted it, or the "
+        "owner in an emergency (journalled and visible to the person)",
+    ),
+    _e(
+        "API-098",
+        "GET",
+        "/api/me/helped-by",
+        "identity",
+        "read",
+        "none",
+        note="what helpers did for the caller, newest first: "
+        "{at, helper_id, action, summary, undoable}; undoable is false "
+        "unless a room's own receipt says otherwise",
+    ),
+    _e(
+        "API-099-get",
+        "GET",
+        "/api/me/limits",
+        "identity",
+        "read",
+        "none",
+        note="the caller's own supervised limits and who set them; "
+        "empty when none",
+    ),
+    _e(
+        "API-099-put",
+        "PUT",
+        "/api/people/{user_id}/limits",
+        "identity",
+        "write",
+        "step-up",
+        note="manage_people or a guardian (a live can_act helper grant) "
+        "sets {limits: [{key, value}]} from the closed set "
+        "(chat_quiet_hours, no_outside_sharing, content_boundary); who "
+        "set it and when are stored; a guardian still cannot read the "
+        "person's journal or world",
+    ),
     # Exports / backup / updates.
     _e(
         "API-025",

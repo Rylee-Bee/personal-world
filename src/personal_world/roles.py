@@ -16,18 +16,18 @@ Roles (a grant, not an account type)
 
 ``owner`` · ``admin`` · ``member`` · ``supervised`` · ``guest``
 
-``supervised`` is exactly ``member`` for now — the narrowing (content
-boundaries, no outside sharing) is step 2 and lands as *limits layered
-on the role*, never as a different permission set here. ``guest`` is
-``see_shared`` only; its "only what is shared with me" narrowing is
-step 2 too. **Agents are not a role**: an agent is a principal of
+``supervised`` is exactly ``member`` here: the narrowing (content
+boundaries, no outside sharing) is *limits layered on the role* in
+``people.py``, never a different permission set in this table.
+``guest`` is ``see_shared`` only, and expires (``guest_until``).
+**Agents are not a role**: an agent is a principal of
 ``kind == "agent"`` whose reach is the lesser of its token scopes and
 its owner's permissions.
 
 ``helper`` is likewise a grant layered on any account, not a role; its
-per-person ``see_needs_of`` / ``act_for`` permissions arrive in step 2.
-``can(..., target=...)`` already accepts the target those grants will
-need and ignores it today.
+per-person ``see_needs_of`` / ``act_for`` permissions are answered by
+``can(..., target=..., grants=...)`` from the live grants the caller
+passes in. Those two names are never in a role bundle.
 
 Group mapping
 -------------
@@ -63,6 +63,12 @@ PERMISSIONS: tuple[str, ...] = (
     "updates",
     "transfer_ownership",
 )
+
+#: The per-person permissions a helper grant carries. They are never in
+#: a role bundle: ``can(..., target=..., grants=...)`` answers them from
+#: the live grants the caller hands in. ``see_needs_of`` comes with any
+#: live grant; ``act_for`` needs ``can_act``.
+TARGET_PERMISSIONS: tuple[str, ...] = ("see_needs_of", "act_for")
 
 #: The role → permission bundle. This is the plan's table, exactly.
 ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
@@ -126,7 +132,46 @@ def _role_has(role: str, permission: str) -> bool:
     return permission in ROLE_PERMISSIONS.get(role, frozenset())
 
 
-def can(principal: Any, permission: str, *, target: str | None = None) -> bool:
+def _can_target(
+    principal: Any, permission: str, target: str | None, grants: Any
+) -> bool:
+    """Answer a per-person helper permission from the caller's grants.
+
+    ``see_needs_of:<person>`` is true for any live grant naming that
+    person; ``act_for:<person>`` needs a live grant with ``can_act`` set.
+    Only persons hold grants (an agent never does), the target must be a
+    real id string, and a revoked grant never counts. The grants are
+    expected to be live (the store drops expired ones); a grant that
+    still carries ``revoked_at`` is refused here too, so a caller cannot
+    widen access by passing a stale grant.
+    """
+    if principal is None or getattr(principal, "kind", "person") != "person":
+        return False
+    caller_id = getattr(principal, "id", None)
+    if not isinstance(caller_id, str) or not caller_id:
+        return False
+    if not isinstance(target, str) or not target:
+        return False
+    for grant in grants or ():
+        if not isinstance(grant, dict):
+            continue
+        if grant.get("helper_id") != caller_id or grant.get("person_id") != target:
+            continue
+        if grant.get("revoked_at"):
+            continue
+        if permission == "act_for":
+            return bool(grant.get("can_act"))
+        return True
+    return False
+
+
+def can(
+    principal: Any,
+    permission: str,
+    *,
+    target: str | None = None,
+    grants: Any = (),
+) -> bool:
     """Can this principal do ``permission``? The one authorization question.
 
     Fail closed at every branch:
@@ -138,11 +183,13 @@ def can(principal: Any, permission: str, *, target: str | None = None) -> bool:
       the permission (the lesser of scopes and the person);
     * a **person** → whether the role bundle contains the permission.
 
-    ``target`` is reserved for step 2 helper grants
-    (``see_needs_of:<person>`` / ``act_for:<person>``). It is accepted
-    and **ignored** today so those call sites can be written now; it must
-    never silently change an answer before the grant model exists.
+    ``target``/``grants`` answer the per-person helper permissions
+    (``see_needs_of`` / ``act_for``) from the live grants a caller hands
+    in. A role bundle never contains those names, so passing a target can
+    never widen a normal permission — see :func:`_can_target`.
     """
+    if permission in TARGET_PERMISSIONS:
+        return _can_target(principal, permission, target, grants)
     if permission not in PERMISSIONS:
         return False
     if principal is None:

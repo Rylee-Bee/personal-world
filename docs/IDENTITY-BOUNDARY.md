@@ -124,15 +124,15 @@ table entry and not a search-and-replace.
 | **owner** | whoever runs the install; exactly one | every permission; can't be locked out; can hand ownership to an admin |
 | **admin** | trusted co-runners | manage people and rooms, approve, estate secrets, updates |
 | **member** | everyone in the home | their own space; see shared rooms |
-| **supervised** | kids | member, minus what a guardian limits (the limits are step 2 and visible to the person) |
-| **guest** | a babysitter, a visitor | only what is shared with them (the narrowing is step 2); expires |
+| **supervised** | kids | member, minus what a guardian limits (the limits are visible to the person) |
+| **guest** | a babysitter, a visitor | only what is shared with them; expires |
 | **agent** | AI and services, not people | only their token's permissions, never more than the person they act for |
 
 **Helper is a grant layered on any account, not a role** (Jo can be a
 member *and* hold a helper grant for the owner); its per-person
-`see_needs_of:<person>` / `act_for:<person>` permissions arrive in step 2.
-`can(..., target=...)` already accepts the target those grants need and
-ignores it today.
+`see_needs_of:<person>` / `act_for:<person>` permissions are answered by
+`can(..., target=..., grants=...)` from the live grants. See
+"Invites, helpers, limits, guests" below.
 
 | Permission | owner | admin | member | supervised | guest |
 |---|---|---|---|---|---|
@@ -174,6 +174,48 @@ journal, secrets or world: nobody reads another person's data unless that
 person shares it, admins included. `GET /api/me` tells the interface what
 the caller may do so it can show or hide affordances; the server always
 enforces the same `can()` answer.
+
+## Invites, helpers, limits, guests
+
+> Step 2 of the roles plan (owner-approved 2026-09-26). These are
+> identity-level records (like `users.json`), not personal content:
+> they name people and permissions, never a journal, a world or a secret.
+
+**Invites.** A person with `manage_people` makes a one-time link
+(`POST /api/people/invites`) for a role: member, supervised, guest or
+admin. Only the owner may invite an admin, and the owner is never
+invitable. The link token is shown once, at creation; only its hash is
+stored. Accepting the link (`POST /api/invites/accept`, no sign-in)
+creates the local account with that role, works once, and stops working
+after the link expires (72 hours by default, at most 336).
+
+**Guests.** A guest record carries `until`, an ISO time. After it, the
+guest resolves to nothing (401) exactly like a disabled account, and
+`GET /api/people` shows them as expired. A guest holds only
+`see_shared`.
+
+**Helpers.** A person can let someone help them (`POST /api/me/helpers`):
+a live grant gives `see_needs_of:<person>` and, with `can_act`,
+`act_for:<person>`. Grants last 7 days by default and at most 30, and an
+expired grant is ignored everywhere. A helper acts for a person only on
+the rooms needs list and room actions, by sending
+`X-Worlds-Helping: <person>`; on any other route that header is refused
+(403). Every action a helper takes is written to the person's own
+"helped by" log (`GET /api/me/helped-by`). The person can revoke a grant
+any time; the owner can revoke any grant in an emergency, and the
+revocation is logged and stays visible to the person.
+
+**Supervised limits.** `manage_people`, or a guardian (someone with a
+live `can_act` grant from the person), can set that person's limits
+(`PUT /api/people/{id}/limits`) from a closed set: quiet hours for chat,
+no outside sharing, and a content boundary. Worlds records who set them
+and when, and the person sees their own limits at `GET /api/me/limits`.
+A guardian still cannot read the person's journal or world — helping
+covers room needs and room actions only.
+
+`GET /api/me` also reports `helpers_granted`, `helping` (the people the
+caller may help, with `until`), and `limits` (when supervised) or
+`guest_until` (when a guest).
 
 ## Tests
 

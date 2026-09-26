@@ -26,6 +26,7 @@ import re
 import secrets
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
@@ -90,6 +91,41 @@ def _token_fingerprint(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def _iso_to_epoch(value: Any) -> float | None:
+    """An epoch time from an ISO-8601 string, or ``None`` if unreadable."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
+
+
+def record_is_expired(record: dict | None, now: float | None = None) -> bool:
+    """True when a guest record's ``until`` has passed.
+
+    A person who is not a guest has no ``guest_until`` and never expires.
+    A guest's ``guest_until`` must be readable; an unreadable value is
+    treated as expired (fail closed) so a corrupt timestamp cannot keep
+    an account open.
+    """
+    if record is None:
+        return True
+    until = record.get("guest_until")
+    if not until:
+        return False
+    expires = _iso_to_epoch(until)
+    if expires is None:
+        return True
+    return expires <= (now if now is not None else time.time())
+
+
 class NoPrincipalError(Exception):
     """Raised when no token / no matching hashed token is present."""
 
@@ -146,6 +182,7 @@ class IdentityStore:
         display_name: str | None,
         initial_plain_token: str | None = None,
         role: str = "member",
+        guest_until: str | None = None,
     ) -> dict:
         payload = self._load()
         if any(u.get("user_id") == user_id for u in payload["users"]):
@@ -159,17 +196,50 @@ class IdentityStore:
             "enabled": True,
             "created_at": time.time(),
         }
+        if guest_until:
+            u["guest_until"] = guest_until
         if initial_plain_token:
             self._attach_token(u, initial_plain_token)
         payload["users"].append(u)
         self._save(payload)
         return u
 
+    def set_guest_until(self, user_id: str, guest_until: str) -> dict | None:
+        """Set (or clear, with an empty string) a person's guest expiry."""
+        payload = self._load()
+        for u in payload.get("users", []):
+            if u.get("user_id") == user_id:
+                if guest_until:
+                    u["guest_until"] = guest_until
+                else:
+                    u.pop("guest_until", None)
+                self._save(payload)
+                return u
+        return None
+
     def attach_token(self, user_id: str, plain_token: str) -> None:
         payload = self._load()
         for u in payload["users"]:
             if u.get("user_id") == user_id:
                 self._attach_token(u, plain_token)
+                self._save(payload)
+                return
+        raise ValueError(f"no such user: {user_id}")
+
+    def attach_hashed_token(self, user_id: str, plain_token: str) -> None:
+        """Attach a credential by hash only — no prefix is kept.
+
+        Used for an invite-accepted password: a person's own password is
+        a credential, and storing any part of it in the clear (the
+        ``token_prefixes`` a generated token keeps for display) would be a
+        leak. Only the hash is written.
+        """
+        payload = self._load()
+        for u in payload["users"]:
+            if u.get("user_id") == user_id:
+                u.setdefault("hashed_tokens", []).append(
+                    _token_fingerprint(plain_token)
+                )
                 self._save(payload)
                 return
         raise ValueError(f"no such user: {user_id}")
@@ -302,6 +372,11 @@ class IdentityStore:
         for u in payload.get("users", []) + payload.get("agents", []):
             if not u.get("enabled", False):
                 continue
+            if record_is_expired(u):
+                # A guest past their `until` resolves to nothing: the
+                # credential is not refused with a reason, it never
+                # matches (fail closed, same as a disabled account).
+                continue
             if any(hmac.compare_digest(fp, h) for h in u.get("hashed_tokens", [])):
                 return u
         return None
@@ -319,6 +394,10 @@ class IdentityStore:
         payload = self._load()
         for u in payload.get("users", []) + payload.get("agents", []):
             if u.get("user_id") == principal_id and u.get("enabled", False):
+                if record_is_expired(u):
+                    # An expired guest's session resolves to nothing on
+                    # the next request, exactly like a disabled account.
+                    return None
                 return u
         return None
 

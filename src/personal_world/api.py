@@ -8,6 +8,7 @@ compared with hmac.compare_digest and never logged.
 import datetime as _dt
 import json
 import logging
+import re
 import secrets
 import os
 import threading
@@ -51,6 +52,7 @@ from .rooms import RoomsService, STATE_FILENAME as ROOMS_STATE_FILENAME
 from .rooms import REGISTRY_STATE_FILENAME as ROOMS_REGISTRY_STATE_FILENAME
 from .rooms import IDEMPOTENCY_HEADER as ROOMS_IDEMPOTENCY_HEADER
 from . import crew, rooms_visits
+from . import people as people_mod
 from .roles import PERMISSIONS, ROLES, can
 from .source_control import (
     discover_repositories,
@@ -80,6 +82,31 @@ _OPENER = urllib.request.build_opener(_NoRedirect)
 #: rule 12). Tests replace this attribute with a MockTransport-backed
 #: service; production reads the network.
 _ROOMS = RoomsService()
+
+#: A helper acting for another person sends this header naming that
+#: person. It is honored ONLY on the two routes that ask for
+#: ``see_needs_of`` / ``act_for`` (the rooms needs list and a room
+#: action); any other route refuses it (403) so "act as that person"
+#: can never leak into another surface.
+HELPING_HEADER = "X-Worlds-Helping"
+
+#: Where the helping header is allowed: the rooms needs list (GET) and a
+#: room action (POST, with two path parameters). Nothing else.
+_HELPING_ALLOWED: tuple[tuple[str, str], ...] = (
+    ("GET", r"^/api/rooms$"),
+    ("POST", r"^/api/rooms/[^/]+/actions/[^/]+$"),
+)
+_HELPING_ALLOWED_RE = tuple(
+    (method, re.compile(pattern)) for method, pattern in _HELPING_ALLOWED
+)
+
+
+def _helping_route_allowed(method: str, path: str) -> bool:
+    """True only for the routes that ask see_needs_of / act_for."""
+    return any(
+        method == allowed_method and pattern.match(path)
+        for allowed_method, pattern in _HELPING_ALLOWED_RE
+    )
 
 
 def _valid_http_url(url: str) -> bool:
@@ -432,6 +459,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     _identity_mode = os.environ.get("PW_IDENTITY_MODE", "single")
     _identity_store = IdentityStore(data_dir)
     _app_instance_token = _token()
+    # People screens' state (step 2): invites, helper grants, supervised
+    # limits and the helper log. Identity-level metadata (like
+    # users.json), never personal content. See people.py.
+    _invites = people_mod.InviteStore(data_dir)
+    _helper_store = people_mod.HelperStore(data_dir)
+    _limits_store = people_mod.LimitsStore(data_dir)
+    _helper_log = people_mod.HelperLog(data_dir)
     # Roles (owner-approved 2026-09-26): heal pre-roles records once at
     # boot (primary -> owner, legacy admin scope -> admin, else member).
     # Readers also fall back through identity.role_for_record, so a store
@@ -454,6 +488,31 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .model import JournalKind
 
     app = FastAPI(title="Project Worlds", version="0.2.0")
+
+    @app.middleware("http")
+    async def _helping_scope_guard(request: Request, call_next):
+        """The helping header is scoped to the rooms routes only.
+
+        A helper may act for a person on the rooms needs list and on a
+        room action; anywhere else the header is refused with a plain
+        message, so "act as that person" can never reach a journal, a
+        world or a secret. The grant itself is checked in the handler.
+        """
+        if request.headers.get(HELPING_HEADER) and not _helping_route_allowed(
+            request.method.upper(), request.url.path
+        ):
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "ok": False,
+                    "status": "forbidden",
+                    "warnings": [
+                        "Helping only covers seeing needs and acting in rooms."
+                    ],
+                },
+            )
+        return await call_next(request)
+
     # issue #8, phase 0: the identity entry point state is on app.state so
     # single-mode behavior is byte-identical and multi-mode lights up
     # without changing how the client calls the API.
@@ -2696,17 +2755,23 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """The resolved room ids, in snapshot (registry or env) order."""
         return _ROOMS.known_ids()
 
-    def _crew_path(request: Request) -> Path:
-        """The caller's own crew registry file (per-principal entry point)."""
-        return _scoped_path(request.state.principal, "crew")
+    def _crew_path(request: Request, principal=None) -> Path:
+        """A person's crew registry file (per-principal entry point).
 
-    def _crew_state(request: Request) -> tuple[Path, dict]:
-        """``(path, state)`` for the caller's crew, starter-seeded.
+        Defaults to the caller; a helping request passes the person it
+        acts for so the crew it reads is that person's own.
+        """
+        if principal is None:
+            principal = request.state.principal
+        return _scoped_path(principal, "crew")
+
+    def _crew_state(request: Request, principal=None) -> tuple[Path, dict]:
+        """``(path, state)`` for a person's crew, starter-seeded.
 
         The configured room ids ride along so the canon keeper defaults can
         be seeded for the rooms that name a system — and only those.
         """
-        path = _crew_path(request)
+        path = _crew_path(request, principal)
         return path, crew.read_crew(path, room_ids=_configured_room_ids())
 
     def _crew_text(
@@ -2792,12 +2857,25 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         registry read was ok, unreachable or not configured — additive:
         the existing ``data``/``resume``/``summary`` envelope is
         unchanged.
+
+        With an ``X-Worlds-Helping: <person>`` header and a live grant,
+        a helper sees THIS person's needs and their own visit state and
+        crew; without a live grant the request is refused 403.
         """
-        rows = await _ROOMS.snapshot_for_principal(
+        helping = _helping_target(request, need_act=False)
+        effective = helping if helping is not None else (
             getattr(request.state, "principal", None)
         )
-        state = rooms_visits.read_visits(_rooms_visit_path(request))
-        _, crew_state = _crew_state(request)
+        rows = await _ROOMS.snapshot_for_principal(effective)
+        # A helping request reads the helped person's own visit state and
+        # crew, so the needs and resume are theirs, not the helper's.
+        visit_path = (
+            _scoped_path(effective, "rooms_visits")
+            if helping is not None
+            else _rooms_visit_path(request)
+        )
+        state = rooms_visits.read_visits(visit_path)
+        _, crew_state = _crew_state(request, helping)
         decorated = [
             crew.decorate_row(rooms_visits.decorate_row(row, state), crew_state)
             for row in rows
@@ -2925,8 +3003,17 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         "nothing changed" receipt, never a 500. A successful action drops
         the cached snapshot so the need disappears on the next
         ``GET /api/rooms``.
+
+        With an ``X-Worlds-Helping: <person>`` header and a live
+        ``can_act`` grant, a helper performs the action as that person
+        and the action is recorded in that person's "helped by" log;
+        without a live grant the request is refused 403.
         """
-        principal = getattr(request.state, "principal", None)
+        caller = getattr(request.state, "principal", None)
+        # A helper acting for someone needs `act_for`, not the person's
+        # own `approve`; any other call is unchanged.
+        helping = _helping_target(request, need_act=True)
+        principal = helping if helping is not None else caller
         body = await request.body()
         status, receipt = await _ROOMS.perform_action(
             room_id=room_id,
@@ -2934,7 +3021,22 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             principal=principal,
             idempotency_key=request.headers.get(ROOMS_IDEMPOTENCY_HEADER),
             body=body,
+            allow_write=helping is not None,
         )
+        if helping is not None and receipt.get("ok"):
+            # Every action a helper takes for a person is recorded in
+            # that person's own "helped by" log. The receipt's own
+            # `undoable` is false unless a room ever sends one.
+            _helper_log.append(
+                helping.id,
+                {
+                    "at": receipt.get("at"),
+                    "helper_id": caller.id if caller is not None else None,
+                    "action": action_id,
+                    "summary": receipt.get("summary") or "",
+                    "undoable": bool(receipt.get("undoable", False)),
+                },
+            )
         return JSONResponse(
             status_code=status,
             content={"ok": status == 200, "data": receipt},
@@ -3614,6 +3716,46 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         if not can(principal, permission):
             raise HTTPException(status_code=403, detail=f"{permission} required")
 
+    def _helping_target(request: Request, *, need_act: bool):
+        """The person a helper's ``X-Worlds-Helping`` header names.
+
+        Returns a Principal for that person, or ``None`` when no helping
+        header is present. A present header must name a real person the
+        caller holds a live grant for: any live grant answers
+        ``see_needs_of``; only ``can_act`` answers ``act_for``. Anything
+        else is a 403 with a plain message — never a hint about whether
+        the person exists. Persons only: an agent never helps.
+        """
+        raw = request.headers.get(HELPING_HEADER, "").strip()
+        if not raw:
+            return None
+        caller = getattr(request.state, "principal", None)
+        if caller is None or getattr(caller, "kind", "person") != "person":
+            raise HTTPException(
+                status_code=403, detail="helping needs a person account"
+            )
+        from .identity import (
+            _SAFE_PRINCIPAL_ID as _safe,
+            principal_from_record,
+        )
+
+        if not _safe.fullmatch(raw):
+            raise HTTPException(
+                status_code=403, detail="you do not have permission to help that person"
+            )
+        grants = _helper_store.live_for_helper(caller.id)
+        permission = "act_for" if need_act else "see_needs_of"
+        if not can(caller, permission, target=raw, grants=grants):
+            raise HTTPException(
+                status_code=403, detail="you do not have permission to help that person"
+            )
+        record = _identity_store.get_principal_record(raw)
+        if record is None:
+            raise HTTPException(
+                status_code=403, detail="you do not have permission to help that person"
+            )
+        return principal_from_record(record, source=caller.source, store=_identity_store)
+
     @app.get("/api/identity/users", dependencies=[Depends(require_auth)])
     async def users_list(request: Request) -> dict:
         principal = getattr(request.state, "principal", None)
@@ -3943,7 +4085,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
         The one call the interface makes to show or hide affordances:
         ``{id, display_name, role, permissions}``. Permissions are the
-        server's answer (``can``), never a client guess.
+        server's answer (``can``), never a client guess. A person also
+        gets the People-screens facts (step 2): ``helpers_granted``,
+        ``helping``, and — for a supervised person — their ``limits``,
+        or ``guest_until`` for a guest. An agent gets the base fields.
         """
         p = getattr(request.state, "principal", None)
         if p is None:
@@ -3951,15 +4096,40 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         stored = (
             _identity_store.get_display_name(p.id) if p.kind == "person" else None
         )
-        return {
-            "ok": True,
-            "data": {
-                "id": p.id,
-                "display_name": stored or p.display_name,
-                "role": p.role,
-                "permissions": [perm for perm in PERMISSIONS if can(p, perm)],
-            },
+        data = {
+            "id": p.id,
+            "display_name": stored or p.display_name,
+            "role": p.role,
+            "permissions": [perm for perm in PERMISSIONS if can(p, perm)],
         }
+        if p.kind == "person":
+            granted = _helper_store.list_granted_by(p.id)
+            data["helpers_granted"] = sum(
+                1 for g in granted if _helper_store.is_live(g)
+            )
+            data["helping"] = [
+                {
+                    "person_id": g.get("person_id"),
+                    "until": g.get("until"),
+                    "can_act": bool(g.get("can_act")),
+                }
+                for g in _helper_store.live_for_helper(p.id)
+            ]
+            if p.role == "supervised":
+                record = _limits_store.get(p.id)
+                data["limits"] = (
+                    {
+                        "limits": record.get("limits", {}),
+                        "set_by": record.get("set_by"),
+                        "set_at": record.get("set_at"),
+                    }
+                    if record is not None
+                    else {"limits": {}, "set_by": None, "set_at": None}
+                )
+            if p.role == "guest":
+                record = _identity_store.get_user(p.id) or {}
+                data["guest_until"] = record.get("guest_until")
+        return {"ok": True, "data": data}
 
     @app.get("/api/people", dependencies=[Depends(require_auth)])
     async def people_list(request: Request) -> dict:
@@ -3969,21 +4139,30 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         a principal, not a role). No content, no secrets, no tokens — an
         allow-list of exactly id/display_name/role/kind/created_at.
         """
-        from .identity import role_for_record
+        from .identity import record_is_expired, role_for_record
 
         _require_permission(
             getattr(request.state, "principal", None), "manage_people"
         )
-        people = [
-            {
+
+        def _person_row(u: dict) -> dict:
+            row = {
                 "id": u.get("user_id"),
                 "display_name": u.get("display_name"),
                 "role": role_for_record(u),
                 "kind": "person",
                 "created_at": u.get("created_at"),
             }
-            for u in _identity_store.list_users()
-        ]
+            if row["role"] == "guest":
+                # A guest carries when they expire; after `until` their
+                # credential no longer resolves (401) and this list says
+                # so. Only guest rows gain fields, so every other row
+                # keeps its allow-listed shape.
+                row["guest_until"] = u.get("guest_until")
+                row["expired"] = record_is_expired(u)
+            return row
+
+        people = [_person_row(u) for u in _identity_store.list_users()]
         people.extend(
             {
                 "id": a.get("user_id"),
@@ -4088,6 +4267,395 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             source="people",
         )
         return {"ok": True, "data": {"from": owner, "to": to}}
+
+    # -- People screens step 2 (owner-approved 2026-09-26): invites,
+    # helper grants, supervised limits. Identity-level metadata only:
+    # these routes name people and permissions, never content.
+    from .identity import _SAFE_PRINCIPAL_ID as _safe_pid
+
+    def _grant_row(grant: dict) -> dict:
+        """One helper grant, allow-listed; nothing else is exposed."""
+        return {
+            "grant_id": grant.get("grant_id"),
+            "helper_id": grant.get("helper_id"),
+            "can_act": bool(grant.get("can_act")),
+            "until": grant.get("until"),
+            "created_at": grant.get("created_at"),
+            "revoked_at": grant.get("revoked_at"),
+            "revoked_by": grant.get("revoked_by"),
+            "live": _helper_store.is_live(grant),
+        }
+
+    @app.get("/api/people/invites", dependencies=[Depends(require_auth)])
+    async def invites_list(request: Request) -> dict:
+        """Open invite links. ``manage_people`` only; no token material.
+
+        A list row says the role, who it is for, when the link expires
+        and whether it was used — never the token or its hash.
+        """
+        _require_permission(
+            getattr(request.state, "principal", None), "manage_people"
+        )
+        return {"ok": True, "data": _invites.list()}
+
+    @app.post("/api/people/invites", dependencies=[Depends(require_step_up)])
+    async def invites_create(request: Request) -> dict:
+        """Mint a one-time invite link. ``manage_people`` + step-up.
+
+        Body: ``{role, display_name, expires_in_hours?, guest_until?}``.
+        ``role`` is member/supervised/guest/admin; a guest needs a future
+        ``guest_until``. Only the owner may invite an admin, and the owner
+        is never invitable. The token is returned exactly once, here; only
+        its hash is stored.
+        """
+        principal = getattr(request.state, "principal", None)
+        _require_permission(principal, "manage_people")
+        body = await _json_body(request)
+        role = body.get("role")
+        if not isinstance(role, str) or role not in people_mod.INVITE_ROLES:
+            raise HTTPException(
+                status_code=422,
+                detail="role must be member, supervised, guest or admin",
+            )
+        if role == "admin" and getattr(principal, "role", None) != "owner":
+            raise HTTPException(
+                status_code=403, detail="only the owner can invite an admin"
+            )
+        display = str(body.get("display_name") or "").strip()
+        if not display or len(display) > 80:
+            raise HTTPException(
+                status_code=422, detail="display_name must be 1-80 characters"
+            )
+        hours = body.get("expires_in_hours", people_mod.DEFAULT_INVITE_HOURS)
+        if (
+            not isinstance(hours, int)
+            or isinstance(hours, bool)
+            or not 1 <= hours <= people_mod.MAX_INVITE_HOURS
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "expires_in_hours must be 1-"
+                    f"{people_mod.MAX_INVITE_HOURS}"
+                ),
+            )
+        guest_until = body.get("guest_until")
+        if role == "guest":
+            expires = people_mod.parse_iso(guest_until)
+            if expires is None or expires <= time.time():
+                raise HTTPException(
+                    status_code=422,
+                    detail="guest_until is required for a guest and must be a future ISO time",
+                )
+        elif guest_until is not None:
+            raise HTTPException(
+                status_code=422, detail="guest_until only applies to a guest"
+            )
+        invite, token = _invites.create(
+            role=role,
+            display_name=display,
+            expires_at=time.time() + hours * 3600,
+            created_by=principal.id,
+            guest_until=guest_until if role == "guest" else None,
+        )
+        journal.record(
+            JournalKind.SETTINGS_CHANGE,
+            f"invite created for role {role}",
+            source="people",
+        )
+        return {
+            "ok": True,
+            "data": {
+                "invite_id": invite["invite_id"],
+                "role": role,
+                "display_name": display,
+                "expires_at": people_mod.to_iso(invite["expires_at"]),
+                "guest_until": invite.get("guest_until"),
+                "token": token,
+            },
+        }
+
+    @app.delete(
+        "/api/people/invites/{invite_id}",
+        dependencies=[Depends(require_step_up)],
+    )
+    async def invites_delete(request: Request, invite_id: str) -> dict:
+        """Cancel an invite link. ``manage_people`` + step-up."""
+        _require_permission(
+            getattr(request.state, "principal", None), "manage_people"
+        )
+        if not _invites.delete(invite_id):
+            raise HTTPException(status_code=404, detail="no such invite")
+        journal.record(
+            JournalKind.SETTINGS_CHANGE,
+            f"invite cancelled: {invite_id}",
+            source="people",
+        )
+        return {"ok": True, "data": {"invite_id": invite_id, "deleted": True}}
+
+    @app.post("/api/invites/accept")
+    async def invites_accept(request: Request) -> dict:
+        """Accept an invite. No sign-in: the one-time token is the proof.
+
+        Body: ``{token, password}``. The link works once, before it
+        expires, and creates a local account with the invite's role (a
+        guest also gets the invite's ``guest_until``). The password is
+        stored only as a hash, never as a prefix or in a log.
+        """
+        body = await _json_body(request)
+        token = str(body.get("token") or "").strip()
+        password = str(body.get("password") or "")
+        if not token:
+            raise HTTPException(status_code=422, detail="token is required")
+        if len(password) < 8 or len(password) > 200:
+            raise HTTPException(
+                status_code=422, detail="password must be 8-200 characters"
+            )
+        invite = _invites.find_by_token(token)
+        if invite is None or invite.get("used_at"):
+            raise HTTPException(
+                status_code=403, detail="this invite link is not valid"
+            )
+        expires_at = invite.get("expires_at")
+        if not isinstance(expires_at, (int, float)) or expires_at <= time.time():
+            raise HTTPException(
+                status_code=403, detail="this invite link has expired"
+            )
+        role = invite.get("role")
+        if role not in people_mod.INVITE_ROLES:
+            raise HTTPException(
+                status_code=403, detail="this invite link is not valid"
+            )
+        base = people_mod.slug_user_id(invite.get("display_name") or "")
+        user_id = base
+        if _identity_store.get_user(user_id) is not None:
+            user_id = f"{base}-{secrets.token_hex(3)}"
+        if _identity_store.get_user(user_id) is not None:
+            raise HTTPException(
+                status_code=409, detail="a person with that name already exists"
+            )
+        # Claim the link first so a double submit cannot create two
+        # accounts; an already-used link fails closed.
+        if not _invites.mark_used(invite["invite_id"]):
+            raise HTTPException(
+                status_code=403, detail="this invite link is not valid"
+            )
+        try:
+            u = _identity_store.create_user(
+                user_id,
+                invite.get("display_name"),
+                role=role,
+                guest_until=invite.get("guest_until") if role == "guest" else None,
+            )
+            _identity_store.attach_hashed_token(user_id, password)
+        except ValueError:
+            raise HTTPException(
+                status_code=409, detail="an account already exists for that invite"
+            )
+        journal.record(
+            JournalKind.SETTINGS_CHANGE,
+            f"invite accepted: {user_id} joined as {role}",
+            source="invites",
+        )
+        return {
+            "ok": True,
+            "data": {
+                "user_id": user_id,
+                "display_name": u.get("display_name"),
+                "role": role,
+                "guest_until": u.get("guest_until"),
+            },
+        }
+
+    @app.get("/api/me/helpers", dependencies=[Depends(require_auth)])
+    async def helpers_list(request: Request) -> dict:
+        """Grants the caller issued. Includes revoked ones, so a
+        revocation the owner made in an emergency is visible."""
+        principal = getattr(request.state, "principal", None)
+        _require_person(principal)
+        return {
+            "ok": True,
+            "data": [
+                _grant_row(g) for g in _helper_store.list_granted_by(principal.id)
+            ],
+        }
+
+    @app.post("/api/me/helpers", dependencies=[Depends(require_step_up)])
+    async def helpers_grant(request: Request) -> dict:
+        """A person grants someone helper access. Step-up.
+
+        Body: ``{helper_id, can_act?, until?}``. ``until`` is a future
+        ISO time within 30 days; the default is 7 days. Any live grant
+        lets the helper see this person's room needs; ``can_act`` lets
+        them act for this person. The grant belongs to the person, never
+        to an admin.
+        """
+        principal = getattr(request.state, "principal", None)
+        _require_person(principal)
+        body = await _json_body(request)
+        helper_id = str(body.get("helper_id") or "").strip()
+        if not helper_id or not _safe_pid.fullmatch(helper_id):
+            raise HTTPException(status_code=422, detail="helper_id is invalid")
+        if helper_id == principal.id:
+            raise HTTPException(
+                status_code=422, detail="you cannot grant a helper to yourself"
+            )
+        if _identity_store.get_user(helper_id) is None:
+            raise HTTPException(status_code=404, detail="no such person")
+        can_act = body.get("can_act", False)
+        if not isinstance(can_act, bool):
+            raise HTTPException(
+                status_code=422, detail="can_act must be true or false"
+            )
+        now = time.time()
+        until_raw = body.get("until")
+        if until_raw is None:
+            until_ts = now + people_mod.DEFAULT_HELPER_DAYS * 86400
+        else:
+            until_ts = people_mod.parse_iso(until_raw)
+            if until_ts is None or until_ts <= now:
+                raise HTTPException(
+                    status_code=422, detail="until must be a future ISO time"
+                )
+            if until_ts > now + people_mod.MAX_HELPER_DAYS * 86400:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "until must be within "
+                        f"{people_mod.MAX_HELPER_DAYS} days"
+                    ),
+                )
+        grant = _helper_store.create(
+            person_id=principal.id,
+            helper_id=helper_id,
+            can_act=can_act,
+            until=people_mod.to_iso(until_ts),
+            created_by=principal.id,
+        )
+        journal.record(
+            JournalKind.SETTINGS_CHANGE,
+            f"helper granted for {principal.id}: {helper_id}"
+            f" can_act={can_act}",
+            source="people",
+        )
+        return {"ok": True, "data": _grant_row(grant)}
+
+    @app.delete(
+        "/api/me/helpers/{grant_id}", dependencies=[Depends(require_step_up)]
+    )
+    async def helpers_revoke(request: Request, grant_id: str) -> dict:
+        """Revoke a helper grant, any time.
+
+        The person who granted it, or the owner in an emergency. An
+        owner's revocation is journalled and stays visible to the person
+        in ``GET /api/me/helpers`` (``revoked_by`` is the owner's id).
+        """
+        principal = getattr(request.state, "principal", None)
+        _require_person(principal)
+        grant = _helper_store.get(grant_id)
+        if grant is None:
+            raise HTTPException(status_code=404, detail="no such grant")
+        if grant.get("person_id") == principal.id:
+            revoked = _helper_store.revoke(grant_id, principal.id)
+        elif can(principal, "transfer_ownership"):
+            revoked = _helper_store.revoke(grant_id, principal.id)
+            journal.record(
+                JournalKind.SETTINGS_CHANGE,
+                f"owner revoked helper grant {grant_id} "
+                f"for {grant.get('person_id')}",
+                source="people",
+            )
+        else:
+            raise HTTPException(
+                status_code=403,
+                detail="only the person or the owner can revoke this grant",
+            )
+        return {
+            "ok": True,
+            "data": {
+                "grant_id": grant_id,
+                "revoked": True,
+                "revoked_by": (revoked or {}).get("revoked_by"),
+            },
+        }
+
+    @app.get("/api/me/helped-by", dependencies=[Depends(require_auth)])
+    async def helped_by(request: Request) -> dict:
+        """What helpers did for the caller, newest first.
+
+        Each row: ``{at, helper_id, action, summary, undoable}``.
+        ``undoable`` is false unless a room's own receipt says otherwise.
+        """
+        principal = getattr(request.state, "principal", None)
+        _require_person(principal)
+        return {"ok": True, "data": _helper_log.list(principal.id)}
+
+    @app.put(
+        "/api/people/{user_id}/limits", dependencies=[Depends(require_step_up)]
+    )
+    async def people_set_limits(request: Request, user_id: str) -> dict:
+        """Set a person's supervised limits. Step-up.
+
+        Allowed for ``manage_people`` or for a guardian — someone with a
+        live ``can_act`` helper grant from this person. Body:
+        ``{limits: [{key, value}]}`` with the closed key set
+        (chat_quiet_hours, no_outside_sharing, content_boundary). The
+        setter and time are stored.
+        """
+        principal = getattr(request.state, "principal", None)
+        _require_person(principal)
+        if principal is None:
+            raise HTTPException(status_code=403, detail="principal required")
+        allowed = can(principal, "manage_people")
+        if not allowed:
+            grants = _helper_store.live_for_helper(principal.id)
+            allowed = can(principal, "act_for", target=user_id, grants=grants)
+        if not allowed:
+            raise HTTPException(
+                status_code=403,
+                detail="manage_people or a guardian grant is required",
+            )
+        if _identity_store.get_user(user_id) is None:
+            raise HTTPException(status_code=404, detail="no such person")
+        if user_id == _identity_store.owner_id():
+            raise HTTPException(
+                status_code=403, detail="the owner's limits cannot be set here"
+            )
+        body = await _json_body(request)
+        try:
+            limits = people_mod.validate_limits(body.get("limits"))
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        record = _limits_store.set(user_id, limits, principal.id)
+        journal.record(
+            JournalKind.SETTINGS_CHANGE,
+            f"limits set for {user_id}",
+            source="people",
+        )
+        return {
+            "ok": True,
+            "data": {
+                "id": user_id,
+                "limits": record["limits"],
+                "set_by": record["set_by"],
+                "set_at": record["set_at"],
+            },
+        }
+
+    @app.get("/api/me/limits", dependencies=[Depends(require_auth)])
+    async def my_limits(request: Request) -> dict:
+        """The caller's own limits and who set them (empty if none)."""
+        principal = getattr(request.state, "principal", None)
+        _require_person(principal)
+        record = _limits_store.get(principal.id)
+        return {
+            "ok": True,
+            "data": {
+                "limits": record.get("limits", {}) if record else {},
+                "set_by": record.get("set_by") if record else None,
+                "set_at": record.get("set_at") if record else None,
+            },
+        }
 
     @app.get("/api/ingress/rollups", dependencies=[Depends(require_auth)])
     async def ingress_rollups() -> dict:
