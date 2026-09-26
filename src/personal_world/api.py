@@ -1312,16 +1312,36 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 surface = route[1:]  # /lab -> lab
         # One voice + tone registers (TRUE-NORTH § Voice, W1-B): the
         # default identity is the one Worlds voice at the person's tone
-        # register; the residents/two-voice persona rides along ONLY
-        # when the optional personality pack is switched on (default
-        # off). voice.resolve_voice fails safe to (one voice, warm).
+        # register; a companion persona rides along ONLY when the optional
+        # personality pack is switched on (default residents) AND the
+        # chosen `companion_id` names an entry in THIS caller's own crew
+        # (owner decision 2026-09-25). Each read is guarded on its own so a
+        # crew read that fails still leaves the person's tone register
+        # intact, and resolve_voice fails safe to (one voice, warm).
         try:
-            _voice = voice.resolve_voice(prefs.get_prefs(world))
+            _pref_values = prefs.get_prefs(world)
         except Exception:
-            _voice = voice.resolve_voice(None)
+            _pref_values = None
+        try:
+            _, _chat_crew_state = _crew_state(request)
+        except Exception:
+            _chat_crew_state = None
+        _voice = voice.resolve_voice(_pref_values, _chat_crew_state)
         template_instructions = templates.compose(
             surface=surface, persona=_voice.persona
         )
+        # The companion's own naming line for a crew entry the shipped
+        # persona tree does not speak for (Bolt, Hekek, a person's own
+        # companion): the roster name, plus that companion's voice_label as
+        # phrasing only. Empty for the one voice and for a drawn companion
+        # whose canon persona template already speaks (Renai).
+        companion_line = voice.companion_instruction(_voice)
+        if companion_line:
+            template_instructions = (
+                f"{template_instructions}\n\n{companion_line}"
+                if template_instructions
+                else companion_line
+            )
         # Contextual chat (Finish Line "Contextual chat and model
         # routing"): the caller may describe WHERE in the UI the person
         # is. Provenance, not truth: an unknown section_id degrades to
@@ -2084,47 +2104,66 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         world, _, _ = _state_for(request)
         return {"ok": True, "data": prefs.get_prefs(world)}
 
-    @app.put("/api/prefs", dependencies=[Depends(require_step_up)])
-    async def prefs_put(request: Request) -> dict:
+    async def _prefs_write(request: Request) -> dict:
+        """The one preference-write body (PUT and PATCH are aliases).
+
+        ``companion_id`` is validated against *this principal's* crew: the
+        roster is the vocabulary, per person. An unknown or hidden id is a
+        422 with a sentence, never a stored id that would silently fall back
+        to the one voice; every other rejection keeps the 400 the
+        accessibility floor has always answered with.
+        """
         _require_person(getattr(request.state, "principal", None))
         world, _, uj = _state_for(request)
         try:
             updates = await request.json()
         except ValueError:
             raise HTTPException(status_code=400, detail="body must be JSON")
+        _, crew_state = _crew_state(request)
+        usable_ids = {
+            entry["id"]
+            for entry in crew_state["crew"]
+            if not entry.get("hidden")
+        }
         try:
-            data = prefs.set_prefs(world, updates)
+            data = prefs.set_prefs(world, updates, companion_ids=usable_ids)
+        except prefs.UnknownCompanionId as e:
+            raise HTTPException(status_code=422, detail=str(e))
         except prefs.PrefsValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
         uw, _uj = _user_paths(request)
         save_world(world, uw)
         return {"ok": True, "data": data}
 
+    @app.put("/api/prefs", dependencies=[Depends(require_step_up)])
+    async def prefs_put(request: Request) -> dict:
+        """Save preference updates (step-up gated).
+
+        The handler has always applied exactly the keys it was given, so
+        ``PATCH`` is registered as an alias for clients that name a partial
+        update: same body, same validation, same gate.
+        """
+        return await _prefs_write(request)
+
+    @app.patch("/api/prefs", dependencies=[Depends(require_step_up)])
+    async def prefs_patch(request: Request) -> dict:
+        """Partial preference update — the PUT alias (see ``prefs_put``)."""
+        return await _prefs_write(request)
+
     @app.get("/api/prefs/schema", dependencies=[Depends(require_auth)])
     async def prefs_schema() -> dict:
         """Read-only preference vocabulary (spec §2.5): the Settings
-        surface can only offer values the server accepts."""
-        out: dict[str, dict] = {}
-        for key, spec in prefs.PREFS.items():
-            if isinstance(spec, prefs.NumberPref):
-                out[key] = {
-                    "type": "number",
-                    "default": spec.default,
-                    "floor": spec.floor,
-                    "allowed": (
-                        list(spec.allowed) if spec.allowed is not None else None
-                    ),
-                    "integer": spec.integer,
-                    "unit": spec.unit,
-                }
-            else:
-                out[key] = {
-                    "type": "enum",
-                    "default": spec.default,
-                    "floor": spec.floor,
-                    "allowed": list(spec.allowed),
-                }
-        return {"ok": True, "data": out}
+        surface can only offer values the server accepts.
+
+        ``companion_id`` is the one row with no closed list — its vocabulary
+        is the caller's own crew (GET /api/crew), stated in the row's note.
+        """
+        return {
+            "ok": True,
+            "data": {
+                key: prefs.spec_schema(spec) for key, spec in prefs.PREFS.items()
+            },
+        }
 
     # -- sections: per-person navigation layout (spec §2) ---------------
     def _sections_payload(world: World, registry: Registry) -> dict:

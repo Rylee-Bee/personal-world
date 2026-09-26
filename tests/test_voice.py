@@ -19,13 +19,19 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from personal_world import prefs, voice  # noqa: E402
+from personal_world import crew, prefs, voice  # noqa: E402
 from personal_world.chat import build_chat_messages  # noqa: E402
 from personal_world.chat import ChatContract  # noqa: E402
 from personal_world.envelope import Result  # noqa: E402
 from personal_world.world import World  # noqa: E402
 
 REPO_ROOT = Path(__file__).parent.parent
+
+
+def _starter_state() -> dict:
+    """The drawn roster, as the registry serves it (companion resolution is
+    registry-backed since 2026-09-25 — see tests/test_companion_id.py)."""
+    return {"crew": crew.starter_entries(), "keepers": {}}
 
 
 class FakeChat(ChatContract):
@@ -95,32 +101,48 @@ class TestResolveVoice:
         assert sel.persona is None
 
     def test_pack_on_restores_the_residents_path(self):
+        # The kept canon path still works behind the flag — now resolved
+        # through the crew registry (owner decision 2026-09-25): the legacy
+        # `mermaid` value migrates to the starter `renai`, whose canon names
+        # the shipped persona template. Without a roster there is nothing to
+        # confirm the companion exists, so the fail-safe is the one voice.
         sel = voice.resolve_voice(
-            {"personality_pack": "residents", "companion": "mermaid"}
+            {"personality_pack": "residents", "companion": "mermaid"},
+            _starter_state(),
         )
         assert sel.persona == "mermaid"
+        assert sel.companion.id == "renai"
         # Tone still applies with the pack on — crew voice is flavor
         # over the one voice's register, never a replacement.
         assert sel.tone == "warm"
 
     def test_pack_on_without_companion_stays_one_voice(self):
-        sel = voice.resolve_voice({"personality_pack": "residents"})
+        sel = voice.resolve_voice(
+            {"personality_pack": "residents"}, _starter_state()
+        )
         assert sel.persona is None
+        assert sel.companion is None
 
     def test_sol_is_voiceless_even_with_the_pack_on(self):
         # Owner, 2026-09-25: Sol is the Worlds mark, not a companion —
         # choosing her keeps the one plain voice.
         sel = voice.resolve_voice(
-            {"personality_pack": "residents", "companion": "personal-world"}
+            {"personality_pack": "residents", "companion": "personal-world"},
+            _starter_state(),
         )
         assert sel.persona is None
+        assert sel.companion is None
 
     def test_resolve_from_real_prefs_round_trip(self):
+        # The default is now the one voice: `companion_id` is unset, so the
+        # old `assistant` default names no crew entry and adds no persona
+        # (companions addendum item 4).
         w = World()
         prefs.set_prefs(w, {"tone": "playful", "personality_pack": "residents"})
-        sel = voice.resolve_voice(prefs.get_prefs(w))
+        sel = voice.resolve_voice(prefs.get_prefs(w), _starter_state())
         assert sel.tone == "playful"
-        assert sel.persona == "assistant"  # the companion default
+        assert sel.persona is None
+        assert sel.companion is None
 
 
 class TestPrefsVocabulary:
@@ -276,9 +298,15 @@ class TestChatEndpointVoice:
 
     def test_pack_off_again_removes_the_persona(self, chat_client):
         c, fake = chat_client
-        c.put("/api/prefs", json={"personality_pack": "residents"})
+        # A chosen companion (Renai) speaks through her kept canon persona
+        # template while the pack is on…
+        c.put(
+            "/api/prefs",
+            json={"personality_pack": "residents", "companion_id": "renai"},
+        )
         c.post("/api/chat", json={"message": "hi"})
         assert "You speak as" in _system_prompt(fake)
+        # …and the pack off removes it again, one voice only.
         c.put("/api/prefs", json={"personality_pack": "off"})
         c.post("/api/chat", json={"message": "again"})
         assert "You speak as" not in _system_prompt(fake)

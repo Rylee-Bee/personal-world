@@ -1028,28 +1028,20 @@ def _prefs_get(ctx: Ctx) -> Result:
 
 
 def _prefs_schema(ctx: Ctx) -> Result:
-    """Mirrors GET /api/prefs/schema: the writable vocabulary."""
+    """Mirrors GET /api/prefs/schema: the writable vocabulary.
+
+    Rendered by ``prefs.spec_schema`` — the same function the API uses, so
+    the two surfaces cannot drift (``companion_id`` in particular is a row
+    with no closed list: the vocabulary is the person's own crew).
+    """
     from . import prefs
 
-    out: dict[str, dict] = {}
-    for key, spec in prefs.PREFS.items():
-        if isinstance(spec, prefs.NumberPref):
-            out[key] = {
-                "type": "number",
-                "default": spec.default,
-                "floor": spec.floor,
-                "allowed": (list(spec.allowed) if spec.allowed is not None else None),
-                "integer": spec.integer,
-                "unit": spec.unit,
-            }
-        else:
-            out[key] = {
-                "type": "enum",
-                "default": spec.default,
-                "floor": spec.floor,
-                "allowed": list(spec.allowed),
-            }
-    return ok("healthy", data=out)
+    return ok(
+        "healthy",
+        data={
+            key: prefs.spec_schema(spec) for key, spec in prefs.PREFS.items()
+        },
+    )
 
 
 def _interests_list(ctx: Ctx) -> Result:

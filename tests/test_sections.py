@@ -317,6 +317,13 @@ def test_prefs_schema_mirrors_prefs_module(env):
             assert entry["type"] == "number"
             assert entry["integer"] == spec.integer
             assert entry["unit"] == spec.unit
+        elif isinstance(spec, prefs.CompanionIdPref):
+            # The one row with no closed vocabulary: the allowed values are
+            # the caller's own crew, so the row says so instead of listing a
+            # list it cannot know (companions addendum item 4).
+            assert entry["type"] == "companion_id"
+            assert entry["allowed"] is None
+            assert "crew" in entry["note"]
         else:
             assert entry["type"] == "enum"
     assert tuple(data["motion"]["allowed"]) == prefs.MOTION.allowed

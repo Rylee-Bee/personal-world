@@ -442,6 +442,16 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     # Preferences / layout / apps / themes.
     _e("API-030-get", "GET", "/api/prefs", "prefs", "read", "none"),
     _e("API-030-put", "PUT", "/api/prefs", "prefs", "write", "step-up"),
+    _e(
+        "API-030-patch",
+        "PATCH",
+        "/api/prefs",
+        "prefs",
+        "write",
+        "step-up",
+        note="alias of API-030-put: the same partial update, the same gate "
+        "(the handler has always applied exactly the keys it was given)",
+    ),
     _e("API-031", "GET", "/api/prefs/schema", "prefs", "read", "none"),
     _e("API-032-get", "GET", "/api/sections", "sections", "read", "none"),
     _e("API-032-put", "PUT", "/api/sections", "sections", "write", "step-up"),
