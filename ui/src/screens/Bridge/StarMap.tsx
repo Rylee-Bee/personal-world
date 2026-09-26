@@ -16,6 +16,7 @@
 
 import type { BridgeKeeper, BridgeSystem, BridgeSystemId } from "../../data/contract";
 import { deckPosition } from "./geometry";
+import { CompanionFace } from "../../components/crew/CompanionFace";
 
 const DIM_STATUSES = new Set(["not_configured", "disabled"]);
 const QUIET_STATUSES = new Set(["unavailable", "unknown", "stale"]);
@@ -52,17 +53,28 @@ export function StarMap({ keeper, systems, selectedId, onSelect, statusWord }: S
         <ellipse cx="50" cy="50" rx="38" ry="38" />
       </svg>
 
-      {/* The Keeper — the one voice of the briefing. Worlds has no
-          portrait (the pack is off): the plain emblem, never a borrowed
-          face. */}
+      {/* The Keeper — the one voice of the briefing: the person's chosen
+          companion, the Assistant, or Worlds itself when the crew is off. */}
       <div className="starmap__keeper">
-        {keeper.resident.portrait !== null && (
+        {keeper.resident.portrait !== null ? (
           <img
             src={publicAsset(keeper.resident.portrait)}
             alt=""
             aria-hidden="true"
             className="starmap__globe"
           />
+        ) : keeper.resident.key === null ? (
+          /* Worlds speaks plainly (the crew is off): Sol's small mark
+             beside the words, never a voice of her own (canon). */
+          <img
+            src={publicAsset("/assets/crew/256/sol-mark.webp")}
+            alt=""
+            aria-hidden="true"
+            className="starmap__globe"
+          />
+        ) : (
+          /* A chosen companion with no picture wears the crew commbadge. */
+          <CompanionFace name={keeper.resident.name} size="lg" />
         )}
         <p className="starmap__speech" aria-live="polite" aria-atomic="true">
           {greeting && <span className="starmap__greeting">{greeting} </span>}

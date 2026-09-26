@@ -112,7 +112,7 @@ const BRIEFING = {
     keeper: {
       line: "Two things need you, and the Workshop has been busy.",
       mood: "busy",
-      resident: { key: "personal-world", name: "Personal World", portrait: "/assets/characters/personal-world.png" },
+      resident: { key: "assistant", name: "Assistant", portrait: "/assets/crew/assistant.svg" },
     },
     systems: SYSTEM_LIST,
     // Five total, three shown — the tray cap under test.
@@ -185,6 +185,24 @@ describe("Bridge — the world at a glance", () => {
     expect(panel).toHaveTextContent("Bolt");
     // A never-writes-on-open contract: the world's own choice is not hers.
     expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it("credits the plain voice to Worlds with Sol's mark, and a picture-less companion with the commbadge", () => {
+    const withSpeaker = (resident: { key: string | null; name: string; portrait: string | null }) => ({
+      ...BRIEFING,
+      data: { ...BRIEFING.data, keeper: { ...BRIEFING.data.keeper, resident } },
+    });
+    hookState.briefing = { ...hookState.briefing, data: withSpeaker({ key: null, name: "Worlds", portrait: null }) };
+    const { container, unmount } = render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    const srcs = () => Array.from(container.querySelectorAll("img")).map((i) => i.getAttribute("src") ?? "");
+    expect(srcs().some((s) => s.endsWith("assets/crew/256/sol-mark.webp"))).toBe(true);
+    unmount();
+
+    hookState.briefing = { ...hookState.briefing, data: withSpeaker({ key: "pip", name: "Pip", portrait: null }) };
+    const second = render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+    const imgs = Array.from(second.container.querySelectorAll("img")).map((i) => i.getAttribute("src") ?? "");
+    expect(imgs.some((s) => s.endsWith("assets/crew/256/sol-badge.webp"))).toBe(true);
+    expect(imgs.some((s) => s.endsWith("sol-mark.webp"))).toBe(false);
   });
 
   it("caps the Needs-you tray at three and counts the rest quietly", () => {

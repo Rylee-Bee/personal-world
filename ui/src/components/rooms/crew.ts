@@ -11,8 +11,9 @@
  *     "no need to set defaults"); a room with neither shows the plain
  *     lantern arch.
  *
- * A chosen doorway wins over a room's drawn interior. The choice lives
- * on this device (rooms/doorwayChoice.ts), like the theme.
+ * A chosen doorway wins over a room's drawn interior. The choice is the
+ * person's own, kept by the station (`doorway` on each GET /api/rooms row,
+ * set with PUT /api/rooms/{id}/doorway).
  *
  * Art lives in public/assets/crew/512 (web sizes of the masters in
  * design/assets/crew/ and design/assets/library/). Paths join against

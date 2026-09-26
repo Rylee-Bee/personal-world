@@ -42,9 +42,14 @@
 
 import { useState } from "react";
 import { useMarkNeedSeen, useRooms, useVisitRoom } from "../data/hooks";
-import type { RoomKeeper, RoomRow, RoomsResume, RoomsSummary } from "../data/contract";
+import type {
+  RoomKeeper,
+  RoomRow,
+  RoomsRegistry,
+  RoomsResume,
+  RoomsSummary,
+} from "../data/contract";
 import { interiorUrl, keeperPortraitUrl } from "./rooms/crew";
-import { useDoorwayChoices } from "./rooms/doorwayChoice";
 import { CompanionFace } from "./crew/CompanionFace";
 import { currentNeeds, groupRooms, isUncertain, seenNeeds } from "./rooms/groupRooms";
 import { useMinuteClock, useRootAttribute } from "./rooms/useRootAttribute";
@@ -215,8 +220,7 @@ function Doorway({
   const name = roomName(row);
   const needs = currentNeeds(row);
   const first = needs[0];
-  const doorways = useDoorwayChoices();
-  const interior = showInteriors ? interiorUrl(row.id, doorways[row.id]) : null;
+  const interior = showInteriors ? interiorUrl(row.id, row.doorway) : null;
   const headingId = `room-${row.id}-name`;
   const markSeen = useMarkNeedSeen();
   const changed = row.changed_since_visit ?? 0;
@@ -314,8 +318,7 @@ function CorridorRow({
   keeper: RoomKeeper | null;
 }) {
   const name = roomName(row);
-  const doorways = useDoorwayChoices();
-  const interior = showInteriors ? interiorUrl(row.id, doorways[row.id]) : null;
+  const interior = showInteriors ? interiorUrl(row.id, row.doorway) : null;
   const dim = isUncertain(row);
   return (
     <li className="flex flex-wrap items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)]">
@@ -438,6 +441,7 @@ export function RoomsPanel() {
         <RoomsBody
           rows={rows}
           resume={rooms.data?.resume ?? null}
+          registry={rooms.data?.registry}
           summary={rooms.data?.summary}
           showInteriors={showInteriors}
           showKeepers={showKeepers}
@@ -453,6 +457,7 @@ function RoomsBody({
   rows,
   resume,
   summary: serverSummary,
+  registry,
   showInteriors,
   showKeepers,
   quietChoice,
@@ -461,6 +466,7 @@ function RoomsBody({
   rows: RoomRow[];
   resume: RoomsResume | null;
   summary: RoomsSummary | undefined;
+  registry: RoomsRegistry | undefined;
   showInteriors: boolean;
   showKeepers: boolean;
   quietChoice: boolean | null;
@@ -499,6 +505,8 @@ function RoomsBody({
       <p className="-mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
         {summary}.
       </p>
+
+      <RegistryNotice registry={registry} />
 
       <ResumeLine resume={resume} rows={rows} showKeepers={showKeepers} />
 
@@ -581,6 +589,42 @@ function ResumeLine({
         {` · ${formatTime(resume.at)}`}
       </span>
       <OpenLink row={row} label={`Back to ${name}`} />
+    </p>
+  );
+}
+
+/**
+ * Where the room list came from, said only when it matters: the room
+ * registry couldn't be read (so these are the rooms it last named), or
+ * some of its entries couldn't be used. A healthy or unconfigured
+ * registry says nothing (quiet when healthy).
+ */
+function RegistryNotice({ registry }: { registry: RoomsRegistry | undefined }) {
+  if (!registry) return null;
+  const lines: string[] = [];
+  if (registry.status === "unreachable") {
+    lines.push(
+      registry.source === "last_known_good"
+        ? `Couldn't refresh the room list${
+            registry.checked_at ? ` at ${formatTime(registry.checked_at)}` : ""
+          }, so these are the rooms it last named${
+            registry.updated_at ? ` (as of ${formatTime(registry.updated_at)})` : ""
+          }.`
+        : "Couldn't read the room list, so only the rooms set up on this station are shown.",
+    );
+  }
+  const dropped = registry.dropped ?? 0;
+  if (dropped > 0) {
+    lines.push(
+      `${plural(dropped, "entry", "entries")} in the room list couldn't be read and ${
+        dropped === 1 ? "isn't" : "aren't"
+      } shown.`,
+    );
+  }
+  if (lines.length === 0) return null;
+  return (
+    <p className="rounded-[var(--pw-radius-sm)] border border-dashed border-[var(--pw-text-muted)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+      {lines.join(" ")}
     </p>
   );
 }

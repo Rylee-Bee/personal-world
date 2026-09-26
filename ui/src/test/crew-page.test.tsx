@@ -17,6 +17,7 @@ const { spies, state } = vi.hoisted(() => ({
     remove: vi.fn(),
     upload: vi.fn(),
     put: vi.fn(),
+    putDoor: vi.fn(),
   },
   state: {
     crew: [] as unknown[],
@@ -43,6 +44,7 @@ vi.mock("../data/hooks", () => ({
   useDeleteCrew: () => mutation(spies.remove),
   useUploadCrewPortrait: () => mutation(spies.upload),
   usePutRoomKeeper: () => mutation(spies.put),
+  usePutRoomDoorway: () => mutation(spies.putDoor),
 }));
 
 import { Crew } from "../screens/Crew/Crew";
@@ -169,12 +171,15 @@ describe("Crew page", () => {
     expect(spies.add).toHaveBeenCalledWith({ name: "Nova" }, expect.anything());
   });
 
-  it("chooses a doorway for a room on this device, and can go back to the room's own art", () => {
-    window.localStorage.removeItem("pw-room-doorways");
+  it("chooses a doorway for a room through the station, and can go back to the room's own art", () => {
+    state.rooms = [
+      roomRow("workshop", "Workshop"),
+      { ...roomRow("studio", "Studio"), doorway: "garden" },
+    ];
     render(<Crew onBack={() => {}} />);
     const door = screen.getByRole("combobox", { name: "Doorway for Studio" });
-    // Nothing is assigned automatically: Studio has no painted room.
-    expect(door).toHaveValue("");
+    expect(door).toHaveValue("garden");
+    // Nothing is assigned automatically: the empty choice names what shows.
     expect(within(door).getByRole("option", { name: "A plain lantern arch" })).toBeInTheDocument();
     expect(
       within(screen.getByRole("combobox", { name: "Doorway for Workshop" })).getByRole("option", {
@@ -182,10 +187,9 @@ describe("Crew page", () => {
       }),
     ).toBeInTheDocument();
     fireEvent.change(door, { target: { value: "study" } });
-    expect(JSON.parse(window.localStorage.getItem("pw-room-doorways") ?? "{}")).toEqual({ studio: "study" });
-    expect(door).toHaveValue("study");
+    expect(spies.putDoor).toHaveBeenCalledWith({ roomId: "studio", doorwayId: "study" });
     fireEvent.change(door, { target: { value: "" } });
-    expect(JSON.parse(window.localStorage.getItem("pw-room-doorways") ?? "{}")).toEqual({});
+    expect(spies.putDoor).toHaveBeenCalledWith({ roomId: "studio", doorwayId: null });
   });
 
   it("offers library faces as a labelled radio group, suggesting a name and story you can change", () => {

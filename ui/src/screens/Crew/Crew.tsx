@@ -29,6 +29,7 @@ import {
   useDeleteCrew,
   usePatchCrew,
   usePrefs,
+  usePutRoomDoorway,
   usePutRoomKeeper,
   useRooms,
   useUploadCrewPortrait,
@@ -45,7 +46,6 @@ import {
   pickUrl,
   PORTRAIT_PICKS,
 } from "../../components/rooms/crew";
-import { setDoorwayChoice, useDoorwayChoices } from "../../components/rooms/doorwayChoice";
 
 const PORTRAIT_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const PORTRAIT_MAX_BYTES = 5 * 1024 * 1024;
@@ -563,8 +563,7 @@ function KeepersSection({
   roomsError: boolean;
 }) {
   const put = usePutRoomKeeper();
-  const doorways = useDoorwayChoices();
-  const [doorwayNote, setDoorwayNote] = useState<string | null>(null);
+  const putDoor = usePutRoomDoorway();
   return (
     <section aria-labelledby="crew-keepers-heading" className={SECTION}>
       <h2 id="crew-keepers-heading" className={SECTION_TITLE}>
@@ -573,8 +572,8 @@ function KeepersSection({
       <p className={`${NOTE} mb-[var(--pw-spacing-lg)]`}>
         A room has at most one keeper. Choosing a new one moves the room; the old
         keeper stays in your crew. A keeper never changes what a room reports.
-        Doorways are the picture you see in the Doorways theme, saved on this
-        device.
+        A doorway is the picture you see in the Doorways theme; it never changes
+        what a room reports either.
       </p>
       {roomsPending ? (
         <p role="status" className={NOTE}>
@@ -597,7 +596,7 @@ function KeepersSection({
             const options = crew.some((c) => c.id === current) || !row.keeper
               ? crew
               : [...crew, { id: row.keeper.id, name: `${row.keeper.name} (hidden)` } as CrewEntry];
-            const chosenDoor = doorways[row.id] ?? "";
+            const chosenDoor = row.doorway ?? "";
             const drawn = drawnInteriorUrl(row.id);
             const preview = interiorUrl(row.id, chosenDoor);
             return (
@@ -651,14 +650,10 @@ function KeepersSection({
                       <select
                         id={doorId}
                         value={chosenDoor}
-                        onChange={(e) => {
-                          const ok = setDoorwayChoice(row.id, e.target.value || null);
-                          setDoorwayNote(
-                            ok
-                              ? null
-                              : "This browser won’t let Worlds save that here, so the doorway didn’t change.",
-                          );
-                        }}
+                        disabled={putDoor.isPending}
+                        onChange={(e) =>
+                          putDoor.mutate({ roomId: row.id, doorwayId: e.target.value || null })
+                        }
                         className={CONTROL}
                       >
                         <option value="">{drawn ? "Its own painted room" : "A plain lantern arch"}</option>
@@ -676,9 +671,9 @@ function KeepersSection({
           })}
         </ul>
       )}
-      {doorwayNote && (
+      {putDoor.isError && (
         <p role="alert" className={`${NOTE} mt-[var(--pw-spacing-md)]`}>
-          {doorwayNote}
+          {describeError(putDoor.error, "Couldn’t change that doorway. Nothing moved.")}
         </p>
       )}
       {put.isError && (
