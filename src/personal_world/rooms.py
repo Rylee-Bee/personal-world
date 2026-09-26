@@ -1200,6 +1200,7 @@ class RoomsService:
         idempotency_key: str | None,
         body: bytes | None = None,
         env: dict | None = None,
+        allow_write: bool = False,
     ) -> tuple[int, dict[str, Any]]:
         """Pass one room/0 action through to its room; return a receipt.
 
@@ -1215,7 +1216,10 @@ class RoomsService:
           room) decides whether the action exists (404 when not) and
           whether it is a write; a write requires the caller to hold the
           ``approve`` permission (403 otherwise), and a missing/unknown
-          ``writes`` field is treated as a write (fail closed);
+          ``writes`` field is treated as a write (fail closed). The
+          caller may pass ``allow_write=True`` when a live helper grant's
+          ``act_for`` already authorized the write for this person; the
+          default is False, so an ordinary caller is unchanged;
         * a missing/malformed ``Idempotency-Key`` is refused (400), a
           body over 16 KB is refused (413), and a non-object JSON body is
           refused (400);
@@ -1271,7 +1275,11 @@ class RoomsService:
         )
         if action is None:
             return 404, _receipt(asked, False, "That room doesn't offer that.")
-        if action.get("writes") is not False and not can(principal, "approve"):
+        if (
+            action.get("writes") is not False
+            and not allow_write
+            and not can(principal, "approve")
+        ):
             return 403, _receipt(asked, False, "Only the owner can do that here.")
 
         # 4. A retry must not double-act: the caller presents a key.
