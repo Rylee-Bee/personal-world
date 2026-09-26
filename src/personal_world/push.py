@@ -782,10 +782,9 @@ class PushHub:
 
     def test_push(self, person_id: str) -> dict:
         """The Settings 'Send me a test': straight to the devices, past
-        the prefs gates (the person just clicked it, that is consent) —
-        but not past quiet hours, which are the person's own rule about
-        their own night."""
-        prefs = self._note_store(person_id).prefs()
+        the prefs gates and quiet hours. The person just pressed the
+        button, which is consent for this one; a test that waits until
+        morning looks broken."""
         now = self.now()
         record = {
             "id": uuid.uuid4().hex[:16],
@@ -803,9 +802,6 @@ class PushHub:
         if not self.configured():
             store.update_state(record["id"], state="not_configured")
             return {"id": record["id"], "delivered": 0, "deferred": False, "state": "not_configured"}
-        if in_quiet_hours(prefs, now):
-            store.update_state(record["id"], state="deferred")
-            return {"id": record["id"], "delivered": 0, "deferred": True, "state": "deferred"}
         delivered = self._push_person(person_id, record, "normal")
         state = "delivered" if delivered > 0 else ("no_devices" if not self._sub_store(person_id).for_send() else "failed")
         store.update_state(record["id"], state=state)

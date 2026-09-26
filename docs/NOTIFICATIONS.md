@@ -61,9 +61,9 @@ notices and shows the directions instead of a button that cannot work:
 (That needs iOS 16.4 or newer.) Open the Home Screen icon, sign in, and
 press **Turn on for this device** there.
 
-**Send me a test** answers honestly either way: "Test sent" when a
-device was pushed to, or that the test was stored when quiet hours are
-keeping it waiting or nothing is subscribed.
+**Send me a test** goes out straight away, even during quiet hours (you
+just pressed it). It says "Test sent" when a device was pushed to, or
+that nothing is subscribed yet.
 
 ## What reaches you, and when
 

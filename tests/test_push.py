@@ -439,7 +439,7 @@ class TestNotify:
         assert out["state"] == "failed"
         assert hub.list_subscriptions("sam")[0]["last_error"] == "push failed (transport)"
 
-    def test_test_push_bypasses_tier_gates_not_quiet_hours(self, hub):
+    def test_test_push_bypasses_tier_gates_and_quiet_hours(self, hub):
         hub.add_subscription("sam", SUB_A, "phone")
         hub.put_prefs("sam", {"tiers": {"good_news": False}})
         out = hub.test_push("sam")
@@ -447,8 +447,10 @@ class TestNotify:
         payload = json.loads(hub._fake.calls[-1]["data"])
         assert payload["title"] == "Worlds"
         assert "World Tree" in payload["body"]
+        # Pressing "Send me a test" at night still sends it: the press is
+        # the consent, and a test that waits until morning looks broken.
         hub.now.t = QUIET
-        assert hub.test_push("sam")["state"] == "deferred"
+        assert hub.test_push("sam")["state"] == "delivered"
 
     def test_corrupt_store_reads_empty_and_says_so(self, tmp_path, caplog):
         path = tmp_path / "notifications.json"
