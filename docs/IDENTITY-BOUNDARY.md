@@ -128,7 +128,7 @@ table entry and not a search-and-replace.
 | **guest** | a babysitter, a visitor | only what is shared with them (the narrowing is step 2); expires |
 | **agent** | AI and services, not people | only their token's permissions, never more than the person they act for |
 
-**Helper is a grant layered on any account, not a role** (Amber can be a
+**Helper is a grant layered on any account, not a role** (Jo can be a
 member *and* hold a helper grant for the owner); its per-person
 `see_needs_of:<person>` / `act_for:<person>` permissions arrive in step 2.
 `can(..., target=...)` already accepts the target those grants need and

@@ -73,4 +73,4 @@ export interface WarmMessageSpec {
 export const WARMTH_UNWIRED = true as const;
 
 /** The single honest label text. Settings preview panel only — never scattered. */
-export const WARMTH_UNWIRED_LABEL = "language dials — not yet wired";
+export const WARMTH_UNWIRED_LABEL = "Language dials aren’t in use yet";

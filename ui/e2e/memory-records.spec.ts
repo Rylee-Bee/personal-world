@@ -280,15 +280,15 @@ test.describe("Locked category → calm step-up invitation", () => {
 
     // The invitation: the server's own words, role=note, no error-red
     // dead end, and a working door.
-    const invite = records.getByRole("region", { name: "Step up to continue" });
+    const invite = records.getByRole("region", { name: "Confirm it’s you" });
     await expect(invite.getByText("step-up required to read")).toBeVisible();
     await expect(
       invite.getByRole("note"),
     ).toBeVisible();
 
     // Step up → contents appear.
-    await invite.getByLabel("Re-present your credential").fill("fixture-credential");
-    await invite.getByRole("button", { name: "Step up" }).click();
+    await invite.getByLabel("Your sign-in key").fill("fixture-credential");
+    await invite.getByRole("button", { name: "Confirm", exact: true }).click();
     const list = records.getByRole("region", { name: "Records in Identity documents" });
     await expect(list.getByText("Passport number")).toBeVisible();
     await expect(list.getByText("Z999-FIXTURE")).toBeVisible();
@@ -414,7 +414,7 @@ test.describe("Records writes (step-up-gated)", () => {
     ).toBeVisible();
     // …and the invitation, not a dead end:
     await expect(
-      records.getByRole("button", { name: "Step up" }),
+      records.getByRole("button", { name: "Confirm", exact: true }),
     ).toBeVisible();
     // Nothing was written: the form stays open, and the category
     // never lands in the list.

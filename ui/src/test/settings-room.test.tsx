@@ -410,7 +410,7 @@ describe("SettingsRoom", () => {
     };
     renderRoom();
     expect(
-      screen.getByText(/Read-only right now: saving settings requires re-authentication/),
+      screen.getByText(/Read-only for now: saving settings needs you to confirm it’s you first/),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Apply changes/ })).toBeDisabled();
     expect(mutate).not.toHaveBeenCalled();
@@ -428,7 +428,7 @@ describe("SettingsRoom", () => {
     };
     renderRoom();
     expect(
-      screen.getByText(/Read-only: the station described this setting in a shape this view does not understand/),
+      screen.getByText(/Read-only: this screen doesn’t understand how this setting is described/),
     ).toBeInTheDocument();
     expect(
       screen.queryByLabelText(/^Warp field$/i),
@@ -444,7 +444,7 @@ describe("SettingsRoom", () => {
     };
     renderRoom();
     expect(
-      screen.getByText(/could not describe its settings, so nothing is offered for editing/),
+      screen.getByText(/couldn’t list its settings, so there’s nothing to change here/),
     ).toBeInTheDocument();
     expect(
       document.getElementById("settings-room-motion-control"),
@@ -453,7 +453,7 @@ describe("SettingsRoom", () => {
 
   it("shows the honest unwired label for the language dials in one place (C10)", () => {
     renderRoom();
-    expect(screen.getByText(/language dials — not yet wired/)).toBeInTheDocument();
+    expect(screen.getByText(/Language dials aren’t in use yet/)).toBeInTheDocument();
   });
 });
 

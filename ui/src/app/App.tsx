@@ -322,12 +322,12 @@ function StatusStrip() {
   const word = healthWord(health);
   const line =
     word === "Online"
-      ? "Scanner online. Select a world to begin."
+      ? "Connected."
       : word === "Checking"
-        ? "Checking scanner…"
+        ? "Connecting…"
         : word === "Degraded"
-          ? "Scanner degraded. Some worlds may be unreachable."
-          : "Scanner unreachable. Showing nothing until the station answers.";
+          ? "Connected, but some parts aren’t answering."
+          : "Can’t reach Worlds. Nothing here is current.";
   const dotColor =
     word === "Online"
       ? "bg-[var(--pw-accent-teal)]"
