@@ -45,7 +45,10 @@ const levelStyles: Record<WorldSignalLevel, string> = {
     "bg-[var(--pw-accent-coral_soft)] border-[var(--pw-accent-coral)]",
 };
 
-// Luminance-only rank indicator — no hue, just brightness
+// Luminance-only rank indicator — no hue, just contrast with the page.
+// Dark packs use light ink; Daylight swaps in dark ink at the same
+// strengths (world.css, [data-pw-rank]), so more urgent always stands
+// out more.
 const rankDot: Record<WorldSignalLevel, string> = {
   good: "bg-white/20",
   update: "bg-white/35",
@@ -63,6 +66,7 @@ export function WorldSignal({ level, title, description, technical, tone }: Worl
       <div className="flex items-start gap-[var(--pw-spacing-md)]">
         {/* Luminance-only rank dot — never the sole signal */}
         <span
+          data-pw-rank={level}
           className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${rankDot[level]}`}
           aria-hidden="true"
         />

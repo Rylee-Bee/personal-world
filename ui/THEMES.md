@@ -165,6 +165,7 @@ design/
 ├── themes/
 │   ├── starfield.json          ← First-run default (DEFAULT_THEME)
 │   ├── station.json            ← Optional; the generator's :root fallback
+│   ├── daylight.json           ← The one light pack (warm paper, deep amber)
 │   ├── ocean.json              ← Cool, deep, focused
 │   └── moss.json               ← Earthy, grounded, natural
 └── opendesign-exploration/
@@ -215,7 +216,9 @@ These come from the Accessibility Contract and never change:
 - **Focus ring always visible** — 2px solid, never removed for aesthetics
 - **Reduced motion by default** — respect `prefers-reduced-motion`
 - **No pure-white large surfaces** — low-glare for migraine safety
-- **Luminance-only rank encoding** — brighter = more urgent, never hue alone
+- **Luminance-only rank encoding** — more contrast with the page = more urgent, never hue alone (light ink on the dark packs; dark ink on Daylight)
+
+**Daylight** (the light pack, 2026-09-26) is the one exception to dark-by-default: dark stays the default, and Daylight is a choice. It uses warm paper, never white, and puts primary-button labels (`surface.void`) on a deep amber, so `accent.warm` is dark in this pack only.
 
 Themes may restyle atmosphere, accent, and density WITHIN these floors.
 A theme that violates an accessibility constraint is broken, not creative.

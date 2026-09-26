@@ -16,7 +16,8 @@
     "station",
     "moss",
     "ocean",
-    "plain"
+    "plain",
+    "daylight"
   ],
   "entries": [
     {
@@ -29,13 +30,14 @@
         "station",
         "moss",
         "ocean",
-        "plain"
+        "plain",
+        "daylight"
       ],
       "caption": "Home: your guide's briefing, what needs you, and each room as a doorway.",
       "alt": "The Bridge: a short briefing at the top, a Needs you tray, and room doorway cards with their status in words.",
       "status": "captured",
       "captured_at": "2026-09-26",
-      "commit": "75c87aa"
+      "commit": "c4ec302"
     },
     {
       "id": "room-drawer-studio",
