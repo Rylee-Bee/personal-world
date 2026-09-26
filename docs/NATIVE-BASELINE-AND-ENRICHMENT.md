@@ -1,15 +1,16 @@
 # Native Baseline and Optional Enrichment
 
-The canonical framework document. Status: **normative** — the
-invariants here are enforced by `personal-world framework validate`
-and `tests/test_framework.py`.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the native-baseline / optional-enrichment framework invariants (capability ownership, provider modes, enforced rules) · **Read this if:** you are adding a capability or provider, or checking what may become a hidden dependency.
+
+**In short:** Worlds must stay usable with zero optional integrations; external systems may enrich a capability but never define or gate it. This page is the normative framework contract — its invariants are enforced by `personal-world framework validate` and `tests/test_framework.py`.
 
 ## 1. The principle
 
 > **Native baseline. Optional enrichment. No mandatory ecosystem
 > dependency.**
 
-Project Worlds is a standalone OSS product (formerly "Personal World", renamed 2026-09-12; technical identifiers unchanged) with its own CLI, API, and
+Worlds is a standalone OSS product (formerly "Personal World", then
+"Project Worlds"; technical identifiers unchanged) with its own CLI, API, and
 dashboard. External systems — Gitea, GitHub, Forgejo, Traefik, Komodo,
 OpenWebUI, Home Assistant, candy-dispenser, model runtimes, Figma —
 may enrich it. None may become a hidden requirement.
@@ -22,7 +23,7 @@ like surgery, the boundary is wrong.
 
 ## 2. Capability ownership (the core invariant)
 
-> A capability belongs to Project Worlds.
+> A capability belongs to Worlds.
 > A provider implements or enriches that capability.
 > The provider does not define the capability.
 
@@ -176,8 +177,9 @@ reinterpreted.
 
 ## 10. UI implications
 
-Project Worlds navigation and presentation are organized around World
-concepts and user tasks (currently Today / Chat / World / Journal / Vault / Settings), never
+Worlds navigation and presentation are organized around World
+concepts and user tasks (currently Bridge as home, plus Memory, Chat,
+Interests, Settings and Crew), never
 third-party product names. An Apps/Services view and provider deep
 links are secondary navigation. The generic capability contract is
 what the dashboard renders; vendor vocabulary lives only in
@@ -189,7 +191,7 @@ Design semantics are core-owned; design tools are replaceable
 machinery. The same principle extends to design tooling:
 
 ```text
-Project Worlds design contract
+Worlds design contract
         ↓
 portable semantic artifacts (design/tokens.json, docs, tests)
         ↓
@@ -210,7 +212,7 @@ design provider / implementation tool
 - Accessibility semantics (motion, contrast, text_scale, density,
   targets) live in the core `Accessibility` model. A design tool
   implements them; it does not own them.
-- A contributor must be able to clone Project Worlds, inspect its
+- A contributor must be able to clone Worlds, inspect its
   design and accessibility contract, and implement or redesign it
   without any design tool. `DESIGN-HANDOFF.md` is a tool-neutral
   *design implementation handoff*; a Figma-specific section within
@@ -253,8 +255,10 @@ consumes it.
 
 ## 14. Current setup and future capability interview
 
-`/setup-wizard` already provides a five-step first-run UI (welcome,
-world name, companion, access token, finish). `/api/setup` initializes
+`/setup` is the live first-run "First Light" wizard (auth choice,
+comfort, crew on/off, companion choice); the older `/setup-wizard` page
+alias is gone — only its `/api/setup-wizard/*` API routes remain.
+`/api/setup` initializes
 the instance token and can initialize the native vault. These are not
 the complete capability/accessibility interview below. Zero-provider
 CLI initialization remains supported without completing a wizard.
@@ -262,7 +266,7 @@ CLI initialization remains supported without completing a wizard.
 The framework supports this richer target flow:
 
 ```text
-What would you like Project Worlds to help with?
+What would you like Worlds to help with?
         ↓
 enable capability → native baseline available immediately
         ↓
@@ -278,7 +282,7 @@ Never: "choose between 37 vendor integrations before you can begin."
 | Provider-shaped core | `source_control == Gitea` |
 | Required optional services | core cannot boot without Traefik |
 | Vendor-specific canonical schemas | canonical ingress object == raw Traefik router JSON |
-| UI duplication | Project Worlds implements an entire Git client |
+| UI duplication | Worlds implements an entire Git client |
 | Capability disappearance | Gitea removed → source control concept vanishes |
 | Silent degradation | provider offline → old observation shown as healthy |
 | Secret-bearing manifests | providers.yaml contains API tokens |

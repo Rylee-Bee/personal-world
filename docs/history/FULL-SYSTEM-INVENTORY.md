@@ -2,6 +2,10 @@
 # Every surface. Every connection. Current state.
 # Generated from live codebase inspection.
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the 2026-09-13 inventory's endpoint/tool/provider tables. · **Superseded by:** `.project/CURRENT.md`.
+
+**In short:** a 2026-09-13 "generated from live codebase" inventory claiming 663 tests, 19 read tools, 14 screens and 78 endpoints — the least current of the history set. Kept for provenance; treat no count as current. Since this record: the product is called Worlds, the interface is `ui/` with Bridge as home, and production runs on the transcode host.
+
 ---
 
 ## 1. COMPOSE SERVICES

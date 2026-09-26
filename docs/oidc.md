@@ -1,7 +1,11 @@
 # OIDC sign-in (provider-neutral SSO)
 
-Project Worlds is self-hosted and universal: you point it at **your own**
-identity provider. This page is the operational truth for that wiring.
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** OIDC/SSO wiring — config file, routes, flow, error codes, limits · **Read this if:** you want to sign in through your own identity provider (Authelia, Keycloak, Authentik, …).
+
+**In short:** Worlds ships local token auth by default and can also sign people in through any conformant OIDC provider. This page is the operational truth for the wiring — the `oidc.json` config, the authorization-code + PKCE flow, the honest status states, and what is deliberately not implemented.
+
+Worlds is self-hosted and universal: you point it at **your own**
+identity provider.
 [Authelia](https://www.authelia.com/) is the reference provider in the
 wild, but nothing here is Authelia-specific — every endpoint is read from
 the provider's own discovery document, so any conformant OIDC IdP works
@@ -91,7 +95,7 @@ identity_providers:
   oidc:
     clients:
       - client_id: project-worlds
-        client_name: Project Worlds
+        client_name: Worlds
         # Store only a PBKDF2 hash here; the plaintext lives in Project
         # Worlds' env. Generate it with:
         #   authelia crypto hash generate pbkdf2 --variant sha512 --password '<secret>'
@@ -116,7 +120,7 @@ identity_providers:
 > Worlds offers OIDC as the primary action on `/login` whenever
 > `/api/auth/oidc/status` reports `configured`.
 >
-> `token_endpoint_auth_method` must match what Project Worlds negotiates
+> `token_endpoint_auth_method` must match what Worlds negotiates
 > from the provider's discovery document — it uses `client_secret_post`
 > whenever the provider advertises it (Authelia does).
 
@@ -139,7 +143,7 @@ Authorization code + PKCE (S256), no implicit flow, no token in a URL:
    signature key is per-process, so a restart honestly ends in-flight
    logins rather than trusting a stale cookie.
 3. The person authenticates at the provider (their MFA, their policy —
-   Project Worlds never sees a password).
+   Worlds never sees a password).
 4. `GET /api/auth/oidc/callback` → check `state` against the signed
    cookie → exchange the code with the PKCE verifier and client
    credentials → **verify the `id_token` signature against the provider's

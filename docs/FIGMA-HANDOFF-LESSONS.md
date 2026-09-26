@@ -1,10 +1,8 @@
 # Why the build drifted from Figma — and what to change in future packs
 
-> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
-> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
-> server-rendered Station is retired (kept as a theme package); `frontend/`
-> paths here are the deleted pre-flip tree. Direction lives in
-> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/design/CURRENT.md`) · **Read this if:** you are writing a design/implementation handoff and want the 2026-09-11 postmortem on composition drift. · **Superseded by:** `.project/design/CURRENT.md`.
+
+**In short:** a postmortem of why the built screens drifted from the Figma packs, and the process fixes proposed for later handoffs. Kept for provenance; it describes the pre-2026-09-22 `frontend/` tree, which has since been replaced by `ui/` and the retired server-rendered Station (now a theme package).
 
 Written after a T14 UAT/recovery pass (2026-09-11). This is for you to hand to
 the Figma AI (or any future design/implementation handoff) so the same drift

@@ -1,8 +1,13 @@
-# Ingress & TLS — serving Project Worlds over HTTPS (internal-only pattern)
+# Ingress & TLS — serving Worlds over HTTPS (internal-only pattern)
+
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the reverse-proxy / forwarded-headers pattern for serving Worlds over HTTPS · **Read this if:** you are putting Worlds behind Traefik, nginx, or Caddy and need cookies and OIDC redirects to work.
+
+**In short:** Worlds speaks plain HTTP on `:8000` behind your own TLS-terminating reverse proxy, and trusts `X-Forwarded-*` so session cookies and OIDC redirect URIs come out `https://`. This page is the sanitized pattern — substitute your own host and network values.
+
 *Sanitized: no private hostnames or addresses live in this repo. Substitute your
 own values where you see `<worlds-host>`, `<lan-ip>`, `<wildcard-domain>`.*
 
-Project Worlds terminates TLS at your existing reverse proxy (Traefik, nginx,
+Worlds terminates TLS at your existing reverse proxy (Traefik, nginx,
 Caddy — anything that sets `X-Forwarded-Proto`). The app itself speaks plain
 HTTP on `:8000` inside your network and **trusts forwarded proto**, so:
 
@@ -35,7 +40,7 @@ services:
         - url: "http://<lan-ip>:8000"
 ```
 Notes:
-- Project Worlds brings its **own auth** (local session or OIDC). Do not put a
+- Worlds brings its **own auth** (local session or OIDC). Do not put a
   forward-auth login chain in front of it unless you want double login; if you
   do, register the proxy URL as an OIDC redirect target too.
 - With a wildcard DNS record pointing at the proxy, adding the router is the
@@ -52,7 +57,7 @@ Notes:
 ## Verify
 ```bash
 curl -sI https://<worlds-host>/healthz            # 200
-curl -sI https://<worlds-host>/                   # 302 -> /station/ (or /setup first-run)
+curl -sI https://<worlds-host>/                   # 200 interface, or 303 -> /setup on first-run
 curl -s  https://<worlds-host>/api/auth/oidc/status   # not_configured | configured
 ```
 Then sign in once; the session cookie should persist across restarts (Secure +

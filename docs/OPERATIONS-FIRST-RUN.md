@@ -1,23 +1,16 @@
 # First-run on new hardware (daily-use runbook, 2026-09-09)
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [Operations](OPERATIONS.md)) · **Read this if:** you want the dated 2026-09-09 bring-up record. · **Superseded by:** [Operations](OPERATIONS.md).
+
+**In short:** a dated record of how the appliance was first brought up on new hardware. It is not a current deployment recipe — use [Operations](OPERATIONS.md) and [Architecture](ARCHITECTURE.md) instead.
+
+Since this record: production Worlds runs on the transcode host at `/opt/personal-world` (docker compose, published GHCR image, one-tap update from Project Home's "What's live").
+
 Steps matching what was actually done to bring the appliance up.
 The public repo stays credential-free; all secrets are gitignored
 local files.
 
-> **Scope correction (2026-09-10):** this is a dated bring-up record, not a
-> universal current deployment recipe. Use [Operations](OPERATIONS.md) and
-> [Architecture](ARCHITECTURE.md) first. The tracked `compose.yaml` is the
-> portable image-only base; host-specific mounts live in the opt-in
-> `compose.homelab.yaml` override, and source builds in `compose.dev.yaml`.
-> No container name, timezone, backup job, or external provider should be
-> assumed present on a fresh install. Confirm which configuration files
-> `app.py::build_registry` actually reads before adding provider wiring.
-> `/setup` is the live wizard route (an older `/setup-wizard` alias is
-> gone); optional depth-limited Git discovery also exists.
-> Vault reset loses secrets and requires an explicit recovery decision; the
-> historical reset command below is not a required installation step.
-> Accessibility defaults are `motion: reduced` and comfortable contrast;
-> OS requirements override application preferences.
+**Scope correction (2026-09-10, kept from the original note):** this is a dated bring-up record, not a universal current deployment recipe. The tracked `compose.yaml` is the portable image-only base; host-specific mounts live in the opt-in `compose.homelab.yaml` override, and source builds in `compose.dev.yaml`. No container name, timezone, backup job, or external provider should be assumed present on a fresh install. `/setup` is the live wizard route (an older `/setup-wizard` alias is gone). Vault reset loses secrets and requires an explicit recovery decision; the historical reset command below is not a required installation step. Accessibility defaults are `motion: reduced` and comfortable contrast; OS requirements override application preferences.
 
 ## 1. Clone + install
 

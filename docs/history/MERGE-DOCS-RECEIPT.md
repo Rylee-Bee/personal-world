@@ -1,5 +1,9 @@
 # MERGE, ISSUE CLOSURE, SCREENSHOTS + DOCS REFRESH — FINAL RECEIPT
 
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the 2026-09-13 merge/docs-refresh receipt and its screenshots manifest. · **Superseded by:** `.project/CURRENT.md`.
+
+**In short:** a 2026-09-13 receipt for the architecture merge, issue closures, screenshot pass and docs refresh (719 tests claimed). Kept for provenance; treat no count as current. Since this record: the product is called Worlds and the interface is `ui/` with Bridge as home.
+
 ---
 
 ## MERGE

@@ -2,10 +2,9 @@
 # Everything that remains. All questions. All data.
 # Review on a bigger screen, then paste back your answers.
 
-> **Status (2026-09-14):** This handoff predates the architecture branch
-> merge. All questions below were resolved. Media now has a native
-> provider (`native_media`), the companion is wired, and 15 screens are
-> live. See [FINAL-RECEIPT.md](FINAL-RECEIPT.md) for current state.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the pre-merge 2026-09-13 handoff and its 10 open questions. · **Superseded by:** `.project/CURRENT.md`.
+
+**In short:** a pre-merge 2026-09-13 handoff listing 10 open wiring questions (companion, media, apps, themes, identity, ingress, write tools, chat-provider tools, lab endpoints, reconciler apply). All were resolved before the architecture branch merged. See [FINAL-RECEIPT.md](FINAL-RECEIPT.md) for that era's state; treat nothing here as current.
 
 ---
 

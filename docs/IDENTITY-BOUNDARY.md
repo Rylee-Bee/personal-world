@@ -1,5 +1,9 @@
 # Identity Boundary — per-user vs instance-global state
 
+> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the per-user vs instance-global state boundary and the `identity.principal_scoped_path` seam · **Read this if:** you are adding per-person state or working on multi-user mode.
+
+**In short:** one Worlds instance can serve several people, and this page says exactly which state is per-person (journal, reminders, world, crew, room visits, …) and which is instance-wide (runtime config, the shared connections registry, identity records). Every per-user file resolves through one seam, so single-user installs keep working unchanged.
+
 Product decision #13: **one instance can serve multiple people**
 (OIDC/Authelia identities map onto local principal records). The
 single-user default must keep working byte-identically — this boundary
@@ -22,6 +26,8 @@ store resolves its file through it; no handler invents its own layout.
 | Brain proposals (+ approval evidence) | `proposals` kind → `proposals.json` |
 | Chat history (transcript) | `chat_history` kind → `chat-history.ndjson` |
 | Interests + discovery sources | `discovery` kind → `discovery.json` |
+| Crew + rooms (companions, keepers, doorways, visit/seen state) | `crew` → `crew.json`; `rooms_visits` → `rooms-visits.json` |
+| Continuity (journal drafts, edit pairs, last place) | `journal_draft`, `journal_edit_pairs`, `last_place` kinds |
 | Personal connections / personal provider credentials | see SECURITY.md contract (shared registry stays global) |
 
 | Instance-global (never per-user) | Why |

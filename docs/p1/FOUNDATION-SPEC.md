@@ -1,12 +1,9 @@
 # P1 — Frontend Foundation Spec
 
-> **Snapshot, not current state (2026-09-23 truth pass).** Dated record kept for
-> provenance. Since the 2026-09-22 flip the interface is `ui/` and the
-> server-rendered Station is retired (kept as a theme package); `frontend/`
-> paths here are the deleted pre-flip tree. Direction lives in
-> `docs/TRUE-NORTH.md`; truth routing in `docs/README.md`.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the approved 2026-09-10 P1 frontend-foundation contract and its task list. · **Superseded by:** `.project/CURRENT.md`.
 
-**Status:** Approved (owner decisions and corrections folded in, 2026-09-10).
+**In short:** the approved 2026-09-10 implementation contract for the P1 frontend foundation (sections API, motion vocabulary, token generation, primitive contracts, parity gates). Kept for provenance; it describes the pre-2026-09-22 `frontend/` tree, which has since been replaced by `ui/` and the retired server-rendered Station (now a theme package).
+
 **Parent:** [`../PERSONAL-WORLD-COMPLETION-PLAN.md`](../PERSONAL-WORLD-COMPLETION-PLAN.md) Phase P1.
 **Gate:** P1 implementation does not start until the owner confirms P0.1
 credential rotation, `main` is pushed, and CI is green for that exact SHA.
