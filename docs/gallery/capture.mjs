@@ -85,6 +85,15 @@ function writeReadmeTable() {
   writeFileSync(readmePath, next);
 }
 
+async function portInUse(port) {
+  try {
+    await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(1000) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function waitFor(url, ms = 60_000) {
   const until = Date.now() + ms;
   while (Date.now() < until) {
@@ -111,14 +120,28 @@ async function main() {
   const require = createRequire(join(uiDir, "package.json"));
   const { chromium } = require("playwright");
 
+  // Never reuse a server someone else left running: it may serve another
+  // checkout's build, and the pictures would silently be of the wrong app.
+  for (const port of [API_PORT, UI_PORT]) {
+    if (await portInUse(port)) {
+      throw new Error(`port ${port} is already in use; stop that server first (or set GALLERY_UI_PORT)`);
+    }
+  }
   const children = [];
-  const start = (cmd, cmdArgs, env = {}) => {
-    const child = spawn(cmd, cmdArgs, { cwd: uiDir, env: { ...process.env, ...env }, stdio: "ignore" });
+  const start = (cmdArgs, env = {}) => {
+    // node + the script directly (no npx wrapper) in its own process group,
+    // so stopping it stops everything it started.
+    const child = spawn(process.execPath, cmdArgs, {
+      cwd: uiDir,
+      env: { ...process.env, ...env },
+      stdio: "ignore",
+      detached: true,
+    });
     children.push(child);
     return child;
   };
-  start("node", ["scripts/e2e-api.mjs"]);
-  start("npx", ["vite", "preview", "--port", String(UI_PORT), "--strictPort", "--host", "127.0.0.1"], {
+  start(["scripts/e2e-api.mjs"]);
+  start([join(uiDir, "node_modules", "vite", "bin", "vite.js"), "preview", "--port", String(UI_PORT), "--strictPort", "--host", "127.0.0.1"], {
     VITE_API_PROXY_TARGET: `http://127.0.0.1:${API_PORT}`,
   });
 
@@ -193,7 +216,13 @@ async function main() {
     }
     await browser.close();
   } finally {
-    for (const child of children) child.kill();
+    for (const child of children) {
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch {
+        /* already gone */
+      }
+    }
   }
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   writeReadmeTable();

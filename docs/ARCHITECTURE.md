@@ -61,9 +61,10 @@ renders rooms; it never copies another tool's code. Pin:
   send no principal. Candy is the first per-person room.
 - **Visits, keepers, doorways.** Room visits, need-seen state, keepers and
   doorways are Worlds-owned and per person (`/api/rooms/{id}/…`). A doorway
-  is presentation only: a closed list of 12 ids (`study`, `archive`,
+  is presentation only: a closed list of 13 ids (`study`, `archive`,
   `garden`, `kitchen`, `lounge`, `music`, `observatory`, `post`, `travel`,
-  `vault`, `wellness`, `hallway`) with no defaults.
+  `vault`, `wellness`, `hallway`, `servers`; source of truth
+  `crew.DOORWAYS`) with no defaults.
 - **Secrets overview.** Worlds shows a read-only secrets section in the
   Workshop room's drawer, built on `GET /api/secrets/overview` (which reads
   Project Home `GET /api/secrets/summary` with the workshop room's token).
