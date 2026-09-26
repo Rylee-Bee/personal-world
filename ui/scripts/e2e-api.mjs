@@ -347,7 +347,7 @@ const MOCK_VAPID_PUBLIC_KEY =
   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 const NOTIF_PREFS_SEED = {
-  tiers: { good_news: true, update: true, when_ready: false },
+  tiers: { good_news: true, update: false, when_ready: false },
   sources: {},
   quiet_hours: { on: true, start: "21:00", end: "08:00", tz: null },
 };

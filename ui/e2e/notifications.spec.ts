@@ -1,6 +1,7 @@
 import { type Page } from "@playwright/test";
 import { test, expect } from "./test";
 import { gotoArea } from "./helpers";
+import AxeBuilder from "@axe-core/playwright";
 
 /**
  * The Notifications section in Settings (Web Push; docs/
@@ -18,7 +19,7 @@ import { gotoArea } from "./helpers";
 async function gotoNotifications(page: Page) {
   await gotoArea(page, "Settings");
   await expect(
-    page.getByRole("region", { name: "Notifications" }),
+    page.getByRole("region", { name: "Notifications", exact: true }),
   ).toBeVisible();
 }
 
@@ -66,13 +67,27 @@ test.describe("Settings: notifications", () => {
     await expect(page.getByLabel("Keep the night quiet")).toBeChecked({ checked: false });
   });
 
+  test("the section passes axe, fits a phone, and shows the history", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoNotifications(page);
+    const section = page.getByRole("region", { name: "Notifications", exact: true });
+    await expect(section.getByText("The tomatoes ripened")).toBeVisible();
+    await expect(section.getByRole("switch", { name: /A small update/ })).not.toBeChecked();
+    await section.screenshot({ path: "test-results/notifications-390.png" });
+    const results = await new AxeBuilder({ page }).include("#settings-notifications-heading").analyze();
+    const all = await new AxeBuilder({ page }).analyze();
+    const bad = [...results.violations, ...all.violations].filter((v) => v.impact === "serious" || v.impact === "critical");
+    expect(bad.map((v) => `${v.id}: ${v.nodes.length} node(s)`)).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+  });
+
   test("Send me a test answers honestly when no device is listening", async ({
     page,
   }) => {
     await gotoNotifications(page);
     await page.getByRole("button", { name: "Send me a test" }).click();
     await expect(
-      page.getByText(/was stored.*nothing was pushed to a device/),
+      page.getByText(/in your history, but no device is turned on yet, so nothing buzzed/),
     ).toBeVisible();
   });
 });

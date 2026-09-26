@@ -16,7 +16,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const { apiMocks, pushMocks } = vi.hoisted(() => {
   const DEFAULT_PREFS = {
-    tiers: { good_news: true, update: true, when_ready: false },
+    tiers: { good_news: true, update: false, when_ready: false },
     sources: {},
     quiet_hours: { on: true, start: "21:00", end: "08:00", tz: null },
   };
@@ -72,12 +72,29 @@ vi.mock("../data/api", async (importOriginal) => {
       envelope({ id: "n-1", delivered: 1, deferred: false, state: "delivered" }),
     ),
     markAllNotificationsRead: vi.fn(() => envelope({ read: 0 })),
+    markNotificationRead: vi.fn(() => envelope({ id: "n-0", read: true })),
+    listNotifications: vi.fn(() =>
+      envelope([
+        {
+          id: "n-0",
+          tier: "good_news",
+          tier_words: "GOOD NEWS",
+          source: "vefr",
+          title: "The tomatoes ripened",
+          body: "All three at once.",
+          link: "/today",
+          created_at: "2026-09-26T08:00:00Z",
+          read_at: null,
+          state: "delivered",
+        },
+      ]),
+    ),
   };
 });
 
 vi.mock("../data/push-client", () => ({
   DEFAULT_NOTIFICATION_PREFS: {
-    tiers: { good_news: true, update: true, when_ready: false },
+    tiers: { good_news: true, update: false, when_ready: false },
     sources: {},
     quiet_hours: { on: true, start: "21:00", end: "08:00", tz: null },
   },
@@ -110,7 +127,7 @@ beforeEach(() => {
   apiMocks.configured = true;
   apiMocks.devices = [];
   apiMocks.prefs = {
-    tiers: { good_news: true, update: true, when_ready: false },
+    tiers: { good_news: true, update: false, when_ready: false },
     sources: {},
     quiet_hours: { on: true, start: "21:00", end: "08:00", tz: null },
   };
@@ -126,7 +143,7 @@ describe("Notifications section", () => {
   it("leads with the plain-words state, and starts as 'off on this device'", async () => {
     renderSection();
     expect(await screen.findByText("Notifications are off on this device.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Turn on for this device" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Turn on notifications" })).toBeTruthy();
   });
 
   it("says 'not configured on the server' and offers no button when the key door 409s", async () => {
@@ -136,23 +153,18 @@ describe("Notifications section", () => {
       await screen.findByText(/not configured on this server/),
     ).toBeTruthy();
     expect(
-      screen.queryByRole("button", { name: "Turn on for this device" }),
+      screen.queryByRole("button", { name: "Turn on notifications" }),
     ).toBeNull();
   });
 
   it("shows the iPhone Home-Screen directions instead of the button (not standalone)", async () => {
     pushMocks.iosNotStandalone = true;
     renderSection();
+    const note = await screen.findByRole("note");
+    expect(note.textContent).toMatch(/add Worlds to your Home Screen/i);
+    expect(note.textContent).toMatch(/Share.*Add to Home Screen.*Open Worlds from its new icon/);
     expect(
-      await screen.findByText(/add Worlds to your Home Screen/i),
-    ).toBeTruthy();
-    expect(
-      /Share, then Add to Home Screen, then open it from/.test(
-        screen.getByRole("note").textContent ?? "",
-      ),
-    ).toBeTruthy();
-    expect(
-      screen.queryByRole("button", { name: "Turn on for this device" }),
+      screen.queryByRole("button", { name: "Turn on notifications" }),
     ).toBeNull();
   });
 
@@ -161,7 +173,7 @@ describe("Notifications section", () => {
     renderSection();
     expect(await screen.findByText(/blocked for this site/)).toBeTruthy();
     expect(
-      screen.queryByRole("button", { name: "Turn on for this device" }),
+      screen.queryByRole("button", { name: "Turn on notifications" }),
     ).toBeNull();
   });
 
@@ -171,7 +183,7 @@ describe("Notifications section", () => {
     // Rendering alone never reaches the browser's permission door.
     expect(pushMocks.subscribe).not.toHaveBeenCalled();
     await user.click(
-      await screen.findByRole("button", { name: "Turn on for this device" }),
+      await screen.findByRole("button", { name: "Turn on notifications" }),
     );
     await waitFor(() =>
       expect(pushMocks.subscribe).toHaveBeenCalledWith("MOCK-PUBLIC-KEY"),
@@ -222,7 +234,25 @@ describe("Notifications section", () => {
     const pushApi = await import("../data/api");
     await waitFor(() => expect(pushApi.sendTestNotification).toHaveBeenCalled());
     expect(
-      await screen.findByText("Test sent — it should arrive shortly."),
+      await screen.findByText("Test sent to 1 device. It should arrive in a moment."),
     ).toBeTruthy();
+  });
+
+  it("shows the history with the kind in words, the sender by name, and a New mark", async () => {
+    renderSection();
+    expect(await screen.findByText("The tomatoes ripened")).toBeTruthy();
+    expect(screen.getByText("History · 1 new")).toBeTruthy();
+    expect(screen.getByText(/^VEFR · /)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open “The tomatoes ripened”" }).getAttribute("href")).toBe("/today");
+  });
+
+  it("says On or Off beside every switch, and names each step of this device's setup", async () => {
+    renderSection();
+    const good = (await screen.findByRole("switch", { name: /Good news/ })) as HTMLInputElement;
+    expect(good.checked).toBe(true);
+    expect(screen.getByRole("switch", { name: /A small update/ })).toBeTruthy();
+    const steps = screen.getByRole("list", { name: "How this device is set up" });
+    await waitFor(() => expect(steps.textContent).toMatch(/Set up on the server\s*Worked/));
+    expect(steps.textContent).toMatch(/Allowed\s*Not yet/);
   });
 });
