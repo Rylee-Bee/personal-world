@@ -178,6 +178,7 @@ DOORWAYS: tuple[str, ...] = (
     "vault",
     "wellness",
     "hallway",
+    "servers",
 )
 
 

@@ -321,7 +321,7 @@ function bridgeFixture() {
     keeper: {
       line: "Two things need you, and the Workshop has been busy. Take your time — the bridge holds.",
       mood: "busy",
-      resident: bridgeResident("assistant", "Assistant", "/assets/crew/assistant.svg"),
+      resident: bridgeResident("assistant", "Assistant", "/assets/crew/256/assistant-portrait.webp"),
     },
     systems: BRIDGE_SYSTEMS,
     have_tos: haveTo.slice(0, 3),
@@ -365,7 +365,7 @@ const STARTER_CREW = [
 // Studio has none until the person picks one (owner nixed a default, #85).
 const KEEPERS_SEED = { workshop: "bolt" };
 let DOORWAYS = {};
-const DOORWAY_IDS = new Set(["study", "archive", "garden", "kitchen", "lounge", "music", "observatory", "post", "travel", "vault", "wellness", "hallway"]);
+const DOORWAY_IDS = new Set(["study", "archive", "garden", "kitchen", "lounge", "music", "observatory", "post", "travel", "vault", "wellness", "hallway", "servers"]);
 let CREW = structuredClone(STARTER_CREW);
 let KEEPERS = { ...KEEPERS_SEED };
 let VISITS = {};

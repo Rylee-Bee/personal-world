@@ -4,9 +4,10 @@ Art anyone's Worlds can use, not tied to one person's rooms or crew. Generated
 in one batch, in the same style history as the crew and the room doorways, so
 it stays consistent.
 
-- `doorways/doorway-*.png`: 12 room interiors, 1024 px tall, transparent
+- `doorways/doorway-*.png`: 13 room interiors, 1024 px tall, transparent
   outside the arch: study, archive, garden, kitchen, lounge, music,
-  observatory, post, travel, vault, wellness, hallway.
+  observatory, post, travel, vault, wellness, hallway, and servers (a server
+  room with lamps and ivy, added 2026-09-26; a natural fit for an Engine room).
 - `picks/pick-*.png`: 16 portrait-only faces, 1024 × 1024, navy background,
   made for circle crops and checked at 40 px.
 - `pick-labels.json` and `STORIES.md`: a suggested first name and the owner's
