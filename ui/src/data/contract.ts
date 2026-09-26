@@ -301,6 +301,8 @@ export interface SessionData {
   principal_id: string;
   auth_method: string;
   has_step_up: boolean;
+  /** Ways this person can "Confirm it's you": "key", "sso". */
+  step_up_methods?: string[];
 }
 
 // ─── Records (api.py records_* + records.py; docs/RECORDS-API.md) ─

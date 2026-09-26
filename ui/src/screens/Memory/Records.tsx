@@ -32,6 +32,7 @@
  * browsing and searching are real doors, and AI is never the only one.
  */
 
+import { ConfirmItsYou } from "../../components/ConfirmItsYou";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   useDeleteRecord,
@@ -40,7 +41,6 @@ import {
   useRecordSearch,
   useRecordsInCategory,
   useSetRecordPinned,
-  useStepUp,
   useWriteRecord,
 } from "../../data/hooks";
 import { describeError, isLockedRefusal, isStepUpGate } from "../../data/errors";
@@ -135,78 +135,12 @@ function StepUpInvite({
    * invalidation in useStepUp already re-reads the data). */
   onElevated?: () => void;
 }) {
-  const [token, setToken] = useState("");
-  const [outcome, setOutcome] = useState<string | null>(null);
-  const stepUp = useStepUp();
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setOutcome(null);
-    if (token.trim() === "") {
-      setOutcome("Enter your sign-in key to confirm.");
-      return;
-    }
-    stepUp.mutate(token.trim(), {
-      onSuccess: () => {
-        // Never leave the credential lying in the field after the
-        // grant is minted.
-        setToken("");
-        setOutcome(null);
-        onElevated?.();
-      },
-      onError: (err) => {
-        setOutcome(
-          isStepUpGate(err)
-            ? "That key didn’t match. Nothing changed."
-            : describeError(err, "Couldn’t confirm. Nothing changed."),
-        );
-      },
-    });
-  };
-
   return (
     <section
       aria-label="Confirm it’s you"
       className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
     >
-      <p
-        role="note"
-        className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)] italic"
-      >
-        {reason}
-      </p>
-      <form
-        onSubmit={handleSubmit}
-        className="mt-[var(--pw-spacing-md)] flex flex-wrap items-end gap-[var(--pw-spacing-md)]"
-      >
-        <div className="flex-1 min-w-[200px]">
-          <label
-            htmlFor="records-step-up-credential"
-            className="mb-[var(--pw-spacing-sm)] block text-[length:var(--pw-typography-size_body)] font-medium text-[var(--pw-text-primary)]"
-          >
-            Your sign-in key
-          </label>
-          <input
-            id="records-step-up-credential"
-            type="password"
-            autoComplete="off"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            className={INPUT_BASE}
-          />
-        </div>
-        <WorldButton variant="primary" type="submit" isDisabled={stepUp.isPending}>
-          {stepUp.isPending ? "Confirming…" : "Confirm"}
-        </WorldButton>
-      </form>
-      {outcome !== null && (
-        <p
-          role="alert"
-          className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
-        >
-          {outcome}
-        </p>
-      )}
+      <ConfirmItsYou intro={reason} autoFocus={false} onConfirmed={() => onElevated?.()} />
     </section>
   );
 }
