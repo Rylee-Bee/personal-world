@@ -93,7 +93,7 @@ export function Crew({ onBack }: { onBack: () => void }) {
     <main
       id="main-content"
       aria-label="Your crew"
-      className="relative z-10 max-w-[1080px] p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)]"
+      className="relative z-10 max-w-[1440px] p-[var(--pw-spacing-xl)] md:p-[var(--pw-spacing-3xl)]"
     >
       <header className="mb-[var(--pw-spacing-2xl)] flex flex-col gap-[var(--pw-spacing-sm)]">
         <WorldButton variant="ghost" onPress={onBack} className="self-start">
@@ -109,63 +109,142 @@ export function Crew({ onBack }: { onBack: () => void }) {
         </p>
       </header>
 
-      <section
-        aria-label="About Sol"
-        className="mb-[var(--pw-spacing-2xl)] flex items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] p-[var(--pw-spacing-lg)]"
-      >
-        <img
-          src={`${import.meta.env.BASE_URL}assets/crew/256/sol-mark.webp`}
-          alt=""
-          aria-hidden="true"
-          className="h-16 w-16 shrink-0 object-contain"
-        />
-        <p className={NOTE}>
-          <span className="font-semibold text-[var(--pw-text-primary)]">Sol</span> is
-          Worlds’ own mark, in menus and little moments all over, and the planet on
-          every crew commbadge. She isn’t a companion: she has no voice of her own and
-          doesn’t keep a room.
-        </p>
-      </section>
+      <div className="grid grid-cols-1 items-start gap-[var(--pw-spacing-2xl)] min-[1200px]:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0">
+          <section aria-labelledby="crew-list-heading" className={SECTION}>
+            <h2 id="crew-list-heading" className={SECTION_TITLE}>
+              Companions · {visible.length}
+            </h2>
+            {crewQuery.isPending ? (
+              <p role="status" className={NOTE}>
+                Gathering your crew…
+              </p>
+            ) : crewQuery.isError ? (
+              <div className="flex flex-col items-start gap-[var(--pw-spacing-sm)]">
+                <p role="alert" className={NOTE}>
+                  Couldn’t load your crew right now. Nothing has changed.
+                </p>
+                <WorldButton onPress={() => void crewQuery.refetch()}>Try again</WorldButton>
+              </div>
+            ) : visible.length === 0 ? (
+              <p className={NOTE}>
+                No companions aboard. Worlds speaks as the Assistant, its plain voice.
+              </p>
+            ) : (
+              <ul className="grid grid-cols-1 gap-[var(--pw-spacing-md)] min-[760px]:grid-cols-2">
+                {visible.map((entry) => (
+                  <CompanionCard
+                    key={entry.id}
+                    entry={entry}
+                    keeps={roomsKeptBy(entry.id)}
+                    isChosen={chosen === entry.id}
+                  />
+                ))}
+              </ul>
+            )}
 
-      <section aria-labelledby="crew-list-heading" className={SECTION}>
-        <h2 id="crew-list-heading" className={SECTION_TITLE}>
-          Companions · {visible.length}
-        </h2>
-        {crewQuery.isPending ? (
-          <p role="status" className={NOTE}>
-            Gathering your crew…
-          </p>
-        ) : crewQuery.isError ? (
-          <div className="flex flex-col items-start gap-[var(--pw-spacing-sm)]">
-            <p role="alert" className={NOTE}>
-              Couldn’t load your crew right now. Nothing has changed.
-            </p>
-            <WorldButton onPress={() => void crewQuery.refetch()}>Try again</WorldButton>
-          </div>
-        ) : visible.length === 0 ? (
-          <p className={NOTE}>
-            No companions aboard. Worlds speaks as the Assistant, its plain voice.
-          </p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-[var(--pw-spacing-md)] min-[760px]:grid-cols-2">
-            {visible.map((entry) => (
-              <CompanionCard
-                key={entry.id}
-                entry={entry}
-                keeps={roomsKeptBy(entry.id)}
-                isChosen={chosen === entry.id}
-              />
-            ))}
-          </ul>
-        )}
+            {hidden.length > 0 && <HiddenCrew entries={hidden} />}
+          </section>
 
-        {hidden.length > 0 && <HiddenCrew entries={hidden} />}
-      </section>
+          <KeepersSection rows={rows} crew={visible} roomsPending={roomsQuery.isPending} roomsError={roomsQuery.isError} />
 
-      <KeepersSection rows={rows} crew={visible} roomsPending={roomsQuery.isPending} roomsError={roomsQuery.isError} />
+          <AddCompanion />
+        </div>
 
-      <AddCompanion />
+        <aside aria-label="About your crew" className="flex flex-col gap-[var(--pw-spacing-lg)]">
+          <YourCompanion chosen={visible.find((c) => c.id === chosen) ?? null} onOpenSettings={onBack} />
+          <section
+            aria-labelledby="crew-sol-heading"
+            className="flex items-start gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] p-[var(--pw-spacing-lg)]"
+          >
+            <img
+              src={`${import.meta.env.BASE_URL}assets/crew/256/sol-mark.webp`}
+              alt=""
+              aria-hidden="true"
+              className="h-16 w-16 shrink-0 object-contain"
+            />
+            <div>
+              <h2 id="crew-sol-heading" className="font-semibold text-[var(--pw-text-primary)]">
+                Sol
+              </h2>
+              <p className={NOTE}>
+                Worlds’ own mark, in menus and little moments all over, and the planet
+                on every crew commbadge. She isn’t a companion: she has no voice of her
+                own and doesn’t keep a room.
+              </p>
+            </div>
+          </section>
+          <CrewRules />
+        </aside>
+      </div>
     </main>
+  );
+}
+
+// ─── The side column (owner 2026-09-26: fill the wide screen) ────────
+
+/** Who keeps you company right now — the Assistant when nobody is
+ *  chosen (companion_id null, the plain voice). Changed in Settings. */
+function YourCompanion({
+  chosen,
+  onOpenSettings,
+}: {
+  chosen: CrewEntry | null;
+  onOpenSettings: () => void;
+}) {
+  return (
+    <section
+      aria-labelledby="crew-yours-heading"
+      className="flex flex-col gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+    >
+      <h2 id="crew-yours-heading" className={SECTION_TITLE.replace("mb-[var(--pw-spacing-md)] ", "")}>
+        Your companion
+      </h2>
+      <div className="flex items-center gap-[var(--pw-spacing-md)]">
+        {chosen ? (
+          <CompanionFace name={chosen.name} portrait={crewAssetUrl(chosen.portrait_asset)} size="lg" />
+        ) : (
+          <img
+            src={`${import.meta.env.BASE_URL}assets/crew/assistant.svg`}
+            alt=""
+            aria-hidden="true"
+            className="h-20 w-20 shrink-0 object-contain"
+          />
+        )}
+        <div className="min-w-0">
+          <p className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]">
+            {chosen ? chosen.name : "Assistant"}
+          </p>
+          <p className={NOTE}>
+            {chosen
+              ? "Keeps you company in chat and on Overview."
+              : "The plain voice, with a friendly screen for a face. Nobody’s chosen yet."}
+          </p>
+        </div>
+      </div>
+      <WorldButton onPress={onOpenSettings} className="self-start">
+        Change in Settings
+      </WorldButton>
+    </section>
+  );
+}
+
+function CrewRules() {
+  return (
+    <section
+      aria-labelledby="crew-rules-heading"
+      className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] p-[var(--pw-spacing-lg)]"
+    >
+      <h2 id="crew-rules-heading" className={SECTION_TITLE}>
+        How your crew works
+      </h2>
+      <ul className="flex list-disc flex-col gap-[var(--pw-spacing-sm)] pl-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        <li>The starter crew is yours to keep, rename or hide. Nothing in Worlds depends on them.</li>
+        <li>A room has at most one keeper. A room without one shows its own emblem.</li>
+        <li>Companions change how things are phrased, never what’s true. Rooms report; the words say what’s real.</li>
+        <li>Your companions and their pictures stay in your Worlds, visible only to you.</li>
+      </ul>
+    </section>
   );
 }
 
