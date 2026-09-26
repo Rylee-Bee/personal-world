@@ -47,6 +47,19 @@ class Principal:
     source: str = "token"  # token | oidc | header | scheduler
 
 
+def is_admin(principal: Principal | None) -> bool:
+    """Admin = the bootstrap principal (primary), or a person explicitly
+    carrying the admin scope record. Kept deliberately small: no roles
+    tree, just this gate. The single shared definition (api.py's
+    ``_is_admin`` and rooms' owner-only action gate both use it, so the
+    two can never drift)."""
+    return (
+        principal is not None
+        and principal.kind == "person"
+        and (principal.id == "primary" or "admin" in principal.scopes)
+    )
+
+
 def _token_fingerprint(token: str) -> str:
     """sha256 for high-entropy tokens; constant-time compare upstream."""
     return hashlib.sha256(token.encode()).hexdigest()

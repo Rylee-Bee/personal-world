@@ -131,6 +131,56 @@ grouped by namespace, pending requests and recent changes. It never shows a
 value, and it is **admin only** (other household members get 403). Values
 are typed only on Project Home's own trusted page.
 
+## Acting on a room
+
+`POST /api/rooms/{room_id}/actions/{action_id}` passes one action
+through to the room and returns the room's own receipt. It is
+authenticated, but **not** elevation-gated: the owner-only rule below is
+the gate.
+
+Rules, in order:
+
+* **Address rules.** `room_id` must match the registry id rule
+  (`^[a-z0-9][a-z0-9-]*$`) and `action_id` must match
+  `^[a-z0-9][a-z0-9-]{0,63}$`. The room must be configured, enabled, and
+  speak a supported contract. Anything else is a `404` receipt — and
+  never a probe of an unvalidated URL.
+* **Owner-only for writes.** Worlds reads the room's own
+  `GET /room/actions` list (cached **60 s per room**, never per person)
+  and finds `action_id`:
+  * unknown action → `404` receipt, *"That room doesn't offer that."*
+  * `writes` is `true`, or the field is missing (fail closed as a
+    write) → the caller must be admin (the bootstrap `primary`
+    principal, or a person with the `admin` scope — the one shared
+    `identity.is_admin` rule). Otherwise `403` receipt, *"Only the owner
+    can do that here."*
+  * a `writes: false` action passes through for anyone.
+* **Idempotency.** An `Idempotency-Key` header is required: 1–128 chars
+  of `[A-Za-z0-9._:-]`, forwarded to the room **unchanged**. Missing or
+  malformed → `400` receipt.
+* **Body.** A JSON object of at most 16 KB, forwarded as-is; the
+  action's own arguments are the room's business. Over 16 KB → `413`
+  receipt; a non-object body → `400` receipt.
+* **Outbound call.** `POST {base_url}/room/actions/{action_id}` with the
+  room's bearer token (the same `token_env` indirection reads use) and,
+  whenever the room has a token, **always** `X-Worlds-Principal: <caller
+  principal id>` — an action is always someone's, so unlike reads this
+  does not depend on `forward_principal`. Timeout 10 s, no retries;
+  `PW_API_TOKEN` and the session are never sent.
+* **Response.** The room's answer is allow-listed to exactly
+  `{action_id, ok, summary, changed, at}` — anything else is dropped —
+  and returned as `{"ok": true, "data": <receipt>}` with **HTTP 200**,
+  whatever status code the room used (its own `ok`/`summary` are the
+  truth). If the room cannot be reached, times out, fails, or does not
+  answer with a receipt, the caller gets an honest `ok: false` receipt:
+  *"Couldn't reach {room name}, so nothing changed."* with
+  `changed: []` — **never a 500**. Local refusals (the 400/403/404/413
+  above) carry the same receipt shape under `data` with the envelope's
+  `ok: false` and the matching HTTP status.
+* **Cache.** After a receipt with `ok: true`, the cached snapshot is
+  dropped (and the caller's own forwarded row with it), so the need
+  disappears on the next `GET /api/rooms`.
+
 ## Adding a room
 
 1. Build the service so it answers the five endpoints with the shapes above.

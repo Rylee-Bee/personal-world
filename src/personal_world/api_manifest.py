@@ -330,6 +330,23 @@ ENDPOINTS: tuple[Endpoint, ...] = (
             "from the closed list, or null): presentation only, private, "
             "never sent to the room and never the room's status; 404 for "
             "an unconfigured room, 422 for an id outside the closed list"),
+    _e("API-088-action", "POST", "/api/rooms/{room_id}/actions/{action_id}",
+       "rooms", "write", "none",
+       note="pass one room/0 action through to its room and return the "
+            "room's own receipt ({action_id, ok, summary, changed, at}) "
+            "with HTTP 200 whatever the room's status; a room that cannot "
+            "answer yields an honest ok:false 'nothing changed' receipt, "
+            "never a 500. Owner-only for writes: the room's own GET "
+            "/room/actions list (cached 60 s per room) decides whether the "
+            "action exists (404 otherwise) and whether it writes (a write "
+            "needs an admin caller, 403 otherwise; a missing writes field "
+            "fails closed as a write). Requires an Idempotency-Key header "
+            "(1-128 chars, 400 when missing) and a JSON object body of at "
+            "most 16 KB (413/400 otherwise), forwarded as-is with the "
+            "room's own token, the caller's X-Worlds-Principal, and that "
+            "key — never the human session or PW_API_TOKEN; a successful "
+            "action drops the cached snapshot so the need disappears on "
+            "the next GET /api/rooms; authenticated, not elevation-gated"),
     # Secrets overview — the Worlds side of the read-only Secrets board.
     # It finds the `workshop` registry room and reads that room's
     # read-only /api/secrets/summary with the room's own token/TLS policy

@@ -57,7 +57,7 @@ A registry entry may also opt in to **per-person forwarding** with
 is false, and env-configured ``PW_ROOMS`` never forwards). For such a
 room, Worlds sends ``X-Worlds-Principal: <principal id>`` on every
 request to it (``GET /room``, ``/room/cards``, ``/room/needs-you``, and
-any future ``POST /room/actions/*``) **in addition to** that room's own
+``POST /room/actions/{id}``) **in addition to** that room's own
 bearer token — never instead of it. The token proves Worlds may read the
 room; the principal header tells the room *who is asking* so it can
 answer for that person. If the room has no token configured the header
@@ -65,8 +65,11 @@ is not sent at all (an unauthenticated identity claim is meaningless)
 and the room is treated as non-forwarding. The principal id is the
 caller's Worlds principal id, validated against the same safe-id rule
 ``identity.principal_scoped_path`` uses; an invalid id is never sent.
-The human's session token / ``PW_API_TOKEN`` is never sent to a room —
-only the room's own token is.
+An action call is the one exception to the opt-in: an action is always
+someone's, so :meth:`RoomsService.perform_action` sends
+``X-Worlds-Principal`` whenever the room has a token, whether or not the
+room opted in to read forwarding. The human's session token /
+``PW_API_TOKEN`` is never sent to a room — only the room's own token is.
 
 A forwarding room's health is still estate-wide (a room that is down is
 down for everyone), but its cards and needs are per person:
@@ -110,8 +113,9 @@ from typing import Any
 import httpx
 
 # The same safe-principal-id rule ``identity.principal_scoped_path`` uses,
-# so a forwarded principal id can never be a path/header injection.
-from .identity import _SAFE_PRINCIPAL_ID
+# so a forwarded principal id can never be a path/header injection. The
+# one shared admin rule gates owner-only room actions (never a copy).
+from .identity import _SAFE_PRINCIPAL_ID, is_admin
 
 _logger = logging.getLogger("personal_world.rooms")
 
@@ -142,6 +146,30 @@ INSECURE_TLS_SUFFIX = "_INSECURE_TLS"
 ROOM_PATH = "/room"
 CARDS_PATH = "/room/cards"
 NEEDS_YOU_PATH = "/room/needs-you"
+ACTIONS_PATH = "/room/actions"
+
+#: Passing a room/0 action through to the room. The caller names one
+#: action; Worlds reads the room's own action list (cached 60 s per
+#: room, never per person), enforces the owner-only rule for writes,
+#: requires an idempotency key, and forwards the call to the room's
+#: ``POST /room/actions/{id}``. The room's own receipt comes back.
+ACTION_TIMEOUT_SECONDS = 10.0
+ACTIONS_CACHE_TTL_SECONDS = 60.0
+
+#: The request header a caller must present so a retry cannot double-act.
+IDEMPOTENCY_HEADER = "Idempotency-Key"
+IDEMPOTENCY_VALUE_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+
+#: An action id: lower-case letter/digit start, then letters, digits and
+#: hyphens, at most 64 chars (the shared interface's action-id rule).
+_VALID_ACTION_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+
+#: A forwarded action body is a JSON object at most this many bytes.
+MAX_ACTION_BODY_BYTES = 16 * 1024
+
+#: The five receipt fields. A room's answer is allow-listed to exactly
+#: these — anything else it sends is dropped, never trusted through.
+RECEIPT_FIELDS = ("action_id", "ok", "summary", "changed", "at")
 
 #: The Secrets overview reads the room the shared interface fixes by id
 #: (``workshop``), at its read-only summary path, with that room's own
@@ -282,6 +310,10 @@ class RoomConfig:
     token_env: str | None = None
     public_url: str | None = None
     forward_principal: bool = False
+    #: The human name a registry entry declared (or ``None`` for an env
+    #: room, which names only an id). Carried so a failed action can say
+    #: the room's real name; never required, never a status.
+    name: str | None = None
 
 
 def parse_rooms(env: dict | None = None) -> list[RoomConfig]:
@@ -394,6 +426,12 @@ def _parse_registry_entries(
             not isinstance(public_url, str) or not _valid_public_url(public_url)
         ):
             public_url = None
+        # A display name is optional and never drops the entry; a
+        # missing/non-string/empty value is honestly None (consumers fall
+        # back to the id).
+        name = entry.get("name")
+        if not isinstance(name, str) or not name.strip():
+            name = None
         seen.add(room_id)
         configs.append(
             RoomConfig(
@@ -407,6 +445,7 @@ def _parse_registry_entries(
                 # Opt-in per-person forwarding: strictly JSON true. Any
                 # other value (false, "true", 1, missing) is false.
                 forward_principal=entry.get("forward_principal") is True,
+                name=name,
             )
         )
     return configs, dropped
@@ -440,6 +479,8 @@ def _lkg_entries(configs: list[RoomConfig]) -> list[dict]:
             # Persisted so a forwarding room's opt-in survives a registry
             # outage via last-known-good.
             "forward_principal": c.forward_principal,
+            # The display name a failed action quotes back to the person.
+            "name": c.name,
         }
         for c in configs
     ]
@@ -627,6 +668,81 @@ def _safe_principal_id(raw: Any) -> str | None:
     return raw
 
 
+def _receipt(
+    action_id: str,
+    ok: bool,
+    summary: str,
+    changed: Any = None,
+    at: Any = None,
+) -> dict[str, Any]:
+    """One receipt in the known shape and nothing else.
+
+    The five allow-listed fields (:data:`RECEIPT_FIELDS`): ``action_id``,
+    ``ok``, ``summary``, ``changed`` (a list, or ``[]``), and ``at`` (an
+    ISO timestamp, or now). Built here so every receipt — local refusal or
+    a room's own answer — has exactly one shape.
+    """
+    return {
+        "action_id": action_id,
+        "ok": bool(ok),
+        "summary": summary,
+        "changed": changed if isinstance(changed, list) else [],
+        "at": at if isinstance(at, str) and at else _iso_now(),
+    }
+
+
+def _sanitize_receipt(payload: Any, action_id: str) -> dict[str, Any] | None:
+    """A room's answer as a receipt, or ``None`` when it is not one.
+
+    Receipt-shaped means a JSON object with a boolean ``ok``. Everything
+    else is dropped: ``action_id`` falls back to the one we asked for,
+    ``summary`` to an empty string, ``changed`` to ``[]``, ``at`` to now.
+    Any other key the room sent is discarded, never passed through.
+    """
+    if not isinstance(payload, dict) or not isinstance(payload.get("ok"), bool):
+        return None
+    return _receipt(
+        action_id=(
+            payload["action_id"]
+            if isinstance(payload.get("action_id"), str)
+            else action_id
+        ),
+        ok=payload["ok"],
+        summary=payload.get("summary")
+        if isinstance(payload.get("summary"), str)
+        else "",
+        changed=payload.get("changed"),
+        at=payload.get("at"),
+    )
+
+
+def _is_json_object(raw: bytes) -> bool:
+    """True when a forwarded action body is JSON and an object.
+
+    The *contents* are the room's business (validation is its job); this
+    only keeps the envelope shape honest.
+    """
+    try:
+        return isinstance(json.loads(raw), dict)
+    except (ValueError, UnicodeDecodeError):
+        return False
+
+
+def _parse_room_actions(payload: Any) -> list[dict[str, Any]] | None:
+    """``[action, …]`` from a room's ``GET /room/actions`` answer, or
+    ``None`` when the answer cannot be read.
+
+    Accepts either a bare list or an object wrapping ``actions``; malformed
+    rows are dropped (never guessed). ``None`` means the room did not give
+    a usable list — the caller then fails closed (unknown action).
+    """
+    if isinstance(payload, dict):
+        payload = payload.get("actions")
+    if not isinstance(payload, list):
+        return None
+    return [row for row in payload if isinstance(row, dict)]
+
+
 def _merge_personal(
     shared: dict[str, Any], forwarded: dict[str, Any]
 ) -> dict[str, Any]:
@@ -714,6 +830,14 @@ class RoomsService:
         # ``workshop`` room, cached 60 s like the registry.
         self._secrets_cache: dict[str, Any] | None = None
         self._secrets_cache_at: float = float("-inf")
+
+        # Each room's own ``GET /room/actions`` list, cached per room (NOT
+        # per person) for 60 s. ``None`` is an honest "could not read the
+        # list" — the action gate then fails closed. A failed read is
+        # cached too, so one dead room is not hammered by every caller.
+        self._actions_cache: dict[
+            str, tuple[float, list[dict[str, Any]] | None]
+        ] = {}
 
     # -- app wiring ------------------------------------------------------
 
@@ -958,6 +1082,22 @@ class RoomsService:
         self._principal_cache.clear()
         self._secrets_cache = None
         self._secrets_cache_at = float("-inf")
+        self._actions_cache.clear()
+
+    def _invalidate_after_action(self, room_id: str, principal_id: str | None) -> None:
+        """Forget the room's cached read state after a real change.
+
+        A successful action (``ok: true``) means the room's cards/needs
+        may now differ: the shared snapshot is dropped so the next
+        ``GET /api/rooms`` re-reads the room (the need disappears), and
+        this caller's per-person forwarded row is dropped with it. Only
+        the caller whose action succeeded is forgotten — another
+        person's own forwarded view was never affected by it.
+        """
+        self._cache = None
+        self._cache_at = float("-inf")
+        if principal_id is not None:
+            self._principal_cache.pop((room_id, principal_id), None)
 
     async def resolved_config(
         self, room_id: str, env: dict | None = None
@@ -1051,6 +1191,199 @@ class RoomsService:
                 "the room's summary is not an object", config
             )
         return _sanitize_secrets_summary(payload, config)
+
+    async def perform_action(
+        self,
+        room_id: str,
+        action_id: str,
+        principal: Any | None,
+        idempotency_key: str | None,
+        body: bytes | None = None,
+        env: dict | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        """Pass one room/0 action through to its room; return a receipt.
+
+        Returns ``(http_status, receipt)``. The receipt is always the
+        allow-listed shape (:data:`RECEIPT_FIELDS`) — the room's own when
+        it answered with one, or an honest local one otherwise. Rules,
+        in order:
+
+        * a malformed room/action id, an unconfigured/disabled room, an
+          unsupported contract or an unusable address is refused locally
+          (404) before any network call;
+        * the room's own ``GET /room/actions`` list (cached 60 s per
+          room) decides whether the action exists (404 when not) and
+          whether it is a write; a write requires an admin caller (403),
+          and a missing/unknown ``writes`` field is treated as a write
+          (fail closed);
+        * a missing/malformed ``Idempotency-Key`` is refused (400), a
+          body over 16 KB is refused (413), and a non-object JSON body is
+          refused (400);
+        * otherwise the call goes out to ``POST /room/actions/{id}``
+          with the room's own token, the caller's ``X-Worlds-Principal``
+          (always, when the room has a token), and the idempotency key,
+          with a 10 s timeout and no retries.
+
+        A room that answers with a receipt-shaped body is passed through
+        with HTTP 200 whatever its status code (the receipt's own ``ok``
+        says whether anything changed). A room that cannot be reached,
+        times out, fails, or answers something that is not a receipt gets
+        an honest ``ok: false`` receipt with HTTP 200 — this method never
+        raises on a room's behalf. ``PW_API_TOKEN`` and the human session
+        are never sent. After a receipt with ``ok: true`` the shared
+        snapshot (and this caller's forwarded row) is dropped so the next
+        ``GET /api/rooms`` re-reads the room.
+        """
+        env = os.environ if env is None else env
+        asked = action_id if isinstance(action_id, str) else ""
+
+        # 1. Address rules, before any network. A bad id never becomes a
+        # probe of an unvalidated URL (the room-id rule is the registry's;
+        # the action-id rule is the interface's).
+        if not isinstance(room_id, str) or not _VALID_ROOM_ID.match(room_id):
+            return 404, _receipt(asked, False, "No such room.")
+        if not isinstance(action_id, str) or not _VALID_ACTION_ID.match(action_id):
+            return 404, _receipt(asked, False, "That room doesn't offer that.")
+
+        # 2. The room must be configured, enabled and understood. A
+        # registry ``enabled: false`` entry is never resolved; an
+        # unsupported contract or unusable address is refused here.
+        config = await self.resolved_config(room_id, env)
+        if (
+            config is None
+            or config.contract not in SUPPORTED_CONTRACTS
+            or config.invalid_reason is not None
+        ):
+            return 404, _receipt(asked, False, "No such room.")
+
+        principal_id = _safe_principal_id(getattr(principal, "id", None))
+
+        # 3. Owner-only for writes. The room's own list is authoritative:
+        # an unreadable list or an unknown action fails closed (404); a
+        # missing ``writes`` is treated as a write (never guessed safe).
+        actions = await self._room_actions(config)
+        action = (
+            next((a for a in actions if a.get("id") == action_id), None)
+            if actions is not None
+            else None
+        )
+        if action is None:
+            return 404, _receipt(asked, False, "That room doesn't offer that.")
+        if action.get("writes") is not False and not is_admin(principal):
+            return 403, _receipt(asked, False, "Only the owner can do that here.")
+
+        # 4. A retry must not double-act: the caller presents a key.
+        if (
+            not isinstance(idempotency_key, str)
+            or not IDEMPOTENCY_VALUE_RE.match(idempotency_key)
+        ):
+            return 400, _receipt(
+                asked,
+                False,
+                "An Idempotency-Key header (1-128 chars of "
+                "A-Za-z0-9._:-) is required.",
+            )
+
+        # 5. A JSON object body, at most 16 KB, forwarded byte-for-byte
+        # (the action's own arguments are the room's business).
+        raw = body or b""
+        if len(raw) > MAX_ACTION_BODY_BYTES:
+            return 413, _receipt(
+                asked, False, "The action body is larger than 16 KB."
+            )
+        if raw and not _is_json_object(raw):
+            return 400, _receipt(
+                asked, False, "The action body must be a JSON object."
+            )
+
+        # 6. The outbound call. The room's own token authenticates Worlds;
+        # the principal header says *who* asked. It rides always when the
+        # room has a token — an action is always someone's — unlike reads,
+        # where it depends on the room's forward_principal opt-in. The
+        # human's session / PW_API_TOKEN is never among these.
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotency_key,
+        }
+        if config.token:
+            headers["Authorization"] = f"Bearer {config.token}"
+            if principal_id is not None:
+                headers[PRINCIPAL_HEADER] = principal_id
+        url = config.base_url.rstrip("/") + ACTIONS_PATH + "/" + action_id
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(ACTION_TIMEOUT_SECONDS),
+                verify=not config.insecure_tls,
+                transport=self._transport,
+                follow_redirects=False,
+            ) as client:
+                resp = await client.post(url, headers=headers, content=raw)
+        except Exception:  # noqa: BLE001 — a dead room must not break the front door
+            return 200, self._action_failure(config, action_id)
+        try:
+            payload = resp.json()
+        except (ValueError, UnicodeDecodeError):
+            return 200, self._action_failure(config, action_id)
+        receipt = _sanitize_receipt(payload, action_id)
+        if receipt is None:
+            return 200, self._action_failure(config, action_id)
+        if receipt["ok"]:
+            # The room changed something: the need must disappear on the
+            # next /api/rooms, and this caller's forwarded view with it.
+            self._invalidate_after_action(config.id, principal_id)
+        return 200, receipt
+
+    async def _room_actions(
+        self, config: RoomConfig
+    ) -> list[dict[str, Any]] | None:
+        """The room's own action list, cached 60 s per room (never per
+        person — the list is estate-wide). ``None`` is an honest "could
+        not read it"; the caller fails closed. A failed read is cached
+        too, so a dead room is not hammered."""
+        now = self._clock()
+        cached = self._actions_cache.get(config.id)
+        if cached is not None and (now - cached[0]) < ACTIONS_CACHE_TTL_SECONDS:
+            return cached[1]
+        actions = await self._fetch_room_actions(config)
+        self._actions_cache[config.id] = (now, actions)
+        return actions
+
+    async def _fetch_room_actions(
+        self, config: RoomConfig
+    ) -> list[dict[str, Any]] | None:
+        """Read ``GET /room/actions`` once, with the room's token/TLS
+        policy (2 s, like the other reads). Never raises."""
+        base = config.base_url.rstrip("/")
+        # Estate-wide list: no principal header (it is not per person and
+        # is shared across callers by the 60 s cache).
+        headers = self._room_headers(config)
+        headers["Accept"] = "application/json"
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(TIMEOUT_SECONDS),
+                verify=not config.insecure_tls,
+                transport=self._transport,
+                follow_redirects=False,
+            ) as client:
+                resp = await client.get(base + ACTIONS_PATH, headers=headers)
+        except Exception:  # noqa: BLE001 — a dead room must not break the front door
+            return None
+        if not (200 <= resp.status_code < 300):
+            return None
+        try:
+            payload = resp.json()
+        except (ValueError, UnicodeDecodeError):
+            return None
+        return _parse_room_actions(payload)
+
+    def _action_failure(self, config: RoomConfig, action_id: str) -> dict[str, Any]:
+        """The honest "nothing changed" receipt for a room that could not
+        answer with a receipt of its own."""
+        name = config.name or config.id
+        return _receipt(
+            action_id, False, f"Couldn't reach {name}, so nothing changed."
+        )
 
     async def snapshot(self, env: dict | None = None) -> list[dict[str, Any]]:
         """One honest row per resolved room. Never raises."""
