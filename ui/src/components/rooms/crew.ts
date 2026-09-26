@@ -29,6 +29,7 @@ const INTERIORS: Record<string, string> = {
   "play-nice": "play-nice-doorway",
   vefr: "vefr-doorway",
   memomancer: "memomancer-doorway",
+  "hive-works": "hive-works-doorway",
 };
 
 /** The doorway library, in the order the picker offers it. */

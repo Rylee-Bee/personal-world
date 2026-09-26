@@ -25,7 +25,7 @@
 import { Icon } from "../Icon";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useMarkNeedSeen } from "../../data/hooks";
+import { useMarkNeedSeen, useMe } from "../../data/hooks";
 import type { RoomActionReceipt, RoomCard, RoomKeeper, RoomNeed, RoomRow } from "../../data/contract";
 import {
   approvalId,
@@ -43,6 +43,9 @@ import { Emblem, OpenLink, StatusWord } from "./parts";
 import { SecretsSection } from "./SecretsSection";
 import { SpotArt } from "../SpotArt";
 import { ApprovalReview } from "./ApprovalReview";
+import { ChoiceAnswer } from "./ChoiceAnswer";
+import { RoomOffers } from "./RoomOffers";
+import { needChoices, roomOffers } from "./choices";
 import { useAskInChat } from "../../app/askInChat";
 import { useMinuteClock } from "./useRootAttribute";
 
@@ -98,9 +101,15 @@ function CardRow({ row, card, now }: { row: RoomRow; card: RoomCard; now: number
 
 interface Decided {
   need: RoomNeed;
-  verb: "approve" | "decline";
+  verb: "approve" | "decline" | "answer";
+  /** The answer picked, for "answer". */
+  choice?: string;
   receipt: RoomActionReceipt;
 }
+
+/** How many needs show before "Show all". A room with dozens of open
+ *  decisions shows the newest few; the rest are one press away. */
+const NEEDS_SHOWN = 5;
 
 /** Shown only from the room's receipt (ok: true), never on send. It
  *  takes focus, because the need it replaces has just gone. */
@@ -117,7 +126,7 @@ function DecidedNotice({ item, name }: { item: Decided; name: string }) {
         role="status"
         className="text-[length:var(--pw-typography-size_body)] font-semibold text-[var(--pw-text-primary)] focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent-primary)]"
       >
-        {item.verb === "approve" ? "Approved" : "Declined"}
+        {item.verb === "approve" ? "Approved" : item.verb === "decline" ? "Declined" : `Answered: ${item.choice}`}
       </p>
       <span className={SMALL}>{item.receipt.summary}</span>
       <span className={MICRO}>
@@ -157,8 +166,17 @@ export function RoomDrawer({
   }, [row.id]);
 
   const [decided, setDecided] = useState<Decided[]>([]);
+  const [showAllNeeds, setShowAllNeeds] = useState(false);
+  const firstMoreRef = useRef<HTMLLIElement>(null);
+  const me = useMe();
+  const canApprove = me.data?.data?.permissions.includes("approve") ?? false;
   const uncertain = isUncertain(row);
-  const needs = currentNeeds(row).filter((n) => !decided.some((d) => d.need.id === n.id));
+  const needs = currentNeeds(row)
+    .filter((n) => !decided.some((d) => d.need.id === n.id))
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+  const shownNeeds = showAllNeeds ? needs : needs.slice(0, NEEDS_SHOWN);
+  const hiddenNeeds = needs.length - shownNeeds.length;
+  const offers = uncertain ? [] : roomOffers(row, canApprove);
   const seen = seenNeeds(row);
   const cards = uncertain ? [] : (row.cards ?? []);
   const changed = cards.filter((c) => changedSinceVisit(c, row.last_visited_at));
@@ -244,12 +262,15 @@ export function RoomDrawer({
             {`Needs you · ${needs.length}`}
           </h3>
           <ul className="flex flex-col gap-[var(--pw-spacing-md)]">
-            {needs.map((need) => {
+            {shownNeeds.map((need, index) => {
               const href = roomItemUrl(row, need.link);
               const approval = uncertain ? null : approvalId(need);
+              const choices = uncertain ? [] : needChoices(need);
               return (
                 <li
                   key={need.id}
+                  ref={index === NEEDS_SHOWN ? firstMoreRef : undefined}
+                  tabIndex={index === NEEDS_SHOWN ? -1 : undefined}
                   className="flex flex-col gap-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-md)] border border-[var(--pw-accent-warm)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)]"
                 >
                   <span>
@@ -262,6 +283,18 @@ export function RoomDrawer({
                   </span>
                   {need.why && <span className={SMALL}>{need.why}</span>}
                   <span className={MICRO}>{`Waiting since ${formatTime(need.created_at)}`}</span>
+                  {choices.length > 0 && (
+                    <ChoiceAnswer
+                      roomId={row.id}
+                      roomName={name}
+                      need={need}
+                      choices={choices}
+                      canAnswer={canApprove}
+                      onAnswered={(choice, receipt) =>
+                        setDecided((all) => [...all, { need, verb: "answer", choice, receipt }])
+                      }
+                    />
+                  )}
                   <div className="flex flex-wrap gap-[var(--pw-spacing-sm)]">
                     {href && <OpenLink row={row} item={need} label={`Review “${need.title}”`} />}
                     <button
@@ -289,6 +322,18 @@ export function RoomDrawer({
               );
             })}
           </ul>
+          {hiddenNeeds > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowAllNeeds(true);
+                requestAnimationFrame(() => firstMoreRef.current?.focus());
+              }}
+              className={`${LINK_BASE} mt-[var(--pw-spacing-sm)] border border-[var(--pw-border-subtle)] bg-transparent text-[var(--pw-text-primary)]`}
+            >
+              {`Show all ${needs.length} (${hiddenNeeds} more)`}
+            </button>
+          )}
           {markSeen.isError && (
             <p role="alert" className={`${SMALL} mt-[var(--pw-spacing-sm)]`}>
               Couldn’t mark that as seen. It’s still waiting.
@@ -296,6 +341,10 @@ export function RoomDrawer({
           )}
         </section>
       )}
+      {offers.length > 0 && (
+        <RoomOffers row={row} roomName={name} offers={offers} headingId={`${titleId}-offers`} />
+      )}
+
       {seen.length > 0 && (
         <p className={SMALL}>
           {`${plural(seen.length, "need", "needs")} you’ve already seen ${

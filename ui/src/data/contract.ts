@@ -736,6 +736,18 @@ export interface RoomNeed {
   /** room/0 1.1.0, optional: a same-origin path to the exact item. Only
    *  followed when it starts with "/" (not "//") and has no scheme. */
   link?: string | null;
+  /** ROOM 2.1.0, optional: up to six short answers, the room's
+   *  recommended one first (then `why` starts with "Recommended:").
+   *  Answered with the `answer-decision` action. */
+  choices?: string[];
+}
+
+/** One of a room's own actions (its GET /room/actions), as a row may
+ *  list them. `writes` missing means it writes (fail closed). */
+export interface RoomOffer {
+  id: string;
+  title?: string | null;
+  writes?: boolean;
 }
 
 export interface RoomRow {
@@ -774,6 +786,9 @@ export interface RoomRow {
   /** The library doorway this person chose for the room (PUT
    *  /api/rooms/{id}/doorway), or null: never assigned by default. */
   doorway?: string | null;
+  /** The room's own actions, when the front door lists them. Optional:
+   *  without it the drawer offers no room-level actions. */
+  actions?: RoomOffer[];
 }
 
 export interface RoomCard {
