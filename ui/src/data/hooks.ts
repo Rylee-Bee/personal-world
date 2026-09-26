@@ -98,6 +98,7 @@ import {
   postMyHelper,
   deleteMyHelper,
   getHelpedBy,
+  getDirectory,
   putPersonLimits,
   getCrew,
   addCrew,
@@ -157,6 +158,7 @@ export const queryKeys = {
   crew: ["crew"] as const,
   me: ["me"] as const,
   people: ["people"] as const,
+  directory: ["people", "directory"] as const,
   invites: ["people", "invites"] as const,
   myHelpers: ["me", "helpers"] as const,
   helpedBy: ["me", "helped-by"] as const,
@@ -897,6 +899,10 @@ export function useSetRole() {
 
 export function useTransferOwnership() {
   return usePeopleMutation((to: string) => postTransferOwnership(to));
+}
+
+export function useDirectory(enabled: boolean) {
+  return useQuery({ queryKey: queryKeys.directory, queryFn: getDirectory, enabled, retry: false });
 }
 
 export function useInvites(enabled: boolean) {
