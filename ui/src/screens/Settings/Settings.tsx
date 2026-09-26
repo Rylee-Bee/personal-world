@@ -477,8 +477,7 @@ function CapabilitiesSection({
   return (
     <SettingsSection id="Capabilities" titleId="settings-capabilities-heading">
       <p className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-        Read-only: capability state is reported by the station, not set from
-        this screen — there is no write endpoint to toggle it here.
+        Read-only: Worlds reports what it can do; you can’t switch these here.
       </p>
       <ul className="space-y-[var(--pw-spacing-sm)]" role="list">
         {capabilities.map((cap) => {
@@ -551,7 +550,7 @@ function BrainSection({
     <SettingsSection id="Brain & Templates" titleId="settings-brain-heading">
       {endpointCount > 0 && (
         <p className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-          The station publishes {endpointCount} API endpoints.
+          Worlds offers {endpointCount} API endpoints.
         </p>
       )}
 

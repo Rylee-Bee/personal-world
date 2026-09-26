@@ -222,7 +222,7 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
             <p className="pt-[var(--pw-spacing-xs)]" role="note">
               {activeProvider
                 ? `Answering provider: ${activeProvider.display_name}`
-                : "No reasoning provider is healthy yet — chat will say so honestly."}
+                : "No AI model is connected yet, so Chat can’t answer."}
             </p>
           </details>
         )}

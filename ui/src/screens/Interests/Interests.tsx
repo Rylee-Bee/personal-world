@@ -155,7 +155,7 @@ export function Interests() {
   function findingsState(): { label: string; detail: string | null } {
     if (status.softFailure) {
       return {
-        label: "The station reported the discovery engine as unavailable.",
+        label: "Discovery isn’t available right now.",
         detail:
           status.softFailure.warnings[0] ?? status.softFailure.status ?? null,
       };
@@ -184,7 +184,7 @@ export function Interests() {
     }
     if (check.run.softFailure) {
       return {
-        label: "The station declined to run the check.",
+        label: "Worlds didn’t run the check.",
         detail:
           check.run.softFailure.warnings[0] ?? check.run.softFailure.status ?? null,
       };
@@ -219,7 +219,7 @@ export function Interests() {
             Interests
           </h1>
           <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-            What the station's discovery engine turns up, and what it follows.
+            What discovery turns up for you, and what you follow.
           </p>
         </header>
 
@@ -231,7 +231,7 @@ export function Interests() {
         )}
         {statusQuery.isError && (
           <p role="alert" className="mb-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-            {"Your interests could not be read from the station. Nothing was changed. "}
+            {"Couldn’t read your interests. Nothing was changed. "}
             {statusQuery.error instanceof Error
               ? statusQuery.error.message
               : "No reason was given."}
@@ -325,8 +325,7 @@ export function Interests() {
           </h2>
           {status.interests.length === 0 ? (
             <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-              No interests followed yet — the station's list is genuinely
-              empty, not hidden.
+              You aren’t following any interests yet.
             </p>
           ) : (
             <ul role="list" className="space-y-[var(--pw-spacing-sm)]">

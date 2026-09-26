@@ -46,7 +46,7 @@ test("the Workshop's drawer shows secrets by name, passes axe, and fits a phone"
   await page.getByRole("button", { name: "Look inside Workshop" }).click();
   const drawer = page.getByRole("dialog", { name: "Workshop" });
   await expect(drawer.getByRole("heading", { name: "Secrets" })).toBeVisible();
-  await expect(drawer.getByText("The station is answering")).toBeVisible();
+  await expect(drawer.getByText("Connected")).toBeVisible();
   await expect(
     drawer.getByRole("link", { name: "Enter mail/relay-password in Project Home, in a new tab" }),
   ).toHaveAttribute("href", "https://room.test/secrets?request=req-1");
