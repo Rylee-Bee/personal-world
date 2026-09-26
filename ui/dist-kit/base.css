@@ -680,7 +680,7 @@ a:hover {
 }
 
 /* ── Banner ───────────────────────────────────────────────────────────────
-   Source: the honest-state notices (RoomsPanel stale line, RegistryNotice).
+   Source: the status notices (RoomsPanel stale line, RegistryNotice).
    Every variant leads with words; the accent is only a leading edge. */
 .wk-banner {
   display: flex;

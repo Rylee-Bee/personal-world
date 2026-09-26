@@ -5,7 +5,7 @@ React + Tailwind web app, Studio's plain ES-module pages, the static
 dev-gallery site). It is plain CSS built on the Worlds design tokens — no
 build step, no framework, no Tailwind.
 
-- **Version:** `0.1.0+3cf3e35ff5`
+- **Version:** `0.1.0+ca914a6e80`
 - **Built:** `not recorded (content-addressed)`
 - **Source:** Personal Worlds (`ui/kit/src/base.css`, `design/tokens.json`,
   `design/themes/*.json`)
