@@ -668,7 +668,13 @@ export function Settings({
   onOpenCrew,
   onOpenPeople,
   onOpenHelpers,
-}: { onOpenCrew?: () => void; onOpenPeople?: () => void; onOpenHelpers?: () => void } = {}) {
+  onOpenRoughNight,
+}: {
+  onOpenCrew?: () => void;
+  onOpenPeople?: () => void;
+  onOpenHelpers?: () => void;
+  onOpenRoughNight?: () => void;
+} = {}) {
   const me = useMe();
   const myLimits = me.data?.data?.role === "supervised" ? me.data?.data?.limits : undefined;
   const guestUntil = me.data?.data?.guest_until;
@@ -834,6 +840,30 @@ export function Settings({
               </p>
             </div>
             <WorldButton onPress={onOpenHelpers}>Open helpers</WorldButton>
+          </section>
+        )}
+
+        {/* Rough night — the same quiet door as the Bridge's link. */}
+        {onOpenRoughNight && (
+          <section
+            aria-labelledby="settings-rough-night-heading"
+            className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+          >
+            <div className="min-w-0 flex-1">
+              <h2
+                id="settings-rough-night-heading"
+                className={`mb-[var(--pw-spacing-xs)] ${SECTION_HEADING}`}
+                style={SERIF}
+              >
+                Rough night
+              </h2>
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+                A dim, quiet page for bad nights. Nothing needs you there.
+              </p>
+            </div>
+            <WorldButton variant="ghost" onPress={onOpenRoughNight}>
+              Open rough night
+            </WorldButton>
           </section>
         )}
 

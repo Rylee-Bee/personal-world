@@ -49,6 +49,8 @@ interface BridgeProps {
   onOpenAssistant: () => void;
   /** Opens the Crew page (a Settings page, not a nav landmark). */
   onOpenCrew?: () => void;
+  /** Opens the Rough night page — a small quiet link, nothing louder. */
+  onOpenRoughNight?: () => void;
 }
 
 
@@ -71,7 +73,7 @@ function isPhoneLayout(): boolean {
  *  meaning; colour is reinforcement only). */
 const CALM_ACCENT = "var(--pw-accent-warm)";
 
-export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew }: BridgeProps) {
+export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew, onOpenRoughNight }: BridgeProps) {
   const briefing = useBriefing();
   const place = usePlace();
   const setPlace = useSetPlace();
@@ -322,6 +324,20 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew }: BridgeProps)
         <RoomsPanel />
 
       </div>
+
+      {/* The quiet door to the rough-night page: the one link on this
+          screen that asks for nothing. */}
+      {onOpenRoughNight && (
+        <div className="mt-[var(--pw-spacing-lg)]">
+          <button
+            type="button"
+            onClick={onOpenRoughNight}
+            className="inline-flex min-h-[var(--pw-targets-minimum)] items-center text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)] underline decoration-[var(--pw-border-strong)] underline-offset-4 hover:text-[var(--pw-text-secondary)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+          >
+            Rough night?
+          </button>
+        </div>
+      )}
 
       {/* Floating assistant trigger — clear of the home-indicator band
           and the notch side (§2.7). */}
