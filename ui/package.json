@@ -6,6 +6,10 @@
   "scripts": {
     "tokens:generate": "node scripts/generate-tokens.mjs",
     "tokens:check": "node scripts/generate-tokens.mjs && git diff --exit-code src/generated",
+    "kit:build": "node scripts/build-kit.mjs",
+    "kit:check": "node scripts/check-kit.mjs",
+    "kit:stamp": "node scripts/stamp-kit.mjs",
+    "kit:test:e2e": "playwright test -c playwright.kit.config.ts",
     "api:generate": "node scripts/generate-api-types.mjs",
     "dev": "npm run tokens:generate && vite",
     "build": "npm run tokens:generate && npm run api:generate && tsc -b && vite build",
