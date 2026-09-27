@@ -442,6 +442,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .vault import Vault
 
     _vault = Vault(data_dir / "vault.enc")
+    from .secret_resolver import set_vault
+
+    set_vault(_vault)
     # Serving boundary: the React rebuild IS the interface (owner
     # decision 2026-09-22). It is served at `/` by app_router (mounted at
     # the END of create_app, after every API route); the retired vanilla
@@ -1830,6 +1833,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             # Determine if configured — resolve flat UI config to
             # provider shape before checking
             from .connection_manager import resolve_native_config
+            from .secret_resolver import secret_status
 
             if cap == "media":
                 media_cfg = config.get("media", {})
@@ -1873,6 +1877,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                     "needs_setup": cs.needs_setup,
                     "help_text": cs.help_text,
                     "providers": [p.to_dict() for p in cs.providers],
+                    # Plain words per secret field ("ready", "needs your
+                    # vault unlocked", ...); never a value.
+                    "secrets": secret_status(config.get(cap, {}) or {}),
                 }
             )
         return {"ok": True, "data": result}

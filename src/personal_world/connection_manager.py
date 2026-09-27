@@ -11,6 +11,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .secret_resolver import resolve_secrets
+
 
 # ── Canonical config resolver ──
 #
@@ -65,8 +67,9 @@ def resolve_native_config(raw: dict[str, Any], capability: str) -> dict[str, Any
     wrapper key), it is returned unchanged — this handles configs
     written directly to connections.json (not through the UI).
 
-    Secret references (token, api_key) are passed through as-is.
-    They remain unresolved references until a vault resolver exists.
+    Secret references (token, api_key, ...) are resolved from the
+    environment or the unlocked vault (see secret_resolver); ones that
+    cannot be resolved stay references, which providers refuse.
     """
     spec = _NATIVE_CONFIG_MAP.get(capability)
     if spec is None:
@@ -90,7 +93,7 @@ def resolve_native_config(raw: dict[str, Any], capability: str) -> dict[str, Any
         if val is not None and val != "":
             item[provider_field] = val
 
-    return {wrapper: [item]}
+    return {wrapper: [resolve_secrets(item)]}
 
 
 def resolve_media_connections(
@@ -106,7 +109,8 @@ def resolve_media_connections(
     returned (provider shape passthrough).
     """
     if "connections" in raw and isinstance(raw["connections"], list):
-        return raw["connections"]
+        return [resolve_secrets(c) if isinstance(c, dict) else c
+                for c in raw["connections"]]
 
     adapter = raw.get("_adapter")
     if not adapter:
@@ -117,7 +121,7 @@ def resolve_media_connections(
         if k not in _UI_META_FIELDS and v is not None and v != "":
             entry[k] = v
 
-    return [entry]
+    return [resolve_secrets(entry)]
 
 
 class ConnectionManager:
