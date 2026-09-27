@@ -20,7 +20,7 @@ The briefs imply this thesis in three places but never state it once — this fi
 **Why the product exists, tied to the thesis:**
 
 - **Accessibility**: the minimum requirements are layered and nothing may go below them (`docs/accessibility/ACCESSIBILITY_CONTRACT.md` §6.1); anything above the minimum may vary, but the minimum never changes.
-- **Protected attention** — the world asks only when it truly needs you, and quiet is a valid rendered state (`PLAY-NICE-CONFORMANCE.md` attention-and-focus, quiet-when-healthy). Optimise for maximum warmth per unit of attention, not maximum cute (`docs/STATION-ALIVE-RESEARCH.md` Part 1).
+- **Protected attention** — the world asks only when it truly needs you, and quiet is a valid rendered state (`PLAY-NICE-CONFORMANCE.md` attention-and-focus, quiet-when-healthy). Optimise for maximum warmth per unit of attention, not maximum cute (`docs/history/STATION-ALIVE-RESEARCH.md` Part 1).
 - **Inclusion** — themes, companions, and sections are user-owned and swappable; the Station is "a home people add to, not a product imposed on them" (`PLAY-NICE-CONFORMANCE.md` themes-and-personalization).
 
 **Corrected misreading:** there is no Star Trek / Deep Space Nine framing. The crew is not a bridge crew with ranks and stations — the crew is only *together*, and that togetherness is the point. Any brief reaching for franchise roles is wrong.
@@ -41,7 +41,7 @@ Source: `design/COMPANION_INTEGRATION.md` L27–33.
 
 **Names:** display canon — **Renai**, **Ratatoskr**, **Bolt**, **Scoop** (the burrito truck), **Sol**, **Assistant** — and the station-id ↔ server-key ↔ crew-id mapping live in [COMPANION-CANON.md](COMPANION-CANON.md). The table above keeps the design-file descriptors on purpose; the canon names are what people read.
 
-**Owner canon 2026-09-17 adds three area residents** — Hekek (Systems), Bruma (Records), Mira (Interests) — and makes residents **assignable to decks**: the crew above is the *starter crew*, not the only possible one. See [STATION-MAP.md](STATION-MAP.md) §3 and [CHARACTER-HANDBOOK.md](CHARACTER-HANDBOOK.md). The five rigs in this table remain the original companion set.
+**Owner canon 2026-09-17 adds three area residents** — Hekek (Systems), Bruma (Records), Mira (Interests) — and makes residents **assignable to decks**: the crew above is the *starter crew*, not the only possible one. See [STATION-MAP.md](history/STATION-MAP.md) §3 and [CHARACTER-HANDBOOK.md](CHARACTER-HANDBOOK.md). The five rigs in this table remain the original companion set.
 
 Sibling rules (same file, L35, L219–221): shared art direction, distinct silhouette; one companion per domain; a companion may *visit* another area only as a temporary reaction, never a permanent move.
 
@@ -80,7 +80,7 @@ Read top-down; each layer is authoritative only for what it owns.
 **UNKNOWN / disagreements:**
 
 - `design/owner/` is **gitignored** (`.gitignore` L95–96) — a local working drop, explicitly "not project truth". It is a practical local reference, not a durable canonical source; anything promoted from it must land in a tracked, curated path (e.g. `design/screens/`).
-- Resident count/names disagree: `COMPANION_INTEGRATION.md` lists **five**; `docs/PRODUCT-VISION-HANDOFF.md` L52 lists **four** (Mermaid, Ratatoskr, Robot, Burrito) with variant names; `STATION-ALIVE-RESEARCH.md` uses "World Keeper", which is **superseded historical** (`.project/design/CURRENT.md` COMPANION STATUS). Treat `COMPANION_INTEGRATION.md` as authority; flag the rest.
+- Resident count/names disagree: `COMPANION_INTEGRATION.md` lists **five**; `docs/history/PRODUCT-VISION-HANDOFF.md` L52 lists **four** (Mermaid, Ratatoskr, Robot, Burrito) with variant names; `STATION-ALIVE-RESEARCH.md` uses "World Keeper", which is **superseded historical** (`.project/design/CURRENT.md` COMPANION STATUS). Treat `COMPANION_INTEGRATION.md` as authority; flag the rest.
 - `STATION-ALIVE-RESEARCH.md`'s design thesis is a *candidate* research artifact, not a commitment. This file's thesis is the binding one.
 
 ---
@@ -90,7 +90,7 @@ Read top-down; each layer is authoritative only for what it owns.
 - **Start from the thesis, then the frame.** Name which resident(s) and which identity (personal vs contextual) a change touches; if it cannot say, it is not ready to design.
 - **Never edit authority downward.** Composition from Figma, values from `design/tokens.json`, art from the canonical rigs — resolve gaps in canonical tokens or ask the owner, never by sampling a screenshot hex or tracing art.
 - **Design for companion-off and reduced motion first**, then add the delightful layer on top. If the screen only works with motion or the mascot, it fails.
-- **Reuse the five; do not invent a sixth — *amended by owner, 2026-09-17*.** A new identity is still a **pack/theme concern with provenance and install/uninstall**, never a one-off character hard-coded into a screen (`PLAY-NICE-CONFORMANCE.md`; `PRODUCT-VISION-HANDOFF.md` decision #21). The owner concept of 2026-09-17 makes that path first-class: **the shipped crew is the default crew, and which resident takes which deck is a setting** — anyone may create their own residents and assign them to any deck ([STATION-MAP.md](STATION-MAP.md) §3). Creating new residents is now owner-sanctioned *through the pack mechanism*; inventing throwaway characters inside screens is still wrong.
+- **Reuse the five; do not invent a sixth — *amended by owner, 2026-09-17*.** A new identity is still a **pack/theme concern with provenance and install/uninstall**, never a one-off character hard-coded into a screen (`PLAY-NICE-CONFORMANCE.md`; `PRODUCT-VISION-HANDOFF.md` decision #21). The owner concept of 2026-09-17 makes that path first-class: **the shipped crew is the default crew, and which resident takes which deck is a setting** — anyone may create their own residents and assign them to any deck ([STATION-MAP.md](history/STATION-MAP.md) §3). Creating new residents is now owner-sanctioned *through the pack mechanism*; inventing throwaway characters inside screens is still wrong.
 - **Record, don't silently resolve.** When a design frame and the accessibility minimum disagree, the minimum wins and the conflict is written back as an owner-facing reservation (`.project/design/WORKSHOP-V3-MANIFEST.yaml` is the pattern).
 
 *Stated in-repo 2026-09-17. Sources cited above are authoritative within their own scope; this file is the single statement design work obeys.*

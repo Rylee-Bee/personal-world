@@ -4,7 +4,7 @@
 
 **In short:** the approved 2026-09-10 implementation contract for the P1 frontend foundation (sections API, motion vocabulary, token generation, primitive contracts, parity gates). Kept for provenance; it describes the pre-2026-09-22 `frontend/` tree, which has since been replaced by `ui/` and the retired server-rendered Station (now a theme package).
 
-**Parent:** [`../PERSONAL-WORLD-COMPLETION-PLAN.md`](../PERSONAL-WORLD-COMPLETION-PLAN.md) Phase P1.
+**Parent:** [`../history/PERSONAL-WORLD-COMPLETION-PLAN.md`](../history/PERSONAL-WORLD-COMPLETION-PLAN.md) Phase P1.
 **Gate:** P1 implementation does not start until the owner confirms P0.1
 credential rotation, `main` is pushed, and CI is green for that exact SHA.
 

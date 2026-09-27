@@ -37,7 +37,7 @@ does not authorize Figma writes, deployment, or unrelated product changes.
    `.project/CURRENT.md` and its current handoff, then
    `.project/design/CURRENT.md`,
    `.project/participants/figma/interaction.md`, and
-   `docs/FIGMA-HANDOFF-LESSONS.md`. Do not revive retired `.agent/STATE.md`.
+   `docs/history/FIGMA-HANDOFF-LESSONS.md`. Do not revive retired `.agent/STATE.md`.
 3. Inspect Git status, the actual route and source, and relevant tests before
    editing. Preserve unrelated work. Read `docs/ARCHITECTURE.md` and
    `design/COMPANION_INTEGRATION.md` for the affected behavior.
@@ -60,7 +60,7 @@ Confirm the requested frame is current: the design pointer distinguishes
 approved, superseded, experimental, and UNKNOWN references. An explicit user
 choice can establish the target; otherwise resolve ambiguous approval before
 dependent implementation. `design/handoff/` is historical, never an editing
-destination. `docs/DESIGN-HANDOFF.md` is the V0.1 baseline, not proof that a
+destination. `docs/history/DESIGN-HANDOFF.md` is the V0.1 baseline, not proof that a
 feature exists. Recheck dated pointer claims against source: older Figma notes
 describe a legacy frontend switch that current `src/personal_world/api.py`
 no longer uses.

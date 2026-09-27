@@ -60,7 +60,7 @@ already spells the name that way.
 
 **These are the default crew.** The residents above ship as the default set; which
 resident sits on which deck is a **setting** the user can change, including
-creating their own residents (see [`docs/STATION-MAP.md`](STATION-MAP.md) §3). The
+creating their own residents (see [`docs/history/STATION-MAP.md`](history/STATION-MAP.md) §3). The
 names, ids and server keys below stay canonical for the *default* crew; a
 user-created resident brings its own name and pack and never renames an existing
 id.
@@ -69,7 +69,7 @@ id.
 display name beyond the deck name, and no station id or server key. It is a
 stylized bed icon in the crew icon language
 (see [`docs/ART-REQUESTS.md`](ART-REQUESTS.md) and
-[`docs/STATION-MAP.md`](STATION-MAP.md)); do not add it as a companion.
+[`docs/history/STATION-MAP.md`](history/STATION-MAP.md)); do not add it as a companion.
 
 ---
 
@@ -194,7 +194,7 @@ Recorded by `rg -i 'renai|ratatoskr|world-tree|tacos & the morning paper|burrito
 - `docs/CREW-AND-STATION-THESIS.md` §2 and `design/COMPANION_INTEGRATION.md`
   still head their residents tables with the repo descriptors, not the canon
   names. Pointer added; tables not rewritten.
-- `docs/STATION-GAP-ANALYSIS.md` already records the `ratatoskr`/`burrito` ↔
+- `docs/history/STATION-GAP-ANALYSIS.md` already records the `ratatoskr`/`burrito` ↔
   `world-tree-squirrel`/`taco-news-truck` drift. Left as-is; this file is the mapping.
 - `src/personal_world/prefs.py` and `api.py` keep the server keys and art
   filenames. Correct — identifiers are not renamed.

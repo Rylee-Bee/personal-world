@@ -17,7 +17,7 @@ direction (aubergine `#0a0810`/`#12101a`, teal `#72b1b1`, rose `#b57f8b`);
 reconciled to that palette in the same integration.
 
 Do not edit files here to change design truth — update `../tokens.json` and
-`docs/DESIGN-HANDOFF.md`, then re-derive.
+`docs/history/DESIGN-HANDOFF.md`, then re-derive.
 2026-09-07: the four canonical accessibility documents that once lived
 here (ACCESSIBILITY_CONTRACT.md, SCREEN_READER_WALKTHROUGH.md,
 RESPONSIVE_RULES.md, PREFERENCES_SCHEMA.json) moved to

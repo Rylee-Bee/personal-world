@@ -220,7 +220,7 @@ historical. Verified against the repo and running code:
 Canonicity pointers: architecture → `docs/ARCHITECTURE.md`; target
 experience → `docs/PERSONAL-WORLD-FINISH-LINE.md`; verified direction
 → `ROADMAP.md`; design truth → `design/tokens.json` +
-`docs/DESIGN-HANDOFF.md` (V0.1 baseline) + `docs/accessibility/`;
+`docs/history/DESIGN-HANDOFF.md` (V0.1 baseline) + `docs/accessibility/`;
 companion/chat architecture → `design/COMPANION_INTEGRATION.md`;
 decisions → `.project/DECISIONS.md` + `docs/adr/`.
 
@@ -396,7 +396,7 @@ For current implemented scope read [`README.md`](../README.md) and
 
 ## Design truth
 
-`design/tokens.json` (canonical tokens; repo-owned), `docs/DESIGN-HANDOFF.md`
+`design/tokens.json` (canonical tokens; repo-owned), `docs/history/DESIGN-HANDOFF.md`
 (V0.1 baseline reference, partly superseded), `docs/accessibility/`
 (non-negotiable floor). `design/handoff/` is an archived Figma spec
 package — historical, never edit to change design. `.project/design/CURRENT.md`

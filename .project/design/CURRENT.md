@@ -23,7 +23,7 @@ answer, not a gap to fill.
 > evidence, not the current frontend.
 
 Evidence basis: git history at `090d7d7`, README "What works today",
-CHANGELOG (Unreleased + 2026-09-07..09), docs/DESIGN-HANDOFF.md
+CHANGELOG (Unreleased + 2026-09-07..09), docs/history/DESIGN-HANDOFF.md
 (V0.1 baseline note), docs/accessibility/* (canonical),
 design/handoff/FRAME_INDEX.md (archived), design/tokens.json,
 frontend/ sources, live `npm run tokens:check` (passing); Workshop v3
@@ -55,11 +55,11 @@ evidence retrieved 2026-09-13 from the Figma desktop Dev Mode MCP server
   operator's Figma machine; reach via the operator's tunnel — see
   "Figma bridge" in `.project/CURRENT.md`). The remote MCP
   (mcp.figma.com) rejects non-catalog clients, including opencode.
-- **`docs/DESIGN-HANDOFF.md`** is the canonical *V0.1 baseline* reference;
+- **`docs/history/DESIGN-HANDOFF.md`** is the canonical *V0.1 baseline* reference;
   its dated inventories are historical (per its own 2026-09-10
   reconciliation note). The Finish Line document describes the target
   horizon, not the current design.
-- **Composition lessons:** `docs/FIGMA-HANDOFF-LESSONS.md` (2026-09-11) —
+- **Composition lessons:** `docs/history/FIGMA-HANDOFF-LESSONS.md` (2026-09-11) —
   token gates do not check composition; browser-side visual comparison
   against Figma exports is required before composition work merges.
 

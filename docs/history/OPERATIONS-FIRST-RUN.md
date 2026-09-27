@@ -1,8 +1,8 @@
 # First-run on new hardware (daily-use runbook, 2026-09-09)
 
-> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [Operations](OPERATIONS.md)) · **Read this if:** you want the dated 2026-09-09 bring-up record. · **Superseded by:** [Operations](OPERATIONS.md).
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [Operations](../OPERATIONS.md)) · **Read this if:** you want the dated 2026-09-09 bring-up record. · **Superseded by:** [Operations](../OPERATIONS.md).
 
-**In short:** a dated record of how the appliance was first brought up on new hardware. It is not a current deployment recipe — use [Operations](OPERATIONS.md) and [Architecture](ARCHITECTURE.md) instead.
+**In short:** a dated record of how the appliance was first brought up on new hardware. It is not a current deployment recipe — use [Operations](../OPERATIONS.md) and [Architecture](../ARCHITECTURE.md) instead.
 
 Since this record: production Worlds runs on the transcode host at `/opt/personal-world` (docker compose, published GHCR image, one-tap update from Project Home's "What's live").
 

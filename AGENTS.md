@@ -69,7 +69,7 @@ agent's WIP into its commit. The rules:
   the repo but is not rendered (`ui/src/app/App.tsx`). Where PRODUCT-LANGUAGE
   and the finish line differ, it is the current product language.
 - **Design truth:** `design/tokens.json` is canonical for token values;
-  `docs/DESIGN-HANDOFF.md` is the **V0.1 historical baseline** (superseded
+  `docs/history/DESIGN-HANDOFF.md` is the **V0.1 historical baseline** (superseded
   by `.project/CURRENT.md`); `ui/THEMES.md` is the theme-pack and
   token-consumption contract for the live interface, and
   `ui/dist-kit/` ships the Worlds kit. `docs/PERSONAL-WORLD-FINISH-LINE.md` supplies

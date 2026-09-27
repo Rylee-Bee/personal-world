@@ -11,7 +11,7 @@ Regenerate: `cd ui && node scripts/door-coverage.mjs`
 - **screen-reachable** — a person can reach the endpoint from a rendered screen: its `src/data/api.ts` wrapper (or the `src/data/hooks.ts` hook around it) is imported under `src/app`, `src/screens`, or `src/components`, all inside the production import closure from `src/main.tsx`.
 - **client-callable** — the production closure pairs this verb with this path (an `api.VERB("…")` or `sendBody("VERB", "…")` call within a small line window), but no screen tier imports the wrapper: the door exists, the hallway does not.
 - **uncovered** — the production closure never mentions it. Uncovered is expected mid-rebuild; nothing here was stubbed to shrink this number.
-- **internal-marked** — rows the manifest marks internal. The curated table carries no such marker, and documented-internal routes (UI shell, static assets) are deliberately absent from the table (`api_manifest.py` docstring; `docs/PARITY-CORE-64.md` verdict vocabulary) — so the honest count is 0.
+- **internal-marked** — rows the manifest marks internal. The curated table carries no such marker, and documented-internal routes (UI shell, static assets) are deliberately absent from the table (`api_manifest.py` docstring; `docs/history/PARITY-CORE-64.md` verdict vocabulary) — so the honest count is 0.
 
 ## Counts
 

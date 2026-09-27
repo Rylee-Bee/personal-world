@@ -22,7 +22,7 @@
  *                     curated table carries NO such marker (documented
  *                     -internal routes are deliberately absent from
  *                     the table — see api_manifest.py's docstring and
- *                     docs/PARITY-CORE-64.md), so this count is 0 and
+ *                     docs/history/PARITY-CORE-64.md), so this count is 0 and
  *                     that is the truth, not a shortfall to pad.
  *
  * Uncovered is EXPECTED — the rebuild is in progress. This report
@@ -323,7 +323,7 @@ lines.push("");
 lines.push("- **screen-reachable** — a person can reach the endpoint from a rendered screen: its `src/data/api.ts` wrapper (or the `src/data/hooks.ts` hook around it) is imported under `src/app`, `src/screens`, or `src/components`, all inside the production import closure from `src/main.tsx`.");
 lines.push("- **client-callable** — the production closure pairs this verb with this path (an `api.VERB(\"…\")` or `sendBody(\"VERB\", \"…\")` call within a small line window), but no screen tier imports the wrapper: the door exists, the hallway does not.");
 lines.push("- **uncovered** — the production closure never mentions it. Uncovered is expected mid-rebuild; nothing here was stubbed to shrink this number.");
-lines.push("- **internal-marked** — rows the manifest marks internal. The curated table carries no such marker, and documented-internal routes (UI shell, static assets) are deliberately absent from the table (`api_manifest.py` docstring; `docs/PARITY-CORE-64.md` verdict vocabulary) — so the honest count is 0.");
+lines.push("- **internal-marked** — rows the manifest marks internal. The curated table carries no such marker, and documented-internal routes (UI shell, static assets) are deliberately absent from the table (`api_manifest.py` docstring; `docs/history/PARITY-CORE-64.md` verdict vocabulary) — so the honest count is 0.");
 lines.push("");
 lines.push("## Counts");
 lines.push("");

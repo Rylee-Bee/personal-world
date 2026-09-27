@@ -4,7 +4,7 @@
 
 **In short:** the V0.1 design-stage handoff — product purpose, information architecture, status vocabulary, accessibility contract, and design constraints as they stood at commit `7c16a61`+. It is provenance now, not current product truth.
 
-**What changed since:** the server-rendered `DASHBOARD_HTML` SPA it describes is gone (removed in the 2026-09-16 Station-only cutover, and the 2026-09-22 React `ui/` flip replaced the Station with the **Bridge** — `ui/src/app/App.tsx`); `/` now serves the Bridge home screen, not a redirect to `/station/`; themes ship as theme packages (`ui/THEMES.md`); `design/rylee-lab/tokens.css` (§J) no longer exists; Settings-write now exists (`PUT /api/prefs`, step-up gated), so §E's "not implemented" row is stale. Current product truth: [`.project/CURRENT.md`](../.project/CURRENT.md).
+**What changed since:** the server-rendered `DASHBOARD_HTML` SPA it describes is gone (removed in the 2026-09-16 Station-only cutover, and the 2026-09-22 React `ui/` flip replaced the Station with the **Bridge** — `ui/src/app/App.tsx`); `/` now serves the Bridge home screen, not a redirect to `/station/`; themes ship as theme packages (`ui/THEMES.md`); `design/rylee-lab/tokens.css` (§J) no longer exists; Settings-write now exists (`PUT /api/prefs`, step-up gated), so §E's "not implemented" row is stale. Current product truth: [`.project/CURRENT.md`](../../.project/CURRENT.md).
 
 (Formerly "Personal World" — product renamed 2026-09-12; the design it
 describes is unchanged. Technical identifiers unchanged.)
@@ -13,7 +13,7 @@ describes is unchanged. Technical identifiers unchanged.)
 
 > **Target-state note:** this document remains the canonical V0.1 design-stage
 > design reference. It is not the definition of the finished product.
-> [`PERSONAL-WORLD-FINISH-LINE.md`](PERSONAL-WORLD-FINISH-LINE.md) defines
+> [`PERSONAL-WORLD-FINISH-LINE.md`](../PERSONAL-WORLD-FINISH-LINE.md) defines
 > the current target daily-use experience. When the two describe different
 > horizons, use this document to understand the baseline and the Finish Line
 > to understand the destination; architecture, security, accessibility, and
@@ -22,9 +22,9 @@ describes is unchanged. Technical identifiers unchanged.)
 > **Implementation reconciliation (2026-09-10, kept as dated provenance):** the
 > inventories, endpoint examples, auth experience, and "not implemented" labels
 > below are the V0.1 baseline, not today's feature inventory. For current behavior
-> use [Architecture](ARCHITECTURE.md) and the canonical
-> [responsive rules](accessibility/RESPONSIVE_RULES.md) and
-> [screen-reader walkthrough](accessibility/SCREEN_READER_WALKTHROUGH.md).
+> use [Architecture](../ARCHITECTURE.md) and the canonical
+> [responsive rules](../accessibility/RESPONSIVE_RULES.md) and
+> [screen-reader walkthrough](../accessibility/SCREEN_READER_WALKTHROUGH.md).
 > Historical screen proposals below do not supersede those sources or the
 > accessibility contract.
 
@@ -430,7 +430,7 @@ for: desktop (primary), narrow desktop/tablet (secondary), mobile
 | Asset | Status | Reference |
 |---|---|---|
 | `design/rylee-lab/tokens.css` (homelab repo) | **canonical house palette** | aubergine near-black surfaces `#0a0810`/`#12101a`, warm-pale text `#f0eaff`/`#a397b8`, mermaid-teal accent `#72b1b1`, dusty-rose `#b57f8b`, mascot pastels |
-| Public [design handoff](../design/handoff/README.md) and [asset collection](../design/assets/README.md) | **high-value visual reference** for the operator's established design language | NOT canonical product truth. Canonical design truth is repo-owned: this document, `design/tokens.json`, accessibility semantics, status vocabulary, interaction contracts, implemented API behavior. Figma/Penpot/Sketch/Framer/code-first design all CONSUME those artifacts; any tool-specific output is derived work, never a required dependency |
+| Public [design handoff](../../design/handoff/README.md) and [asset collection](../../design/assets/README.md) | **high-value visual reference** for the operator's established design language | NOT canonical product truth. Canonical design truth is repo-owned: this document, `design/tokens.json`, accessibility semantics, status vocabulary, interaction contracts, implemented API behavior. Figma/Penpot/Sketch/Framer/code-first design all CONSUME those artifacts; any tool-specific output is derived work, never a required dependency |
 | `lrw-theme/` (homelab) | canonical artwork (robots/stickers), Outfit/Geist/Geist Mono type | warm charcoal + dusty pink `#b87788` |
 | `web/vefr-foundation.css` (vefr repo) | canonical a11y contract | 44px floor, motion-off, Atkinson Hyperlegible Next, contrast as band 8–10:1 (above 10:1 halates), 3 user contrast themes |
 | OpenDyslexic (homepage global), Atkinson Hyperlegible (VEFR body) | sanctioned type choices | pick from this set; justify additions |
@@ -540,7 +540,7 @@ preference exists in the schema.
 
 **V0.1 recipe — no longer accurate.** There is no `docker-compose.yml` in the repo
 today; run the backend and the `ui/` dev loop as described in
-[CONTRIBUTING](../CONTRIBUTING.md). Kept verbatim as V0.1 baseline.
+[CONTRIBUTING](../../CONTRIBUTING.md). Kept verbatim as V0.1 baseline.
 
 ```bash
 git clone <personal-world repo> && cd personal-world

@@ -62,7 +62,7 @@ Taco Truck / "Tacos & the Morning Paper" → **Burrito Journalism**;
 **Area residents (owner canon 2026-09-17) extend the crew:** **Hekek**
 (Systems), **Bruma** (Records) and **Mira** (Interests). Same crew,
 same uniform, different worlds — see §7–§9. **Settings has no character**: it is
-an icon, not a resident (see [`docs/STATION-MAP.md`](STATION-MAP.md)).
+an icon, not a resident (see [`docs/history/STATION-MAP.md`](history/STATION-MAP.md)).
 
 > **This is the owner's own understanding, given in her words.** Quoted phrases
 > are preserved exactly and must not be genericized into product copy. The
@@ -465,7 +465,7 @@ files. Naming/ids belong to [`COMPANION-CANON.md`](COMPANION-CANON.md).
 - **Naming.** Repo copy still reads "Mermaid", "Little Helper Robot",
   "World-tree Squirrel"; display canon is **Renai**, **Bolt**, **Ratatoskr**.
   See [`COMPANION-CANON.md`](COMPANION-CANON.md). Ids are unchanged.
-- **"World Keeper."** `docs/STATION-ALIVE-RESEARCH.md` uses "World Keeper" for
+- **"World Keeper."** `docs/history/STATION-ALIVE-RESEARCH.md` uses "World Keeper" for
   Personal World; that framing is **superseded historical**. Keep the *idea* (§6),
   not the name.
 - **Personal World as a peer companion.** `design/COMPANION_INTEGRATION.md` and
