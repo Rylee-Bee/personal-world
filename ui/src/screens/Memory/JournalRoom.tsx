@@ -25,6 +25,7 @@
  * operable, native dialog semantics (WorldDrawer).
  */
 
+import { newestFirst } from "./journalOrder";
 import { SpotArt } from "../../components/SpotArt";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -292,7 +293,16 @@ function WriteForm() {
           // Spec: the client clears the draft only after the publish
           // was CONFIRMED — then both copies are safe.
           clearLocalMirror(window.localStorage);
-          void liveTransport.remove().catch(() => undefined);
+          // A debounced draft save can still be queued from the last
+          // keystroke; let it land BEFORE removing the server copy, or it
+          // lands after and resurrects a draft that was already published
+          // (and "Draft saved" stays up). Then the line goes quiet.
+          const sync = syncRef.current;
+          void (async () => {
+            await sync?.flush().catch(() => undefined);
+            await liveTransport.remove().catch(() => undefined);
+            setDraftStatus("idle");
+          })();
           setResumeNote(null);
           textareaRef.current?.focus();
         },
@@ -574,7 +584,9 @@ export function JournalRoom() {
   const [historyTs, setHistoryTs] = useState<string | null>(null);
 
   const listQuery = useJournalList({ n: 50 });
-  const entries = listQuery.data?.data ?? [];
+  // The API answers oldest first (the last n); show the newest on top so a
+  // note you just wrote is right under the form, not 50 entries down.
+  const entries = newestFirst(listQuery.data?.data ?? []);
 
   return (
     <>
