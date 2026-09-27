@@ -136,6 +136,42 @@ export const worldsBooks: LibraryBook[] = Object.entries(files)
   .filter((b): b is LibraryBook => b !== null)
   .sort((a, b) => (a.shelf === b.shelf ? 0 : a.shelf === "worlds" ? -1 : 1) || a.order - b.order || a.id.localeCompare(b.id));
 
+/**
+ * Worlds' own glossary, read from the books' "Words to know" pages, so an
+ * *italic* word in any Worlds book can be tapped (library 1.1.0). A line
+ * "- **Term:** meaning. Official term: *other name*." gives the term, its
+ * plain meaning (the first sentence), and every italic in the line as
+ * another spelling. "A / B" and "Name (ABBR)" give each part. The first
+ * book to define a word wins.
+ */
+export function buildGlossary(books: LibraryBook[]): Glossary {
+  const out: Glossary = {};
+  for (const b of books) {
+    for (const page of b.pages) {
+      if (page.kind !== "words") continue;
+      for (const line of page.text.split(/\r?\n/)) {
+        const m = /^\s*-\s+\*\*(.+?):\*\*\s*(.*)$/.exec(line);
+        if (!m) continue;
+        const [, rawTerm, rest] = m;
+        const abbrs = [...rawTerm.matchAll(/\(([^)]+)\)/g)].map((x) => x[1]);
+        const names = rawTerm
+          .replace(/\s*\([^)]*\)/g, "")
+          .split(/\s*\/\s*/)
+          .map((t) => t.trim())
+          .filter(Boolean);
+        const italics = [...rest.matchAll(/(?<![*\w])\*([^*\n]+?)\*(?![*\w])/g)].map((x) => x[1].trim());
+        const plain = (/^(.+?[.!?])(\s|$)/.exec(rest.replace(/\*/g, "").trim())?.[1] ?? rest.replace(/\*/g, "").trim());
+        if (!plain) continue;
+        const key = names[0]?.toLowerCase();
+        if (!key || Object.hasOwn(out, key)) continue;
+        const also = [...names.slice(1), ...abbrs, ...italics].filter((w) => w.toLowerCase() !== key);
+        out[key] = { plain: plain.charAt(0).toUpperCase() + plain.slice(1), ...(also.length ? { also } : {}) };
+      }
+    }
+  }
+  return out;
+}
+
 /** Worlds' own library as a `library/0` document (look: scifi-storybook). */
 export const worldsLibrary: LibraryDoc = {
   contract: "library/0",
@@ -154,4 +190,5 @@ export const worldsLibrary: LibraryDoc = {
     source: b.shelf === "words" ? `docs/library/concepts/${b.id}.md` : `docs/library/${b.id}.md`,
     pages: b.pages,
   })),
+  glossary: buildGlossary(worldsBooks),
 };

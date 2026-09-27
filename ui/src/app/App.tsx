@@ -25,6 +25,7 @@
  */
 
 import { noteCurrentArea, takeConfirmReturn } from "./confirmReturn";
+import { areaFromHash, setAddress } from "./areaAddress";
 import { WorldButton } from "../components/WorldButton";
 import { SolMoment } from "../components/SolMoment";
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
@@ -143,7 +144,8 @@ export function App() {
   const [returned] = useState(() => takeConfirmReturn());
   // "rough-night" joins those quiet pages: a plain page of its own,
   // reached by small links from the Bridge and Settings — never a nav
-  // landmark, and (the app has no router) never a URL of its own.
+  // landmark. Every screen has an address (#memory, #library…): the page
+  // opened from an address wins over the Bridge on load.
   const [activeArea, setActiveArea] = useState<
     WorldAreaId | "crew" | "people" | "helpers" | "rough-night" | "library" | "lore" | "at-home"
   >(
@@ -157,8 +159,30 @@ export function App() {
         | "library"
         | "lore"
         | "at-home"
-        | null) ?? "overview",
+        | null) ??
+      areaFromHash(window.location.hash) ??
+      "overview",
   );
+  // Keep the address in step: a new history entry per screen change (so
+  // back/forward work), and the address followed when it changes.
+  // (After back/forward the address already matches, so nothing is pushed.)
+  const firstAddress = useRef(true);
+  useEffect(() => {
+    setAddress(activeArea, firstAddress.current ? "replace" : "push");
+    firstAddress.current = false;
+  }, [activeArea]);
+  useEffect(() => {
+    const follow = () => {
+      // An unknown or empty address is the Bridge, the same as on load.
+      setActiveArea(areaFromHash(window.location.hash) ?? "overview");
+    };
+    window.addEventListener("popstate", follow);
+    window.addEventListener("hashchange", follow);
+    return () => {
+      window.removeEventListener("popstate", follow);
+      window.removeEventListener("hashchange", follow);
+    };
+  }, []);
   // The Library is another quiet page; Back returns to wherever it was opened.
   const [libraryFrom, setLibraryFrom] = useState<"settings" | "overview">("settings");
   const openLibrary = useCallback((from: "settings" | "overview") => {
@@ -378,11 +402,10 @@ export function App() {
         <WorldButton
           variant="secondary"
           onPress={() => setRememberOpen(true)}
-          aria-label="Remember"
           className="shrink-0 max-sm:ml-auto"
         >
           <Icon name="bookmark" size={20} />
-          <span className="ml-[var(--pw-spacing-xs)] hidden sm:inline">Remember</span>
+          <span className="ml-[var(--pw-spacing-xs)]">Remember</span>
         </WorldButton>
 
         {/* Readout cells */}

@@ -18,6 +18,7 @@ import { relativeTime } from "../../components/rooms/format";
 import { useMinuteClock } from "../../components/rooms/useRootAttribute";
 import { SolMoment } from "../../components/SolMoment";
 import { Icon } from "../../components/Icon";
+import { Loading } from "../../components/Loading";
 
 const ROOM = "engine-room";
 const STALE_MIN = 30;
@@ -166,7 +167,7 @@ export function Computers() {
   );
 
   let body: ReactNode;
-  if (rooms.isPending) body = <p className={SMALL}>Finding the Engine room…</p>;
+  if (rooms.isPending) body = <Loading words="Finding the Engine room…" minWidth={260} />;
   else if (!row || !live || view.isError) {
     body = (
       <div className="flex items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] p-[var(--pw-spacing-lg)]">
@@ -178,7 +179,7 @@ export function Computers() {
         </p>
       </div>
     );
-  } else if (view.isPending) body = <p className={SMALL}>Looking at what you have…</p>;
+  } else if (view.isPending) body = <Loading words="Looking at what you have…" cards={6} minWidth={260} />;
   else {
     body = (
       <div className="flex flex-col gap-[var(--pw-spacing-2xl)]">

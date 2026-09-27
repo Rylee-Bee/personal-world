@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { glossaryEntry, parseBook, worldsBooks } from "../data/library";
+import { buildGlossary, glossaryEntry, parseBook, worldsBooks, worldsLibrary } from "../data/library";
 
 describe("the Worlds Library", () => {
   it("bundles every book in docs/library, in reading order, never the README", () => {
@@ -72,5 +72,22 @@ describe("book 17 and tap to learn", () => {
     expect(glossaryEntry(undefined, "commit")).toBeNull();
     // Only the glossary's own keys, never inherited object names.
     expect(glossaryEntry(g, "constructor")).toBeNull();
+  });
+});
+
+describe("Worlds' own glossary (tap to learn in Worlds' books)", () => {
+  it("reads Words to know lines: term, plain meaning, and italic official names as other spellings", () => {
+    const g = buildGlossary([
+      parseBook("x", "---\ntitle: X\nkind: book\nshort: S.\n---\nPlain.\n\n* * *\n\n## Words to know\n\n- **Provider:** a swappable tool Worlds uses. Official term: *adapter* or *plugin*.\n- **Healthy / degraded:** how well it answers.\n- **Accessibility (a11y):** working for everyone.\n")!,
+    ]);
+    expect(glossaryEntry(g, "plugin")).toMatchObject({ term: "provider", plain: "A swappable tool Worlds uses." });
+    expect(glossaryEntry(g, "Degraded")?.term).toBe("healthy");
+    expect(glossaryEntry(g, "a11y")?.term).toBe("accessibility");
+  });
+
+  it("makes the first book's italic words tappable", () => {
+    for (const w of ["adapter", "plugin", "integration", "contract"]) {
+      expect(glossaryEntry(worldsLibrary.glossary, w), w).not.toBeNull();
+    }
   });
 });
