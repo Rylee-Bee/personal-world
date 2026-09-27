@@ -2469,6 +2469,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """
         provider = LabState(lab_path=os.environ.get("PW_LAB_CLI", DEFAULT_LAB))
         r = provider.observe()
+        if not r.ok:
+            # Worlds usually runs where the lab CLI isn't: read the same
+            # packet through the Engine room (GET /room/views/lowbw).
+            status, packet = await _ROOMS.view("engine-room", "lowbw")
+            if status == 200 and isinstance(packet, dict):
+                r = provider.observe(packet)
         payload = {
             "ok": r.ok,
             "status": r.status,

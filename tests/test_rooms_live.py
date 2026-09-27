@@ -290,3 +290,17 @@ def test_library_route(client):
     assert c.get("/api/library").status_code == 401
     r = c.get("/api/library", headers=AUTH)
     assert r.status_code == 200 and r.json()["data"][0]["library"]["keeper"]["id"] == "hive-works"
+
+
+def test_lab_state_reads_through_the_engine_room(client, monkeypatch):
+    c, _ = client
+    import personal_world.api as api_mod
+
+    packet = {"schema": "lab-lowbw/1", "generated_at": "2026-09-27T00:00:00Z", "rows": {}, "overall_state": "ok"}
+    env = {"PW_ROOMS": "engine-room=http://room.test", "PW_ROOM_ENGINE_ROOM_TOKEN_ENV": "T", "T": "tok"}
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.setenv("PW_LAB_CLI", "/nonexistent/lab")
+    api_mod._ROOMS = RoomsService(transport=_transport([], views={"/room/views/lowbw": packet}), clock=Clock())
+    r = c.get("/api/lab/state", headers=AUTH).json()
+    assert r["ok"] is True and r["data"]["schema"] == "lab-lowbw/1"
