@@ -792,14 +792,17 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return result.model_dump(mode="json")
 
     @app.get("/api/journal", dependencies=[Depends(require_auth)])
-    async def journal_view(request: Request, n: int = 20) -> dict:
+    async def journal_view(request: Request, n: int = 20, hide: str = "") -> dict:
         _require_person(getattr(request.state, "principal", None))
         _, _, uj = _state_for(request)
         target = journal if uj == journal.path else Journal(uj)
         # Calm view: each chain's CURRENT version only (superseded
         # originals stay in history + audit; the correction workflow
         # links them). n is clamped 1..500 like chat history.
-        events = target.current_events(min(max(n, 1), 500))
+        # ``hide`` = comma-separated kinds left out before the last n are
+        # taken (e.g. settings_change: an import writes one per record).
+        hidden = frozenset(k.strip() for k in hide.split(",") if k.strip())
+        events = target.current_events(min(max(n, 1), 500), exclude_kinds=hidden)
         return {"ok": True, "data": [e.model_dump(mode="json") for e in events]}
 
     @app.get("/api/journal/last", dependencies=[Depends(require_auth)])

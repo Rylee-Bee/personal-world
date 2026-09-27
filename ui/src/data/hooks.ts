@@ -220,7 +220,7 @@ export function useDaily() {
 
 // ===== Journal =====
 /** Current events (each supersede chain's newest version), newest first. */
-export function useJournalList(params?: { n?: number }) {
+export function useJournalList(params?: { n?: number; hide?: string }) {
   return useQuery({
     queryKey: [...queryKeys.journal, params],
     queryFn: () => listJournal(params),

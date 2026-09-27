@@ -25,7 +25,7 @@
  * operable, native dialog semantics (WorldDrawer).
  */
 
-import { newestFirst } from "./journalOrder";
+import { AUTOMATIC_KINDS, newestFirst } from "./journalOrder";
 import { SpotArt } from "../../components/SpotArt";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -583,7 +583,11 @@ export function JournalRoom() {
   );
   const [historyTs, setHistoryTs] = useState<string | null>(null);
 
-  const listQuery = useJournalList({ n: 50 });
+  // Automatic entries (an import writes one "settings change" per record)
+  // are left out by default so a person's own notes aren't buried
+  // (UAT 2026-09-27: 226 of them hid three real notes). One switch shows them.
+  const [showAutomatic, setShowAutomatic] = useState(false);
+  const listQuery = useJournalList(showAutomatic ? { n: 50 } : { n: 50, hide: AUTOMATIC_KINDS });
   // The API answers oldest first (the last n); show the newest on top so a
   // note you just wrote is right under the form, not 50 entries down.
   const entries = newestFirst(listQuery.data?.data ?? []);
@@ -610,6 +614,17 @@ export function JournalRoom() {
 
         {/* Write form */}
         <WriteForm />
+
+        <label className="flex min-h-[var(--pw-targets-minimum)] items-center gap-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <input
+            id="journal-show-automatic"
+            type="checkbox"
+            checked={showAutomatic}
+            onChange={(e) => setShowAutomatic(e.target.checked)}
+            className="h-5 w-5"
+          />
+          Show automatic changes too
+        </label>
 
         {/* Status */}
         {listQuery.isPending && (
