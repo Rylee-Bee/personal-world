@@ -42,6 +42,7 @@ import { WorldAssistant } from "../../components/WorldAssistant";
 import { chooseDefaultSystem, knownArea, trayOverflow } from "./geometry";
 import { StarMap } from "./StarMap";
 import { FirstDayGuide } from "./FirstDayGuide";
+import { NOT_SET_UP, SETUP_FOR } from "./firstDay";
 
 interface BridgeProps {
   /** State-driven activation, identical to the nav buttons. */
@@ -292,7 +293,13 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew, onOpenRoughNig
             keeper={data.keeper}
             systems={systems}
             selectedId={selected?.id ?? null}
-            onSelect={(id) => selectSystem(id)}
+            onSelect={(id) => {
+              // "Not set up yet" goes straight to where it's set up.
+              const sys = systems.find((x) => x.id === id);
+              const place = sys && NOT_SET_UP.has(sys.status) ? SETUP_FOR[id]?.area : null;
+              if (place) onOpenArea(place);
+              else selectSystem(id);
+            }}
             statusWord={statusWord}
           />
 
@@ -547,6 +554,20 @@ function BriefingPanel({
       <p className="mt-[var(--pw-spacing-xs)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-muted)]">
         {arrivals} new · {haveTos} need you
       </p>
+      {NOT_SET_UP.has(system.status) && SETUP_FOR[system.id] ? (
+        <div className="mt-[var(--pw-spacing-md)] rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+          <p>{SETUP_FOR[system.id].how}</p>
+          {SETUP_FOR[system.id].area ? (
+            <button
+              type="button"
+              onClick={() => onOpenArea(SETUP_FOR[system.id].area!)}
+              className="mt-[var(--pw-spacing-sm)] inline-flex min-h-[var(--pw-targets-minimum)] items-center rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] px-[var(--pw-spacing-md)] font-semibold text-[var(--pw-text-primary)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
+            >
+              {SETUP_FOR[system.id].label}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <h3 className="mt-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.16em] text-[var(--pw-text-muted)]">
         Here now

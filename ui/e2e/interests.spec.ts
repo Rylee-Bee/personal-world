@@ -43,7 +43,7 @@ test.describe("Interests (C3/C4)", () => {
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Check sources now" }).click();
-    await expect(page.getByText("Check finished — 1 new find.")).toBeVisible();
+    await expect(page.getByText("Checked just now: 1 new find.")).toBeVisible();
     expect(discoverCalls).toHaveLength(1);
   });
 
@@ -94,7 +94,7 @@ test.describe("Interests (C3/C4)", () => {
 
     // After a check, the finding's external link — reached by Tab.
     await page.getByRole("button", { name: "Check sources now" }).click();
-    await expect(page.getByText("Check finished — 1 new find.")).toBeVisible();
+    await expect(page.getByText("Checked just now: 1 new find.")).toBeVisible();
     await expectKeyboardFocusRing(
       page,
       page.getByRole("link", { name: /Project Worlds v1\.4\.0/ }),

@@ -25,8 +25,10 @@ import type { WorldAreaId } from "../../data/types";
 import { CompanionFace } from "../../components/crew/CompanionFace";
 import { RoomsExplainer } from "../../components/rooms/RoomsExplainer";
 import { LINK_BASE } from "../../components/rooms/format";
-import { ANSWERING, markFirstDayShown, setFirstDayHidden, SYSTEM_ABOUT, useFirstDayProgress, wasFirstDayShown } from "./firstDay";
+import { ANSWERING, markFirstDayShown, setFirstDayHidden, SETUP_FOR, SYSTEM_ABOUT, useFirstDayProgress, waitingOnWorlds, wasFirstDayShown } from "./firstDay";
 import { SolMoment } from "../../components/SolMoment";
+import { WorldDrawer } from "../../components/WorldDrawer";
+import { CompanionChooser } from "../../components/crew/CompanionChooser";
 
 function asset(path: string): string {
   return `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`;
@@ -75,7 +77,7 @@ function Line({
   );
 }
 
-function SystemsExplainer({ data }: { data: BridgeData }) {
+function SystemsExplainer({ data, onOpenArea }: { data: BridgeData; onOpenArea: (id: WorldAreaId) => void }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   return (
@@ -87,22 +89,38 @@ function SystemsExplainer({ data }: { data: BridgeData }) {
         onClick={() => setOpen(!open)}
         className={BUTTON}
       >
-        What each one does
+        What each one does, and where to set it up
       </button>
       <ul
         id={panelId}
         hidden={!open}
         className="max-w-[62ch] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]"
       >
-        {data.systems.map((s) => (
-          <li key={s.id} className="py-[var(--pw-spacing-xs)]">
-            <span className="font-semibold text-[var(--pw-text-primary)]">{s.name}</span>
-            {`: ${SYSTEM_ABOUT[s.id] ?? "One of your World’s systems."} `}
-            <span className="text-[var(--pw-text-muted)]">
-              {ANSWERING.has(s.status) ? "(answering)" : "(not answering yet)"}
-            </span>
-          </li>
-        ))}
+        {data.systems.map((s) => {
+          const setup = SETUP_FOR[s.id];
+          const answering = ANSWERING.has(s.status);
+          return (
+            <li key={s.id} className="flex flex-col gap-[var(--pw-spacing-xs)] border-b border-[var(--pw-border-subtle)] py-[var(--pw-spacing-sm)] last:border-b-0">
+              <span>
+                <span className="font-semibold text-[var(--pw-text-primary)]">{s.name}</span>
+                {`: ${SYSTEM_ABOUT[s.id] ?? "One of your World’s systems."} `}
+                <span className="text-[var(--pw-text-muted)]">
+                  {answering ? "(answering)" : waitingOnWorlds(s) ? "(not available yet)" : "(not answering yet)"}
+                </span>
+              </span>
+              {!answering && setup ? (
+                <span className="flex flex-wrap items-center gap-[var(--pw-spacing-sm)]">
+                  <span>{setup.how}</span>
+                  {setup.area ? (
+                    <button type="button" onClick={() => onOpenArea(setup.area!)} className={BUTTON}>
+                      {setup.label}
+                    </button>
+                  ) : null}
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -154,11 +172,13 @@ export function FirstDayGuide({
     crewOn,
     roomCount,
     answering,
+    countable,
     wroteNote,
     companionChosen,
     roomsDone,
     systemsDone,
   } = useFirstDayProgress(data);
+  const [choosing, setChoosing] = useState(false);
   useEffect(() => {
     if (showing) markFirstDayShown();
   }, [showing]);
@@ -231,8 +251,8 @@ export function FirstDayGuide({
         <Line
           done={systemsDone}
           title="Plug in your systems"
-          state={`${answering} of ${data.systems.length} answering`}
-          action={<SystemsExplainer data={data} />}
+          state={`${answering} of ${countable} answering`}
+          action={<SystemsExplainer data={data} onOpenArea={onOpenArea} />}
         >
           The star map’s systems light up as their sources are connected. Until then they say so.
         </Line>
@@ -254,17 +274,25 @@ export function FirstDayGuide({
             title="Meet your crew"
             state={companionChosen ? `${speaker.name} is your companion` : "The Assistant is keeping you company"}
             action={
-              onOpenCrew ? (
-                <button type="button" onClick={onOpenCrew} className={BUTTON}>
-                  Open your crew
+              <span className="flex flex-wrap gap-[var(--pw-spacing-sm)]">
+                <button type="button" onClick={() => setChoosing(true)} className={BUTTON}>
+                  Choose your companion
                 </button>
-              ) : null
+                {onOpenCrew ? (
+                  <button type="button" onClick={onOpenCrew} className={BUTTON}>
+                    Open your crew
+                  </button>
+                ) : null}
+              </span>
             }
           >
-            Add your own companions, give them faces, and choose who keeps each room.
+            Choose who keeps you company. Later, add your own companions, give them faces, and choose who keeps each room.
           </Line>
         )}
       </ol>
+      <WorldDrawer isOpen={choosing} onClose={() => setChoosing(false)} title="Choose your companion">
+        {choosing ? <CompanionChooser /> : null}
+      </WorldDrawer>
       {onOpenLibrary && (
         <p className="mt-[var(--pw-spacing-md)] flex flex-wrap items-center gap-[var(--pw-spacing-sm)] border-t border-[var(--pw-border-subtle)] pt-[var(--pw-spacing-md)] text-[var(--pw-text-secondary)]">
           <span>Want to know how this works?</span>
