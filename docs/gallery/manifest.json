@@ -274,13 +274,13 @@
     },
     {
       "id": "projects-placeholder",
-      "title": "Projects (parked)",
+      "title": "Projects (Hive Works not connected)",
       "area": "Projects",
-      "caption": "An area that isn't built yet says so, instead of showing pretend data.",
-      "alt": "The Projects screen with a heading and one sentence saying it isn't built yet.",
+      "caption": "Projects shows the Hive Works company. When Hive Works isn't connected, the page says so instead of showing anything as current.",
+      "alt": "The Projects page saying Hive Works isn't connected to this World yet.",
       "status": "captured",
-      "captured_at": "2026-09-26",
-      "commit": "74ae381"
+      "captured_at": "2026-09-27",
+      "commit": "3d739fa"
     },
     {
       "id": "first-light",

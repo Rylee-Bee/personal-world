@@ -1070,3 +1070,53 @@ export interface NotifyOutcome {
   deferred: boolean;
   state: string;
 }
+
+// ─── Hive Works views (GET /api/rooms/hive-works/views/…) ──────────
+// Read-only; each answer is {generated_at, <key>}. Links and face_url
+// are paths on the Hive Works site (open with the room's public_url).
+
+export interface HiveTeam {
+  id: string;
+  name: string;
+  /** The bee who leads this team (a crew `bee` id). */
+  bee: string;
+  projects: string[];
+  open: number;
+  asks_you: number;
+}
+
+export interface HiveProject {
+  id: string;
+  name: string;
+  team: string;
+  open: number;
+  decisions_open: number;
+  /** A total, not recent. */
+  closed: number;
+  stale: number;
+  link: string | null;
+}
+
+export interface HiveTicket {
+  hw: string;
+  what: string;
+  stage: string;
+  status: "backlog" | "someday" | string;
+  freedom: string;
+  done_when: string;
+  owner: string;
+  link: string | null;
+}
+
+export interface HiveBee {
+  bee: string;
+  name: string;
+  job: string;
+  line: string;
+  face_url: string | null;
+}
+
+export interface HiveTeamsView { generated_at: string; teams: HiveTeam[] }
+export interface HiveProjectsView { generated_at: string; projects: HiveProject[] }
+export interface HiveProjectView { generated_at: string; project: HiveProject & { tickets: HiveTicket[] } }
+export interface HiveCrewView { generated_at: string; crew: HiveBee[] }
