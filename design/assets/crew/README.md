@@ -20,6 +20,7 @@ never regenerate or overwrite this art casually (see `AGENTS.md`).
 | `portraits/` | Round-porthole busts (2026-09-25), 1024², same framing for everyone: Bolt, Hekek, Ratatoskr, Bruma, Mira, **Scoop** (the Burrito Journalism truck). Used at 24–84 px. |
 | `assistant/` | **The Assistant** (2026-09-26), the plain default companion: `assistant-portrait` (porthole bust, 1024², framed like the crew portraits), `assistant-listening` (bust, beside Chat), `assistant-hello` (full monitor on its stand, a clean-edge cutout padded to 1024², safe on light and dark panels), and the original `assistant.svg` (vector fallback). |
 | `doorways/` | Arched room interiors for the **Doorways** theme (2026-09-25), 1024×1536 WebP, no characters inside: `room-worlds` (the bridge; Worlds is a place, not a companion), `room-workshop` (Bolt), `room-playnice` (Hekek), `room-vefr` (Ratatoskr), `room-memomancer` (Bruma), `room-hive-works` (Hive Works: honeycomb shelves and a bee crest; owner art, 2026-09-26). |
+| `sleepy/` | Night poses for the Rough night page (owner art, 2026-09-26), 1024×1024 transparent PNG, very dark: `renai-`, `bolt-`, `hekek-`, `ratatoskr-`, `bruma-`, `mira-`, `scoop-` and `assistant-sleepy.png`. Web sizes in `ui/public/assets/crew/{256,512}/`. |
 
 **Owner canon, 2026-09-25** (newer than `docs/COMPANION-CANON.md`, which still needs updating):
 the planet is **Sol** (the primary logo; the crew's commbadges are based on her), the

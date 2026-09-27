@@ -18,3 +18,5 @@ This is the **starter crew**, not a fixed cast: people can add their own compani
 choose whether a room has one at all. Load from code with `import.meta.env.BASE_URL`
 (see `ResidentPresence.tsx`) so a path-prefixed deploy still finds them. All art is
 decorative: `alt=""` and `aria-hidden`, with the name in text beside it.
+
+Sleepy night poses (Rough night page): `<key>-sleepy.webp` for renai, bolt, hekek, ratatoskr, bruma, mira, scoop and assistant, in 256/ and 512/. Masters: `design/assets/crew/sleepy/`.

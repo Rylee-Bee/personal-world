@@ -32,14 +32,24 @@ import { CompanionFace } from "../../components/crew/CompanionFace";
 import { SolMoment } from "../../components/SolMoment";
 import { Icon } from "../../components/Icon";
 
-/** Crew whose sleepy night pose has been delivered (ART-REQUESTS §14),
- *  by crew key. Add a key when its `<key>-sleepy.webp` lands in
- *  public/assets/crew/256/; until then the page shows the usual
- *  portrait, dimmed. */
-const SLEEPY_ART: ReadonlySet<string> = new Set<string>([]);
+/** Crew with a sleepy night pose (ART-REQUESTS §14, delivered
+ *  2026-09-26), by crew key: `<key>-sleepy.webp` in
+ *  public/assets/crew/{256,512}/. A companion someone added themselves
+ *  has none, so they keep their usual portrait, dimmed. */
+const SLEEPY_ART: ReadonlySet<string> = new Set<string>([
+  "renai",
+  "bolt",
+  "hekek",
+  "ratatoskr",
+  "bruma",
+  "mira",
+  "scoop",
+  "assistant",
+]);
 
-function nightPortrait(key: string | null, portrait: string): string {
-  return key && SLEEPY_ART.has(key) ? `/assets/crew/256/${key}-sleepy.webp` : portrait;
+/** The companion's night pose, or null when they don't have one. */
+function sleepyArt(key: string | null): string | null {
+  return key && SLEEPY_ART.has(key) ? `/assets/crew/512/${key}-sleepy.webp` : null;
 }
 
 const LEVELS: readonly { value: number; label: string }[] = [
@@ -119,13 +129,21 @@ export function RoughNight({ onBack }: { onBack: () => void }) {
       {/* 1 · One soft line from the companion — a character line, so
           the voice is allowed; no name when nobody was chosen. */}
       <div className="mt-[var(--pw-spacing-xl)] flex items-center gap-[var(--pw-spacing-md)]">
-        {hasCompanion && speaker.portrait !== null && (
-          <CompanionFace
-            name={speaker.name}
-            portrait={publicAsset(nightPortrait(speaker.key, speaker.portrait))}
-            size="md"
-            dim
+        {/* Their night pose when they have one: the whole figure, no
+            ring (the art is already dark); else the usual face, dimmed. */}
+        {hasCompanion && sleepyArt(speaker.key) !== null ? (
+          <img
+            src={publicAsset(sleepyArt(speaker.key) as string)}
+            alt=""
+            aria-hidden="true"
+            data-sleepy={speaker.key}
+            className="h-[120px] w-[120px] shrink-0 object-contain sm:h-[152px] sm:w-[152px]"
           />
+        ) : (
+          hasCompanion &&
+          speaker.portrait !== null && (
+            <CompanionFace name={speaker.name} portrait={publicAsset(speaker.portrait)} size="md" dim />
+          )
         )}
         <p className="min-w-0 text-[length:var(--pw-typography-size_lead)] text-[var(--pw-text-secondary)]">
           {hasCompanion && <b>{`${speaker.name}: `}</b>}

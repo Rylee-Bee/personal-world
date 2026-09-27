@@ -174,6 +174,23 @@ describe("RoughNight page", () => {
     expect(images[0].getAttribute("alt")).toBe("");
   });
 
+  it("shows the companion in their sleepy night pose, silent to screen readers", () => {
+    const { container } = render(<RoughNight onBack={() => {}} />);
+    const pose = container.querySelector("img[data-sleepy]");
+    expect(pose?.getAttribute("data-sleepy")).toBe("mira");
+    expect(pose?.getAttribute("src")).toMatch(/assets\/crew\/512\/mira-sleepy\.webp$/);
+    expect(pose?.getAttribute("alt")).toBe("");
+    // Still spoken by name in the words.
+    expect(screen.getByText("Mira:")).toBeInTheDocument();
+  });
+
+  it("keeps the usual portrait for a companion someone added themselves", () => {
+    state.resident = { key: "ori", name: "Ori", portrait: "/assets/crew/512/owl-portrait.webp" };
+    const { container } = render(<RoughNight onBack={() => {}} />);
+    expect(container.querySelector("img[data-sleepy]")).toBeNull();
+    expect(container.querySelector('img[src$="owl-portrait.webp"]')).not.toBeNull();
+  });
+
   it("marks the chosen level with a word as well as the border", async () => {
     const user = userEvent.setup();
     render(<RoughNight onBack={() => {}} />);
