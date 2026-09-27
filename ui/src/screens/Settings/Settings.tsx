@@ -674,6 +674,7 @@ export function Settings({
   onOpenRoughNight,
   onOpenLibrary,
   onOpenLore,
+  onOpenStickers,
 }: {
   onOpenCrew?: () => void;
   onOpenPeople?: () => void;
@@ -681,6 +682,7 @@ export function Settings({
   onOpenRoughNight?: () => void;
   onOpenLibrary?: () => void;
   onOpenLore?: () => void;
+  onOpenStickers?: () => void;
 } = {}) {
   const me = useMe();
   const myLimits = me.data?.data?.role === "supervised" ? me.data?.data?.limits : undefined;
@@ -894,6 +896,26 @@ export function Settings({
             </div>
             <WorldButton variant="ghost" onPress={onOpenLibrary}>
               Open the Library
+            </WorldButton>
+          </section>
+        )}
+
+        {/* The sticker album: stickers for trying, learning and finding things. */}
+        {onOpenStickers && (
+          <section
+            aria-labelledby="settings-stickers-heading"
+            className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+          >
+            <div className="min-w-0 flex-1">
+              <h2 id="settings-stickers-heading" className={`mb-[var(--pw-spacing-xs)] ${SECTION_HEADING}`} style={SERIF}>
+                Sticker album
+              </h2>
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+                Stickers for trying things, learning things and finding things. Found is forever.
+              </p>
+            </div>
+            <WorldButton variant="ghost" onPress={onOpenStickers}>
+              Open your album
             </WorldButton>
           </section>
         )}

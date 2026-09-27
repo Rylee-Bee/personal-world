@@ -531,6 +531,48 @@ export const putLearningMode = (mode: LearningMode) =>
 export const postLearningGotIt = (concept: string) =>
   unwrap<Envelope<{ concept: string; stage: string }>>(sendBody("POST", "/api/learning/got-it", { concept }));
 
+// ===== Stickers (docs/STICKERS.md, stickers/0) =====
+export interface AlbumSticker {
+  id: string;
+  kind: "open" | "riddle" | "secret";
+  shine: "paper" | "foil" | "holo";
+  shape?: "circle" | "star" | "tag" | "book";
+  section?: string;
+  found: boolean;
+  /** Absent on an unfound riddle. */
+  name?: string;
+  /** Worlds: a path or id under /assets/stickers; other apps: a room art name. */
+  art?: string;
+  earn?: string;
+  riddle?: string;
+  found_at?: string;
+  context?: string;
+  placed?: { x: number; y: number; r: number } | null;
+}
+export interface AlbumPage {
+  app: string;
+  title: string;
+  look?: string;
+  stickers: AlbumSticker[];
+  found: number;
+  shown: number;
+  /** Only whether any secrets are left (never how many). */
+  secrets_remain: boolean | number;
+}
+export interface StickerAlbum {
+  pages: AlbumPage[];
+  unavailable: { app: string; error: string }[];
+  total_found: number;
+}
+export const getStickers = () => unwrap<Envelope<StickerAlbum>>(getRequest("/api/stickers"));
+/** Report a moment only the UI sees. `new: true` means it just landed. */
+export const postStickerFound = (sticker: string, context?: string) =>
+  unwrap<Envelope<{ new: boolean; sticker?: AlbumSticker }>>(
+    sendBody("POST", "/api/stickers/found", context ? { app: "worlds", sticker, context } : { app: "worlds", sticker }),
+  );
+export const postStickerPlace = (body: { app: string; sticker: string; x: number; y: number; r: number }) =>
+  unwrap<Envelope>(sendBody("POST", "/api/stickers/place", body));
+
 // ===== Vault =====
 export const getVaultStatus = () =>
   unwrap<Envelope<VaultStatusData>>(api.GET("/api/vault/status", {}));

@@ -6,7 +6,7 @@
  *
  * States, always said in words as well as shown:
  * - found: its art and name, and its shine;
- * - not yet (open): its name, faded, so you know what to go and do;
+ * - not yet (open): its name and picture, faded, so you know what to go and do;
  * - riddle: a striped blank with a question mark; the name stays hidden;
  * - secret: never drawn until found; then a dark foil sticker with a small
  *   "secret" corner.
@@ -58,8 +58,8 @@ export function Sticker(p: StickerProps) {
       data-kind={kind}
     >
       <span className="sticker-die" aria-hidden="true">
-        {found && p.art ? (
-          <img src={p.art} alt="" className="sticker-art" />
+        {(found || kind === "open") && p.art ? (
+          <img src={p.art} alt="" draggable={false} className="sticker-art" />
         ) : !found && kind === "riddle" ? (
           <span className="sticker-mark">?</span>
         ) : (
