@@ -1,22 +1,22 @@
 # Making The Station feel alive — research & direction
 
-> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../.project/CURRENT.md)) · **Read this if:** you need the dated 2026-09-17 research on companion/ambient behaviour · **Superseded by:** [`.project/PLAN.md`](../.project/PLAN.md) for direction and [`docs/PRODUCT-LANGUAGE.md`](PRODUCT-LANGUAGE.md) for the theme boundary.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../../.project/CURRENT.md)) · **Read this if:** you need the dated 2026-09-17 research on companion/ambient behaviour · **Superseded by:** [`.project/PLAN.md`](../../.project/PLAN.md) for direction and [`docs/PRODUCT-LANGUAGE.md`](../PRODUCT-LANGUAGE.md) for the theme boundary.
 
 **In short:** a 2026-09-17 research note on how to make the Station feel
 "alive" (response, imperfection, memory — not more animation), with a
 licensing reality check and anti-patterns. Since it was written, the
 interface flipped to the React rebuild in `ui/` (2026-09-22, Bridge is now
 home) and the server-rendered Station became a theme package; it remains a
-research record, not a commitment. Truth routing: [`docs/README.md`](README.md).
+research record, not a commitment. Truth routing: [`docs/README.md`](../README.md).
 
 Status: **research** (2026-09-17). Not a commitment and not an implementation
 claim. It exists to give a designer and an engineer a concrete direction, and to
 correct several ChatGPT-suggested references that turned out to be mis-specified
 or licence-incompatible.
 
-Companion reading: [ACCESSIBILITY_CONTRACT.md](accessibility/ACCESSIBILITY_CONTRACT.md),
-[NATIVE-BASELINE-AND-ENRICHMENT.md](NATIVE-BASELINE-AND-ENRICHMENT.md),
-[../design/COMPANION_INTEGRATION.md](../design/COMPANION_INTEGRATION.md).
+Companion reading: [ACCESSIBILITY_CONTRACT.md](../accessibility/ACCESSIBILITY_CONTRACT.md),
+[NATIVE-BASELINE-AND-ENRICHMENT.md](../NATIVE-BASELINE-AND-ENRICHMENT.md),
+[../design/COMPANION_INTEGRATION.md](../../design/COMPANION_INTEGRATION.md).
 
 ---
 

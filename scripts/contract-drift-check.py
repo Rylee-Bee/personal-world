@@ -12,7 +12,7 @@ Answers, without mutating anything:
    registered? (present:false — must be zero.)
 3. coverage: how many live /api routes still have no curated row?
    Reported, never failed: the uncurated tail is a known, named backlog
-   (docs/PARITY-CORE-64.md), not drift.
+   (docs/history/PARITY-CORE-64.md), not drift.
 
 Exit codes: 0 no drift · 1 drift (spec mismatch or ghosts) · 2 the tool
 itself failed (app could not boot). No CI wiring: this gate is armed by
@@ -68,7 +68,7 @@ def main() -> int:
     print(f"  ghosts     : {'DRIFT' if ghosts else 'none'}"
           f" (curated_but_not_registered: {ghosts or 0})")
     print(f"  uncurated  : {len(uncurated)} live /api routes without a curated row"
-          " (report-only; see docs/PARITY-CORE-64.md)")
+          " (report-only; see docs/history/PARITY-CORE-64.md)")
 
     if spec_drift or ghosts:
         print("RESULT: DRIFT — run `uv run --extra crypto python scripts/gen-openapi.py`"

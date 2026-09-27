@@ -10,7 +10,7 @@ capabilities:
       hierarchy, grouping, density, spacing rhythm, card/list/table choices,
       companion placement, responsive transformation.
     inputs:
-      - design brief (docs/DESIGN-HANDOFF.md class)
+      - design brief (docs/history/DESIGN-HANDOFF.md class)
       - current canonical tokens (design/tokens.json)
       - accessibility floor (docs/accessibility/ACCESSIBILITY_CONTRACT.md)
     outputs:

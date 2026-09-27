@@ -1,13 +1,13 @@
 # PROJECT WORLDS — MASTER HANDOFF
 
-> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../.project/CURRENT.md)) · **Read this if:** you want the dated 2026-09-16 "everything in one file" handoff for provenance · **Superseded by:** [`.project/PLAN.md`](../.project/PLAN.md) for direction and [`.project/CURRENT.md`](../.project/CURRENT.md) for state.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../../.project/CURRENT.md)) · **Read this if:** you want the dated 2026-09-16 "everything in one file" handoff for provenance · **Superseded by:** [`.project/PLAN.md`](../../.project/PLAN.md) for direction and [`.project/CURRENT.md`](../../.project/CURRENT.md) for state.
 
 **In short:** a 2026-09-16 top-down handoff (what it is, what was built,
 what was in flight, the decision list). Since it was written, the interface
 flipped to the React rebuild in `ui/` (2026-09-22, Bridge is now home) and
 the server-rendered Station became a theme package, so "the map is the
 navigation AND the frontend" is superseded. Truth routing:
-[`docs/README.md`](README.md).
+[`docs/README.md`](../README.md).
 
 ### One document to understand everything: what we've done, what we have, where we are.
 *Written 2026-09-16. Copy-paste friendly. Read top-down; every section stands alone.*

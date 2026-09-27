@@ -43,7 +43,7 @@ plain words, `docs/WHERE-WE-ARE.md`.
   - T7/T8: accessible primitives — Dialog, Popover, LiveRegion (30s batched announcements), Drawer, Disclosure, StatusChip (luminance-only, closed vocabulary), CompanionSlot (sibling artwork/trigger), StepUpPrompt.
   - T9: AppShell (skip link, landmarks, rail/banner/bottom cascade, safe-area), SectionNav from `/api/sections` (hidden sections omitted, routes resolve), EmptyState/ErrorState, prefs applied to `<html data-pw-*>` before content.
   - Verification: Python 494 passed; `framework validate` healthy; frontend 147 tests green; build ~100 KB gz (budget 350 KB); tokens/hex/motion gates green; container CI-shape green.
-- 2026-09-10 — completion plan adopted (`docs/PERSONAL-WORLD-COMPLETION-PLAN.md`) and **Phase 0 (stabilize) landed**:
+- 2026-09-10 — completion plan adopted (`docs/history/PERSONAL-WORLD-COMPLETION-PLAN.md`) and **Phase 0 (stabilize) landed**:
   - P0.2 gitignore covers private runtime config (`config/*.local.json`, `config/principal.json`), frontend env/dist; ownership rule documented in `config/README.local.md`.
   - P0.3 `PUT /api/identity/principal` sets the caller's display name in private runtime state (`data/users.json`), step-up + persons only; a working-tree experiment that wrote plaintext provider keys into tracked config and served an unauthenticated React bundle was discarded, not merged. The client-side `VITE_*` bearer-token pattern is removed from the React prototype — no replacement client token exists by design.
   - P0.4 reminder scheduler no longer dies on first fire (`journal.append_raw` never existed); tick errors are visible state.

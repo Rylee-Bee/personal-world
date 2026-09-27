@@ -26,9 +26,9 @@ are unchanged.)
 | [`.project/PLAN.md`](../.project/PLAN.md) | **Current direction** (owner-approved 2026-09-25): "things come to me", the Bridge, Keeper + briefing as one experience. Wins over TRUE-NORTH on scope and sequencing. |
 | [TRUE-NORTH](TRUE-NORTH.md) | Direction (owner-approved 2026-09-22): vision, five commitments, honesty and accessibility principles, which still hold. |
 | [ROADMAP](../ROADMAP.md) | Historical horizon record — superseded as direction by TRUE-NORTH (2026-09-22). |
-| [ROADMAP-AND-TODO.md](ROADMAP-AND-TODO.md) | Owner-facing alpha-status snapshot, dated; links to the canonical roadmap. |
+| [history/ROADMAP-AND-TODO.md](history/ROADMAP-AND-TODO.md) | Owner-facing alpha-status snapshot, dated; links to the canonical roadmap. |
 | [PERSONAL-WORLD-FINISH-LINE.md](PERSONAL-WORLD-FINISH-LINE.md) | Target-experience detail where TRUE-NORTH is silent — superseded as direction (2026-09-22). |
-| [PERSONAL-WORLD-COMPLETION-PLAN.md](PERSONAL-WORLD-COMPLETION-PLAN.md) | Dated execution plan (v1, 2026-09-10): approved decisions, dependency-ordered phases P0–P14, acceptance criteria, model routing. Phase status predates the T15 cutover / Workshop v3 — verify against code. |
+| [history/PERSONAL-WORLD-COMPLETION-PLAN.md](history/PERSONAL-WORLD-COMPLETION-PLAN.md) | Dated execution plan (v1, 2026-09-10): approved decisions, dependency-ordered phases P0–P14, acceptance criteria, model routing. Phase status predates the T15 cutover / Workshop v3 — verify against code. |
 | [p1/FOUNDATION-SPEC.md](p1/FOUNDATION-SPEC.md) | Historical (P1 complete) | Approved P1 implementation contract: sections API, primitive contracts, parity checklist, bounded tasks. Preserved for provenance. |
 | [AGENT_POLICY.md](../AGENT_POLICY.md) | Mandatory agent preflight and decision policy. |
 | [AGENT_CONTRACTS.md](../AGENT_CONTRACTS.md) | Canonical contract registry: applicability, authority, and exact entry points. |
@@ -48,9 +48,9 @@ are unchanged.)
 | [PROVIDERS.md](PROVIDERS.md) | Canonical | How to add a provider, step by step. |
 | [OPERATIONS.md](OPERATIONS.md) | Canonical | Running it locally: CLI, web API, containers, health. |
 | [ALPHA-ACCEPTANCE.md](ALPHA-ACCEPTANCE.md) | Runbook | Owner checklist for declaring private technical alpha; evidence stays outside the repo. |
-| [OPERATIONS-FIRST-RUN.md](OPERATIONS-FIRST-RUN.md) | Operational reference | First-run procedure and dated bring-up evidence; reverify in the actual deployment. |
+| [history/OPERATIONS-FIRST-RUN.md](history/OPERATIONS-FIRST-RUN.md) | Operational reference | First-run procedure and dated bring-up evidence; reverify in the actual deployment. |
 | [HUMAN_RELIABILITY_CONTRACT.md](HUMAN_RELIABILITY_CONTRACT.md) | Canonical | How the system stays safe and operable without demanding maximum operator attention. |
-| [DESIGN-HANDOFF.md](DESIGN-HANDOFF.md) | V0.1 design baseline | Dated design-stage reference, not a current feature inventory; see README/Architecture for implemented scope. |
+| [history/DESIGN-HANDOFF.md](history/DESIGN-HANDOFF.md) | V0.1 design baseline | Dated design-stage reference, not a current feature inventory; see README/Architecture for implemented scope. |
 
 ## Design
 
@@ -61,7 +61,7 @@ are unchanged.)
 | [COMPANION_INTEGRATION.md](../design/COMPANION_INTEGRATION.md) | Canonical design + baseline/target notes | Five residents and identity design; current standalone Chat versus target contextual/global chat. |
 | [CREW-AND-STATION-THESIS.md](CREW-AND-STATION-THESIS.md) | Canonical thesis (role amended 2026-09-22) | Crew/voice/companion family rules remain canonical; the *Station-as-primary-experience* role is superseded — Station is a kept theme package behind the stable skeleton. |
 | [COMPANION-CANON.md](COMPANION-CANON.md) | Canonical naming | Companion display names (Renai, Ratatoskr, Bolt, Burrito Journalism, Personal World, Hekek, Bruma, Mira), the station-id ↔ server-key mapping, per-surface naming rules, and the OPEN/UNKNOWN items. Settings is an icon, not a resident. |
-| [STATION-MAP.md](STATION-MAP.md) | Station-era deck plan (historical) | The retired Station's logical deck plan: eight decks, each named for its job, with its resident. The current navigation is the stable skeleton (`Overview · Memory · Chat · Settings`, per `docs/PRODUCT-LANGUAGE.md`); Station survives only as a theme package. |
+| [history/STATION-MAP.md](history/STATION-MAP.md) | Station-era deck plan (historical) | The retired Station's logical deck plan: eight decks, each named for its job, with its resident. The current navigation is the stable skeleton (`Overview · Memory · Chat · Settings`, per `docs/PRODUCT-LANGUAGE.md`); Station survives only as a theme package. |
 | [Station design concepts](../design/concepts/README.md) | Archived 2026-09-25 | The Station concept pages (index, eight layout packets, dialect sheet, Today) now live at tag `archive/pre-design-cleanup-2026-09-25`. Their art stays in `design/concepts/assets/`. |
 | [ART-REQUESTS.md](ART-REQUESTS.md) | Canonical request sheet | What to ask for when commissioning companion/crew art (style clause, per-character clauses, formats), and the current "still missing" gap list. |
 | [CHARACTER-HANDBOOK.md](CHARACTER-HANDBOOK.md) | Canonical character + voice | The crew's *who*: each resident's emotional identity and voice, what they should never be, the two-voices rule, the attention voices, and Personal-vs-Contextual. Distinct from names/ids (COMPANION-CANON) and art (COMPANION_INTEGRATION). |
@@ -73,8 +73,8 @@ are unchanged.)
 | [Screen library](../design/screens/) | Canonical | Today/Journal/Settings/Chat screens, both themes, narrow + desktop. |
 | [Exports (0.1)](../design/exports/0.1/) | Canonical visual source | The Figma export set the palette reconciliation targeted. |
 | [handoff/](../design/handoff/README.md) | Archived | The original 0.1 spec package, preserved verbatim. Canonical accessibility docs now live under [docs/accessibility/](accessibility/ACCESSIBILITY_CONTRACT.md). |
-| [FIGMA-HANDOFF-LESSONS.md](FIGMA-HANDOFF-LESSONS.md) | Canonical lessons | Composition drift is not caught by token gates; browser-side visual comparison is required before composition work merges. |
-| [STATION-ALIVE-RESEARCH.md](STATION-ALIVE-RESEARCH.md) | Research (not a commitment) | Direction for making the Station feel alive: licence reality check, semantic state vocabulary, companion contract, spatial/ambient rules, prototypes, anti-patterns. |
+| [history/FIGMA-HANDOFF-LESSONS.md](history/FIGMA-HANDOFF-LESSONS.md) | Canonical lessons | Composition drift is not caught by token gates; browser-side visual comparison is required before composition work merges. |
+| [history/STATION-ALIVE-RESEARCH.md](history/STATION-ALIVE-RESEARCH.md) | Research (not a commitment) | Direction for making the Station feel alive: licence reality check, semantic state vocabulary, companion contract, spatial/ambient rules, prototypes, anti-patterns. |
 
 ## Accessibility
 
@@ -212,19 +212,19 @@ Generated from each page's status line (2026-09-26). If a page is missing here, 
 |---|---|
 | [../ROADMAP.md](../ROADMAP.md) | you want the dated horizon record, not current direction (superseded by `.project/PLAN.md` (current direction) and `docs/TRUE-NORTH.md` (principles; its scope is itself superseded by PLAN)) |
 | [../STATUS.md](../STATUS.md) | you followed an old link and want the current-state pointer (superseded by `.project/CURRENT.md`) |
-| [DESIGN-HANDOFF.md](DESIGN-HANDOFF.md) | you need the V0.1 design baseline and the accessibility/architectural intent behind today's product (superseded by `.project/CURRENT.md`) |
-| [EXTERNAL-AGENT-HANDOFF.md](EXTERNAL-AGENT-HANDOFF.md) | you need the 2026-09-16 parallel-lane working plan and its file-ownership rules (superseded by `.project/CURRENT.md`.) |
-| [FIGMA-HANDOFF-LESSONS.md](FIGMA-HANDOFF-LESSONS.md) | you are writing a design/implementation handoff and want the 2026-09-11 postmortem on composition drift (superseded by `.project/design/CURRENT.md`.) |
-| [OPERATIONS-FIRST-RUN.md](OPERATIONS-FIRST-RUN.md) | you want the dated 2026-09-09 bring-up record (superseded by Operations.) |
-| [PARITY-CORE-64.md](PARITY-CORE-64.md) | you need the 2026-09-20/21 route-adjudication record for provenance (superseded by the running code and `.project/CURRENT.md`.) |
-| [PARITY-DIVERGENCE-2026-09-20.md](PARITY-DIVERGENCE-2026-09-20.md) | you need the regenerable 2026-09-21 parity checklist for provenance (superseded by the running `ui/` interface and `.project/CURRENT.md`.) |
-| [PERSONAL-WORLD-COMPLETION-PLAN.md](PERSONAL-WORLD-COMPLETION-PLAN.md) | you want the dated v1 execution plan for provenance (superseded by `.project/PLAN.md` for direction and `.project/CURRENT.md` for state.) |
-| [PRODUCT-VISION-HANDOFF.md](PRODUCT-VISION-HANDOFF.md) | you want the dated 2026-09-16 vision write-up and its decision list for provenance (superseded by `.project/PLAN.md` for direction and `.project/CURRENT.md` for state.) |
-| [PROJECT-WORLDS-MASTER-HANDOFF.md](PROJECT-WORLDS-MASTER-HANDOFF.md) | you want the dated 2026-09-16 "everything in one file" handoff for provenance (superseded by `.project/PLAN.md` for direction and `.project/CURRENT.md` for state.) |
-| [ROADMAP-AND-TODO.md](ROADMAP-AND-TODO.md) | you want the dated 2026-09-17 alpha snapshot, not current truth (superseded by `.project/PLAN.md` for direction and `.project/CURRENT.md` for state.) |
-| [STATION-ALIVE-RESEARCH.md](STATION-ALIVE-RESEARCH.md) | you need the dated 2026-09-17 research on companion/ambient behaviour (superseded by `.project/PLAN.md` for direction and `docs/PRODUCT-LANGUAGE.md` for the theme boundary.) |
-| [STATION-GAP-ANALYSIS.md](STATION-GAP-ANALYSIS.md) | you need the dated 2026-09-17 source-level gap analysis for provenance (superseded by the running `ui/` interface and `.project/CURRENT.md`.) |
-| [STATION-MAP.md](STATION-MAP.md) | you want the dated eight-deck design record behind today's crew and doorways (superseded by `.project/PLAN.md` (current product shape); crew/room canon lives in `docs/COMPANION-CANON.md` and `docs/CHARACTER-HANDBOOK.md`) |
+| [history/DESIGN-HANDOFF.md](history/DESIGN-HANDOFF.md) | you need the V0.1 design baseline and the accessibility/architectural intent behind today's product (superseded by `.project/CURRENT.md`) |
+| [history/EXTERNAL-AGENT-HANDOFF.md](history/EXTERNAL-AGENT-HANDOFF.md) | you need the 2026-09-16 parallel-lane working plan and its file-ownership rules (superseded by `.project/CURRENT.md`.) |
+| [history/FIGMA-HANDOFF-LESSONS.md](history/FIGMA-HANDOFF-LESSONS.md) | you are writing a design/implementation handoff and want the 2026-09-11 postmortem on composition drift (superseded by `.project/design/CURRENT.md`.) |
+| [history/OPERATIONS-FIRST-RUN.md](history/OPERATIONS-FIRST-RUN.md) | you want the dated 2026-09-09 bring-up record (superseded by Operations.) |
+| [history/PARITY-CORE-64.md](history/PARITY-CORE-64.md) | you need the 2026-09-20/21 route-adjudication record for provenance (superseded by the running code and `.project/CURRENT.md`.) |
+| [history/PARITY-DIVERGENCE-2026-09-20.md](history/PARITY-DIVERGENCE-2026-09-20.md) | you need the regenerable 2026-09-21 parity checklist for provenance (superseded by the running `ui/` interface and `.project/CURRENT.md`.) |
+| [history/PERSONAL-WORLD-COMPLETION-PLAN.md](history/PERSONAL-WORLD-COMPLETION-PLAN.md) | you want the dated v1 execution plan for provenance (superseded by `.project/PLAN.md` for direction and `.project/CURRENT.md` for state.) |
+| [history/PRODUCT-VISION-HANDOFF.md](history/PRODUCT-VISION-HANDOFF.md) | you want the dated 2026-09-16 vision write-up and its decision list for provenance (superseded by `.project/PLAN.md` for direction and `.project/CURRENT.md` for state.) |
+| [history/PROJECT-WORLDS-MASTER-HANDOFF.md](history/PROJECT-WORLDS-MASTER-HANDOFF.md) | you want the dated 2026-09-16 "everything in one file" handoff for provenance (superseded by `.project/PLAN.md` for direction and `.project/CURRENT.md` for state.) |
+| [history/ROADMAP-AND-TODO.md](history/ROADMAP-AND-TODO.md) | you want the dated 2026-09-17 alpha snapshot, not current truth (superseded by `.project/PLAN.md` for direction and `.project/CURRENT.md` for state.) |
+| [history/STATION-ALIVE-RESEARCH.md](history/STATION-ALIVE-RESEARCH.md) | you need the dated 2026-09-17 research on companion/ambient behaviour (superseded by `.project/PLAN.md` for direction and `docs/PRODUCT-LANGUAGE.md` for the theme boundary.) |
+| [history/STATION-GAP-ANALYSIS.md](history/STATION-GAP-ANALYSIS.md) | you need the dated 2026-09-17 source-level gap analysis for provenance (superseded by the running `ui/` interface and `.project/CURRENT.md`.) |
+| [history/STATION-MAP.md](history/STATION-MAP.md) | you want the dated eight-deck design record behind today's crew and doorways (superseded by `.project/PLAN.md` (current product shape); crew/room canon lives in `docs/COMPANION-CANON.md` and `docs/CHARACTER-HANDBOOK.md`) |
 | [adr/WORKBENCH-SPIKE-FINDINGS.md](adr/WORKBENCH-SPIKE-FINDINGS.md) | you want to see what a spike actually found when the Workbench ADRs met the code (superseded by `docs/adr/0003-workbench-core-owned-capability.md` and `docs/adr/0006-event-task-envelope.md`) |
 | [history/2026-09-22-true-north-research-brief.md](history/2026-09-22-true-north-research-brief.md) | you want the 2026-09-22 research that fed the re-focus (superseded by `docs/TRUE-NORTH.md`.) |
 | [history/API-WIRING-HANDOFF.md](history/API-WIRING-HANDOFF.md) | you need the 2026-09-13 endpoint-disposition handoff (68 endpoints, 19 read tools) (superseded by `.project/CURRENT.md`.) |

@@ -15,9 +15,9 @@ frame IDs). This file is the concise companion.
   outranks literal visual matching everywhere.
 - Design-stage visual source: your file `VATVojyJZT9HKx0CrDS0yr`, for
   explicitly approved frames (list below).
-- V0.1 baseline prose: `docs/DESIGN-HANDOFF.md` (partly superseded; its
+- V0.1 baseline prose: `docs/history/DESIGN-HANDOFF.md` (partly superseded; its
   2026-09-10 reconciliation note governs).
-- Composition lesson (2026-09-11): `docs/FIGMA-HANDOFF-LESSONS.md` — token
+- Composition lesson (2026-09-11): `docs/history/FIGMA-HANDOFF-LESSONS.md` — token
   checks do not verify composition; implementation passes must visually
   compare against your exports before merging.
 

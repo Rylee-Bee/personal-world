@@ -1,6 +1,6 @@
 """Chat capability: the chat-loop machinery over the live providers.
 
-Architecture target (docs/DESIGN-HANDOFF.md, ROADMAP "Now"):
+Architecture target (docs/history/DESIGN-HANDOFF.md, ROADMAP "Now"):
 Personal World UI -> Chat API -> small context builder ->
 provider-neutral ChatContract -> local model endpoint.
 

@@ -28,7 +28,7 @@ Never included (ephemeral/regenerable, per the restore boundary):
 ``sessions.json``, ``memory.fts5.db*``, ``updates-session.json``.
 ``vault.enc`` (instance and per-user) is included ONLY with the
 explicit ``include_vault=True`` — it is already encrypted at rest, and
-decision #4 in docs/PRODUCT-VISION-HANDOFF.md allows it in a
+decision #4 in docs/history/PRODUCT-VISION-HANDOFF.md allows it in a
 full-restore artifact encrypted-only, never by default.
 
 OIDC caveat: ``oidc.json`` is archived as CONFIG ONLY. By design it
