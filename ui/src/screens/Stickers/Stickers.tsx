@@ -17,6 +17,8 @@ import { isSeen, markSeen } from "../../components/stickers/landing";
 import { relativeTime } from "../../components/rooms/format";
 import { useMinuteClock } from "../../components/rooms/useRootAttribute";
 import { Loading } from "../../components/Loading";
+import { BookGirl } from "../../components/bookgirl/BookGirl";
+import { hintFor, hintUsedToday, markHintUsed } from "../../components/stickers/hints";
 import { SolMoment } from "../../components/SolMoment";
 import { Icon } from "../../components/Icon";
 import { WorldButton } from "../../components/WorldButton";
@@ -233,6 +235,45 @@ function Sheet({
   );
 }
 
+/** Book Girl's hint: once a day, for one riddle, only when asked. */
+function HintFromBookGirl({ tabs, current }: { tabs: Tab[]; current: Tab }) {
+  const [used, setUsed] = useState(() => hintUsedToday());
+  const [hint, setHint] = useState<{ riddle: string; words: string } | null>(null);
+  const pick =
+    current.stickers.find((s) => s.kind === "riddle" && !s.found) ??
+    tabs.flatMap((t) => t.stickers).find((s) => s.kind === "riddle" && !s.found);
+  if (!pick && !hint) return null;
+  return (
+    <section aria-label="A hint from Book Girl" className="flex flex-wrap items-start gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-md)]">
+      <BookGirl pose="resting" size={48} />
+      <div className="flex min-w-0 flex-1 flex-col gap-[var(--pw-spacing-xs)]" role="status" aria-live="polite">
+        {hint ? (
+          <>
+            <p className="italic text-[var(--pw-text-secondary)]">{`“${hint.riddle}”`}</p>
+            <p className="text-[var(--pw-text-primary)]">{hint.words}</p>
+          </>
+        ) : used ? (
+          <p className={SMALL}>Book Girl gave today’s hint. There’s another tomorrow, if you want one.</p>
+        ) : (
+          <p className={SMALL}>Stuck on a riddle? Book Girl can soften one a day.</p>
+        )}
+      </div>
+      {!used && !hint && pick ? (
+        <WorldButton
+          variant="secondary"
+          onPress={() => {
+            markHintUsed();
+            setUsed(true);
+            setHint({ riddle: pick.riddle ?? "", words: hintFor(pick.id, pick.section) });
+          }}
+        >
+          Want a hint?
+        </WorldButton>
+      ) : null}
+    </section>
+  );
+}
+
 export function Stickers() {
   const album = useStickers();
   const place = useStickerPlace();
@@ -326,6 +367,8 @@ export function Stickers() {
             setLocal={setLocal}
             save={save}
           />
+
+          <HintFromBookGirl tabs={tabs} current={tab} />
 
           <section aria-labelledby={`${id}-b`} className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]">
             <h2 id={`${id}-b`} className="sr-only">The back of the sticker</h2>

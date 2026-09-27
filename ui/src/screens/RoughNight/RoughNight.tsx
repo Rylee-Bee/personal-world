@@ -25,6 +25,7 @@
  * notification prompts.
  */
 
+import { reportSticker } from "../../components/stickers/report";
 import { useEffect, useState } from "react";
 import { writeJournal } from "../../data/api";
 import { useBriefing } from "../../data/hooks";
@@ -124,6 +125,7 @@ export function RoughNight({ onBack }: { onBack: () => void }) {
       <div className="flex items-center gap-[var(--pw-spacing-md)]">
         {/* Sol, asleep: company, not a message. Dimmed like the rest. */}
         <SolMoment mood="sleeping" size={72} className="shrink-0 opacity-70" />
+        <WishingStar />
         <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-secondary)]">
           Rough night
         </h1>
@@ -243,5 +245,29 @@ export function RoughNight({ onBack }: { onBack: () => void }) {
       </button>
       </div>
     </main>
+  );
+}
+
+/** A tiny star in the corner of the art. Tapped, it twinkles and says one
+ *  kind thing (a secret sticker). Nothing is counted from Rough night itself. */
+function WishingStar() {
+  const [said, setSaid] = useState(false);
+  return (
+    <span className="flex flex-col items-center">
+      <button
+        type="button"
+        aria-label="A tiny star"
+        onClick={() => {
+          setSaid(true);
+          void reportSticker("wishing-star");
+        }}
+        className="grid min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] place-items-center rounded-full border-0 bg-transparent text-[14px] text-[var(--pw-text-muted)] opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent-primary)]"
+      >
+        <span aria-hidden="true">✦</span>
+      </button>
+      <span aria-live="polite" className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+        {said ? "I’m glad you’re here." : ""}
+      </span>
+    </span>
   );
 }

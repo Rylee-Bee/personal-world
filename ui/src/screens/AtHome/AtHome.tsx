@@ -8,7 +8,8 @@
  * No posters are served yet, so each title is a Worlds title card. A kind
  * that can't be read says so in words, and nothing else pretends.
  */
-import { useId, useMemo, useState, type CSSProperties } from "react";
+import { reportSticker } from "../../components/stickers/report";
+import { useEffect, useId, useMemo, useState, type CSSProperties } from "react";
 import { useRoomView, useRooms } from "../../data/hooks";
 import { isUncertain } from "../../components/rooms/groupRooms";
 import { relativeTime } from "../../components/rooms/format";
@@ -184,6 +185,9 @@ function Shelf({ kind, summary }: { kind: Kind; summary: KindCount | undefined }
 }
 
 export function AtHome({ onBack, backLabel = "Back to Interests" }: { onBack: () => void; backLabel?: string }) {
+  useEffect(() => {
+    void reportSticker("homebody");
+  }, []);
   const rooms = useRooms();
   const row = (rooms.data?.data ?? []).find((r) => r.id === ROOM) ?? null;
   const live = row !== null && !isUncertain(row);

@@ -40,6 +40,7 @@
  * animation.
  */
 
+import { reportSticker } from "./stickers/report";
 import { Icon } from "./Icon";
 import { useEffect, useId, useRef, useState } from "react";
 import { useMarkNeedSeen, useRooms } from "../data/hooks";
@@ -304,9 +305,14 @@ export function RoomsPanel() {
   const openerRef = useRef<HTMLElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const openRow = openRoomId ? rows?.find((r) => r.id === openRoomId) : undefined;
+  const fromLink = useRef(openRoomId !== null);
   useEffect(() => {
-    if (rows !== undefined) clearRoomParam();
-  }, [rows]);
+    if (rows === undefined) return;
+    clearRoomParam();
+    // A room opened straight from a link or a notification.
+    if (fromLink.current && openRoomId && rows.some((r) => r.id === openRoomId)) void reportSticker("outside-door");
+    fromLink.current = false;
+  }, [rows, openRoomId]);
   useEffect(() => {
     const onOpen = (e: Event) => {
       const detail = (e as CustomEvent<OpenRoomDetail>).detail;

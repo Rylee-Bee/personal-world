@@ -5,6 +5,7 @@
  * `companion_id` preference Settings → Customize edits) and says so.
  * Opened from the first-day guide's "Meet your crew" and from Your crew.
  */
+import { reportSticker } from "../stickers/report";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCrew, usePrefs, usePutPrefs } from "../../data/hooks";
@@ -34,6 +35,7 @@ export function CompanionChooser({ onChosen }: { onChosen?: (name: string) => vo
         // The Bridge's speaker comes from the briefing; refresh it too.
         void qc.invalidateQueries({ queryKey: ["briefing"] });
         setSaid({ ok: true, words: `${name} is your companion now.` });
+        void reportSticker("hello-crew");
         onChosen?.(name);
       },
       onError: () => setSaid({ ok: false, words: "Couldn’t save that just now; nothing changed." }),

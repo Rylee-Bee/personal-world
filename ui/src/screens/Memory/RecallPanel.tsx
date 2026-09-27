@@ -4,7 +4,8 @@
  * Later shelf and words they've found (no model needed). Every answer
  * says where it lives.
  */
-import { useId, useState } from "react";
+import { reportSticker } from "../../components/stickers/report";
+import { useEffect, useId, useState } from "react";
 import { useRecall } from "../../data/hooks";
 import { relativeTime } from "../../components/rooms/format";
 import { useMinuteClock } from "../../components/rooms/useRootAttribute";
@@ -20,6 +21,9 @@ export function RecallPanel() {
   const now = useMinuteClock();
   const id = useId();
   const results = found.data?.data?.results ?? [];
+  useEffect(() => {
+    if (results.length > 0) void reportSticker("found-it");
+  }, [results.length]);
 
   return (
     <section aria-labelledby={`${id}-h`} className="flex flex-col gap-[var(--pw-spacing-md)]">

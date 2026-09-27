@@ -11,7 +11,8 @@
  * faded; "not checked" never looks healthy, and neither does "reachable".
  * Private: machine names and roles are the owner's; no addresses are shown.
  */
-import { useId, type ReactNode } from "react";
+import { reportSticker } from "../../components/stickers/report";
+import { useEffect, useId, type ReactNode } from "react";
 import { useRoomView, useRooms } from "../../data/hooks";
 import { isUncertain } from "../../components/rooms/groupRooms";
 import { relativeTime } from "../../components/rooms/format";
@@ -128,6 +129,9 @@ const DOORWAYS: Record<string, string> = {
 };
 
 export function Computers() {
+  useEffect(() => {
+    void reportSticker("cartographer");
+  }, []);
   const rooms = useRooms();
   const row = (rooms.data?.data ?? []).find((r) => r.id === ROOM) ?? null;
   const live = row !== null && !isUncertain(row);

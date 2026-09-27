@@ -97,3 +97,11 @@ room for a sleepy crew member or a bee's face, I try to put one there.
 ## Under the hood
 
 Boards live on the design canvas; tokens in `design/tokens.json`, themes in `design/themes/`, and the theme contract in `ui/THEMES.md`. Screens are React + TypeScript in `ui/src/screens/`, pieces in `ui/src/components/`, styled only through `var(--pw-...)` tokens. Unit tests: `vitest` (`ui/src/test/`). Browser tests: Playwright with axe, colour contrast on (`ui/e2e/`). The public-safety gate: `tests/test_public_safety.py`. Gallery: `docs/gallery/capture.mjs` and `capture-server.mjs`. Art requests: `docs/ART-REQUESTS.md`. Rules: `docs/accessibility/ACCESSIBILITY_CONTRACT.md` and `docs/PRODUCT-LANGUAGE.md`.
+
+* * *
+
+## Colophon
+
+Made by the design lane and the owner, one handoff at a time. The covers
+were painted by the owner; the words were kept plain on purpose, so anyone
+can read them. If you've read all the way to here: thank you.
