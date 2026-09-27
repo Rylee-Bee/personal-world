@@ -5152,6 +5152,88 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         save_world(world, world_path)
         return {"ok": True, "data": {"key": key}}
 
+    # ── Lore: sync from a room's `lore` view, list, confirm ─────────
+
+    def _lore_view_item(key: str, lore) -> dict:
+        v = lore.value if isinstance(lore.value, dict) else {"text": str(lore.value)}
+        return {"key": key, "state": lore.state.value, **v,
+                "source": lore.provenance.source,
+                "observed_at": lore.provenance.observed_at.isoformat()}
+
+    @app.get("/api/lore", dependencies=[Depends(require_auth)])
+    async def lore_list(request: Request, source: str | None = None) -> dict:
+        """The caller's lore, newest-source first, with counts by state and
+        how many the source marked accepted but aren't confirmed yet."""
+        from . import lore_sync
+
+        if not can(_principal(request), "own_space"):
+            raise HTTPException(status_code=403, detail="your own space is required")
+        uw, _ = _user_paths(request)
+        world = load_world(uw)
+        items = [
+            _lore_view_item(k, lo) for k, lo in world.lore.items()
+            if source is None or k.startswith(source + ":")
+        ]
+        counts: dict[str, int] = {}
+        for it in items:
+            counts[it["state"]] = counts.get(it["state"], 0) + 1
+        return {"ok": True, "data": {
+            "items": items, "counts": counts,
+            "accepted_waiting": len(lore_sync.accepted_keys(world, source or "rylee_lore")),
+        }}
+
+    @app.post("/api/lore/sync", dependencies=[Depends(require_auth)])
+    async def lore_sync_route(request: Request) -> JSONResponse:
+        """Sync lore from a room's read-only ``lore`` view (default: the
+        Engine room, which serves rylee_lore). ``{"dry_run": true}`` says
+        what would change without changing anything. Everything lands as
+        *suggested*; confirmed lore is never touched."""
+        from . import lore_sync
+
+        principal = _principal(request)
+        if not can(principal, "own_space"):
+            raise HTTPException(status_code=403, detail="your own space is required")
+        body = await _json_body(request)
+        room = str(body.get("room") or "engine-room")
+        dry = bool(body.get("dry_run"))
+        status, doc = await _ROOMS.view(room, "lore", None, principal)
+        if status != 200 or not isinstance(doc, dict):
+            reason = (doc or {}).get("error") if isinstance(doc, dict) else None
+            return JSONResponse({"ok": False, "error": reason or f"Couldn't read the lore from {room}."},
+                                status_code=502 if status != 404 else 404)
+        if doc.get("error"):
+            return JSONResponse({"ok": False, "error": doc["error"]}, status_code=502)
+        uw, _ = _user_paths(request)
+        world = load_world(uw)
+        if dry:
+            report = lore_sync.plan(world, doc)
+        else:
+            report = lore_sync.apply(world, doc)
+            save_world(world, uw)
+        report = {k: v for k, v in report.items() if k not in ("new", "changed", "gone")}
+        return JSONResponse({"ok": True, "data": {**report, "dry_run": dry, "room": room}})
+
+    @app.post("/api/lore/confirm", dependencies=[Depends(require_step_up)])
+    async def lore_confirm(request: Request) -> dict:
+        """Confirm lore: ``{"keys": [...]}``, or ``{"accepted": true}`` for
+        every suggested item its source marked accepted. A person's explicit
+        act (step-up); confirmed lore is what Worlds treats as true."""
+        from . import lore_sync
+
+        principal = _principal(request)
+        if getattr(principal, "kind", None) == "agent" or not can(principal, "own_space"):
+            raise HTTPException(status_code=403, detail="only you can confirm your lore")
+        body = await _json_body(request)
+        uw, _ = _user_paths(request)
+        world = load_world(uw)
+        if body.get("accepted") is True:
+            keys = lore_sync.accepted_keys(world, str(body.get("source") or "rylee_lore"))
+        else:
+            keys = [k for k in body.get("keys") or [] if isinstance(k, str)][:2000]
+        report = lore_sync.confirm(world, keys)
+        save_world(world, uw)
+        return {"ok": True, "data": report}
+
     @app.post("/api/world/fact", dependencies=[Depends(require_step_up)])
     async def record_fact(request: Request) -> dict:
         """Record a fact. Body: {key, value}."""

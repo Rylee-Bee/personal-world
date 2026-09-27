@@ -32,6 +32,7 @@
  * rejects degrades to an honest empty/unknown state.
  */
 
+import { LoreSection } from "./LoreSection";
 import { useCallback, useEffect, useState } from "react";
 import {
   useBriefing,
@@ -908,6 +909,9 @@ export function Settings({
             test — Settings.tsx stays the list of sections, the whole
             notifications story lives in ./Notifications.tsx. */}
         <NotificationsSection />
+        <SettingsSection id="Your lore" titleId="settings-lore-heading">
+          <LoreSection />
+        </SettingsSection>
 
         <FirstDayToggle />
 

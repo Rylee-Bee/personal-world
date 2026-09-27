@@ -87,6 +87,9 @@ import {
   putPlace,
   getRooms,
   getRoomView,
+  getLore,
+  syncLore,
+  confirmLore,
   getLibraries,
   postRoomVisit,
   postNeedSeen,
@@ -852,6 +855,29 @@ export function useLibrary() {
     loading: rooms.isLoading,
     error: rooms.error,
   };
+}
+
+/** The caller's lore (lore_sync.py). */
+export function useLore() {
+  return useQuery({ queryKey: ["lore"] as const, queryFn: getLore, staleTime: 30_000 });
+}
+
+export function useLoreSync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (dryRun: boolean) => syncLore(dryRun),
+    onSuccess: (_d, dryRun) => {
+      if (!dryRun) void qc.invalidateQueries({ queryKey: ["lore"] });
+    },
+  });
+}
+
+export function useLoreConfirm() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: confirmLore,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["lore"] }),
+  });
 }
 
 /** Live rooms: listen to GET /api/rooms/events and refresh the rooms (and
