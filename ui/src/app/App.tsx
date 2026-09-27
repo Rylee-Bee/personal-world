@@ -42,6 +42,7 @@ import { Library } from "../screens/Library/Library";
 import { Icon } from "../components/Icon";
 import { RememberForm } from "../components/remember/RememberForm";
 import { Lore } from "../screens/Lore/Lore";
+import { AtHome } from "../screens/AtHome/AtHome";
 import { Projects } from "../screens/Projects/Projects";
 import { StayFresh } from "./StayFresh";
 import { ShareSheet } from "./ShareSheet";
@@ -143,7 +144,7 @@ export function App() {
   // reached by small links from the Bridge and Settings — never a nav
   // landmark, and (the app has no router) never a URL of its own.
   const [activeArea, setActiveArea] = useState<
-    WorldAreaId | "crew" | "people" | "helpers" | "rough-night" | "library" | "lore"
+    WorldAreaId | "crew" | "people" | "helpers" | "rough-night" | "library" | "lore" | "at-home"
   >(
     () =>
       (returned as
@@ -154,6 +155,7 @@ export function App() {
         | "rough-night"
         | "library"
         | "lore"
+        | "at-home"
         | null) ?? "overview",
   );
   // The Library is another quiet page; Back returns to wherever it was opened.
@@ -258,8 +260,10 @@ export function App() {
             backLabel={loreFrom === "settings" ? "Back to Settings" : "Back to Memory"}
           />
         );
+      case "at-home":
+        return <AtHome onBack={() => setActiveArea("interests")} />;
       case "interests":
-        return <Interests />;
+        return <Interests onOpenAtHome={() => setActiveArea("at-home")} />;
       case "projects":
         return <Projects />;
       default: {

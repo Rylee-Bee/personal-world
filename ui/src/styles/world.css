@@ -709,3 +709,41 @@ body {
   border-top: 1px dashed var(--pw-border-subtle);
   padding-top: var(--pw-spacing-md);
 }
+
+/* At home: the household's shelves. Title cards (no posters yet): a coloured
+   spine per title, the name in the serif, the facts in words. */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--pw-spacing-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+@media (max-width: 480px) {
+  .home-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.home-card {
+  position: relative;
+  border-radius: var(--pw-radius-md);
+  border: 1px solid var(--pw-border-subtle);
+  background:
+    linear-gradient(160deg, color-mix(in srgb, hsl(var(--home-hue, 220) 45% 45%) 16%, transparent), transparent 70%),
+    var(--pw-surface-panel);
+  padding: var(--pw-spacing-md) var(--pw-spacing-md) var(--pw-spacing-md) calc(var(--pw-spacing-md) + 8px);
+  overflow-wrap: anywhere;
+}
+.home-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  border-radius: var(--pw-radius-md) 0 0 var(--pw-radius-md);
+  background: hsl(var(--home-hue, 220) 45% 55%);
+}
+.home-card-title {
+  font-size: var(--pw-typography-size_body);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--pw-text-primary);
+}
