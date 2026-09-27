@@ -384,7 +384,7 @@ def _reasoning_providers() -> list[ProviderSchema]:
             adapter_type="anthropic",
             config_fields=[
                 ConfigField("model", "Model", "text", required=True,
-                            placeholder="claude-sonnet-4-20250514"),
+                            placeholder="claude-sonnet-5"),
                 ConfigField("api_key", "API Key", "secret", required=True,
                             secret_ref=True),
             ],
