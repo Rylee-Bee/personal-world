@@ -3,6 +3,7 @@ title: How Worlds fits together
 kind: book
 order: 1
 for: everyone
+short: Worlds keeps a small core of what matters to you and asks other tools to do the work.
 ---
 Worlds is a small core with everything else around it.
 
@@ -31,4 +32,17 @@ secret store. It asks them and shows you the answer.
 That's why Worlds can stay small and honest. It is the place where
 everything comes to you, not the place where everything is built.
 
-**Learn more:** `docs/ARCHITECTURE.md` ("The one idea", "World model").
+* * *
+
+## Words to know
+
+- **Core:** the small part of Worlds that keeps your facts, wishes, rules, journal and memories.
+- **Provider:** a swappable tool Worlds uses, like a chat model or a backup place. Official term: *adapter* or *plugin*.
+- **Room:** another app Worlds shows you. Official term: an *integration* that speaks a *contract*.
+- **Control plane:** the place you see and steer everything from, without it doing all the work itself.
+
+* * *
+
+## Under the hood
+
+The core's concepts (fact, intent, policy, lore, capability, provider, journal, pack) are in the world-model table in `docs/ARCHITECTURE.md`. The rule that capabilities belong to the core and providers stay optional is enforced by `framework validate` (`docs/NATIVE-BASELINE-AND-ENRICHMENT.md`).

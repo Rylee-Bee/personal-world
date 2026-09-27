@@ -3,6 +3,7 @@ title: How the screens are layered
 kind: book
 order: 4
 for: everyone
+short: Every color and size comes from a named token, and themes and your settings change the values, never the rules.
 ---
 Every color, size and space on a Worlds screen comes from a **token**: a
 named value like "the text color" or "the small gap", never a raw number
@@ -39,5 +40,18 @@ Why it matters: a screen that types its own color breaks the day someone
 picks Daylight or high contrast. A screen that uses tokens gets every theme,
 and every accessibility setting, for free.
 
-**Learn more:** `design/THEME_PACK_FRAMEWORK.md`, `design/tokens.json`,
-`docs/accessibility/ACCESSIBILITY_CONTRACT.md`.
+* * *
+
+## Words to know
+
+- **Token:** a named design value, like "the text color". Official term: *design token*.
+- **Theme:** a set of values for the tokens: Starfield, Daylight, Moss and others.
+- **CSS variable:** how a token reaches the browser, e.g. `--pw-text-primary`. Official term: *custom property*.
+- **Invariant:** something no theme or setting may change, like 44-pixel touch targets.
+- **Accessibility contract:** Worlds' written promise about screen readers, focus, motion and contrast.
+
+* * *
+
+## Under the hood
+
+`design/tokens.json` holds token names and immutable values. `design/themes/*.json` holds each theme's values. `ui/scripts/generate-tokens.mjs` writes `ui/src/generated/tokens.css` (Station on `:root` as the fallback, then one `[data-theme]` block per theme) and `tokens.ts`. The product default is `DEFAULT_THEME` (starfield) in `ui/src/app/prefs-dom.ts`. Preferences become `data-pw-*` attributes on `<html>`. Canonical: `design/THEME_PACK_FRAMEWORK.md`, `docs/accessibility/ACCESSIBILITY_CONTRACT.md`.

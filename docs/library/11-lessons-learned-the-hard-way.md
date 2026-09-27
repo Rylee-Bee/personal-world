@@ -3,6 +3,7 @@ title: Lessons learned the hard way
 kind: book
 order: 11
 for: everyone
+short: The mistakes that turned into Worlds' rules, and what each one taught.
 ---
 These are the mistakes that turned into rules. Each one cost a day, or
 almost cost something worse.
@@ -53,3 +54,17 @@ plainly.
 
 **Plain words win.** Codes, jargon and clever names slowed everyone down,
 people and agents alike. Exact, plain words are faster for everybody.
+
+* * *
+
+## Words to know
+
+- **Regression test:** a test written after a bug, so that bug can never come back quietly.
+- **Fail closed:** when unsure, refuse rather than allow.
+- **Single source of truth:** one place that decides, instead of many that can disagree.
+
+* * *
+
+## Under the hood
+
+Each lesson has a guard in the code: `test_rooms_actions.py` and `test_rooms_live.py` (receipts, one answer path), the redaction tests in the `lab vpn` and Play-Nice tools, `StayFresh` for stale installed apps, and the room change ping with polling underneath.
