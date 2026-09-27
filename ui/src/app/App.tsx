@@ -41,6 +41,7 @@ import { RoughNight } from "../screens/RoughNight/RoughNight";
 import { Library } from "../screens/Library/Library";
 import { Projects } from "../screens/Projects/Projects";
 import { StayFresh } from "./StayFresh";
+import { ShareSheet } from "./ShareSheet";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
 import { useHealthz, usePrefs, usePrefsSchema, useRoomEvents, useSections } from "../data/hooks";
@@ -292,6 +293,8 @@ export function App() {
 
       {/* A newer build is live: reload on return, or say so quietly. */}
       <StayFresh />
+      {/* Shared from the phone's Share sheet: keep it in one tap. */}
+      <ShareSheet />
 
       {/* §5.1: navigation — topbar pattern from starfield. The padding
           keeps chrome clear of notches and the home indicator (§2.7):
