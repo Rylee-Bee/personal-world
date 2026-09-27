@@ -4,18 +4,40 @@
  * nothing; what goes stale is an installed app (iPhone Home Screen) that
  * stays open in memory for days and never reloads.
  *
- * So: remember the build this page opened with (`commit` from /healthz),
- * and check again whenever the person comes back to the app, and every
- * few minutes while it's open. When a newer build is live:
- *   - coming back to the app reloads it, unless they're mid-typing;
+ * So: know the build this page's code came from, and check /healthz when
+ * the page opens, whenever the person comes back to the app, and every few
+ * minutes while it's open. When a newer build is live:
+ *   - on opening or coming back, it reloads once, unless they're mid-typing;
  *   - otherwise a quiet line says "Worlds was updated" with a Reload
  *     button, and nothing reloads under their hands.
- * A build with no commit (local/dev) never triggers any of this.
+ * The build's own commit is baked in at build time (VITE_PW_COMMIT, from the
+ * image's PW_COMMIT build arg). Learning it from the first /healthz instead
+ * misses a page whose old code is restored after a deploy (2026-09-27: an
+ * old tab showed 3 of 7 needs and no update line). Without a baked commit
+ * (local/dev) it falls back to the first /healthz answer.
+ * It reloads at most once per live commit (sessionStorage), so a mismatch
+ * that a reload can't fix never loops.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { healthz } from "../data/api";
 
 const CHECK_EVERY_MS = 5 * 60_000;
+const RELOADED_FOR = "pw-stayfresh-reloaded-for";
+
+/** The commit this code was built from (first 7 chars, as /healthz reports). */
+const BUILT: string | null = (import.meta.env.VITE_PW_COMMIT ?? "").slice(0, 7) || null;
+
+/** Reload once per live commit: a second mismatch after reloading means the
+ *  reload can't fix it, so show the quiet line instead. */
+function reloadedFor(commit: string): boolean {
+  try {
+    if (sessionStorage.getItem(RELOADED_FOR) === commit) return true;
+    sessionStorage.setItem(RELOADED_FOR, commit);
+  } catch {
+    // No storage: allow the reload; the line is the fallback next time.
+  }
+  return false;
+}
 
 /** True when reloading now could lose something the person typed: a
  *  focused text field, or any text box with words in it. */
@@ -34,8 +56,14 @@ async function liveCommit(): Promise<string | null> {
   }
 }
 
-export function StayFresh({ reload = () => window.location.reload() }: { reload?: () => void }) {
-  const opened = useRef<string | null>(null);
+export function StayFresh({
+  reload = () => window.location.reload(),
+  built = BUILT,
+}: {
+  reload?: () => void;
+  built?: string | null;
+}) {
+  const opened = useRef<string | null>(built);
   const [updated, setUpdated] = useState(false);
 
   const check = useCallback(
@@ -47,14 +75,16 @@ export function StayFresh({ reload = () => window.location.reload() }: { reload?
         return;
       }
       if (now === opened.current) return;
-      if (returning && !isMidTyping()) reload();
+      if (returning && !isMidTyping() && !reloadedFor(now)) reload();
       else setUpdated(true);
     },
     [reload],
   );
 
   useEffect(() => {
-    const first = window.setTimeout(() => void check(false), 0);
+    // Opening counts as coming back: an old page restored after a deploy
+    // should refresh before anyone taps on it.
+    const first = window.setTimeout(() => void check(true), 0);
     const onVisible = () => {
       if (document.visibilityState === "visible") void check(true);
     };

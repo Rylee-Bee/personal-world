@@ -15,6 +15,10 @@ COPY design/ ./design/
 # The Library's books (docs/library/*.md) are bundled into the UI.
 COPY docs/library/ ./docs/library/
 COPY ui/ ./ui/
+# The same commit /healthz reports, baked into the UI so an open page knows
+# which build its code is (StayFresh compares the two).
+ARG PW_COMMIT=""
+ENV VITE_PW_COMMIT=$PW_COMMIT
 RUN cd ui && npm run build
 
 # --- runtime stage ----------------------------------------------------

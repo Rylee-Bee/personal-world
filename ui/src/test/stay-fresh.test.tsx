@@ -24,6 +24,7 @@ async function comeBack() {
 describe("StayFresh", () => {
   beforeEach(() => {
     live.commit = "aaaaaaa";
+    sessionStorage.clear();
   });
   afterEach(() => {
     cleanup();
@@ -73,5 +74,30 @@ describe("StayFresh", () => {
     live.commit = "bbbbbbb";
     await comeBack();
     expect(reload).not.toHaveBeenCalled();
+  });
+
+  it("an old page (its baked build is behind the live one) reloads as it opens", async () => {
+    const reload = vi.fn();
+    render(<StayFresh reload={reload} built="0000000" />);
+    await settle();
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("reloads at most once per live build, then shows the quiet line", async () => {
+    sessionStorage.setItem("pw-stayfresh-reloaded-for", "aaaaaaa");
+    const reload = vi.fn();
+    render(<StayFresh reload={reload} built="0000000" />);
+    await settle();
+    expect(reload).not.toHaveBeenCalled();
+    expect(screen.getByRole("status").textContent).toContain("Worlds was updated");
+  });
+
+  it("a page whose baked build is live stays put", async () => {
+    const reload = vi.fn();
+    render(<StayFresh reload={reload} built="aaaaaaa" />);
+    await settle();
+    await comeBack();
+    expect(reload).not.toHaveBeenCalled();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });
