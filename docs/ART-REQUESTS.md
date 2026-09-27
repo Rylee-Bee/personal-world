@@ -651,7 +651,9 @@ masters into `design/assets/crew/sleepy/`, exports `ui/public/assets/crew/{256,5
 WebPs, and uses them on the Rough night page (and anywhere else a quiet
 night fits, like quiet hours).
 
-## 15. The Library: storybook covers and three shelves (requested 2026-09-27)
+## 15. The Library: storybook covers and three shelves (requested and DELIVERED 2026-09-27)
+
+> **Delivered 2026-09-27:** all 17 covers, the three shelf headers and `sol-reading`, painted with Wan 2.7 Pro and approved by the owner. Web sizes: `ui/public/assets/library/` (`covers/{256,512}/`, `shelves/`) and `ui/public/assets/crew/{256,512}/sol-reading.webp`. Masters: `design/assets/library/{covers,shelves}/`.
 
 **Why:** Worlds is getting a **Library** page (owner ask, 2026-09-27): short
 books on how Worlds works, for every reader. Every connected app lends its
