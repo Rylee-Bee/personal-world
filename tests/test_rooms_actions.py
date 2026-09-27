@@ -718,3 +718,45 @@ class TestActionsOnRows:
         svc = RoomsService(transport=_transport(actions=None))
         rows = run(svc.snapshot(_env()))
         assert rows[0]["actions"] == []
+
+
+# ── Action forms (the Hive Works Riff button, 2026-09-27) ───────────
+
+RIFF_ACTIONS = [
+    {"id": "start-riff", "label": "Riff", "writes": True,
+     "input_schema": {"type": "object", "required": ["seed"], "properties": {
+         "seed": {"type": "string", "maxLength": 500, "title": "What's on your mind?"},
+         "bees": {"type": "array", "maxItems": 4, "items": {"type": "string", "enum": ["buzz", "pip"]}},
+         "door": {"type": "string", "enum": ["angles", "soft"], "enumNames": ["New angles", "Soft"]}}}},
+    {"id": "riff-reply", "label": "Answer the riff", "writes": True,
+     "input_schema": {"type": "object", "properties": {"need": {"type": "string"}, "text": {"type": "string"}}}},
+    {"id": "odd", "label": "Odd", "writes": True,
+     "input_schema": {"type": "object", "properties": {"n": {"type": "integer"}}}},
+    {"id": "evil", "label": "Evil", "writes": True,
+     "input_schema": {"type": "object", "properties": {"x": {"type": "string", "enum": ["<script>" * 10]}}}},
+]
+
+
+class TestActionForms:
+    def _rows(self):
+        svc = RoomsService(transport=_transport(actions=RIFF_ACTIONS))
+        return {a["id"]: a for a in run(svc.snapshot(_env()))[0]["actions"]}
+
+    def test_a_schema_becomes_a_small_checked_form(self):
+        riff = self._rows()["start-riff"]
+        assert riff["fields"] == [
+            {"name": "seed", "kind": "text", "label": "What's on your mind?", "required": True, "max_length": 500},
+            {"name": "bees", "kind": "choices", "label": "Bees", "required": False, "max": 2,
+             "options": [{"value": "buzz", "label": "buzz"}, {"value": "pip", "label": "pip"}]},
+            {"name": "door", "kind": "choice", "label": "Door", "required": False,
+             "options": [{"value": "angles", "label": "New angles"}, {"value": "soft", "label": "Soft"}]},
+        ]
+        assert "need_bound" not in riff
+
+    def test_actions_that_answer_a_need_are_marked_and_get_no_form(self):
+        reply = self._rows()["riff-reply"]
+        assert reply["need_bound"] is True and "fields" not in reply
+
+    def test_a_schema_the_ui_cant_draw_gives_a_plain_button(self):
+        rows = self._rows()
+        assert "fields" not in rows["odd"] and "fields" not in rows["evil"]

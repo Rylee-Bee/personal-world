@@ -831,3 +831,79 @@ describe("Approving from Worlds (Spec-Approve)", () => {
   });
 });
 
+
+describe("Room action forms and answers in words (Hive Works Riff)", () => {
+  const RIFF = {
+    ...WORKSHOP,
+    actions: [
+      {
+        id: "start-riff",
+        title: "Riff",
+        writes: true,
+        fields: [
+          { name: "seed", kind: "text", label: "What's on your mind?", required: true, max_length: 500 },
+          { name: "bees", kind: "choices", label: "Bees", required: false, max: 2,
+            options: [{ value: "buzz", label: "Buzz" }, { value: "pip", label: "Pip" }, { value: "pixel", label: "Pixel" }] },
+          { name: "door", kind: "choice", label: "Door", required: false,
+            options: [{ value: "angles", label: "New angles" }, { value: "soft", label: "Soft (bad day)" }] },
+        ],
+      },
+      { id: "riff-reply", title: "Answer the riff", writes: true, need_bound: true },
+    ],
+    needs_you: [
+      {
+        id: "riff-20260927010203-ab12-turn",
+        title: "Your turn in the riff",
+        why: "Which angle next?",
+        actions: ["riff-reply"],
+        choices: ["More", "Less"],
+        allow_text: true,
+        created_at: "2026-09-27T01:03:00Z",
+      },
+    ],
+  } as unknown as RoomRow;
+
+  type Callbacks = { onSuccess: (r: unknown) => void; onError: (e: unknown) => void };
+  function openDrawer() {
+    hookState.roomAction.mockClear();
+    setRooms([RIFF]);
+    render(<RoomsPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Look inside Workshop" }));
+    return screen.getByRole("dialog", { name: "Workshop" });
+  }
+
+  it("opens the form first, and sends only what was filled", () => {
+    const drawer = openDrawer();
+    expect(within(drawer).queryByRole("button", { name: "Answer the riff" })).toBeNull();
+    fireEvent.click(within(drawer).getByRole("button", { name: "Riff" }));
+    expect(hookState.roomAction).not.toHaveBeenCalled();
+    const form = within(drawer).getByRole("form", { name: "Riff" });
+    const send = within(form).getByRole("button", { name: "Send" });
+    expect(send).toBeDisabled();
+    const box = within(form).getByLabelText("What's on your mind?");
+    expect(box).toHaveFocus();
+    fireEvent.change(box, { target: { value: "  a calmer morning " } });
+    fireEvent.click(within(form).getByRole("button", { name: "Buzz" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Pip" }));
+    expect(within(form).getByRole("button", { name: "Pixel" })).toBeDisabled();
+    expect(within(form).getByRole("button", { name: "Buzz" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(send);
+    const [vars, cb] = hookState.roomAction.mock.calls[0] as [Record<string, unknown>, Callbacks];
+    expect(vars).toMatchObject({ actionId: "start-riff", body: { seed: "a calmer morning", bees: ["buzz", "pip"] } });
+    expect((vars.body as Record<string, unknown>).door).toBeUndefined();
+    act(() => cb.onSuccess({ action_id: "start-riff", ok: true, summary: "Riff started.", changed: [], at: null }));
+    expect(within(drawer).getByText("Riff started.")).toBeInTheDocument();
+  });
+
+  it("answers a need in the person's own words", () => {
+    const drawer = openDrawer();
+    const box = within(drawer).getByLabelText("Or say it in your own words");
+    fireEvent.change(box, { target: { value: " what about sleep? " } });
+    fireEvent.click(within(drawer).getByRole("button", { name: "Send" }));
+    const [vars] = hookState.roomAction.mock.calls[0] as [Record<string, unknown>];
+    expect(vars).toMatchObject({
+      actionId: "answer-decision",
+      body: { need: "riff-20260927010203-ab12-turn", text: "what about sleep?" },
+    });
+  });
+});

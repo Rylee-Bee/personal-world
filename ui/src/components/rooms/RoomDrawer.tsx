@@ -283,7 +283,7 @@ export function RoomDrawer({
                   </span>
                   {need.why && <span className={SMALL}>{need.why}</span>}
                   <span className={MICRO}>{`Waiting since ${formatTime(need.created_at)}`}</span>
-                  {choices.length > 0 && (
+                  {(choices.length > 0 || (!uncertain && need.allow_text)) && (
                     <ChoiceAnswer
                       roomId={row.id}
                       roomName={name}

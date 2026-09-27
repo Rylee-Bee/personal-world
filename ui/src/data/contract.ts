@@ -740,14 +740,33 @@ export interface RoomNeed {
    *  recommended one first (then `why` starts with "Recommended:").
    *  Answered with the `answer-decision` action. */
   choices?: string[];
+  /** Optional: the need also takes an answer in the person's own words,
+   *  sent as `answer-decision` with `{need, text}`. */
+  allow_text?: boolean;
 }
 
 /** One of a room's own actions (its GET /room/actions), as a row may
  *  list them. `writes` missing means it writes (fail closed). */
+/** One field of a room action's small form, checked by the server from
+ *  the action's input_schema: a text box, one-of, or pick-several. */
+export interface OfferField {
+  name: string;
+  kind: "text" | "choice" | "choices";
+  label: string;
+  required: boolean;
+  max_length?: number;
+  max?: number;
+  options?: { value: string; label: string }[];
+}
+
 export interface RoomOffer {
   id: string;
   title?: string | null;
   writes?: boolean;
+  /** A small form to fill before sending (e.g. Hive Works' Riff). */
+  fields?: OfferField[];
+  /** The action answers one need; it's offered on the need, not here. */
+  need_bound?: boolean;
 }
 
 export interface RoomRow {

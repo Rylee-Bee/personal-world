@@ -64,6 +64,10 @@ export function relativeTime(iso: string | null | undefined, now: number): strin
 export const LINK_BASE =
   "inline-flex min-h-[var(--pw-targets-minimum)] min-w-[var(--pw-targets-minimum)] items-center justify-center rounded-[var(--pw-radius-sm)] px-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] font-semibold focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
 
+/** A text box in a room's drawer (a riff answer, a form field). */
+export const TEXTAREA =
+  "w-full resize-y rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-void)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)] placeholder:text-[var(--pw-text-muted)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
+
 const TONE_WORDS: Record<string, string> = {
   good_news: "Good news",
   update: "A small update",
