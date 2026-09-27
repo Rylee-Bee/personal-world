@@ -606,6 +606,23 @@ def resolve_principal(
             source="token",
             role="owner",
         )
+    # An app's sticker key (PW_STICKERS_TOKENS="app=token,app=token"): an
+    # agent of the primary person that may only report its own app's
+    # stickers (api.py confines "stickers" to /api/stickers/found).
+    for pair in os.environ.get("PW_STICKERS_TOKENS", "").split(","):
+        app_id, _, value = pair.strip().partition("=")
+        app_id, value = app_id.strip(), value.strip()
+        if app_id and value and token and hmac.compare_digest(token, value):
+            return Principal(
+                id=f"stickers-{app_id}",
+                kind="agent",
+                owner_id=BOOTSTRAP_PRINCIPAL_ID,
+                display_name=f"{app_id}'s sticker key",
+                scopes=("stickers",),
+                auth_level=1,
+                source="token",
+                role="owner",
+            )
     if mode == "multi" and store is not None:
         found = store.match_token(token or "")
         if not found:
@@ -778,6 +795,8 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     # they first met them, and how they like to be taught. Private,
     # never sent to a room or a model; the person's own learning memory.
     "learning": "learning.json",
+    # The sticker album (stickers/0): what this person found, and where it sits.
+    "stickers": "stickers.json",
     # Pollen's Later shelf (owner, 2026-09-27): ideas kept safe for later,
     # at most three in progress at once. Private to the person.
     "later": "later.json",

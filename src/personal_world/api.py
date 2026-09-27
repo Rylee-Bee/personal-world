@@ -357,7 +357,11 @@ def _is_true_loopback(request: Request) -> bool:
 #: scopes are all confining may call only those routes: "learning" is a
 #: project's key for the person's learning memory (VEFR's Fróði), and
 #: nothing else — not even reads elsewhere.
-CONFINING_SCOPES: dict[str, tuple[str, ...]] = {"learning": ("/api/learning",)}
+CONFINING_SCOPES: dict[str, tuple[str, ...]] = {
+    "learning": ("/api/learning",),
+    # An app's sticker key: it may only report stickers found in that app.
+    "stickers": ("/api/stickers/found",),
+}
 
 
 def _confined_out(principal, path: str) -> bool:
@@ -5446,6 +5450,187 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         data["mode"] = mode
         learning.save(path, data)
         return {"ok": True, "data": {"mode": mode}}
+
+    # ── The sticker album (contract stickers/0) ─────────────────────────
+
+    def _stickers_path(principal) -> Path:
+        return _scoped_path(principal, "stickers")
+
+    async def _derive_stickers(request: Request, principal, data: dict) -> None:
+        """Worlds stickers earned from real saved state. Never raises."""
+        from . import learning, memory, stickers
+
+        def give(sid: str, context: str = "") -> None:
+            stickers.find(data, "worlds", sid, context)
+
+        give("first-light")
+        try:
+            later = memory.load_later(_scoped_path(principal, "later"))
+            items = later.get("items") or []
+            if items:
+                give("later-gator")
+            if any(i.get("state") == "done" for i in items):
+                give("done-dusted")
+            if len(memory.in_progress(later)) == 3:
+                give("juggler")
+        except Exception:  # noqa: BLE001 — a sticker never breaks the album
+            pass
+        try:
+            uw, uj = _user_paths(request)
+            world = load_world(uw)
+            confirmed = sum(1 for k, lo in world.lore.items() if _lore_view_item(k, lo)["state"] == "confirmed")
+            if confirmed >= 1:
+                give("truth-teller")
+            if confirmed >= 25:
+                give("know-thyself")
+            if any(e.supersedes is not None for e in _journal_target(uj).events()):
+                give("second-draft")
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            ld = learning.load(_scoped_path(principal, "learning"))
+            concepts = ld.get("concepts") or {}
+            n = len(concepts)
+            for need, sid in ((1, "word-1"), (10, "word-10"), (25, "word-25")):
+                if n >= need:
+                    give(sid)
+            if any("vefr" in (c.get("projects") or []) for c in concepts.values()):
+                give("frodis-friend")
+            if any(len(set(c.get("projects") or [])) >= 2 for c in concepts.values()):
+                give("two-voices")
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            visits = rooms_visits.read_visits(_scoped_path(principal, "rooms_visits"))
+            seen = set((visits.get("rooms") or {}).keys())
+            if seen:
+                give("door-opener")
+            configured = {r.get("id") for r in await _ROOMS.snapshot(os.environ) if isinstance(r, dict)}
+            if configured and configured <= seen:
+                give("all-doors")
+        except Exception:  # noqa: BLE001
+            pass
+        first = data["found"].get("worlds:first-light", {}).get("at", "")
+        try:
+            then = _dt.datetime.fromisoformat(first.replace("Z", "+00:00"))
+            if first and (_dt.datetime.now(_dt.timezone.utc) - then).days >= 365:
+                give("orbit")
+        except ValueError:
+            pass
+
+    def _award(principal, sid: str, context: str = "") -> None:
+        """Best-effort: a Worlds sticker for something that just happened."""
+        from . import stickers
+
+        try:
+            path = _stickers_path(principal)
+            data = stickers.load(path)
+            if stickers.find(data, "worlds", sid, context):
+                stickers.save(path, data)
+        except Exception:  # noqa: BLE001 — never break the action that earned it
+            _logger.warning("sticker award failed for %s", sid)
+
+    # Moments that leave no trace in saved state earn their sticker as they
+    # happen: path-only, after a successful response, never blocking it.
+    _STICKER_MOMENTS = (
+        (re.compile(r"^/api/remember$"), "tied-a-string"),
+        (re.compile(r"^/api/rooms/[^/]+/actions/answer-decision$"), "tap-tap"),
+        (re.compile(r"^/api/rooms/hive-works/actions/answer-decision$"), "honey-handshake"),
+        (re.compile(r"^/api/rooms/[^/]+/actions/undo-answer$"), "changed-mind"),
+        (re.compile(r"^/api/rooms/[^/]+/actions/start-riff$"), "riff-raff"),
+        (re.compile(r"^/api/vault/unlock$"), "keeper-keys"),
+    )
+
+    @app.middleware("http")
+    async def _sticker_moments(request: Request, call_next):
+        response = await call_next(request)
+        if request.method == "POST" and 200 <= response.status_code < 300:
+            principal = getattr(request.state, "principal", None)
+            if principal is not None and getattr(principal, "kind", "person") == "person":
+                for pattern, sid in _STICKER_MOMENTS:
+                    if pattern.match(request.url.path):
+                        _award(principal, sid)
+        return response
+
+    @app.get("/api/stickers", dependencies=[Depends(require_auth)])
+    async def stickers_album(request: Request) -> dict:
+        """The caller's sticker album: Worlds' page (grouped by ``section``)
+        and one page per connected app that offers ``stickers``. Unfound
+        secrets are never listed, unfound riddles show only their riddle,
+        and ``secrets_remain`` says only whether any are left."""
+        from . import stickers
+
+        principal = _principal(request)
+        _require_person(principal)
+        path = _stickers_path(principal)
+        data = stickers.load(path)
+        before = len(data["found"])
+        await _derive_stickers(request, principal, data)
+        if len(data["found"]) != before:
+            stickers.save(path, data)
+        pages = [stickers.page("worlds", "Worlds", "scifi-storybook", stickers.WORLDS, 0, data)]
+        unavailable = []
+        for row in await _ROOMS.sticker_sets(principal):
+            if row["status"] != "ok":
+                unavailable.append({"app": row["room"], "error": row.get("error")})
+                continue
+            st = row["set"]
+            app_id = row["room"]
+            pg = st.get("page") if isinstance(st.get("page"), dict) else {}
+            pages.append(stickers.page(app_id, str(pg.get("title") or app_id), pg.get("look"),
+                                       st.get("stickers") or [], int(st.get("secrets") or 0), data))
+        return {"ok": True, "data": {"pages": pages, "unavailable": unavailable,
+                                     "total_found": len(data["found"])}}
+
+    @app.post("/api/stickers/found", dependencies=[Depends(require_auth)])
+    async def stickers_found(request: Request) -> dict:
+        """``{app, sticker, context?}``: a sticker was found. An app's sticker
+        key may report only its own app; a person may report a Worlds sticker
+        the UI saw them earn (a tap on Sol, finding Rough night). Repeats
+        are harmless. ``context`` is a few plain words, never content."""
+        from . import stickers
+
+        principal = _principal(request)
+        body = await _json_body(request)
+        app_id, sid = str(body.get("app", "")), str(body.get("sticker", ""))
+        if not stickers.APP.match(app_id) or not stickers.ID.match(sid):
+            raise HTTPException(status_code=422, detail="app and sticker must be short ids")
+        if principal is not None and principal.kind == "agent":
+            if "stickers" not in (principal.scopes or ()) or principal.id != f"stickers-{app_id}":
+                raise HTTPException(status_code=403, detail="this key reports only its own app's stickers")
+        else:
+            _require_person(principal)
+            if app_id != "worlds" or sid not in stickers.WORLDS_BY_ID or sid in stickers.EARNED_ONLY:
+                raise HTTPException(status_code=422, detail="not a sticker Worlds hands out this way")
+        path = _stickers_path(principal)
+        data = stickers.load(path)
+        new = stickers.find(data, app_id, sid, str(body.get("context", "")))
+        if new:
+            stickers.save(path, data)
+        return {"ok": True, "data": {"new": new}}
+
+    @app.post("/api/stickers/place", dependencies=[Depends(require_auth)])
+    async def stickers_place(request: Request) -> dict:
+        """``{app, sticker, x, y, r}``: where a found sticker sits on its page
+        (x, y in 0..1 of the page; r in degrees, -30..30)."""
+        from . import stickers
+
+        principal = _principal(request)
+        _require_person(principal)
+        body = await _json_body(request)
+        app_id, sid = str(body.get("app", "")), str(body.get("sticker", ""))
+        k = stickers.key(app_id, sid)
+        path = _stickers_path(principal)
+        data = stickers.load(path)
+        if k not in data["found"]:
+            raise HTTPException(status_code=404, detail="that sticker isn't in your album yet")
+        try:
+            x, y, r = (float(body.get("x", 0)), float(body.get("y", 0)), float(body.get("r", 0)))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="x, y and r must be numbers")
+        data["placed"][k] = {"x": min(max(x, 0.0), 1.0), "y": min(max(y, 0.0), 1.0), "r": min(max(r, -30.0), 30.0)}
+        stickers.save(path, data)
+        return {"ok": True, "data": {"placed": data["placed"][k]}}
 
     @app.post("/api/world/fact", dependencies=[Depends(require_step_up)])
     async def record_fact(request: Request) -> dict:
