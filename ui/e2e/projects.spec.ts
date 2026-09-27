@@ -20,7 +20,7 @@ const TEAMS = {
 const PROJECTS = {
   generated_at: AT,
   projects: [
-    { id: "proj-garden", name: "Garden planner", team: "team-build", open: 6, decisions_open: 2, closed: 41, stale: 1, link: "/projects/proj-garden" },
+    { id: "proj-garden", name: "Garden planner", team: "team-build", open: 6, decisions_open: 2, closed: 41, stale: 1, link: "/projects/proj-garden", status_line: "6 open · 2 to re-check · 1 shipped this week", closed_this_week: 1, last_shipped: { hw: "HW-9", what: "Bed labels", at: "2026-09-26T09:00:00Z" } },
     { id: "proj-kiln", name: "Kiln timer", team: "team-build", open: 3, decisions_open: 0, closed: 12, stale: 0, link: "/projects/proj-kiln" },
     { id: "proj-letters", name: "Letters to Jo", team: "team-words", open: 3, decisions_open: 0, closed: 7, stale: 0, link: "/projects/proj-letters" },
   ],
@@ -32,6 +32,10 @@ const GARDEN = {
     tickets: [
       { hw: "HW-12", what: "Frost dates for each bed", stage: "building", status: "backlog", freedom: "decide it", done_when: "Each bed shows its last frost date", owner: "Bumble", link: "/tickets/HW-12" },
       { hw: "HW-19", what: "Seed swap list", stage: "idea", status: "someday", freedom: "ask first", done_when: "Sam can print it", owner: "Clover", link: null },
+    ],
+    closed_tickets: [
+      { hw: "HW-9", what: "Bed labels", status: "closed", closed_at: "2026-09-26T09:00:00Z", link: "/tickets/HW-9" },
+      { hw: "HW-4", what: "Moon planting calendar", status: "dropped", closed_at: "2026-09-20T09:00:00Z", link: null },
     ],
   },
 };
@@ -107,6 +111,31 @@ test("Projects shows Hive Works: teams filter, tickets, bees, links on its site"
   // Deciding stays in the drawer.
   await main.getByRole("button", { name: "Look inside Hive Works" }).click();
   await expect(page.getByRole("dialog", { name: "Hive Works" })).toBeVisible();
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
+test("a project says what shipped, and dropped work never counts as shipped", async ({ page }) => {
+  await withHive(page);
+  await gotoArea(page, "Projects");
+  const main = page.getByRole("main", { name: "Projects" });
+  // Hive Works' own status line, shown as is; our counts for the rest.
+  await expect(main.getByText("6 open · 2 to re-check · 1 shipped this week")).toBeVisible();
+  await expect(main.getByText("3 open tickets", { exact: false }).first()).toBeVisible();
+  await expect(main.getByText(/1 ticket closed this week · Last shipped: Bed labels \(HW-9\)/).first()).toBeVisible();
+
+  await main.getByRole("button", { name: "See the tickets for Garden planner" }).click();
+  const closed = main.getByText("Closed · 2");
+  await expect(closed).toBeVisible();
+  await expect(main.getByText("1 shipped · 1 dropped")).toBeVisible();
+  await expect(main.getByText("Moon planting calendar")).toBeHidden();
+  await closed.click();
+  await expect(main.getByText("Moon planting calendar")).toBeVisible();
+  await expect(main.getByText(/^Dropped: won’t be done/)).toBeVisible();
+  await expect(main.getByText(/^Shipped · /)).toBeVisible();
+  await page.screenshot({ path: "test-results/projects-closed-1440.png", fullPage: true });
+  const results = await new AxeBuilder({ page }).analyze();
+  const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+  expect(bad.map((v) => `${v.id}: ${v.nodes.length} node(s)`)).toEqual([]);
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 

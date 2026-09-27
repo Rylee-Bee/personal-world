@@ -18,6 +18,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRoomView, useRooms } from "../../data/hooks";
 import type {
   HiveBee,
+  HiveClosedTicket,
   HiveCrewView,
   HiveProject,
   HiveProjectView,
@@ -110,12 +111,55 @@ function OpenOnSite({ row, link, label }: { row: RoomRow; link: string | null; l
   );
 }
 
+/** Hive Works' own status line when it sends one (shown as is), else our counts. */
 function projectWords(p: HiveProject): string {
+  if (p.status_line?.trim()) return p.status_line.trim();
   const parts = [plural(p.open, "open ticket", "open tickets")];
   if (p.decisions_open > 0) parts.push(plural(p.decisions_open, "decision waiting", "decisions waiting"));
   if (p.stale > 0) parts.push(`${p.stale} gone quiet`);
   parts.push(`${p.closed} closed in all`);
   return parts.join(" · ");
+}
+
+function ShippedLine({ p, now }: { p: HiveProject; now: number }) {
+  const bits: string[] = [];
+  if (typeof p.closed_this_week === "number" && p.closed_this_week > 0) {
+    bits.push(`${plural(p.closed_this_week, "ticket", "tickets")} closed this week`);
+  }
+  if (p.last_shipped) {
+    bits.push(`Last shipped: ${p.last_shipped.what} (${p.last_shipped.hw}), ${relativeTime(p.last_shipped.at, now)}`);
+  }
+  if (bits.length === 0) return null;
+  return (
+    <p className={`${SMALL} flex items-start gap-[var(--pw-spacing-xs)]`}>
+      <Icon name="check" size={16} className="mt-[3px] shrink-0 text-[var(--pw-accent-warm)]" />
+      <span>{bits.join(" · ")}</span>
+    </p>
+  );
+}
+
+function ClosedRow({ row, t, now }: { row: RoomRow; t: HiveClosedTicket; now: number }) {
+  const dropped = t.status === "dropped";
+  return (
+    <li className="flex flex-col gap-[var(--pw-spacing-xs)] border-t border-[var(--pw-border-subtle)] py-[var(--pw-spacing-md)]">
+      <span className="flex flex-wrap items-baseline gap-x-[var(--pw-spacing-sm)]">
+        <span className="font-mono text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-muted)]">{t.hw}</span>
+        <span className={`text-[length:var(--pw-typography-size_body)] ${dropped ? "text-[var(--pw-text-secondary)]" : "font-semibold text-[var(--pw-text-primary)]"}`}>
+          {t.what}
+        </span>
+      </span>
+      <span className={SMALL}>
+        {[dropped ? "Dropped: won’t be done" : "Shipped", t.closed_at ? relativeTime(t.closed_at, now) : null]
+          .filter(Boolean)
+          .join(" · ")}
+      </span>
+      {t.link ? (
+        <span>
+          <OpenOnSite row={row} link={t.link} label={`Open ${t.hw}`} />
+        </span>
+      ) : null}
+    </li>
+  );
 }
 
 function TicketRow({ row, t }: { row: RoomRow; t: HiveTicket }) {
@@ -161,6 +205,9 @@ function ProjectTickets({
   const tickets = Array.isArray(full?.tickets) ? full.tickets : [];
   const backlog = tickets.filter((t) => t.status !== "someday");
   const someday = tickets.filter((t) => t.status === "someday");
+  const closed = Array.isArray(full?.closed_tickets) ? full.closed_tickets : [];
+  const shipped = closed.filter((t) => t.status !== "dropped").length;
+  const now = useMinuteClock();
   const id = useId();
 
   return (
@@ -182,6 +229,7 @@ function ProjectTickets({
             {project.name}
           </h2>
           <p className={SMALL}>{projectWords(full ?? project)}</p>
+          <ShippedLine p={full ?? project} now={now} />
         </div>
         <OpenOnSite row={row} link={project.link} label="Open in Hive Works" />
       </div>
@@ -189,10 +237,11 @@ function ProjectTickets({
         <p className={SMALL}>Finding the tickets…</p>
       ) : view.isError ? (
         <p className={SMALL}>Couldn’t load this project’s tickets just now. Nothing here is current.</p>
-      ) : tickets.length === 0 ? (
-        <p className={SMALL}>No open tickets. Everything here is done or hasn’t started.</p>
       ) : (
         <>
+          {tickets.length === 0 && (
+            <p className={SMALL}>No open tickets. Everything here is done or hasn’t started.</p>
+          )}
           {backlog.length > 0 && (
             <section aria-labelledby={`${id}-backlog`} className={CARD}>
               <h3 id={`${id}-backlog`} className={EYEBROW}>{`Backlog · ${backlog.length}`}</h3>
@@ -204,6 +253,19 @@ function ProjectTickets({
               <h3 id={`${id}-someday`} className={EYEBROW}>{`Someday · ${someday.length}`}</h3>
               <ul>{someday.map((t) => <TicketRow key={t.hw} row={row} t={t} />)}</ul>
             </section>
+          )}
+          {closed.length > 0 && (
+            <details className={CARD}>
+              <summary className="flex min-h-[var(--pw-targets-minimum)] cursor-pointer items-center gap-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent-primary)]">
+                <span className={EYEBROW}>{`Closed · ${closed.length}`}</span>
+                <span className={SMALL}>
+                  {closed.length === shipped
+                    ? `${shipped} shipped`
+                    : `${shipped} shipped · ${closed.length - shipped} dropped`}
+                </span>
+              </summary>
+              <ul>{closed.map((t) => <ClosedRow key={t.hw} row={row} t={t} now={now} />)}</ul>
+            </details>
           )}
         </>
       )}
@@ -357,6 +419,7 @@ export function Projects() {
                         {p.name}
                       </h3>
                       <p className={SMALL}>{projectWords(p)}</p>
+                      <ShippedLine p={p} now={now} />
                       <div className="mt-auto flex flex-wrap gap-[var(--pw-spacing-sm)] pt-[var(--pw-spacing-xs)]">
                         <WorldButton variant="secondary" onPress={() => setOpen(p)} aria-label={`See the tickets for ${p.name}`}>
                           See the tickets
