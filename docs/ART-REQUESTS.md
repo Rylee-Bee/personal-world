@@ -591,7 +591,12 @@ checks each file for real transparency and size, curates the masters into
 `design/assets/brand/`, exports the WebP sizes into `ui/public/assets/`, and
 wires them in.
 
-## 14. Sleepy crew, for rough nights (requested 2026-09-26)
+## 14. Sleepy crew, for rough nights (requested and DELIVERED 2026-09-26)
+
+**Delivered:** all eight, the same night. Masters in `design/assets/crew/sleepy/`,
+web sizes in `ui/public/assets/crew/{256,512}/<key>-sleepy.webp`. The Rough
+night page shows the chosen companion in their night pose (a companion someone
+added themselves keeps their usual portrait, dimmed).
 
 **Why:** the owner's wish, on a hard pain night. Worlds is getting a
 **Rough night** page: the darkest tokens, no motion, "How bad is it?" from
