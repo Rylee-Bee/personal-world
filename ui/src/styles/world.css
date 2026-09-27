@@ -893,3 +893,114 @@ body {
   animation: pw-pulse 1.2s ease-in-out infinite;
 }
 @keyframes pw-pulse { 50% { opacity: 0.45; } }
+
+/* The Sticker Album. The page is paper (it stays paper in every theme, with
+   its own dark ink, like a real album); stickers are die-cut with a white
+   edge and a small tilt. Shines: paper, gold foil, holo. The holo shimmer
+   moves only where motion is allowed; the tiers and the OS floor stop it. */
+.sticker-sheet {
+  --paper: #f6efdf;
+  --paper-ink: #3a2c18;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--pw-spacing-lg) var(--pw-spacing-md);
+  list-style: none;
+  margin: 0;
+  padding: var(--pw-spacing-lg);
+  border-radius: var(--pw-radius-md);
+  color: var(--paper-ink);
+  background: linear-gradient(transparent 31px, rgb(58 44 24 / 0.08) 32px) 0 0 / 100% 32px, var(--paper);
+}
+@media (max-width: 480px) {
+  .sticker-sheet { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); padding: var(--pw-spacing-md); }
+}
+.sticker {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: var(--pw-targets-minimum);
+  border: 0;
+  background: none;
+  padding: 4px;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  border-radius: var(--pw-radius-sm);
+}
+.sticker:focus-visible { outline: 2px solid var(--pw-accent-primary); outline-offset: 2px; }
+.sticker-die {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--sticker-size, 96px);
+  height: var(--sticker-size, 96px);
+  overflow: hidden;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 5px #fff, 0 3px 10px rgb(40 24 8 / 0.25);
+  transform: rotate(var(--sticker-tilt, 0deg));
+  transition: transform 0.2s ease;
+}
+.sticker:hover .sticker-die, .sticker:focus-visible .sticker-die { transform: rotate(0deg) scale(1.05); }
+.sticker-shape-tag .sticker-die { border-radius: 22px; }
+.sticker-shape-book .sticker-die { border-radius: 10px 22px 22px 10px; }
+.sticker-shape-star .sticker-die {
+  border-radius: 0;
+  box-shadow: none;
+  clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 60%, 80% 100%, 50% 78%, 20% 100%, 30% 60%, 0 38%, 38% 35%);
+}
+.sticker-art { width: 100%; height: 100%; object-fit: cover; }
+.sticker-mark { font-family: var(--pw-typography-font_serif, Georgia, serif); font-size: calc(var(--sticker-size, 96px) * 0.4); font-weight: 700; color: #8a7350; }
+.sticker-name { max-width: 120px; font-size: 14px; font-weight: 700; line-height: 1.25; color: var(--paper-ink, inherit); }
+.sticker-state { font-size: 13px; letter-spacing: 0.04em; color: #6b5838; }
+.sticker-foil .sticker-die { background: radial-gradient(circle at 30% 25%, #fff6d8, #f0c775 70%); }
+.sticker-holo .sticker-die { background: conic-gradient(from 200deg, #ffd6f5, #c9f0ff, #fff2c4, #d7ffd9, #ffd6f5); }
+.sticker-foil .sticker-die::after, .sticker-holo .sticker-die::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.7) 45%, transparent 60%);
+  mix-blend-mode: soft-light;
+}
+.sticker-holo .sticker-die::after { background-size: 250% 100%; animation: sticker-shimmer 4s ease-in-out infinite; }
+@keyframes sticker-shimmer { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+.sticker-locked .sticker-die { background: #e9e0cc; filter: grayscale(1); opacity: 0.55; }
+.sticker-riddle .sticker-die { background: repeating-linear-gradient(45deg, #efe6d2 0 8px, #e6dbc3 8px 16px); }
+.sticker-secret .sticker-die { background: #2a2140; box-shadow: 0 0 0 5px #3b2f5a, 0 3px 10px rgb(0 0 0 / 0.3); }
+.sticker-secret .sticker-mark { color: #d9c9ff; }
+.sticker-corner {
+  position: absolute;
+  right: 8%;
+  bottom: 12%;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #d9c9ff;
+  color: #2a2140;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* The quiet landing: a small sticker in the corner that settles if ignored. */
+.sticker-peel {
+  position: fixed;
+  right: calc(var(--pw-spacing-lg) + var(--pw-safe-area-inset-right, 0px));
+  bottom: calc(56px + var(--pw-safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--pw-spacing-sm);
+  max-width: min(22rem, calc(100vw - 32px));
+  border: 1px solid var(--pw-border-subtle);
+  border-radius: var(--pw-radius-lg);
+  background: var(--pw-surface-panel);
+  padding: var(--pw-spacing-sm) var(--pw-spacing-md);
+  color: var(--pw-text-primary);
+  animation: sticker-peel-in 0.5s ease-out;
+}
+.sticker-peel .sticker-name, .sticker-peel .sticker-state { display: none; }
+.sticker-peel-words { font-size: var(--pw-typography-size_small); }
+.sticker-peel-settled { opacity: 0.6; }
+@keyframes sticker-peel-in { from { transform: translate(12px, 12px) rotate(8deg); opacity: 0; } }
