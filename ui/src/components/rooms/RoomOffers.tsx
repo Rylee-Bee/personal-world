@@ -17,8 +17,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRoomAction, useRoomView } from "../../data/hooks";
 import type { HiveCrewView, RoomActionReceipt, RoomOffer, RoomRow } from "../../data/contract";
-import { formatTime, idempotencyKey, LINK_BASE, roomItemUrl, TEXTAREA } from "./format";
-import { formBody, formReady, offerLabel, type FormValues } from "./choices";
+import { formatTime, idempotencyKey, LINK_BASE, TEXTAREA } from "./format";
+import { artName, formBody, formReady, offerLabel, type FormValues } from "./choices";
+import { roomArtUrl } from "../../data/api";
 
 const SECTION_TITLE =
   "mb-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.12em] text-[var(--pw-text-muted)]";
@@ -63,8 +64,8 @@ function OfferForm({
   const crewView = useRoomView<HiveCrewView>(row.id, "crew", undefined, hasChoices);
   const faces = new Map<string, string>();
   for (const b of crewView.data?.data?.crew ?? []) {
-    const url = b.face_url ? roomItemUrl(row, b.face_url) : null;
-    if (url) faces.set(b.bee, url);
+    const name = artName(b.face_file);
+    if (name) faces.set(b.bee, roomArtUrl(row.id, name));
   }
   const [values, setValues] = useState<FormValues>({});
   const firstRef = useRef<HTMLTextAreaElement>(null);

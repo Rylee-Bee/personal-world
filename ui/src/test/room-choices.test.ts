@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasRecommendation, needChoices, offerLabel, roomOffers } from "../components/rooms/choices";
+import { artName, hasRecommendation, needChoices, offerLabel, roomOffers } from "../components/rooms/choices";
 import type { RoomNeed, RoomRow } from "../data/contract";
 
 const need = (over: Partial<RoomNeed>): RoomNeed => ({
@@ -59,5 +59,19 @@ describe("Hive Works art", () => {
     const { drawnInteriorUrl } = await import("../components/rooms/crew");
     expect(drawnInteriorUrl("hive-works")).toMatch(/assets\/crew\/512\/hive-works-doorway\.webp$/);
     expect(drawnInteriorUrl("Hive Works")).toMatch(/hive-works-doorway\.webp$/);
+  });
+});
+
+describe("artName", () => {
+  it("turns a room picture file into its name for roomArtUrl", () => {
+    expect(artName("art/crew/pip.webp")).toBe("pip");
+    expect(artName("pip.webp")).toBe("pip");
+    expect(artName("art/crew/bee-2_b.webp")).toBe("bee-2_b");
+  });
+  it("refuses anything that isn't a plain webp name", () => {
+    expect(artName(null)).toBeNull();
+    expect(artName("art/crew/pip.png")).toBeNull();
+    expect(artName("../../secret.webp")).toBe("secret");
+    expect(artName("art/crew/pi p.webp")).toBeNull();
   });
 });

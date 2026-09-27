@@ -28,6 +28,8 @@ import type {
   RoomRow,
 } from "../../data/contract";
 import { relativeTime, roomItemUrl } from "../../components/rooms/format";
+import { artName } from "../../components/rooms/choices";
+import { roomArtUrl } from "../../data/api";
 import { useMinuteClock } from "../../components/rooms/useRootAttribute";
 import { currentNeeds, isUncertain } from "../../components/rooms/groupRooms";
 import { RoomDrawer } from "../../components/rooms/RoomDrawer";
@@ -55,12 +57,24 @@ function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-/** A bee's face from the Hive Works site, or their initial in a ring
- *  when there is no picture (or it doesn't load). Decorative: the name
- *  is always in the words beside it. */
-function BeeFace({ row, bee, size = 40 }: { row: RoomRow; bee: HiveBee | undefined; size?: number }) {
+/** A bee's face, served through Worlds (so it shows without a Hive Works
+ *  sign-in), or their initial in a ring when there is no picture (or it
+ *  doesn't load). Decorative: the name is always in the words beside it. */
+function BeeFace({
+  row,
+  bee,
+  file,
+  size = 40,
+}: {
+  row: RoomRow;
+  bee: HiveBee | undefined;
+  /** A face file to use when the bee isn't in the crew list (teams). */
+  file?: string | null;
+  size?: number;
+}) {
   const [failed, setFailed] = useState(false);
-  const src = bee?.face_url ? roomItemUrl(row, bee.face_url) : null;
+  const name = artName(bee?.face_file ?? file);
+  const src = name ? roomArtUrl(row.id, name) : null;
   const initial = (bee?.name ?? "?").trim().charAt(0).toUpperCase() || "?";
   if (src && !failed) {
     return (
@@ -308,7 +322,7 @@ export function Projects() {
                     onClick={() => setTeam(team === t.id ? null : t.id)}
                     className={team === t.id ? CHIP_ON : CHIP_OFF}
                   >
-                    <BeeFace row={row} bee={beeOf(t.bee)} size={28} />
+                    <BeeFace row={row} bee={beeOf(t.bee)} file={t.bee_face_file} size={28} />
                     <span>{t.name}</span>
                     <span className="text-[var(--pw-text-muted)]">
                       {t.asks_you > 0 ? `· ${t.asks_you} for you` : `· ${t.open} open`}
@@ -336,7 +350,7 @@ export function Projects() {
                   return (
                     <li key={p.id} className={CARD}>
                       <span className="flex items-center gap-[var(--pw-spacing-sm)]">
-                        <BeeFace row={row} bee={t ? beeOf(t.bee) : undefined} size={32} />
+                        <BeeFace row={row} bee={t ? beeOf(t.bee) : undefined} file={t?.bee_face_file} size={32} />
                         <span className={MICRO}>{t?.name ?? p.team}</span>
                       </span>
                       <h3 className="text-[length:var(--pw-typography-size_lead)] font-semibold text-[var(--pw-text-primary)]" style={SERIF}>

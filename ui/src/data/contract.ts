@@ -1072,14 +1072,18 @@ export interface NotifyOutcome {
 }
 
 // ─── Hive Works views (GET /api/rooms/hive-works/views/…) ──────────
-// Read-only; each answer is {generated_at, <key>}. Links and face_url
-// are paths on the Hive Works site (open with the room's public_url).
+// Read-only; each answer is {generated_at, <key>}. Links are paths on
+// the Hive Works site (open with the room's public_url). Faces are
+// `face_file` / `bee_face_file` (e.g. "art/crew/pip.webp"), shown through
+// Worlds with roomArtUrl; the site's own `face_url` needs a sign-in there.
 
 export interface HiveTeam {
   id: string;
   name: string;
   /** The bee who leads this team (a crew `bee` id). */
   bee: string;
+  /** The lead bee's picture, e.g. "art/crew/pip.webp". */
+  bee_face_file?: string | null;
   projects: string[];
   open: number;
   asks_you: number;
@@ -1113,7 +1117,10 @@ export interface HiveBee {
   name: string;
   job: string;
   line: string;
-  face_url: string | null;
+  /** The bee's picture, e.g. "art/crew/pip.webp" (use roomArtUrl). */
+  face_file?: string | null;
+  /** On the Hive Works site; needs a sign-in there, so not used. */
+  face_url?: string | null;
 }
 
 export interface HiveTeamsView { generated_at: string; teams: HiveTeam[] }

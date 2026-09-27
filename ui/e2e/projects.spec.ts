@@ -143,10 +143,14 @@ test("Riff: each bee choice shows that bee's face from Hive Works", async ({ pag
       ],
     },
   ]);
-  const faces = { ...CREW, crew: CREW.crew.map((b) => ({ ...b, face_url: `/art/crew/${b.bee}.webp` })) };
+  const faces = {
+    ...CREW,
+    crew: CREW.crew.map((b) => ({ ...b, face_file: `art/crew/${b.bee}.webp`, face_url: `/art/crew/${b.bee}.webp` })),
+  };
   await page.route("**/api/rooms/hive-works/views/crew", (route) => route.fulfill({ json: { ok: true, data: faces } }));
   // A tiny stand-in picture for the Hive Works site.
-  await page.route("https://hive.example.test/art/crew/**", (route) =>
+  // Faces come through Worlds (no Hive Works sign-in needed).
+  await page.route("**/api/rooms/hive-works/art/*.webp", (route) =>
     route.fulfill({ path: "public/assets/crew/256/bolt-sleepy.webp", contentType: "image/webp" }),
   );
 
@@ -155,7 +159,7 @@ test("Riff: each bee choice shows that bee's face from Hive Works", async ({ pag
   const drawer = page.getByRole("dialog", { name: "Hive Works" });
   await drawer.getByRole("button", { name: "Riff" }).click();
   const bumble = drawer.getByRole("button", { name: "Bumble" });
-  await expect(bumble.locator("img")).toHaveAttribute("src", "https://hive.example.test/art/crew/bumble.webp");
+  await expect(bumble.locator("img")).toHaveAttribute("src", "/api/rooms/hive-works/art/bumble.webp");
   await expect(bumble.locator("img")).toHaveAttribute("alt", "");
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
