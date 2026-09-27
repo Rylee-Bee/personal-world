@@ -30,13 +30,55 @@ env:
   IMAGE_NAME: ${{ github.event.repository.owner.login }}/personal-world
 
 jobs:
-  publish:
-    # workflow_run only fires after the upstream completed; gate on its
-    # conclusion so a failed validate never ships an image.
+  changes:
+    # Build only when something that goes INTO the image changed since the
+    # commit baked into the current :latest image (not merely the previous
+    # commit: a cancelled build must never let code slip past). Docs, tests
+    # and CI-only merges skip the build, and `lab ship --main` then leaves
+    # the running Worlds alone ("no app change"). Owner decision 2026-09-27.
+    # IMAGE_INPUTS mirrors the Dockerfile's COPY sources: keep them in sync.
     if: >
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Did anything in the image change?
+        id: decide
+        env:
+          HEAD: ${{ github.event.workflow_run.head_sha }}
+          IMAGE: ghcr.io/${{ github.event.repository.owner.login }}/personal-world:latest
+        run: |
+          set -uo pipefail
+          IMAGE_INPUTS='^(src/|ui/|design/|docs/library/|pyproject\.toml$|uv\.lock$|README\.md$|Dockerfile$|\.dockerignore$)'
+          NOT_SHIPPED='^ui/(e2e|uat|\.storybook)/|^ui/src/test/|\.test\.tsx?$|\.stories\.tsx$'
+          base=$(docker buildx imagetools inspect "$IMAGE" --format '{{ index .Image.Config.Labels "org.opencontainers.image.revision" }}' 2>/dev/null || true)
+          if [ -z "$base" ] || ! git merge-base --is-ancestor "$base" "$HEAD" 2>/dev/null; then
+            echo "No usable base image revision; building."
+            echo "build=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          changed=$(git diff --name-only "$base" "$HEAD" | grep -E "$IMAGE_INPUTS" | grep -Ev "$NOT_SHIPPED" || true)
+          if [ -n "$changed" ]; then
+            echo "App files changed since ${base:0:7}:"; echo "$changed" | head -40
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nothing in the image changed since ${base:0:7}; skipping the build."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    # workflow_run only fires after the upstream completed; gate on its
+    # conclusion so a failed validate never ships an image.
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Resolve validated SHA
@@ -98,6 +140,10 @@ jobs:
           # be compared against main without inspecting image metadata.
           build-args: |
             PW_COMMIT=${{ steps.sha.outputs.head_sha }}
+          # Layer cache: dependency layers are reused, so most builds only
+          # redo the UI build and the source copy.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           # Public visibility — Rylee-Bee/personal-world is a public
           # repo and the image carries source only (no secrets, no
           # private endpoints, no deployment topology — verified
