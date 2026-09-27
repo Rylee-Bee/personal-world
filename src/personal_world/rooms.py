@@ -1372,6 +1372,10 @@ class RoomsService:
             status, payload = await self._fetch_json(config, STICKERS_PATH, "stickers", principal)
             if status == 404:
                 return
+            # Views may wrap their document ({generated_at, stickers: {...}}),
+            # as Hive Works' views do; accept both shapes.
+            if isinstance(payload, dict) and isinstance(payload.get("stickers"), dict):
+                payload = payload["stickers"]
             if (status == 200 and isinstance(payload, dict)
                     and payload.get("contract") == "stickers/0"
                     and isinstance(payload.get("stickers"), list)):

@@ -98,3 +98,29 @@ def test_cascades_and_whispers():
     stickers.find(data, "worlds", "all-doors")
     shown = {s["id"] for s in stickers.page("worlds", "Worlds", None, stickers.WORLDS, 0, data)["stickers"]}
     assert "one-more-door" in shown  # its neighbour is found, so the riddle appears
+
+
+
+def test_a_wrapped_view_is_read_like_a_bare_one():
+    """Hive Works' views wrap their document ({generated_at, stickers: {...}})."""
+    import asyncio
+
+    from personal_world import rooms as rooms_mod
+
+    svc = rooms_mod.RoomsService.__new__(rooms_mod.RoomsService)
+    cfg = rooms_mod.RoomConfig(id="hive-works", base_url="http://room.test")
+    wrapped = {"generated_at": "2026-09-27T12:00:00Z",
+               "stickers": {"contract": "stickers/0", "app": "hive-works", "stickers": [{"id": "a", "kind": "open"}]}}
+
+    async def configs(env):
+        return [cfg], None
+
+    async def snapshot(env=None):
+        return [{"id": "hive-works", "room": {"offers": ["views", "stickers"]}}]
+
+    async def fetch(config, path, name, principal):
+        return 200, wrapped
+
+    svc._resolve_configs, svc.snapshot, svc._fetch_json = configs, snapshot, fetch
+    rows = asyncio.run(svc.sticker_sets(None, env={}))
+    assert rows[0]["status"] == "ok" and rows[0]["set"]["contract"] == "stickers/0"
