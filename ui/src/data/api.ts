@@ -570,6 +570,17 @@ export const putPlace = (body: PlacePutRequest) =>
 export const getRooms = () =>
   unwrap<RoomsEnvelope>(api.GET("/api/rooms", {}));
 
+// GET /api/rooms/{id}/views/{name}[/{item}]: a room's own read-only view
+// (e.g. Hive Works' teams, projects, one project, crew), passed through as
+// the room's JSON. 404 unknown room/view, 502 unreadable.
+export const getRoomView = <T,>(roomId: string, name: string, item?: string) =>
+  unwrap<Envelope<T>>(
+    getRequest(
+      `/api/rooms/${encodeURIComponent(roomId)}/views/${encodeURIComponent(name)}` +
+        (item ? `/${encodeURIComponent(item)}` : ""),
+    ),
+  );
+
 // GET /api/secrets/overview: the Workshop's secrets by NAME, with station
 // health, agents' requests and recent changes. Owner only (403 for anyone
 // else). Never carries a value. A dead or unreadable station is data

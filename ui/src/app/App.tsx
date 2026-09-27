@@ -41,7 +41,7 @@ import { RoughNight } from "../screens/RoughNight/RoughNight";
 import { StayFresh } from "./StayFresh";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
-import { useHealthz, usePrefs, usePrefsSchema, useSections } from "../data/hooks";
+import { useHealthz, usePrefs, usePrefsSchema, useRoomEvents, useSections } from "../data/hooks";
 import { SKELETON_AREAS, derivePersonalAreas } from "../data/types";
 import type { WorldArea, WorldAreaId } from "../data/types";
 import { parsePrefsSchema, readPrefsValues } from "../screens/Settings/parse";
@@ -123,6 +123,8 @@ function useApplyPrefsChrome(): void {
 
 export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Rooms refresh the moment one says it changed (two-way rooms).
+  useRoomEvents();
   // "crew" and "people" are pages inside Settings, not nav landmarks:
   // the skeleton stays Overview · Memory · Chat · Settings.
   // Coming back from "Confirm with your sign-in" reopens the page the

@@ -6,6 +6,7 @@ compared with hmac.compare_digest and never logged.
 """
 
 import datetime as _dt
+import asyncio
 import json
 import logging
 import re
@@ -20,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from . import export, prefs, records as records_mod, voice
@@ -2899,6 +2900,78 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             "summary": rooms_visits.summarize(decorated, state),
             "registry": _ROOMS.registry_report(),
         }
+
+    @app.post("/api/rooms/{room_id}/changed", dependencies=[Depends(require_auth)])
+    async def rooms_changed(room_id: str, request: Request) -> dict:
+        """A room says its data changed (the live half of a two-way room).
+
+        Worlds forgets what it cached for that room and tells open
+        screens (``GET /api/rooms/events``), so they re-read it within
+        seconds instead of waiting for the next refresh. Callers: an
+        agent token with the ``notify`` scope (a room's own sync job), or
+        someone who may ``approve``. The body is ignored: a ping carries
+        no content, so it can only cause a re-read. Unknown room → 404;
+        pings closer than 2 s fold into one.
+        """
+        principal = _principal(request)
+        allowed = principal is not None and (
+            ("notify" in (principal.scopes or ()))
+            if principal.kind == "agent"
+            else can(principal, "approve")
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="the notify scope is required")
+        if not await _ROOMS.room_changed(room_id):
+            raise HTTPException(status_code=404, detail="unknown room")
+        return {"ok": True, "data": {"room_id": room_id}}
+
+    @app.get("/api/rooms/events", dependencies=[Depends(require_auth)])
+    async def rooms_events(request: Request) -> StreamingResponse:
+        """Server-sent events: ``room-changed`` with ``{room, at}`` whenever
+        a room pings or an action in Worlds changes it. Room ids only,
+        never content. A comment line every 20 s keeps proxies from
+        closing the stream; the browser's EventSource reconnects on its
+        own."""
+        queue = _ROOMS.listen()
+
+        async def stream():
+            try:
+                yield "retry: 5000\n\n"
+                while True:
+                    if await request.is_disconnected():
+                        return
+                    try:
+                        event = await asyncio.wait_for(queue.get(), timeout=20)
+                    except TimeoutError:
+                        yield ": still here\n\n"
+                        continue
+                    yield f"event: room-changed\ndata: {json.dumps(event)}\n\n"
+            finally:
+                _ROOMS.unlisten(queue)
+
+        return StreamingResponse(
+            stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+        )
+
+    @app.get("/api/rooms/{room_id}/views/{name}", dependencies=[Depends(require_auth)])
+    @app.get("/api/rooms/{room_id}/views/{name}/{item}", dependencies=[Depends(require_auth)])
+    async def rooms_view_one(
+        room_id: str, name: str, request: Request, item: str | None = None
+    ) -> JSONResponse:
+        """A room's own read-only view, e.g. Hive Works' teams, projects,
+        one project or crew (``GET /room/views/{name}[/{item}]`` on the
+        room). Passed through as the room's JSON under ``data``; an
+        unknown room or view is 404 and an unreadable one 502, with
+        plain words. Links inside are the room's same-origin paths; the
+        UI opens them on the room's own address."""
+        status, payload = await _ROOMS.view(
+            room_id, name, item, getattr(request.state, "principal", None)
+        )
+        if status == 200:
+            return JSONResponse({"ok": True, "data": payload})
+        return JSONResponse({"ok": False, "error": payload.get("error")}, status_code=status)
 
     @app.get("/api/secrets/overview", dependencies=[Depends(require_auth)])
     async def secrets_overview_view(request: Request) -> dict:
