@@ -509,6 +509,28 @@ export const moveLater = (id: string, to: "doing" | "done" | "later") =>
     sendBody("POST", `/api/later/${encodeURIComponent(id)}`, { to }),
   );
 
+// ===== Teach while building: Book Girl (learning.py) =====
+export type LearningMode = "build" | "occasional" | "plain";
+/** How to teach an idea this time (POST /api/learning/encounter's answer). */
+export interface LearningMoment {
+  concept: string;
+  stage: "first" | "again" | "familiar" | "off";
+  /** Where it was first met, for "again": "the hidden door that needed the lantern". */
+  first_context?: string;
+  first_project?: string;
+  /** Which book teaches it, e.g. "worlds:gating". */
+  book?: string;
+}
+export interface LearningState {
+  mode: LearningMode;
+  concepts: Record<string, { stage: string; first_context?: string; first_project?: string; offered?: number; got_it?: number }>;
+}
+export const getLearning = () => unwrap<Envelope<LearningState>>(getRequest("/api/learning"));
+export const putLearningMode = (mode: LearningMode) =>
+  unwrap<Envelope<{ mode: LearningMode }>>(sendBody("PUT", "/api/learning/mode", { mode }));
+export const postLearningGotIt = (concept: string) =>
+  unwrap<Envelope<{ concept: string; stage: string }>>(sendBody("POST", "/api/learning/got-it", { concept }));
+
 // ===== Vault =====
 export const getVaultStatus = () =>
   unwrap<Envelope<VaultStatusData>>(api.GET("/api/vault/status", {}));

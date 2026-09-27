@@ -822,3 +822,44 @@ body {
   background: var(--pw-surface-panel);
   padding: var(--pw-spacing-sm) var(--pw-spacing-md);
 }
+
+/* Book Girl: a little flying book. She bobs and flaps only where motion is
+   allowed (the motion tiers above and the OS floor stop it; then she holds
+   still and glows). Landed, her wings fold down; ignored, she settles faint. */
+.bookgirl { overflow: visible; }
+.bookgirl-aura { fill: color-mix(in srgb, var(--pw-accent-warm) 55%, transparent); opacity: 0; }
+.bookgirl-flying .bookgirl-aura { opacity: 1; animation: bookgirl-breathe 3.2s ease-in-out infinite; }
+.bookgirl-flying .bookgirl-flyer { animation: bookgirl-bob 2.6s ease-in-out infinite; }
+.bookgirl-wing-l, .bookgirl-wing-r { transform-box: view-box; transition: transform 0.4s ease; }
+.bookgirl-wing-l { transform-origin: 17px 23px; }
+.bookgirl-wing-r { transform-origin: 31px 23px; }
+.bookgirl-flying .bookgirl-wing-l { animation: bookgirl-flap-l 0.9s ease-in-out infinite; }
+.bookgirl-flying .bookgirl-wing-r { animation: bookgirl-flap-r 0.9s ease-in-out infinite; }
+.bookgirl-resting .bookgirl-wing-l, .bookgirl-settled .bookgirl-wing-l { transform: rotate(38deg) scale(0.7); }
+.bookgirl-resting .bookgirl-wing-r, .bookgirl-settled .bookgirl-wing-r { transform: rotate(-38deg) scale(0.7); }
+.bookgirl-settled { opacity: 0.5; }
+@keyframes bookgirl-breathe { 50% { opacity: 0.35; } }
+@keyframes bookgirl-bob { 50% { transform: translateY(-4px) rotate(-3deg); } }
+@keyframes bookgirl-flap-l { 50% { transform: rotate(-22deg); } }
+@keyframes bookgirl-flap-r { 50% { transform: rotate(22deg); } }
+.bookgirl-moment { display: flex; flex-direction: column; align-items: flex-start; gap: var(--pw-spacing-xs); }
+.bookgirl-button {
+  display: grid;
+  place-items: center;
+  min-width: var(--pw-targets-minimum);
+  min-height: var(--pw-targets-minimum);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.bookgirl-button:focus-visible { outline: 2px solid var(--pw-accent-primary); outline-offset: 2px; }
+.bookgirl-card {
+  max-width: 46ch;
+  border: 1px solid var(--pw-accent-warm);
+  border-radius: var(--pw-radius-md);
+  background: var(--pw-surface-hull);
+  padding: var(--pw-spacing-md);
+  line-height: 1.55;
+}

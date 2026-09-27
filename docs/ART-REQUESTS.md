@@ -731,3 +731,39 @@ zip). Claude checks size, text-free-ness and how they read small, curates
 the masters into `design/assets/library/`, exports
 `ui/public/assets/library/covers/{256,512}/<book>.webp` and
 `ui/public/assets/library/shelf-<look>.webp`, and puts them on the shelves.
+
+## 16. Book Girl, painted (requested 2026-09-27)
+
+**Why:** Book Girl is a little flying book who teaches while you build
+(owner, 2026-09-27). She ships as a small SVG drawn from the owner's
+prototype (`ui/src/components/bookgirl/BookGirl.tsx`), so nothing waits on
+this. A painted version would sit with the rest of the crew.
+
+**Who she is:** a golden open book with cream pages and two paper wings,
+sleepy-happy eyes (closed, smiling arcs), pink cheeks, a small smile. Gentle,
+never bossy: recognition, not correction. Like a fairy guide you can ignore.
+
+**Deliver:** two PNGs, **1024 × 1024, real transparency**, framed alike so
+they swap cleanly, no text, no glow outside the art. Must read at **44 px**.
+
+| File | Pose |
+| --- | --- |
+| `book-girl-flying.png` | Wings up and open mid-flap, pages fanned a little, a soft warm glow around her |
+| `book-girl-resting.png` | Landed, wings folded down against her sides, pages settled, the glow dimmed |
+
+**Copy-paste request:**
+
+```
+Paint Book Girl for Project Worlds: a little flying storybook character. A golden open book
+with cream pages and two paper wings, sleepy-happy closed eyes as smiling arcs, pink cheeks,
+a small smile. Warm painterly style with crisp but soft dark outlines, like the crew sheet.
+Gentle and ignorable, like a fairy guide. No text. Transparent PNG, 1024x1024, centred,
+filling about 80% of the canvas, readable at 44 px. Two poses framed identically:
+1) book-girl-flying.png — wings up mid-flap, pages fanned slightly, a soft warm glow.
+2) book-girl-resting.png — landed, wings folded down against her sides, glow dimmed.
+```
+
+**Where they go:** `design/owner/crew/newassets/` (or a zip). Claude curates
+the masters into `design/assets/crew/book-girl/`, exports
+`ui/public/assets/crew/{256,512}/book-girl-{flying,resting}.webp`, and swaps
+them into `BookGirl.tsx` (the SVG stays as the fallback).
