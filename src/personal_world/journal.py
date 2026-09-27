@@ -124,17 +124,23 @@ class Journal:
         self.append(audit)
         return current, audit
 
-    def current_events(self, n: int = 20) -> list[JournalEvent]:
+    def current_events(
+        self, n: int = 20, exclude_kinds: frozenset[str] = frozenset()
+    ) -> list[JournalEvent]:
         """The calm view: newest-last list of the latest n entries
         where each chain's CURRENT version only is shown. Superseded
         entries are filtered out; a corrected entry renders in its
-        place with its own (later) timestamp."""
+        place with its own (later) timestamp. ``exclude_kinds`` drops
+        those kinds BEFORE the last n are taken, so a burst of automatic
+        entries can't push a person's notes out of the window."""
         superseded_keys = {
             e.supersedes for e in self.events() if e.supersedes is not None
         }
         out = []
         for e in self.events():
             if e.ts in superseded_keys:
+                continue
+            if exclude_kinds and str(getattr(e.kind, "value", e.kind)) in exclude_kinds:
                 continue
             out.append(e)
         return out[-n:]

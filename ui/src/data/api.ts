@@ -257,7 +257,7 @@ export const getDaily = () => unwrap<DailyResponse>(api.GET("/api/daily", {}));
 // Journal — server contract: {ok, data:[JournalEvent…]} current-events
 // list (query `n`, clamped 1..500 server-side); writes are {text};
 // supersede is {supersedes: ts, text, reason?}; history is one chain by ts.
-export const listJournal = (params?: { n?: number }) =>
+export const listJournal = (params?: { n?: number; hide?: string }) =>
   unwrap<Envelope<JournalEvent[]>>(
     api.GET("/api/journal", { params: { query: params } }),
   );
