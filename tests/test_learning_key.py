@@ -1,4 +1,4 @@
-"""A project's learning key (PW_LEARNING_TOKEN, single mode) writes the
+"""A project's learning key (PW_LEARNING_TOKEN, single and multi mode) writes the
 owner's learning memory and reaches nothing else — not even reads."""
 
 import sys
@@ -13,13 +13,13 @@ OWNER = "learnkey-owner-token"  # pw-safety: synthetic
 KEY = "learnkey-project-token"  # pw-safety: synthetic
 
 
-@pytest.fixture
-def client(tmp_path, monkeypatch):
+@pytest.fixture(params=["single", "multi"])
+def client(tmp_path, monkeypatch, request):
     from personal_world.api import create_app
 
     monkeypatch.setenv("PW_API_TOKEN", OWNER)
     monkeypatch.setenv("PW_LEARNING_TOKEN", KEY)
-    monkeypatch.setenv("PW_IDENTITY_MODE", "single")
+    monkeypatch.setenv("PW_IDENTITY_MODE", request.param)
     monkeypatch.setenv("PW_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("PW_CONFIG_DIR", str(tmp_path))
     return TestClient(create_app(tmp_path, tmp_path))
