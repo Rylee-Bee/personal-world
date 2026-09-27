@@ -41,3 +41,40 @@ test("with reduced motion she holds still", async ({ page }) => {
   expect(running).toBe(0);
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
+
+test("Chat: when a reply names an idea, Book Girl sits beside it and teaches only when tapped", async ({ page }) => {
+  const entries: { ts: number; role: string; content: string }[] = [];
+  const gotIt: string[] = [];
+  await page.route("**/api/chat/history*", (route) => route.fulfill({ json: { ok: true, data: { entries } } }));
+  await page.route("**/api/learning/got-it", (route) => {
+    gotIt.push(route.request().postDataJSON().concept);
+    return route.fulfill({ json: { ok: true, data: { concept: "gating", stage: "again" } } });
+  });
+  await page.route("**/api/chat", (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    const { message } = route.request().postDataJSON();
+    const reply = "Done: the door only shows once the lantern is in your bag.";
+    entries.push({ ts: 1, role: "user", content: message }, { ts: 2, role: "assistant", content: reply });
+    return route.fulfill({
+      json: { ok: true, data: { reply, provider: "fixture", learning: { concept: "gating", stage: "first", book: "worlds:gating" } } },
+    });
+  });
+  await gotoArea(page, "Chat");
+  const box = page.getByRole("textbox").first();
+  await box.fill("A hidden door you can't find until you have the lantern.");
+  await box.press("Enter");
+  await expect(page.getByText("Done: the door only shows once the lantern is in your bag.")).toBeVisible();
+  const her = page.getByRole("button", { name: "There’s a name for something you just made (optional)" });
+  await expect(her).toBeVisible();
+  await expect(page.getByText(/There’s a name for part of what you just made/)).toHaveCount(0);
+  await her.click();
+  await expect(page.getByText("📚 There’s a name for part of what you just made. Gating: getting to something depends on meeting a condition first.")).toBeVisible();
+  await page.screenshot({ path: "test-results/book-girl-chat.png" });
+  const results = await new AxeBuilder({ page }).analyze();
+  const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+  expect(bad.map((v) => `${v.id}: ${v.nodes.length} node(s)`)).toEqual([]);
+  await page.getByRole("button", { name: "Got it" }).click();
+  await expect(page.getByText("She’ll get quieter about gating from here.")).toBeVisible();
+  expect(gotIt).toEqual(["gating"]);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});

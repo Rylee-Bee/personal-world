@@ -259,6 +259,15 @@ export interface ChatSendData {
   reply?: string;
   provider?: string;
   proposal?: unknown;
+  /** Present only when the reply named an idea (Book Girl): how to teach it
+   *  now, and its book ("worlds:<concept id>"). */
+  learning?: {
+    concept: string;
+    stage: "first" | "again" | "familiar" | "off";
+    first_context?: string;
+    first_project?: string;
+    book?: string;
+  };
 }
 
 export interface ChatSendResponse extends Envelope<ChatSendData> {
