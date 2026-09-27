@@ -7,6 +7,7 @@
 import { useSyncExternalStore } from "react";
 import { useJournalList, useRooms } from "../../data/hooks";
 import type { BridgeData } from "../../data/contract";
+import type { WorldAreaId } from "../../data/types";
 
 const KEY = "pw-first-day-guide";
 const listeners = new Set<() => void>();
@@ -75,6 +76,27 @@ export const SYSTEM_ABOUT: Record<string, string> = {
   threads: "Where you left off, and the threads you’re following.",
 };
 
+/** Where each system is set up, in plain words (owner's first-day
+ *  walk-through, 2026-09-27: "not set up yet" led nowhere). `area` is the
+ *  page that sets it up; a system with no area can't be set up from Worlds
+ *  yet, says so, and doesn't count against the first day. */
+export const SETUP_FOR: Record<string, { area: WorldAreaId | null; label: string; how: string }> = {
+  interests: { area: "interests", label: "Open Interests", how: "Add something you’re curious about in Interests." },
+  agents: { area: "projects", label: "Open Projects", how: "Projects fill in when Hive Works or Project Home is connected as a room." },
+  estate: { area: "systems", label: "Open Computers", how: "Your machines come from the Engine room; Computers shows what it sees." },
+  records: { area: "memory", label: "Open Memory", how: "Write your first note or add a record in Memory." },
+  threads: { area: "memory", label: "Open Memory", how: "Where you left off comes from your journal in Memory." },
+  news: { area: null, label: "", how: "Newsstand can’t be set up yet. News is moving to the Candy room, and this lights up when it’s connected." },
+};
+
+/** Not set up (dim on the map). */
+export const NOT_SET_UP = new Set(["not_configured", "disabled"]);
+
+/** A system that isn't set up and can't be yet: it never counts against you. */
+export function waitingOnWorlds(s: { id: string; status: string }): boolean {
+  return NOT_SET_UP.has(s.status) && SETUP_FOR[s.id]?.area === null;
+}
+
 /** Statuses that mean a system answered with something (briefing
  *  _FRESH_STATUSES): the rest are not set up, unknown or unreachable. */
 export const ANSWERING = new Set(["healthy", "warning", "stale", "needs_attention"]);
@@ -89,14 +111,16 @@ export function useFirstDayProgress(data: BridgeData) {
   const speaker = data.keeper.resident;
   const crewOn = speaker.key !== null;
   const roomCount = rooms.data?.data?.length;
-  const answering = data.systems.filter((s) => ANSWERING.has(s.status)).length;
+  // Systems nobody can set up yet don't count: the step can still finish.
+  const countable = data.systems.filter((s) => !waitingOnWorlds(s));
+  const answering = countable.filter((s) => ANSWERING.has(s.status)).length;
   const wroteNote = (journal.data?.data ?? []).some((e) => e.provenance?.source === "user");
   const companionChosen = crewOn && speaker.key !== "assistant";
   const roomsDone = (roomCount ?? 0) > 0;
-  const systemsDone = data.systems.length > 0 && answering === data.systems.length;
+  const systemsDone = countable.length > 0 && answering === countable.length;
   const lines = [roomsDone, systemsDone, wroteNote, ...(crewOn ? [companionChosen] : [])];
   const allDone = lines.every(Boolean);
   const settling = rooms.isPending || journal.isPending;
   const showing = !hidden && !allDone && !settling;
-  return { hidden, settling, showing, allDone, speaker, crewOn, roomCount, answering, wroteNote, companionChosen, roomsDone, systemsDone };
+  return { hidden, settling, showing, allDone, speaker, crewOn, roomCount, answering, countable: countable.length, wroteNote, companionChosen, roomsDone, systemsDone };
 }

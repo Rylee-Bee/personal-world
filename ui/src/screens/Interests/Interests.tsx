@@ -32,6 +32,8 @@ import { useDiscoveryStatus } from "../../data/hooks";
 import { triggerDiscovery } from "../../data/api";
 import { describeError } from "../../data/errors";
 import { WorldButton } from "../../components/WorldButton";
+import { SolMoment } from "../../components/SolMoment";
+import { AddInterest } from "./AddInterest";
 import {
   captureModeNote,
   parseDiscoverRun,
@@ -199,6 +201,13 @@ export function Interests({ onOpenAtHome }: { onOpenAtHome?: () => void } = {}) 
   }
 
   const findings = findingsState();
+  // Nothing followed and no sources: a calm empty state with a way in.
+  const nothingToLookThrough =
+    !statusQuery.isPending &&
+    !statusQuery.isError &&
+    !status.softFailure &&
+    status.sources.length === 0 &&
+    status.interests.length === 0;
 
   return (
     <>
@@ -277,10 +286,15 @@ export function Interests({ onOpenAtHome }: { onOpenAtHome?: () => void } = {}) 
             )}
           </div>
 
-          {/* User-triggered outcome: one polite line, then the list. */}
-          {check.kind === "done" && check.run.items.length > 0 && (
-            <p role="status" aria-live="polite" className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-              Check finished — {plural(check.run.items.length, "new find", "new finds")}.
+          {/* User-triggered outcome: always one polite line, so a check
+              never looks like it did nothing (first-day walk-through). */}
+          {check.kind === "done" && (
+            <p role="status" aria-live="polite" className="mb-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] font-semibold text-[var(--pw-text-primary)]">
+              {check.run.items.length > 0
+                ? `Checked just now: ${plural(check.run.items.length, "new find", "new finds")}.`
+                : nothingToLookThrough
+                  ? "Checked just now: nothing to look through yet."
+                  : "Checked just now: nothing new."}
             </p>
           )}
 
@@ -290,6 +304,16 @@ export function Interests({ onOpenAtHome }: { onOpenAtHome?: () => void } = {}) 
                 <FindingItem key={finding.id} finding={finding} />
               ))}
             </ul>
+          ) : nothingToLookThrough ? (
+            <div className="flex flex-col gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)] p-[var(--pw-spacing-lg)]">
+              <div className="flex items-center gap-[var(--pw-spacing-md)]">
+                <SolMoment mood="curious" size={56} />
+                <p className="text-[var(--pw-text-primary)]">
+                  Nothing to look through yet. Add something you’re curious about, and each check will look for it.
+                </p>
+              </div>
+              <AddInterest onAdded={() => void statusQuery.refetch()} />
+            </div>
           ) : (
             <div>
               <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">

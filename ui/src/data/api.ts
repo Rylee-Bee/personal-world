@@ -872,6 +872,15 @@ export const listDiscoverySources = () =>
 export const listDiscoveryInterests = () =>
   unwrap<Envelope<unknown[]>>(api.GET("/api/discovery/interests", {}));
 
+/** Follow something new (step-up): an id from the name, and the name. */
+export const addDiscoveryInterest = (name: string) =>
+  unwrap<Envelope>(
+    sendBody("POST", "/api/discovery/interests", {
+      id: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "interest",
+      name: name.trim(),
+    }),
+  );
+
 export const triggerDiscovery = () =>
   unwrap<Envelope>(api.GET("/api/discovery/discover", {}));
 

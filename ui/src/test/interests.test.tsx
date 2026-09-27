@@ -231,12 +231,14 @@ describe("Interests view", () => {
 
   // ── C4: the three empties are three different truths ──
 
-  it("says 'nothing captured yet' when no sources exist", () => {
+  it("with nothing followed and no sources, a calm empty state offers a way in", () => {
     mocks.statusState.data = statusBody([], []);
     render(<Interests />);
     expect(
-      screen.getByText(/Nothing captured yet — this station has no discovery sources added\./),
+      screen.getByText(/Nothing to look through yet\. Add something you’re curious about/),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("What are you curious about?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Follow it" })).toBeDisabled();
   });
 
   it("says 'capture off' when sources exist but none are enabled", () => {

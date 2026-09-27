@@ -40,6 +40,8 @@ import { crewAssetUrl } from "../../data/types";
 import { describeError } from "../../data/errors";
 import { WorldButton } from "../../components/WorldButton";
 import { CompanionFace } from "../../components/crew/CompanionFace";
+import { CompanionChooser } from "../../components/crew/CompanionChooser";
+import { WorldDrawer } from "../../components/WorldDrawer";
 import { SpotArt } from "../../components/SpotArt";
 import {
   DOORWAYS,
@@ -166,7 +168,7 @@ export function Crew({ onBack }: { onBack: () => void }) {
         </div>
 
         <aside aria-label="About your crew" className="flex flex-col gap-[var(--pw-spacing-lg)]">
-          <YourCompanion chosen={visible.find((c) => c.id === chosen) ?? null} onOpenSettings={onBack} />
+          <YourCompanion chosen={visible.find((c) => c.id === chosen) ?? null} />
           <section
             aria-labelledby="crew-sol-heading"
             className="flex items-start gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] p-[var(--pw-spacing-lg)]"
@@ -198,14 +200,10 @@ export function Crew({ onBack }: { onBack: () => void }) {
 // ─── The side column (owner 2026-09-26: fill the wide screen) ────────
 
 /** Who keeps you company right now — the Assistant when nobody is
- *  chosen (companion_id null, the plain voice). Changed in Settings. */
-function YourCompanion({
-  chosen,
-  onOpenSettings,
-}: {
-  chosen: CrewEntry | null;
-  onOpenSettings: () => void;
-}) {
+ *  chosen (companion_id null, the plain voice). Chosen right here, in one
+ *  tap (the first-day walk-through found the Settings row too hidden). */
+function YourCompanion({ chosen }: { chosen: CrewEntry | null }) {
+  const [choosing, setChoosing] = useState(false);
   return (
     <section
       aria-labelledby="crew-yours-heading"
@@ -236,9 +234,12 @@ function YourCompanion({
           </p>
         </div>
       </div>
-      <WorldButton onPress={onOpenSettings} className="self-start">
-        Change in Settings
+      <WorldButton onPress={() => setChoosing(true)} className="self-start">
+        Choose your companion
       </WorldButton>
+      <WorldDrawer isOpen={choosing} onClose={() => setChoosing(false)} title="Choose your companion">
+        {choosing ? <CompanionChooser /> : null}
+      </WorldDrawer>
     </section>
   );
 }
