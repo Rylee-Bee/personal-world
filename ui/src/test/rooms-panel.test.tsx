@@ -902,8 +902,9 @@ describe("Room action forms and answers in words (Hive Works Riff)", () => {
     fireEvent.change(box, { target: { value: " what about sleep? " } });
     fireEvent.click(within(drawer).getByRole("button", { name: "Send" }));
     const [vars] = hookState.roomAction.mock.calls[0] as [Record<string, unknown>];
+    // ROOM rule 5: the answer goes to the need's first action.
     expect(vars).toMatchObject({
-      actionId: "answer-decision",
+      actionId: "riff-reply",
       body: { need: "riff-20260927010203-ab12-turn", text: "what about sleep?" },
     });
   });
