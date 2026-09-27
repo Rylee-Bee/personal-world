@@ -15,6 +15,7 @@ are unchanged.)
 
 | Doc | What it is |
 |---|---|
+| [library/](library/README.md) | **Plain words, for anyone:** short books on how Worlds works and why: rooms, live updates, how the screens are layered, honesty, secrets, roles, notifications, shipping, and lessons learned the hard way. |
 | [WHERE-WE-ARE.md](WHERE-WE-ARE.md) | **Plain words:** what Worlds is and where things stand today. Read this if you don't remember. |
 | [`.project/CURRENT.md`](../.project/CURRENT.md) | **For agents:** the canonical current-state entry point; routes to the canonical files. |
 | [ROOMS.md](ROOMS.md) | How Worlds finds, checks and shows rooms (Workshop, Studio, Engine room, Candy), and how to add one. |
@@ -126,7 +127,7 @@ are unchanged.)
 
 Generated from each page's status line (2026-09-26). If a page is missing here, it has no status line: add one.
 
-### Current (9)
+### Current (10)
 
 | Page | Read this if |
 |---|---|
@@ -135,6 +136,7 @@ Generated from each page's status line (2026-09-26). If a page is missing here, 
 | [ARCHITECTURE.md](ARCHITECTURE.md) | you need to know where something lives before changing it |
 | [INDEX.md](INDEX.md) | you're looking for a document, or checking whether one is still true |
 | [QUICKSTART.md](QUICKSTART.md) | you want to run Worlds on your own machine, or you need the plain-language on-ramp |
+| [library/README.md](library/README.md) | you want to understand how Worlds works and why, without reading code |
 | [ROOMS.md](ROOMS.md) | you want to add a room, understand a room's status, or change how Worlds talks to rooms |
 | [WHERE-WE-ARE.md](WHERE-WE-ARE.md) | you don't remember where things stand. That's okay |
 | [accessibility/SCREEN_READER_WALKTHROUGH.md](accessibility/SCREEN_READER_WALKTHROUGH.md) | you use a screen reader, or you are changing labels, landmarks or focus in `ui/` |
