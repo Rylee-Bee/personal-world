@@ -587,6 +587,11 @@ export const getRoomView = <T,>(roomId: string, name: string, item?: string) =>
 export const roomArtUrl = (roomId: string, name: string) =>
   `/api/rooms/${encodeURIComponent(roomId)}/art/${encodeURIComponent(name)}.webp`;
 
+// GET /api/library: every connected room's library (Play-Nice library/0),
+// one row per room that keeps one. Worlds' own books are bundled.
+export const getLibraries = () =>
+  unwrap<Envelope<import("./library").RoomLibraryRow[]>>(getRequest("/api/library"));
+
 // GET /api/secrets/overview: the Workshop's secrets by NAME, with station
 // health, agents' requests and recent changes. Owner only (403 for anyone
 // else). Never carries a value. A dead or unreadable station is data

@@ -78,7 +78,8 @@ export function ChoiceAnswer({
     setSending(choice);
     const body = text === undefined ? { need: need.id, choice } : { need: need.id, text };
     action.mutate(
-      { roomId, actionId: ANSWER_ACTION, body, key: idempotencyKey() },
+      // ROOM rule 5: the pick goes to the need's first action.
+      { roomId, actionId: need.actions?.[0] || ANSWER_ACTION, body, key: idempotencyKey() },
       {
         onSuccess: (receipt) => {
           setSending(null);
