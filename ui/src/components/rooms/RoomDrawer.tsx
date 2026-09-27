@@ -25,11 +25,12 @@
 import { Icon } from "../Icon";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useMarkNeedSeen, useMe } from "../../data/hooks";
+import { useMarkNeedSeen, useMe, useRoomAction } from "../../data/hooks";
 import type { RoomActionReceipt, RoomCard, RoomKeeper, RoomNeed, RoomRow } from "../../data/contract";
 import {
   approvalId,
   formatTime,
+  idempotencyKey,
   LINK_BASE,
   plural,
   relativeTime,
@@ -113,8 +114,29 @@ const NEEDS_SHOWN = 5;
 
 /** Shown only from the room's receipt (ok: true), never on send. It
  *  takes focus, because the need it replaces has just gone. */
-function DecidedNotice({ item, name }: { item: Decided; name: string }) {
+/** How long an answer can be taken back (the room's `undo-answer`). */
+const UNDO_MS = 10 * 60_000;
+
+function DecidedNotice({
+  item,
+  name,
+  row,
+  onUndone,
+}: {
+  item: Decided;
+  name: string;
+  row: RoomRow;
+  onUndone: () => void;
+}) {
   const ref = useRef<HTMLParagraphElement>(null);
+  const action = useRoomAction();
+  const [problem, setProblem] = useState<string | null>(null);
+  const [until] = useState(() => Date.now() + UNDO_MS);
+  const now = useMinuteClock();
+  const canUndo =
+    item.verb === "answer" &&
+    (row.actions ?? []).some((a) => a.id === "undo-answer") &&
+    now < until;
   useEffect(() => {
     ref.current?.focus();
   }, []);
@@ -132,6 +154,31 @@ function DecidedNotice({ item, name }: { item: Decided; name: string }) {
       <span className={MICRO}>
         {item.receipt.at ? `${name} confirmed at ${formatTime(item.receipt.at)}.` : `${name} confirmed it.`}
       </span>
+      {canUndo && (
+        <span>
+          <button
+            type="button"
+            disabled={action.isPending}
+            className={`${LINK_BASE} border border-[var(--pw-border-subtle)] bg-transparent text-[var(--pw-text-primary)] disabled:opacity-60`}
+            onClick={() =>
+              action.mutate(
+                { roomId: row.id, actionId: "undo-answer", body: { need: item.need.id }, key: idempotencyKey() },
+                {
+                  onSuccess: (r) => (r.ok ? onUndone() : setProblem(r.summary || "Couldn’t undo that.")),
+                  onError: () => setProblem("Couldn’t reach Worlds, so the answer stands for now."),
+                },
+              )
+            }
+          >
+            Undo
+          </button>
+        </span>
+      )}
+      {problem && (
+        <span role="alert" className={SMALL}>
+          {problem}
+        </span>
+      )}
     </li>
   );
 }
@@ -250,7 +297,13 @@ export function RoomDrawer({
           </h3>
           <ul className="flex flex-col gap-[var(--pw-spacing-md)]">
             {decided.map((d) => (
-              <DecidedNotice key={d.need.id} item={d} name={name} />
+              <DecidedNotice
+                key={d.need.id}
+                item={d}
+                name={name}
+                row={row}
+                onUndone={() => setDecided((all) => all.filter((x) => x.need.id !== d.need.id))}
+              />
             ))}
           </ul>
         </section>

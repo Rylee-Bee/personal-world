@@ -72,8 +72,12 @@ class LabState(StatusContract):
         self.lab_path = lab_path or _first_available_lab()
         self.freshness = freshness
 
-    def observe(self) -> Result:
-        packet = self._fetch()
+    def observe(self, packet: dict | None = None) -> Result:
+        """Observe a lab-lowbw/1 packet: ``packet`` when the caller already
+        has one (e.g. read through the Engine room), else the local CLI."""
+        if packet is not None and (not isinstance(packet, dict) or packet.get("schema") != "lab-lowbw/1"):
+            packet = None
+        packet = packet if packet is not None else self._fetch()
         if packet is None:
             return fail(
                 "unavailable",
