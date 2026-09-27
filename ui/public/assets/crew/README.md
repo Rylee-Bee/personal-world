@@ -6,7 +6,7 @@ masters live in `design/assets/crew/` (see its README); edit those, never these.
 - `256/`: portholes, corridor thumbnails, pop-ups, nav marks (use for anything shown at 128 px or less)
 - `512/`: doorways, drawer headers, empty states (anything shown larger than 128 px)
 
-Contents: the Assistant (`assistant-portrait`, `assistant-listening`, `assistant-hello`; `assistant.svg` stays as a vector fallback), `sol-mark`, `sol-mark-mono`, `sol-badge`, Sol's moods (`sol-hello`, `sol-cheer`,
+Contents: the Assistant (`assistant-portrait`, `assistant-listening`, `assistant-hello`; `assistant.svg` stays as a vector fallback), `sol-mark`, `sol-mark-mono`, `sol-badge`, Sol's moods (`sol-hello`, `sol-cheer`, `sol-reading` (the Library, 2026-09-27),
 `sol-curious`, `sol-rest`); `renai-hello`, `renai-listening`, `renai-lantern`; portraits for
 Bolt, Hekek, Ratatoskr, Bruma, Mira, Scoop; room interiors `room-worlds`, `workshop-doorway`,
 `play-nice-doorway`, `vefr-doorway`, `memomancer-doorway`, `hive-works-doorway`.
