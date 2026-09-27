@@ -462,6 +462,11 @@ export const syncLore = (dryRun: boolean) =>
 export const confirmLore = (body: { accepted: true } | { keys: string[] }) =>
   unwrap<Envelope<{ confirmed: number; skipped: number }>>(sendBody("POST", "/api/lore/confirm", body));
 
+// ===== Remember (memory.py) =====
+/** Keep one thought: your journal, or the Later shelf with `later`. */
+export const remember = (text: string, later = false) =>
+  unwrap<Envelope<{ kept: "journal" | "later"; id?: string }>>(sendBody("POST", "/api/remember", { text, later }));
+
 // ===== Vault =====
 export const getVaultStatus = () =>
   unwrap<Envelope<VaultStatusData>>(api.GET("/api/vault/status", {}));
