@@ -327,7 +327,7 @@ export function App() {
       {/* §5.1: navigation — topbar pattern from starfield. The padding
           keeps chrome clear of notches and the home indicator (§2.7):
           top inset + the usual spacing on the inline sides. */}
-      <header className="relative z-20 sticky top-0 flex items-center gap-[var(--pw-spacing-lg)] pt-[var(--pw-safe-area-inset-top)] pl-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-left))] pr-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-right))] min-h-[56px] border-b border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/90 backdrop-blur-md">
+      <header className="relative z-20 sticky top-0 flex items-center gap-[var(--pw-spacing-lg)] max-sm:flex-wrap max-sm:gap-y-0 pt-[var(--pw-safe-area-inset-top)] pl-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-left))] pr-[calc(var(--pw-spacing-lg)_+_var(--pw-safe-area-inset-right))] min-h-[56px] border-b border-[var(--pw-border-subtle)] bg-[var(--pw-surface-hull)]/90 backdrop-blur-md">
         {/* Brand — "The frontend is Worlds. Station is a theme." The
             old "Station vNext" chrome label retired with that rule. */}
         <div className="flex items-center gap-[var(--pw-spacing-sm)] shrink-0">
@@ -344,7 +344,11 @@ export function App() {
             (the mobile.css lesson: `.shell-main > * { min-width: 0 }`).
             Two lists, one bar: the pinned skeleton first, then the
             person's own sections behind a visible divider. */}
-        <nav aria-label="World navigation" className="flex-1 min-w-0">
+        {/* Phones: the nav takes its own full-width row under the mark and
+            Remember. Sharing one row, Settings slid under the Remember
+            button and couldn't be tapped (UAT 2026-09-27), which also cut
+            the way to Rough night. */}
+        <nav aria-label="World navigation" className="flex-1 min-w-0 max-sm:order-last max-sm:basis-full">
           {/* One horizontally scrollable row (the original min-w-0
               lesson: a nav that cannot shrink widens the layout on
               phones). The landmark group and the personal group are
@@ -375,7 +379,7 @@ export function App() {
           variant="secondary"
           onPress={() => setRememberOpen(true)}
           aria-label="Remember"
-          className="shrink-0"
+          className="shrink-0 max-sm:ml-auto"
         >
           <Icon name="bookmark" size={20} />
           <span className="ml-[var(--pw-spacing-xs)] hidden sm:inline">Remember</span>
