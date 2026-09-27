@@ -3,15 +3,16 @@ title: Rooms
 kind: book
 order: 2
 for: everyone
+short: A room is another app that Worlds can show you and pass your answers back to.
 ---
 A room is any app that speaks one small language, the **room contract**:
-five doors that Worlds knocks on.
+five questions Worlds can ask it.
 
-- **Who are you, and are you well?** (`GET /room`)
-- **What's new?** Cards (`/room/cards`).
-- **What needs a person?** Needs (`/room/needs-you`).
-- **What can I ask you to do?** Actions (`/room/actions`).
-- **Please do this.** One action (`POST /room/actions/{id}`).
+- **Who are you, and are you well?**
+- **What's new?** Cards.
+- **What needs a person?** Needs.
+- **What can I ask you to do?** Actions.
+- **Please do this.** One action.
 
 * * *
 
@@ -48,4 +49,18 @@ routes the answer to the right place. Learned the hard way: when each kind
 of need had its own action, a Merge tap went to the wrong one and was
 quietly refused.
 
-**Learn more:** `docs/ROOMS.md`; the contract lives in Play-Nice (`room/0`).
+* * *
+
+## Words to know
+
+- **Contract:** an agreed set of questions an app must answer. Rooms use `room/0` from Play-Nice.
+- **Token:** a password one program uses to talk to another. Official term: *bearer token*.
+- **Receipt:** the room's own answer to "did that work?".
+- **Idempotency key:** a label on each tap so a repeated tap only counts once.
+- **Proxy:** a middleman that fetches something for you. Worlds refuses to be one for pages, on purpose.
+
+* * *
+
+## Under the hood
+
+The five doors: `GET /room`, `GET /room/cards`, `GET /room/needs-you`, `GET /room/actions`, `POST /room/actions/{id}` (with an `Idempotency-Key` header). The room list comes from the Workshop's registry (`PW_ROOMS_REGISTRY_URL`), cached 60 s with a last-known-good copy. Tokens live in the server's environment under names like `PW_ROOM_WORKSHOP_TOKEN`. Pictures pass through `GET /api/rooms/{id}/art/{name}.webp` (WebP only, checked by its first bytes). Answers go through `answer-decision` with `{need, choice}` or `{need, text}`. Code: `src/personal_world/rooms.py`. Canonical doc: `docs/ROOMS.md`.

@@ -3,6 +3,7 @@ title: Who can do what
 kind: book
 order: 8
 for: everyone
+short: Each person has a role, a role is a bundle of permissions, and some things only humans may do.
 ---
 Worlds can be shared by a household. Each person has a **role**, and a role
 is a bundle of **permissions**.
@@ -34,4 +35,19 @@ end.
 Approving, managing people, secrets and updates stay human actions: no
 agent token can ever carry them.
 
-**Learn more:** `docs/IDENTITY-BOUNDARY.md`, `src/personal_world/roles.py`.
+* * *
+
+## Words to know
+
+- **Role:** owner, admin, member, supervised or guest.
+- **Permission:** one thing you may do, like *approve* or *manage people*.
+- **Principal:** whoever is asking: a person or an agent. Official term used in security.
+- **Scope:** the narrow permissions an agent's token carries, like *read* or *notify*.
+- **SSO / OIDC:** signing in with one account everywhere (Authelia, for example). Official terms: *single sign-on*, *OpenID Connect*.
+- **Grant:** permission for a helper to see or act for someone, with an end date.
+
+* * *
+
+## Under the hood
+
+Permissions: `own_space`, `see_shared`, `approve`, `manage_people`, `manage_rooms`, `estate_secrets`, `updates`, `transfer_ownership`. Every check goes through `can(principal, permission)` in `src/personal_world/roles.py`. Identity groups map to roles with `PW_ROLE_GROUPS` (e.g. `admin=admin,family=member`). Agent scopes can never carry `approve`, `manage_*`, `estate_secrets`, `updates` or `transfer_ownership` (`AGENT_SCOPE_PERMISSIONS`). Helper grants expire (`people.py`). Canonical: `docs/IDENTITY-BOUNDARY.md`.

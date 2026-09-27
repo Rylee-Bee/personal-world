@@ -3,6 +3,7 @@ title: Honest by default
 kind: book
 order: 5
 for: everyone
+short: Worlds says "unknown" when it doesn't know, and only a receipt says something is done.
 ---
 **"Unknown" is an answer.** When Worlds can't tell whether something is
 fine, it says so. It never turns a guess into a green light.
@@ -25,4 +26,17 @@ not when Worlds happened to look.
 This is also why Worlds has "degraded" as a state. Something can work and
 still not be fully fine, and you deserve to know which.
 
-**Learn more:** `docs/DEGRADED-MODES.md`, `docs/HUMAN_RELIABILITY_CONTRACT.md`.
+* * *
+
+## Words to know
+
+- **Healthy / degraded / unhealthy / unknown:** the four honest states a thing can be in.
+- **Unreachable:** didn't answer; shown with when it last did.
+- **Incompatible:** answered, but not in a language Worlds speaks.
+- **Receipt:** proof from the other side that something happened.
+
+* * *
+
+## Under the hood
+
+Room status comes only from the room's own `GET /room`. Unreachable rows keep `last_seen`, persisted across restarts. An action's receipt is sanitized to an allow-list (`RECEIPT_FIELDS`) and returned with HTTP 200 whatever happened; its `ok` says whether anything changed. Canonical: `docs/DEGRADED-MODES.md`, `docs/HUMAN_RELIABILITY_CONTRACT.md`.

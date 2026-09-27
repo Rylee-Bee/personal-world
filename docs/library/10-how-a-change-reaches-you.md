@@ -3,6 +3,7 @@ title: How a change reaches you
 kind: book
 order: 10
 for: everyone
+short: A change goes from a checked pull request, to an image, to the server, to your phone.
 ---
 Every change to Worlds starts as a **pull request**: a proposed change that
 checks run against. Tests, the browser checks, security scanning and
@@ -29,4 +30,18 @@ When a newer one is live, it reloads the next time you come back to it,
 unless you're in the middle of typing. Then it says "Worlds was updated"
 with a Reload button, and waits for you.
 
-**Learn more:** `docs/OPERATIONS.md`, `docs/CI-ENVIRONMENT-NOTES.md`.
+* * *
+
+## Words to know
+
+- **Pull request:** a proposed change that checks run against before it's accepted.
+- **CI:** the robot that runs those checks. Official term: *continuous integration*.
+- **Container image:** a packaged, ready-to-run copy of Worlds at one exact version.
+- **Commit:** one saved version of the code, named by a short code like `a955167`.
+- **Deploy:** putting a new version live.
+
+* * *
+
+## Under the hood
+
+`publish-image.yml` builds the image for a validated `main` commit and bakes in `PW_COMMIT`. `/healthz` reports its short form. The deploy takes a backup and a rollback tag, then pulls and restarts, then waits for healthy. Wait for the publish run of the exact commit: runs can be skipped. The app's `StayFresh` (`ui/src/app/StayFresh.tsx`) compares the opening commit with `/healthz` on return and every 5 minutes. Canonical: `docs/OPERATIONS.md`, `docs/CI-ENVIRONMENT-NOTES.md`.

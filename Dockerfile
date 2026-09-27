@@ -12,6 +12,8 @@ WORKDIR /src
 COPY ui/package.json ui/package-lock.json ./ui/
 RUN cd ui && npm ci --no-audit --no-fund
 COPY design/ ./design/
+# The Library's books (docs/library/*.md) are bundled into the UI.
+COPY docs/library/ ./docs/library/
 COPY ui/ ./ui/
 RUN cd ui && npm run build
 
