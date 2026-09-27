@@ -167,7 +167,21 @@ describe("RoughNight page", () => {
     const { container } = render(<RoughNight onBack={() => {}} />);
     expect(screen.queryByText("Assistant:")).not.toBeInTheDocument();
     expect(screen.getByText("I’m here. Nothing needs you tonight.")).toBeInTheDocument();
-    expect(container.querySelector("img")).toBeNull(); // no images at all here
+    // No portrait: the only picture is Sol asleep, decorative and silent.
+    const images = Array.from(container.querySelectorAll("img"));
+    expect(images).toHaveLength(1);
+    expect(images[0].getAttribute("data-sol-mood")).toBe("sleeping");
+    expect(images[0].getAttribute("alt")).toBe("");
+  });
+
+  it("marks the chosen level with a word as well as the border", async () => {
+    const user = userEvent.setup();
+    render(<RoughNight onBack={() => {}} />);
+    const bad = screen.getByRole("button", { name: /3 · Bad/ });
+    await user.click(bad);
+    expect(bad).toHaveAttribute("aria-pressed", "true");
+    expect(bad.textContent).toMatch(/chosen/);
+    expect(screen.getByRole("button", { name: /4 · Very bad/ }).textContent).not.toMatch(/chosen/);
   });
 
   it("returns to the Bridge", async () => {
