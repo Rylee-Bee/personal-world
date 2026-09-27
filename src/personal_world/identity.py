@@ -759,6 +759,13 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     # its needs they have already marked seen (Worlds-owned, private,
     # never sent to a room). Same per-principal entry point as drafts/place.
     "rooms_visits": "rooms-visits.json",
+    # Book Girl (owner, 2026-09-27): which ideas this person has met, where
+    # they first met them, and how they like to be taught. Private,
+    # never sent to a room or a model; the person's own learning memory.
+    "learning": "learning.json",
+    # Pollen's Later shelf (owner, 2026-09-27): ideas kept safe for later,
+    # at most three in progress at once. Private to the person.
+    "later": "later.json",
     # Crew registry (owner decision 2026-09-25): the person's own
     # companions and which of them keeps which room. Worlds-owned,
     # private, never sent to a room or a model. Same per-principal entry point

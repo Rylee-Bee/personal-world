@@ -5234,6 +5234,171 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         save_world(world, uw)
         return {"ok": True, "data": report}
 
+    # ── Remember, recall, Later (owner: "I can't stand chasing it down") ──
+
+    def _later_path(request: Request) -> Path:
+        principal = _principal(request)
+        if not can(principal, "own_space"):
+            raise HTTPException(status_code=403, detail="your own space is required")
+        return _scoped_path(principal, "later")
+
+    @app.post("/api/remember", dependencies=[Depends(require_auth)])
+    async def remember(request: Request) -> dict:
+        """Keep one thought: ``{text, later?: bool, source?}``. A person's
+        thought goes into their own journal (or onto the Later shelf with
+        ``later: true``). A tool or bee (agent token) can only put things on
+        the Later shelf, labelled with where they came from. The journal
+        stays person-only."""
+        from . import memory
+
+        principal = _principal(request)
+        body = await _json_body(request)
+        text = str(body.get("text", "")).strip()
+        if not text or len(text) > memory.TEXT_MAX:
+            raise HTTPException(status_code=422, detail="text must be 1-2000 chars")
+        is_agent = getattr(principal, "kind", None) == "agent"
+        if body.get("later") or is_agent:
+            path = _later_path(request)
+            data = memory.load_later(path)
+            item = memory.add_later(data, text, str(body.get("source") or ("agent" if is_agent else "worlds")))
+            memory.save_later(path, data)
+            return {"ok": True, "data": {"kept": "later", "id": item["id"]}}
+        _, _, uj = _state_for(request)
+        target = journal if uj == journal.path else Journal(uj)
+        target.record(kind=JournalKind.OBSERVATION, summary=text, source="remember")
+        return {"ok": True, "data": {"kept": "journal"}}
+
+    @app.get("/api/recall", dependencies=[Depends(require_auth)])
+    async def recall_route(request: Request, q: str = "") -> dict:
+        """Ask in plain words. Searches the caller's own journal, lore, Later
+        shelf and the ideas they've met (no model needed), newest and
+        best-matching first; each answer says where it lives."""
+        from . import learning, memory
+
+        principal = _principal(request)
+        _require_person(principal)
+        if not can(principal, "own_space"):
+            raise HTTPException(status_code=403, detail="your own space is required")
+        sources: list[dict] = []
+        uw, uj = _user_paths(request)
+        jr = journal if uj == journal.path else Journal(uj)
+        for ev in jr.events():
+            sources.append({"kind": "journal", "text": ev.summary, "when": ev.ts.isoformat(),
+                            "where": "Journal"})
+        world = load_world(uw)
+        for key, lo in world.lore.items():
+            v = lo.value if isinstance(lo.value, dict) else {"text": str(lo.value)}
+            sources.append({"kind": "lore", "text": str(v.get("text", "")), "title": str(v.get("title", "")),
+                            "when": lo.provenance.observed_at.isoformat(), "state": lo.state.value,
+                            "where": f"Your lore · {v.get('title', '')}".strip(" ·")})
+        for item in memory.load_later(_later_path(request))["items"]:
+            sources.append({"kind": "later", "text": item["text"], "when": item.get("created", ""),
+                            "state": item["state"], "where": "Later shelf"})
+        for concept, entry in learning.load(_scoped_path(principal, "learning"))["concepts"].items():
+            sources.append({"kind": "word", "text": f"{concept} {entry.get('first_context', '')}",
+                            "when": entry.get("last_seen", ""), "where": "Words you've found"})
+        return {"ok": True, "data": {"query": q, "results": memory.recall(q, sources)}}
+
+    @app.get("/api/later", dependencies=[Depends(require_auth)])
+    async def later_list(request: Request) -> dict:
+        """The Later shelf: what's in progress (at most three), then the rest."""
+        from . import memory
+
+        data = memory.load_later(_later_path(request))
+        items = data["items"]
+        return {"ok": True, "data": {
+            "in_progress": [i for i in items if i["state"] == "doing"],
+            "later": [i for i in items if i["state"] == "later"],
+            "done": [i for i in items if i["state"] == "done"][-20:],
+            "max_in_progress": memory.IN_PROGRESS_MAX,
+        }}
+
+    @app.post("/api/later/{item_id}", dependencies=[Depends(require_auth)])
+    async def later_move(item_id: str, request: Request) -> JSONResponse:
+        """Move an idea: ``{to: "doing" | "done" | "later"}``. A fourth
+        in-progress idea is refused in plain words (409), never dropped."""
+        from . import memory
+
+        body = await _json_body(request)
+        path = _later_path(request)
+        data = memory.load_later(path)
+        ok, words, item = memory.move(data, item_id, str(body.get("to", "")))
+        if ok:
+            memory.save_later(path, data)
+            return JSONResponse({"ok": True, "data": {"item": item, "said": words}})
+        return JSONResponse({"ok": False, "error": words}, status_code=409 if item else 404)
+
+    # ── Teach while building (Book Girl): the person's learning memory ──
+
+    def _learning_path(request: Request) -> Path:
+        principal = _principal(request)
+        if not can(principal, "own_space"):
+            raise HTTPException(status_code=403, detail="your own space is required")
+        return _scoped_path(principal, "learning")
+
+    @app.get("/api/learning", dependencies=[Depends(require_auth)])
+    async def learning_view(request: Request) -> dict:
+        """The ideas this person has met: stage, where first met, and the
+        teaching mode (build | occasional | plain)."""
+        from . import learning
+
+        data = learning.load(_learning_path(request))
+        concepts = {
+            k: {**v, "stage": learning.stage_of(v)} for k, v in data["concepts"].items()
+        }
+        return {"ok": True, "data": {"mode": data["mode"], "concepts": concepts}}
+
+    @app.post("/api/learning/encounter", dependencies=[Depends(require_auth)])
+    async def learning_encounter(request: Request) -> dict:
+        """A project says the person just used an idea: ``{concept, project,
+        context}`` (context: a few words about what they made, e.g. "the
+        hidden door that needed the lantern"). Answers how to teach it now:
+        ``first`` | ``again`` (with where it was first met) | ``familiar`` |
+        ``off``. Only a concept id and that short phrase are kept."""
+        from . import learning
+
+        body = await _json_body(request)
+        concept, project = str(body.get("concept", "")), str(body.get("project", ""))
+        context = str(body.get("context", "")).strip()
+        if not learning.CONCEPT.match(concept) or not learning.PROJECT.match(project):
+            raise HTTPException(status_code=422, detail="concept and project must be short ids")
+        path = _learning_path(request)
+        data = learning.load(path)
+        reply = learning.encounter(data, concept, project, context)
+        learning.save(path, data)
+        return {"ok": True, "data": reply}
+
+    @app.post("/api/learning/got-it", dependencies=[Depends(require_auth)])
+    async def learning_got_it(request: Request) -> dict:
+        """The person tapped "Got it" on an idea."""
+        from . import learning
+
+        body = await _json_body(request)
+        concept = str(body.get("concept", ""))
+        if not learning.CONCEPT.match(concept):
+            raise HTTPException(status_code=422, detail="concept must be a short id")
+        path = _learning_path(request)
+        data = learning.load(path)
+        stage = learning.got_it(data, concept)
+        learning.save(path, data)
+        return {"ok": True, "data": {"concept": concept, "stage": stage}}
+
+    @app.put("/api/learning/mode", dependencies=[Depends(require_auth)])
+    async def learning_mode(request: Request) -> dict:
+        """How this person likes to be taught: ``build`` (teach me as I build),
+        ``occasional`` (at most one tip a day) or ``plain`` (just plain words)."""
+        from . import learning
+
+        body = await _json_body(request)
+        mode = body.get("mode")
+        if mode not in learning.MODES:
+            raise HTTPException(status_code=422, detail="mode must be build, occasional or plain")
+        path = _learning_path(request)
+        data = learning.load(path)
+        data["mode"] = mode
+        learning.save(path, data)
+        return {"ok": True, "data": {"mode": mode}}
+
     @app.post("/api/world/fact", dependencies=[Depends(require_step_up)])
     async def record_fact(request: Request) -> dict:
         """Record a fact. Body: {key, value}."""
