@@ -181,6 +181,7 @@ _VALID_ART_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
 MAX_ART_BYTES = 2 * 1024 * 1024
 ART_CACHE_SECONDS = 3600.0
 #: A room's library (Play-Nice ``library/0``), an optional ROOM extra.
+STICKERS_PATH = "/room/views/stickers"
 LIBRARY_PATH = "/room/library"
 MAX_LIBRARY_BYTES = 1024 * 1024
 
@@ -1342,6 +1343,42 @@ class RoomsService:
             else:
                 rows.append({"room": config.id, "status": "unavailable",
                              "error": f"{config.id}'s library couldn't be read."})
+
+        usable = [
+            c for c in configs
+            if c.id in offering and c.contract in SUPPORTED_CONTRACTS and c.invalid_reason is None
+        ]
+        await asyncio.gather(*(one(c) for c in usable))
+        rows.sort(key=lambda r: r["room"])
+        return rows
+
+    async def sticker_sets(self, principal: Any | None = None, env: dict | None = None) -> list[dict[str, Any]]:
+        """Every connected room's sticker set (``stickers/0``), one row per
+        room whose descriptor lists ``stickers`` in ``offers``. A row is
+        ``{room, status, set?, error?}``; a room with no set (404) has no
+        row. Same machinery and rules as :meth:`libraries`. Never raises."""
+        env = os.environ if env is None else env
+        configs, _ = await self._resolve_configs(env)
+        snapshot = await self.snapshot(env)
+        offering = {
+            r.get("id") for r in snapshot
+            if isinstance(r.get("room"), dict)
+            and isinstance(r["room"].get("offers"), list)
+            and "stickers" in r["room"]["offers"]
+        }
+        rows: list[dict[str, Any]] = []
+
+        async def one(config: RoomConfig) -> None:
+            status, payload = await self._fetch_json(config, STICKERS_PATH, "stickers", principal)
+            if status == 404:
+                return
+            if (status == 200 and isinstance(payload, dict)
+                    and payload.get("contract") == "stickers/0"
+                    and isinstance(payload.get("stickers"), list)):
+                rows.append({"room": config.id, "status": "ok", "set": payload})
+            else:
+                rows.append({"room": config.id, "status": "unavailable",
+                             "error": f"{config.id}'s stickers couldn't be read."})
 
         usable = [
             c for c in configs
