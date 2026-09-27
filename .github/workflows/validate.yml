@@ -88,3 +88,7 @@ jobs:
     uses: Rylee-Bee/ci-harness/.github/workflows/reusable-contract-freshness.yml@main
     with:
       manifest-path: ".project/contracts/adoption.yaml"
+      # Pull requests: Play-Nice moving is a warning, not a block. The pin
+      # robot (play-nice-contracts tools/pin-sync) opens and merges the pin
+      # PR. Pushes to main and the weekly schedule stay strict.
+      expect: ${{ github.event_name == 'pull_request' && 'warn' || 'current' }}
