@@ -2955,6 +2955,20 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
         )
 
+    @app.get("/api/rooms/{room_id}/art/{name}.webp", dependencies=[Depends(require_auth)])
+    async def rooms_art(room_id: str, name: str) -> Response:
+        """A room's picture (e.g. a Hive Works crew face), passed through
+        because an image can't carry the room's token. WebP only, checked
+        by its header bytes; anything else is a 404."""
+        data = await _ROOMS.art(room_id, name)
+        if data is None:
+            raise HTTPException(status_code=404, detail="no such picture")
+        return Response(
+            data,
+            media_type="image/webp",
+            headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"},
+        )
+
     @app.get("/api/rooms/{room_id}/views/{name}", dependencies=[Depends(require_auth)])
     @app.get("/api/rooms/{room_id}/views/{name}/{item}", dependencies=[Depends(require_auth)])
     async def rooms_view_one(

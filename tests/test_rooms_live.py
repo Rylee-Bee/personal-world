@@ -180,3 +180,42 @@ class TestRoutes:
     def test_events_needs_auth(self, client):
         c, _ = client
         assert c.get("/api/rooms/events").status_code == 401
+
+
+WEBP = b"RIFF\x10\x00\x00\x00WEBPVP8 face"
+
+
+class TestArt:
+    def _svc(self, calls, body=WEBP, status=200):
+        views = {"/room/art/pip.webp": httpx.Response(status, content=body)}
+        return RoomsService(transport=_transport(calls, views=views), clock=Clock())
+
+    def test_a_face_passes_through_with_the_rooms_token_and_is_cached(self):
+        calls = []
+        svc = self._svc(calls)
+        assert run(svc.art("workshop", "pip", ENV)) == WEBP
+        assert run(svc.art("workshop", "pip", ENV)) == WEBP
+        sent = [c for c in calls if c.url.path == "/room/art/pip.webp"]
+        assert len(sent) == 1 and sent[0].headers["authorization"] == "Bearer tok"
+
+    @pytest.mark.parametrize("body", [b"<svg onload=alert(1)>", b"\x89PNG....", b"RIFF" + b"x" * 20])
+    def test_only_webp_comes_through(self, body):
+        assert run(self._svc([], body=body).art("workshop", "pip", ENV)) is None
+
+    @pytest.mark.parametrize("room,name", [("workshop", "../x"), ("workshop", "Pip"), ("nope", "pip")])
+    def test_bad_names_and_rooms_never_reach_a_room(self, room, name):
+        calls = []
+        assert run(self._svc(calls).art(room, name, ENV)) is None
+        assert not [c for c in calls if "/room/art" in c.url.path]
+
+
+def test_art_route_needs_auth_and_serves_webp(client):
+    c, _ = client
+    import personal_world.api as api_mod
+
+    views = {"/room/art/pip.webp": httpx.Response(200, content=WEBP)}
+    api_mod._ROOMS = RoomsService(transport=_transport([], views=views), clock=Clock())
+    assert c.get("/api/rooms/workshop/art/pip.webp").status_code == 401
+    r = c.get("/api/rooms/workshop/art/pip.webp", headers=AUTH)
+    assert r.status_code == 200 and r.headers["content-type"] == "image/webp" and r.content == WEBP
+    assert c.get("/api/rooms/workshop/art/nope.webp", headers=AUTH).status_code == 404

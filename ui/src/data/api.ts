@@ -581,6 +581,12 @@ export const getRoomView = <T,>(roomId: string, name: string, item?: string) =>
     ),
   );
 
+// GET /api/rooms/{id}/art/{name}.webp: a room's picture (e.g. a Hive Works
+// crew face: the file name of `face_file`/`bee_face_file` without ".webp").
+// Worlds passes it through; use it as an <img src>.
+export const roomArtUrl = (roomId: string, name: string) =>
+  `/api/rooms/${encodeURIComponent(roomId)}/art/${encodeURIComponent(name)}.webp`;
+
 // GET /api/secrets/overview: the Workshop's secrets by NAME, with station
 // health, agents' requests and recent changes. Owner only (403 for anyone
 // else). Never carries a value. A dead or unreadable station is data
