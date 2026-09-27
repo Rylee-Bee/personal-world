@@ -15,6 +15,9 @@ import { useEffect } from "react";
 import { worldsLibrary } from "./library";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  getLearning,
+  putLearningMode,
+  postLearningGotIt,
   remember,
   recall,
   getLater,
@@ -1301,5 +1304,27 @@ export function useMoveLater() {
   return useMutation({
     mutationFn: ({ id, to }: { id: string; to: "doing" | "done" | "later" }) => moveLater(id, to),
     onSettled: () => void qc.invalidateQueries({ queryKey: queryKeys.later }),
+  });
+}
+
+// ─── Book Girl: how this person likes to be taught ────────────────────
+
+export function useLearning() {
+  return useQuery({ queryKey: ["learning"] as const, queryFn: getLearning, staleTime: 60_000 });
+}
+
+export function useLearningMode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: putLearningMode,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["learning"] }),
+  });
+}
+
+export function useLearningGotIt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: postLearningGotIt,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["learning"] }),
   });
 }
