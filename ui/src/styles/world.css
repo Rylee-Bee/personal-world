@@ -863,3 +863,33 @@ body {
   padding: var(--pw-spacing-md);
   line-height: 1.55;
 }
+
+/* Loading: placeholder cards that pulse softly while something works. The
+   motion tiers and the OS floor stop the pulse; then they simply hold still. */
+.pw-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  min-height: 96px;
+  border: 1px solid var(--pw-border-subtle);
+  border-radius: var(--pw-radius-md);
+  background: var(--pw-surface-panel);
+  padding: var(--pw-spacing-md);
+  animation: pw-pulse 1.8s ease-in-out infinite;
+}
+.pw-skeleton-line {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pw-text-muted) 22%, transparent);
+}
+.pw-loading-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pw-accent-warm);
+  animation: pw-pulse 1.2s ease-in-out infinite;
+}
+@keyframes pw-pulse { 50% { opacity: 0.45; } }

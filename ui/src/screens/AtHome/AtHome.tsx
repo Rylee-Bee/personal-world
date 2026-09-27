@@ -16,6 +16,7 @@ import { useMinuteClock } from "../../components/rooms/useRootAttribute";
 import { SolMoment } from "../../components/SolMoment";
 import { Icon } from "../../components/Icon";
 import { WorldButton } from "../../components/WorldButton";
+import { Loading } from "../../components/Loading";
 
 const ROOM = "engine-room";
 const PAGE = 48;
@@ -123,7 +124,7 @@ function Shelf({ kind, summary }: { kind: Kind; summary: KindCount | undefined }
       </div>
     );
   }
-  if (list.isPending) return <p className={SMALL}>{`Finding the ${meta.many}…`}</p>;
+  if (list.isPending) return <Loading words={`Finding the ${meta.many}…`} cards={8} />;
   if (list.isError || data?.ok === false) {
     return <p className={SMALL}>{`Couldn’t read the ${meta.many} just now.${data?.error ? ` ${data.error}` : ""}`}</p>;
   }
@@ -194,7 +195,7 @@ export function AtHome({ onBack, backLabel = "Back to Interests" }: { onBack: ()
   const checked = summary.data?.data?.generated_at;
 
   let body: React.ReactNode;
-  if (rooms.isPending) body = <p className={SMALL}>Finding the Engine room…</p>;
+  if (rooms.isPending) body = <Loading words="Finding the Engine room…" />;
   else if (!row || !live || summary.isError) {
     body = (
       <div className="flex items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] p-[var(--pw-spacing-lg)]">
@@ -206,7 +207,7 @@ export function AtHome({ onBack, backLabel = "Back to Interests" }: { onBack: ()
         </p>
       </div>
     );
-  } else if (summary.isPending) body = <p className={SMALL}>Looking at the shelves…</p>;
+  } else if (summary.isPending) body = <Loading words="Looking at the shelves…" cards={8} />;
   else {
     body = (
       <>

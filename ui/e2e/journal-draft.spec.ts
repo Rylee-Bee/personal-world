@@ -83,14 +83,13 @@ test("interruption/resumption: reload → predictable landing → the draft is b
   // THE INTERRUPTION.
   await page.reload();
 
-  // Δ3 floor: the reload lands somewhere CLEARLY PREDICTABLE — the
-  // Bridge (the home landmark), the first thing the skeleton pins.
-  // Never a silently lost or random screen.
-  await expect(page.getByRole("main")).toHaveAttribute("aria-label", "Bridge");
+  // Δ3 floor: the reload lands somewhere CLEARLY PREDICTABLE. Every screen
+  // has an address now (#memory), so the reload lands exactly where the
+  // address says: back in Memory. Never a silently lost or random screen.
+  await expect(page).toHaveURL(/#memory$/);
+  await expect(page.getByRole("main")).toHaveAttribute("aria-label", "Memory");
 
-  // And the way back is one landmark click — after which the words
-  // she was writing are WAITING, not gone.
-  await openMemory(page);
+  // And the words they were writing are WAITING, not gone.
   await expect(page.getByLabel("New entry")).toHaveValue(
     "half a thought, unsaved",
   );
@@ -112,9 +111,10 @@ test("a newer world copy offers the chooser — never clobbers silently", async 
   await page.request.put("http://127.0.0.1:4174/api/journal/draft", {
     data: { text: "another device wrote something newer" },
   });
-  // …this panel opens fresh and must ASK, not choose for her.
+  // …this panel opens fresh and must ASK, not choose for them. (The reload
+  // lands back in Memory: the address says #memory.)
   await page.reload();
-  await openMemory(page);
+  await expect(page.getByRole("heading", { name: "Memory", level: 1 })).toBeVisible();
   const chooser = page.getByRole("alertdialog");
   await expect(chooser).toBeVisible({ timeout: 5_000 });
   await expect(
