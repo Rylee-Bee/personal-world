@@ -273,6 +273,30 @@ describe("Bridge — the world at a glance", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens a room's drawer for a need from a room with no system (never the first system)", () => {
+    // UAT 2026-09-27: Candy's need named its room id ("candy"); tapping it
+    // fell back to the first system, Workshop.
+    const candyNeed = item("candy" as never, "candy:need-1", "have_to", "Candy has nothing to look through", true);
+    hookState.briefing = {
+      isPending: false,
+      isError: false,
+      error: undefined,
+      refetch: () => Promise.resolve(),
+      data: { ...BRIEFING, data: { ...BRIEFING.data, have_tos: [candyNeed], have_tos_total: 1 } },
+    };
+    const asked: string[] = [];
+    const onOpen = (e: Event) => asked.push((e as CustomEvent<{ roomId: string }>).detail.roomId);
+    window.addEventListener("pw-open-room", onOpen);
+    try {
+      render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
+      const tray = screen.getByRole("region", { name: "Needs you" });
+      fireEvent.click(within(tray).getByRole("button", { name: "Candy has nothing to look through" }));
+      expect(asked).toEqual(["candy"]);
+    } finally {
+      window.removeEventListener("pw-open-room", onOpen);
+    }
+  });
+
   it("shows a not_configured system's honest voice, never a fake item", async () => {
     render(<Bridge onOpenArea={() => {}} onOpenAssistant={() => {}} />);
     // The Newsstand lens (name + status word).

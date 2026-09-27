@@ -56,7 +56,7 @@ import { currentNeeds, groupRooms, isUncertain, seenNeeds } from "./rooms/groupR
 import { Emblem, LookInside, OpenLink, StatusWord } from "./rooms/parts";
 import { SolMoment } from "./SolMoment";
 import { SpotArt } from "./SpotArt";
-import { RoomDrawerContext } from "./rooms/drawerContext";
+import { RoomDrawerContext, OPEN_ROOM_EVENT, type OpenRoomDetail } from "./rooms/drawerContext";
 import { RoomDrawer } from "./rooms/RoomDrawer";
 import { RoomsExplainer } from "./rooms/RoomsExplainer";
 import { useMinuteClock, useRootAttribute } from "./rooms/useRootAttribute";
@@ -307,6 +307,16 @@ export function RoomsPanel() {
   useEffect(() => {
     if (rows !== undefined) clearRoomParam();
   }, [rows]);
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const detail = (e as CustomEvent<OpenRoomDetail>).detail;
+      if (!detail?.roomId) return;
+      openerRef.current = detail.opener;
+      setOpenRoomId(detail.roomId);
+    };
+    window.addEventListener(OPEN_ROOM_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_ROOM_EVENT, onOpen);
+  }, []);
 
   const closeDrawer = () => {
     setOpenRoomId(null);

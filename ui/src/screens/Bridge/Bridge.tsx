@@ -26,6 +26,7 @@
  */
 
 import { SolMoment } from "../../components/SolMoment";
+import { requestOpenRoom } from "../../components/rooms/drawerContext";
 import { CompanionMessage } from "./CompanionMessage";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useBriefing, usePlace, useSetPlace } from "../../data/hooks";
@@ -228,9 +229,16 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew, onOpenRoughNig
         <FirstDayGuide data={data} onOpenArea={onOpenArea} onOpenCrew={onOpenCrew} onOpenLibrary={onOpenLibrary} />
 
         {/* ── Needs you — a calm tray, never red ──────────────────── */}
-        <NeedsTray data={data} onPick={(item) =>
-          selectSystem(item.system, { expandItemId: item.id })
-        } />
+        {/* A need from a room with no system of its own (e.g. Candy) names
+            its room id; open that room's drawer instead of falling back to
+            the first system (UAT 2026-09-27: Candy's need opened Workshop). */}
+        <NeedsTray data={data} onPick={(item, opener) => {
+          if (data.systems.some((s) => s.id === item.system)) {
+            selectSystem(item.system, { expandItemId: item.id });
+          } else {
+            requestOpenRoom(item.system, opener);
+          }
+        }} />
 
         {/* ── Lenses — a left list on desktop, a scroller on phone ── */}
         <nav
@@ -400,7 +408,7 @@ function NeedsTray({
   onPick,
 }: {
   data: BridgeData;
-  onPick: (item: BridgeItem) => void;
+  onPick: (item: BridgeItem, opener: HTMLElement) => void;
 }) {
   const overflow = trayOverflow(data);
   const items = data.have_tos.slice(0, 3);
@@ -432,7 +440,7 @@ function NeedsTray({
           <li key={item.id}>
             <button
               type="button"
-              onClick={() => onPick(item)}
+              onClick={(e) => onPick(item, e.currentTarget)}
               className="flex w-full min-h-[var(--pw-targets-minimum)] items-baseline gap-[var(--pw-spacing-sm)] rounded-[var(--pw-radius-sm)] px-[var(--pw-spacing-sm)] py-[var(--pw-spacing-xs)] text-left hover:bg-[var(--pw-surface-elevated)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]"
             >
               <span
