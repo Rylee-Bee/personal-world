@@ -744,6 +744,71 @@ def _parse_room_actions(payload: Any) -> list[dict[str, Any]] | None:
     return [row for row in payload if isinstance(row, dict)]
 
 
+_FIELD_NAME = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
+MAX_FIELDS = 6
+MAX_OPTIONS = 12
+
+
+def _clip(value: Any, limit: int) -> str:
+    return str(value).strip()[:limit]
+
+
+def _action_form(schema: Any) -> tuple[list[dict[str, Any]] | None, bool]:
+    """``(fields, need_bound)`` from a room action's ``input_schema``.
+
+    ``fields`` is a small, checked form the UI can draw — text boxes,
+    one-of choices and pick-several choices — or ``None`` when the schema
+    has something the UI can't draw (then the action is a plain button).
+    ``need_bound`` is True when the action takes a ``need``: it answers
+    one need and is offered on that need, never as a room action.
+    """
+    if not isinstance(schema, dict) or not isinstance(schema.get("properties"), dict):
+        return None, False
+    props = schema["properties"]
+    if "need" in props:
+        return None, True
+    required = {r for r in schema.get("required") or [] if isinstance(r, str)}
+    fields: list[dict[str, Any]] = []
+    for name, spec in props.items():
+        if not _FIELD_NAME.match(str(name)) or not isinstance(spec, dict) or len(fields) >= MAX_FIELDS:
+            return None, False
+        label = _clip(spec.get("title") or name.replace("_", " ").capitalize(), 60)
+        kind = spec.get("type")
+        items = spec.get("items") if kind == "array" else spec
+        enum = items.get("enum") if isinstance(items, dict) else None
+        if enum is not None:
+            if not isinstance(enum, list) or not 0 < len(enum) <= MAX_OPTIONS or not all(
+                isinstance(v, str) and 0 < len(v) <= 40 for v in enum
+            ):
+                return None, False
+            names = spec.get("enumNames")
+            if not (isinstance(names, list) and len(names) == len(enum)):
+                names = enum
+            field: dict[str, Any] = {
+                "name": name,
+                "kind": "choices" if kind == "array" else "choice",
+                "label": label,
+                "required": name in required,
+                "options": [{"value": v, "label": _clip(n, 40)} for v, n in zip(enum, names)],
+            }
+            if kind == "array":
+                most = spec.get("maxItems")
+                field["max"] = most if isinstance(most, int) and 0 < most <= len(enum) else len(enum)
+        elif kind == "string":
+            most = spec.get("maxLength")
+            field = {
+                "name": name,
+                "kind": "text",
+                "label": label,
+                "required": name in required,
+                "max_length": most if isinstance(most, int) and 0 < most <= 2000 else 500,
+            }
+        else:
+            return None, False
+        fields.append(field)
+    return (fields or None), False
+
+
 def _merge_personal(
     shared: dict[str, Any], forwarded: dict[str, Any]
 ) -> dict[str, Any]:
@@ -1363,6 +1428,8 @@ class RoomsService:
         self, configs: list[RoomConfig], rows: list[dict[str, Any]]
     ) -> None:
         """Put each room's own actions on its row as ``[{id, title, writes}]``
+        (plus ``fields`` for a small form and ``need_bound`` for actions that
+        answer one need; see :func:`_action_form`)
         (from the 60 s action cache), so the UI can offer room-level
         actions such as "Re-check the tickets". An unreachable room, or one
         whose list can't be read, gets ``[]``; ``writes`` is ``None`` when
@@ -1382,11 +1449,17 @@ class RoomsService:
                     continue
                 title = a.get("label") or a.get("title") or aid
                 writes = a.get("writes")
-                out.append({
+                entry: dict[str, Any] = {
                     "id": aid,
                     "title": str(title),
                     "writes": writes if isinstance(writes, bool) else None,
-                })
+                }
+                fields, need_bound = _action_form(a.get("input_schema"))
+                if fields:
+                    entry["fields"] = fields
+                if need_bound:
+                    entry["need_bound"] = True
+                out.append(entry)
             row["actions"] = out
 
         await asyncio.gather(*(one(r) for r in rows))

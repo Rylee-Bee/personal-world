@@ -7,13 +7,17 @@
  * the room's receipt comes back, and only the receipt says it was
  * recorded. A refusal says "Nothing changed" with the room's own words.
  *
+ * A need with `allow_text` also takes an answer in the person's own
+ * words (a text box; dictation works through the phone keyboard), sent
+ * as `{need, text}`.
+ *
  * Only someone who may approve gets buttons; everyone else sees the
  * choices as a plain list, so they know what's being decided.
  */
 import { useEffect, useRef, useState } from "react";
 import { useRoomAction } from "../../data/hooks";
 import type { RoomActionReceipt, RoomNeed } from "../../data/contract";
-import { idempotencyKey, LINK_BASE } from "./format";
+import { idempotencyKey, LINK_BASE, TEXTAREA } from "./format";
 import { ANSWER_ACTION, hasRecommendation } from "./choices";
 
 const SMALL = "text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]";
@@ -40,6 +44,7 @@ export function ChoiceAnswer({
   const action = useRoomAction();
   const [sending, setSending] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [words, setWords] = useState("");
   const statusRef = useRef<HTMLParagraphElement>(null);
   const recommended = hasRecommendation(need);
   const labelId = `choices-${roomId}-${need.id}`;
@@ -51,24 +56,29 @@ export function ChoiceAnswer({
   if (!canAnswer) {
     return (
       <div className="flex flex-col gap-[var(--pw-spacing-xs)]">
-        <p id={labelId} className={SMALL}>
-          The choices:
-        </p>
-        <ul aria-labelledby={labelId} className={`${SMALL} list-disc pl-[var(--pw-spacing-lg)]`}>
-          {choices.map((c, i) => (
-            <li key={c}>{i === 0 && recommended ? `${c} (recommended)` : c}</li>
-          ))}
-        </ul>
+        {choices.length > 0 && (
+          <>
+            <p id={labelId} className={SMALL}>
+              The choices:
+            </p>
+            <ul aria-labelledby={labelId} className={`${SMALL} list-disc pl-[var(--pw-spacing-lg)]`}>
+              {choices.map((c, i) => (
+                <li key={c}>{i === 0 && recommended ? `${c} (recommended)` : c}</li>
+              ))}
+            </ul>
+          </>
+        )}
         <p className={SMALL}>Only someone who can approve things here can answer.</p>
       </div>
     );
   }
 
-  const send = (choice: string) => {
+  const send = (choice: string, text?: string) => {
     setRefusal(null);
     setSending(choice);
+    const body = text === undefined ? { need: need.id, choice } : { need: need.id, text };
     action.mutate(
-      { roomId, actionId: ANSWER_ACTION, body: { need: need.id, choice }, key: idempotencyKey() },
+      { roomId, actionId: ANSWER_ACTION, body, key: idempotencyKey() },
       {
         onSuccess: (receipt) => {
           setSending(null);
@@ -120,6 +130,33 @@ export function ChoiceAnswer({
           );
         })}
       </div>
+      {need.allow_text && (
+        <form
+          className="flex flex-col gap-[var(--pw-spacing-xs)]"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const said = words.trim();
+            if (said) send(said.length > 60 ? `${said.slice(0, 60)}…` : said, said);
+          }}
+        >
+          <label htmlFor={`${labelId}-words`} className={SMALL}>
+            {choices.length > 0 ? "Or say it in your own words" : "Your answer, in your own words"}
+          </label>
+          <textarea
+            id={`${labelId}-words`}
+            rows={3}
+            maxLength={2000}
+            value={words}
+            onChange={(e) => setWords(e.target.value)}
+            className={TEXTAREA}
+          />
+          <span>
+            <button type="submit" disabled={!words.trim()} className={`${QUIET_BUTTON} disabled:opacity-60`}>
+              Send
+            </button>
+          </span>
+        </form>
+      )}
     </div>
   );
 }

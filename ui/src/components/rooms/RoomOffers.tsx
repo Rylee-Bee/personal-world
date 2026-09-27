@@ -9,17 +9,113 @@
  * someone who may approve; a read-only action is offered to everyone.
  * A press sends the action with a fresh Idempotency-Key, says
  * "Asking…" (static), then shows the room's receipt in its own words.
+ * An action with `fields` (a small form the server checked, e.g.
+ * Hive Works' Riff: words, bees, a door) opens that form first.
  */
 import { useEffect, useRef, useState } from "react";
 import { useRoomAction } from "../../data/hooks";
 import type { RoomActionReceipt, RoomOffer, RoomRow } from "../../data/contract";
-import { formatTime, idempotencyKey, LINK_BASE } from "./format";
-import { offerLabel } from "./choices";
+import { formatTime, idempotencyKey, LINK_BASE, TEXTAREA } from "./format";
+import { formBody, formReady, offerLabel, type FormValues } from "./choices";
 
 const SECTION_TITLE =
   "mb-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.12em] text-[var(--pw-text-muted)]";
 const SMALL = "text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]";
 const QUIET_BUTTON = `${LINK_BASE} border border-[var(--pw-border-subtle)] bg-transparent text-[var(--pw-text-primary)] disabled:opacity-60`;
+const PRIMARY_BUTTON = `${LINK_BASE} bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)] disabled:opacity-60`;
+const PICKED = `${LINK_BASE} border border-[var(--pw-accent-warm)] bg-[var(--pw-accent-warm_soft)] text-[var(--pw-text-primary)] disabled:opacity-60`;
+
+
+function OfferForm({
+  offer,
+  label,
+  onSend,
+  onCancel,
+}: {
+  offer: RoomOffer;
+  label: string;
+  onSend: (body: Record<string, unknown>) => void;
+  onCancel: () => void;
+}) {
+  const fields = offer.fields ?? [];
+  const [values, setValues] = useState<FormValues>({});
+  const firstRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => firstRef.current?.focus(), []);
+  const set = (name: string, v: string | string[]) => setValues((all) => ({ ...all, [name]: v }));
+  const firstText = fields.find((f) => f.kind === "text")?.name;
+
+  return (
+    <form
+      aria-label={label}
+      className="mt-[var(--pw-spacing-sm)] flex flex-col gap-[var(--pw-spacing-md)]"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (formReady(fields, values)) onSend(formBody(fields, values));
+      }}
+    >
+      {fields.map((f) => {
+        const id = `offer-${offer.id}-${f.name}`;
+        if (f.kind === "text") {
+          const ref = f.name === firstText ? firstRef : undefined;
+          return (
+            <div key={f.name} className="flex flex-col gap-[var(--pw-spacing-xs)]">
+              <label htmlFor={id} className={SMALL}>
+                {f.required ? f.label : `${f.label} (optional)`}
+              </label>
+              <textarea
+                ref={ref}
+                id={id}
+                rows={3}
+                maxLength={f.max_length}
+                value={(values[f.name] as string) ?? ""}
+                onChange={(e) => set(f.name, e.target.value)}
+                className={TEXTAREA}
+              />
+            </div>
+          );
+        }
+        const many = f.kind === "choices";
+        const picked = many ? ((values[f.name] as string[]) ?? []) : [(values[f.name] as string) ?? ""];
+        const full = many && f.max !== undefined && picked.length >= f.max;
+        const legend = many && f.max ? `${f.label} (pick up to ${f.max})` : f.label;
+        return (
+          <fieldset key={f.name} className="flex flex-col gap-[var(--pw-spacing-xs)]">
+            <legend className={`${SMALL} mb-[var(--pw-spacing-xs)]`}>{legend}</legend>
+            <div className="flex flex-wrap gap-[var(--pw-spacing-sm)]">
+              {(f.options ?? []).map((o) => {
+                const on = picked.includes(o.value);
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    aria-pressed={on}
+                    disabled={!on && full}
+                    onClick={() =>
+                      many
+                        ? set(f.name, on ? picked.filter((p) => p !== o.value) : [...picked, o.value])
+                        : set(f.name, on ? "" : o.value)
+                    }
+                    className={on ? PICKED : QUIET_BUTTON}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        );
+      })}
+      <div className="flex flex-wrap gap-[var(--pw-spacing-sm)]">
+        <button type="submit" disabled={!formReady(fields, values)} className={PRIMARY_BUTTON}>
+          Send
+        </button>
+        <button type="button" onClick={onCancel} className={QUIET_BUTTON}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export function RoomOffers({
   row,
@@ -35,18 +131,20 @@ export function RoomOffers({
   const action = useRoomAction();
   const [asking, setAsking] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<{ label: string; receipt: RoomActionReceipt } | null>(null);
+  const [filling, setFilling] = useState<RoomOffer | null>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (asking || receipt) statusRef.current?.focus();
   }, [asking, receipt]);
 
-  const send = (offer: RoomOffer) => {
+  const send = (offer: RoomOffer, body: Record<string, unknown> = {}) => {
     const label = offerLabel(offer);
     setReceipt(null);
+    setFilling(null);
     setAsking(label);
     action.mutate(
-      { roomId: row.id, actionId: offer.id, body: {}, key: idempotencyKey() },
+      { roomId: row.id, actionId: offer.id, body, key: idempotencyKey() },
       {
         onSuccess: (r) => {
           setAsking(null);
@@ -70,11 +168,31 @@ export function RoomOffers({
       </h3>
       <div className="flex flex-wrap gap-[var(--pw-spacing-sm)]">
         {offers.map((o) => (
-          <button key={o.id} type="button" disabled={asking !== null} onClick={() => send(o)} className={QUIET_BUTTON}>
+          <button
+            key={o.id}
+            type="button"
+            disabled={asking !== null}
+            aria-expanded={o.fields?.length ? filling?.id === o.id : undefined}
+            onClick={() => {
+              if (!o.fields?.length) return send(o);
+              setReceipt(null);
+              setFilling(filling?.id === o.id ? null : o);
+            }}
+            className={QUIET_BUTTON}
+          >
             {offerLabel(o)}
           </button>
         ))}
       </div>
+      {filling && !asking && (
+        <OfferForm
+          key={filling.id}
+          offer={filling}
+          label={offerLabel(filling)}
+          onSend={(body) => send(filling, body)}
+          onCancel={() => setFilling(null)}
+        />
+      )}
       {asking && (
         <p ref={statusRef} tabIndex={-1} role="status" className={`${SMALL} mt-[var(--pw-spacing-sm)] focus:outline-none`}>
           {`Asking… Waiting for ${roomName} to answer “${asking}”.`}

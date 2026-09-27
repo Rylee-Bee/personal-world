@@ -2,7 +2,7 @@
  * Plain helpers for a room's decisions and its own actions (ROOM 2.1.0).
  * Kept apart from the components so they stay pure and testable.
  */
-import type { RoomNeed, RoomOffer, RoomRow } from "../../data/contract";
+import type { OfferField, RoomNeed, RoomOffer, RoomRow } from "../../data/contract";
 
 /** The action that answers a need with one of its `choices`. */
 export const ANSWER_ACTION = "answer-decision";
@@ -40,6 +40,7 @@ export function roomOffers(row: RoomRow, canApprove: boolean): RoomOffer[] {
       typeof a.id === "string" &&
       a.id.trim() !== "" &&
       !NEED_ACTIONS.has(a.id) &&
+      !a.need_bound &&
       (a.writes === false || canApprove),
   );
 }
@@ -47,4 +48,21 @@ export function roomOffers(row: RoomRow, canApprove: boolean): RoomOffer[] {
 /** The button words for a room action: its title, else its id in words. */
 export function offerLabel(offer: RoomOffer): string {
   return offer.title?.trim() || offer.id.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
+
+export type FormValues = Record<string, string | string[]>;
+
+/** The body to send: only filled fields, text trimmed. */
+export function formBody(fields: OfferField[], values: FormValues): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  for (const f of fields) {
+    const v = values[f.name];
+    if (typeof v === "string" && v.trim()) body[f.name] = v.trim();
+    if (Array.isArray(v) && v.length) body[f.name] = v;
+  }
+  return body;
+}
+
+export function formReady(fields: OfferField[], values: FormValues): boolean {
+  return fields.every((f) => !f.required || (formBody([f], values)[f.name] !== undefined));
 }
