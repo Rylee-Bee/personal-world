@@ -66,3 +66,11 @@ export function formBody(fields: OfferField[], values: FormValues): Record<strin
 export function formReady(fields: OfferField[], values: FormValues): boolean {
   return fields.every((f) => !f.required || (formBody([f], values)[f.name] !== undefined));
 }
+
+/** A room picture's name for roomArtUrl: "art/crew/pip.webp" → "pip".
+ *  Only a plain file name is accepted (letters, digits, - and _). */
+export function artName(file: string | null | undefined): string | null {
+  if (!file) return null;
+  const m = /(?:^|\/)([A-Za-z0-9_-]+)\.webp$/.exec(file.trim());
+  return m ? m[1] : null;
+}
