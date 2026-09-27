@@ -9,7 +9,10 @@ import { reportSticker } from "../stickers/report";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCrew, usePrefs, usePutPrefs } from "../../data/hooks";
+import { describeError } from "../../data/errors";
 import { CompanionFace } from "./CompanionFace";
+import { ConfirmItsYou } from "../ConfirmItsYou";
+import { useConfirmed } from "../useConfirmed";
 import { Icon } from "../Icon";
 
 const asset = (p: string) => `${import.meta.env.BASE_URL}${p.replace(/^\//, "")}`;
@@ -20,6 +23,7 @@ export function CompanionChooser({ onChosen }: { onChosen?: (name: string) => vo
   const prefs = usePrefs();
   const put = usePutPrefs();
   const qc = useQueryClient();
+  const confirm = useConfirmed();
   const [said, setSaid] = useState<{ ok: boolean; words: string } | null>(null);
   const current = (prefs.data?.data as { companion_id?: string | null } | undefined)?.companion_id ?? null;
   const people = (crew.data?.data ?? []).filter((c) => !c.hidden);
@@ -30,15 +34,21 @@ export function CompanionChooser({ onChosen }: { onChosen?: (name: string) => vo
 
   function choose(id: string | null, name: string) {
     setSaid(null);
-    put.mutate({ companion_id: id }, {
-      onSuccess: () => {
-        // The Bridge's speaker comes from the briefing; refresh it too.
-        void qc.invalidateQueries({ queryKey: ["briefing"] });
-        setSaid({ ok: true, words: `${name} is your companion now.` });
-        void reportSticker("hello-crew");
-        onChosen?.(name);
-      },
-      onError: () => setSaid({ ok: false, words: "Couldn’t save that just now; nothing changed." }),
+    // PUT /api/prefs is a step-up write; without this the server's 403
+    // had no way to be resolved from here (2026-09-27).
+    confirm.run((onError) => {
+      put.mutate({ companion_id: id }, {
+        onSuccess: () => {
+          // The Bridge's speaker comes from the briefing; refresh it too.
+          void qc.invalidateQueries({ queryKey: ["briefing"] });
+          setSaid({ ok: true, words: `${name} is your companion now.` });
+          void reportSticker("hello-crew");
+          onChosen?.(name);
+        },
+        onError: (err) => {
+          if (!onError(err)) setSaid({ ok: false, words: describeError(err, "Couldn’t save that just now; nothing changed.") });
+        },
+      });
     });
   }
 
@@ -84,6 +94,13 @@ export function CompanionChooser({ onChosen }: { onChosen?: (name: string) => vo
       <p role="status" className={`min-h-[1.5em] ${said?.ok === false ? "text-[var(--pw-accent-warm)]" : "text-[var(--pw-text-primary)]"}`}>
         {said?.words}
       </p>
+      {confirm.confirming && (
+        <ConfirmItsYou
+          intro="Choosing a companion saves a preference. Confirm it's you first."
+          onConfirmed={confirm.confirmed}
+          onCancel={confirm.cancel}
+        />
+      )}
     </div>
   );
 }
