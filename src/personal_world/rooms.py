@@ -165,6 +165,19 @@ IDEMPOTENCY_VALUE_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 #: hyphens, at most 64 chars (the shared interface's action-id rule).
 _VALID_ACTION_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 
+#: Read-only views a room may offer (``GET /room/views/{name}[/{item}]``),
+#: e.g. Hive Works' teams, projects, one project, crew.
+VIEWS_PATH = "/room/views"
+_VALID_VIEW_NAME = re.compile(r"^[a-z][a-z0-9-]{0,31}$")
+_VALID_VIEW_ITEM = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+MAX_VIEW_BYTES = 512 * 1024
+VIEW_TIMEOUT_SECONDS = 5.0
+VIEW_CACHE_SECONDS = 15.0
+#: Change pings from one room closer together than this fold into one.
+PING_MIN_GAP_SECONDS = 2.0
+#: Events a slow listener may queue before it starts missing pings.
+LISTENER_QUEUE = 32
+
 #: A forwarded action body is a JSON object at most this many bytes.
 MAX_ACTION_BODY_BYTES = 16 * 1024
 
@@ -894,6 +907,12 @@ class RoomsService:
 
         # The Secrets overview (Worlds side) is one outbound read of the
         # ``workshop`` room, cached 60 s like the registry.
+        # Live updates: open screens subscribe; a room's "changed" ping or
+        # a successful action publishes {room, at}. Room ids only, never
+        # content, so any signed-in listener may hear them.
+        self._listeners: set[asyncio.Queue] = set()
+        self._last_ping: dict[str, float] = {}
+        self._views_cache: dict[tuple[str, str, str], tuple[float, int, Any]] = {}
         self._secrets_cache: dict[str, Any] | None = None
         self._secrets_cache_at: float = float("-inf")
 
@@ -1163,6 +1182,118 @@ class RoomsService:
         self._cache_at = float("-inf")
         if principal_id is not None:
             self._principal_cache.pop((room_id, principal_id), None)
+        self._forget_views(room_id)
+        self._publish(room_id)
+
+    # ── Live updates ────────────────────────────────────────────────
+
+    def listen(self) -> asyncio.Queue:
+        """A queue that receives ``{room, at}`` for every change."""
+        q: asyncio.Queue = asyncio.Queue(maxsize=LISTENER_QUEUE)
+        self._listeners.add(q)
+        return q
+
+    def unlisten(self, q: asyncio.Queue) -> None:
+        self._listeners.discard(q)
+
+    def _publish(self, room_id: str) -> None:
+        event = {"room": room_id, "at": _iso_now()}
+        for q in list(self._listeners):
+            try:
+                q.put_nowait(event)
+            except asyncio.QueueFull:
+                pass  # a slow screen misses a ping; its next one catches up
+
+    def _forget_views(self, room_id: str) -> None:
+        for key in [k for k in self._views_cache if k[0] == room_id]:
+            self._views_cache.pop(key, None)
+
+    async def room_changed(self, room_id: str, env: dict | None = None) -> bool:
+        """A room says its data changed: drop everything cached for it and
+        tell open screens. False for an unknown room. Pings closer together
+        than :data:`PING_MIN_GAP_SECONDS` are folded into one (still True)."""
+        if not isinstance(room_id, str) or not _VALID_ROOM_ID.match(room_id):
+            return False
+        if await self.resolved_config(room_id, env) is None:
+            return False
+        now = self._clock()
+        if now - self._last_ping.get(room_id, float("-inf")) < PING_MIN_GAP_SECONDS:
+            return True
+        self._last_ping[room_id] = now
+        self._cache = None
+        self._cache_at = float("-inf")
+        for key in [k for k in self._principal_cache if k[0] == room_id]:
+            self._principal_cache.pop(key, None)
+        self._actions_cache.pop(room_id, None)
+        self._forget_views(room_id)
+        self._publish(room_id)
+        return True
+
+    # ── Read-only views (``GET /room/views/{name}[/{item}]``) ───────
+
+    async def view(
+        self,
+        room_id: str,
+        name: str,
+        item: str | None = None,
+        principal: Any | None = None,
+        env: dict | None = None,
+    ) -> tuple[int, Any]:
+        """One read-only view from a room, e.g. Hive Works' ``projects``.
+
+        Returns ``(http_status, payload)``: 200 with the room's JSON (an
+        object or a list, at most :data:`MAX_VIEW_BYTES`), 404 for a bad
+        or unknown room/view, 502 when the room can't be read. Uses the
+        room's own token and TLS policy (principal forwarded only when the
+        registry opted in), no redirects, a short timeout, and a
+        :data:`VIEW_CACHE_SECONDS` cache that a change ping clears.
+        Never raises on the room's behalf.
+        """
+        env = os.environ if env is None else env
+        if (
+            not isinstance(room_id, str) or not _VALID_ROOM_ID.match(room_id)
+            or not isinstance(name, str) or not _VALID_VIEW_NAME.match(name)
+            or (item is not None and (not isinstance(item, str) or not _VALID_VIEW_ITEM.match(item)))
+        ):
+            return 404, {"error": "No such view."}
+        config = await self.resolved_config(room_id, env)
+        if config is None or config.contract not in SUPPORTED_CONTRACTS or config.invalid_reason is not None:
+            return 404, {"error": "No such room."}
+        principal_id = _safe_principal_id(getattr(principal, "id", None))
+        who = principal_id if config.forward_principal else ""
+        key = (room_id, f"{name}/{item or ''}", who or "")
+        now = self._clock()
+        hit = self._views_cache.get(key)
+        if hit and now - hit[0] < VIEW_CACHE_SECONDS:
+            return hit[1], hit[2]
+        url = config.base_url.rstrip("/") + VIEWS_PATH + "/" + name + (f"/{item}" if item else "")
+        headers = self._room_headers(config, principal_id)
+        headers["Accept"] = "application/json"
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(VIEW_TIMEOUT_SECONDS),
+                verify=not config.insecure_tls,
+                transport=self._transport,
+                follow_redirects=False,
+            ) as client:
+                resp = await client.get(url, headers=headers)
+        except Exception:  # noqa: BLE001 — a dead room must not break the main app
+            return 502, {"error": f"Couldn't reach {room_id}."}
+        if resp.status_code == 404:
+            result: tuple[int, Any] = (404, {"error": "No such view."})
+        elif not (200 <= resp.status_code < 300) or len(resp.content) > MAX_VIEW_BYTES:
+            result = (502, {"error": f"{room_id} didn't answer with that view."})
+        else:
+            try:
+                payload = resp.json()
+            except (ValueError, UnicodeDecodeError):
+                payload = None
+            if isinstance(payload, (dict, list)):
+                result = (200, payload)
+            else:
+                result = (502, {"error": f"{room_id} didn't answer with that view."})
+        self._views_cache[key] = (now, result[0], result[1])
+        return result
 
     async def resolved_config(
         self, room_id: str, env: dict | None = None

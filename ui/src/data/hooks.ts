@@ -11,6 +11,7 @@
  * screens render real failure states instead of "success with holes".
  */
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -84,6 +85,7 @@ import {
   getPlace,
   putPlace,
   getRooms,
+  getRoomView,
   postRoomVisit,
   postNeedSeen,
   postRoomAction,
@@ -154,6 +156,8 @@ export const queryKeys = {
   briefing: ["briefing"] as const,
   place: ["place"] as const,
   rooms: ["rooms"] as const,
+  /** Under "rooms", so a live room-changed event refreshes views too. */
+  roomView: (roomId: string, name: string, item = "") => ["rooms", roomId, "views", name, item] as const,
   secretsOverview: ["secrets", "overview"] as const,
   crew: ["crew"] as const,
   me: ["me"] as const,
@@ -812,6 +816,36 @@ export function useRooms() {
     queryFn: getRooms,
     staleTime: 30_000,
   });
+}
+
+/** A room's own read-only view (e.g. Hive Works' `projects`). Refreshed
+ *  live by {@link useRoomEvents} when the room pings a change. */
+export function useRoomView<T>(roomId: string, name: string, item?: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.roomView(roomId, name, item),
+    queryFn: () => getRoomView<T>(roomId, name, item),
+    enabled,
+    staleTime: 30_000,
+    retry: (count, error) => !(error instanceof ApiError && error.status === 404) && count < 2,
+  });
+}
+
+/** Live rooms: listen to GET /api/rooms/events and refresh the rooms (and
+ *  any room views) the moment a room says it changed, or an action in
+ *  Worlds changed it. The browser's EventSource reconnects by itself; where
+ *  there is none (old browsers, tests) the 30 s refresh still applies. */
+export function useRoomEvents() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (typeof EventSource === "undefined") return;
+    const source = new EventSource("/api/rooms/events");
+    const onChange = () => void qc.invalidateQueries({ queryKey: queryKeys.rooms });
+    source.addEventListener("room-changed", onChange);
+    return () => {
+      source.removeEventListener("room-changed", onChange);
+      source.close();
+    };
+  }, [qc]);
 }
 
 /** The Workshop's secrets overview (names and health, never a value).
