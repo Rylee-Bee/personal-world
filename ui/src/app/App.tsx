@@ -38,6 +38,7 @@ import { Crew } from "../screens/Crew/Crew";
 import { People } from "../screens/People/People";
 import { Helpers } from "../screens/Helpers/Helpers";
 import { RoughNight } from "../screens/RoughNight/RoughNight";
+import { StayFresh } from "./StayFresh";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
 import { useHealthz, usePrefs, usePrefsSchema, useSections } from "../data/hooks";
@@ -266,6 +267,9 @@ export function App() {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
+
+      {/* A newer build is live: reload on return, or say so quietly. */}
+      <StayFresh />
 
       {/* §5.1: navigation — topbar pattern from starfield. The padding
           keeps chrome clear of notches and the home indicator (§2.7):
