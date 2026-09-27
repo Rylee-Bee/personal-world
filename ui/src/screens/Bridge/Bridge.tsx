@@ -43,6 +43,7 @@ import { WorldAssistant } from "../../components/WorldAssistant";
 import { chooseDefaultSystem, knownArea, trayOverflow } from "./geometry";
 import { StarMap } from "./StarMap";
 import { FirstDayGuide } from "./FirstDayGuide";
+import { StickerRoomDoor } from "../../components/stickers/StickerRoomDoor";
 import { NOT_SET_UP, SETUP_FOR } from "./firstDay";
 
 interface BridgeProps {
@@ -55,6 +56,8 @@ interface BridgeProps {
   onOpenRoughNight?: () => void;
   /** Opens the Library (the first-day guide's last line). */
   onOpenLibrary?: () => void;
+  /** Opens the sticker album (the Sticker Room door, after the 12th sticker). */
+  onOpenStickers?: () => void;
 }
 
 
@@ -77,7 +80,7 @@ function isPhoneLayout(): boolean {
  *  meaning; colour is reinforcement only). */
 const CALM_ACCENT = "var(--pw-accent-warm)";
 
-export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew, onOpenRoughNight, onOpenLibrary }: BridgeProps) {
+export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew, onOpenRoughNight, onOpenLibrary, onOpenStickers }: BridgeProps) {
   const briefing = useBriefing();
   const place = usePlace();
   const setPlace = useSetPlace();
@@ -297,6 +300,7 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew, onOpenRoughNig
               style={{ left: `${star.x}%`, top: `${star.y}%` }}
             />
           ))}
+          {onOpenStickers ? <StickerRoomDoor onOpen={onOpenStickers} /> : null}
           <StarMap
             keeper={data.keeper}
             systems={systems}

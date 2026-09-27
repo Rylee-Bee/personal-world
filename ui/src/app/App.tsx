@@ -27,7 +27,6 @@
 import { noteCurrentArea, takeConfirmReturn } from "./confirmReturn";
 import { areaFromHash, setAddress } from "./areaAddress";
 import { WorldButton } from "../components/WorldButton";
-import { SolMoment } from "../components/SolMoment";
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { Bridge } from "../screens/Bridge/Bridge";
 import { Memory } from "../screens/Memory/Memory";
@@ -46,6 +45,8 @@ import { Lore } from "../screens/Lore/Lore";
 import { AtHome } from "../screens/AtHome/AtHome";
 import { Stickers } from "../screens/Stickers/Stickers";
 import { StickerLanding } from "../components/stickers/StickerLanding";
+import { SolTaps } from "../components/stickers/SolTaps";
+import { reportSticker } from "../components/stickers/report";
 import { Computers } from "../screens/Computers/Computers";
 import { Projects } from "../screens/Projects/Projects";
 import { StayFresh } from "./StayFresh";
@@ -201,6 +202,9 @@ export function App() {
   const [confirmedNote, setConfirmedNote] = useState(returned !== null);
   useEffect(() => {
     noteCurrentArea(activeArea);
+    // Finding Rough night is a sticker (using it never is). Reported here,
+    // so the page itself sends nothing but the note the person saves.
+    if (activeArea === "rough-night") void reportSticker("soft-landing");
   }, [activeArea]);
   const [chatDraft, setChatDraft] = useState<ChatDraft | null>(null);
   const askInChat = useCallback((question: string) => {
@@ -208,6 +212,12 @@ export function App() {
     setActiveArea("chat");
   }, []);
   const { skeleton, personal } = useWorldAreas();
+
+  // A secret sticker for opening Worlds at 11:11 in the morning.
+  useEffect(() => {
+    const now = new Date();
+    if (now.getHours() === 11 && now.getMinutes() === 11) void reportSticker("make-a-wish");
+  }, []);
 
   // Prefs chrome: server truth lands on the document (C12).
   useApplyPrefsChrome();
@@ -249,6 +259,7 @@ export function App() {
             onOpenCrew={() => setActiveArea("crew")}
             onOpenRoughNight={() => setActiveArea("rough-night")}
             onOpenLibrary={() => openLibrary("overview")}
+            onOpenStickers={() => setActiveArea("stickers")}
           />
         );
       case "memory":
@@ -361,7 +372,7 @@ export function App() {
         {/* Brand — "The frontend is Worlds. Station is a theme." The
             old "Station vNext" chrome label retired with that rule. */}
         <div className="flex items-center gap-[var(--pw-spacing-sm)] shrink-0">
-          <SolMoment mood="mark" size={36} />
+          <SolTaps />
           <div className="hidden sm:block">
             <p className="text-[length:var(--pw-typography-size_label)] font-semibold uppercase tracking-[0.14em] text-[var(--pw-text-primary)]">
               Worlds

@@ -1032,3 +1032,26 @@ body {
 .sticker-look-vefr { --paper: #efe6d2; --paper-ink: #2a241a; background: linear-gradient(transparent 31px, rgb(42 36 26 / 0.1) 32px) 0 0 / 100% 32px, #efe6d2; }
 @media (max-width: 480px) { .sticker-slot { width: 104px; } }
 .sticker, .sticker-slot { user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
+
+/* The Sticker Room: a tiny door on the Bridge map, after the 12th sticker. */
+.sticker-room-door {
+  position: absolute;
+  left: var(--pw-spacing-md);
+  bottom: var(--pw-spacing-md);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: var(--pw-targets-minimum);
+  min-height: var(--pw-targets-minimum);
+  border: 0;
+  border-radius: var(--pw-radius-sm);
+  background: transparent;
+  color: var(--pw-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.sticker-room-door img { width: 36px; height: auto; }
+.sticker-room-door:focus-visible { outline: 2px solid var(--pw-accent-primary); outline-offset: 2px; }
+.lib-colophon { border-top: 1px dashed var(--pw-border-subtle); padding-top: var(--pw-spacing-md); }

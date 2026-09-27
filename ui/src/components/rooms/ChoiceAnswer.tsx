@@ -14,6 +14,7 @@
  * Only someone who may approve gets buttons; everyone else sees the
  * choices as a plain list, so they know what's being decided.
  */
+import { reportSticker } from "../../components/stickers/report";
 import { useEffect, useRef, useState } from "react";
 import { useRoomAction } from "../../data/hooks";
 import type { RoomActionReceipt, RoomNeed } from "../../data/contract";
@@ -83,7 +84,10 @@ export function ChoiceAnswer({
       {
         onSuccess: (receipt) => {
           setSending(null);
-          if (receipt.ok) onAnswered(choice, receipt);
+          if (receipt.ok) {
+            if (text !== undefined) void reportSticker("own-words");
+            onAnswered(choice, receipt);
+          }
           else setRefusal(receipt.summary || `${roomName} didn’t take that answer.`);
         },
         onError: () => {

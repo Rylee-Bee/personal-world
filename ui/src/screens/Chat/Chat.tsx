@@ -6,6 +6,7 @@
  * §5.1 (keyboard), §7.1 (skip-to-content).
  */
 
+import { reportSticker } from "../../components/stickers/report";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   useBriefing,
@@ -116,6 +117,7 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
       },
       {
         onSuccess: (res) => {
+          if (/\b(thank you|thanks|thank u|ty)\b/i.test(text)) void reportSticker("good-manners");
           const l = res.data?.learning;
           if (l && (l.stage === "first" || l.stage === "again")) {
             setLearning({ moment: l, reply: res.data?.reply ?? "" });

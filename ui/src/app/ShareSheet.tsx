@@ -6,6 +6,7 @@
  * Remember (your journal) or Later (the Later shelf), then says "Kept".
  * Nothing is saved until the person taps. Functional; design polishes.
  */
+import { reportSticker } from "../components/stickers/report";
 import { useEffect, useRef, useState } from "react";
 import { remember } from "../data/api";
 
@@ -46,6 +47,7 @@ export function ShareSheet() {
     setBusy(true);
     try {
       await remember(text, later, "share");
+      void reportSticker("pocket");
       setSaid(later ? "Kept on your Later shelf." : "Kept in your journal.");
       setText(null);
       clearShared();

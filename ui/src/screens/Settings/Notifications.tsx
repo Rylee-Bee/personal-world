@@ -30,6 +30,7 @@
  * other door here works with or without a key.
  */
 
+import { reportSticker } from "../../components/stickers/report";
 import { useState, type ReactNode } from "react";
 import { notifyManager, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -349,7 +350,11 @@ export function NotificationsSection() {
   // event), tell the server, and let its answer take over.
   const applyPrefs = (next: NotificationPrefs) => {
     setPendingPrefs(next);
-    savePrefs.mutate(next);
+    savePrefs.mutate(next, {
+      onSuccess: () => {
+        if (JSON.stringify(next.quiet_hours) !== JSON.stringify(prefs.quiet_hours) && next.quiet_hours.on) void reportSticker("quiet-hours");
+      },
+    });
   };
   const setTier = (tier: TierName, on: boolean) => applyPrefs({ ...prefs, tiers: { ...prefs.tiers, [tier]: on } });
   const setSource = (source: string, on: boolean) =>

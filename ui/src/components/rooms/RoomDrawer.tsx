@@ -22,6 +22,7 @@
  * Opening the drawer is not a visit: the "changed" list stays put while
  * you read it. Opening the room itself is the visit.
  */
+import { reportSticker } from "../../components/stickers/report";
 import { Icon } from "../Icon";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -487,6 +488,7 @@ export function RoomDrawer({
             type="button"
             onClick={() => {
               ask(askQuestion(row, name, changed, needs));
+              void reportSticker("ask-a-room");
               onClose();
             }}
             className={`${LINK_BASE} border border-[var(--pw-border-subtle)] bg-transparent text-[var(--pw-text-primary)]`}

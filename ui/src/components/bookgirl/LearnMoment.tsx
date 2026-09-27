@@ -16,6 +16,7 @@
  * The words come from the idea's book on the "Words for what you make"
  * shelf (docs/library/concepts), so the card and the Library never drift.
  */
+import { reportSticker } from "../../components/stickers/report";
 import { useEffect, useId, useRef, useState } from "react";
 import type { LearningMoment } from "../../data/api";
 import { worldsLibrary } from "../../data/library";
@@ -69,6 +70,8 @@ export function LearnMoment({ moment }: { moment: LearningMoment }) {
         aria-controls={id}
         aria-label={open ? `Book Girl: ${title}` : "There’s a name for something you just made (optional)"}
         onClick={() => {
+          // A settled Book Girl, woken with a tap, yawns and waves.
+          if (pose === "settled" && !open) void reportSticker("wake-up");
           setOpen(!open);
           setPose(open ? "settled" : "resting");
         }}

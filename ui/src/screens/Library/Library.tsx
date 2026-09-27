@@ -19,6 +19,7 @@
  * A quiet page like Rough night: reached from Settings and the first-day
  * guide, never a nav landmark.
  */
+import { reportSticker } from "../../components/stickers/report";
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { useLibrary, useRoomView, useRooms } from "../../data/hooks";
 import { roomArtUrl } from "../../data/api";
@@ -32,6 +33,20 @@ import { Icon } from "../../components/Icon";
 import { WorldButton } from "../../components/WorldButton";
 
 type ShelfBook = LibraryDoc["books"][number];
+
+/** Books opened on this device (for "Full shelf"). */
+function noteBookOpened(key: string): Set<string> {
+  const K = "pw-books-opened";
+  let set = new Set<string>();
+  try {
+    set = new Set(JSON.parse(window.localStorage.getItem(K) ?? "[]") as string[]);
+    set.add(key);
+    window.localStorage.setItem(K, JSON.stringify([...set].slice(-400)));
+  } catch {
+    set.add(key);
+  }
+  return set;
+}
 
 const LOOKS = new Set(["scifi-storybook", "hive-corporate", "vefr"]);
 /** A shelf of new books nobody has kept yet: shown gently, apart, folded. */
@@ -313,12 +328,42 @@ function Reader({ open, onBack, onOpen }: { open: Open; onBack: () => void; onOp
   };
   const site = wing.row && book.link ? roomItemUrl(wing.row, book.link) : null;
   // Plain and voice pages in their order; words, then the folded technical pages, last.
+  // A "## Colophon" page is the very last thing in the book.
+  const isColophon = (p: LibraryPage) => /^##\s+colophon\b/i.test(p.text);
   const pages = [
-    ...book.pages.filter((p) => p.kind === "plain" || p.kind === "voice"),
+    ...book.pages.filter((p) => (p.kind === "plain" || p.kind === "voice") && !isColophon(p)),
     ...book.pages.filter((p) => p.kind === "words"),
     ...book.pages.filter((p) => p.kind === "technical"),
   ];
+  const colophon = book.pages.find(isColophon);
   const id = useId();
+  const endRef = useRef<HTMLDivElement>(null);
+  const colophonRef = useRef<HTMLDivElement>(null);
+  const worldsBook = wing.room === null;
+
+  // Stickers (Worlds' own books only): opening a book, reading a whole
+  // shelf, reaching the end, and the colophon.
+  useEffect(() => {
+    if (!worldsBook) return;
+    void reportSticker("bookworm");
+    const opened = noteBookOpened(`${wing.doc.keeper.id}:${book.shelf}:${book.id}`);
+    if (same.length > 0 && same.every((b) => opened.has(`${wing.doc.keeper.id}:${b.shelf}:${b.id}`))) {
+      void reportSticker("shelf-complete", shelf?.name);
+    }
+  }, [book.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!worldsBook || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        if (e.target === endRef.current) void reportSticker("cover-to-cover", book.title);
+        if (e.target === colophonRef.current) void reportSticker("behind-curtain");
+      }
+    });
+    if (endRef.current) io.observe(endRef.current);
+    if (colophonRef.current) io.observe(colophonRef.current);
+    return () => io.disconnect();
+  }, [book.id, worldsBook, book.title]);
 
   return (
     <article aria-labelledby={`${id}-t`} className="lib-reader flex flex-col gap-[var(--pw-spacing-lg)]">
@@ -365,6 +410,15 @@ function Reader({ open, onBack, onOpen }: { open: Open; onBack: () => void; onOp
           ) : null}
         </p>
       ) : null}
+      {colophon ? (
+        <div ref={colophonRef} className="lib-colophon">
+          <p className={EYEBROW}>Colophon</p>
+          <div className="lib-page text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+            <Markdown text={colophon.text.replace(/^##\s+colophon\s*/i, "")} />
+          </div>
+        </div>
+      ) : null}
+      <div ref={endRef} aria-hidden="true" />
       <nav aria-label="More books on this shelf" className="flex flex-wrap gap-[var(--pw-spacing-sm)] border-t border-[var(--pw-border-subtle)] pt-[var(--pw-spacing-lg)]">
         {prev ? (
           <WorldButton variant="secondary" onPress={() => onOpen({ wing, book: prev })}>
