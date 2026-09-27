@@ -5,7 +5,10 @@ describe("the Worlds Library", () => {
   it("bundles every book in docs/library, in reading order, never the README", () => {
     expect(worldsBooks.length).toBeGreaterThanOrEqual(11);
     expect(worldsBooks[0].title).toBe("How Worlds fits together");
-    expect(worldsBooks.map((b) => b.order)).toEqual([...worldsBooks.map((b) => b.order)].sort((a, b) => a - b));
+    for (const shelf of ["worlds", "words"]) {
+      const orders = worldsBooks.filter((b) => b.shelf === shelf).map((b) => b.order);
+      expect(orders).toEqual([...orders].sort((a, b) => a - b));
+    }
     expect(worldsBooks.some((b) => b.id === "README")).toBe(false);
     for (const b of worldsBooks) {
       expect(b.pages.length).toBeGreaterThan(0);
@@ -24,6 +27,7 @@ describe("the Worlds Library", () => {
       title: "Test",
       order: 3,
       audience: "everyone",
+      shelf: "worlds",
       short: "A test.",
       pages: [
         { kind: "plain", text: "One." },
@@ -46,7 +50,10 @@ describe("the library home", () => {
     expect(b?.pages[1]).toEqual({ kind: "voice", voice: "Sol", text: "Hello." });
     expect(worldsLibrary.contract).toBe("library/0");
     expect(worldsLibrary.keeper).toEqual({ id: "worlds", name: "Worlds", look: "scifi-storybook" });
-    expect(worldsLibrary.books.every((x) => x.shelf === "worlds" && x.pages[0].kind === "plain")).toBe(true);
+    expect(worldsLibrary.books.every((x) => x.pages[0].kind === "plain")).toBe(true);
+    expect(worldsLibrary.books.filter((x) => x.shelf === "words").map((x) => x.id)).toEqual([
+      "gating", "signposting", "affordance", "visual-language", "exploration-reward", "discoverability",
+    ]);
   });
 });
 

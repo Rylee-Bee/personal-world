@@ -31,6 +31,8 @@ export interface LibraryBook {
   order: number;
   /** Who it's written for, e.g. "everyone". */
   audience: string;
+  /** Which Worlds shelf: "worlds" (how Worlds works) or "words" (words for what you make). */
+  shelf: string;
   /** One plain sentence: what the book is about. */
   short: string;
   pages: LibraryPage[];
@@ -58,6 +60,7 @@ export function parseBook(id: string, source: string): LibraryBook | null {
     title: header.title,
     order: Number.isFinite(order) ? order : 999,
     audience: header.for ?? "everyone",
+    shelf: header.shelf ?? "worlds",
     short: header.short ?? "",
     pages,
   };
@@ -73,7 +76,7 @@ function toPage(text: string): LibraryPage {
   return { kind: "plain", text };
 }
 
-const files = import.meta.glob("../../../docs/library/*.md", {
+const files = import.meta.glob(["../../../docs/library/*.md", "../../../docs/library/concepts/*.md"], {
   query: "?raw",
   import: "default",
   eager: true,
@@ -131,21 +134,24 @@ export interface RoomLibraryRow {
 export const worldsBooks: LibraryBook[] = Object.entries(files)
   .map(([path, source]) => parseBook(path.split("/").pop()!.replace(/\.md$/, ""), source))
   .filter((b): b is LibraryBook => b !== null)
-  .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+  .sort((a, b) => (a.shelf === b.shelf ? 0 : a.shelf === "worlds" ? -1 : 1) || a.order - b.order || a.id.localeCompare(b.id));
 
 /** Worlds' own library as a `library/0` document (look: scifi-storybook). */
 export const worldsLibrary: LibraryDoc = {
   contract: "library/0",
   generated_at: "",
   keeper: { id: "worlds", name: "Worlds", look: "scifi-storybook" },
-  shelves: [{ id: "worlds", name: "How Worlds works", look: "scifi-storybook" }],
+  shelves: [
+    { id: "worlds", name: "How Worlds works", look: "scifi-storybook" },
+    { id: "words", name: "Words for what you make", look: "scifi-storybook", blurb: "One book per idea, however you met it." },
+  ],
   books: worldsBooks.map((b) => ({
     id: b.id,
-    shelf: "worlds",
+    shelf: b.shelf,
     title: b.title,
     short: b.short,
     order: b.order,
-    source: `docs/library/${b.id}.md`,
+    source: b.shelf === "words" ? `docs/library/concepts/${b.id}.md` : `docs/library/${b.id}.md`,
     pages: b.pages,
   })),
 };
