@@ -13,7 +13,7 @@
 import { type Page } from "@playwright/test";
 import { test, expect } from "./test";
 
-const LANDMARKS = ["Memory", "Journal", "Records"];
+const LANDMARKS = ["Memory", "What did I say about…", "Later shelf", "Journal", "Records"];
 
 async function gotoMemory(page: Page) {
   await page.goto("/");

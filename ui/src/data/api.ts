@@ -121,6 +121,8 @@ export class ApiError extends Error {
 
 /** The subset of a parsed failure body the FastAPI server actually sends. */
 interface ErrorBody {
+  /** Envelope failures in plain words: {ok: false, error}. */
+  error?: unknown;
   detail?: unknown;
   message?: unknown;
   code?: unknown;
@@ -185,6 +187,7 @@ async function unwrap<T>(promise: Promise<FetchResult>): Promise<T> {
       bodyText(errObj?.message) ??
         bodyText(errObj?.detail) ??
         bodyText(errObj?.warnings) ??
+        bodyText(errObj?.error) ??
         `HTTP ${response.status}`,
       bodyText(errObj?.code),
       bodyText(errObj?.detail),
@@ -462,10 +465,49 @@ export const syncLore = (dryRun: boolean) =>
 export const confirmLore = (body: { accepted: true } | { keys: string[] }) =>
   unwrap<Envelope<{ confirmed: number; skipped: number }>>(sendBody("POST", "/api/lore/confirm", body));
 
-// ===== Remember (memory.py) =====
-/** Keep one thought: your journal, or the Later shelf with `later`. */
-export const remember = (text: string, later = false) =>
-  unwrap<Envelope<{ kept: "journal" | "later"; id?: string }>>(sendBody("POST", "/api/remember", { text, later }));
+// ===== Remember, recall, Later (memory.py) =====
+export interface LaterItem {
+  id: string;
+  text: string;
+  state: "later" | "doing" | "done";
+  /** Where it came from: "worlds", "share", "agent", a tool's name… */
+  source: string;
+  created: string;
+  doing_at?: string;
+  done_at?: string;
+  later_at?: string;
+}
+export interface LaterShelf {
+  in_progress: LaterItem[];
+  later: LaterItem[];
+  done: LaterItem[];
+  max_in_progress: number;
+}
+export interface RecallResult {
+  kind: "journal" | "lore" | "later" | "word" | string;
+  text: string;
+  title?: string;
+  when: string;
+  /** Where it lives, in plain words: "Journal", "Later shelf"… */
+  where: string;
+  state?: string;
+}
+/** Keep one thought: your journal, or the Later shelf with `later`.
+ *  `source` says where it came from ("share" for the phone's Share sheet). */
+export const remember = (text: string, later = false, source?: string) =>
+  unwrap<Envelope<{ kept: "journal" | "later"; id?: string }>>(
+    sendBody("POST", "/api/remember", source ? { text, later, source } : { text, later }),
+  );
+export const recall = (q: string) =>
+  unwrap<Envelope<{ query: string; results: RecallResult[] }>>(
+    getRequest(`/api/recall?q=${encodeURIComponent(q)}`),
+  );
+export const getLater = () => unwrap<Envelope<LaterShelf>>(getRequest("/api/later"));
+/** Move an idea. A fourth "doing" is refused (409) with the backend's own words. */
+export const moveLater = (id: string, to: "doing" | "done" | "later") =>
+  unwrap<Envelope<{ item: LaterItem; said: string }>>(
+    sendBody("POST", `/api/later/${encodeURIComponent(id)}`, { to }),
+  );
 
 // ===== Vault =====
 export const getVaultStatus = () =>

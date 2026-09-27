@@ -170,7 +170,7 @@ test.describe("mobile safe areas (§2.7)", () => {
     await expect(drawer).toBeVisible();
 
     // Drawer padding composes base + inset on the exposed sides.
-    expect(await computedCss(page, 'dialog[aria-labelledby="world-drawer-title"]', "padding-top")).toBe(
+    expect(await computedCss(page, 'dialog[open]', "padding-top")).toBe(
       `${SPACING_XL + PIN}px`,
     );
 
