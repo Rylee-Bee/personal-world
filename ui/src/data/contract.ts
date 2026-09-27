@@ -1099,6 +1099,19 @@ export interface HiveProject {
   closed: number;
   stale: number;
   link: string | null;
+  /** Ready-made plain words, e.g. "4 open · 2 to re-check" or "All quiet". Shown as is. */
+  status_line?: string | null;
+  closed_this_week?: number;
+  last_shipped?: { hw: string; what: string; at: string } | null;
+}
+
+/** A finished ticket. "dropped" means the owner won't do it; it never counts as shipped. */
+export interface HiveClosedTicket {
+  hw: string;
+  what: string;
+  status: "closed" | "dropped" | string;
+  closed_at: string | null;
+  link: string | null;
 }
 
 export interface HiveTicket {
@@ -1125,5 +1138,5 @@ export interface HiveBee {
 
 export interface HiveTeamsView { generated_at: string; teams: HiveTeam[] }
 export interface HiveProjectsView { generated_at: string; projects: HiveProject[] }
-export interface HiveProjectView { generated_at: string; project: HiveProject & { tickets: HiveTicket[] } }
+export interface HiveProjectView { generated_at: string; project: HiveProject & { tickets: HiveTicket[]; closed_tickets?: HiveClosedTicket[] } }
 export interface HiveCrewView { generated_at: string; crew: HiveBee[] }
