@@ -6,7 +6,7 @@ SERVED old Station surface (design/opendesign-exploration/station/,
 frozen — read-only here) against the Station vNext rebuild (ui/src),
 row by row at file level, and emits:
 
-  1. docs/PARITY-DIVERGENCE-2026-09-20.md   (human report, this repo)
+  1. docs/history/PARITY-DIVERGENCE-2026-09-20.md   (human report, this repo)
   2. ../homelab/reports/parity-checklist.json  (schema
      `pw-parity-checklist/v0`, exactly as prescribed by
      homelab/reports/PARITY-AUTOMATION-NOTE.md — read that file before
@@ -50,7 +50,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 STATION_DIR = REPO_ROOT / "design" / "opendesign-exploration" / "station"
 UI_SRC = REPO_ROOT / "ui" / "src"
-REPORT_MD = REPO_ROOT / "docs" / "PARITY-DIVERGENCE-2026-09-20.md"
+REPORT_MD = REPO_ROOT / "docs" / "history" / "PARITY-DIVERGENCE-2026-09-20.md"
 
 SURFACES = {
     "today", "journal", "map", "settings", "interests", "vault",
@@ -232,7 +232,7 @@ def build_items() -> list[dict]:
         elif status == "internal":
             evidence = f"mainline {mainline} sha {m_hash} · role check: station_ui.py serves no .md, no _-dirs"
         else:
-            evidence = f"mainline {mainline} sha {m_hash} · see docs/PARITY-DIVERGENCE-2026-09-20.md#{surface}"
+            evidence = f"mainline {mainline} sha {m_hash} · see docs/history/PARITY-DIVERGENCE-2026-09-20.md#{surface}"
 
         items.append({
             "id": item_id(surface, mainline),
@@ -359,7 +359,7 @@ def main() -> int:
         "generated_at": generated_at,
         "station_ref": station_ref,
         "mainline_ref": mainline_ref,
-        "source_report": "docs/PARITY-DIVERGENCE-2026-09-20.md",
+        "source_report": "docs/history/PARITY-DIVERGENCE-2026-09-20.md",
         "items": items,
         "summary": summary,
     }

@@ -1,6 +1,6 @@
 """The endpoint manifest: one curated table, verified against live routes.
 
-Product decision #17 (`docs/PRODUCT-VISION-HANDOFF.md`, round-2 answers)
+Product decision #17 (`docs/history/PRODUCT-VISION-HANDOFF.md`, round-2 answers)
 makes the API a fully-exposed "Lego box": UI, agent templates and
 settings compose against it, so a client needs a machine-readable answer
 to "what can I call, and what does calling it cost me in

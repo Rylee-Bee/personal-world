@@ -1,6 +1,6 @@
 # PARITY-CORE-64 — orphan-route adjudication spine
 
-> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../.project/CURRENT.md)) · **Read this if:** you need the 2026-09-20/21 route-adjudication record for provenance · **Superseded by:** the running code and [`.project/CURRENT.md`](../.project/CURRENT.md).
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../../.project/CURRENT.md)) · **Read this if:** you need the 2026-09-20/21 route-adjudication record for provenance · **Superseded by:** the running code and [`.project/CURRENT.md`](../../.project/CURRENT.md).
 
 **In short:** a dated record of an overnight pass that judged 36
 orphan API routes against the code (fix / document / deprecate). Since
@@ -8,7 +8,7 @@ it was written, the interface flipped to the React rebuild in `ui/`
 (2026-09-22, Bridge is now home) and the server-rendered Station became a
 theme package; the route table and counts below are from the
 `feat/station-vnext-foundation` branch and have moved on. Truth routing:
-[`docs/README.md`](README.md).
+[`docs/README.md`](../README.md).
 
 **Track A (contract & parity), overnight run 2026-09-20/21 · branch
 `feat/station-vnext-foundation` · base HEAD `9e798c3` · remote
@@ -23,7 +23,7 @@ handler read, its decorators and auth dependencies checked, never guessed.
 
 - Ground truth = the live FastAPI route table of `create_app()`, cross-checked
   against the curated `ENDPOINTS` table in
-  [`src/personal_world/api_manifest.py`](../src/personal_world/api_manifest.py)
+  [`src/personal_world/api_manifest.py`](../../src/personal_world/api_manifest.py)
   and the generated spec `ui/src/generated/openapi.json`
   (`uv run --extra crypto python scripts/gen-openapi.py`).
 - Per-handler: read the function, its `dependencies=[...]`, and its docstring;

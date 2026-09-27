@@ -72,6 +72,6 @@ cat <<EOF
   Back up everything, encrypted:
           personal-world worlds backup ~/my-worlds-backup.pwb   # or see Settings
 
-  Docs:   docs/QUICKSTART.md   ·   docs/WORLDS-BACKUP.md   ·   docs/ROADMAP-AND-TODO.md
+  Docs:   docs/QUICKSTART.md   ·   docs/WORLDS-BACKUP.md   ·   docs/history/ROADMAP-AND-TODO.md
 
 EOF

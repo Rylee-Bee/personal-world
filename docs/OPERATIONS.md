@@ -5,7 +5,7 @@
 **In short:** how to run Worlds locally and in containers, sign in with your own SSO, deploy and roll back, and keep data safe. Keep private hostnames, credentials and access procedures in your own private operator docs — this repo carries the portable pattern only.
 
 > **First run on new hardware?** See
-> [`docs/OPERATIONS-FIRST-RUN.md`](OPERATIONS-FIRST-RUN.md) — the
+> [`docs/history/OPERATIONS-FIRST-RUN.md`](history/OPERATIONS-FIRST-RUN.md) — the
 > dated 2026-09-09 bring-up record (historical, not a current recipe).
 
 This guide describes the public standalone application. Keep private deployment

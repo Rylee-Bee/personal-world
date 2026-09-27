@@ -47,4 +47,4 @@ turned off, and with big text.
 
 ## Under the hood
 
-React + TypeScript + Vite in `ui/`, Tailwind with token CSS variables (`var(--pw-...)`), never raw values. Run `npm run dev` (it generates tokens first). Unit tests: `vitest`. Browser tests: Playwright (`ui/e2e/`). Pieces: `ui/src/components/`, and Storybook (`npm run storybook`). Screenshots: `docs/gallery/` (`capture.mjs`, 390 and 1440). Rules: `docs/accessibility/ACCESSIBILITY_CONTRACT.md` and `docs/PRODUCT-LANGUAGE.md`. The design authority is `.project/design/CURRENT.md`; the handoff flow is in `docs/DESIGN-HANDOFF.md`.
+React + TypeScript + Vite in `ui/`, Tailwind with token CSS variables (`var(--pw-...)`), never raw values. Run `npm run dev` (it generates tokens first). Unit tests: `vitest`. Browser tests: Playwright (`ui/e2e/`). Pieces: `ui/src/components/`, and Storybook (`npm run storybook`). Screenshots: `docs/gallery/` (`capture.mjs`, 390 and 1440). Rules: `docs/accessibility/ACCESSIBILITY_CONTRACT.md` and `docs/PRODUCT-LANGUAGE.md`. The design authority is `.project/design/CURRENT.md`; the handoff flow is in `docs/history/DESIGN-HANDOFF.md`.

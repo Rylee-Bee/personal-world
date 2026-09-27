@@ -1,6 +1,6 @@
 # Project Worlds — Completion Plan (historical)
 
-> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../.project/CURRENT.md)) · **Read this if:** you want the dated v1 execution plan for provenance · **Superseded by:** [`.project/PLAN.md`](../.project/PLAN.md) for direction and [`.project/CURRENT.md`](../.project/CURRENT.md) for state.
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../../.project/CURRENT.md)) · **Read this if:** you want the dated v1 execution plan for provenance · **Superseded by:** [`.project/PLAN.md`](../../.project/PLAN.md) for direction and [`.project/CURRENT.md`](../../.project/CURRENT.md) for state.
 
 **In short:** the dated **v1, 2026-09-10** execution plan (with a
 2026-09-14 progress note): dependency-ordered phases and acceptance
@@ -17,13 +17,13 @@ are unchanged.)
 > via PR #42 and PR #43. Several A0 findings are resolved: the reminder
 > scheduler (H6) is implemented and running, and native providers cover
 > all capabilities. The dated merge receipt moved to
-> [history/FINAL-RECEIPT.md](history/FINAL-RECEIPT.md).
+> [history/FINAL-RECEIPT.md](FINAL-RECEIPT.md).
 
 This plan compares the real implementation against
-[`PERSONAL-WORLD-FINISH-LINE.md`](PERSONAL-WORLD-FINISH-LINE.md) and defines
+[`PERSONAL-WORLD-FINISH-LINE.md`](../PERSONAL-WORLD-FINISH-LINE.md) and defines
 the dependency-ordered work, acceptance criteria, contracts, and model
 routing needed to reach it. The finish line defines *what finished means*;
-this document defines *how we get there*. [`../ROADMAP.md`](../ROADMAP.md)
+this document defines *how we get there*. [`../ROADMAP.md`](../../ROADMAP.md)
 remains direction only.
 
 Every claim below about current behavior was verified against the working
@@ -40,10 +40,10 @@ Vocabulary used throughout:
   judgment, review) · `GLM` (GLM-5.3-Flash or similar: bounded
   implementation against a written contract) · `DET` (deterministic
   tooling: pytest, `framework validate`, Playwright/axe, build, git).
-- **Contracts:** `A11y` ([accessibility](accessibility/ACCESSIBILITY_CONTRACT.md)),
-  `HR` ([human reliability](HUMAN_RELIABILITY_CONTRACT.md)),
-  `PRB` ([public repository boundary](../SECURITY.md)),
-  `PNB` ([provider-neutral baseline](NATIVE-BASELINE-AND-ENRICHMENT.md)).
+- **Contracts:** `A11y` ([accessibility](../accessibility/ACCESSIBILITY_CONTRACT.md)),
+  `HR` ([human reliability](../HUMAN_RELIABILITY_CONTRACT.md)),
+  `PRB` ([public repository boundary](../../SECURITY.md)),
+  `PNB` ([provider-neutral baseline](../NATIVE-BASELINE-AND-ENRICHMENT.md)).
 
 ---
 
@@ -303,7 +303,7 @@ P14 CI/deploy opens in P1 (browser tests) and closes last
 Refactor lane (api.py → routers; delete A5 duplicates) runs from P0 exit
 ```
 
-P6–P11 may run in parallel worktrees (see [`../AGENTS.md`](../AGENTS.md))
+P6–P11 may run in parallel worktrees (see [`../AGENTS.md`](../../AGENTS.md))
 once P5 lands.
 
 ### MUST HAVE FOR FINISH LINE
@@ -355,7 +355,7 @@ cutover checklist review. GLM: each primitive/screen (one task each). DET:
 axe/token/budget tests.
 
 **Spec.** The bounded implementation contract for this phase is
-[`p1/FOUNDATION-SPEC.md`](p1/FOUNDATION-SPEC.md) (approved 2026-09-10):
+[`p1/FOUNDATION-SPEC.md`](../p1/FOUNDATION-SPEC.md) (approved 2026-09-10):
 sections API (`settings` is the only pinned section; `today` is
 hideable; "Restore default sections" in Settings; canonical status or
 `null`, never invented values; `configured` separate from `status`),
@@ -871,16 +871,16 @@ it. No provider code is written until the owner selects one.
 ## Part H — How to use this plan
 
 1. Work one bounded task at a time in its own worktree
-   ([`../AGENTS.md`](../AGENTS.md)).
+   ([`../AGENTS.md`](../../AGENTS.md)).
 2. Before each task, load the contracts it names
-   ([`../AGENT_CONTRACTS.md`](../AGENT_CONTRACTS.md)) and re-inspect the
+   ([`../AGENT_CONTRACTS.md`](../../AGENT_CONTRACTS.md)) and re-inspect the
    code it touches; this plan describes intent, the code describes truth.
 3. Every task ends with the truth report from
-   [`../AGENT_POLICY.md`](../AGENT_POLICY.md) (`CHANGED / VERIFIED /
+   [`../AGENT_POLICY.md`](../../AGENT_POLICY.md) (`CHANGED / VERIFIED /
    CONTRACTS / ACCESSIBILITY / OWNERSHIP,SECURITY / UNKNOWN / DEFERRED /
    NEXT`).
 4. When a phase completes, update `.agent/STATE.md` and the
-   [`../CHANGELOG.md`](../CHANGELOG.md); do not duplicate the plan into the
+   [`../CHANGELOG.md`](../../CHANGELOG.md); do not duplicate the plan into the
    roadmap.
 5. If the plan and the finish line disagree, the finish line wins; if the
    plan and a contract disagree, the contract wins; then fix the plan.

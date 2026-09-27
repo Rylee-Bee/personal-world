@@ -1,6 +1,6 @@
 # The Station — deck map
 
-> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/PLAN.md`) · **Read this if:** you want the dated eight-deck design record behind today's crew and doorways · **Superseded by:** [`.project/PLAN.md`](../.project/PLAN.md) (current product shape); crew/room canon lives in [`docs/COMPANION-CANON.md`](COMPANION-CANON.md) and [`docs/CHARACTER-HANDBOOK.md`](CHARACTER-HANDBOOK.md)
+> **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/PLAN.md`) · **Read this if:** you want the dated eight-deck design record behind today's crew and doorways · **Superseded by:** [`.project/PLAN.md`](../../.project/PLAN.md) (current product shape); crew/room canon lives in [`docs/COMPANION-CANON.md`](../COMPANION-CANON.md) and [`docs/CHARACTER-HANDBOOK.md`](../CHARACTER-HANDBOOK.md)
 
 **In short:** A dated record of the eight-deck "Station" plan and its design dialects, kept for provenance. Since the 2026-09-22 flip the interface is `ui/` (the Bridge is home) and the server-rendered Station is retired as a **theme package**; the `frontend/` paths once referenced here are the deleted pre-flip tree. This is not current state.
 
@@ -16,9 +16,9 @@ Worlds renders) plus a per-person **crew**, **keepers** and a closed list of
 `.project/PLAN.md`, and residents/rooms in `docs/COMPANION-CANON.md`.
 
 - **Character and voice truth** (who each resident is) →
-  [`docs/CHARACTER-HANDBOOK.md`](CHARACTER-HANDBOOK.md).
+  [`docs/CHARACTER-HANDBOOK.md`](../CHARACTER-HANDBOOK.md).
 - **Names, ids, and the station-id ↔ server-key mapping** →
-  [`docs/COMPANION-CANON.md`](COMPANION-CANON.md).
+  [`docs/COMPANION-CANON.md`](../COMPANION-CANON.md).
 - This file owns the **map** only: which deck exists, what its job is, and who is
   there.
 
@@ -52,7 +52,7 @@ old names** (history is not rewritten); this is the mapping:
 **Every name is a job, in plain words.** A deck is not a rank or a title — *Today*,
 *Projects*, *Records* and the rest name the work that happens there. The deck plan
 places the crew; it is not a hierarchy. This stays consistent with
-[`docs/CREW-AND-STATION-THESIS.md`](CREW-AND-STATION-THESIS.md) §1 (*no ranks and
+[`docs/CREW-AND-STATION-THESIS.md`](../CREW-AND-STATION-THESIS.md) §1 (*no ranks and
 stations, no franchise framing*): these are job names, not crew roles, and carry no
 borrowed franchise vocabulary.
 
@@ -79,7 +79,7 @@ visual language as the crew icon set: simple rounded silhouette; bed, pillow,
 folded blanket; dark navy and warm gold; optional tiny star or crescent; no face,
 no personality. It should read clearly at 16px, 32px and 48px, and must not use
 colour as the only meaningful signal. It communicates **rest · privacy · safety ·
-quiet** (see [`docs/ART-REQUESTS.md`](ART-REQUESTS.md)).
+quiet** (see [`docs/ART-REQUESTS.md`](../ART-REQUESTS.md)).
 
 Do not add `Settings` as a companion, a station id, or a server key.
 
@@ -98,12 +98,12 @@ also the owner's own crew. They are not the only possible crew.
 - **A created resident is a resident pack** (name, role line, voice, art),
   installed and uninstalled with provenance — the existing "a new identity is a
   pack, not a one-off" mechanism
-  ([`docs/CREW-AND-STATION-THESIS.md`](CREW-AND-STATION-THESIS.md) §5).
+  ([`docs/CREW-AND-STATION-THESIS.md`](../CREW-AND-STATION-THESIS.md) §5).
 - By default **one resident per deck**; a resident may still *visit* another deck
   as a temporary reaction, never a silent permanent move.
 - **The setting never touches the accessibility floor.** It is a product
   preference alongside theme and companion — *not* a key in
-  [`docs/accessibility/PREFERENCES_SCHEMA.json`](accessibility/PREFERENCES_SCHEMA.json),
+  [`docs/accessibility/PREFERENCES_SCHEMA.json`](../accessibility/PREFERENCES_SCHEMA.json),
   which is the comfort floor. No crew choice may remove a label, a control, or a
   route to functionality; residency never carries critical information
   (thesis §3.1).
@@ -129,7 +129,7 @@ Four rules:
    never *what the room is for*.
 2. **One palette, one floor.** All dialects share the same design tokens, the same
    type ramp, the same component vocabulary, and the
-   [accessibility floor](accessibility/ACCESSIBILITY_CONTRACT.md). A dialect may
+   [accessibility floor](../accessibility/ACCESSIBILITY_CONTRACT.md). A dialect may
    never add a colour, a size, or a gesture the other rooms do not have.
 3. **The dialect never hides the job.** Every room carries its name and a
    plain-language job line, in the same place, in every dialect. A dialect is
@@ -189,7 +189,7 @@ decoration.
 
 1. **Signature — identify before reading.** Every room carries the *same four*
    channels, always **together**, never any one alone (colour-blind safe —
-   [contract §1.3](accessibility/ACCESSIBILITY_CONTRACT.md)):
+   [contract §1.3](../accessibility/ACCESSIBILITY_CONTRACT.md)):
    - **colour** — the room's one accent (§4);
    - **line** — the room's geometry (rings, a loop, a drafting grid, stacks, a
      board, a chart, a door, near-nothing);
@@ -309,7 +309,7 @@ words, and no "beep".
 - **Three area residents are not in the repo.** Hekek, Bruma and Mira are owner
   canon (2026-09-17); their station ids / server keys (`hekek`, `bruma`, `mira`)
   are **proposed** and unread by any code or asset. See
-  [`docs/COMPANION-CANON.md`](COMPANION-CANON.md).
+  [`docs/COMPANION-CANON.md`](../COMPANION-CANON.md).
 - **Settings has no id.** It is an icon, not a resident — unless someone assigns
   one to it (§3).
 - **Resident creation and assignment are a concept, not an implementation.** The

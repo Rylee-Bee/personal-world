@@ -58,7 +58,7 @@ session with provenance, because her sandbox filesystem is ephemeral.
   frames BEFORE composition work merges (the compare-before-code gate).
   D4 requires human acceptance. Token gates (D0) are never sufficient
   evidence of fidelity — this exact failure mode was observed in this
-  project (docs/FIGMA-HANDOFF-LESSONS.md).
+  project (docs/history/FIGMA-HANDOFF-LESSONS.md).
 
 ## What NOT to assume
 
