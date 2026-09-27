@@ -596,6 +596,21 @@ def resolve_principal(
         if not found:
             raise NoPrincipalError("no principal for token")
         return principal_from_record(found, source="token", store=store)
+    # single mode: a project's learning key (PW_LEARNING_TOKEN) is an agent
+    # of the primary person whose only scope is "learning"; api.py confines
+    # it to /api/learning (CONFINING_SCOPES). It never becomes the person.
+    learning_token = os.environ.get("PW_LEARNING_TOKEN", "")
+    if learning_token and token and hmac.compare_digest(token, learning_token):
+        return Principal(
+            id="learning-key",
+            kind="agent",
+            owner_id=BOOTSTRAP_PRINCIPAL_ID,
+            display_name="A project's learning key",
+            scopes=("learning",),
+            auth_level=1,
+            source="token",
+            role="owner",
+        )
     # single mode: bootstrap "primary" directly from the instance token
     if (
         not instance_token

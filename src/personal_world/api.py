@@ -353,7 +353,31 @@ def _is_true_loopback(request: Request) -> bool:
     return ip.is_loopback
 
 
+#: Agent scopes that confine a token to one set of routes. A token whose
+#: scopes are all confining may call only those routes: "learning" is a
+#: project's key for the person's learning memory (VEFR's Fróði), and
+#: nothing else — not even reads elsewhere.
+CONFINING_SCOPES: dict[str, tuple[str, ...]] = {"learning": ("/api/learning",)}
+
+
+def _confined_out(principal, path: str) -> bool:
+    """True when an agent's confining scopes don't cover this path."""
+    if principal is None or getattr(principal, "kind", "person") != "agent":
+        return False
+    scopes = set(getattr(principal, "scopes", ()) or ())
+    if not scopes or not scopes <= set(CONFINING_SCOPES):
+        return False
+    allowed = tuple(p for s in scopes for p in CONFINING_SCOPES[s])
+    return not any(path == p or path.startswith(p + "/") for p in allowed)
+
+
 async def require_auth(request: Request) -> None:
+    await _require_auth_base(request)
+    if _confined_out(getattr(request.state, "principal", None), request.url.path):
+        raise HTTPException(status_code=403, detail="this key only reaches its own routes")
+
+
+async def _require_auth_base(request: Request) -> None:
     """Gate + canonical principal resolution (the single entry point).
 
     Every accepted credential — bearer token, browser session (local or
@@ -4019,11 +4043,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """Register an agent principal owned by the caller.
 
         Body: {"agent_id", "display_name"?, "scopes"?}. Scopes subset
-        of read/write/journal/apps/notify. Returns the token exactly
+        of read/write/journal/apps/notify/learning. Returns the token exactly
         once. ``notify`` lets the agent publish to its owner's
-        notifications (POST /api/notify) — nothing else.
+        notifications (POST /api/notify) — nothing else. ``learning``
+        (alone) confines the token to /api/learning*: the owner's learning
+        memory and nothing else (CONFINING_SCOPES).
         """
-        ALLOWED = {"read", "write", "journal", "apps", "notify"}
+        ALLOWED = {"read", "write", "journal", "apps", "notify", "learning"}
         principal = getattr(request.state, "principal", None)
         if principal is None:
             raise HTTPException(status_code=403, detail="principal required")
@@ -5345,8 +5371,14 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     def _learning_path(request: Request) -> Path:
         principal = _principal(request)
-        if not can(principal, "own_space"):
+        learning_key = (
+            principal is not None
+            and principal.kind == "agent"
+            and "learning" in (principal.scopes or ())
+        )
+        if not learning_key and not can(principal, "own_space"):
             raise HTTPException(status_code=403, detail="your own space is required")
+        # An agent's path resolves through its owner (identity boundary).
         return _scoped_path(principal, "learning")
 
     @app.get("/api/learning", dependencies=[Depends(require_auth)])
