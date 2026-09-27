@@ -173,6 +173,13 @@ _VALID_VIEW_ITEM = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 MAX_VIEW_BYTES = 512 * 1024
 VIEW_TIMEOUT_SECONDS = 5.0
 VIEW_CACHE_SECONDS = 15.0
+#: Pictures a room may offer (``GET /room/art/{name}.webp``), e.g. Hive
+#: Works' crew faces. WebP only; the browser can't send a room's token, so
+#: Worlds passes them through.
+ART_PATH = "/room/art"
+_VALID_ART_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
+MAX_ART_BYTES = 2 * 1024 * 1024
+ART_CACHE_SECONDS = 3600.0
 #: Change pings from one room closer together than this fold into one.
 PING_MIN_GAP_SECONDS = 2.0
 #: Events a slow listener may queue before it starts missing pings.
@@ -1228,6 +1235,50 @@ class RoomsService:
         self._forget_views(room_id)
         self._publish(room_id)
         return True
+
+    # ── Pictures (``GET /room/art/{name}.webp``) ───────────────────
+
+    async def art(self, room_id: str, name: str, env: dict | None = None) -> bytes | None:
+        """One of a room's pictures as WebP bytes, or None (bad name, unknown
+        room, unreachable, not WebP, too big). Cached an hour; never raises."""
+        env = os.environ if env is None else env
+        if (
+            not isinstance(room_id, str) or not _VALID_ROOM_ID.match(room_id)
+            or not isinstance(name, str) or not _VALID_ART_NAME.match(name)
+        ):
+            return None
+        key = (room_id, f"art:{name}", "")
+        now = self._clock()
+        hit = self._views_cache.get(key)
+        if hit and now - hit[0] < ART_CACHE_SECONDS:
+            return hit[2]
+        config = await self.resolved_config(room_id, env)
+        if config is None or config.contract not in SUPPORTED_CONTRACTS or config.invalid_reason is not None:
+            return None
+        headers = self._room_headers(config)
+        headers["Accept"] = "image/webp"
+        url = config.base_url.rstrip("/") + ART_PATH + f"/{name}.webp"
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(VIEW_TIMEOUT_SECONDS),
+                verify=not config.insecure_tls,
+                transport=self._transport,
+                follow_redirects=False,
+            ) as client:
+                resp = await client.get(url, headers=headers)
+        except Exception:  # noqa: BLE001 — a dead room must not break the main app
+            return None
+        body = resp.content
+        ok = (
+            resp.status_code == 200
+            and len(body) <= MAX_ART_BYTES
+            and body[:4] == b"RIFF"
+            and body[8:12] == b"WEBP"
+        )
+        data = body if ok else None
+        if ok or resp.status_code == 404:
+            self._views_cache[key] = (now, 200, data)
+        return data
 
     # ── Read-only views (``GET /room/views/{name}[/{item}]``) ───────
 
