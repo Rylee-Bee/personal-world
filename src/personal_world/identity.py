@@ -813,6 +813,10 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     # response. See docs/NOTIFICATIONS.md.
     "push_subscriptions": "push-subscriptions.json",
     "notifications": "notifications.json",
+    # Journal gate denylist (owner design, 2026-09-27): topics/agents the
+    # gate must always answer "unsure" about, checked before retrieval
+    # or any model call. Private to the person; never sent to a room.
+    "journal_gate_denylist": "journal-gate-denylist.json",
 }
 
 #: Legacy (single-user default) discovery config location. Matches

@@ -1270,6 +1270,32 @@ const server = http.createServer(async (req, res) => {
   if (method === "GET" && p === "/api/journal/audit") {
     return json(res, 200, { ok: true, data: { text: "journal audit (e2e fixture)" } });
   }
+  // Journal gate (api.py journal_gate_*, journal_gate.py, 2026-09-27):
+  // Settings/Advanced renders this unconditionally, so the fixture
+  // needs a realistic empty state — no scoped agents, no asks yet, an
+  // empty denylist — matching a fresh instance, never a 404/error.
+  if (method === "GET" && p === "/api/identity/agents") {
+    return json(res, 200, { ok: true, data: [] });
+  }
+  if (method === "GET" && p === "/api/journal/gate/log") {
+    return json(res, 200, { ok: true, data: { entries: [] } });
+  }
+  if (method === "GET" && p === "/api/journal/gate/denylist") {
+    return json(res, 200, {
+      ok: true,
+      data: { blocked_agents: [], blocked_topics: [] },
+    });
+  }
+  if (method === "PUT" && p === "/api/journal/gate/denylist") {
+    const body = (await readBody(req)) ?? {};
+    return json(res, 200, {
+      ok: true,
+      data: {
+        blocked_agents: body.blocked_agents ?? [],
+        blocked_topics: body.blocked_topics ?? [],
+      },
+    });
+  }
   // Memory search — mirrors api.py memory_search + native_memory.py
   // search(): the provider indexes JOURNAL ENTRIES and answers
   // {ok, status, data:{results:[{id,kind,text,timestamp}], query,

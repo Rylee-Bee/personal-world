@@ -85,6 +85,10 @@ import {
   putPrincipal,
   listUsers,
   listAgents,
+  revokeAgent,
+  journalGateLog,
+  getJournalGateDenylist,
+  putJournalGateDenylist,
   getDiscoveryStatus,
   listDiscoverySources,
   listDiscoveryInterests,
@@ -620,6 +624,58 @@ export function useDeleteVaultSecret() {
     mutationFn: (name: string) => vaultAction(() => deleteVaultSecret(name)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vault"] });
+    },
+  });
+}
+
+// ===== Journal gate (journal_gate.py, api.py journal_gate_*, 2026-09-27) =====
+//
+// A closed-enum door onto the private Journal for scoped agents. This
+// section is the Settings/Advanced view of it: which agents hold the
+// scope (reusing the existing agents list/revoke), the audit log of
+// past asks, and the owner's own "never answer about..." denylist.
+
+export function useJournalGateAgents() {
+  const query = useQuery({
+    queryKey: ["identity", "agents"],
+    queryFn: listAgents,
+  });
+  const agents = (query.data?.data ?? []).filter((a) =>
+    a.scopes.includes("journal_gate"),
+  );
+  return { ...query, agents };
+}
+
+export function useRevokeAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (agentId: string) => revokeAgent(agentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["identity", "agents"] });
+    },
+  });
+}
+
+export function useJournalGateLog(options?: { n?: number }) {
+  return useQuery({
+    queryKey: ["journal-gate", "log", options?.n ?? 20],
+    queryFn: () => journalGateLog({ n: options?.n }),
+  });
+}
+
+export function useJournalGateDenylist() {
+  return useQuery({
+    queryKey: ["journal-gate", "denylist"],
+    queryFn: getJournalGateDenylist,
+  });
+}
+
+export function usePutJournalGateDenylist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: putJournalGateDenylist,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["journal-gate", "denylist"] });
     },
   });
 }

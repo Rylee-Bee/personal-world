@@ -1766,6 +1766,106 @@
         "summary": "Journal Edit Pair"
       }
     },
+    "/api/journal/gate": {
+      "post": {
+        "operationId": "journal_gate_ask_api_journal_gate_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Gate Ask Api Journal Gate Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Gate Ask"
+      }
+    },
+    "/api/journal/gate/denylist": {
+      "get": {
+        "operationId": "journal_gate_denylist_get_api_journal_gate_denylist_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Gate Denylist Get Api Journal Gate Denylist Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Gate Denylist Get"
+      },
+      "put": {
+        "operationId": "journal_gate_denylist_put_api_journal_gate_denylist_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Gate Denylist Put Api Journal Gate Denylist Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Journal Gate Denylist Put"
+      }
+    },
+    "/api/journal/gate/log": {
+      "get": {
+        "operationId": "journal_gate_log_api_journal_gate_log_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "n",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "N",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Journal Gate Log Api Journal Gate Log Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Journal Gate Log"
+      }
+    },
     "/api/journal/history": {
       "get": {
         "description": "Full correction chain for one entry (progressive disclosure\nbacking store): oldest → newest, with reasons.",

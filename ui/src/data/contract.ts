@@ -108,6 +108,68 @@ export interface JournalDraftClearedData {
   cleared: boolean;
 }
 
+// ─── Journal gate (journal_gate.py, api.py journal_gate_*, 2026-09-27)
+// A closed-enum-only door onto the private Journal for scoped agents.
+// The Answer shape is exhaustive and closed on the server (pydantic
+// extra="forbid") — these fields are the whole of what a caller, agent
+// or person, can ever get back. Never widen this to carry entry text.
+
+export interface JournalGateAskRequest {
+  ask: "relates_to" | "written_lately";
+  topic: string;
+  window_days: 7 | 30 | 90;
+}
+
+export interface JournalGateAnswer {
+  answer: "yes" | "no" | "unsure";
+  strength: "weak" | "strong" | null;
+  when: "this_week" | "this_month" | "older" | null;
+  count: "0" | "1-2" | "3-9" | "10+";
+}
+
+export interface JournalGateAskData extends JournalGateAnswer {}
+
+export interface JournalGateAskMeta {
+  model_mode: "real" | "mock";
+}
+
+export interface JournalGateLogEntry {
+  ts: string;
+  caller_id: string;
+  ask: string;
+  topic: string;
+  window_days: number;
+  answer: string;
+  model_mode: string;
+}
+
+export interface JournalGateLogData {
+  entries: JournalGateLogEntry[];
+}
+
+export interface JournalGateDenylist {
+  blocked_agents: string[];
+  blocked_topics: string[];
+}
+
+// ─── Identity: agents (identity.py create_agent/list_agents,
+//     api.py agents_list/agents_create/agents_disable) ─────
+
+export interface AgentRecord {
+  user_id: string;
+  kind: "agent";
+  owner_id: string;
+  display_name: string;
+  scopes: string[];
+  enabled: boolean;
+  created_at: number;
+}
+
+export interface AgentDisableData {
+  agent_id: string;
+  disabled: boolean;
+}
+
 // ─── Capabilities / world (providers/registry.py status_map,
 //     world.py summary, api.py status) ─────────────────────
 
