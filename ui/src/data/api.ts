@@ -518,6 +518,8 @@ export interface LearningMoment {
   /** Where it was first met, for "again": "the hidden door that needed the lantern". */
   first_context?: string;
   first_project?: string;
+  /** Which book teaches it, e.g. "worlds:gating". */
+  book?: string;
 }
 export interface LearningState {
   mode: LearningMode;
