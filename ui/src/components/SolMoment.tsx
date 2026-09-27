@@ -9,7 +9,7 @@
  *
  * hello · cheer (good news) · curious (keeping watch) · rest (quiet day)
  * searching (loading) · sleeping (can't reach) · proud (all done)
- * oops (something went wrong, nothing lost) · mark (the logo)
+ * oops (something went wrong, nothing lost) · reading (the Library) · mark (the logo)
  */
 export type SolMood =
   | "mark"
@@ -20,7 +20,8 @@ export type SolMood =
   | "searching"
   | "sleeping"
   | "proud"
-  | "oops";
+  | "oops"
+  | "reading";
 
 export function SolMoment({ mood, size = 56, className = "" }: { mood: SolMood; size?: number; className?: string }) {
   return (

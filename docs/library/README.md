@@ -50,6 +50,7 @@ VEFR's Library. Worlds bundles them into the app (`ui/src/data/library.ts`).
 | 14 | [The vault](14-the-vault.md) | A locked box for secrets, and the estate's bigger one |
 | 15 | [Confirm it's you](15-confirm-its-you.md) | Step-ups: proving it's you again before something important |
 | 16 | [Making the UI](16-making-the-ui.md) | How a screen gets made, and the rules every screen follows |
+| 17 | [How the interface was made](17-how-the-interface-was-made.md) | Boards, tokens, themes, the rules, the gallery and the handoffs, from the design lane |
 
 **Adding a book:** keep it short (a page is a few short paragraphs), use
 plain words, say what is true today, and fill all four layers. Name the

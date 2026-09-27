@@ -847,6 +847,8 @@ export function useLibrary() {
   return {
     libraries: [worldsLibrary, ...rows.flatMap((r) => (r.status === "ok" && r.library ? [r.library] : []))],
     unavailable: rows.filter((r) => r.status !== "ok"),
+    /** Every room's row, to tell which room keeps which library. */
+    rows,
     loading: rooms.isLoading,
     error: rooms.error,
   };
