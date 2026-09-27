@@ -33,6 +33,7 @@
  */
 
 import { LoreSection } from "./LoreSection";
+import { LoreSummary } from "../Lore/LoreSummary";
 import { useCallback, useEffect, useState } from "react";
 import {
   useBriefing,
@@ -671,12 +672,14 @@ export function Settings({
   onOpenHelpers,
   onOpenRoughNight,
   onOpenLibrary,
+  onOpenLore,
 }: {
   onOpenCrew?: () => void;
   onOpenPeople?: () => void;
   onOpenHelpers?: () => void;
   onOpenRoughNight?: () => void;
   onOpenLibrary?: () => void;
+  onOpenLore?: () => void;
 } = {}) {
   const me = useMe();
   const myLimits = me.data?.data?.role === "supervised" ? me.data?.data?.limits : undefined;
@@ -910,7 +913,7 @@ export function Settings({
             notifications story lives in ./Notifications.tsx. */}
         <NotificationsSection />
         <SettingsSection id="Your lore" titleId="settings-lore-heading">
-          <LoreSection />
+          {onOpenLore ? <LoreSummary onOpen={onOpenLore} /> : <LoreSection />}
         </SettingsSection>
 
         <FirstDayToggle />

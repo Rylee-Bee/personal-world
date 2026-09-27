@@ -41,6 +41,9 @@ import { RoughNight } from "../screens/RoughNight/RoughNight";
 import { Library } from "../screens/Library/Library";
 import { Icon } from "../components/Icon";
 import { RememberForm } from "../components/remember/RememberForm";
+import { Lore } from "../screens/Lore/Lore";
+import { AtHome } from "../screens/AtHome/AtHome";
+import { Computers } from "../screens/Computers/Computers";
 import { Projects } from "../screens/Projects/Projects";
 import { StayFresh } from "./StayFresh";
 import { ShareSheet } from "./ShareSheet";
@@ -142,7 +145,7 @@ export function App() {
   // reached by small links from the Bridge and Settings — never a nav
   // landmark, and (the app has no router) never a URL of its own.
   const [activeArea, setActiveArea] = useState<
-    WorldAreaId | "crew" | "people" | "helpers" | "rough-night" | "library"
+    WorldAreaId | "crew" | "people" | "helpers" | "rough-night" | "library" | "lore" | "at-home"
   >(
     () =>
       (returned as
@@ -152,6 +155,8 @@ export function App() {
         | "helpers"
         | "rough-night"
         | "library"
+        | "lore"
+        | "at-home"
         | null) ?? "overview",
   );
   // The Library is another quiet page; Back returns to wherever it was opened.
@@ -159,6 +164,12 @@ export function App() {
   const openLibrary = useCallback((from: "settings" | "overview") => {
     setLibraryFrom(from);
     setActiveArea("library");
+  }, []);
+  // Your lore: a quiet page too, opened from Memory or Settings.
+  const [loreFrom, setLoreFrom] = useState<"memory" | "settings">("memory");
+  const openLore = useCallback((from: "memory" | "settings") => {
+    setLoreFrom(from);
+    setActiveArea("lore");
   }, []);
   const [confirmedNote, setConfirmedNote] = useState(returned !== null);
   useEffect(() => {
@@ -214,7 +225,7 @@ export function App() {
           />
         );
       case "memory":
-        return <Memory />;
+        return <Memory onOpenLore={() => openLore("memory")} />;
       case "chat":
         return <Chat key={chatDraft?.id ?? "chat"} draft={chatDraft} />;
       case "settings":
@@ -225,6 +236,7 @@ export function App() {
             onOpenHelpers={() => setActiveArea("helpers")}
             onOpenRoughNight={() => setActiveArea("rough-night")}
             onOpenLibrary={() => openLibrary("settings")}
+            onOpenLore={() => openLore("settings")}
           />
         );
       case "crew":
@@ -242,10 +254,21 @@ export function App() {
             backLabel={libraryFrom === "overview" ? "Back to the Bridge" : "Back to Settings"}
           />
         );
+      case "lore":
+        return (
+          <Lore
+            onBack={() => setActiveArea(loreFrom)}
+            backLabel={loreFrom === "settings" ? "Back to Settings" : "Back to Memory"}
+          />
+        );
+      case "at-home":
+        return <AtHome onBack={() => setActiveArea("interests")} />;
       case "interests":
-        return <Interests />;
+        return <Interests onOpenAtHome={() => setActiveArea("at-home")} />;
       case "projects":
         return <Projects />;
+      case "systems":
+        return <Computers />;
       default: {
         // Honest placeholders for destinations whose screens the
         // station does not back yet (systems).
