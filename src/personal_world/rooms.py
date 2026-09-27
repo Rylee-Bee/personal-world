@@ -1354,7 +1354,9 @@ class RoomsService:
 
     async def sticker_sets(self, principal: Any | None = None, env: dict | None = None) -> list[dict[str, Any]]:
         """Every connected room's sticker set (``stickers/0``), one row per
-        room whose descriptor lists ``stickers`` in ``offers``. A row is
+        room whose descriptor lists ``stickers`` or ``views`` in ``offers``
+        (the room contract's offers list doesn't name ``stickers`` yet, so a
+        room may serve it as one of its views). A row is
         ``{room, status, set?, error?}``; a room with no set (404) has no
         row. Same machinery and rules as :meth:`libraries`. Never raises."""
         env = os.environ if env is None else env
@@ -1364,7 +1366,7 @@ class RoomsService:
             r.get("id") for r in snapshot
             if isinstance(r.get("room"), dict)
             and isinstance(r["room"].get("offers"), list)
-            and "stickers" in r["room"]["offers"]
+            and ({"stickers", "views"} & set(r["room"]["offers"]))
         }
         rows: list[dict[str, Any]] = []
 

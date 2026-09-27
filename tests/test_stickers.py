@@ -124,3 +124,27 @@ def test_a_wrapped_view_is_read_like_a_bare_one():
     svc._resolve_configs, svc.snapshot, svc._fetch_json = configs, snapshot, fetch
     rows = asyncio.run(svc.sticker_sets(None, env={}))
     assert rows[0]["status"] == "ok" and rows[0]["set"]["contract"] == "stickers/0"
+
+
+def test_a_room_serving_stickers_as_a_view_is_asked_too():
+    """VEFR lists only "views" (the room schema has no "stickers" offer yet)."""
+    import asyncio
+
+    from personal_world import rooms as rooms_mod
+
+    svc = rooms_mod.RoomsService.__new__(rooms_mod.RoomsService)
+    cfg = rooms_mod.RoomConfig(id="vefr", base_url="http://room.test")
+    bare = {"contract": "stickers/0", "app": "vefr", "stickers": [{"id": "hello-studio", "kind": "open"}], "secrets": 18}
+
+    async def configs(env):
+        return [cfg], None
+
+    async def snapshot(env=None):
+        return [{"id": "vefr", "room": {"offers": ["views", "art", "library"]}}]
+
+    async def fetch(config, path, name, principal):
+        return 200, bare
+
+    svc._resolve_configs, svc.snapshot, svc._fetch_json = configs, snapshot, fetch
+    rows = asyncio.run(svc.sticker_sets(None, env={}))
+    assert rows and rows[0]["room"] == "vefr" and rows[0]["status"] == "ok"
