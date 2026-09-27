@@ -17,6 +17,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import deque
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,7 @@ from .chat_context import build_world_context, build_ui_context
 from .chat_history import ChatHistory
 from .envelope import Result
 from .journal import AuditRenderer, Journal
+from . import journal_gate
 from .loop import daily
 from .briefing import build_briefing, SYSTEM_IDS
 from .providers.lab_state import DEFAULT_LAB, LabState
@@ -361,6 +363,12 @@ CONFINING_SCOPES: dict[str, tuple[str, ...]] = {
     "learning": ("/api/learning",),
     # An app's sticker key: it may only report stickers found in that app.
     "stickers": ("/api/stickers/found",),
+    # The journal gate (owner design, 2026-09-27): a closed-enum-only
+    # door onto the private Journal. This scope reaches ONLY the gate
+    # route below — never /api/journal or /api/recall, which stay
+    # person-only via _require_person regardless of any scope a token
+    # holds.
+    "journal_gate": ("/api/journal/gate",),
 }
 
 
@@ -516,6 +524,24 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         )
     world_path = data_dir / "world.json"
     journal = Journal(data_dir / "journal.ndjson")
+
+    # Journal gate rate limit: in-process, per-caller sliding window
+    # (same shape as PushHub.rate_limited). A restart clears it, which
+    # is fine for a courtesy limit on a narrow, closed-enum route.
+    _gate_rate_lock = threading.Lock()
+    _gate_rate: dict[str, deque] = {}
+    _GATE_RATE_LIMIT_PER_MINUTE = 20
+
+    def _gate_rate_limited(caller_id: str) -> bool:
+        now = time.monotonic()
+        with _gate_rate_lock:
+            window = _gate_rate.setdefault(caller_id, deque())
+            while window and now - window[0] >= 60:
+                window.popleft()
+            if len(window) >= _GATE_RATE_LIMIT_PER_MINUTE:
+                return True
+            window.append(now)
+            return False
 
     from .model import JournalKind
 
@@ -1125,6 +1151,44 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         _, _, uj = _state_for(request)
         target = journal if uj == journal.path else Journal(uj)
         return {"ok": True, "data": {"text": AuditRenderer().render(target)}}
+
+    @app.post("/api/journal/gate", dependencies=[Depends(require_auth)])
+    async def journal_gate_ask(request: Request) -> dict:
+        """The narrow, closed-enum door onto the private Journal (owner
+        design, 2026-09-27). Reachable by ANY authenticated principal,
+        including an agent holding only the ``journal_gate`` confining
+        scope — that scope reaches nothing else (see
+        CONFINING_SCOPES). This does not loosen ``/api/journal`` or
+        ``/api/recall``: those still call ``_require_person`` and
+        refuse every agent unconditionally, regardless of scope.
+
+        The response is always exactly the closed Answer schema —
+        never raw entries, never free text. See journal_gate.py for
+        the validation that enforces this even against a misbehaving
+        model.
+        """
+        principal = getattr(request.state, "principal", None)
+        caller_id = f"{getattr(principal, 'kind', 'person')}:{getattr(principal, 'id', 'unknown')}"
+        if _gate_rate_limited(caller_id):
+            raise HTTPException(
+                status_code=429, detail="too many journal-gate asks this minute; wait a moment"
+            )
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=422, detail="body must be JSON")
+        _, _, uj = _state_for(request)
+        target = _journal_target(uj)
+        result = journal_gate.gate(body or {}, target)
+        _logger.info(
+            "journal_gate ask: caller=%s ask=%s topic=%r window_days=%s -> answer=%s",
+            caller_id,
+            (body or {}).get("ask"),
+            (body or {}).get("topic"),
+            (body or {}).get("window_days"),
+            result.get("answer"),
+        )
+        return {"ok": True, "data": result}
 
     @app.get("/api/memory/search", dependencies=[Depends(require_auth)])
     async def memory_search(q: str, top_k: int = 5) -> dict:
@@ -4050,13 +4114,17 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """Register an agent principal owned by the caller.
 
         Body: {"agent_id", "display_name"?, "scopes"?}. Scopes subset
-        of read/write/journal/apps/notify/learning. Returns the token exactly
-        once. ``notify`` lets the agent publish to its owner's
-        notifications (POST /api/notify) — nothing else. ``learning``
-        (alone) confines the token to /api/learning*: the owner's learning
-        memory and nothing else (CONFINING_SCOPES).
+        of read/write/journal/apps/notify/learning/journal_gate. Returns
+        the token exactly once. ``notify`` lets the agent publish to its
+        owner's notifications (POST /api/notify) — nothing else.
+        ``learning`` (alone) confines the token to /api/learning*: the
+        owner's learning memory and nothing else. ``journal_gate``
+        (alone) confines the token to POST /api/journal/gate only — a
+        closed-enum question onto the owner's Journal, never raw entries
+        (CONFINING_SCOPES). It does NOT grant /api/journal or
+        /api/recall access; those stay person-only regardless of scope.
         """
-        ALLOWED = {"read", "write", "journal", "apps", "notify", "learning"}
+        ALLOWED = {"read", "write", "journal", "apps", "notify", "learning", "journal_gate"}
         principal = getattr(request.state, "principal", None)
         if principal is None:
             raise HTTPException(status_code=403, detail="principal required")
