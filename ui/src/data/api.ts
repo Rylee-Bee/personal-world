@@ -427,6 +427,41 @@ export const stepUp = (token: string) =>
     sendBody("POST", "/api/auth/step-up", { token } satisfies StepUpRequest),
   );
 
+// ===== Lore (rylee_lore through the Engine room; lore_sync.py) =====
+export interface LoreItem {
+  key: string;
+  state: "confirmed" | "derived" | "suggested" | "ephemeral";
+  text: string;
+  title?: string;
+  section?: string;
+  status?: string;
+  kind?: string;
+  file?: string;
+  gone?: boolean;
+  source: string;
+  observed_at: string;
+}
+export interface LoreList {
+  items: LoreItem[];
+  counts: Record<string, number>;
+  accepted_waiting: number;
+}
+export interface LoreSyncReport {
+  source: string;
+  revision: string | null;
+  counts: { new: number; changed: number; unchanged: number; confirmed_kept: number; gone: number; accepted_waiting: number };
+  skipped: Record<string, number>;
+  dry_run: boolean;
+  room: string;
+}
+export const getLore = () => unwrap<Envelope<LoreList>>(getRequest("/api/lore"));
+/** Sync from the Engine room's lore view; `dry_run` changes nothing. */
+export const syncLore = (dryRun: boolean) =>
+  unwrap<Envelope<LoreSyncReport>>(sendBody("POST", "/api/lore/sync", { dry_run: dryRun }));
+/** Confirm lore (step-up): every accepted suggestion, or chosen keys. */
+export const confirmLore = (body: { accepted: true } | { keys: string[] }) =>
+  unwrap<Envelope<{ confirmed: number; skipped: number }>>(sendBody("POST", "/api/lore/confirm", body));
+
 // ===== Vault =====
 export const getVaultStatus = () =>
   unwrap<Envelope<VaultStatusData>>(api.GET("/api/vault/status", {}));
