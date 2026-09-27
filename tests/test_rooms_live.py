@@ -44,8 +44,10 @@ def _transport(calls, *, views=None):
             v = views[path]
             return v if isinstance(v, httpx.Response) else httpx.Response(200, json=v)
         if path == rooms.ROOM_PATH:
-            return httpx.Response(200, json={"contract": "room/0", "id": "workshop", "name": "W",
-                                              "icon": "x", "version": "1", "status": "healthy"})
+            desc = {"contract": "room/0", "id": "workshop", "name": "W", "icon": "x", "version": "1", "status": "healthy"}
+            if "/room/library" in views:
+                desc["offers"] = ["library"]
+            return httpx.Response(200, json=desc)
         if path in (rooms.CARDS_PATH, rooms.NEEDS_YOU_PATH, rooms.ACTIONS_PATH):
             return httpx.Response(200, json=[])
         return httpx.Response(404, json={})
@@ -239,6 +241,21 @@ class TestLibraries:
 
     def test_a_room_without_a_library_has_no_row(self):
         assert run(self._svc(None).libraries(env=ENV)) == []
+
+    def test_a_room_that_doesnt_offer_a_library_is_never_asked(self):
+        calls = []
+        views = {"/room/library": LIB}
+
+        def handle(request):
+            calls.append(request.url.path)
+            if request.url.path == rooms.ROOM_PATH:  # descriptor without offers
+                return httpx.Response(200, json={"contract": "room/0", "id": "workshop", "name": "W",
+                                                 "icon": "x", "version": "1", "status": "healthy"})
+            if request.url.path in views:
+                return httpx.Response(200, json=views[request.url.path])
+            return httpx.Response(200, json=[])
+        svc = RoomsService(transport=httpx.MockTransport(handle), clock=Clock())
+        assert run(svc.libraries(env=ENV)) == [] and "/room/library" not in calls
 
     @pytest.mark.parametrize("bad", [
         {**LIB, "contract": "library/9"},

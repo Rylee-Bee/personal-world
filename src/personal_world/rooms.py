@@ -1310,7 +1310,10 @@ class RoomsService:
     # ── Libraries (Play-Nice ``library/0`` at ``GET /room/library``) ──
 
     async def libraries(self, principal: Any | None = None, env: dict | None = None) -> list[dict[str, Any]]:
-        """Every connected room's library, one row per room that has one.
+        """Every connected room's library, one row per room that offers one.
+
+        Only rooms whose descriptor lists ``library`` in ``offers`` are
+        asked (ROOM rule 1: a front door uses only the extras a room lists).
 
         A row is ``{room, status, library?, error?}``: ``ok`` with the
         room's ``library/0`` document (checked for its shape, never
@@ -1321,6 +1324,13 @@ class RoomsService:
         """
         env = os.environ if env is None else env
         configs, _ = await self._resolve_configs(env)
+        snapshot = await self.snapshot(env)
+        offering = {
+            r.get("id") for r in snapshot
+            if isinstance(r.get("room"), dict)
+            and isinstance(r["room"].get("offers"), list)
+            and "library" in r["room"]["offers"]
+        }
         rows: list[dict[str, Any]] = []
 
         async def one(config: RoomConfig) -> None:
@@ -1333,7 +1343,10 @@ class RoomsService:
                 rows.append({"room": config.id, "status": "unavailable",
                              "error": f"{config.id}'s library couldn't be read."})
 
-        usable = [c for c in configs if c.contract in SUPPORTED_CONTRACTS and c.invalid_reason is None]
+        usable = [
+            c for c in configs
+            if c.id in offering and c.contract in SUPPORTED_CONTRACTS and c.invalid_reason is None
+        ]
         await asyncio.gather(*(one(c) for c in usable))
         rows.sort(key=lambda r: r["room"])
         return rows
