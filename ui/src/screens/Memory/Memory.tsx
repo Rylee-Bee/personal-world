@@ -25,6 +25,8 @@
 import { useRootAttribute } from "../../components/rooms/useRootAttribute";
 import { JournalRoom } from "./JournalRoom";
 import { RecordsPanel } from "./Records";
+import { RecallPanel } from "./RecallPanel";
+import { LaterShelf } from "./LaterShelf";
 
 export function Memory() {
   const doorways = useRootAttribute("data-theme") === "doorways";
@@ -69,6 +71,10 @@ export function Memory() {
           </p>
           </div>
         </header>
+
+        <RecallPanel />
+
+        <LaterShelf />
 
         <JournalRoom />
 

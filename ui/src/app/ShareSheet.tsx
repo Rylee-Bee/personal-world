@@ -45,7 +45,7 @@ export function ShareSheet() {
     if (!text) return;
     setBusy(true);
     try {
-      await remember(text, later);
+      await remember(text, later, "share");
       setSaid(later ? "Kept on your Later shelf." : "Kept in your journal.");
       setText(null);
       clearShared();

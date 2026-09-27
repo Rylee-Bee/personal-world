@@ -25,7 +25,7 @@ describe("ShareSheet", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Later" }));
     });
-    expect(h.remember).toHaveBeenCalledWith("Hidden doors\nhttps://example.test/a", true);
+    expect(h.remember).toHaveBeenCalledWith("Hidden doors\nhttps://example.test/a", true, "share");
     expect(screen.getByText("Kept on your Later shelf.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Later" })).toBeNull();
   });

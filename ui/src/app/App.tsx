@@ -39,6 +39,8 @@ import { People } from "../screens/People/People";
 import { Helpers } from "../screens/Helpers/Helpers";
 import { RoughNight } from "../screens/RoughNight/RoughNight";
 import { Library } from "../screens/Library/Library";
+import { Icon } from "../components/Icon";
+import { RememberForm } from "../components/remember/RememberForm";
 import { Projects } from "../screens/Projects/Projects";
 import { StayFresh } from "./StayFresh";
 import { ShareSheet } from "./ShareSheet";
@@ -126,6 +128,9 @@ function useApplyPrefsChrome(): void {
 
 export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Remember: one tap from every page. (Something shared from the phone's
+  // Share sheet is offered by <ShareSheet />.)
+  const [rememberOpen, setRememberOpen] = useState(false);
   // Rooms refresh the moment one says it changed (two-way rooms).
   useRoomEvents();
   // "crew" and "people" are pages inside Settings, not nav landmarks:
@@ -343,6 +348,16 @@ export function App() {
           </div>
         </nav>
 
+        <WorldButton
+          variant="secondary"
+          onPress={() => setRememberOpen(true)}
+          aria-label="Remember"
+          className="shrink-0"
+        >
+          <Icon name="bookmark" size={20} />
+          <span className="ml-[var(--pw-spacing-xs)] hidden sm:inline">Remember</span>
+        </WorldButton>
+
         {/* Readout cells */}
         <HealthReadout />
       </header>
@@ -372,6 +387,12 @@ export function App() {
           The World Assistant isn't connected yet. When it is, it will
           speak here — nothing is shown until then.
         </p>
+      </WorldDrawer>
+
+      <WorldDrawer isOpen={rememberOpen} onClose={() => setRememberOpen(false)} title="Remember">
+        {rememberOpen ? (
+          <RememberForm />
+        ) : null}
       </WorldDrawer>
 
       {/* Status strip — bottom bar pattern from starfield */}
