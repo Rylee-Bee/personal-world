@@ -99,6 +99,24 @@ export interface LibraryDoc {
     updated_at?: string;
     pages: LibraryPage[];
   }[];
+  /** Tap to learn (library 1.1.0): lower-case term → its plain meaning,
+   *  the keeper's own name for it, and other spellings. */
+  glossary?: Glossary;
+}
+
+export type Glossary = Record<string, { plain: string; local?: string; also?: string[] }>;
+
+/** The glossary entry an *italic* word stands for (by key or an `also`,
+ *  ignoring case), or null: an italic word with no entry stays italic. */
+export function glossaryEntry(glossary: Glossary | undefined, word: string) {
+  if (!glossary) return null;
+  const w = word.trim().toLowerCase();
+  if (!w) return null;
+  if (Object.hasOwn(glossary, w)) return { term: w, ...glossary[w] };
+  for (const [term, e] of Object.entries(glossary)) {
+    if (e.also?.some((a) => a.trim().toLowerCase() === w)) return { term, ...e };
+  }
+  return null;
 }
 
 /** One connected room's library, as GET /api/library reports it. */

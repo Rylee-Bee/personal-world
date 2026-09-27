@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseBook, worldsBooks } from "../data/library";
+import { glossaryEntry, parseBook, worldsBooks } from "../data/library";
 
 describe("the Worlds Library", () => {
   it("bundles every book in docs/library, in reading order, never the README", () => {
@@ -47,5 +47,23 @@ describe("the library home", () => {
     expect(worldsLibrary.contract).toBe("library/0");
     expect(worldsLibrary.keeper).toEqual({ id: "worlds", name: "Worlds", look: "scifi-storybook" });
     expect(worldsLibrary.books.every((x) => x.shelf === "worlds" && x.pages[0].kind === "plain")).toBe(true);
+  });
+});
+
+describe("book 17 and tap to learn", () => {
+  it("book 17 is on the shelf, with a voice page in Claude's words", () => {
+    const made = worldsBooks.find((b) => b.id === "17-how-the-interface-was-made");
+    expect(made?.pages[0].kind).toBe("plain");
+    expect(made?.pages.some((p) => p.kind === "voice" && p.voice === "Claude")).toBe(true);
+  });
+
+  it("matches a glossary term by key or another spelling, ignoring case", () => {
+    const g = { commit: { plain: "A saved snapshot you can go back to.", local: "Keep", also: ["commits", "Committed"] } };
+    expect(glossaryEntry(g, "Commit")).toMatchObject({ term: "commit", local: "Keep" });
+    expect(glossaryEntry(g, "committed")?.term).toBe("commit");
+    expect(glossaryEntry(g, "branch")).toBeNull();
+    expect(glossaryEntry(undefined, "commit")).toBeNull();
+    // Only the glossary's own keys, never inherited object names.
+    expect(glossaryEntry(g, "constructor")).toBeNull();
   });
 });

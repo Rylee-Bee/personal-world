@@ -513,3 +513,199 @@ body {
   .starmap__figure { height: 54px; }
   .starmap__base { width: 40px; }
 }
+
+/* ── The Library: each keeper's shelf is its own little world ───────────
+   Looks are display hints (Play-Nice library/0, rule 6); an unknown look
+   is a plain shelf. Nothing here moves. Covers are picture books: they
+   stay dark in every theme, with their own light type, like a real book. */
+.lib-wing {
+  position: relative;
+  border-radius: var(--pw-radius-lg);
+  border: 1px solid var(--pw-border-subtle);
+  background: var(--pw-surface-panel);
+  padding: var(--pw-spacing-lg);
+  overflow: hidden;
+}
+.lib-wing > * { position: relative; }
+.lib-shelf-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--pw-spacing-lg) var(--pw-spacing-md);
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--pw-spacing-lg);
+}
+@media (max-width: 480px) {
+  .lib-shelf-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Worlds: a starship's reading room. */
+.lib-look-scifi-storybook {
+  background:
+    radial-gradient(1px 1px at 12% 18%, color-mix(in srgb, var(--pw-text-primary) 55%, transparent) 50%, transparent 51%),
+    radial-gradient(1px 1px at 68% 9%, color-mix(in srgb, var(--pw-text-primary) 45%, transparent) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 88% 30%, color-mix(in srgb, var(--pw-accent-gold) 70%, transparent) 50%, transparent 51%),
+    radial-gradient(1px 1px at 34% 6%, color-mix(in srgb, var(--pw-text-primary) 40%, transparent) 50%, transparent 51%),
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--pw-accent-teal) 12%, transparent), transparent 60%),
+    var(--pw-surface-hull);
+}
+.lib-look-scifi-storybook .lib-shelf-row {
+  background: linear-gradient(to top,
+    color-mix(in srgb, var(--pw-accent-teal) 55%, transparent) 0,
+    color-mix(in srgb, var(--pw-accent-teal) 55%, transparent) 3px,
+    color-mix(in srgb, var(--pw-accent-teal) 14%, transparent) 3px,
+    transparent 22px);
+}
+
+/* Hive Works: the company handbook, on honeycomb shelving. */
+.lib-look-hive-corporate {
+  background: color-mix(in srgb, var(--pw-accent-warm) 6%, var(--pw-surface-panel));
+}
+.lib-look-hive-corporate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--pw-accent-warm);
+  opacity: 0.09;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='72' viewBox='0 0 42 72'%3E%3Cpath d='M21 1 40 12v24L21 47 2 36V12zM21 47v25M2 12 0 11M40 12l2-1' fill='none' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E") repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='72' viewBox='0 0 42 72'%3E%3Cpath d='M21 1 40 12v24L21 47 2 36V12zM21 47v25M2 12 0 11M40 12l2-1' fill='none' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E") repeat;
+  pointer-events: none;
+}
+.lib-look-hive-corporate .lib-shelf-row {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+@media (max-width: 480px) {
+  .lib-look-hive-corporate .lib-shelf-row { grid-template-columns: 1fr; }
+}
+
+/* VEFR: a storyteller's study, in VEFR's own charcoal, parchment and gold. */
+.lib-look-vefr {
+  --lib-vefr-ink: #131311;
+  --lib-vefr-card: #1d1b17;
+  --lib-vefr-text: #e8e5df;
+  --lib-vefr-muted: #c2bdb0;
+  --lib-vefr-gold: #c9ad6b;
+  background: var(--lib-vefr-ink);
+  border-color: var(--lib-vefr-gold);
+  color: var(--lib-vefr-text);
+}
+.lib-look-vefr .lib-title,
+.lib-look-vefr .lib-keeper-name { color: var(--lib-vefr-text); }
+.lib-look-vefr .lib-muted { color: var(--lib-vefr-muted); }
+.lib-look-vefr .lib-eyebrow { color: var(--lib-vefr-gold); }
+
+/* A storybook volume: dark cover, a spine shadow, foil edge. */
+.lib-cover {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 3px 10px 10px 3px;
+  background: linear-gradient(160deg, hsl(var(--lib-hue, 220) 42% 30%), hsl(calc(var(--lib-hue, 220) + 40) 48% 13%));
+  box-shadow:
+    inset 7px 0 0 rgb(0 0 0 / 0.28),
+    inset 8px 0 0 rgb(255 255 255 / 0.08),
+    0 6px 14px rgb(0 0 0 / 0.35);
+  color: #f5f3ec;
+}
+.lib-cover::after {
+  content: "";
+  position: absolute;
+  inset: 8px 8px 8px 16px;
+  border: 1px solid rgb(225 194 130 / 0.55);
+  border-radius: 2px 6px 6px 2px;
+  pointer-events: none;
+}
+.lib-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lib-cover-band {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 10px 12px 12px 18px;
+  background: linear-gradient(to top, rgb(10 12 20 / 0.92), rgb(10 12 20 / 0.72) 70%, transparent);
+}
+
+/* A handbook binder: a tabbed spine with three ring holes. */
+.lib-binder {
+  position: relative;
+  border-radius: var(--pw-radius-md);
+  border: 1px solid color-mix(in srgb, var(--pw-accent-warm) 45%, var(--pw-border-subtle));
+  background: var(--pw-surface-panel);
+  padding: var(--pw-spacing-md) var(--pw-spacing-md) var(--pw-spacing-md) calc(var(--pw-spacing-md) + 22px);
+}
+.lib-binder::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 16px;
+  border-radius: var(--pw-radius-md) 0 0 var(--pw-radius-md);
+  background:
+    radial-gradient(circle at 50% 22%, var(--pw-surface-hull) 3px, transparent 3.5px),
+    radial-gradient(circle at 50% 50%, var(--pw-surface-hull) 3px, transparent 3.5px),
+    radial-gradient(circle at 50% 78%, var(--pw-surface-hull) 3px, transparent 3.5px),
+    var(--pw-accent-warm);
+}
+
+/* A storyteller's tome. */
+.lib-tome {
+  border: 3px double var(--lib-vefr-gold, var(--pw-accent-gold));
+  border-radius: 4px;
+  background: var(--lib-vefr-card, var(--pw-surface-panel));
+  padding: var(--pw-spacing-md);
+}
+
+/* The reader: one book, all its pages, easy on the eyes. */
+.lib-reader { max-width: 68ch; }
+.lib-reader .lib-page { display: flex; flex-direction: column; gap: var(--pw-spacing-md); line-height: 1.6; }
+.lib-ornament { text-align: center; color: var(--pw-accent-gold); letter-spacing: 0.6em; }
+
+/* Tap to learn: a glossary word, and its small card (only when asked). */
+.lib-term {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--pw-accent-warm);
+  text-underline-offset: 0.2em;
+  cursor: help;
+}
+/* The card floats just under the word's line, over the text below, so the
+   sentence is never split. Its left edge is the page's, so it never runs off a phone. */
+.lib-page p, .lib-page li { position: relative; }
+.lib-term-card {
+  display: block;
+  position: absolute;
+  left: 0;
+  z-index: 5;
+  width: min(36ch, 100%);
+  margin-top: 1.8em;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.35);
+  padding: var(--pw-spacing-md);
+  border: 1px solid var(--pw-accent-warm);
+  border-radius: var(--pw-radius-md);
+  background: var(--pw-surface-elevated, var(--pw-surface-panel));
+  font-style: normal;
+  line-height: 1.5;
+}
+
+/* The Library's painted pieces: a shelf header per look, a book's cover in the reader,
+   and the gentle drafts shelf. */
+.lib-shelf-art {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  margin: calc(-1 * var(--pw-spacing-sm)) 0 var(--pw-spacing-sm);
+}
+.lib-reader-cover {
+  width: 140px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 3px 10px 10px 3px;
+  box-shadow: inset 7px 0 0 rgb(0 0 0 / 0.28), 0 6px 14px rgb(0 0 0 / 0.35);
+  margin-bottom: var(--pw-spacing-sm);
+}
+.lib-drafts > summary { list-style: none; }
+.lib-drafts > summary::-webkit-details-marker { display: none; }
+.lib-drafts[open] .lib-drafts-arrow { transform: rotate(90deg); }
+.lib-drafts {
+  margin-top: var(--pw-spacing-lg);
+  border-top: 1px dashed var(--pw-border-subtle);
+  padding-top: var(--pw-spacing-md);
+}

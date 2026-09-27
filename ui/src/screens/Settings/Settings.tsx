@@ -669,11 +669,13 @@ export function Settings({
   onOpenPeople,
   onOpenHelpers,
   onOpenRoughNight,
+  onOpenLibrary,
 }: {
   onOpenCrew?: () => void;
   onOpenPeople?: () => void;
   onOpenHelpers?: () => void;
   onOpenRoughNight?: () => void;
+  onOpenLibrary?: () => void;
 } = {}) {
   const me = useMe();
   const myLimits = me.data?.data?.role === "supervised" ? me.data?.data?.limits : undefined;
@@ -863,6 +865,30 @@ export function Settings({
             </div>
             <WorldButton variant="ghost" onPress={onOpenRoughNight}>
               Open rough night
+            </WorldButton>
+          </section>
+        )}
+
+        {/* Library — short books on how Worlds (and its rooms) work. */}
+        {onOpenLibrary && (
+          <section
+            aria-labelledby="settings-library-heading"
+            className="mb-[var(--pw-spacing-2xl)] flex flex-wrap items-center gap-[var(--pw-spacing-lg)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+          >
+            <div className="min-w-0 flex-1">
+              <h2
+                id="settings-library-heading"
+                className={`mb-[var(--pw-spacing-xs)] ${SECTION_HEADING}`}
+                style={SERIF}
+              >
+                Library
+              </h2>
+              <p className="text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+                Short books on how Worlds works, from one plain sentence to the code underneath.
+              </p>
+            </div>
+            <WorldButton variant="ghost" onPress={onOpenLibrary}>
+              Open the Library
             </WorldButton>
           </section>
         )}

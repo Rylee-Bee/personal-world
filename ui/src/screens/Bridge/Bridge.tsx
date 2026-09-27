@@ -51,6 +51,8 @@ interface BridgeProps {
   onOpenCrew?: () => void;
   /** Opens the Rough night page — a small quiet link, nothing louder. */
   onOpenRoughNight?: () => void;
+  /** Opens the Library (the first-day guide's last line). */
+  onOpenLibrary?: () => void;
 }
 
 
@@ -73,7 +75,7 @@ function isPhoneLayout(): boolean {
  *  meaning; colour is reinforcement only). */
 const CALM_ACCENT = "var(--pw-accent-warm)";
 
-export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew, onOpenRoughNight }: BridgeProps) {
+export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew, onOpenRoughNight, onOpenLibrary }: BridgeProps) {
   const briefing = useBriefing();
   const place = usePlace();
   const setPlace = useSetPlace();
@@ -223,7 +225,7 @@ export function Bridge({ onOpenArea, onOpenAssistant, onOpenCrew, onOpenRoughNig
         <CompanionMessage data={data} />
 
         {/* ── First day aboard — until it's put away or all done ──── */}
-        <FirstDayGuide data={data} onOpenArea={onOpenArea} onOpenCrew={onOpenCrew} />
+        <FirstDayGuide data={data} onOpenArea={onOpenArea} onOpenCrew={onOpenCrew} onOpenLibrary={onOpenLibrary} />
 
         {/* ── Needs you — a calm tray, never red ──────────────────── */}
         <NeedsTray data={data} onPick={(item) =>

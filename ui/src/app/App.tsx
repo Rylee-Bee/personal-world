@@ -38,6 +38,7 @@ import { Crew } from "../screens/Crew/Crew";
 import { People } from "../screens/People/People";
 import { Helpers } from "../screens/Helpers/Helpers";
 import { RoughNight } from "../screens/RoughNight/RoughNight";
+import { Library } from "../screens/Library/Library";
 import { Projects } from "../screens/Projects/Projects";
 import { StayFresh } from "./StayFresh";
 import { WorldDrawer } from "../components/WorldDrawer";
@@ -135,7 +136,7 @@ export function App() {
   // reached by small links from the Bridge and Settings — never a nav
   // landmark, and (the app has no router) never a URL of its own.
   const [activeArea, setActiveArea] = useState<
-    WorldAreaId | "crew" | "people" | "helpers" | "rough-night"
+    WorldAreaId | "crew" | "people" | "helpers" | "rough-night" | "library"
   >(
     () =>
       (returned as
@@ -144,8 +145,15 @@ export function App() {
         | "people"
         | "helpers"
         | "rough-night"
+        | "library"
         | null) ?? "overview",
   );
+  // The Library is another quiet page; Back returns to wherever it was opened.
+  const [libraryFrom, setLibraryFrom] = useState<"settings" | "overview">("settings");
+  const openLibrary = useCallback((from: "settings" | "overview") => {
+    setLibraryFrom(from);
+    setActiveArea("library");
+  }, []);
   const [confirmedNote, setConfirmedNote] = useState(returned !== null);
   useEffect(() => {
     noteCurrentArea(activeArea);
@@ -196,6 +204,7 @@ export function App() {
             onOpenAssistant={() => setDrawerOpen(true)}
             onOpenCrew={() => setActiveArea("crew")}
             onOpenRoughNight={() => setActiveArea("rough-night")}
+            onOpenLibrary={() => openLibrary("overview")}
           />
         );
       case "memory":
@@ -209,6 +218,7 @@ export function App() {
             onOpenPeople={() => setActiveArea("people")}
             onOpenHelpers={() => setActiveArea("helpers")}
             onOpenRoughNight={() => setActiveArea("rough-night")}
+            onOpenLibrary={() => openLibrary("settings")}
           />
         );
       case "crew":
@@ -219,6 +229,13 @@ export function App() {
         return <Helpers onBack={() => setActiveArea("settings")} />;
       case "rough-night":
         return <RoughNight onBack={() => setActiveArea("overview")} />;
+      case "library":
+        return (
+          <Library
+            onBack={() => setActiveArea(libraryFrom)}
+            backLabel={libraryFrom === "overview" ? "Back to the Bridge" : "Back to Settings"}
+          />
+        );
       case "interests":
         return <Interests />;
       case "projects":

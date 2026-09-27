@@ -138,10 +138,12 @@ export function FirstDayGuide({
   data,
   onOpenArea,
   onOpenCrew,
+  onOpenLibrary,
 }: {
   data: BridgeData;
   onOpenArea: (id: WorldAreaId) => void;
   onOpenCrew?: () => void;
+  onOpenLibrary?: () => void;
 }) {
   const {
     hidden,
@@ -263,6 +265,14 @@ export function FirstDayGuide({
           </Line>
         )}
       </ol>
+      {onOpenLibrary && (
+        <p className="mt-[var(--pw-spacing-md)] flex flex-wrap items-center gap-[var(--pw-spacing-sm)] border-t border-[var(--pw-border-subtle)] pt-[var(--pw-spacing-md)] text-[var(--pw-text-secondary)]">
+          <span>Want to know how this works?</span>
+          <button type="button" onClick={onOpenLibrary} className={BUTTON}>
+            Open the Library
+          </button>
+        </p>
+      )}
     </section>
   );
 }
