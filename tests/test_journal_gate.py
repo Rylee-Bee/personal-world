@@ -7,6 +7,7 @@ in the closed enum, and collapses to "unsure" whenever anything is
 ambiguous, malformed, or would otherwise leak real journal text.
 """
 
+import json as _json
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -88,8 +89,11 @@ class TestGateSafety:
                 "count": "1-2",
             }
 
-        monkeypatch.setattr(jg, "mock_model", leaky_model)
-        result = jg.gate({"ask": "relates_to", "topic": "migraine medication", "window_days": 7}, j)
+        result = jg.gate(
+            {"ask": "relates_to", "topic": "migraine medication", "window_days": 7},
+            j,
+            model_fn=leaky_model,
+        )
         assert result == {"answer": "unsure", "strength": None, "when": None, "count": "0"}
 
     def test_extra_key_in_model_output_forces_unsure(self, tmp_path, monkeypatch):
@@ -99,8 +103,11 @@ class TestGateSafety:
         def bad_model(ask, hits):
             return {"answer": "yes", "strength": "weak", "when": "this_week", "count": "1-2", "text": "leak"}
 
-        monkeypatch.setattr(jg, "mock_model", bad_model)
-        result = jg.gate({"ask": "relates_to", "topic": "migraine medication", "window_days": 7}, j)
+        result = jg.gate(
+            {"ask": "relates_to", "topic": "migraine medication", "window_days": 7},
+            j,
+            model_fn=bad_model,
+        )
         assert result["answer"] == "unsure"
 
     def test_non_enum_value_forces_unsure(self, tmp_path, monkeypatch):
@@ -110,8 +117,11 @@ class TestGateSafety:
         def bad_model(ask, hits):
             return {"answer": "definitely", "strength": None, "when": None, "count": "0"}
 
-        monkeypatch.setattr(jg, "mock_model", bad_model)
-        result = jg.gate({"ask": "relates_to", "topic": "migraine medication", "window_days": 7}, j)
+        result = jg.gate(
+            {"ask": "relates_to", "topic": "migraine medication", "window_days": 7},
+            j,
+            model_fn=bad_model,
+        )
         assert result["answer"] == "unsure"
 
     def test_injection_style_topic_never_produces_free_text(self, tmp_path):
@@ -142,6 +152,194 @@ class TestGateSafety:
         j.append(_event("A secret note mentioning kayaking trip plans", 1, Classification.SECRET))
         hits = retrieve("kayaking trip plans", j, 7)
         assert hits == []
+
+    def test_security_kind_audit_entries_excluded_from_retrieval(self, tmp_path):
+        """The gate's own audit trail must never feed back into
+        retrieval — otherwise asking about a topic would also match
+        past gate-log entries mentioning that topic."""
+        from personal_world.model import JournalEvent
+
+        j = Journal(tmp_path / "journal.ndjson")
+        j.append(
+            JournalEvent(
+                kind=JournalKind.SECURITY,
+                summary="journal_gate ask: topic='migraine medication'",
+                provenance=Provenance(source="journal_gate"),
+                classification=Classification.PRIVATE,
+            )
+        )
+        hits = retrieve("migraine medication", j, 7)
+        assert hits == []
+
+
+class TestGateDenylist:
+    def test_blocked_agent_forces_unsure_without_calling_model(self, tmp_path):
+        from personal_world.journal_gate import Denylist
+
+        j = _journal(tmp_path)
+        calls = []
+
+        def spy_model(ask, hits):
+            calls.append(1)
+            return {"answer": "yes", "strength": "weak", "when": "this_week", "count": "1-2"}
+
+        dl = Denylist(blocked_agents=["agent:snoopbot"], blocked_topics=[])
+        result = gate(
+            {"ask": "relates_to", "topic": "migraine medication", "window_days": 7},
+            j,
+            model_fn=spy_model,
+            denylist=dl,
+            caller_id="agent:snoopbot",
+        )
+        assert result["answer"] == "unsure"
+        assert calls == []
+
+    def test_blocked_topic_keyword_forces_unsure(self, tmp_path):
+        from personal_world.journal_gate import Denylist
+
+        j = _journal(tmp_path)
+        dl = Denylist(blocked_agents=[], blocked_topics=["migraine"])
+        result = gate(
+            {"ask": "relates_to", "topic": "migraine medication", "window_days": 7},
+            j,
+            denylist=dl,
+            caller_id="agent:anyone",
+        )
+        assert result["answer"] == "unsure"
+
+    def test_non_blocked_caller_and_topic_unaffected(self, tmp_path):
+        from personal_world.journal_gate import Denylist
+
+        j = _journal(tmp_path)
+        dl = Denylist(blocked_agents=["agent:other"], blocked_topics=["scuba"])
+        result = gate(
+            {"ask": "relates_to", "topic": "migraine medication", "window_days": 7},
+            j,
+            denylist=dl,
+            caller_id="agent:allowed",
+        )
+        assert result["answer"] == "yes"
+
+    def test_load_save_denylist_round_trip(self, tmp_path):
+        from personal_world.journal_gate import Denylist, load_denylist, save_denylist
+
+        path = tmp_path / "journal-gate-denylist.json"
+        assert load_denylist(path) == Denylist()
+        dl = Denylist(blocked_agents=["agent:x"], blocked_topics=["y"])
+        save_denylist(path, dl)
+        assert load_denylist(path) == dl
+
+    def test_load_denylist_corrupt_file_fails_safe_to_empty(self, tmp_path):
+        from personal_world.journal_gate import Denylist, load_denylist
+
+        path = tmp_path / "journal-gate-denylist.json"
+        path.write_text("{not valid json")
+        assert load_denylist(path) == Denylist()
+
+
+class TestRealModel:
+    def test_no_hits_short_circuits_without_network_call(self, tmp_path, monkeypatch):
+        from personal_world import journal_gate as jg
+
+        def fail_if_called(*a, **k):
+            raise AssertionError("should not open a network connection with no hits")
+
+        monkeypatch.setattr(jg._urlreq, "urlopen", fail_if_called)
+        ask = jg.Ask(ask="relates_to", topic="migraine medication", window_days=7)
+        result = jg.real_model(ask, [], base_url="http://example.invalid/v1", model="test")
+        assert result == {"answer": "no", "strength": None, "when": None, "count": "0"}
+
+    def test_network_failure_returns_unsure(self, tmp_path, monkeypatch):
+        from personal_world import journal_gate as jg
+
+        def boom(*a, **k):
+            raise jg._urlerr.URLError("connection refused")
+
+        monkeypatch.setattr(jg._urlreq, "urlopen", boom)
+        j = _journal(tmp_path)
+        hits = retrieve("migraine medication", j, 7)
+        ask = jg.Ask(ask="relates_to", topic="migraine medication", window_days=7)
+        result = jg.real_model(ask, hits, base_url="http://example.invalid/v1", model="test")
+        assert result == {"answer": "unsure", "strength": None, "when": None, "count": "0"}
+
+    def test_unparseable_response_returns_unsure(self, tmp_path, monkeypatch):
+        from personal_world import journal_gate as jg
+
+        class _FakeResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b'{"choices": [{"message": {"content": "not json at all"}}]}'
+
+        monkeypatch.setattr(jg._urlreq, "urlopen", lambda *a, **k: _FakeResp())
+        j = _journal(tmp_path)
+        hits = retrieve("migraine medication", j, 7)
+        ask = jg.Ask(ask="relates_to", topic="migraine medication", window_days=7)
+        result = jg.real_model(ask, hits, base_url="http://example.invalid/v1", model="test")
+        assert result["answer"] == "unsure"
+
+    def test_well_formed_response_passes_through_to_validate(self, tmp_path, monkeypatch):
+        from personal_world import journal_gate as jg
+
+        class _FakeResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                content = '{"answer": "yes", "strength": "strong", "when": "this_week", "count": "1-2"}'
+                return _json.dumps({"choices": [{"message": {"content": content}}]}).encode()
+
+        monkeypatch.setattr(jg._urlreq, "urlopen", lambda *a, **k: _FakeResp())
+        j = _journal(tmp_path)
+        hits = retrieve("migraine medication", j, 7)
+        result = jg.gate(
+            {"ask": "relates_to", "topic": "migraine medication", "window_days": 7},
+            j,
+            model_fn=lambda ask, hits: jg.real_model(
+                ask, hits, base_url="http://example.invalid/v1", model="test"
+            ),
+        )
+        assert result == {"answer": "yes", "strength": "strong", "when": "this_week", "count": "1-2"}
+
+    def test_real_model_output_still_leak_checked(self, tmp_path, monkeypatch):
+        """Even a well-formed real-model response is still run through
+        the leak check — the safety property does not depend on which
+        model produced the answer."""
+        from personal_world import journal_gate as jg
+
+        j = _journal(tmp_path)
+        hits = retrieve("migraine medication", j, 7)
+        leaked = "Finally got the migraine to back off after the new"
+
+        class _FakeResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                content = _json.dumps(
+                    {"answer": "yes", "strength": leaked, "when": "this_week", "count": "1-2"}
+                )
+                return _json.dumps({"choices": [{"message": {"content": content}}]}).encode()
+
+        monkeypatch.setattr(jg._urlreq, "urlopen", lambda *a, **k: _FakeResp())
+        result = jg.gate(
+            {"ask": "relates_to", "topic": "migraine medication", "window_days": 7},
+            j,
+            model_fn=lambda ask, hits: jg.real_model(
+                ask, hits, base_url="http://example.invalid/v1", model="test"
+            ),
+        )
+        assert result["answer"] == "unsure"
 
     def test_mock_model_never_echoes_summary_field(self, tmp_path):
         j = _journal(tmp_path)

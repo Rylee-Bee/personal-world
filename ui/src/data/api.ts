@@ -19,6 +19,8 @@ import createClient from "openapi-fetch";
 import type { paths } from "../generated/api-types";
 import type {
   Actor,
+  AgentDisableData,
+  AgentRecord,
   AppsUpdateRequest,
   BrainTemplate,
   ChatHistoryData,
@@ -37,6 +39,11 @@ import type {
   JournalDraftPutRequest,
   JournalDraftSavedData,
   JournalEvent,
+  JournalGateAskData,
+  JournalGateAskMeta,
+  JournalGateAskRequest,
+  JournalGateDenylist,
+  JournalGateLogData,
   JournalHistoryData,
   JournalLastData,
   JournalNoteData,
@@ -297,6 +304,30 @@ export const getJournalDraft = () =>
 export const deleteJournalDraft = () =>
   unwrap<Envelope<JournalDraftClearedData>>(
     api.DELETE("/api/journal/draft", {}),
+  );
+
+// Journal gate (api.py journal_gate_*, journal_gate.py) — a closed-enum
+// door onto the private Journal for scoped agents. `askJournalGate` is
+// exercised by any authenticated principal including a journal_gate-
+// scoped agent; the log/denylist calls are person-only server-side.
+export const askJournalGate = (body: JournalGateAskRequest) =>
+  unwrap<Envelope<JournalGateAskData> & { meta?: JournalGateAskMeta }>(
+    sendBody("POST", "/api/journal/gate", body),
+  );
+
+export const journalGateLog = (params?: { n?: number }) =>
+  unwrap<Envelope<JournalGateLogData>>(
+    api.GET("/api/journal/gate/log", { params: { query: params } }),
+  );
+
+export const getJournalGateDenylist = () =>
+  unwrap<Envelope<JournalGateDenylist>>(
+    api.GET("/api/journal/gate/denylist", {}),
+  );
+
+export const putJournalGateDenylist = (body: JournalGateDenylist) =>
+  unwrap<Envelope<JournalGateDenylist>>(
+    sendBody("PUT", "/api/journal/gate/denylist", body),
   );
 
 // Chat — the server picks the reasoning provider (no per-request
@@ -902,7 +933,15 @@ export const listUsers = () => unwrap<Envelope<unknown[]>>(api.GET("/api/identit
 export const createUser = (body: UserCreateRequest) =>
   unwrap<Envelope>(sendBody("POST", "/api/identity/users", body));
 
-export const listAgents = () => unwrap<Envelope<unknown[]>>(api.GET("/api/identity/agents", {}));
+export const listAgents = () =>
+  unwrap<Envelope<AgentRecord[]>>(api.GET("/api/identity/agents", {}));
+
+export const revokeAgent = (agentId: string) =>
+  unwrap<Envelope<AgentDisableData>>(
+    api.DELETE("/api/identity/agents/{agent_id}", {
+      params: { path: { agent_id: agentId } },
+    }),
+  );
 
 // ===== Discovery =====
 export const getDiscoveryStatus = () =>

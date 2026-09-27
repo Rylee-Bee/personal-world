@@ -64,6 +64,7 @@ import { CompanionFace } from "../../components/crew/CompanionFace";
 import { setFirstDayHidden, useFirstDayHidden } from "../Bridge/firstDay";
 import { MESSAGES_MODES, setMessagesMode, useMessagesMode } from "../Bridge/companionMessages";
 import { VaultTool } from "../Vault/Vault";
+import { JournalGateTool } from "./JournalGateTool";
 import { THEMES, type ThemeName } from "../../generated/tokens";
 import {
   applyThemeToDocument,
@@ -986,6 +987,23 @@ export function Settings({
             Memory — the Vault below holds credentials and secrets.
           </p>
           <VaultTool />
+        </section>
+
+        {/* Journal gate — agents with a closed-enum-only door onto the
+            private Journal, the audit log, and the never-answer list.
+            Same "Advanced" placement rationale as the Vault above. */}
+        <section
+          aria-labelledby="settings-journal-gate-heading"
+          className="mb-[var(--pw-spacing-2xl)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
+        >
+          <h2
+            id="settings-journal-gate-heading"
+            className={`mb-[var(--pw-spacing-md)] ${SECTION_HEADING}`}
+            style={SERIF}
+          >
+            Journal gate
+          </h2>
+          <JournalGateTool />
         </section>
       </main>
     </>

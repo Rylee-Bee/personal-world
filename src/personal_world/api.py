@@ -1152,6 +1152,25 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         target = journal if uj == journal.path else Journal(uj)
         return {"ok": True, "data": {"text": AuditRenderer().render(target)}}
 
+    def _journal_gate_model_fn():
+        """Real model when one is configured (PW_JOURNAL_GATE_MODEL_URL),
+        else the deterministic mock. Env is read per-call so tests can
+        set/clear it per-test; this is a courtesy config lookup, not a
+        security boundary — ``journal_gate._validate`` enforces the
+        schema regardless of which model_fn ran."""
+        base_url = os.environ.get("PW_JOURNAL_GATE_MODEL_URL", "").strip()
+        if not base_url:
+            return journal_gate.mock_model, "mock"
+        model_name = os.environ.get("PW_JOURNAL_GATE_MODEL_NAME", "resident-chat")
+
+        def _bound(ask, hits):
+            return journal_gate.real_model(ask, hits, base_url=base_url, model=model_name)
+
+        return _bound, "real"
+
+    def _journal_gate_denylist_path(request: Request) -> Path:
+        return _scoped_path(request.state.principal, "journal_gate_denylist")
+
     @app.post("/api/journal/gate", dependencies=[Depends(require_auth)])
     async def journal_gate_ask(request: Request) -> dict:
         """The narrow, closed-enum door onto the private Journal (owner
@@ -1177,18 +1196,98 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             body = await request.json()
         except Exception:
             raise HTTPException(status_code=422, detail="body must be JSON")
+        body = body or {}
         _, _, uj = _state_for(request)
         target = _journal_target(uj)
-        result = journal_gate.gate(body or {}, target)
+        denylist = journal_gate.load_denylist(_journal_gate_denylist_path(request))
+        model_fn, model_mode = _journal_gate_model_fn()
+        result = journal_gate.gate(
+            body, target, model_fn=model_fn, denylist=denylist, caller_id=caller_id
+        )
         _logger.info(
-            "journal_gate ask: caller=%s ask=%s topic=%r window_days=%s -> answer=%s",
+            "journal_gate ask: caller=%s ask=%s topic=%r window_days=%s model=%s -> answer=%s",
             caller_id,
-            (body or {}).get("ask"),
-            (body or {}).get("topic"),
-            (body or {}).get("window_days"),
+            body.get("ask"),
+            body.get("topic"),
+            body.get("window_days"),
+            model_mode,
             result.get("answer"),
         )
-        return {"ok": True, "data": result}
+        _gate_audit_log(
+            uj,
+            caller_id=caller_id,
+            ask=body.get("ask"),
+            topic=body.get("topic"),
+            window_days=body.get("window_days"),
+            answer=result.get("answer"),
+            model_mode=model_mode,
+        )
+        return {"ok": True, "data": result, "meta": {"model_mode": model_mode}}
+
+    def _gate_audit_log(
+        uj: Path, *, caller_id: str, ask, topic, window_days, answer, model_mode
+    ) -> None:
+        """Structured, content-free audit trail for 'who asked what'
+        (step 6): SECURITY-kind journal event, excluded from the gate's
+        own retrieval corpus (journal_gate._NON_CONTENT_KINDS). Reuses
+        the existing per-principal Journal — not a new storage system —
+        and the structured fields ride the event's own ``payload``
+        (ADR-0006), never parsed back out of prose."""
+        from .classification import Classification
+        from .model import JournalEvent, Provenance
+
+        target = journal if uj == journal.path else Journal(uj)
+        target.append(
+            JournalEvent(
+                kind=JournalKind.SECURITY,
+                summary=f"journal_gate ask from {caller_id}: {ask} -> {answer}",
+                provenance=Provenance(source="journal_gate"),
+                classification=Classification.PRIVATE,
+                payload={
+                    "caller_id": caller_id,
+                    "ask": ask,
+                    "topic": topic,
+                    "window_days": window_days,
+                    "answer": answer,
+                    "model_mode": model_mode,
+                },
+            )
+        )
+
+    @app.get("/api/journal/gate/log", dependencies=[Depends(require_auth)])
+    async def journal_gate_log(request: Request, n: int = 20) -> dict:
+        """Person-only: the gate's own audit trail, structured — 'who
+        asked what, when, and what they got back'. Never raw entries."""
+        _require_person(getattr(request.state, "principal", None))
+        _, _, uj = _state_for(request)
+        target = journal if uj == journal.path else Journal(uj)
+        rows = [
+            {"ts": e.ts.isoformat(), **(e.payload or {})}
+            for e in target.events()
+            if e.kind == JournalKind.SECURITY and e.provenance.source == "journal_gate"
+        ]
+        rows.sort(key=lambda r: r["ts"], reverse=True)
+        return {"ok": True, "data": {"entries": rows[: max(1, min(n, 200))]}}
+
+    @app.get("/api/journal/gate/denylist", dependencies=[Depends(require_auth)])
+    async def journal_gate_denylist_get(request: Request) -> dict:
+        """Person-only: the owner's own 'never answer about...' list."""
+        _require_person(getattr(request.state, "principal", None))
+        dl = journal_gate.load_denylist(_journal_gate_denylist_path(request))
+        return {"ok": True, "data": dl.model_dump()}
+
+    @app.put("/api/journal/gate/denylist", dependencies=[Depends(require_step_up)])
+    async def journal_gate_denylist_put(request: Request) -> dict:
+        """Person-only, step-up: editing what a scoped agent can never
+        get an answer about is a security-relevant write, same
+        elevation tier as other sensitive config in this file."""
+        body = await request.json()
+        try:
+            dl = journal_gate.Denylist.model_validate(body or {})
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        journal_gate.save_denylist(_journal_gate_denylist_path(request), dl)
+        return {"ok": True, "data": dl.model_dump()}
 
     @app.get("/api/memory/search", dependencies=[Depends(require_auth)])
     async def memory_search(q: str, top_k: int = 5) -> dict:

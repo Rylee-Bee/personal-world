@@ -29,14 +29,17 @@ replaceable and untrusted:
 
 from __future__ import annotations
 
+import json as _json
+import urllib.error as _urlerr
+import urllib.request as _urlreq
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from .classification import Classification
 from .journal import Journal
-from .model import JournalEvent
+from .model import JournalEvent, JournalKind
 
 
 class Ask(BaseModel):
@@ -63,8 +66,17 @@ def _aware(ts: datetime) -> datetime:
     return ts if ts.tzinfo is not None else ts.replace(tzinfo=timezone.utc)
 
 
+#: Kinds excluded from the gate's retrieval corpus entirely. SECURITY
+#: holds the gate's own audit trail (see ``_record_audit`` in api.py) —
+#: without this exclusion, asking about a topic would also match past
+#: audit entries that happen to mention that topic, a feedback loop
+#: that has nothing to do with the person's actual journal content.
+_NON_CONTENT_KINDS = frozenset({JournalKind.SECURITY.value})
+
+
 def _window_events(journal: Journal, window_days: int) -> list[JournalEvent]:
-    """Current (non-superseded), non-secret entries inside the window.
+    """Current (non-superseded), non-secret, content-kind entries
+    inside the window.
 
     Secret-classified rows are excluded defensively even though nothing
     in this codebase currently classifies journal entries as SECRET —
@@ -73,7 +85,7 @@ def _window_events(journal: Journal, window_days: int) -> list[JournalEvent]:
     cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
     total = sum(1 for _ in journal.events())
     out = []
-    for e in journal.current_events(n=max(total, 1)):
+    for e in journal.current_events(n=max(total, 1), exclude_kinds=_NON_CONTENT_KINDS):
         if e.classification == Classification.SECRET:
             continue
         if _aware(e.ts) >= cutoff:
@@ -99,10 +111,11 @@ def retrieve(topic: str, journal: Journal, window_days: int) -> list[JournalEven
 
 
 def mock_model(ask: Ask, hits: list[JournalEvent]) -> dict[str, Any]:
-    """Stand-in for a real model. Deterministic, no I/O, no network.
+    """Deterministic stand-in for a real model. No I/O, no network.
 
-    Turns retrieval hits into a closed-enum-shaped dict. A later step
-    replaces ONLY this function with a real local model call — the
+    Turns retrieval hits into a closed-enum-shaped dict using only
+    counts and dates — it never reads entry text. Used when no real
+    model endpoint is configured (dev/test/degraded mode). The
     validator downstream enforces the schema regardless of what any
     model (mock or real) returns.
     """
@@ -115,6 +128,76 @@ def mock_model(ask: Ask, hits: list[JournalEvent]) -> dict[str, Any]:
     when = "this_week" if age_days <= 7 else "this_month" if age_days <= 30 else "older"
     strength = "strong" if n >= 3 else "weak"
     return {"answer": "yes", "strength": strength, "when": when, "count": count}
+
+
+_MODEL_SYSTEM_PROMPT = """You are a narrow classifier for a private journal gate.
+
+You are given a topic-ask and a small set of journal-entry snippets that
+already matched a keyword search. Decide, from those snippets ONLY, how
+to answer the ask.
+
+Respond with ONLY a single JSON object, no other text, no markdown
+fences, matching exactly this shape:
+{"answer": "yes"|"no"|"unsure", "strength": "weak"|"strong"|null, "when": "this_week"|"this_month"|"older"|null, "count": "0"|"1-2"|"3-9"|"10+"}
+
+Rules:
+- NEVER quote, repeat, or paraphrase any entry's wording in your output.
+- NEVER include any field or text outside the exact JSON shape above.
+- If you are not confident, answer "unsure"."""
+
+
+def real_model(
+    ask: Ask,
+    hits: list[JournalEvent],
+    *,
+    base_url: str,
+    model: str,
+    timeout: float = 8.0,
+) -> dict[str, Any]:
+    """Call a local, OpenAI-chat-completions-compatible model.
+
+    Runs on the estate's existing on-LAN resident model server — the
+    same trust boundary mem0-mcp already sends journal-adjacent
+    content to for memory extraction; this is not a new place private
+    content goes. Nothing about the security property depends on this
+    function being trustworthy: ``_validate`` enforces the closed
+    schema and the leak check against whatever this returns, exactly
+    as it does for ``mock_model``. Any network failure, timeout, or
+    unparseable response returns the closed "unsure" shape — never an
+    exception, never a partial or free-text result.
+    """
+    if not hits:
+        return {"answer": "no", "strength": None, "when": None, "count": "0"}
+    snippets = "\n".join(f"- {e.summary}" for e in hits[:20])
+    user_prompt = (
+        f'ask="{ask.ask}" topic="{ask.topic}" window_days={ask.window_days}\n'
+        f"matched snippets:\n{snippets}"
+    )
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": _MODEL_SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0,
+        "max_tokens": 120,
+    }
+    req = _urlreq.Request(
+        f"{base_url.rstrip('/')}/chat/completions",
+        data=_json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": "Bearer local"},
+        method="POST",
+    )
+    try:
+        with _urlreq.urlopen(req, timeout=timeout) as resp:
+            body = _json.loads(resp.read().decode("utf-8"))
+        text = body["choices"][0]["message"]["content"]
+        start, end = text.find("{"), text.rfind("}")
+        if start == -1 or end == -1 or end < start:
+            return UNSURE.model_dump()
+        return _json.loads(text[start : end + 1])
+    except (_urlerr.URLError, TimeoutError, OSError, KeyError, IndexError, ValueError):
+        return UNSURE.model_dump()
 
 
 def _shares_long_run(candidate: str, hits: list[JournalEvent], run_len: int = 5) -> bool:
@@ -147,15 +230,63 @@ def _validate(raw: dict[str, Any], hits: list[JournalEvent]) -> Answer:
     return answer
 
 
-def gate(ask_raw: dict[str, Any], journal: Journal) -> dict[str, Any]:
+class Denylist(BaseModel):
+    """The owner's "never answer about..." list. Checked before
+    retrieval or any model call — a blocked ask never reaches the
+    model at all, real or mock."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    blocked_agents: list[str] = Field(default_factory=list)
+    blocked_topics: list[str] = Field(default_factory=list)
+
+
+def load_denylist(path) -> Denylist:
+    from pathlib import Path
+
+    p = Path(path)
+    if not p.exists():
+        return Denylist()
+    try:
+        return Denylist.model_validate(_json.loads(p.read_text()))
+    except Exception:
+        return Denylist()
+
+
+def save_denylist(path, denylist: Denylist) -> None:
+    from pathlib import Path
+
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(_json.dumps(denylist.model_dump(), indent=2))
+
+
+def _denylisted(ask: Ask, caller_id: str, denylist: Denylist) -> bool:
+    if caller_id in denylist.blocked_agents:
+        return True
+    topic_lower = ask.topic.lower()
+    return any(t.lower() in topic_lower for t in denylist.blocked_topics if t)
+
+
+def gate(
+    ask_raw: dict[str, Any],
+    journal: Journal,
+    *,
+    model_fn: Callable[[Ask, list[JournalEvent]], dict[str, Any]] = mock_model,
+    denylist: Denylist | None = None,
+    caller_id: str = "",
+) -> dict[str, Any]:
     """The whole gate in one call. Any failure anywhere — a malformed
-    Ask, a malformed model answer, or a detected leak — collapses to
-    ``unsure``, never an exception and never partial/free-text output.
+    Ask, a denylisted caller/topic, a malformed model answer, or a
+    detected leak — collapses to ``unsure``, never an exception and
+    never partial/free-text output.
     """
     try:
         ask = Ask.model_validate(ask_raw)
     except Exception:
         return UNSURE.model_dump()
+    if denylist is not None and _denylisted(ask, caller_id, denylist):
+        return UNSURE.model_dump()
     hits = retrieve(ask.topic, journal, ask.window_days)
-    raw = mock_model(ask, hits)
+    raw = model_fn(ask, hits)
     return _validate(raw, hits).model_dump()

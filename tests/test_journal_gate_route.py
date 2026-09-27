@@ -126,3 +126,163 @@ class TestGateRateLimit:
         ]
         assert 200 in statuses
         assert 429 in statuses
+
+
+class TestModelMode:
+    def test_defaults_to_mock_when_unconfigured(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("PW_JOURNAL_GATE_MODEL_URL", raising=False)
+        c = _multi_client(tmp_path, monkeypatch)
+        user_tok, _ = _make_user_and_agent(c, ["journal_gate"])
+        r = c.post(
+            "/api/journal/gate", json=ASK, headers={"Authorization": f"Bearer {user_tok}"}
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["meta"]["model_mode"] == "mock"
+
+    def test_real_model_used_when_configured(self, tmp_path, monkeypatch):
+        from personal_world import journal_gate as jg
+
+        class _FakeResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                import json
+
+                content = json.dumps(
+                    {"answer": "no", "strength": None, "when": None, "count": "0"}
+                )
+                return json.dumps({"choices": [{"message": {"content": content}}]}).encode()
+
+        monkeypatch.setattr(jg._urlreq, "urlopen", lambda *a, **k: _FakeResp())
+        monkeypatch.setenv("PW_JOURNAL_GATE_MODEL_URL", "http://example.invalid/v1")
+        monkeypatch.setenv("PW_JOURNAL_GATE_MODEL_NAME", "test-model")
+        c = _multi_client(tmp_path, monkeypatch)
+        user_tok, _ = _make_user_and_agent(c, ["journal_gate"])
+        r = c.post(
+            "/api/journal/gate", json=ASK, headers={"Authorization": f"Bearer {user_tok}"}
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["meta"]["model_mode"] == "real"
+
+    def test_real_model_endpoint_down_fails_closed_to_unsure(self, tmp_path, monkeypatch):
+        from personal_world import journal_gate as jg
+
+        def boom(*a, **k):
+            raise jg._urlerr.URLError("connection refused")
+
+        monkeypatch.setattr(jg._urlreq, "urlopen", boom)
+        monkeypatch.setenv("PW_JOURNAL_GATE_MODEL_URL", "http://example.invalid/v1")
+        c = _multi_client(tmp_path, monkeypatch)
+        user_tok, _ = _make_user_and_agent(c, ["journal_gate"])
+        r = c.post(
+            "/api/journal", json={"text": "a migraine day, resting"}, headers={"Authorization": f"Bearer {user_tok}"}
+        )
+        assert r.status_code == 200, r.text
+        r = c.post(
+            "/api/journal/gate", json=ASK, headers={"Authorization": f"Bearer {user_tok}"}
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["data"]["answer"] == "unsure"
+        assert r.json()["meta"]["model_mode"] == "real"
+
+
+class TestGateLog:
+    def test_person_sees_structured_log_entry_after_ask(self, tmp_path, monkeypatch):
+        c = _multi_client(tmp_path, monkeypatch)
+        user_tok, _ = _make_user_and_agent(c, ["journal_gate"])
+        headers = {"Authorization": f"Bearer {user_tok}"}
+        c.post("/api/journal/gate", json=ASK, headers=headers)
+        r = c.get("/api/journal/gate/log", headers=headers)
+        assert r.status_code == 200, r.text
+        entries = r.json()["data"]["entries"]
+        assert len(entries) == 1
+        row = entries[0]
+        assert row["ask"] == "relates_to"
+        assert row["topic"] == "migraine"
+        assert row["caller_id"].startswith("person:")
+        assert "answer" in row
+
+    def test_log_entries_do_not_leak_into_gate_retrieval(self, tmp_path, monkeypatch):
+        """The audit trail itself must never become answerable content —
+        otherwise asking about a topic would match its own past asks."""
+        c = _multi_client(tmp_path, monkeypatch)
+        user_tok, _ = _make_user_and_agent(c, ["journal_gate"])
+        headers = {"Authorization": f"Bearer {user_tok}"}
+        for _ in range(5):
+            c.post("/api/journal/gate", json=ASK, headers=headers)
+        r = c.post("/api/journal/gate", json=ASK, headers=headers)
+        # If audit entries fed back into retrieval, 5 prior asks about the
+        # exact same topic would eventually show as "yes" evidence even
+        # with zero real journal content about it.
+        assert r.json()["data"]["answer"] == "no"
+
+    def test_agent_cannot_read_the_log(self, tmp_path, monkeypatch):
+        c = _multi_client(tmp_path, monkeypatch)
+        _, agent_tok = _make_user_and_agent(c, ["journal_gate"])
+        r = c.get("/api/journal/gate/log", headers={"Authorization": f"Bearer {agent_tok}"})
+        assert r.status_code == 403
+
+
+class TestGateDenylistRoute:
+    def test_person_can_view_and_set_denylist(self, tmp_path, monkeypatch):
+        c = _multi_client(tmp_path, monkeypatch)
+        user_tok, _ = _make_user_and_agent(c, ["journal_gate"])
+        headers = {"Authorization": f"Bearer {user_tok}", "X-PW-StepUp": "1"}
+        r = c.get("/api/journal/gate/denylist", headers=headers)
+        assert r.status_code == 200
+        assert r.json()["data"] == {"blocked_agents": [], "blocked_topics": []}
+        r = c.put(
+            "/api/journal/gate/denylist",
+            json={"blocked_agents": [], "blocked_topics": ["migraine"]},
+            headers=headers,
+        )
+        assert r.status_code == 200, r.text
+        r = c.get("/api/journal/gate/denylist", headers={"Authorization": f"Bearer {user_tok}"})
+        assert r.json()["data"]["blocked_topics"] == ["migraine"]
+
+    def test_denylisted_topic_forces_unsure_end_to_end(self, tmp_path, monkeypatch):
+        c = _multi_client(tmp_path, monkeypatch)
+        user_tok, agent_tok = _make_user_and_agent(c, ["journal_gate"])
+        c.put(
+            "/api/journal/gate/denylist",
+            json={"blocked_agents": [], "blocked_topics": ["migraine"]},
+            headers={"Authorization": f"Bearer {user_tok}", "X-PW-StepUp": "1"},
+        )
+        r = c.post(
+            "/api/journal/gate", json=ASK, headers={"Authorization": f"Bearer {agent_tok}"}
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["data"]["answer"] == "unsure"
+
+    def test_agent_cannot_view_or_edit_denylist(self, tmp_path, monkeypatch):
+        c = _multi_client(tmp_path, monkeypatch)
+        _, agent_tok = _make_user_and_agent(c, ["journal_gate"])
+        headers = {"Authorization": f"Bearer {agent_tok}"}
+        assert c.get("/api/journal/gate/denylist", headers=headers).status_code == 403
+        assert (
+            c.put(
+                "/api/journal/gate/denylist",
+                json={"blocked_agents": [], "blocked_topics": []},
+                headers=headers,
+            ).status_code
+            == 403
+        )
+
+    def test_denylist_write_requires_step_up(self, tmp_path, monkeypatch):
+        """TestClient's peer is loopback (a documented local-owner
+        exception), so step-up always passes over TestClient — the
+        real check is structural, same pattern as test_sections.py's
+        test_route_gates_are_declared."""
+        c = _multi_client(tmp_path, monkeypatch)
+        gates: dict[str, list[str]] = {}
+        for route in c.app.routes:
+            if getattr(route, "path", None) == "/api/journal/gate/denylist":
+                for m in route.methods:
+                    gates[m] = [d.dependency.__name__ for d in route.dependencies]
+        assert "require_step_up" in gates["PUT"]
+        assert "require_step_up" not in gates["GET"]
+        assert "require_auth" in gates["GET"]
