@@ -21,3 +21,7 @@ picture through `POST /api/crew/{id}/portrait`).
 
 Web sizes live in `ui/public/assets/crew/{256,512}/` with the same names as
 `.webp`. Edit these masters, never the web copies.
+
+## Library covers and shelves (2026-09-27)
+
+`covers/` holds one storybook cover per Worlds book, and `shelves/` holds one header per shelf look (ART-REQUESTS §15). Masters are WebP at quality 92, and the web sizes are in `ui/public/assets/library/`. The doorway pictures above are a separate set.
