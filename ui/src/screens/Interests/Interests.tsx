@@ -129,7 +129,7 @@ function FindingItem({ finding }: { finding: DiscoveryFinding }) {
 
 // ─── The screen ──────────────────────────────────────────────────────
 
-export function Interests() {
+export function Interests({ onOpenAtHome }: { onOpenAtHome?: () => void } = {}) {
   const statusQuery = useDiscoveryStatus();
   const [check, setCheck] = useState<CheckPhase>({ kind: "idle" });
 
@@ -221,6 +221,17 @@ export function Interests() {
           <p className="mt-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
             What discovery turns up for you, and what you follow.
           </p>
+          {onOpenAtHome ? (
+            <div className="mt-[var(--pw-spacing-md)] flex flex-wrap items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-md)]">
+              <p className="min-w-[12rem] flex-1 text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
+                <span className="font-semibold text-[var(--pw-text-primary)]">At home: </span>
+                the household’s shows, movies and music, for everyone in the house.
+              </p>
+              <WorldButton variant="secondary" onPress={onOpenAtHome}>
+                See what’s at home
+              </WorldButton>
+            </div>
+          ) : null}
         </header>
 
         {/* Loading / failure of the status read — never hidden (§1.5 static). */}

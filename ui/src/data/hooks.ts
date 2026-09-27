@@ -15,6 +15,10 @@ import { useEffect } from "react";
 import { worldsLibrary } from "./library";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  remember,
+  recall,
+  getLater,
+  moveLater,
   ApiError,
   getSecretsOverview,
   healthz,
@@ -165,6 +169,8 @@ export const queryKeys = {
   roomView: (roomId: string, name: string, item = "") => ["rooms", roomId, "views", name, item] as const,
   /** Under "rooms", so a room's change ping refreshes its shelf too. */
   libraries: ["rooms", "libraries"] as const,
+  later: ["later"] as const,
+  recall: (q: string) => ["recall", q] as const,
   secretsOverview: ["secrets", "overview"] as const,
   crew: ["crew"] as const,
   me: ["me"] as const,
@@ -1258,3 +1264,42 @@ export type Proposal = Envelope;
 export type ProviderActor = Actor;
 export type Healthz = HealthzResponse;
 export type Session = Envelope<SessionData>;
+
+// ─── Remember, recall, Later (#166) ───────────────────────────────────
+
+/** Keep one thought. The Later shelf and recall refresh after. */
+export function useRemember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ text, later, source }: { text: string; later?: boolean; source?: string }) =>
+      remember(text, later ?? false, source),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.later });
+      void qc.invalidateQueries({ queryKey: ["recall"] });
+      void qc.invalidateQueries({ queryKey: queryKeys.journal });
+    },
+  });
+}
+
+/** "What did I say about…": a plain word search, only once there are words. */
+export function useRecall(q: string) {
+  const query = q.trim();
+  return useQuery({
+    queryKey: queryKeys.recall(query),
+    queryFn: () => recall(query),
+    enabled: query.length > 0,
+    staleTime: 30_000,
+  });
+}
+
+export function useLater() {
+  return useQuery({ queryKey: queryKeys.later, queryFn: getLater, staleTime: 15_000 });
+}
+
+export function useMoveLater() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, to }: { id: string; to: "doing" | "done" | "later" }) => moveLater(id, to),
+    onSettled: () => void qc.invalidateQueries({ queryKey: queryKeys.later }),
+  });
+}
