@@ -19,14 +19,28 @@
  * chosen), "How bad is it?" with five big one-column buttons
  * (aria-pressed), an optional note, and one write only:
  * POST /api/journal {text} with the plain line a doctor can scan.
- * "Back" returns to the Bridge. No images but the companion portrait,
- * dimmed; no badges, no counts, no notification prompts.
+ * "Back" returns to the Bridge. The only images are Sol asleep and the
+ * companion, both dimmed (the companion in their sleepy night pose once
+ * that art exists: docs/ART-REQUESTS.md §14); no badges, no counts, no
+ * notification prompts.
  */
 
 import { useState } from "react";
 import { writeJournal } from "../../data/api";
 import { useBriefing } from "../../data/hooks";
 import { CompanionFace } from "../../components/crew/CompanionFace";
+import { SolMoment } from "../../components/SolMoment";
+import { Icon } from "../../components/Icon";
+
+/** Crew whose sleepy night pose has been delivered (ART-REQUESTS §14),
+ *  by crew key. Add a key when its `<key>-sleepy.webp` lands in
+ *  public/assets/crew/256/; until then the page shows the usual
+ *  portrait, dimmed. */
+const SLEEPY_ART: ReadonlySet<string> = new Set<string>([]);
+
+function nightPortrait(key: string | null, portrait: string): string {
+  return key && SLEEPY_ART.has(key) ? `/assets/crew/256/${key}-sleepy.webp` : portrait;
+}
 
 const LEVELS: readonly { value: number; label: string }[] = [
   { value: 1, label: "1 · A little" },
@@ -91,11 +105,16 @@ export function RoughNight({ onBack }: { onBack: () => void }) {
       id="main-content"
       aria-label="Rough night"
       data-theme="ocean"
-      className="relative z-10 min-h-[calc(100vh-112px)] bg-[var(--pw-surface-canvas)] px-[var(--pw-spacing-xl)] pt-[var(--pw-spacing-3xl)] pb-[calc(var(--pw-spacing-4xl)_+_var(--pw-safe-area-inset-bottom))] max-w-[560px]"
+      className="relative z-10 min-h-[calc(100vh-112px)] w-full bg-[var(--pw-surface-canvas)] px-[var(--pw-spacing-xl)] pt-[var(--pw-spacing-3xl)] pb-[calc(var(--pw-spacing-4xl)_+_var(--pw-safe-area-inset-bottom))]"
     >
-      <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-secondary)]">
-        Rough night
-      </h1>
+      <div className="mx-auto max-w-[560px]">
+      <div className="flex items-center gap-[var(--pw-spacing-md)]">
+        {/* Sol, asleep: company, not a message. Dimmed like the rest. */}
+        <SolMoment mood="sleeping" size={72} className="shrink-0 opacity-70" />
+        <h1 className="text-[length:var(--pw-typography-size_h1)] font-semibold text-[var(--pw-text-secondary)]">
+          Rough night
+        </h1>
+      </div>
 
       {/* 1 · One soft line from the companion — a character line, so
           the voice is allowed; no name when nobody was chosen. */}
@@ -103,7 +122,7 @@ export function RoughNight({ onBack }: { onBack: () => void }) {
         {hasCompanion && speaker.portrait !== null && (
           <CompanionFace
             name={speaker.name}
-            portrait={publicAsset(speaker.portrait)}
+            portrait={publicAsset(nightPortrait(speaker.key, speaker.portrait))}
             size="md"
             dim
           />
@@ -145,7 +164,18 @@ export function RoughNight({ onBack }: { onBack: () => void }) {
                 "focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]",
               ].join(" ")}
             >
-              {levelOption.label}
+              <span className="min-w-0 flex-1">{levelOption.label}</span>
+              {/* The choice in words and a mark, not colour alone;
+                  aria-pressed already tells a screen reader. */}
+              {pressed && (
+                <span
+                  aria-hidden="true"
+                  className="ml-[var(--pw-spacing-md)] inline-flex items-center gap-[var(--pw-spacing-xs)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-primary)]"
+                >
+                  <Icon name="check" size={20} />
+                  chosen
+                </span>
+              )}
             </button>
           );
         })}
@@ -190,6 +220,7 @@ export function RoughNight({ onBack }: { onBack: () => void }) {
       >
         Back
       </button>
+      </div>
     </main>
   );
 }
