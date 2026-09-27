@@ -10,12 +10,14 @@
  * A press sends the action with a fresh Idempotency-Key, says
  * "Asking…" (static), then shows the room's receipt in its own words.
  * An action with `fields` (a small form the server checked, e.g.
- * Hive Works' Riff: words, bees, a door) opens that form first.
+ * Hive Works' Riff: words, bees, a door) opens that form first. When
+ * the room offers a `crew` view, a choice whose value is one of its
+ * crew shows that member's face beside their name (decorative).
  */
 import { useEffect, useRef, useState } from "react";
-import { useRoomAction } from "../../data/hooks";
-import type { RoomActionReceipt, RoomOffer, RoomRow } from "../../data/contract";
-import { formatTime, idempotencyKey, LINK_BASE, TEXTAREA } from "./format";
+import { useRoomAction, useRoomView } from "../../data/hooks";
+import type { HiveCrewView, RoomActionReceipt, RoomOffer, RoomRow } from "../../data/contract";
+import { formatTime, idempotencyKey, LINK_BASE, roomItemUrl, TEXTAREA } from "./format";
 import { formBody, formReady, offerLabel, type FormValues } from "./choices";
 
 const SECTION_TITLE =
@@ -26,18 +28,44 @@ const PRIMARY_BUTTON = `${LINK_BASE} bg-[var(--pw-accent-warm)] text-[var(--pw-s
 const PICKED = `${LINK_BASE} border border-[var(--pw-accent-warm)] bg-[var(--pw-accent-warm_soft)] text-[var(--pw-text-primary)] disabled:opacity-60`;
 
 
+/** A crew member's face on a choice chip; hidden if it doesn't load. */
+function ChipFace({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      onError={() => setFailed(true)}
+      className="mr-[var(--pw-spacing-xs)] h-[28px] w-[28px] shrink-0 rounded-full border border-[var(--pw-border-subtle)] object-cover"
+    />
+  );
+}
+
 function OfferForm({
+  row,
   offer,
   label,
   onSend,
   onCancel,
 }: {
+  row: RoomRow;
   offer: RoomOffer;
   label: string;
   onSend: (body: Record<string, unknown>) => void;
   onCancel: () => void;
 }) {
   const fields = offer.fields ?? [];
+  // Faces for choices, from the room's own crew view when it has one
+  // (a 404 simply means no faces).
+  const hasChoices = fields.some((f) => f.kind !== "text");
+  const crewView = useRoomView<HiveCrewView>(row.id, "crew", undefined, hasChoices);
+  const faces = new Map<string, string>();
+  for (const b of crewView.data?.data?.crew ?? []) {
+    const url = b.face_url ? roomItemUrl(row, b.face_url) : null;
+    if (url) faces.set(b.bee, url);
+  }
   const [values, setValues] = useState<FormValues>({});
   const firstRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => firstRef.current?.focus(), []);
@@ -97,6 +125,7 @@ function OfferForm({
                     }
                     className={on ? PICKED : QUIET_BUTTON}
                   >
+                    {faces.has(o.value) ? <ChipFace src={faces.get(o.value) as string} /> : null}
                     {o.label}
                   </button>
                 );
@@ -187,6 +216,7 @@ export function RoomOffers({
       {filling && !asking && (
         <OfferForm
           key={filling.id}
+          row={row}
           offer={filling}
           label={offerLabel(filling)}
           onSend={(body) => send(filling, body)}

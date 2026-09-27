@@ -38,6 +38,7 @@ import { Crew } from "../screens/Crew/Crew";
 import { People } from "../screens/People/People";
 import { Helpers } from "../screens/Helpers/Helpers";
 import { RoughNight } from "../screens/RoughNight/RoughNight";
+import { Projects } from "../screens/Projects/Projects";
 import { StayFresh } from "./StayFresh";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
@@ -220,9 +221,11 @@ export function App() {
         return <RoughNight onBack={() => setActiveArea("overview")} />;
       case "interests":
         return <Interests />;
+      case "projects":
+        return <Projects />;
       default: {
         // Honest placeholders for destinations whose screens the
-        // station does not back yet (projects, systems).
+        // station does not back yet (systems).
         const label =
           [...skeleton, ...personal].find((a) => a.id === activeArea)?.label ??
           activeArea;
