@@ -591,12 +591,7 @@ def resolve_principal(
     instance_token: str | None,
 ) -> Principal:
     """The single entry point. No handler ever sees the raw token."""
-    if mode == "multi" and store is not None:
-        found = store.match_token(token or "")
-        if not found:
-            raise NoPrincipalError("no principal for token")
-        return principal_from_record(found, source="token", store=store)
-    # single mode: a project's learning key (PW_LEARNING_TOKEN) is an agent
+    # A project's learning key (PW_LEARNING_TOKEN), in either mode: an agent
     # of the primary person whose only scope is "learning"; api.py confines
     # it to /api/learning (CONFINING_SCOPES). It never becomes the person.
     learning_token = os.environ.get("PW_LEARNING_TOKEN", "")
@@ -611,6 +606,11 @@ def resolve_principal(
             source="token",
             role="owner",
         )
+    if mode == "multi" and store is not None:
+        found = store.match_token(token or "")
+        if not found:
+            raise NoPrincipalError("no principal for token")
+        return principal_from_record(found, source="token", store=store)
     # single mode: bootstrap "primary" directly from the instance token
     if (
         not instance_token
