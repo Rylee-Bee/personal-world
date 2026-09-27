@@ -2955,6 +2955,16 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
         )
 
+    @app.get("/api/library", dependencies=[Depends(require_auth)])
+    async def library_home(request: Request) -> dict:
+        """The Library's connected shelves: every room that keeps a library
+        (Play-Nice ``library/0``), one row each, ``{room, status, library?,
+        error?}``. Worlds' own books are bundled into the app, so they are
+        not here. A library that can't be read is a row with plain words,
+        never a missing shelf or a 500."""
+        rows = await _ROOMS.libraries(getattr(request.state, "principal", None))
+        return {"ok": True, "data": rows}
+
     @app.get("/api/rooms/{room_id}/art/{name}.webp", dependencies=[Depends(require_auth)])
     async def rooms_art(room_id: str, name: str) -> Response:
         """A room's picture (e.g. a Hive Works crew face), passed through

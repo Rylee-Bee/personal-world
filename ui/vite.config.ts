@@ -1,5 +1,5 @@
 /// <reference types="vitest/config" />
-import { defineConfig } from "vite";
+import { defineConfig, searchForWorkspaceRoot } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from 'node:path';
@@ -21,6 +21,8 @@ export default defineConfig({
   base: process.env.PW_VITE_BASE ?? "/",
   plugins: [react(), tailwindcss()],
   server: {
+    // The Library's books live in ../docs/library and are bundled in.
+    fs: { allow: [searchForWorkspaceRoot(process.cwd()), path.resolve(dirname, "../docs/library")] },
     proxy: {
       "/api": {
         target: API_TARGET,

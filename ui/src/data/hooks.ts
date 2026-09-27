@@ -12,6 +12,7 @@
  */
 
 import { useEffect } from "react";
+import { worldsLibrary } from "./library";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -86,6 +87,7 @@ import {
   putPlace,
   getRooms,
   getRoomView,
+  getLibraries,
   postRoomVisit,
   postNeedSeen,
   postRoomAction,
@@ -158,6 +160,8 @@ export const queryKeys = {
   rooms: ["rooms"] as const,
   /** Under "rooms", so a live room-changed event refreshes views too. */
   roomView: (roomId: string, name: string, item = "") => ["rooms", roomId, "views", name, item] as const,
+  /** Under "rooms", so a room's change ping refreshes its shelf too. */
+  libraries: ["rooms", "libraries"] as const,
   secretsOverview: ["secrets", "overview"] as const,
   crew: ["crew"] as const,
   me: ["me"] as const,
@@ -828,6 +832,24 @@ export function useRoomView<T>(roomId: string, name: string, item?: string, enab
     staleTime: 30_000,
     retry: (count, error) => !(error instanceof ApiError && error.status === 404) && count < 2,
   });
+}
+
+/** The Library home: Worlds' own shelf first, then every connected room's
+ *  library under its keeper (never merged), and the rows that couldn't be
+ *  read, so the page can say so. Live through {@link useRoomEvents}. */
+export function useLibrary() {
+  const rooms = useQuery({
+    queryKey: queryKeys.libraries,
+    queryFn: getLibraries,
+    staleTime: 60_000,
+  });
+  const rows = rooms.data?.data ?? [];
+  return {
+    libraries: [worldsLibrary, ...rows.flatMap((r) => (r.status === "ok" && r.library ? [r.library] : []))],
+    unavailable: rows.filter((r) => r.status !== "ok"),
+    loading: rooms.isLoading,
+    error: rooms.error,
+  };
 }
 
 /** Live rooms: listen to GET /api/rooms/events and refresh the rooms (and

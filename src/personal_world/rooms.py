@@ -180,6 +180,33 @@ ART_PATH = "/room/art"
 _VALID_ART_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
 MAX_ART_BYTES = 2 * 1024 * 1024
 ART_CACHE_SECONDS = 3600.0
+#: A room's library (Play-Nice ``library/0``), an optional ROOM extra.
+LIBRARY_PATH = "/room/library"
+MAX_LIBRARY_BYTES = 1024 * 1024
+
+
+def _is_library(doc: Any) -> bool:
+    """The minimum shape of a ``library/0`` document Worlds relies on."""
+    if not isinstance(doc, dict) or doc.get("contract") != "library/0":
+        return False
+    keeper = doc.get("keeper")
+    if not isinstance(keeper, dict) or not isinstance(keeper.get("id"), str) or not isinstance(keeper.get("name"), str):
+        return False
+    if not isinstance(doc.get("shelves"), list) or not isinstance(doc.get("books"), list):
+        return False
+    for book in doc["books"]:
+        if not isinstance(book, dict) or not isinstance(book.get("title"), str) or not isinstance(book.get("short"), str):
+            return False
+        pages = book.get("pages")
+        if not isinstance(pages, list) or not pages or not all(
+            isinstance(p, dict) and p.get("kind") in ("plain", "voice", "words", "technical")
+            and isinstance(p.get("text"), str)
+            for p in pages
+        ):
+            return False
+    return True
+
+
 #: Change pings from one room closer together than this fold into one.
 PING_MIN_GAP_SECONDS = 2.0
 #: Events a slow listener may queue before it starts missing pings.
@@ -1279,6 +1306,71 @@ class RoomsService:
         if ok or resp.status_code == 404:
             self._views_cache[key] = (now, 200, data)
         return data
+
+    # ── Libraries (Play-Nice ``library/0`` at ``GET /room/library``) ──
+
+    async def libraries(self, principal: Any | None = None, env: dict | None = None) -> list[dict[str, Any]]:
+        """Every connected room's library, one row per room that has one.
+
+        A row is ``{room, status, library?, error?}``: ``ok`` with the
+        room's ``library/0`` document (checked for its shape, never
+        rewritten), or ``unavailable`` with plain words when the room's
+        library couldn't be read. A room without a library (404) has no
+        row. Uses the view machinery: room token, size cap, 15 s cache
+        that the room's change ping clears. Never raises.
+        """
+        env = os.environ if env is None else env
+        configs, _ = await self._resolve_configs(env)
+        rows: list[dict[str, Any]] = []
+
+        async def one(config: RoomConfig) -> None:
+            status, payload = await self._fetch_json(config, LIBRARY_PATH, "library", principal)
+            if status == 404:
+                return
+            if status == 200 and _is_library(payload):
+                rows.append({"room": config.id, "status": "ok", "library": payload})
+            else:
+                rows.append({"room": config.id, "status": "unavailable",
+                             "error": f"{config.id}'s library couldn't be read."})
+
+        usable = [c for c in configs if c.contract in SUPPORTED_CONTRACTS and c.invalid_reason is None]
+        await asyncio.gather(*(one(c) for c in usable))
+        rows.sort(key=lambda r: r["room"])
+        return rows
+
+    async def _fetch_json(
+        self, config: RoomConfig, path: str, cache_name: str, principal: Any | None
+    ) -> tuple[int, Any]:
+        principal_id = _safe_principal_id(getattr(principal, "id", None))
+        who = principal_id if config.forward_principal else ""
+        key = (config.id, cache_name, who or "")
+        now = self._clock()
+        hit = self._views_cache.get(key)
+        if hit and now - hit[0] < VIEW_CACHE_SECONDS:
+            return hit[1], hit[2]
+        headers = self._room_headers(config, principal_id)
+        headers["Accept"] = "application/json"
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(VIEW_TIMEOUT_SECONDS),
+                verify=not config.insecure_tls,
+                transport=self._transport,
+                follow_redirects=False,
+            ) as client:
+                resp = await client.get(config.base_url.rstrip("/") + path, headers=headers)
+        except Exception:  # noqa: BLE001 — a dead room must not break the main app
+            return 502, None
+        if resp.status_code == 404:
+            result: tuple[int, Any] = (404, None)
+        elif not (200 <= resp.status_code < 300) or len(resp.content) > MAX_LIBRARY_BYTES:
+            result = (502, None)
+        else:
+            try:
+                result = (200, resp.json())
+            except (ValueError, UnicodeDecodeError):
+                result = (502, None)
+        self._views_cache[key] = (now, result[0], result[1])
+        return result
 
     # ── Read-only views (``GET /room/views/{name}[/{item}]``) ───────
 

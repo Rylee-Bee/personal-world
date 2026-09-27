@@ -219,3 +219,57 @@ def test_art_route_needs_auth_and_serves_webp(client):
     r = c.get("/api/rooms/workshop/art/pip.webp", headers=AUTH)
     assert r.status_code == 200 and r.headers["content-type"] == "image/webp" and r.content == WEBP
     assert c.get("/api/rooms/workshop/art/nope.webp", headers=AUTH).status_code == 404
+
+
+LIB = {"contract": "library/0", "generated_at": "2026-09-27T01:00:00Z",
+       "keeper": {"id": "hive-works", "name": "Hive Works", "look": "hive-corporate"},
+       "shelves": [{"id": "hive-works", "name": "How Hive Works runs"}],
+       "books": [{"id": "b", "shelf": "hive-works", "title": "T", "short": "S.",
+                  "pages": [{"kind": "plain", "text": "P"}]}]}
+
+
+class TestLibraries:
+    def _svc(self, lib, calls=None):
+        views = {} if lib is None else {"/room/library": lib}
+        return RoomsService(transport=_transport([] if calls is None else calls, views=views), clock=Clock())
+
+    def test_a_rooms_library_comes_through_unchanged(self):
+        rows = run(self._svc(LIB).libraries(env=ENV))
+        assert rows == [{"room": "workshop", "status": "ok", "library": LIB}]
+
+    def test_a_room_without_a_library_has_no_row(self):
+        assert run(self._svc(None).libraries(env=ENV)) == []
+
+    @pytest.mark.parametrize("bad", [
+        {**LIB, "contract": "library/9"},
+        {**LIB, "books": [{"title": "T", "short": "S", "pages": []}]},
+        {**LIB, "books": [{"title": "T", "short": "S", "pages": [{"kind": "secret", "text": "x"}]}]},
+        httpx.Response(500, json={}),
+        httpx.Response(200, text="not json"),
+    ])
+    def test_an_unreadable_library_is_said_in_words(self, bad):
+        rows = run(self._svc(bad).libraries(env=ENV))
+        assert rows[0]["status"] == "unavailable" and "library" not in rows[0]
+        assert rows[0]["error"] == "workshop's library couldn't be read."
+
+    def test_a_change_ping_refreshes_the_library(self):
+        calls, clock = [], Clock()
+        svc = RoomsService(transport=_transport(calls, views={"/room/library": LIB}), clock=clock)
+        run(svc.libraries(env=ENV))
+        run(svc.libraries(env=ENV))
+        n = lambda: len([c for c in calls if c.url.path == "/room/library"])  # noqa: E731
+        assert n() == 1
+        clock.t += 10
+        run(svc.room_changed("workshop", ENV))
+        run(svc.libraries(env=ENV))
+        assert n() == 2
+
+
+def test_library_route(client):
+    c, _ = client
+    import personal_world.api as api_mod
+
+    api_mod._ROOMS = RoomsService(transport=_transport([], views={"/room/library": LIB}), clock=Clock())
+    assert c.get("/api/library").status_code == 401
+    r = c.get("/api/library", headers=AUTH)
+    assert r.status_code == 200 and r.json()["data"][0]["library"]["keeper"]["id"] == "hive-works"

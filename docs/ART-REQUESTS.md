@@ -1,6 +1,6 @@
 # ART REQUESTS — what to ask for, and how to ask
 
-> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** how to phrase crew/area art requests so new work matches the existing style · **Read this if:** you are commissioning or generating new art.
+> **Status:** Reference · **Verified:** 2026-09-27 · **Canonical for:** how to phrase crew/area art requests so new work matches the existing style · **Read this if:** you are commissioning or generating new art.
 
 **Display names:** see `docs/COMPANION-CANON.md` — some request text below predates the 2026-09-25 name updates (Sol, Scoop).
 
@@ -650,3 +650,82 @@ zip). Claude checks transparency, size and how dark they read, curates the
 masters into `design/assets/crew/sleepy/`, exports `ui/public/assets/crew/{256,512}/`
 WebPs, and uses them on the Rough night page (and anywhere else a quiet
 night fits, like quiet hours).
+
+## 15. The Library: storybook covers and three shelves (requested 2026-09-27)
+
+**Why:** Worlds is getting a **Library** page (owner ask, 2026-09-27): short
+books on how Worlds works, for every reader. Every connected app lends its
+shelves, and each keeper's shelf is its own little world. Worlds' shelf is a
+starship's reading room full of illustrated sci-fi storybooks, Hive Works'
+is the company handbook on honeycomb shelving, and VEFR's is a storyteller's
+study. Until the art lands, the page draws plain covers from the theme, so
+nothing waits on this.
+
+**The storybook clause** (paste first, before the style clause in §1):
+
+> A storybook cover in the Project Worlds style: warm painterly sci-fi, crisp
+> but soft dark outlines, deep navy and starlight with gold accents, a little
+> whimsical, never busy. One clear idea per cover that reads at 120 px wide,
+> like a picture book for grown-ups. The crew may appear, in their navy-and-gold
+> uniforms. **No text, no letters, no numbers, no title**: Worlds prints the
+> title itself, so the art must not.
+
+**Deliver the covers:** one PNG per book, **1024 × 1536 (portrait, 2:3)**,
+full bleed (no transparency needed), the idea in the middle two-thirds (the
+top and bottom may sit under a title band), no text. File name = the book's
+file name, e.g. `02-rooms.png`.
+
+| File | Book | The picture |
+| --- | --- | --- |
+| `01-how-worlds-fits-together.png` | How Worlds fits together | A small glowing home planet at the centre, a handful of little moons on thin gold orbits around it, each moon a different room with a lit window |
+| `02-rooms.png` | Rooms | A starship corridor of round doors, each painted in a different app's colours; one stands open with warm light spilling out |
+| `03-live-both-ways.png` | Live, both ways | Two round windows across a starry gap, a paper-lantern message floating from one to the other and a second one floating back |
+| `04-how-the-screens-are-layered.png` | How the screens are layered | Four panes of tinted glass stacked with space between them, like a layer cake of starlight; the bottom pane is solid and carved in stone |
+| `05-honest-by-default.png` | Honest by default | Mira holding a lantern into soft fog: what the light reaches is crisp and clear, the rest is left gently unknown |
+| `06-secrets.png` | Secrets | A small locked brass chest with a luggage tag showing only a little map; Ratatoskr holds the key ring and winks |
+| `07-every-setup-checks-itself.png` | Every setup checks itself | Bolt listening to a pipe with a tiny stethoscope, a clipboard of ticks at its side |
+| `08-who-can-do-what.png` | Who can do what | A board of hooks with keys of different sizes, each glowing a different soft colour; one small key and one big key |
+| `09-notifications.png` | Notifications | A small brass ship's bell on a console beside a crescent moon, one tiny envelope of light flying out |
+| `10-how-a-change-reaches-you.png` | How a change reaches you | A little parcel riding a conveyor through three stations (a drafting table, an inspection lamp, a launch tube) toward a phone at the end |
+| `11-lessons-learned-the-hard-way.png` | Lessons learned the hard way | A ship's hull with a proud stitched patch over an old dent, and Hekek's toolbox open beside it |
+| `12-the-candy-dispenser.png` | The candy dispenser | A whimsical round candy dispenser giving out glowing sweets, each sweet a tiny film, book or song |
+| `13-how-integrations-work.png` | How integrations work | Four different plugs and adapters of all shapes, all fitting into one friendly socket panel |
+| `14-the-vault.png` | The vault | A big round vault door ajar, with one small velvet box inside |
+| `15-confirm-its-you.png` | Confirm it's you | A crew member holding their combadge up to a scanner that glows back warmly |
+| `16-making-the-ui.png` | Making the UI | A drafting table with cards, colour swatches and a ruler; tiny crew arranging the pieces like a puzzle |
+| `17-how-the-interface-was-made.png` | How the interface was made | Boards pinned on a wall, a palette of colour tokens, a small camera taking pictures of screens, and letters passing between two windows |
+
+**Three shelf pieces** (one per look; wide headers for the top of each
+keeper's shelf): **1536 × 512 PNG, real transparency**, the scene fading to
+transparent at its edges so it sits on any background, no text.
+
+| File | Look | The picture |
+| --- | --- | --- |
+| `shelf-scifi-storybook.png` | Worlds | A starship's reading room: curved shelves with softly glowing rails, storybook spines, round portholes full of stars, a reading chair |
+| `shelf-hive-corporate.png` | Hive Works | Honeycomb shelving holding tidy handbook binders with coloured tabs; two worker bees in tiny ties filing a binder, a small "company" desk lamp |
+| `shelf-vefr.png` | VEFR | A storyteller's study in charcoal and parchment with gold trim: leather tomes, a candle, a map pinned open, a quill (VEFR's own palette: charcoal, parchment, gold, teal) |
+
+**One more Sol mood:** `sol-reading.png`, framed exactly like
+`sol-cheer.png` (§12): Sol with a tiny open storybook on the ring, reading
+happily, a small star-shaped bookmark. For the Library's header and the
+first-day guide's "Want to know how this works?". Must read at 48 px.
+
+**Copy-paste request (covers, one at a time; swap the last line):**
+
+```
+Paint a storybook cover for a Project Worlds book. Warm painterly sci-fi, crisp but soft dark
+outlines, deep navy and starlight with gold accents, a little whimsical, never busy: one clear
+idea that reads at 120 px wide, like a picture book for grown-ups. The crew may appear in their
+navy-and-gold uniforms. No text, no letters, no numbers, no title. Portrait PNG, 1024x1536,
+full bleed, the idea in the middle two-thirds.
+The picture: <paste the picture from §15's table>
+```
+
+**Hive Works and VEFR covers:** their keepers add them to their own art
+(served through the room, `roomArtUrl`); nothing to paint here for them yet.
+
+**Where they go:** drop them in `design/owner/library/newassets/` (or send a
+zip). Claude checks size, text-free-ness and how they read small, curates
+the masters into `design/assets/library/`, exports
+`ui/public/assets/library/covers/{256,512}/<book>.webp` and
+`ui/public/assets/library/shelf-<look>.webp`, and puts them on the shelves.
