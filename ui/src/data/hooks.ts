@@ -15,6 +15,10 @@ import { useEffect } from "react";
 import { worldsLibrary } from "./library";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  getStickers,
+  postStickerFound,
+  postStickerPlace,
+  getNotificationPrefs,
   getLearning,
   putLearningMode,
   postLearningGotIt,
@@ -1327,4 +1331,35 @@ export function useLearningGotIt() {
     mutationFn: postLearningGotIt,
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["learning"] }),
   });
+}
+
+// ─── Stickers (docs/STICKERS.md) ──────────────────────────────────────
+
+export function useStickers(enabled = true) {
+  return useQuery({ queryKey: ["stickers"] as const, queryFn: getStickers, staleTime: 30_000, enabled });
+}
+
+/** Save where a found sticker sits. The album refreshes after. */
+export function useStickerPlace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: postStickerPlace,
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["stickers"] }),
+  });
+}
+
+/** Report a moment only the UI sees; a new sticker refreshes the album. */
+export function useStickerFound() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sticker, context }: { sticker: string; context?: string }) => postStickerFound(sticker, context),
+    onSuccess: (res) => {
+      if (res.data?.new) void qc.invalidateQueries({ queryKey: ["stickers"] });
+    },
+  });
+}
+
+/** The person's notification prefs (quiet hours live there). */
+export function useNotificationPrefs() {
+  return useQuery({ queryKey: ["notifications", "prefs"] as const, queryFn: getNotificationPrefs, staleTime: 60_000 });
 }

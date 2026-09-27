@@ -25,12 +25,13 @@
  * notification prompts.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { writeJournal } from "../../data/api";
 import { useBriefing } from "../../data/hooks";
 import { CompanionFace } from "../../components/crew/CompanionFace";
 import { SolMoment } from "../../components/SolMoment";
 import { Icon } from "../../components/Icon";
+import { noteRoughNight } from "../../components/stickers/landing";
 
 /** Crew with a sleepy night pose (ART-REQUESTS §14, delivered
  *  2026-09-26), by crew key: `<key>-sleepy.webp` in
@@ -80,6 +81,8 @@ export function roughNightText(level: number, note: string, at: Date): string {
 }
 
 export function RoughNight({ onBack }: { onBack: () => void }) {
+  // Stickers stay quiet for 12 hours after a rough night (no peel at all).
+  useEffect(() => noteRoughNight(), []);
   const briefing = useBriefing();
   // The same keeper resident the Bridge gets its companion from;
   // key === null is Worlds' plain voice — then the line has no name.

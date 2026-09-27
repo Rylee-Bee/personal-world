@@ -7,7 +7,7 @@
  */
 export type AreaKey =
   | "overview" | "memory" | "chat" | "settings" | "interests" | "projects" | "systems"
-  | "crew" | "people" | "helpers" | "rough-night" | "library" | "lore" | "at-home";
+  | "crew" | "people" | "helpers" | "rough-night" | "library" | "lore" | "at-home" | "stickers";
 
 const SLUG: Record<AreaKey, string> = {
   overview: "bridge",
@@ -24,6 +24,7 @@ const SLUG: Record<AreaKey, string> = {
   library: "library",
   lore: "lore",
   "at-home": "at-home",
+  stickers: "stickers",
 };
 const BY_SLUG = new Map(Object.entries(SLUG).map(([area, slug]) => [slug, area as AreaKey]));
 

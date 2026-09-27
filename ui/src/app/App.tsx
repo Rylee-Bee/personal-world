@@ -44,6 +44,8 @@ import { Icon } from "../components/Icon";
 import { RememberForm } from "../components/remember/RememberForm";
 import { Lore } from "../screens/Lore/Lore";
 import { AtHome } from "../screens/AtHome/AtHome";
+import { Stickers } from "../screens/Stickers/Stickers";
+import { StickerLanding } from "../components/stickers/StickerLanding";
 import { Computers } from "../screens/Computers/Computers";
 import { Projects } from "../screens/Projects/Projects";
 import { StayFresh } from "./StayFresh";
@@ -147,7 +149,7 @@ export function App() {
   // landmark. Every screen has an address (#memory, #library…): the page
   // opened from an address wins over the Bridge on load.
   const [activeArea, setActiveArea] = useState<
-    WorldAreaId | "crew" | "people" | "helpers" | "rough-night" | "library" | "lore" | "at-home"
+    WorldAreaId | "crew" | "people" | "helpers" | "rough-night" | "library" | "lore" | "at-home" | "stickers"
   >(
     () =>
       (returned as
@@ -159,6 +161,7 @@ export function App() {
         | "library"
         | "lore"
         | "at-home"
+        | "stickers"
         | null) ??
       areaFromHash(window.location.hash) ??
       "overview",
@@ -261,6 +264,7 @@ export function App() {
             onOpenRoughNight={() => setActiveArea("rough-night")}
             onOpenLibrary={() => openLibrary("settings")}
             onOpenLore={() => openLore("settings")}
+            onOpenStickers={() => setActiveArea("stickers")}
           />
         );
       case "crew":
@@ -287,6 +291,8 @@ export function App() {
         );
       case "at-home":
         return <AtHome onBack={() => setActiveArea("interests")} />;
+      case "stickers":
+        return <Stickers />;
       case "interests":
         return <Interests onOpenAtHome={() => setActiveArea("at-home")} />;
       case "projects":
@@ -444,6 +450,9 @@ export function App() {
           <RememberForm />
         ) : null}
       </WorldDrawer>
+
+      {/* A sticker that just landed peels quietly into the corner. */}
+      <StickerLanding roughNightOpen={activeArea === "rough-night"} onOpenAlbum={() => setActiveArea("stickers")} />
 
       {/* Status strip — bottom bar pattern from starfield */}
       <StatusStrip />

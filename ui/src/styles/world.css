@@ -1004,3 +1004,31 @@ body {
 .sticker-peel-words { font-size: var(--pw-typography-size_small); }
 .sticker-peel-settled { opacity: 0.6; }
 @keyframes sticker-peel-in { from { transform: translate(12px, 12px) rotate(8deg); opacity: 0; } }
+
+/* The album board: stickers sit wherever they were stuck (x, y from 0 to 1). */
+.sticker-board { position: relative; display: block; padding: 0; overflow: hidden; }
+.sticker-slot {
+  position: absolute;
+  width: 128px;
+  transform: translate(-50%, -50%);
+  touch-action: manipulation;
+}
+.sticker-slot[style*="touch-action: none"] { cursor: grab; }
+.sticker-slot-turned .sticker-die { box-shadow: 0 0 0 5px #fff, 0 0 0 8px var(--pw-accent-warm), 0 3px 10px rgb(40 24 8 / 0.25); }
+.sticker-new {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  z-index: 1;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--pw-accent-warm);
+  color: var(--pw-surface-void, #0b0e1f);
+  font-size: 13px;
+  font-weight: 700;
+}
+/* Each app's page in its own look. */
+.sticker-look-hive-corporate { --paper: #fbf1d6; background: radial-gradient(circle at 20% 10%, #fff8e1, transparent 60%), #fbf1d6; }
+.sticker-look-vefr { --paper: #efe6d2; --paper-ink: #2a241a; background: linear-gradient(transparent 31px, rgb(42 36 26 / 0.1) 32px) 0 0 / 100% 32px, #efe6d2; }
+@media (max-width: 480px) { .sticker-slot { width: 104px; } }
+.sticker, .sticker-slot { user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
