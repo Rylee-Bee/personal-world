@@ -33,6 +33,7 @@
  */
 
 import { LoreSection } from "./LoreSection";
+import { LearningModeSetting } from "../../components/bookgirl/LearningModeSetting";
 import { LoreSummary } from "../Lore/LoreSummary";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -914,6 +915,10 @@ export function Settings({
         <NotificationsSection />
         <SettingsSection id="Your lore" titleId="settings-lore-heading">
           {onOpenLore ? <LoreSummary onOpen={onOpenLore} /> : <LoreSection />}
+        </SettingsSection>
+
+        <SettingsSection id="Book Girl" titleId="settings-bookgirl-heading">
+          <LearningModeSetting />
         </SettingsSection>
 
         <FirstDayToggle />

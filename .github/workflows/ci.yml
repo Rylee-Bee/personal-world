@@ -8,14 +8,14 @@ name: ui-ci
 # typechecks, lints, unit-tests, or builds ui/ on every PR. This
 # workflow closes that gap; it does not replace validate.yml.
 #
-# STATUS: armed — ui/ lives on main since the 2026-09-22 merge; this runs
-# on every PR touching ui/ and every push to main.
+# STATUS: armed. `ui` is a REQUIRED check, so it runs on EVERY PR (a
+# path filter here would leave backend-only PRs blocked forever waiting
+# for a check that never starts). When a PR doesn't touch ui/ or this
+# file, the job reports success after the "Did ui/ change?" step and
+# skips the rest. Pushes to main stay path-filtered.
 
 on:
   pull_request:
-    paths:
-      - "ui/**"
-      - ".github/workflows/ci.yml"
   push:
     branches: [main]
     paths:
@@ -42,17 +42,37 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Did ui/ change?
+        id: changes
+        working-directory: .
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "ui=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if git diff --name-only "$BASE...$HEAD" | grep -qE '^(ui/|\.github/workflows/ci\.yml$)'; then
+            echo "ui=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ui=false" >> "$GITHUB_OUTPUT"
+            echo "No ui/ changes in this PR; the UI checks are skipped and this check passes."
+          fi
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.changes.outputs.ui == 'true'
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: ui/package-lock.json
 
       - name: Install
+        if: steps.changes.outputs.ui == 'true'
         run: npm ci --no-audit --no-fund
 
       - name: Install Chromium for the Vitest Storybook project
+        if: steps.changes.outputs.ui == 'true'
         # vite.config.ts defines two vitest projects: 'unit' (jsdom) and
         # 'storybook' (browser mode via @vitest/browser-playwright,
         # chromium). Without this step `vitest run` fails to launch a
@@ -60,6 +80,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Token drift gate
+        if: steps.changes.outputs.ui == 'true'
         # src/generated/tokens.{css,ts} are committed; regeneration must be
         # a no-op. A non-empty diff means generated output drifted from
         # design/themes/*.json (or someone hand-edited the generated files).
@@ -69,6 +90,7 @@ jobs:
           git diff --exit-code src/generated
 
       - name: Worlds kit drift gate + preview checks
+        if: steps.changes.outputs.ui == 'true'
         # ui/dist-kit is committed for other tool UIs to vendor; a rebuild
         # must be a no-op, and the preview must stay accessible at 390/1440.
         run: |
@@ -76,15 +98,19 @@ jobs:
           npm run kit:test:e2e
 
       - name: Typecheck
+        if: steps.changes.outputs.ui == 'true'
         run: npx tsc -b
 
       - name: Lint
+        if: steps.changes.outputs.ui == 'true'
         run: npm run lint
 
       - name: Unit + Storybook tests (vitest)
+        if: steps.changes.outputs.ui == 'true'
         run: npx vitest run
 
       - name: Build
+        if: steps.changes.outputs.ui == 'true'
         run: npm run build
 
 # ─────────────────────────────────────────────────────────────────────────────

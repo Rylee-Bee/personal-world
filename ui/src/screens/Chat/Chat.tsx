@@ -15,6 +15,8 @@ import {
   useToneRegister,
 } from "../../data/hooks";
 import { CompanionFace } from "../../components/crew/CompanionFace";
+import { LearnMoment } from "../../components/bookgirl/LearnMoment";
+import type { LearningMoment } from "../../data/api";
 import { SolMoment } from "../../components/SolMoment";
 import { SpotArt } from "../../components/SpotArt";
 import type { ChatEntry } from "../../data/hooks";
@@ -54,6 +56,9 @@ export interface ChatDraft {
 
 export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
   const [input, setInput] = useState(draft?.text ?? "");
+  // Book Girl: the last reply named an idea. She sits beside that reply
+  // (the newest one from the assistant) until the next message is sent.
+  const [learning, setLearning] = useState<{ moment: LearningMoment; reply: string } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -77,6 +82,8 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
   const speaker = useChatSpeaker();
 
   const messages = normaliseMessages(history.data?.data?.entries);
+  // The newest reply: Book Girl's place, when it named an idea.
+  const lastAssistant = messages.map((m) => m.role).lastIndexOf("assistant");
   const isLoadingHistory = history.isLoading;
   const isSending = sendChat.isPending;
 
@@ -97,6 +104,7 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
     const text = input.trim();
     if (!text || isSending) return;
 
+    setLearning(null);
     sendChat.mutate(
       {
         message: text,
@@ -107,7 +115,11 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
         })),
       },
       {
-        onSuccess: () => {
+        onSuccess: (res) => {
+          const l = res.data?.learning;
+          if (l && (l.stage === "first" || l.stage === "again")) {
+            setLearning({ moment: l, reply: res.data?.reply ?? "" });
+          }
           setInput("");
           // Refocus input after send
           inputRef.current?.focus();
@@ -241,7 +253,12 @@ export function Chat({ draft }: { draft?: ChatDraft | null } = {}) {
         ) : (
           <div className="mx-auto max-w-[720px] space-y-[var(--pw-spacing-lg)]">
             {messages.map((msg, i) => (
-              <MessageBubble key={`${msg.ts ?? "now"}-${i}`} message={msg} speaker={speaker} />
+              <MessageBubble
+                key={`${msg.ts ?? "now"}-${i}`}
+                message={msg}
+                speaker={speaker}
+                learning={learning && i === lastAssistant ? learning.moment : null}
+              />
             ))}
 
             {isSending && (
@@ -368,7 +385,16 @@ function useChatSpeaker(): ChatSpeaker | null {
 /** A single chat message. The companion's face and name sit beside
  *  theirs (decoration; the name is written); yours are lamp-lit. The
  *  list itself is the live region (role="log"), so bubbles aren't. */
-function MessageBubble({ message, speaker }: { message: ChatMessage; speaker: ChatSpeaker | null }) {
+function MessageBubble({
+  message,
+  speaker,
+  learning,
+}: {
+  message: ChatMessage;
+  speaker: ChatSpeaker | null;
+  /** Book Girl beside this reply, when it named an idea. */
+  learning?: LearningMoment | null;
+}) {
   const isUser = message.role === "user";
   if (isUser) {
     return (
@@ -391,6 +417,7 @@ function MessageBubble({ message, speaker }: { message: ChatMessage; speaker: Ch
         <div className="rounded-[var(--pw-radius-md)] rounded-tl-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] px-[var(--pw-spacing-lg)] py-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_body)] leading-relaxed text-[var(--pw-text-primary)]">
           {message.content}
         </div>
+        {learning ? <LearnMoment key={learning.concept} moment={learning} /> : null}
       </div>
     </div>
   );
