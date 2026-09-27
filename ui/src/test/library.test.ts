@@ -38,3 +38,14 @@ describe("the Worlds Library", () => {
     expect(parseBook("n", "---\ntitle: Notes\nkind: notes\n---\nx")).toBeNull();
   });
 });
+
+describe("the library home", () => {
+  it("reads a voice page and presents Worlds as a library/0 keeper", async () => {
+    const { parseBook, worldsLibrary } = await import("../data/library");
+    const b = parseBook("v", "---\ntitle: V\nkind: book\nshort: S.\n---\nPlain.\n\n* * *\n\n## In Sol's words\n\nHello.\n");
+    expect(b?.pages[1]).toEqual({ kind: "voice", voice: "Sol", text: "Hello." });
+    expect(worldsLibrary.contract).toBe("library/0");
+    expect(worldsLibrary.keeper).toEqual({ id: "worlds", name: "Worlds", look: "scifi-storybook" });
+    expect(worldsLibrary.books.every((x) => x.shelf === "worlds" && x.pages[0].kind === "plain")).toBe(true);
+  });
+});

@@ -8,7 +8,7 @@ schema: play-nice/adoption-v1
 project: personal-world
 source:
   repository: Rylee-Bee/play-nice-contracts   # renamed from burgeswe/play-nice-contracts (account rename, 2026-09-12); old URL redirects
-  revision: df886d48650e92a0806736d373041b80e6d8457d   # play-nice-contracts main 2026-09-26: badge gallery and stickers (#41), assets/docs only; contracts/ and schema/ unchanged since c3197ae (checked with git diff). Read before pinning.
+  revision: c801217d1b323639e07550d8e52033c7886b88c4   # play-nice-contracts main 2026-09-27 (#42, owner-approved): new contract `library` 1.0.0 (receipt quill-shelf-meadow) and `room` 2.1.0 -> 2.2.0 (receipt amber-comb-lantern: optional extras in `offers`, change pings, need `allow_text`), both already served by Worlds. Fast-forward from df886d4. Read before pinning.
   # Bump history: 2bb60b4 (v0.3.0) -> d6c97db (v0.5.0) -> 0cee065
   # (v0.6.0) -> f825ffb (v0.7.0, 2026-09-15). Each bump verified against the
   # live repository (commit exists, VERSION/CHANGELOG match,

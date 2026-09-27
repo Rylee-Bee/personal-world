@@ -18,6 +18,16 @@ layers:
 4. **Under the hood:** files, endpoints and code for technical readers. A
    page that starts `## Under the hood`; the app may fold it away.
 
+A book may also have a **voice** page: the keeper's own character saying it
+their way. It starts `## In <name>'s words`. It's never the only place
+something is explained.
+
+**Worlds is the home of a bigger library.** Every connected app can keep its
+own shelves in the same shape: the Play-Nice `library` contract
+(`library/0`). Worlds gathers them (`GET /api/library`) and shows each
+under its keeper, side by side and never merged. This folder is Worlds'
+own shelf.
+
 Each book is a Markdown file with a small header (`title`, `kind: book`,
 `order`, `for`, `short`) and pages separated by `* * *`, the same format as
 VEFR's Library. Worlds bundles them into the app (`ui/src/data/library.ts`).

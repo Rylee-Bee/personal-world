@@ -14,12 +14,14 @@
  * useRoomView("hive-works", "library").
  */
 
-export type PageKind = "plain" | "words" | "technical";
+export type PageKind = "plain" | "voice" | "words" | "technical";
 
 export interface LibraryPage {
   kind: PageKind;
   /** Markdown, without the "## Words to know" / "## Under the hood" line. */
   text: string;
+  /** Who speaks a voice page ("## In Sol's words" → "Sol"). */
+  voice?: string;
 }
 
 export interface LibraryBook {
@@ -66,6 +68,8 @@ function toPage(text: string): LibraryPage {
   const heading = first?.[1].trim().toLowerCase();
   if (heading === "words to know") return { kind: "words", text: text.slice(first![0].length).trim() };
   if (heading === "under the hood") return { kind: "technical", text: text.slice(first![0].length).trim() };
+  const voice = /^in (.+?)[’']s words$/i.exec(first?.[1].trim() ?? "");
+  if (voice) return { kind: "voice", voice: voice[1], text: text.slice(first![0].length).trim() };
   return { kind: "plain", text };
 }
 
@@ -75,8 +79,55 @@ const files = import.meta.glob("../../../docs/library/*.md", {
   eager: true,
 }) as Record<string, string>;
 
+/** Play-Nice `library/0`: one keeper's shelves and books. Worlds is the
+ *  home: its own shelf comes first, then every connected room's library
+ *  (GET /api/library), each under its keeper, never merged. */
+export interface LibraryDoc {
+  contract: "library/0";
+  generated_at: string;
+  keeper: { id: string; name: string; look?: string };
+  shelves: { id: string; name: string; look?: string; cover?: string; blurb?: string }[];
+  books: {
+    id: string;
+    shelf: string;
+    title: string;
+    short: string;
+    order?: number;
+    cover?: string;
+    source?: string;
+    link?: string;
+    updated_at?: string;
+    pages: LibraryPage[];
+  }[];
+}
+
+/** One connected room's library, as GET /api/library reports it. */
+export interface RoomLibraryRow {
+  room: string;
+  status: "ok" | "unavailable";
+  library?: LibraryDoc;
+  error?: string;
+}
+
 /** Every book on the Worlds shelf, in reading order. */
 export const worldsBooks: LibraryBook[] = Object.entries(files)
   .map(([path, source]) => parseBook(path.split("/").pop()!.replace(/\.md$/, ""), source))
   .filter((b): b is LibraryBook => b !== null)
   .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+
+/** Worlds' own library as a `library/0` document (look: scifi-storybook). */
+export const worldsLibrary: LibraryDoc = {
+  contract: "library/0",
+  generated_at: "",
+  keeper: { id: "worlds", name: "Worlds", look: "scifi-storybook" },
+  shelves: [{ id: "worlds", name: "How Worlds works", look: "scifi-storybook" }],
+  books: worldsBooks.map((b) => ({
+    id: b.id,
+    shelf: "worlds",
+    title: b.title,
+    short: b.short,
+    order: b.order,
+    source: `docs/library/${b.id}.md`,
+    pages: b.pages,
+  })),
+};
