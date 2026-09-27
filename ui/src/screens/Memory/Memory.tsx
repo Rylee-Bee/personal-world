@@ -27,8 +27,9 @@ import { JournalRoom } from "./JournalRoom";
 import { RecordsPanel } from "./Records";
 import { RecallPanel } from "./RecallPanel";
 import { LaterShelf } from "./LaterShelf";
+import { LoreSummary } from "../Lore/LoreSummary";
 
-export function Memory() {
+export function Memory({ onOpenLore }: { onOpenLore?: () => void } = {}) {
   const doorways = useRootAttribute("data-theme") === "doorways";
   return (
     <>
@@ -69,6 +70,11 @@ export function Memory() {
             without any model in the loop. Chat can recall things for
             you — it is a shortcut, never the only door.
           </p>
+          {onOpenLore ? (
+            <div className="mt-[var(--pw-spacing-md)]">
+              <LoreSummary onOpen={onOpenLore} />
+            </div>
+          ) : null}
           </div>
         </header>
 

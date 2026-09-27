@@ -15,9 +15,11 @@ import { useConfirmed } from "../../components/useConfirmed";
 import { describeError } from "../../data/errors";
 
 const NOTE = "text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]";
-const BUTTON =
-  "inline-flex min-h-[var(--pw-targets-minimum)] items-center rounded-[var(--pw-radius-sm)] border border-[var(--pw-border-subtle)] px-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] font-semibold text-[var(--pw-text-primary)] disabled:opacity-60 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
-const PRIMARY = `${BUTTON} border-transparent bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)]`;
+const BASE =
+  "inline-flex min-h-[var(--pw-targets-minimum)] items-center rounded-[var(--pw-radius-sm)] border px-[var(--pw-spacing-lg)] text-[length:var(--pw-typography-size_small)] font-semibold disabled:opacity-60 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--pw-accent-primary)]";
+const BUTTON = `${BASE} border-[var(--pw-border-subtle)] text-[var(--pw-text-primary)]`;
+// Dark words on the warm fill (one text colour only, so contrast holds).
+const PRIMARY = `${BASE} border-transparent bg-[var(--pw-accent-warm)] text-[var(--pw-surface-void)]`;
 
 const SKIPPED_WORDS: Record<string, string> = {
   "pain-research": "medical notes",
@@ -51,7 +53,15 @@ export function LoreSection() {
   const [report, setReport] = useState<LoreSyncReport | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const data = lore.data?.data;
-  const counts = data?.counts ?? {};
+  // Count what's still in the lore files (gone items are kept, not waiting),
+  // so this line agrees with the page's own counts.
+  const items = data?.items ?? [];
+  const counts: Record<string, number> = items.length
+    ? {
+        confirmed: items.filter((i) => i.state === "confirmed" && !i.gone).length,
+        suggested: items.filter((i) => i.state === "suggested" && !i.gone).length,
+      }
+    : (data?.counts ?? {});
 
   const check = () => {
     setSaid(null);
@@ -83,7 +93,7 @@ export function LoreSection() {
   return (
     <div className="flex flex-col gap-[var(--pw-spacing-md)]">
       <p className={NOTE}>
-        Your lore (rylee_lore) comes in through the Engine room. New things arrive as suggestions; only you confirm them.
+        Your lore files come in through the Engine room. New things arrive as suggestions; only you confirm them.
       </p>
       <p className="text-[length:var(--pw-typography-size_body)] text-[var(--pw-text-primary)]" aria-live="polite">
         {lore.isLoading
