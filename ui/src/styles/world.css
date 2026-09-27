@@ -747,3 +747,78 @@ body {
   line-height: 1.3;
   color: var(--pw-text-primary);
 }
+
+/* Computers: a calm map of what you have. Places, not a network diagram.
+   Only "running"/"connected" look well; "reachable" and "not checked" are
+   hollow and grey; something new glows gently (never moves); gone fades. */
+.estate-map {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--pw-spacing-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.estate-place {
+  border: 1px solid var(--pw-border-subtle);
+  border-radius: var(--pw-radius-lg);
+  background: var(--pw-surface-panel);
+  padding: var(--pw-spacing-md);
+  list-style: none;
+}
+.estate-host {
+  grid-column: 1 / -1;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--pw-accent-warm) 8%, transparent), transparent 60%),
+    var(--pw-surface-panel);
+}
+.estate-inside {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--pw-spacing-sm);
+  margin: var(--pw-spacing-md) 0 0;
+  padding: 0;
+}
+.estate-inside .estate-place { background: var(--pw-surface-hull); border-radius: var(--pw-radius-md); }
+.estate-new {
+  border-color: var(--pw-accent-warm);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pw-accent-warm) 22%, transparent);
+}
+.estate-gone { opacity: 0.6; border-style: dashed; }
+.estate-drift-new { color: var(--pw-accent-warm); font-weight: 600; margin-top: var(--pw-spacing-xs); }
+.estate-drift-summary { border: 1px solid var(--pw-accent-warm); background: var(--pw-surface-hull); }
+.estate-status { display: inline-flex; align-items: center; gap: 6px; }
+.estate-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 2px solid currentColor; }
+.estate-status-good .estate-dot { background: var(--pw-accent-teal); border-color: var(--pw-accent-teal); }
+.estate-status-warn { color: var(--pw-accent-warm); }
+.estate-status-warn .estate-dot { background: var(--pw-accent-warm); border-color: var(--pw-accent-warm); }
+.estate-status-quiet .estate-dot { border-color: var(--pw-text-muted); }
+.estate-status-unknown .estate-dot { border-style: dashed; border-color: var(--pw-text-muted); }
+.estate-doors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--pw-spacing-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.estate-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pw-spacing-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--pw-spacing-sm);
+  border-bottom: 4px solid color-mix(in srgb, var(--pw-accent-warm) 45%, var(--pw-border-subtle));
+}
+.estate-spine {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 16rem;
+  border: 1px solid var(--pw-border-subtle);
+  border-left: 6px solid var(--pw-accent-warm);
+  border-radius: 3px var(--pw-radius-md) var(--pw-radius-md) 3px;
+  background: var(--pw-surface-panel);
+  padding: var(--pw-spacing-sm) var(--pw-spacing-md);
+}

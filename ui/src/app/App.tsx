@@ -43,6 +43,7 @@ import { Icon } from "../components/Icon";
 import { RememberForm } from "../components/remember/RememberForm";
 import { Lore } from "../screens/Lore/Lore";
 import { AtHome } from "../screens/AtHome/AtHome";
+import { Computers } from "../screens/Computers/Computers";
 import { Projects } from "../screens/Projects/Projects";
 import { StayFresh } from "./StayFresh";
 import { ShareSheet } from "./ShareSheet";
@@ -266,6 +267,8 @@ export function App() {
         return <Interests onOpenAtHome={() => setActiveArea("at-home")} />;
       case "projects":
         return <Projects />;
+      case "systems":
+        return <Computers />;
       default: {
         // Honest placeholders for destinations whose screens the
         // station does not back yet (systems).
