@@ -28,9 +28,14 @@ concurrency:
 
 jobs:
   opencode:
+    # This repository is public, so any GitHub user can comment. Without the
+    # association guard a drive-by `/oc` would spend tokens. The Action does
+    # its own permission check for comment events; stating it here is explicit
+    # and fails closed.
     if: |
-      contains(github.event.comment.body, '/oc') ||
-      contains(github.event.comment.body, '/opencode')
+      (contains(github.event.comment.body, '/oc') ||
+       contains(github.event.comment.body, '/opencode')) &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     permissions:
       # actions/checkout needs to read this repository.
