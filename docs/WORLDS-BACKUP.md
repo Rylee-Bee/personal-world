@@ -1,6 +1,6 @@
 # Worlds backup & restore — the SOS escape hatch
 
-> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the encrypted full-instance backup/restore (`pw-worlds-backup/1`) · **Read this if:** you need to save or move a whole Worlds instance
+> **Status:** Reference · **Verified:** 2026-09-29 · **Canonical for:** the encrypted full-instance backup/restore (`pw-worlds-backup/1`) · **Read this if:** you need to save or move a whole Worlds instance
 
 **In short:** One encrypted file plus a passphrase is enough to rebuild the same instance on a fresh machine. This page is the how-to, the archive format, and the exact limits of what is and is not inside.
 
@@ -169,7 +169,9 @@ encrypted, and only ever restored by someone holding the passphrase.
 
 `worlds_backup.register_worlds_backup(app, ...)` is mounted in `api.py`.
 All routes are **step-up gated** (backup/restore hand over or replace the whole
-world, so a fresh session must re-prove identity first). No current UI control was
+world, so a fresh session must re-prove identity first) **and limited to the owner and admins**: the
+caller must also hold the `estate_secrets` permission, so a member, supervised
+or guest account, or an agent key, is refused even with a live step-up. A refused caller never creates or consumes a one-time link. No current UI control was
 found (as of 2026-09-26): the routes are present in `ui/`'s generated API types,
 but no screen calls them — use the CLI, or call the routes directly:
 
@@ -182,7 +184,7 @@ POST /api/worlds/restore                  {passphrase, archive_b64, overwrite}
 ```
 
 Registration **refuses** to run without the app's real step-up
-dependency — an ungated whole-world export endpoint must never exist by
+dependency and owner-or-admin dependency (`owner_gate`) — an ungated whole-world export endpoint must never exist by
 accident. The passphrase travels in the request body only (never a
 query string, never a logged header) and is typed `SecretStr` so it is
 redacted from reprs and accidental log lines.
@@ -197,6 +199,7 @@ register_worlds_backup(
     data_dir=DATA_DIR,
     config_dir=CONFIG_DIR,
     step_up=<the app's real step-up auth dependency>,
+    owner_gate=<a dependency that refuses everyone but owner and admins>,
 )
 ```
 
