@@ -58,9 +58,10 @@ required: rooms are optional services Worlds can show when you run them.
 - **Device-local by design.** Chat conversations stay on the device; replies
   come from your configured model; with no model configured, Chat says `not_configured`.
 - **Parked, on purpose.** Projects and systems are labelled placeholders.
-- **Moving out.** Discovery, media, calendars and notifications are moving
-  to **Candy**, a separate room with its own page. The code is still in
-  Worlds today (`src/personal_world/discovery/`, the native providers, the
+- **Moving out.** Discovery is moving to **Candy**, a separate room that is
+  intended to be only the backend for Interests (not implemented quite right
+  yet; media, calendars and notifications are not Candy's). The code is still
+  in Worlds today (`src/personal_world/discovery/`, the native providers, the
   Interests screen); nothing has been removed yet.
 
 **10 native providers** (in-process, no extra containers; `ls src/personal_world/providers/native_*.py`):

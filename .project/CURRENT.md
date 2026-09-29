@@ -32,11 +32,13 @@ disagree, the canonical file wins.
   keepers and doorways per room. Canon: [`docs/COMPANION-CANON.md`](../docs/COMPANION-CANON.md).
 - **Worlds kit** (`ui/dist-kit/`, `kit:check` in CI) is vendored by Studio,
   Project Home and Candy.
-- **Candy extraction:** discovery, media, calendars and notifications are moving
-  to the Candy room (private repo), which is live and multi-user. The code is
-  **still in Worlds** until the planned removal steps land.
-- **Next:** the OpenBao secrets migration (owner approved 2026-09-26; plan
-  pending her choices), the Candy removal steps, Bridge layout and life, and
+- **Candy extraction:** Candy (private repo, live and multi-user) is intended to
+  be only the backend for the Interests category (discovery); its implementation
+  is not quite right yet. Media, calendars and notifications are out of Candy's
+  scope (owner decision 2026-09-29). The discovery code is **still in Worlds**
+  until the planned removal steps land.
+- **Next:** the OpenBao secrets migration (owner re-opened it and agreed to
+  migrate, 2026-09-29; ADR-0007 accepted, migration plan still pending), the Candy removal steps, Bridge layout and life, and
   filling the [screenshot gallery](../docs/gallery/README.md).
 - **Gates:** backend pytest (~1843 as of 2026-09-26), `framework validate`
   (0 violations), UI tsc, lint, vitest, Playwright, the tokens and kit drift

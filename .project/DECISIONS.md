@@ -741,3 +741,16 @@ use `surface.void`. Every text and accent colour passes 4.5:1 on every
 surface (worst 4.7:1). The starry backdrop is hidden in Daylight, native
 controls follow it (`color-scheme: light`), and WorldSignal's rank dots use
 dark ink at the same strengths, so rank is still encoded by contrast alone.
+
+## 2026-09-29 — OpenBao re-opened; Candy scope; the API-only routes (owner decisions)
+
+- **OpenBao.** The owner is happy to re-open OpenBao and migrate to it.
+  ADR-0007 is now accepted; the migration plan is still pending. This
+  replaces the earlier record, which said "approved 2026-09-26" in one
+  place and "proposed, not accepted" in another.
+- **Candy scope.** Candy is intended to be only the backend for the
+  Interests category (discovery). It is not implemented quite right yet.
+  Media, calendars and notifications are out of Candy's scope.
+- **API-only routes.** `/api/lab/*`, `/api/exports/story` and
+  `/api/reconciler/status` have no screen on purpose. They stay as the
+  intentional API-only "Lego box" contract (see `docs/ARCHITECTURE.md`).

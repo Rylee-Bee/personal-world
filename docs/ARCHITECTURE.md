@@ -260,6 +260,11 @@ routes, not deployment acceptance:
 | GET /api/exports/story | human-readable journal |
 | GET /api/backup | World/journal payload (encrypt externally); not a complete data-directory backup |
 
+**API-only routes (intentional).** `/api/lab/*`, `GET /api/exports/story` and
+`GET /api/reconciler/status` have no screen. They are kept as the published
+API-only "Lego box" contract: other tools and agents compose against them, and
+removing one is a product decision, not cleanup.
+
 Unless explicitly labeled public above, API routes use bearer auth directly or
 through `require_step_up`; individual routes may add further restrictions.
 `/setup-wizard`, `/setup`, `/login`, `/`, and packaged
