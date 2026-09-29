@@ -71,6 +71,13 @@ jobs:
   # repo secrets or variables, never inlined here -- see SECURITY.md and
   # tests/test_public_safety.py, which fail closed on tracked topology.
   uat-live:
+    # Deliberately not a required branch-protection check (informational,
+    # read-only walk against live prod) -- continue-on-error keeps a red
+    # uat-live from also failing this workflow's own conclusion, which
+    # would otherwise block publish-image.yml (gated on
+    # workflow_run.conclusion == 'success') from ever shipping an image,
+    # including the exact fix uat-live needs deployed to go green.
+    continue-on-error: true
     permissions:
       actions: write
     uses: Rylee-Bee/ci-harness/.github/workflows/reusable-uat.yml@main
