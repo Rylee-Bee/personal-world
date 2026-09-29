@@ -16,13 +16,16 @@ name: uat-live
 # validate.yml, a red uat-live would fail that conclusion too and block
 # every future image publish -- including the exact fix uat-live needs
 # deployed to go green. Keeping it a separate workflow means its result
-# never touches validate's conclusion, and it still shows as its own
-# check on every PR and push to main.
+# never touches validate's conclusion.
 
 on:
-  push:
-    branches: [main, feat/station-vnext-foundation]
-  pull_request:
+  # Manual only (2026-09-29). This walk targets a live Worlds that is internal-only, so it is not reachable from
+  # GitHub-hosted runners, and running it on every push and PR would fail ("Couldn't reach
+  # Worlds at all.") while spending Actions minutes. Run the same walk locally from a machine that
+  # can reach the instance:
+  #   cd ui && PW_UAT_URL=... PW_UAT_TOKEN=... PW_UAT_OUT=/tmp/uat npx playwright test -c playwright.uat.config.ts
+  # This trigger stays for a runner that can reach the target (e.g. if Worlds is ever made reachable).
+  workflow_dispatch:
 
 permissions:
   contents: read
