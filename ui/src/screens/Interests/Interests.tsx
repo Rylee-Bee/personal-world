@@ -347,7 +347,7 @@ export function Interests({ onOpenAtHome }: { onOpenAtHome?: () => void } = {}) 
           )}
         </section>
 
-        {/* Followed interests — read-only, honestly labelled. */}
+        {/* Followed interests — the list, plus a real way to add more. */}
         <section
           aria-labelledby="interests-following-heading"
           className="rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-lg)]"
@@ -396,11 +396,15 @@ export function Interests({ onOpenAtHome }: { onOpenAtHome?: () => void } = {}) 
               })}
             </ul>
           )}
-          <p className="mt-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
-            Read-only here: adding an interest is a step-up write
-            (POST /api/discovery/interests) that this view deliberately
-            does not fake.
-          </p>
+          {!nothingToLookThrough && (
+            <div className="mt-[var(--pw-spacing-md)]">
+              <p className="mb-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
+                This is what’s already followed. Add more below — the next
+                check will look for it too.
+              </p>
+              <AddInterest onAdded={() => void statusQuery.refetch()} />
+            </div>
+          )}
           {status.skippedRows > 0 && (
             <p className="mt-1 text-[length:var(--pw-typography-size_micro)] text-[var(--pw-text-secondary)]">
               {plural(status.skippedRows, "row", "rows")} in the status

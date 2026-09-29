@@ -53,7 +53,14 @@ import { StayFresh } from "./StayFresh";
 import { ShareSheet } from "./ShareSheet";
 import { WorldDrawer } from "../components/WorldDrawer";
 import { WorldAreaLink } from "../components/WorldAreaLink";
-import { useHealthz, usePrefs, usePrefsSchema, useRoomEvents, useSections } from "../data/hooks";
+import {
+  useHealthz,
+  usePrefs,
+  usePrefsSchema,
+  useRoomEvents,
+  useSections,
+  useSession,
+} from "../data/hooks";
 import { SKELETON_AREAS, derivePersonalAreas } from "../data/types";
 import type { WorldArea, WorldAreaId } from "../data/types";
 import { parsePrefsSchema, readPrefsValues } from "../screens/Settings/parse";
@@ -199,7 +206,16 @@ export function App() {
     setLoreFrom(from);
     setActiveArea("lore");
   }, []);
-  const [confirmedNote, setConfirmedNote] = useState(returned !== null);
+  // The banner only ever proves a person clicked "Confirm with your
+  // sign-in" — it says nothing about whether the step-up actually
+  // succeeded server-side. Gate it on real session truth (has_step_up)
+  // rather than the mere presence of the return marker, so it auto-clears
+  // if step-up never landed or later lapses; a manual Dismiss also hides
+  // it without waiting for the server to disagree.
+  const sessionQuery = useSession();
+  const [confirmedNoteDismissed, setConfirmedNoteDismissed] = useState(false);
+  const confirmedNote =
+    returned !== null && sessionQuery.data?.data?.has_step_up === true && !confirmedNoteDismissed;
   useEffect(() => {
     noteCurrentArea(activeArea);
     // Finding Rough night is a sticker (using it never is). Reported here,
@@ -435,7 +451,7 @@ export function App() {
           className="relative z-10 mx-[var(--pw-spacing-xl)] mt-[var(--pw-spacing-md)] flex flex-wrap items-center gap-[var(--pw-spacing-md)] rounded-[var(--pw-radius-md)] border border-[var(--pw-border-subtle)] bg-[var(--pw-surface-panel)] p-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-primary)]"
         >
           <span className="flex-1">You’re confirmed for the next few minutes. You can make your change now.</span>
-          <WorldButton variant="ghost" onPress={() => setConfirmedNote(false)}>
+          <WorldButton variant="ghost" onPress={() => setConfirmedNoteDismissed(true)}>
             Dismiss
           </WorldButton>
         </div>

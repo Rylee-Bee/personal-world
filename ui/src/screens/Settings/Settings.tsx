@@ -23,7 +23,9 @@
  *                Records — the person's own structured information —
  *                live inside Memory. All vault behaviour preserved.
  *
- * All writes require step-up auth (HTTP 403 → honest inline notice).
+ * Most writes here are plain authenticated requests; personal-sections
+ * management (PUT /api/sections) still requires step-up auth
+ * (HTTP 403 → honest inline notice).
  *
  * Server envelopes arrive here as `unknown` bodies (the generated API
  * types describe these responses as open objects because the server
@@ -211,7 +213,6 @@ function ProfileSection({
         setSaveMessage({ text: "Display name saved.", tone: "ok" });
       },
       onError: (err) => {
-        // 403 = step-up gate; anything else shows the server's reason.
         setSaveMessage({
           text: describeError(err, "Could not save the display name."),
           tone: "error",
@@ -290,7 +291,6 @@ function ProfileSection({
             </WorldButton>
           </div>
           {saveMessage && <SaveNote message={saveMessage.text} tone={saveMessage.tone} />}
-          <StepUpNote />
         </form>
       ) : (
         <div className="flex items-center justify-between gap-[var(--pw-spacing-md)]">

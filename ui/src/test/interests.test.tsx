@@ -216,17 +216,18 @@ describe("Interests view", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the followed-interests list, read-only and honestly labelled", () => {
+  it("renders the followed-interests list and a real way to add more", () => {
     mocks.statusState.data = statusBody([SOURCE_ON], [INTEREST]);
     render(<Interests />);
     expect(screen.getByText("self-hosting")).toBeInTheDocument();
+    // No raw endpoint/method copy leaks into user-facing text.
     expect(
-      screen.getByText(/adding an interest is a step-up write/i),
-    ).toBeInTheDocument();
-    // No fake "add interest" control exists on this view.
-    expect(
-      screen.queryByRole("button", { name: /add interest/i }),
+      screen.queryByText(/POST \/api\/discovery\/interests/i),
     ).not.toBeInTheDocument();
+    // A real, working add-interest control exists on this view.
+    expect(
+      screen.getByRole("button", { name: /follow it/i }),
+    ).toBeInTheDocument();
   });
 
   // ── C4: the three empties are three different truths ──
