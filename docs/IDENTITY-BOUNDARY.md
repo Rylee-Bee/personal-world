@@ -1,6 +1,6 @@
 # Identity Boundary — per-user vs instance-global state
 
-> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the per-user vs instance-global state boundary and the `identity.principal_scoped_path` entry point · **Read this if:** you are adding per-person state or working on multi-user mode.
+> **Status:** Reference · **Verified:** 2026-09-29 · **Canonical for:** the per-user vs instance-global state boundary and the `identity.principal_scoped_path` entry point · **Read this if:** you are adding per-person state or working on multi-user mode.
 
 **In short:** one Worlds instance can serve several people, and this page says exactly which state is per-person (journal, reminders, world, crew, room visits, …) and which is instance-wide (runtime config, the shared connections registry, identity records). Every per-user file resolves through one entry point, so single-user installs keep working unchanged.
 
@@ -174,6 +174,38 @@ journal, secrets or world: nobody reads another person's data unless that
 person shares it, admins included. `GET /api/me` tells the interface what
 the caller may do so it can show or hide affordances; the server always
 enforces the same `can()` answer.
+
+## Read-only viewer credential
+
+A **viewer** credential is for automation that must see the person's real
+screens without holding any power: it acts as the owning person for **reads
+only**. It is a separate record type (`viewers` in `users.json`), so nothing
+that walks users or agents (sessions, listings, sign-in) can match one.
+
+- **Create / list / revoke** (owner only, and creation and revocation need a
+  step-up): `POST /api/identity/viewers` `{viewer_id, label?}` returns the
+  token **once** (prefix `pwv_`, stored hashed like other tokens);
+  `GET /api/identity/viewers` lists them without hashes or tokens;
+  `DELETE /api/identity/viewers/{viewer_id}` revokes (the token answers 401
+  afterwards). A viewer, an agent or a non-owner cannot do any of these.
+- **Read-only, enforced in the auth layer** (`require_auth`), not per route:
+  only `GET`, `HEAD` and `OPTIONS` succeed; every other method answers 403
+  "read-only token", including routes added later.
+- **Never elevated:** `require_step_up` refuses it, and no session grant,
+  loopback peer or delegated header changes that. The token cannot be traded
+  for a session, an elevation or a CLI approval (`resolve_principal` only
+  accepts it on the API's bearer path).
+- **Deny list** (`api.VIEWER_DENIED_PREFIXES`, tested): a viewer gets 403 on
+  `/api/vault`, `/api/secrets`, `/api/lab/secrets`, `/api/lab/settings`,
+  `/api/native-lab/settings`, `/api/recall`, `/api/journal`, `/api/memory`,
+  `/api/chat/history`, `/api/records`, `/api/learning`, `/api/backup`,
+  `/api/worlds`, `/api/exports`, `/api/identity/{agents,users,viewers}`,
+  `/api/people/invites`, `/api/push/subscriptions` and
+  `/api/connections/config`: secret values and names, raw personal material,
+  whole-instance archives, credential administration and infrastructure
+  configuration. Other person-only reads (preferences, sections, briefing,
+  place, lore, later) work.
+- If the owner is disabled or expires, the viewer stops resolving.
 
 ## Invites, helpers, limits, guests
 

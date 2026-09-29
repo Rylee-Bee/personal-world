@@ -301,6 +301,10 @@ def _step_up_authorized(request: Request, principal: Any = None) -> bool:
     if principal is None:
         principal = getattr(request.state, "principal", None)
     principal_id = principal.id if principal is not None else None
+    if principal is not None and getattr(principal, "read_only", False):
+        # A read-only credential never elevates: no session grant, no
+        # loopback peer, no delegated header.
+        return False
 
     session = _current_session(request)
     if session is not None and session.has_step_up(principal_id):
@@ -331,6 +335,8 @@ async def require_step_up(request: Request) -> None:
     # need a write go through person-approved proposal execution.
     if principal is not None and principal.kind == "agent":
         raise HTTPException(status_code=403, detail="step-up is person-only")
+    if principal is not None and getattr(principal, "read_only", False):
+        raise HTTPException(status_code=403, detail="read-only token: step-up is not available")
     if not _step_up_authorized(request, principal):
         raise HTTPException(status_code=403, detail="write requires step-up auth")
 
@@ -383,8 +389,56 @@ def _confined_out(principal, path: str) -> bool:
     return not any(path == p or path.startswith(p + "/") for p in allowed)
 
 
+#: Reads a read-only viewer credential may never make: secret values and
+#: names, raw personal material (journal, recall, chat history, records,
+#: learning, world/backup exports), whole-instance archives, credential
+#: administration and lab/infra configuration. Prefix match on path
+#: segments; everything else that is a GET/HEAD/OPTIONS is allowed, so a
+#: screen walk can see the app without holding any secret or raw entry.
+VIEWER_DENIED_PREFIXES: tuple[str, ...] = (
+    "/api/vault",
+    "/api/secrets",
+    "/api/lab/secrets",
+    "/api/lab/settings",
+    "/api/native-lab/settings",
+    "/api/recall",
+    "/api/journal",
+    "/api/memory",
+    "/api/chat/history",
+    "/api/records",
+    "/api/learning",
+    "/api/backup",
+    "/api/worlds",
+    "/api/exports",
+    "/api/identity/agents",
+    "/api/identity/users",
+    "/api/identity/viewers",
+    "/api/people/invites",
+    "/api/push/subscriptions",
+    "/api/connections/config",
+)
+
+_VIEWER_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def _viewer_refusal(principal, method: str, path: str) -> str | None:
+    """Why a read-only viewer may not make this request, or ``None``."""
+    if principal is None or not getattr(principal, "read_only", False):
+        return None
+    if method.upper() not in _VIEWER_SAFE_METHODS:
+        return "read-only token: this credential can only read"
+    if any(path == p or path.startswith(p + "/") for p in VIEWER_DENIED_PREFIXES):
+        return "read-only token: this route is not available to a read-only credential"
+    return None
+
+
 async def require_auth(request: Request) -> None:
     await _require_auth_base(request)
+    refusal = _viewer_refusal(
+        getattr(request.state, "principal", None), request.method, request.url.path
+    )
+    if refusal:
+        raise HTTPException(status_code=403, detail=refusal)
     if _confined_out(getattr(request.state, "principal", None), request.url.path):
         raise HTTPException(status_code=403, detail="this key only reaches its own routes")
 
@@ -434,7 +488,9 @@ async def _require_auth_base(request: Request) -> None:
     if supplied:
         if mode == "multi" or instance_token:
             try:
-                principal = resolve_principal(supplied, store, mode, instance_token)
+                principal = resolve_principal(
+                    supplied, store, mode, instance_token, allow_read_only=True
+                )
             except NoPrincipalError:
                 raise HTTPException(status_code=401, detail="unauthorized")
             _set_principal(request, principal, principal.source)
@@ -4272,6 +4328,74 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             source="admin",
         )
         return {"ok": True, "data": {"agent_id": agent_id, "disabled": True}}
+
+    # -- read-only viewer credentials (owner only, step-up to create/revoke) --
+    def _require_owner_person(principal) -> None:
+        if (
+            principal is None
+            or principal.kind != "person"
+            or getattr(principal, "read_only", False)
+            or not can(principal, "transfer_ownership")
+        ):
+            raise HTTPException(status_code=403, detail="owner required")
+
+    @app.get("/api/identity/viewers", dependencies=[Depends(require_auth)])
+    async def viewers_list(request: Request) -> dict:
+        """The owner's read-only viewer credentials (no hashes, no tokens)."""
+        principal = getattr(request.state, "principal", None)
+        _require_owner_person(principal)
+        return {"ok": True, "data": _identity_store.list_viewers(owner_id=principal.id)}
+
+    @app.post("/api/identity/viewers", dependencies=[Depends(require_step_up)])
+    async def viewers_create(request: Request) -> dict:
+        """Mint a read-only viewer credential that acts as the owner for
+        reads only. Body: {"viewer_id", "label"?}. Owner only. The token is
+        returned exactly once and stored hashed."""
+        principal = getattr(request.state, "principal", None)
+        _require_owner_person(principal)
+        body = await request.json()
+        viewer_id = ((body or {}).get("viewer_id") or "").strip()
+        from .identity import _SAFE_PRINCIPAL_ID as _safe_pid
+
+        if not viewer_id or not _safe_pid.fullmatch(viewer_id):
+            raise HTTPException(status_code=422, detail="viewer_id invalid")
+        label = str((body or {}).get("label") or "")
+        plain = "pwv_" + secrets.token_urlsafe(24)
+        try:
+            v = _identity_store.create_viewer(
+                viewer_id, principal.id, plain, label=label
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        journal.record(
+            kind=JournalKind.SETTINGS_CHANGE,
+            summary="read-only viewer registered: " + viewer_id,
+            source="admin",
+        )
+        return {
+            "ok": True,
+            "data": {
+                "viewer_id": v["user_id"],
+                "owner_id": principal.id,
+                "read_only": True,
+                "token": plain,
+            },
+        }
+
+    @app.delete(
+        "/api/identity/viewers/{viewer_id}", dependencies=[Depends(require_step_up)]
+    )
+    async def viewers_disable(request: Request, viewer_id: str) -> dict:
+        principal = getattr(request.state, "principal", None)
+        _require_owner_person(principal)
+        if not _identity_store.disable_viewer(viewer_id, principal.id):
+            raise HTTPException(status_code=404, detail="no such viewer")
+        journal.record(
+            kind=JournalKind.SETTINGS_CHANGE,
+            summary=f"read-only viewer disabled: {viewer_id}",
+            source="admin",
+        )
+        return {"ok": True, "data": {"viewer_id": viewer_id, "disabled": True}}
 
     @app.get("/api/apps", dependencies=[Depends(require_auth)])
     async def apps_list(request: Request) -> dict:

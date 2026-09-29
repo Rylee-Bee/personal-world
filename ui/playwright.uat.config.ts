@@ -10,7 +10,11 @@ import { defineConfig, devices } from "@playwright/test";
  *   - every non-GET request to /api is aborted and recorded ("would have
  *     sent"), so nothing is answered, saved or deleted;
  *   - it signs in with a bearer token from PW_UAT_TOKEN (never written
- *     anywhere by this suite; the runner passes it in memory);
+ *     anywhere by this suite; the runner passes it in memory). Use a
+ *     read-only viewer token (POST /api/identity/viewers, owner + step-up):
+ *     it acts as the owner for reads only and can never write or elevate,
+ *     so person-only screens load without handing the walk owner power.
+ *     See docs/IDENTITY-BOUNDARY.md ("Read-only viewer credential");
  *   - it writes findings (JSON + Markdown) and screenshots under
  *     PW_UAT_OUT, which stays on the machine that ran it.
  *
