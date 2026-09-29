@@ -188,6 +188,48 @@ person shares it, admins included. `GET /api/me` tells the interface what
 the caller may do so it can show or hide affordances; the server always
 enforces the same `can()` answer.
 
+## Read-only viewer credential
+
+A **viewer** credential is for automation that must see the person's real
+screens without holding any power: it acts as the owning person for **reads
+only**. It is a separate record type (`viewers` in `users.json`), so nothing
+that walks users or agents (sessions, listings, sign-in) can match one.
+
+- **Create / list / revoke** (owner only, and creation and revocation need a
+  step-up): `POST /api/identity/viewers` `{viewer_id, label?}` returns the
+  token **once** (prefix `pwv_`, stored hashed like other tokens);
+  `GET /api/identity/viewers` lists them without hashes or tokens;
+  `DELETE /api/identity/viewers/{viewer_id}` revokes (the token answers 401
+  afterwards). A viewer, an agent or a non-owner cannot do any of these.
+- **Read-only, enforced in the auth layer** (`require_auth`), not per route:
+  only `GET`, `HEAD` and `OPTIONS` succeed; every other method answers 403
+  "read-only token", including routes added later.
+- **Never elevated:** `require_step_up` refuses it, and no session grant,
+  loopback peer or delegated header changes that. The token cannot be traded
+  for a session, an elevation or a CLI approval (`resolve_principal` only
+  accepts it on the API's bearer path).
+- **Deny list** (`api.VIEWER_DENIED_PREFIXES`, tested): a viewer gets 403 on
+  `/api/vault`, `/api/secrets`, `/api/lab/secrets`, `/api/lab/settings`,
+  `/api/native-lab/settings`, `/api/recall`, `/api/journal`, `/api/memory`
+  (search), `/api/records`, `/api/learning`, `/api/backup`, `/api/worlds`,
+  `/api/exports`, `/api/identity/{agents,users,viewers}`,
+  `/api/people/invites`, `/api/push/subscriptions` and
+  `/api/connections/config`: secret values and names, raw personal material,
+  whole-instance archives, credential administration and infrastructure
+  configuration. Other person-only reads (preferences, sections, briefing,
+  place, lore, later) work.
+- **Memory and Chat: structure yes, content no.** A viewer can read:
+  `GET /api/records/categories` (category names, counts, locked flag; the one
+  named exact exception, `VIEWER_ALLOWED_EXACT`) and `GET /api/chat/history`
+  with each entry cut down to `ts` and `role` (when and who, plus the count;
+  `VIEWER_CHAT_ENTRY_KEYS`, an allow-list, so a content field added later is
+  omitted by default). A viewer cannot read what was said or remembered:
+  message bodies, journal entries, record contents, memory search results and
+  recall all answer 403 (or omit the field). Lore and later are still
+  allowed as before and do return their text; tighten them the same way if
+  that is not wanted.
+- If the owner is disabled or expires, the viewer stops resolving.
+
 ## Invites, helpers, limits, guests
 
 > Step 2 of the roles plan (owner-approved 2026-09-26). These are
