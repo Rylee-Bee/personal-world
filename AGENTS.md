@@ -65,8 +65,8 @@ agent's WIP into its commit. The rules:
   nav landmarks (`Bridge · Memory · Chat · Settings`), the personal-section model, the
   Records-vs-Vault distinction, plain dark-warm theme principles, and the theme
   boundary. The area id `overview` renders the **Bridge** — the home screen
-  (Keeper + briefing + rooms) — not the older `Overview.tsx`, which remains in
-  the repo but is not rendered (`ui/src/app/App.tsx`). Where PRODUCT-LANGUAGE
+  (Keeper + briefing + rooms) — the older `Overview.tsx` screen was removed
+  (2026-09-29; `ui/src/app/App.tsx` renders the Bridge). Where PRODUCT-LANGUAGE
   and the finish line differ, it is the current product language.
 - **Design truth:** `design/tokens.json` is canonical for token values;
   `docs/history/DESIGN-HANDOFF.md` is the **V0.1 historical baseline** (superseded
@@ -91,7 +91,7 @@ agent's WIP into its commit. The rules:
   `design/handoff/` to change accessibility rules; the canonical
   copies are in `docs/accessibility/`.
 - **Do not casually regenerate:** the Mermaid master
-  (`design/assets/mermaid-companion-master.lottie` — byte-identical
+  (`media_files/designs/personal-world/mermaid-companion-master.lottie` — byte-identical
   by decision), all companion source rigs, the icon library, and the
   screen SVGs. They are deliberate artwork, not generated output.
 - **Specs are not implementations.** Check `README.md`, `ROADMAP.md`,

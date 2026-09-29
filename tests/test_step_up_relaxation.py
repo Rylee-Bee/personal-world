@@ -1,17 +1,18 @@
 """Scoped step-up relaxation: PUT/PATCH /api/prefs, POST
-/api/discovery/interests, PUT /api/identity/principal and POST
-/api/lore/confirm now accept a plain authenticated (single-factor)
-request instead of demanding a live step-up grant.
+/api/discovery/interests and PUT /api/identity/principal accept a plain
+authenticated (single-factor) request instead of demanding a live
+step-up grant. POST /api/lore/confirm is NOT among them: it keeps the
+step-up.
 
-Root cause this pins against regressing: require_step_up wraps
-require_auth and additionally demands OIDC re-auth / true-loopback /
-a delegated-proxy header, which is broken end-to-end for this
-household. These five routes never needed that extra elevation — they
-are the caller acting on their own account, not a sensitive act like
-role changes, ownership transfer or agent provisioning — so they were
-moved to require_auth alone. Every other require_step_up route is
-untouched; POST /api/identity/agents (not in the change list) is
-pinned here as the still-gated control.
+Why these three are relaxed: each is the caller changing their own
+preferences, display name or interests. The data is their own, the
+change is reversible, and nothing here touches another person's data or
+a secret, so the most a stolen session could do is a nuisance. Each
+route keeps an internal person-only check (agent keys are refused).
+Confirming lore is different: it changes what Worlds treats as true
+about the person, so it stays behind "Confirm it's you" (fresh sign-in
+or credential). Every other require_step_up route is untouched;
+POST /api/identity/agents is pinned here as a still-gated control.
 """
 
 import sys
@@ -48,7 +49,7 @@ def client(tmp_path, monkeypatch):
 
 
 class TestScopedStepUpRelaxation:
-    """The five routes moved from require_step_up to require_auth now
+    """The routes moved from require_step_up to require_auth now
     accept a plain single-factor session — no step-up grant needed."""
 
     def test_put_prefs_accepts_plain_auth(self, client):
@@ -73,9 +74,24 @@ class TestScopedStepUpRelaxation:
         )
         assert r.status_code == 200, r.text
 
-    def test_lore_confirm_accepts_plain_auth(self, client):
+    def test_lore_confirm_still_needs_step_up(self, client):
         r = client.post("/api/lore/confirm", json={"keys": []}, headers=AUTH)
-        assert r.status_code == 200, r.text
+        assert r.status_code == 403, r.text
+        assert "step-up" in r.text
+
+    def test_manifest_matches_the_gates(self, client):
+        payload = client.get("/api/manifest", headers=AUTH).json()
+        eps = payload["endpoints"]
+        rows = (eps["endpoints"] + eps["uncurated"]) if isinstance(eps, dict) else eps
+        gate = {(r["method"], r["path"]): r["gate"] for r in rows}
+        for key in (
+            ("PUT", "/api/prefs"),
+            ("PATCH", "/api/prefs"),
+            ("PUT", "/api/identity/principal"),
+            ("POST", "/api/discovery/interests"),
+        ):
+            assert gate.get(key) == "none", key
+        assert gate.get(("POST", "/api/lore/confirm")) == "step-up"
 
 
 class TestOtherStepUpRoutesUntouched:

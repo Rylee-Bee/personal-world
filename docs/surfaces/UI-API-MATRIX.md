@@ -24,7 +24,7 @@ tree). The current interface is `ui/`; its screens and their main calls:
 | UI-001 Today | run daily loop | API-004 (POST) | Write | ACTIVE |
 | UI-001 Today | reminders | API-067 (GET) | Read | ACTIVE |
 | UI-001 Today | apps launcher | API-066 (GET) | Read | ACTIVE |
-| UI-002 Interests | discovery status/sources/interests/discover | API-049..052 | Read / Write (POSTs step-up gated) | ACTIVE |
+| UI-002 Interests | discovery status/sources/interests/discover | API-049..052 | Read / Write (source POSTs step-up gated; adding an interest is a signed-in person's own write, no step-up) | ACTIVE |
 | UI-003 Media | status/library/recent/activity/search | API-053..057 | Read | ACTIVE |
 | UI-004 Projects | estate status | API-079 | Read | ACTIVE |
 | UI-004 Projects | repo status/history | API-033, API-034 | Read | ACTIVE |
@@ -46,12 +46,12 @@ tree). The current interface is `ui/`; its screens and their main calls:
 | UI-008 Chat | send message (+history, +route context) | API-010 | Read+model write (journal recommendation event) | ACTIVE |
 | UI-008 Chat | providers list | API-011 | Read | ACTIVE |
 | UI-008 Chat | correction draft (proposal) | API-007 (after human approval) | Write (step-up) | ACTIVE |
-| UI-009 Settings | prefs get/put | API-030 | Read / Write (step-up) | ACTIVE |
+| UI-009 Settings | prefs get/put | API-030 | Read / Write (person-only, no step-up) | ACTIVE |
 | UI-009 Settings | prefs schema | API-031 | Read | ACTIVE |
 | UI-009 Settings | sections get/put | API-032 | Read / Write (step-up) | ACTIVE |
 | UI-009 Settings | apps get/put | API-066 | Read / Write (step-up) | ACTIVE |
 | UI-009 Settings | provider probe | API-012 | Read (spends quota) | ACTIVE |
-| UI-009 Settings | identity principal read/update | API-073, API-074 | Read / Write (step-up) | ACTIVE |
+| UI-009 Settings | identity principal read/update | API-073, API-074 | Read / Write (person-only, no step-up) | ACTIVE |
 | UI-010 SetupWizard | setup status + bootstrap | API-001 (setup_needed), API-002 | Write (public, first-run) | ACTIVE |
 | UI-011 Login | local token login | AUTH-009 (POST /api/auth/login) | Write (session) | ACTIVE |
 | UI-011 Login | OIDC config | AUTH-009 (/api/auth/oidc/config) | Read | ACTIVE |

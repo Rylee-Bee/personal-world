@@ -512,14 +512,22 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     # Preferences / layout / apps / themes.
     _e("API-030-get", "GET", "/api/prefs", "prefs", "read", "none"),
-    _e("API-030-put", "PUT", "/api/prefs", "prefs", "write", "step-up"),
+    _e(
+        "API-030-put",
+        "PUT",
+        "/api/prefs",
+        "prefs",
+        "write",
+        "none",
+        note="own-account write: signed-in person only, no step-up",
+    ),
     _e(
         "API-030-patch",
         "PATCH",
         "/api/prefs",
         "prefs",
         "write",
-        "step-up",
+        "none",
         note="alias of API-030-put: the same partial update, the same gate "
         "(the handler has always applied exactly the keys it was given)",
     ),
@@ -676,7 +684,8 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/discovery/interests",
         "discovery",
         "write",
-        "step-up",
+        "none",
+        note="own-account write: signed-in person only, no step-up",
     ),
     _e(
         "API-052",
@@ -788,8 +797,44 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "write",
         "step-up",
     ),
+    _e(
+        "API-071-viewers-get",
+        "GET",
+        "/api/identity/viewers",
+        "identity",
+        "read",
+        "none",
+        note="owner only; read-only credentials listed without hashes or tokens",
+    ),
+    _e(
+        "API-071-viewers-create",
+        "POST",
+        "/api/identity/viewers",
+        "identity",
+        "write",
+        "step-up",
+        note="owner only; mints a read-only credential (GET/HEAD/OPTIONS as the "
+        "owner, never step-up); token shown once",
+    ),
+    _e(
+        "API-071-viewers-delete",
+        "DELETE",
+        "/api/identity/viewers/{viewer_id}",
+        "identity",
+        "write",
+        "step-up",
+        note="owner only; revokes a read-only credential",
+    ),
     _e("API-073", "GET", "/api/identity/principal", "identity", "read", "none"),
-    _e("API-074", "PUT", "/api/identity/principal", "identity", "write", "step-up"),
+    _e(
+        "API-074",
+        "PUT",
+        "/api/identity/principal",
+        "identity",
+        "write",
+        "none",
+        note="own-account write: signed-in person only, no step-up",
+    ),
     # People & roles (owner-approved 2026-09-26): code asks
     # `roles.can(principal, permission)`; admins manage accounts, never
     # content. Responses are allow-listed (no secrets, no tokens).

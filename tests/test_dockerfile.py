@@ -54,7 +54,17 @@ class TestDockerfile:
         assert "HEALTHCHECK" in text
         assert "uvicorn personal_world.api:create_app --factory" in text
         assert "FATAL: PW_API_TOKEN is empty or unset" in text
-        assert "# TODO: pin by digest" in text
+        froms = [l for l in text.splitlines() if l.startswith("FROM ")]
+        assert len(froms) == 2
+        assert all("@sha256:" in l for l in froms), froms
+
+
+class TestImageContents:
+    def test_runtime_image_has_no_test_extra(self):
+        text = _dockerfile_text()
+        sync = [l for l in text.splitlines() if "uv sync" in l]
+        assert sync and all("--extra test" not in l for l in sync), sync
+        assert any("--extra crypto" in l for l in sync)
 
 
 class TestDockerignore:
@@ -81,3 +91,18 @@ class TestDockerignore:
         # The image's ui-build stage is the only source of static/app;
         # a stale local staging must never ride in via COPY src.
         assert "src/personal_world/static/app/" in _dockerignore_text()
+
+
+class TestWorkflowPins:
+    def test_reusable_workflows_are_pinned_to_commits(self):
+        import re
+
+        for wf in (REPO_ROOT / ".github" / "workflows").glob("*.yml"):
+            for line in wf.read_text().splitlines():
+                m = re.search(r"uses:\s*(\S+)@(\S+)", line)
+                if m and "/.github/workflows/" in m.group(1):
+                    assert re.fullmatch(r"[0-9a-f]{40}", m.group(2)), f"{wf.name}: {line.strip()}"
+
+    def test_image_publish_records_provenance(self):
+        text = (REPO_ROOT / ".github" / "workflows" / "publish-image.yml").read_text()
+        assert "provenance: true" in text

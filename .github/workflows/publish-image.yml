@@ -148,4 +148,4 @@ jobs:
           # repo and the image carries source only (no secrets, no
           # private endpoints, no deployment topology — verified
           # preflight against SECURITY.md and test_public_safety.py).
-          provenance: false
+          provenance: true

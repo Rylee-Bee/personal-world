@@ -59,6 +59,10 @@ class Principal:
     #: agent principal this carries its OWNER's role, so ``can()`` can
     #: reason about "the lesser of scopes and the person" without I/O.
     role: str = "member"
+    #: True for a read-only viewer credential: it acts as ``id`` (the owning
+    #: person) for reads, but the auth layer refuses every write, every
+    #: step-up and every route on the viewer deny list (see api.py).
+    read_only: bool = False
 
 
 def is_admin(principal: Principal | None) -> bool:
@@ -493,6 +497,69 @@ class IdentityStore:
                 return True
         return False
 
+    # -- read-only viewer credentials ---------------------------------------
+    # Kept in their own list so nothing that walks users/agents (session
+    # resolution, listings, login) can ever see or match one.
+    def create_viewer(
+        self, viewer_id: str, owner_id: str, plain_token: str, label: str = ""
+    ) -> dict:
+        payload = self._load()
+        if any(v.get("user_id") == viewer_id for v in payload.get("viewers", [])):
+            raise ValueError(f"viewer exists: {viewer_id}")
+        v = {
+            "user_id": viewer_id,
+            "kind": "viewer",
+            "owner_id": owner_id,
+            "label": label[:80],
+            "hashed_tokens": [],
+            "token_prefixes": [],
+            "enabled": True,
+            "created_at": time.time(),
+        }
+        self._attach_token(v, plain_token)
+        payload.setdefault("viewers", []).append(v)
+        self._save(payload)
+        return v
+
+    def list_viewers(self, owner_id: str | None = None) -> list[dict]:
+        """Enabled viewers, without any hash (public fields only)."""
+        out = []
+        for v in self._load().get("viewers", []):
+            if not v.get("enabled") or (owner_id and v.get("owner_id") != owner_id):
+                continue
+            out.append(
+                {
+                    "viewer_id": v["user_id"],
+                    "owner_id": v.get("owner_id"),
+                    "label": v.get("label", ""),
+                    "token_prefix": (v.get("token_prefixes") or [""])[0],
+                    "created_at": v.get("created_at"),
+                }
+            )
+        return out
+
+    def disable_viewer(self, viewer_id: str, owner_id: str) -> bool:
+        payload = self._load()
+        for v in payload.get("viewers", []):
+            if (
+                v.get("user_id") == viewer_id
+                and v.get("owner_id") == owner_id
+                and v.get("enabled")
+            ):
+                v["enabled"] = False
+                self._save(payload)
+                return True
+        return False
+
+    def match_viewer(self, token: str) -> dict | None:
+        fp = _token_fingerprint(token)
+        for v in self._load().get("viewers", []):
+            if v.get("enabled") and any(
+                hmac.compare_digest(fp, h) for h in v.get("hashed_tokens", [])
+            ):
+                return v
+        return None
+
     def legacy_primary(self, instance_token: str) -> dict:
         """The bootstrap person in single mode (id "primary")."""
         payload = self._load()
@@ -592,8 +659,15 @@ def resolve_principal(
     store: IdentityStore | None,
     mode: str,
     instance_token: str | None,
+    *,
+    allow_read_only: bool = False,
 ) -> Principal:
-    """The single entry point. No handler ever sees the raw token."""
+    """The single entry point. No handler ever sees the raw token.
+
+    A read-only viewer credential resolves only when the caller passes
+    ``allow_read_only=True`` (the API's bearer path does). Login, step-up
+    and the CLI never do, so a viewer token can not be traded for a
+    session, an elevation or an approval."""
     # A project's learning key (PW_LEARNING_TOKEN), in either mode: an agent
     # of the primary person whose only scope is "learning"; api.py confines
     # it to /api/learning (CONFINING_SCOPES). It never becomes the person.
@@ -625,6 +699,30 @@ def resolve_principal(
                 auth_level=1,
                 source="token",
                 role="owner",
+            )
+    if store is not None and token:
+        viewer = store.match_viewer(token)
+        if viewer is not None:
+            if not allow_read_only:
+                raise NoPrincipalError("read-only credential not accepted here")
+            owner_id = viewer.get("owner_id") or ""
+            owner = store.get_user(owner_id)
+            if owner is not None:
+                if not owner.get("enabled", True) or record_is_expired(owner):
+                    raise NoPrincipalError("viewer's owner is not active")
+                role = role_for_record(owner)
+            elif mode == "multi" or owner_id != BOOTSTRAP_PRINCIPAL_ID:
+                raise NoPrincipalError("viewer's owner not found")
+            else:
+                role = "owner"
+            return Principal(
+                id=owner_id,
+                kind="person",
+                display_name=(owner or {}).get("display_name") or "Primary person",
+                auth_level=1,
+                source="viewer",
+                role=role,
+                read_only=True,
             )
     if mode == "multi" and store is not None:
         found = store.match_token(token or "")

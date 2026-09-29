@@ -1,6 +1,6 @@
 # Operations guide (0.1)
 
-> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** running, deploying, updating and backing up Worlds · **Read this if:** you are operating an instance — local CLI, containers, production deploy, backups, or chat providers.
+> **Status:** Reference · **Verified:** 2026-09-29 · **Canonical for:** running, deploying, updating and backing up Worlds · **Read this if:** you are operating an instance — local CLI, containers, production deploy, backups, or chat providers.
 
 **In short:** how to run Worlds locally and in containers, sign in with your own SSO, deploy and roll back, and keep data safe. Keep private hostnames, credentials and access procedures in your own private operator docs — this repo carries the portable pattern only.
 
@@ -150,10 +150,17 @@ the tracked Compose.
 | Tag | Source | Use |
 | --- | --- | --- |
 | `ghcr.io/rylee-bee/personal-world:latest` | Each successful main publish | Convenience tag for fresh installs |
-| `ghcr.io/rylee-bee/personal-world:sha-<full SHA>` | Same publish | Immutable; preferred for reproducible deploys and rollback |
+| `ghcr.io/rylee-bee/personal-world:sha-<full SHA>` | Same publish | Immutable; preferred for reproducible deploys and rollback. Exists only for commits that built an image |
 
 Pin `latest` for ordinary use. Pin a `sha-...` tag when you need a
 reproducible deployment or want to roll back to a known-good image.
+
+The image is built only when something that goes into it changed (docs,
+tests and CI-only merges skip the build), so most commits have no `sha-...`
+tag. Take the SHA from a commit that did publish: the running image reports
+its commit in `GET /healthz` (`commit`, short form) and in its
+`org.opencontainers.image.revision` label (full SHA); the package's tag
+list on GHCR shows every `sha-...` tag that exists.
 
 ### Rollback
 
@@ -219,6 +226,23 @@ docker compose -f compose.yaml -f compose.homelab.yaml up -d
 
 Outside that host, do not use this override. Both bind paths in it are
 machine-specific and intentionally non-portable.
+
+### Bumping the pins
+
+Two kinds of input are pinned by content, not by a moving name:
+
+- **Base images** in `Dockerfile` (`node:24-slim`, `python:3.12-slim-bookworm`)
+  carry an `@sha256:` digest. To bump: read the new index digest from the
+  registry for the same tag (`docker buildx imagetools inspect <tag>` or the
+  registry's `Docker-Content-Digest` header), replace the digest in both
+  `FROM` lines, build the image, and check it starts.
+- **Shared CI workflows** (`Rylee-Bee/ci-harness/...@<40-hex SHA>` in
+  `validate.yml` and `uat-live.yml`). To bump: pick the new `ci-harness`
+  commit (`gh api repos/Rylee-Bee/ci-harness/commits/main --jq .sha`), read its
+  diff, and replace the SHA in every `uses:` line in one commit.
+
+`tests/test_dockerfile.py` fails if a `FROM` line or a shared workflow loses its
+pin. Image builds also record build provenance (`provenance: true`).
 
 ## Health, failures and state
 

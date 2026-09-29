@@ -37,20 +37,20 @@ The other **65 icon masters** already have clear geometry and remain byte-identi
 
 ## Modified files
 
-- `design/assets/icons/contact-sheet-16px.png` — Refresh existing raster preview from corrected SVG masters.
-- `design/assets/icons/contact-sheet-20px.png` — Refresh existing raster preview from corrected SVG masters.
-- `design/assets/icons/contact-sheet-24px.png` — Refresh existing raster preview from corrected SVG masters.
-- `design/assets/icons/contact-sheet.png` — Refresh existing raster preview from corrected SVG masters.
-- `design/assets/icons/contact-sheet.svg` — Restore inherited fill/stroke/cap/join for all 72 imported glyphs and sync revised masters.
-- `design/assets/icons/figma-icon-library.svg` — Restore inherited fill/stroke/cap/join for all 72 imported glyphs and sync revised masters.
+- `media_files/designs/personal-world/icons/contact-sheet-16px.png` — Refresh existing raster preview from corrected SVG masters.
+- `media_files/designs/personal-world/icons/contact-sheet-20px.png` — Refresh existing raster preview from corrected SVG masters.
+- `media_files/designs/personal-world/icons/contact-sheet-24px.png` — Refresh existing raster preview from corrected SVG masters.
+- `media_files/designs/personal-world/icons/contact-sheet.png` — Refresh existing raster preview from corrected SVG masters.
+- `media_files/designs/personal-world/icons/figma-icon-library.svg` — Restore inherited fill/stroke/cap/join for all 72 imported glyphs and sync revised masters.
+- `media_files/designs/personal-world/icons/figma-icon-library.svg` — Restore inherited fill/stroke/cap/join for all 72 imported glyphs and sync revised masters.
 - `design/assets/icons/sprite.svg` — Restore per-symbol presentation and synchronize revised masters; currentColor remains inheritable.
-- `design/assets/icons/svg/chat-ai--sources.svg` — Open the document outline around the magnifier; remove crossing lines.
-- `design/assets/icons/svg/companion--little-helper.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
-- `design/assets/icons/svg/companion--personal-world.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
-- `design/assets/icons/svg/companion--rylee-mermaid.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
-- `design/assets/icons/svg/companion--tacos-morning-paper.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
-- `design/assets/icons/svg/companion--world-tree-squirrel.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
-- `design/assets/icons/svg/world-content--memory.svg` — Regularize memory chip: square body, evenly spaced pins, clear center.
+- `media_files/designs/personal-world/icons/svg/chat-ai--sources.svg` — Open the document outline around the magnifier; remove crossing lines.
+- `media_files/designs/personal-world/icons/svg/companion--little-helper.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
+- `media_files/designs/personal-world/icons/svg/companion--personal-world.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
+- `media_files/designs/personal-world/icons/svg/companion--rylee-mermaid.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
+- `media_files/designs/personal-world/icons/svg/companion--tacos-morning-paper.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
+- `media_files/designs/personal-world/icons/svg/companion--world-tree-squirrel.svg` — Simplify compact companion detail and use a lighter 1.5px silhouette stroke; preserve character and palette.
+- `media_files/designs/personal-world/icons/svg/world-content--memory.svg` — Regularize memory chip: square body, evenly spaced pins, clear center.
 - `design/screens/chat/chat-active-conversation.svg` — Unify Chat bubble and tail into one rounded 2px contour. Restore calendar bindings, globe meridians, journal bookmark/spine, and Settings gear from the intact sibling screen. Preserve screen layout, copy, colors, selection backgrounds, and companion image data.
 - `design/screens/chat/chat-contextual-vefr.svg` — Unify Chat bubble and tail into one rounded 2px contour. Restore calendar bindings, globe meridians, journal bookmark/spine, and Settings gear from the intact sibling screen. Preserve screen layout, copy, colors, selection backgrounds, and companion image data.
 - `design/screens/chat/chat-empty-new.svg` — Unify Chat bubble and tail into one rounded 2px contour. Restore calendar bindings, globe meridians, journal bookmark/spine, and Settings gear from the intact sibling screen. Preserve screen layout, copy, colors, selection backgrounds, and companion image data.

@@ -29,7 +29,7 @@ URLs, tokens, hostnames, or outputs containing topology here.
 3. [2. Ingress, TLS, sign-in and break-glass](#2-ingress-tls-sign-in-and-break-glass)
 4. [3. Backup and restore drill](#3-backup-and-restore-drill)
 5. [4. Network exposure decision](#4-network-exposure-decision)
-6. [5. CI validation and image publish](#5-ci-validation-and-image-publish)
+6. [5. CI validation, image publish and browser gates](#5-ci-validation-image-publish-and-browser-gates)
 7. [6. Accessibility smoke pass](#6-accessibility-smoke-pass)
 
 ---

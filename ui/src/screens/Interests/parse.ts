@@ -101,7 +101,7 @@ function parseFinding(raw: unknown): DiscoveryFinding | null {
     title,
     source,
     content_type,
-    url: typeof raw["url"] === "string" ? raw["url"] : null,
+    url: webLinkOrNull(raw["url"]),
     description:
       typeof raw["description"] === "string" && raw["description"].length > 0
         ? raw["description"]
@@ -110,6 +110,17 @@ function parseFinding(raw: unknown): DiscoveryFinding | null {
       typeof raw["discovered_at"] === "string" ? raw["discovered_at"] : null,
     provenance: isRecord(raw["provenance"]) ? (raw["provenance"] as UnknownRecord) : {},
   };
+}
+
+/** A finding's link, only when it is an absolute http(s) address. */
+export function webLinkOrNull(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "http:" || u.protocol === "https:" ? value.trim() : null;
+  } catch {
+    return null;
+  }
 }
 
 function softFailureOf(envelope: UnknownRecord): {
