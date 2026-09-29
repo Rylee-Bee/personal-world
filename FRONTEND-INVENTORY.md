@@ -35,8 +35,8 @@ history is the archive); the Station survives only as a **theme package**.
 | **Settings** | Preferences, themes, accessibility, connections; opens **Crew** |
 | **Crew** | Your companions, per-room keepers, and doorway choices (also reachable from the Bridge) |
 | **Interests** | Discovery — moving to Candy, but the code is still in Worlds today (`src/personal_world/discovery/`) |
-
-Projects and Systems are labelled placeholders; they have no screen yet.
+| **Projects** | Teams, projects and tickets, read from the Hive Works room (`ui/src/screens/Projects/`) |
+| **Systems** | A calm map of your machines and what runs on them (`ui/src/screens/Computers/`) |
 
 **First Light** is the first-run setup wizard (crew on/off, companion choice), at
 `/api/setup-wizard/*`.

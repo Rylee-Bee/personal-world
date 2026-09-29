@@ -21,8 +21,7 @@ disagree, the canonical file wins.
   wait). Running commit: `GET /healthz` → `commit`. Runbook:
   [`docs/OPERATIONS.md`](../docs/OPERATIONS.md).
 - **The Bridge is home** (`ui/src/screens/Bridge/`); Memory, Chat, Settings,
-  Crew and Interests are real screens; Projects and systems are labelled
-  placeholders. First Light is the first-run setup. Starfield is the default
+  Crew, Interests, Projects and Systems are real screens. First Light is the first-run setup. Starfield is the default
   theme; every theme meets the type floor (body 16px, labels 13px).
 - **Rooms** are the architecture: Workshop, Studio, Engine room and Candy, read
   from Project Home's runtime registry; per-person rooms get
@@ -38,9 +37,13 @@ disagree, the canonical file wins.
 - **Next:** the OpenBao secrets migration (owner approved 2026-09-26; plan
   pending her choices), the Candy removal steps, Bridge layout and life, and
   filling the [screenshot gallery](../docs/gallery/README.md).
-- **Gates:** backend pytest (~1843 as of 2026-09-26), `framework validate`
-  (0 violations), UI tsc, lint, vitest, Playwright, the tokens and kit drift
-  gates, and `tests/test_public_safety.py` (no private topology in tracked text).
+- **Gates:** backend pytest (2261 collected from a clean checkout at `d42e477`,
+  2026-09-29: `uv run --extra test --extra crypto pytest --timeout=30`),
+  `framework validate` (0 violations), UI tsc, lint, vitest, Playwright, the
+  tokens and kit drift gates, and `tests/test_public_safety.py` (no private
+  topology in tracked text). Also run on every PR but not required to merge:
+  `codeql`, and `uat-live` (a read-only browser walk of the live instance; its
+  red can have causes outside your change).
 
 Everything below is dated history, newest first.
 
