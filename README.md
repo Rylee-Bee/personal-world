@@ -57,7 +57,9 @@ required: rooms are optional services Worlds can show when you run them.
   `/setup` are server-rendered; **First Light** is the first-run setup.
 - **Device-local by design.** Chat conversations stay on the device; replies
   come from your configured model; with no model configured, Chat says `not_configured`.
-- **Parked, on purpose.** Projects and systems are labelled placeholders.
+- **Real, still growing.** Projects (Hive Works teams and tickets) and Systems
+  (the Engine room's view of your machines) are routed screens: unfinished,
+  not missing.
 - **Moving out.** Discovery is moving to **Candy**, a separate room that is
   intended to be only the backend for Interests (not implemented quite right
   yet; media, calendars and notifications are not Candy's). The code is still

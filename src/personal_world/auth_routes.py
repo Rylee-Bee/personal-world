@@ -507,11 +507,10 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
         time-bounded and bound to that principal; it is the grant
         ``require_step_up`` consumes.
 
-        Unchanged by the OIDC work: an OIDC sign-in proves identity to
-        the provider but does not by itself mint a step-up grant. A
-        fresh OIDC round-trip as step-up remains unimplemented (see
-        docs/ARCHITECTURE.md "Known implementation/documentation
-        boundaries").
+        An OIDC sign-in proves identity to the provider but does not by
+        itself mint a step-up grant. People with no sign-in key use the
+        other path, ``GET /api/auth/oidc/step-up``, a fresh provider
+        sign-in whose callback grants the same window.
         """
         session_id = request.cookies.get(SESSION_COOKIE)
         if not session_id:

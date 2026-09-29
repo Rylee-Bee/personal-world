@@ -33,11 +33,11 @@ Source: `design/COMPANION_INTEGRATION.md` L27–33.
 
 | Companion | Role | Strong contexts | Source rig |
 |---|---|---|---|
-| **Mermaid** | Personal companion (the operator Theme) | operator theme, personal presence, conversation, reassurance | `companions/mermaid/mermaid-source-rig.svg` |
-| **Little Helper Robot** | Lab / development / AI helper | Development, automation, Workshop, configuration, tooling | `companions/robot/robot-source-rig.svg` |
-| **World-tree Squirrel** | Worlds / lore / memory keeper | VEFR, worlds, lore, memory, journal/history, worldbuilding | `companions/world-tree-squirrel/world-tree-squirrel-source-rig.svg` |
-| **Tacos & the Morning Paper** | Journalism / stories / city life | Burrito Journalism, reporting, news, city stories | `companions/taco-news-truck/taco-news-truck-source-rig.svg` |
-| **Personal World** | Default system companion | System default, generic theme, product identity | `companions/personal-world/personal-world-source-rig.svg` |
+| **Mermaid** | Personal companion (the operator Theme) | operator theme, personal presence, conversation, reassurance | `media_files/portfolio/companions/renai.svg` |
+| **Little Helper Robot** | Lab / development / AI helper | Development, automation, Workshop, configuration, tooling | `media_files/portfolio/companions/bolt.svg` |
+| **World-tree Squirrel** | Worlds / lore / memory keeper | VEFR, worlds, lore, memory, journal/history, worldbuilding | `media_files/portfolio/companions/ratatoskr.svg` |
+| **Tacos & the Morning Paper** | Journalism / stories / city life | Burrito Journalism, reporting, news, city stories | `media_files/portfolio/companions/burrito.svg` |
+| **Personal World** | Default system companion | System default, generic theme, product identity | `media_files/portfolio/companions/personal-world.svg` |
 
 **Names:** display canon — **Renai**, **Ratatoskr**, **Bolt**, **Scoop** (the burrito truck), **Sol**, **Assistant** — and the station-id ↔ server-key ↔ crew-id mapping live in [COMPANION-CANON.md](COMPANION-CANON.md). The table above keeps the design-file descriptors on purpose; the canon names are what people read.
 

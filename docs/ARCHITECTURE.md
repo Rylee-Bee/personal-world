@@ -1,6 +1,6 @@
 # Worlds Architecture
 
-> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** how Worlds is structured — world model, rooms, API surface, identity/auth, Vault, exports · **Read this if:** you need to know where something lives before changing it.
+> **Status:** Current · **Verified:** 2026-09-29 · **Canonical for:** how Worlds is structured — world model, rooms, API surface, identity/auth, Vault, exports · **Read this if:** you need to know where something lives before changing it.
 
 **In short:** how Worlds is put together: one small durable core (facts, intent, policy, lore, capabilities, journal, packs) surrounded by replaceable providers, plus **rooms** — separate services Worlds renders. It also covers the API surface, identity and auth, the Vault, the daily loop, and export contracts.
 
@@ -250,7 +250,7 @@ routes, not deployment acceptance:
 | GET /api/lab/health, /api/lab/deploy, /api/lab/secrets, /api/lab/resources | Optional Lab read surfaces; secrets metadata, not resolved values |
 | GET /api/vault/status, /api/vault/names, /api/vault/{name}; POST /api/vault/unlock, /api/vault/lock, /api/vault/set; DELETE /api/vault/{name} | Native Vault operations with the distinct restrictions above |
 | GET /api/themes, /api/themes/{name} | Theme manifest registry reads; not full frontend pack integration |
-| GET/POST /api/identity/users, /api/identity/agents; DELETE /api/identity/users/{user_id}, /api/identity/agents/{agent_id}; GET /api/identity/principal | Local identity/owned-agent foundations; user administration is admin-gated, agent operations use ownership, and writes use step-up |
+| GET/POST /api/identity/users, /api/identity/agents, /api/identity/viewers (read-only credentials, owner only); DELETE /api/identity/users/{user_id}, /api/identity/agents/{agent_id}; GET /api/identity/principal | Local identity/owned-agent foundations; user administration is admin-gated, agent operations use ownership, and writes use step-up |
 | POST /api/auth/login, /api/auth/logout, /api/auth/step-up; GET /api/auth/session, /api/auth/oidc/config, /api/auth/oidc/login, /api/auth/oidc/callback | Provider-neutral browser sign-in; local/OIDC sessions resolve to a canonical Principal, and step-up mints a time-bounded, credential-verified grant |
 | GET /api/proposals, /api/proposals/{id}; POST /api/proposals/{id}/approve, /reject, /execute | Durable brain-write proposal lifecycle; server-held approval evidence persists to data/proposals.json and execution is step-up gated |
 | GET/POST /api/reminders; PATCH/DELETE /api/reminders/{rid} | Persistent reminders and scheduler controls |
@@ -302,9 +302,13 @@ Review first-run exposure separately from normal protected API access.
   `tests/test_identity_boundary.py`); in single mode (and background
   code paths with no principal) it remains instance-global. The approval
   evidence is server-held and persisted.
-- Session step-up re-presents an application credential. An OIDC-only browser
-  session cannot mint a grant without the instance token; a fresh OIDC
-  round-trip as step-up is not implemented.
+- Session step-up has two paths. `POST /api/auth/step-up` re-presents an
+  application credential. `GET /api/auth/oidc/step-up` ("Confirm it's you")
+  sends the browser through a fresh provider sign-in (`prompt=login`,
+  `max_age=0`); the callback grants the 5-minute step-up only when the same
+  person signed in within the last two minutes. An OIDC-only browser session
+  therefore does not need the instance token to elevate.
+  (`tests/test_oidc.py`, `fresh_sign_in_grants_step_up`.)
 
 These gaps are recorded rather than changing implementation or weakening an
 adopted contract during documentation reconciliation. Manual screen-reader,

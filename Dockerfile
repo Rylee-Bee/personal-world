@@ -1,4 +1,4 @@
-# TODO: pin by digest after the first build is validated
+# Base images are pinned by digest (bump: docs/OPERATIONS.md, "Bumping the pins").
 
 # --- interface build stage ---------------------------------------------
 # The React rebuild IS the product frontend (owner decision 2026-09-22).
@@ -7,7 +7,7 @@
 # staging step. The build reads design/tokens.json + design/themes/*.json
 # (token generation is cross-directory by design), so both trees are in
 # the stage.
-FROM node:24-slim AS ui-build
+FROM node:24-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS ui-build
 WORKDIR /src
 COPY ui/package.json ui/package-lock.json ./ui/
 RUN cd ui && npm ci --no-audit --no-fund
@@ -22,8 +22,8 @@ ENV VITE_PW_COMMIT=$PW_COMMIT
 RUN cd ui && npm run build
 
 # --- runtime stage ----------------------------------------------------
-# TODO: pin by digest after the first build is validated
-FROM python:3.12-slim-bookworm
+# Pinned by digest (see the note at the top of this file).
+FROM python:3.12-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e
 
 # git: source-control capability feeds the dashboard + chat context.
 RUN apt-get update \
@@ -34,7 +34,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
 RUN pip install --no-cache-dir uv \
-    && uv sync --frozen --no-dev --extra test --extra crypto \
+    && uv sync --frozen --no-dev --extra crypto \
     && rm -rf ~/.cache
 
 COPY src ./src

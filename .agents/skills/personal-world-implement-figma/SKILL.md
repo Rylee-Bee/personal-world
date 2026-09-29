@@ -122,7 +122,7 @@ still current:
 | Shared UI | `ui/src/components/` (WorldButton, WorldDrawer, WorldAssistant, WorldKeeper, ResidentPresence, WorldSignal, WorldAreaLink); stories in `ui/src/stories/` |
 | Data and preferences | `ui/src/data/`: `api.ts` (typed openapi-fetch client), `hooks.ts`, `queryClient.ts`, `types.ts`, `errors.ts`, `draft-sync.ts`; preference DOM helpers `ui/src/app/prefs-dom.ts`; generated API types `ui/src/generated/api-types.ts` (`npm run api:generate`); browser mocks `ui/src/mocks/` (msw). Inspect consumers before changing them |
 | Icons | canonical `design/assets/icons/manifest.json` and `svg/`; sprite `ui/public/icons.svg`; runtime `src/personal_world/static/icons/` |
-| Companions | `design/COMPANION_INTEGRATION.md`, `design/assets/companions/`, protected `design/assets/mermaid-companion-master.lottie`; runtime `src/personal_world/static/companions/` (served same-origin by the backend) |
+| Companions | `design/COMPANION_INTEGRATION.md`, `design/assets/companions/`, protected `media_files/designs/personal-world/mermaid-companion-master.lottie`; runtime `src/personal_world/static/companions/` (served same-origin by the backend) |
 | Visual references | Approved exports under `design/screens/`, classified through `.project/design/CURRENT.md`; inspect actual filenames |
 | Tests | `ui/src/test/` (vitest), `ui/e2e/` (Playwright specs incl. `accessibility.spec.ts`, `axe.spec.ts`, `overview.spec.ts`, `memory-records.spec.ts`, `navigation.spec.ts`), `ui/playwright.config.ts`; backend `tests/` |
 

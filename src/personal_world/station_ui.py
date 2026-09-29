@@ -109,6 +109,23 @@ RESERVED_TOP_LEVEL = frozenset(
     }
 )
 
+#: Report-only Content-Security-Policy for the interface page. It blocks
+#: nothing: browsers log what a stricter policy would refuse, so a real
+#: policy can be tightened from evidence. ``style-src`` allows inline
+#: styles because the interface sets some through the ``style`` attribute.
+CSP_REPORT_ONLY = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob:; "
+    "font-src 'self' data:; "
+    "connect-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'none'"
+)
+
 #: Retired interface paths. They redirect to / so nothing ever 404s on a
 #: bookmark — and so the old surfaces are unreachable, not just unlinked.
 LEGACY_PREFIXES = ("station", "vnext")
@@ -203,7 +220,9 @@ def app_router(data_dir: Path, dist: Path | None = None) -> APIRouter:
                 status_code=503,
                 headers={"Cache-Control": "no-store"},
             )
-        return _cached_file(request, path, CONTENT_TYPES[".html"])
+        response = _cached_file(request, path, CONTENT_TYPES[".html"])
+        response.headers["Content-Security-Policy-Report-Only"] = CSP_REPORT_ONLY
+        return response
 
     def _file(request: Request, rel: str) -> Response:
         from .api import _cached_file

@@ -689,16 +689,27 @@ def register_worlds_backup(
     config_dir: Path | str | None = None,
     home_config_dir: Path | str | None = None,
     step_up: Any = None,
+    owner_gate: Any = None,
 ) -> None:
     """Register the step-up-gated worlds backup/restore routes on a
     FastAPI app. ``step_up`` MUST be the app's real step-up auth
     dependency; registration refuses without it (fail closed — an
     ungated whole-world export endpoint must never exist by accident).
+    ``owner_gate`` MUST be a dependency that refuses every caller who is
+    not an owner or admin; registration refuses without it too. Both run
+    before the handler, so a refused caller never creates or consumes a
+    one-time download token.
     """
     if step_up is None:
         raise ValueError(
             "register_worlds_backup requires the step-up dependency; "
             "refusing to register ungated backup/restore routes"
+        )
+
+    if owner_gate is None:
+        raise ValueError(
+            "register_worlds_backup requires the owner dependency; "
+            "refusing to register routes any signed-in person could use"
         )
 
     from fastapi import Depends, HTTPException
@@ -711,7 +722,7 @@ def register_worlds_backup(
         if home_config_dir is not None
         else default_home_config_dir()
     )
-    gate = [Depends(step_up)]
+    gate = [Depends(step_up), Depends(owner_gate)]
 
     def _sweep() -> None:
         now = time.time()

@@ -301,6 +301,10 @@ def _step_up_authorized(request: Request, principal: Any = None) -> bool:
     if principal is None:
         principal = getattr(request.state, "principal", None)
     principal_id = principal.id if principal is not None else None
+    if principal is not None and getattr(principal, "read_only", False):
+        # A read-only credential never elevates: no session grant, no
+        # loopback peer, no delegated header.
+        return False
 
     session = _current_session(request)
     if session is not None and session.has_step_up(principal_id):
@@ -331,8 +335,25 @@ async def require_step_up(request: Request) -> None:
     # need a write go through person-approved proposal execution.
     if principal is not None and principal.kind == "agent":
         raise HTTPException(status_code=403, detail="step-up is person-only")
+    if principal is not None and getattr(principal, "read_only", False):
+        raise HTTPException(status_code=403, detail="read-only token: step-up is not available")
     if not _step_up_authorized(request, principal):
         raise HTTPException(status_code=403, detail="write requires step-up auth")
+
+
+async def require_estate_custody(request: Request) -> None:
+    """Whole-instance export/import: owner or admin only.
+
+    Backup and restore move every person's data and the vault in one
+    archive, so a valid elevation alone is not enough: the caller must
+    also hold ``estate_secrets`` (owner and admin bundles only; members,
+    supervised and guest accounts and agent keys never carry it). Mounted
+    next to ``require_step_up`` as a route dependency, so a refusal
+    happens before any one-time download token is created or consumed.
+    """
+    principal = getattr(request.state, "principal", None)
+    if not can(principal, "estate_secrets"):
+        raise HTTPException(status_code=403, detail="estate custody required")
 
 
 def _is_true_loopback(request: Request) -> bool:
@@ -383,8 +404,68 @@ def _confined_out(principal, path: str) -> bool:
     return not any(path == p or path.startswith(p + "/") for p in allowed)
 
 
+#: Reads a read-only viewer credential may never make: secret values and
+#: names, raw personal material (journal, recall, chat history, records,
+#: learning, world/backup exports), whole-instance archives, credential
+#: administration and lab/infra configuration. Prefix match on path
+#: segments; everything else that is a GET/HEAD/OPTIONS is allowed, so a
+#: screen walk can see the app without holding any secret or raw entry.
+VIEWER_DENIED_PREFIXES: tuple[str, ...] = (
+    "/api/vault",
+    "/api/secrets",
+    "/api/lab/secrets",
+    "/api/lab/settings",
+    "/api/native-lab/settings",
+    "/api/recall",
+    "/api/journal",
+    "/api/memory",
+    "/api/records",
+    "/api/learning",
+    "/api/backup",
+    "/api/worlds",
+    "/api/exports",
+    "/api/identity/agents",
+    "/api/identity/users",
+    "/api/identity/viewers",
+    "/api/people/invites",
+    "/api/push/subscriptions",
+    "/api/connections/config",
+)
+
+#: Narrow, named exceptions to the prefixes above (exact path match only):
+#: structure a viewer may read inside an otherwise denied area.
+#: - ``/api/records/categories``: category names, counts and the locked flag,
+#:   never a record's contents.
+VIEWER_ALLOWED_EXACT: tuple[str, ...] = ("/api/records/categories",)
+
+#: Chat history is a mixed route (structure plus what was said). A viewer
+#: gets the structure only, by allow-list: each entry keeps just these keys,
+#: so a content field added later is omitted by default.
+VIEWER_CHAT_ENTRY_KEYS = ("ts", "role")
+
+_VIEWER_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def _viewer_refusal(principal, method: str, path: str) -> str | None:
+    """Why a read-only viewer may not make this request, or ``None``."""
+    if principal is None or not getattr(principal, "read_only", False):
+        return None
+    if method.upper() not in _VIEWER_SAFE_METHODS:
+        return "read-only token: this credential can only read"
+    if path in VIEWER_ALLOWED_EXACT:
+        return None
+    if any(path == p or path.startswith(p + "/") for p in VIEWER_DENIED_PREFIXES):
+        return "read-only token: this route is not available to a read-only credential"
+    return None
+
+
 async def require_auth(request: Request) -> None:
     await _require_auth_base(request)
+    refusal = _viewer_refusal(
+        getattr(request.state, "principal", None), request.method, request.url.path
+    )
+    if refusal:
+        raise HTTPException(status_code=403, detail=refusal)
     if _confined_out(getattr(request.state, "principal", None), request.url.path):
         raise HTTPException(status_code=403, detail="this key only reaches its own routes")
 
@@ -434,7 +515,9 @@ async def _require_auth_base(request: Request) -> None:
     if supplied:
         if mode == "multi" or instance_token:
             try:
-                principal = resolve_principal(supplied, store, mode, instance_token)
+                principal = resolve_principal(
+                    supplied, store, mode, instance_token, allow_read_only=True
+                )
             except NoPrincipalError:
                 raise HTTPException(status_code=401, detail="unauthorized")
             _set_principal(request, principal, principal.source)
@@ -636,7 +719,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .worlds_backup import register_worlds_backup
 
     register_worlds_backup(
-        app, data_dir=data_dir, config_dir=config_dir, step_up=require_step_up
+        app,
+        data_dir=data_dir,
+        config_dir=config_dir,
+        step_up=require_step_up,
+        owner_gate=require_estate_custody,
     )
 
     # --- Durable brain-proposal store (D3) ---
@@ -801,6 +888,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         )
         return world, registry, uj
 
+    def _journal_at(uj: Path) -> Journal:
+        """The Journal object for a resolved journal path (the shared
+        instance journal when it is that path)."""
+        return journal if uj == journal.path else Journal(uj)
+
     def _proposal_store(request: Request):
         """The proposal store owning the CALLER's tree (decision #13).
 
@@ -829,20 +921,20 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "status": "healthy", "data": s}
 
     @app.get("/api/daily", dependencies=[Depends(require_auth)])
-    async def daily_view() -> dict:
+    async def daily_view(request: Request) -> dict:
         """Present the daily digest. Read-only: a page view never
         journals observations or records facts (that is the POST)."""
-        world, registry = _state()
-        result = daily(world, registry, journal, record=False)
+        world, registry, uj = _state_for(request)
+        result = daily(world, registry, _journal_at(uj), record=False)
         return result.model_dump(mode="json")
 
     @app.post("/api/daily", dependencies=[Depends(require_auth)])
-    async def daily_run() -> dict:
+    async def daily_run(request: Request) -> dict:
         """Run the daily loop for real: journal observations, record
         capability facts, flag drift, save the world."""
-        world, registry = _state()
-        result = daily(world, registry, journal, record=True)
-        save_world(world, world_path)
+        world, registry, uj = _state_for(request)
+        result = daily(world, registry, _journal_at(uj), record=True)
+        save_world(world, _user_paths(request)[0])
         return result.model_dump(mode="json")
 
     @app.get("/api/journal", dependencies=[Depends(require_auth)])
@@ -1290,10 +1382,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "data": dl.model_dump()}
 
     @app.get("/api/memory/search", dependencies=[Depends(require_auth)])
-    async def memory_search(q: str, top_k: int = 5) -> dict:
+    async def memory_search(request: Request, q: str, top_k: int = 5) -> dict:
         """Semantic recall through the memory provider. Private data
         class: results are personal context, never settings-exportable."""
-        _, registry = _state()
+        _, registry, _ = _state_for(request)
         provider = registry.provider_for("memory")
         if provider is None:
             return {
@@ -1767,6 +1859,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         (per-user, decision #13). Never another principal's."""
         transcript = ChatHistory(_scoped_path(_principal(request), "chat_history"))
         entries = transcript.recent(min(max(n, 1), 500))
+        if getattr(_principal(request), "read_only", False):
+            # Structure only for a read-only viewer: when and who, never
+            # what was said.
+            entries = [
+                {k: e[k] for k in VIEWER_CHAT_ENTRY_KEYS if k in e} for e in entries
+            ]
         return {"ok": True, "data": {"entries": entries, "count": len(entries)}}
 
     @app.get("/api/chat/providers", dependencies=[Depends(require_auth)])
@@ -2354,12 +2452,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "data": export.settings_export(world)}
 
     @app.get("/api/exports/world", dependencies=[Depends(require_auth)])
-    async def world_export() -> dict:
+    async def world_export(request: Request) -> dict:
         """Portable personal configuration: world-classified state only;
         raw secrets are structurally absent (they are in the secret
         store, referenced by name at most). Treat the output as personal
         data."""
-        world, _ = _state()
+        world, _, _ = _state_for(request)
         return {"ok": True, "data": export.world_export(world)}
 
     @app.get("/api/exports/story", dependencies=[Depends(require_auth)])
@@ -2369,12 +2467,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "data": {"text": export.story_export(journal)}}
 
     @app.get("/api/backup", dependencies=[Depends(require_auth)])
-    async def backup() -> dict:
+    async def backup(request: Request) -> dict:
         """Full-state backup payload (world, journal, config) including
         private state. Meant for the operator's own encryption step; it
         is never shareable raw, and the API does not encrypt it."""
-        world, _ = _state()
-        return {"ok": True, "data": export.backup_payload(world, journal)}
+        world, _, uj = _state_for(request)
+        return {"ok": True, "data": export.backup_payload(world, _journal_at(uj))}
 
     @app.get("/api/updates", dependencies=[Depends(require_auth)])
     async def updates_view() -> dict:
@@ -2853,11 +2951,20 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.post("/api/discovery/interests", dependencies=[Depends(require_auth)])
     async def discovery_add_interest(request: Request) -> dict:
-        """Add an interest."""
+        """Add an interest. Person-only, like the person's other own-data writes."""
         from .providers.native_discovery import Interest
 
+        _require_person(getattr(request.state, "principal", None))
         discovery = _discovery_for(request)
         data = await request.json()
+        if (
+            not isinstance(data, dict)
+            or not isinstance(data.get("id"), str)
+            or not data["id"].strip()
+            or not isinstance(data.get("name"), str)
+            or not data["name"].strip()
+        ):
+            raise HTTPException(status_code=422, detail="id and name are required")
         interest = Interest(
             id=data.get("id", ""),
             name=data.get("name", ""),
@@ -4273,6 +4380,74 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         )
         return {"ok": True, "data": {"agent_id": agent_id, "disabled": True}}
 
+    # -- read-only viewer credentials (owner only, step-up to create/revoke) --
+    def _require_owner_person(principal) -> None:
+        if (
+            principal is None
+            or principal.kind != "person"
+            or getattr(principal, "read_only", False)
+            or not can(principal, "transfer_ownership")
+        ):
+            raise HTTPException(status_code=403, detail="owner required")
+
+    @app.get("/api/identity/viewers", dependencies=[Depends(require_auth)])
+    async def viewers_list(request: Request) -> dict:
+        """The owner's read-only viewer credentials (no hashes, no tokens)."""
+        principal = getattr(request.state, "principal", None)
+        _require_owner_person(principal)
+        return {"ok": True, "data": _identity_store.list_viewers(owner_id=principal.id)}
+
+    @app.post("/api/identity/viewers", dependencies=[Depends(require_step_up)])
+    async def viewers_create(request: Request) -> dict:
+        """Mint a read-only viewer credential that acts as the owner for
+        reads only. Body: {"viewer_id", "label"?}. Owner only. The token is
+        returned exactly once and stored hashed."""
+        principal = getattr(request.state, "principal", None)
+        _require_owner_person(principal)
+        body = await request.json()
+        viewer_id = ((body or {}).get("viewer_id") or "").strip()
+        from .identity import _SAFE_PRINCIPAL_ID as _safe_pid
+
+        if not viewer_id or not _safe_pid.fullmatch(viewer_id):
+            raise HTTPException(status_code=422, detail="viewer_id invalid")
+        label = str((body or {}).get("label") or "")
+        plain = "pwv_" + secrets.token_urlsafe(24)
+        try:
+            v = _identity_store.create_viewer(
+                viewer_id, principal.id, plain, label=label
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        journal.record(
+            kind=JournalKind.SETTINGS_CHANGE,
+            summary="read-only viewer registered: " + viewer_id,
+            source="admin",
+        )
+        return {
+            "ok": True,
+            "data": {
+                "viewer_id": v["user_id"],
+                "owner_id": principal.id,
+                "read_only": True,
+                "token": plain,
+            },
+        }
+
+    @app.delete(
+        "/api/identity/viewers/{viewer_id}", dependencies=[Depends(require_step_up)]
+    )
+    async def viewers_disable(request: Request, viewer_id: str) -> dict:
+        principal = getattr(request.state, "principal", None)
+        _require_owner_person(principal)
+        if not _identity_store.disable_viewer(viewer_id, principal.id):
+            raise HTTPException(status_code=404, detail="no such viewer")
+        journal.record(
+            kind=JournalKind.SETTINGS_CHANGE,
+            summary=f"read-only viewer disabled: {viewer_id}",
+            source="admin",
+        )
+        return {"ok": True, "data": {"viewer_id": viewer_id, "disabled": True}}
+
     @app.get("/api/apps", dependencies=[Depends(require_auth)])
     async def apps_list(request: Request) -> dict:
         """Services launcher registry (config/data/apps.json).
@@ -5353,7 +5528,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         value = body.get("value")
         if not key:
             raise HTTPException(status_code=400, detail="key required")
-        world, registry = _state()
+        world, registry, _ = _state_for(request)
         from .model import Intent, Provenance
 
         intent = Intent(
@@ -5362,7 +5537,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             provenance=Provenance(source="dashboard-quick-action"),
         )
         world.set_intent(intent)
-        save_world(world, world_path)
+        save_world(world, _user_paths(request)[0])
         return {"ok": True, "data": {"key": key}}
 
     # ── Lore: sync from a room's `lore` view, list, confirm ─────────
@@ -5426,11 +5601,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         report = {k: v for k, v in report.items() if k not in ("new", "changed", "gone")}
         return JSONResponse({"ok": True, "data": {**report, "dry_run": dry, "room": room}})
 
-    @app.post("/api/lore/confirm", dependencies=[Depends(require_auth)])
+    @app.post("/api/lore/confirm", dependencies=[Depends(require_step_up)])
     async def lore_confirm(request: Request) -> dict:
         """Confirm lore: ``{"keys": [...]}``, or ``{"accepted": true}`` for
         every suggested item its source marked accepted. A person's explicit
-        act (step-up); confirmed lore is what Worlds treats as true."""
+        act, so it needs a step-up ("Confirm it's you"); confirmed lore is
+        what Worlds treats as true."""
         from . import lore_sync
 
         principal = _principal(request)
@@ -5807,7 +5983,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         value = body.get("value")
         if not key:
             raise HTTPException(status_code=400, detail="key required")
-        world, registry = _state()
+        world, registry, _ = _state_for(request)
         from .model import Fact, Provenance
 
         fact = Fact(
@@ -5816,7 +5992,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             provenance=Provenance(source="dashboard-quick-action"),
         )
         world.record_fact(fact)
-        save_world(world, world_path)
+        save_world(world, _user_paths(request)[0])
         return {"ok": True, "data": {"key": key}}
 
     @app.post("/api/world/policy", dependencies=[Depends(require_step_up)])
@@ -5827,7 +6003,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         effect = body.get("effect", "allow")
         if not key:
             raise HTTPException(status_code=400, detail="key required")
-        world, registry = _state()
+        world, registry, _ = _state_for(request)
         from .model import Policy, PolicyEffect, Provenance
 
         try:
@@ -5847,7 +6023,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             # action through the CLI; the API reports the boundary, it
             # does not crash on it
             raise HTTPException(status_code=409, detail=str(exc))
-        save_world(world, world_path)
+        save_world(world, _user_paths(request)[0])
         return {"ok": True, "data": {"key": key, "effect": effect}}
 
     # --- Entry point ---

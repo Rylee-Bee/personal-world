@@ -1,6 +1,6 @@
 # OIDC sign-in (provider-neutral SSO)
 
-> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** OIDC/SSO wiring — config file, routes, flow, error codes, limits · **Read this if:** you want to sign in through your own identity provider (Authelia, Keycloak, Authentik, …).
+> **Status:** Reference · **Verified:** 2026-09-29 · **Canonical for:** OIDC/SSO wiring — config file, routes, flow, error codes, limits · **Read this if:** you want to sign in through your own identity provider (Authelia, Keycloak, Authentik, …).
 
 **In short:** Worlds ships local token auth by default and can also sign people in through any conformant OIDC provider. This page is the operational reference for the wiring — the `oidc.json` config, the authorization-code + PKCE flow, the status states it reports, and what is deliberately not implemented.
 
@@ -299,12 +299,12 @@ deliberate trade for never storing a credential we do not need.
 
 ## Current limits
 
-- **Step-up is unchanged.** An OIDC sign-in proves identity to the
-  provider; it does **not** mint a step-up grant. `POST
-  /api/auth/step-up` still requires re-presenting an application
-  credential that resolves to the session's principal, so an OIDC-only
-  browser session cannot elevate without the instance token. A fresh
-  OIDC round-trip as step-up is not implemented.
+- **Step-up has two paths.** An OIDC sign-in does not itself mint a step-up
+  grant. `POST /api/auth/step-up` re-presents an application credential that
+  resolves to the session's principal. For people with no sign-in key,
+  `GET /api/auth/oidc/step-up` sends the browser through a fresh provider
+  sign-in, and the callback grants the 5-minute step-up only when the same
+  person signed in just now.
 - **No group/claim → scope mapping.** `groups` is requested only as a
   display hint; authorization stays entirely local.
 - **No id_token encryption (JWE)**, no `x5c`-only JWKS keys.

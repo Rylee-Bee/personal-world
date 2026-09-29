@@ -29,14 +29,14 @@ history is the archive); the Station survives only as a **theme package**.
 
 | Screen | What it is |
 |---|---|
-| **Bridge** | The home screen (area id `overview`): the Keeper, the briefing, and the rooms as doorway cards; remembers where you were. `Overview.tsx` still exists but is **not rendered** |
+| **Bridge** | The home screen (area id `overview`): the Keeper, the briefing, and the rooms as doorway cards; remembers where you were; the older `Overview.tsx` screen was removed 2026-09-29 |
 | **Memory** | Journal and records |
 | **Chat** | One companion voice, with tone registers |
 | **Settings** | Preferences, themes, accessibility, connections; opens **Crew** |
 | **Crew** | Your companions, per-room keepers, and doorway choices (also reachable from the Bridge) |
 | **Interests** | Discovery — moving to Candy, but the code is still in Worlds today (`src/personal_world/discovery/`) |
-
-Projects and Systems are labelled placeholders; they have no screen yet.
+| **Projects** | Teams, projects and tickets, read from the Hive Works room (`ui/src/screens/Projects/`) |
+| **Systems** | A calm map of your machines and what runs on them (`ui/src/screens/Computers/`) |
 
 **First Light** is the first-run setup wizard (crew on/off, companion choice), at
 `/api/setup-wizard/*`.

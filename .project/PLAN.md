@@ -31,7 +31,7 @@ The first working slice must let her:
 
 | Slice | What | Rough size |
 | --- | --- | --- |
-| 1a | Truth pass (small): `ui/` has no orphaned screens; delete only truly dead bits (`ui/src/mocks/server.ts`, placeholder copy). Unused media/reminder/connection hooks are unfinished intent: keep and wire them. Fix Resume: `GET /api/journal/last` returns the newest entry of any kind, and the daily loop writes "capability X: status" lines | 1 day |
+| 1a | **Done 2026-09-29.** Truth pass (small): `ui/` has no orphaned screens; delete only truly dead bits (`ui/src/mocks/server.ts`, placeholder copy). Unused media/reminder/connection hooks are unfinished intent: keep and wire them. Fix Resume: `GET /api/journal/last` returns the newest entry of any kind, and the daily loop writes "capability X: status" lines | 1 day |
 | 1b | First light: the bridge home in `ui/` fed by real sources already reachable (Project Home via its CLI or `GET /api/home`, lab state, journal/memory); remembers where she was across devices. **Personality ships here, not later** (owner refinement 2026-09-25): the crew stand on the map and report their systems in their own voices; the Keeper speaks the briefing | 3–4 days |
 | 1c | More arrives: media (existing `native_media`: Plex/Sonarr/Radarr), calendars (personal ICS/CalDAV + work via Graph), the have-tos tray | 2–3 days |
 | 1d | Deepen: richer character moments and animation, discovery surprises, polish | 1–2 days |

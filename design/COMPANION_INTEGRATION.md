@@ -27,11 +27,11 @@ This document supersedes the earlier Mermaid-centric integration pass.
 
 | Companion | Role | Strong Contexts | Source Rig |
 |---|---|---|---|
-| **Mermaid** | Personal companion (the operator Theme) | the operator theme, personal presence, conversation, reassurance | `companions/mermaid/mermaid-source-rig.svg` |
-| **Little Helper Robot** | Lab / development / AI helper | Development, automation, Workshop, configuration, tooling | `companions/robot/robot-source-rig.svg` |
-| **World-tree Squirrel** | Worlds / lore / memory keeper | VEFR, worlds, lore, memory, journal/history, worldbuilding | `companions/world-tree-squirrel/world-tree-squirrel-source-rig.svg` |
-| **Tacos & the Morning Paper** | Journalism / stories / city life | Burrito Journalism, reporting, news, city stories | `companions/taco-news-truck/taco-news-truck-source-rig.svg` |
-| **Personal World** | Default system companion | System default, generic theme, product identity | `companions/personal-world/personal-world-source-rig.svg` |
+| **Mermaid** | Personal companion (the operator Theme) | the operator theme, personal presence, conversation, reassurance | `media_files/portfolio/companions/renai.svg` |
+| **Little Helper Robot** | Lab / development / AI helper | Development, automation, Workshop, configuration, tooling | `media_files/portfolio/companions/bolt.svg` |
+| **World-tree Squirrel** | Worlds / lore / memory keeper | VEFR, worlds, lore, memory, journal/history, worldbuilding | `media_files/portfolio/companions/ratatoskr.svg` |
+| **Tacos & the Morning Paper** | Journalism / stories / city life | Burrito Journalism, reporting, news, city stories | `media_files/portfolio/companions/burrito.svg` |
+| **Personal World** | Default system companion | System default, generic theme, product identity | `media_files/portfolio/companions/personal-world.svg` |
 
 They are siblings in art direction — shared pastel palette, aubergine outlines, friendly rounded forms, rosy cheeks, sparkle decorations — but each has a completely distinct silhouette.
 
@@ -205,10 +205,10 @@ The `companion-family-portrait` frame shows all 5 residents together at 96px wit
 | Path | Description |
 |---|---|
 | `design/assets/companions/` | All 5 companion source packages |
-| `design/assets/companions/README.md` | Collection overview + download links |
-| `design/assets/companions/IMPORT_GUIDE.md` | Figma + LottieFiles import instructions |
-| `design/assets/companions/COMPATIBILITY_AUDIT.json` | SVG structure verification |
-| `design/assets/mermaid-source-rig-v2.svg` | Polished Mermaid v2 (earlier art direction pass) |
+| `media_files/designs/personal-world/companions/README.md` | Collection overview + download links |
+| `media_files/designs/personal-world/companions/IMPORT_GUIDE.md` | Figma + LottieFiles import instructions |
+| `media_files/designs/personal-world/companions/COMPATIBILITY_AUDIT.json` | SVG structure verification |
+| `media_files/designs/personal-world/mermaid-source-rig-v2.svg` | Polished Mermaid v2 (earlier art direction pass) |
 | `design/screens/chat/` | All 9 Chat screen SVG exports |
 | `design/screens/` | Updated screen SVG exports with companion system |
 

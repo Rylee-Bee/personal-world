@@ -164,6 +164,22 @@ describe("discovery parsers", () => {
     expect(run.sourcesQueried).toBe(1);
   });
 
+  it("keeps only web addresses as a finding's link", () => {
+    const linkOf = (url: unknown) =>
+      parseDiscoverRun({
+        ok: true,
+        status: "healthy",
+        data: { items: [{ ...ENGINE_FIND, url }], count: 1, sources_queried: 1 },
+      }).items[0].url;
+    expect(linkOf("https://example.invalid/a")).toBe("https://example.invalid/a");
+    expect(linkOf("http://example.invalid/a")).toBe("http://example.invalid/a");
+    expect(linkOf("javascript:alert(1)")).toBeNull();
+    expect(linkOf("JaVaScRiPt:alert(1)")).toBeNull();
+    expect(linkOf("data:text/html,x")).toBeNull();
+    expect(linkOf("/relative/path")).toBeNull();
+    expect(linkOf(42)).toBeNull();
+  });
+
   it("the capture-mode note distinguishes engine finds from source-reported ones", () => {
     expect(captureModeNote(parseDiscoverRun({
       ok: true,

@@ -953,7 +953,7 @@ export const listDiscoverySources = () =>
 export const listDiscoveryInterests = () =>
   unwrap<Envelope<unknown[]>>(api.GET("/api/discovery/interests", {}));
 
-/** Follow something new (step-up): an id from the name, and the name. */
+/** Follow something new (a signed-in person's own write; no step-up): an id from the name, and the name. */
 export const addDiscoveryInterest = (name: string) =>
   unwrap<Envelope>(
     sendBody("POST", "/api/discovery/interests", {
