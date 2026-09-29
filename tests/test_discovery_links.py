@@ -78,3 +78,16 @@ def test_feed_link_with_a_script_scheme_comes_out_inert(tmp_path, monkeypatch):
     items = d._discover_rss(source)
     assert [i.title for i in items] == ["ok", "bad"]
     assert [i.url for i in items] == ["https://example.invalid/a", None]
+
+
+def test_feed_fetch_only_reads_web_addresses(tmp_path, monkeypatch):
+    import urllib.request
+
+    def _boom(*a, **k):  # pragma: no cover
+        raise AssertionError("must not fetch a non-web address")
+
+    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    d = NativeDiscovery(config_path=tmp_path / "discovery.json")
+    for bad in ("file:///etc/hosts", "ftp://example.invalid/x", "gopher://example.invalid"):
+        source = DiscoverySource(id="f", name="Feed", source_type="rss", config={"url": bad})
+        assert d._discover_rss(source) == []

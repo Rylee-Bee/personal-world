@@ -263,7 +263,7 @@ class NativeDiscovery(StatusContract):
         import xml.etree.ElementTree as ET
 
         url = source.config.get("url")
-        if not url:
+        if not url or web_link_or_none(url) is None:
             return []
 
         try:
