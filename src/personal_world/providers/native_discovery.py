@@ -13,6 +13,7 @@ The candy-dispenser is one possible provider, not the only one.
 """
 
 import json
+import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,25 @@ from ..status import Status
 from .registry import Contract, StatusContract
 from ..discovery.sources import SOURCE_TYPES as _ENGINE_SOURCE_TYPES
 from ..discovery.world_run import run_world
+
+
+def web_link_or_none(url: object) -> str | None:
+    """The link if it is an absolute http(s) address, else ``None``.
+
+    A feed is somebody else's text: only a plain web address may become a
+    link a person can open. Other schemes (script, data, file, …) and
+    relative or malformed values are dropped, never repaired.
+    """
+    if not isinstance(url, str):
+        return None
+    candidate = url.strip()
+    try:
+        parts = urllib.parse.urlparse(candidate)
+    except ValueError:
+        return None
+    if parts.scheme.lower() in ("http", "https") and parts.netloc:
+        return candidate
+    return None
 
 
 class ContentItem:
@@ -43,7 +63,7 @@ class ContentItem:
         self.title = title
         self.source = source
         self.content_type = content_type
-        self.url = url
+        self.url = web_link_or_none(url)
         self.description = description
         self.tags = tags or []
         self.discovered_at = discovered_at or datetime.now(timezone.utc)
