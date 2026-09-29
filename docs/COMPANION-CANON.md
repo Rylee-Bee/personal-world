@@ -146,7 +146,7 @@ Station's browser-side companion ids are history only (tag
 
 **Artwork is reused, never regenerated.** Do not trace, recreate, or overwrite the
 companion source rigs, the Mermaid master Lottie
-(`design/assets/mermaid-companion-master.lottie` — byte-identical by decision),
+(`media_files/designs/personal-world/mermaid-companion-master.lottie` — byte-identical by decision),
 the icon library, or the screen SVGs. A display-name change is a copy change, not
 an art change. The rules are in `AGENTS.md` ("Do not casually regenerate"),
 `docs/CREW-AND-STATION-THESIS.md` §3.6, and
@@ -188,8 +188,8 @@ Recorded by `rg -i 'renai|ratatoskr|world-tree|tacos & the morning paper|burrito
 - `README.md` still uses the descriptor **"world-tree squirrel and the taco news
   truck"** in an image alt near the end. (The earlier `Ratataskor` typo in the
   intro was fixed.) Not otherwise rewritten.
-- `CHANGELOG.md` (2026-09-07 entries) and `design/assets/README.md` /
-  `icons/README.md` still use **"Tacos & the Morning Paper"** and
+- `CHANGELOG.md` (2026-09-07 entries) and `media_files/designs/personal-world/README.md` /
+  `media_files/designs/personal-world/icons/README.md` still use **"Tacos & the Morning Paper"** and
   **"World-tree Squirrel"** descriptors. Not fixed.
 - `docs/CREW-AND-STATION-THESIS.md` §2 and `design/COMPANION_INTEGRATION.md`
   still head their residents tables with the repo descriptors, not the canon

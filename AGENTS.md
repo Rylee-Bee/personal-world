@@ -91,7 +91,7 @@ agent's WIP into its commit. The rules:
   `design/handoff/` to change accessibility rules; the canonical
   copies are in `docs/accessibility/`.
 - **Do not casually regenerate:** the Mermaid master
-  (`design/assets/mermaid-companion-master.lottie` — byte-identical
+  (`media_files/designs/personal-world/mermaid-companion-master.lottie` — byte-identical
   by decision), all companion source rigs, the icon library, and the
   screen SVGs. They are deliberate artwork, not generated output.
 - **Specs are not implementations.** Check `README.md`, `ROADMAP.md`,
