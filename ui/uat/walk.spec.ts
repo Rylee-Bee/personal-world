@@ -5,7 +5,7 @@ import { join } from "node:path";
 /**
  * The UAT walk (see playwright.uat.config.ts). One test per screen size.
  * It never fails on what it finds: it records, and the report says what's
- * wrong in plain words. It fails only if it can't reach Worlds at all.
+ * wrong in plain words. It fails only if it can't reach Worlds at all, or the credential is rejected.
  */
 
 type Finding = { level: "problem" | "note"; where: string; what: string };
@@ -61,6 +61,10 @@ test("walk Worlds as the owner, read-only", async ({ page, request }, info) => {
   // ── Is this page the live build? ──────────────────────────────────
   const health = await (await request.get("/healthz")).json().catch(() => ({}));
   const live = typeof health.commit === "string" ? health.commit : null;
+  // A rejected credential is not "can't reach": /healthz is public, so
+  // only an authenticated call can tell the two apart.
+  const probe = await request.get("/api/status").catch(() => null);
+  const credentialRejected = probe !== null && (probe.status() === 401 || probe.status() === 403);
   await page.goto("/");
   await settle();
   where = "Home";
@@ -162,5 +166,7 @@ test("walk Worlds as the owner, read-only", async ({ page, request }, info) => {
     at: new Date().toISOString(),
   };
   writeFileSync(join(dir, "report.json"), JSON.stringify(report, null, 2));
+  if (credentialRejected)
+    throw new Error("Credential rejected: Worlds answered but did not accept the UAT token (HTTP " + probe!.status() + ").");
   if (!live && labels.length === 0) throw new Error("Couldn't reach Worlds at all.");
 });
