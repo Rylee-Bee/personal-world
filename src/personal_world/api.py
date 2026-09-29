@@ -801,6 +801,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         )
         return world, registry, uj
 
+    def _journal_at(uj: Path) -> Journal:
+        """The Journal object for a resolved journal path (the shared
+        instance journal when it is that path)."""
+        return journal if uj == journal.path else Journal(uj)
+
     def _proposal_store(request: Request):
         """The proposal store owning the CALLER's tree (decision #13).
 
@@ -829,20 +834,20 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "status": "healthy", "data": s}
 
     @app.get("/api/daily", dependencies=[Depends(require_auth)])
-    async def daily_view() -> dict:
+    async def daily_view(request: Request) -> dict:
         """Present the daily digest. Read-only: a page view never
         journals observations or records facts (that is the POST)."""
-        world, registry = _state()
-        result = daily(world, registry, journal, record=False)
+        world, registry, uj = _state_for(request)
+        result = daily(world, registry, _journal_at(uj), record=False)
         return result.model_dump(mode="json")
 
     @app.post("/api/daily", dependencies=[Depends(require_auth)])
-    async def daily_run() -> dict:
+    async def daily_run(request: Request) -> dict:
         """Run the daily loop for real: journal observations, record
         capability facts, flag drift, save the world."""
-        world, registry = _state()
-        result = daily(world, registry, journal, record=True)
-        save_world(world, world_path)
+        world, registry, uj = _state_for(request)
+        result = daily(world, registry, _journal_at(uj), record=True)
+        save_world(world, _user_paths(request)[0])
         return result.model_dump(mode="json")
 
     @app.get("/api/journal", dependencies=[Depends(require_auth)])
@@ -1290,10 +1295,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "data": dl.model_dump()}
 
     @app.get("/api/memory/search", dependencies=[Depends(require_auth)])
-    async def memory_search(q: str, top_k: int = 5) -> dict:
+    async def memory_search(request: Request, q: str, top_k: int = 5) -> dict:
         """Semantic recall through the memory provider. Private data
         class: results are personal context, never settings-exportable."""
-        _, registry = _state()
+        _, registry, _ = _state_for(request)
         provider = registry.provider_for("memory")
         if provider is None:
             return {
@@ -2354,12 +2359,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "data": export.settings_export(world)}
 
     @app.get("/api/exports/world", dependencies=[Depends(require_auth)])
-    async def world_export() -> dict:
+    async def world_export(request: Request) -> dict:
         """Portable personal configuration: world-classified state only;
         raw secrets are structurally absent (they are in the secret
         store, referenced by name at most). Treat the output as personal
         data."""
-        world, _ = _state()
+        world, _, _ = _state_for(request)
         return {"ok": True, "data": export.world_export(world)}
 
     @app.get("/api/exports/story", dependencies=[Depends(require_auth)])
@@ -2369,12 +2374,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return {"ok": True, "data": {"text": export.story_export(journal)}}
 
     @app.get("/api/backup", dependencies=[Depends(require_auth)])
-    async def backup() -> dict:
+    async def backup(request: Request) -> dict:
         """Full-state backup payload (world, journal, config) including
         private state. Meant for the operator's own encryption step; it
         is never shareable raw, and the API does not encrypt it."""
-        world, _ = _state()
-        return {"ok": True, "data": export.backup_payload(world, journal)}
+        world, _, uj = _state_for(request)
+        return {"ok": True, "data": export.backup_payload(world, _journal_at(uj))}
 
     @app.get("/api/updates", dependencies=[Depends(require_auth)])
     async def updates_view() -> dict:
@@ -5353,7 +5358,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         value = body.get("value")
         if not key:
             raise HTTPException(status_code=400, detail="key required")
-        world, registry = _state()
+        world, registry, _ = _state_for(request)
         from .model import Intent, Provenance
 
         intent = Intent(
@@ -5362,7 +5367,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             provenance=Provenance(source="dashboard-quick-action"),
         )
         world.set_intent(intent)
-        save_world(world, world_path)
+        save_world(world, _user_paths(request)[0])
         return {"ok": True, "data": {"key": key}}
 
     # ── Lore: sync from a room's `lore` view, list, confirm ─────────
@@ -5807,7 +5812,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         value = body.get("value")
         if not key:
             raise HTTPException(status_code=400, detail="key required")
-        world, registry = _state()
+        world, registry, _ = _state_for(request)
         from .model import Fact, Provenance
 
         fact = Fact(
@@ -5816,7 +5821,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             provenance=Provenance(source="dashboard-quick-action"),
         )
         world.record_fact(fact)
-        save_world(world, world_path)
+        save_world(world, _user_paths(request)[0])
         return {"ok": True, "data": {"key": key}}
 
     @app.post("/api/world/policy", dependencies=[Depends(require_step_up)])
@@ -5827,7 +5832,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         effect = body.get("effect", "allow")
         if not key:
             raise HTTPException(status_code=400, detail="key required")
-        world, registry = _state()
+        world, registry, _ = _state_for(request)
         from .model import Policy, PolicyEffect, Provenance
 
         try:
@@ -5847,7 +5852,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             # action through the CLI; the API reports the boundary, it
             # does not crash on it
             raise HTTPException(status_code=409, detail=str(exc))
-        save_world(world, world_path)
+        save_world(world, _user_paths(request)[0])
         return {"ok": True, "data": {"key": key, "effect": effect}}
 
     # --- Entry point ---

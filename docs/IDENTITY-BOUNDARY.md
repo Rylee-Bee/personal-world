@@ -1,6 +1,6 @@
 # Identity Boundary — per-user vs instance-global state
 
-> **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the per-user vs instance-global state boundary and the `identity.principal_scoped_path` entry point · **Read this if:** you are adding per-person state or working on multi-user mode.
+> **Status:** Reference · **Verified:** 2026-09-29 · **Canonical for:** the per-user vs instance-global state boundary and the `identity.principal_scoped_path` entry point · **Read this if:** you are adding per-person state or working on multi-user mode.
 
 **In short:** one Worlds instance can serve several people, and this page says exactly which state is per-person (journal, reminders, world, crew, room visits, …) and which is instance-wide (runtime config, the shared connections registry, identity records). Every per-user file resolves through one entry point, so single-user installs keep working unchanged.
 
@@ -41,6 +41,19 @@ store resolves its file through it; no handler invents its own layout.
 | Apps registry, theme packs, brain templates | installed content available to everyone |
 | Memory FTS index (`memory.fts5.db`) | currently indexes the instance journal (per-user index is future work) |
 | Vault (`vault.enc`) | currently instance-level; per-user vault isolation is an open security decision, not a default |
+
+## Which routes follow the caller
+
+In multi mode these routes read and write the **caller's own** world and
+journal (`_state_for(request)`): `GET`/`POST /api/daily`,
+`GET /api/memory/search`, `GET /api/exports/world`, `GET /api/backup`, and
+`POST /api/world/intent`, `/fact`, `/policy`. (`/api/memory/search` still
+queries the instance-level FTS index noted above.) These stay
+**instance-wide** by design: `/api/status`, `/api/chat/providers`,
+`/api/chat/test`, `/api/actors`, `/api/manifest`,
+`/api/connections/overview`, `/api/exports/settings`, `/api/templates`.
+Single mode is unchanged: every route uses the legacy instance paths.
+`tests/test_world_routes_per_user.py` pins both directions.
 
 ## Path rules (in order)
 
