@@ -267,7 +267,6 @@ export function App() {
     switch (activeArea) {
       case "overview":
         // The Bridge is the home screen (area id stays "overview").
-        // Overview.tsx remains in the repo but is no longer rendered.
         return (
           <Bridge
             onOpenArea={setActiveArea}
