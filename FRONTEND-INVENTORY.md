@@ -29,7 +29,7 @@ history is the archive); the Station survives only as a **theme package**.
 
 | Screen | What it is |
 |---|---|
-| **Bridge** | The home screen (area id `overview`): the Keeper, the briefing, and the rooms as doorway cards; remembers where you were. `Overview.tsx` still exists but is **not rendered** |
+| **Bridge** | The home screen (area id `overview`): the Keeper, the briefing, and the rooms as doorway cards; remembers where you were; the older `Overview.tsx` screen was removed 2026-09-29 |
 | **Memory** | Journal and records |
 | **Chat** | One companion voice, with tone registers |
 | **Settings** | Preferences, themes, accessibility, connections; opens **Crew** |
