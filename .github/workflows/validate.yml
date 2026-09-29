@@ -76,7 +76,7 @@ jobs:
     uses: Rylee-Bee/ci-harness/.github/workflows/reusable-uat.yml@main
     with:
       working-directory: "ui"
-      uat-url: ${{ secrets.PW_UAT_URL }}
+      uat-url: ${{ vars.PW_UAT_URL }}
       read-only: true
       uat-command: >-
         npx playwright install --with-deps chromium &&
