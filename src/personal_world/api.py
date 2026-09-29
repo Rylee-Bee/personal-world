@@ -356,7 +356,7 @@ def _is_true_loopback(request: Request) -> bool:
 
 
 #: Agent scopes that confine a token to one set of routes. A token whose
-#: scopes are all confining may call only those routes: "learning" is a
+#: scopes include a confining one may call only those routes: "learning" is a
 #: project's key for the person's learning memory (VEFR's Fróði), and
 #: nothing else — not even reads elsewhere.
 CONFINING_SCOPES: dict[str, tuple[str, ...]] = {
@@ -377,9 +377,12 @@ def _confined_out(principal, path: str) -> bool:
     if principal is None or getattr(principal, "kind", "person") != "agent":
         return False
     scopes = set(getattr(principal, "scopes", ()) or ())
-    if not scopes or not scopes <= set(CONFINING_SCOPES):
+    # Any confining scope confines the whole key: adding an ordinary
+    # scope such as "read" must not widen a project key to the estate.
+    confining = scopes & set(CONFINING_SCOPES)
+    if not confining:
         return False
-    allowed = tuple(p for s in scopes for p in CONFINING_SCOPES[s])
+    allowed = tuple(p for s in confining for p in CONFINING_SCOPES[s])
     return not any(path == p or path.startswith(p + "/") for p in allowed)
 
 
