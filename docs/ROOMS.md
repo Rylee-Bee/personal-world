@@ -166,8 +166,15 @@ Rules, in order:
   room's bearer token (the same `token_env` indirection reads use) and,
   whenever the room has a token, **always** `X-Worlds-Principal: <caller
   principal id>` — an action is always someone's, so unlike reads this
-  does not depend on `forward_principal`. Timeout 10 s, no retries;
-  `PW_API_TOKEN` and the session are never sent.
+  does not depend on `forward_principal`. When the room also configured
+  an owner token (`PW_ROOM_<ID>_OWNER_TOKEN_ENV`, the same indirection)
+  **and** the action writes, `X-Worlds-Owner-Token: <owner token>` rides
+  too — a second, stronger secret some rooms require because
+  `X-Worlds-Principal` is client-supplied and not cryptographically bound
+  to the caller, so it cannot by itself authorize an owner-only action
+  (hive-works, 2026-09-28). No owner token configured for a room means
+  the header is never sent to it; most rooms configure none. Timeout
+  10 s, no retries; `PW_API_TOKEN` and the session are never sent.
 * **Response.** The room's answer is allow-listed to exactly
   `{action_id, ok, summary, changed, at}` — anything else is dropped —
   and returned as `{"ok": true, "data": <receipt>}` with **HTTP 200**,

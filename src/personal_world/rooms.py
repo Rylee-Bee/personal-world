@@ -18,6 +18,12 @@ Configuration (read at request time, never written anywhere):
   that room's bearer token (same indirection as
   ``providers/project_home.py``'s ``PW_PH_TOKEN_ENV``). The token value
   is never logged and never appears in a returned field.
+* ``PW_ROOM_<ID>_OWNER_TOKEN_ENV`` — the **name** of the env var that
+  holds that room's *owner* token, a second, stronger secret some
+  ``room/0`` rooms require (in addition to the bearer token above) on a
+  write action, as ``X-Worlds-Owner-Token``. Same indirection as
+  ``*_TOKEN_ENV``; optional, and most rooms configure none. See
+  :data:`OWNER_HEADER`.
 * ``PW_ROOM_<ID>_INSECURE_TLS=1`` — accept a self-signed certificate on
   a LAN room's HTTPS address.
 
@@ -138,9 +144,12 @@ REGISTRY_TIMEOUT_SECONDS = 3.0
 #: Per-room env var suffixes. ``<ID>`` is the room id upper-cased with
 #: every non-alphanumeric character folded to ``_`` (so ``my-room``
 #: reads ``PW_ROOM_MY_ROOM_TOKEN_ENV``). ``*_TOKEN_ENV`` holds the
-#: *name* of the env var carrying the token; ``*_INSECURE_TLS`` is "1"
-#: to accept a self-signed LAN certificate.
+#: *name* of the env var carrying the token; ``*_OWNER_TOKEN_ENV`` holds
+#: the *name* of the env var carrying the room's owner token (same
+#: indirection, optional); ``*_INSECURE_TLS`` is "1" to accept a
+#: self-signed LAN certificate.
 TOKEN_ENV_SUFFIX = "_TOKEN_ENV"
+OWNER_TOKEN_ENV_SUFFIX = "_OWNER_TOKEN_ENV"
 INSECURE_TLS_SUFFIX = "_INSECURE_TLS"
 
 #: Paths stay exactly these — there is no per-version path (rule 1).
@@ -262,6 +271,21 @@ CACHE_TTL_SECONDS = 15.0
 #: never instead of it, and never when the room has no token.
 PRINCIPAL_HEADER = "X-Worlds-Principal"
 
+#: The header that proves an action call to a room really comes from the
+#: Worlds broker, not merely from anyone holding the room's ordinary
+#: bearer token. Sent in addition to ``Authorization`` — never instead of
+#: it — on a write action (``writes`` is not ``False``, the room's own
+#: fail-closed rule) to a room that configured an owner token
+#: (``PW_ROOM_<ID>_OWNER_TOKEN_ENV``). Generic and keyed only by the
+#: action's own ``writes`` flag, not by room id or action id, so any
+#: ``room/0`` room may opt in by configuring the env var — not only
+#: hive-works, the first room to require it (``HW_ROOM_OWNER_TOKEN``,
+#: 2026-09-28: ``X-Worlds-Principal`` is client-supplied and not
+#: cryptographically bound to the caller, so it cannot gate owner-only
+#: actions by itself). No owner token configured for a room means the
+#: header is never sent to it.
+OWNER_HEADER = "X-Worlds-Owner-Token"
+
 #: At most this many principals have their forwarded cards/needs cached;
 #: the oldest principal's entries are evicted past the cap.
 MAX_FORWARD_PRINCIPALS = 64
@@ -291,6 +315,11 @@ def _iso_now() -> str:
 
 #: Registry token_env must name a room token, e.g. PW_ROOM_WORKSHOP_TOKEN.
 _ROOM_TOKEN_ENV_RE = re.compile(r"^PW_ROOM_[A-Z0-9_]+_TOKEN$")
+
+#: Registry owner_token_env must name a room owner token, e.g.
+#: PW_ROOM_HIVE_WORKS_OWNER_TOKEN. Same shape rule as the bearer token,
+#: so a registry entry can never redirect an unrelated secret here.
+_ROOM_OWNER_TOKEN_ENV_RE = re.compile(r"^PW_ROOM_[A-Z0-9_]+_OWNER_TOKEN$")
 
 def env_name(room_id: str, suffix: str) -> str:
     """``("studio", "_TOKEN_ENV") -> "PW_ROOM_STUDIO_TOKEN_ENV"``.
@@ -340,7 +369,12 @@ class RoomConfig:
     the row ``incompatible``. ``token_env`` is the **name** of the env
     var the token was read from (or ``None``) — carried so a
     last-known-good can re-read the token on a later boot; the token
-    value itself is never persisted or returned. ``public_url`` is the
+    value itself is never persisted or returned. ``owner_token`` /
+    ``owner_token_env`` are the same indirection for the room's optional
+    *owner* token: a second, stronger secret some rooms require (in
+    addition to the bearer token) on a write action, sent as
+    :data:`OWNER_HEADER`. ``None`` when the room configured none (most
+    rooms today). ``public_url`` is the
     browser-reachable address a registry entry may name (http(s), no
     userinfo); it is ``None`` when absent or invalid, and consumers then
     fall back to ``base_url``. ``forward_principal`` is a registry
@@ -357,6 +391,8 @@ class RoomConfig:
     invalid_reason: str | None = None
     contract: str = CONTRACT_VALUE
     token_env: str | None = None
+    owner_token: str | None = None
+    owner_token_env: str | None = None
     public_url: str | None = None
     forward_principal: bool = False
     #: The human name a registry entry declared (or ``None`` for an env
@@ -392,6 +428,14 @@ def parse_rooms(env: dict | None = None) -> list[RoomConfig]:
 
         token_env_name = (env.get(env_name(room_id, TOKEN_ENV_SUFFIX)) or "").strip()
         token = (env.get(token_env_name) or "").strip() if token_env_name else ""
+        owner_token_env_name = (
+            env.get(env_name(room_id, OWNER_TOKEN_ENV_SUFFIX)) or ""
+        ).strip()
+        owner_token = (
+            (env.get(owner_token_env_name) or "").strip()
+            if owner_token_env_name
+            else ""
+        )
         insecure = (
             env.get(env_name(room_id, INSECURE_TLS_SUFFIX)) or ""
         ).strip() == "1"
@@ -410,6 +454,8 @@ def parse_rooms(env: dict | None = None) -> list[RoomConfig]:
                 insecure_tls=insecure,
                 invalid_reason=reason,
                 token_env=token_env_name or None,
+                owner_token=owner_token or None,
+                owner_token_env=owner_token_env_name or None,
             )
         )
     return rooms
@@ -467,6 +513,22 @@ def _parse_registry_entries(
         if token_env_name and not _ROOM_TOKEN_ENV_RE.match(token_env_name):
             token_env_name = ""
         token = (env.get(token_env_name) or "").strip() if token_env_name else ""
+        # Same indirection, same allow-list rule, for the optional owner
+        # token: only an owner-token-shaped env var NAME is honoured, so a
+        # registry entry can never redirect PW_API_TOKEN or a provider key
+        # here either.
+        owner_token_env_name = entry.get("owner_token_env")
+        if owner_token_env_name is not None and not isinstance(owner_token_env_name, str):
+            dropped += 1
+            continue
+        owner_token_env_name = (owner_token_env_name or "").strip()
+        if owner_token_env_name and not _ROOM_OWNER_TOKEN_ENV_RE.match(owner_token_env_name):
+            owner_token_env_name = ""
+        owner_token = (
+            (env.get(owner_token_env_name) or "").strip()
+            if owner_token_env_name
+            else ""
+        )
         # A public_url is optional and never drops the entry: a missing,
         # non-string, non-http(s) or userinfo-bearing value is simply not
         # trusted, and consumers fall back to base_url.
@@ -490,6 +552,8 @@ def _parse_registry_entries(
                 insecure_tls=entry.get("insecure_tls") is True,
                 contract=contract,
                 token_env=token_env_name or None,
+                owner_token=owner_token or None,
+                owner_token_env=owner_token_env_name or None,
                 public_url=public_url or None,
                 # Opt-in per-person forwarding: strictly JSON true. Any
                 # other value (false, "true", 1, missing) is false.
@@ -523,6 +587,7 @@ def _lkg_entries(configs: list[RoomConfig]) -> list[dict]:
             "base_url": c.base_url,
             "contract": c.contract,
             "token_env": c.token_env,
+            "owner_token_env": c.owner_token_env,
             "insecure_tls": c.insecure_tls,
             "public_url": c.public_url,
             # Persisted so a forwarding room's opt-in survives a registry
@@ -1620,8 +1685,10 @@ class RoomsService:
           refused (400);
         * otherwise the call goes out to ``POST /room/actions/{id}``
           with the room's own token, the caller's ``X-Worlds-Principal``
-          (always, when the room has a token), and the idempotency key,
-          with a 10 s timeout and no retries.
+          (always, when the room has a token), the room's owner token as
+          ``X-Worlds-Owner-Token`` (only when one is configured for this
+          room AND the action writes — :data:`OWNER_HEADER`), and the
+          idempotency key, with a 10 s timeout and no retries.
 
         A room that answers with a receipt-shaped body is passed through
         with HTTP 200 whatever its status code (the receipt's own ``ok``
@@ -1706,6 +1773,16 @@ class RoomsService:
         # room has a token — an action is always someone's — unlike reads,
         # where it depends on the room's forward_principal opt-in. The
         # human's session / PW_API_TOKEN is never among these.
+        #
+        # A room may additionally require an owner token on a write:
+        # X-Worlds-Principal is client-supplied and not cryptographically
+        # bound to the caller, so it cannot by itself authorize an
+        # owner-only action (hive-works, 2026-09-28). This is generic —
+        # keyed by the action's own ``writes`` flag (step 3's same rule),
+        # not by room id or action id — so it applies to any room/0 room
+        # that configures PW_ROOM_<ID>_OWNER_TOKEN_ENV, not only
+        # hive-works. No owner token configured for this room means the
+        # header is never sent.
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -1715,6 +1792,8 @@ class RoomsService:
             headers["Authorization"] = f"Bearer {config.token}"
             if principal_id is not None:
                 headers[PRINCIPAL_HEADER] = principal_id
+            if config.owner_token and action.get("writes") is not False:
+                headers[OWNER_HEADER] = config.owner_token
         url = config.base_url.rstrip("/") + ACTIONS_PATH + "/" + action_id
         try:
             async with httpx.AsyncClient(

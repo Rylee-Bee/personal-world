@@ -19,6 +19,7 @@ already uses for its TestClient and OIDC tests; no network is touched.
 """
 
 import asyncio
+import json
 import sys
 from pathlib import Path
 
@@ -116,6 +117,22 @@ class TestParseRooms:
         assert cfgs[0].token == TOKEN_VALUE
         # A missing named var means no token, not a crash.
         assert parse_rooms({"PW_ROOMS": "studio=http://x.test"})[0].token is None
+
+    def test_owner_token_env_indirection_reads_the_named_var(self):
+        cfgs = parse_rooms(
+            {
+                "PW_ROOMS": "studio=http://127.0.0.1:8940",
+                "PW_ROOM_STUDIO_OWNER_TOKEN_ENV": "PW_STUDIO_OWNER_TOKEN",
+                "PW_STUDIO_OWNER_TOKEN": "owner-tok",
+            }
+        )
+        assert cfgs[0].owner_token == "owner-tok"
+        assert cfgs[0].owner_token_env == "PW_STUDIO_OWNER_TOKEN"
+        # No owner token configured — most rooms today — is None, not a
+        # crash, and independent of the room's ordinary token.
+        cfgs = parse_rooms({"PW_ROOMS": "studio=http://x.test"})
+        assert cfgs[0].owner_token is None
+        assert cfgs[0].owner_token_env is None
 
     def test_insecure_tls_flag(self):
         cfgs = parse_rooms(
@@ -639,3 +656,60 @@ def test_registry_token_env_must_name_a_room_token():
     configs = {c.id: c for c in parsed}
     assert configs["workshop"].token == "room-tok"
     assert not configs["evil"].token and not configs["evil"].token_env
+
+
+def test_registry_owner_token_env_must_name_a_room_owner_token():
+    """Same allow-list rule, for the owner token: a registry entry can't
+    redirect PW_API_TOKEN (or any other secret) here either — only
+    PW_ROOM_*_OWNER_TOKEN names are honoured."""
+    from personal_world import rooms
+
+    env = {
+        "PW_API_TOKEN": "secret-api",
+        "PW_ROOM_WORKSHOP_TOKEN": "room-tok",
+        "PW_ROOM_WORKSHOP_OWNER_TOKEN": "room-owner-tok",
+    }
+    good = {
+        "id": "workshop", "base_url": "https://w.test", "contract": "room/0",
+        "token_env": "PW_ROOM_WORKSHOP_TOKEN",
+        "owner_token_env": "PW_ROOM_WORKSHOP_OWNER_TOKEN",
+    }
+    bad = {
+        "id": "evil", "base_url": "https://evil.test", "contract": "room/0",
+        "token_env": "PW_ROOM_WORKSHOP_TOKEN",
+        "owner_token_env": "PW_API_TOKEN",
+    }
+    parsed, _dropped = rooms._parse_registry_entries([good, bad], env)
+    configs = {c.id: c for c in parsed}
+    assert configs["workshop"].owner_token == "room-owner-tok"
+    assert not configs["evil"].owner_token and not configs["evil"].owner_token_env
+
+
+def test_owner_token_env_survives_last_known_good(tmp_path):
+    """The owner token env var NAME (never a value) persists through
+    last-known-good, the same as the ordinary token_env."""
+    from personal_world import rooms
+    from personal_world.rooms import RoomsService
+
+    registry_path = tmp_path / "rooms-registry.json"
+    svc = RoomsService(registry_state_path=registry_path)
+    svc._lkg = {
+        "updated_at": "2026-09-28T00:00:00Z",
+        "fetched_at": "2026-09-28T00:00:00Z",
+        "rooms": [
+            {
+                "id": "workshop", "base_url": "https://w.test",
+                "contract": "room/0", "token_env": "PW_ROOM_WORKSHOP_TOKEN",
+                "owner_token_env": "PW_ROOM_WORKSHOP_OWNER_TOKEN",
+                "insecure_tls": False, "public_url": None,
+                "forward_principal": False, "name": None,
+            }
+        ],
+    }
+    svc._persist_registry_lkg()
+    stored = json.loads(registry_path.read_text())
+    assert stored["rooms"][0]["owner_token_env"] == "PW_ROOM_WORKSHOP_OWNER_TOKEN"
+
+    env = {"PW_ROOM_WORKSHOP_OWNER_TOKEN": "room-owner-tok"}
+    configs, _dropped = svc._configs_from_lkg(env)
+    assert configs[0].owner_token == "room-owner-tok"

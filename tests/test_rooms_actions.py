@@ -44,8 +44,10 @@ from personal_world.rooms import RoomsService  # noqa: E402
 
 REGISTRY_URL = "https://registry.test/api/rooms/registry"
 TOKEN_ENV_NAME = "PW_ROOM_WORKSHOP_TOKEN"
+OWNER_TOKEN_ENV_NAME = "PW_ROOM_WORKSHOP_OWNER_TOKEN"
 # Synthetic, short, never a real credential.
 TOKEN_VALUE = "tok-abc"
+OWNER_TOKEN_VALUE = "owner-tok-xyz"
 
 DESCRIPTOR = {
     "contract": "room/0",
@@ -71,13 +73,16 @@ def run(coro):
     return asyncio.run(coro)
 
 
-def _env(*, token=True):
+def _env(*, token=True, owner_token=False):
     env = {
         "PW_ROOMS": "workshop=http://room.test",
         "PW_ROOM_WORKSHOP_TOKEN_ENV": TOKEN_ENV_NAME,
     }
     if token:
         env[TOKEN_ENV_NAME] = TOKEN_VALUE
+    if owner_token:
+        env["PW_ROOM_WORKSHOP_OWNER_TOKEN_ENV"] = OWNER_TOKEN_ENV_NAME
+        env[OWNER_TOKEN_ENV_NAME] = OWNER_TOKEN_VALUE
     return env
 
 
@@ -370,6 +375,92 @@ class TestOwnerOnly:
             ),
         )
         assert status == 403
+
+
+# ── Owner token (X-Worlds-Owner-Token) ──────────────────────────────
+
+
+class TestOwnerToken:
+    """A room may require a second, stronger secret on a write action —
+    ``PW_ROOM_<ID>_OWNER_TOKEN_ENV`` — because ``X-Worlds-Principal`` is
+    client-supplied and not cryptographically bound to the caller
+    (hive-works, 2026-09-28). Generic and keyed only by the action's own
+    ``writes`` flag, not by room or action id."""
+
+    def test_owner_token_rides_a_write_action_when_configured(self):
+        seen: list[httpx.Request] = []
+
+        def action(request: httpx.Request) -> httpx.Response:
+            return _receipt_response(status=200, summary="Approved.")
+
+        svc = RoomsService(transport=_transport(action=action, seen=seen))
+        status, _ = _act(
+            svc,
+            action_id="approve",
+            principal=Principal(id="carol", role="owner"),
+            env=_env(owner_token=True),
+        )
+        assert status == 200
+        assert seen[0].headers[rooms.OWNER_HEADER] == OWNER_TOKEN_VALUE
+        # The room's own bearer token and the principal still ride too —
+        # the owner token is additive, never a replacement.
+        assert seen[0].headers["authorization"] == f"Bearer {TOKEN_VALUE}"
+        assert seen[0].headers[rooms.PRINCIPAL_HEADER] == "carol"
+
+    def test_no_owner_header_when_the_room_has_none_configured(self):
+        """Most rooms today configure no owner token: unaffected."""
+        seen: list[httpx.Request] = []
+
+        def action(request: httpx.Request) -> httpx.Response:
+            return _receipt_response(status=200, ok=True, summary="Refreshed.")
+
+        svc = RoomsService(transport=_transport(action=action, seen=seen))
+        status, _ = _act(
+            svc,
+            action_id="refresh",
+            principal=Principal(id="beta"),
+            env=_env(owner_token=False),
+        )
+        assert status == 200
+        assert rooms.OWNER_HEADER not in seen[0].headers
+
+    def test_no_owner_header_on_a_read_only_action_even_if_configured(self):
+        """Keyed by the action's own ``writes`` flag: a room that
+        configured an owner token still doesn't get it on a non-write."""
+        seen: list[httpx.Request] = []
+
+        def action(request: httpx.Request) -> httpx.Response:
+            return _receipt_response(status=200, ok=True, summary="Refreshed.")
+
+        svc = RoomsService(transport=_transport(action=action, seen=seen))
+        status, _ = _act(
+            svc,
+            action_id="refresh",
+            principal=Principal(id="beta"),
+            env=_env(owner_token=True),
+        )
+        assert status == 200
+        assert rooms.OWNER_HEADER not in seen[0].headers
+
+    def test_no_owner_header_without_the_rooms_own_bearer_token(self):
+        """No room token at all means no Authorization and no owner
+        header either — the owner token is additive to, not a
+        substitute for, the room's own bearer token."""
+        seen: list[httpx.Request] = []
+
+        def action(request: httpx.Request) -> httpx.Response:
+            return _receipt_response(status=200, summary="Approved.")
+
+        svc = RoomsService(transport=_transport(action=action, seen=seen))
+        env = _env(token=False, owner_token=True)
+        status, _ = _act(
+            svc,
+            action_id="approve",
+            principal=Principal(id="carol", role="owner"),
+            env=env,
+        )
+        assert "authorization" not in seen[0].headers
+        assert rooms.OWNER_HEADER not in seen[0].headers
 
 
 # ── Local refusals ───────────────────────────────────────────────────
