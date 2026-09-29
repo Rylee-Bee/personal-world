@@ -34,7 +34,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
 RUN pip install --no-cache-dir uv \
-    && uv sync --frozen --no-dev --extra test --extra crypto \
+    && uv sync --frozen --no-dev --extra crypto \
     && rm -rf ~/.cache
 
 COPY src ./src
