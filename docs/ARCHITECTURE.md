@@ -1,6 +1,6 @@
 # Worlds Architecture
 
-> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** how Worlds is structured — world model, rooms, API surface, identity/auth, Vault, exports · **Read this if:** you need to know where something lives before changing it.
+> **Status:** Current · **Verified:** 2026-09-29 · **Canonical for:** how Worlds is structured — world model, rooms, API surface, identity/auth, Vault, exports · **Read this if:** you need to know where something lives before changing it.
 
 **In short:** how Worlds is put together: one small durable core (facts, intent, policy, lore, capabilities, journal, packs) surrounded by replaceable providers, plus **rooms** — separate services Worlds renders. It also covers the API surface, identity and auth, the Vault, the daily loop, and export contracts.
 
@@ -297,9 +297,13 @@ Review first-run exposure separately from normal protected API access.
   `tests/test_identity_boundary.py`); in single mode (and background
   code paths with no principal) it remains instance-global. The approval
   evidence is server-held and persisted.
-- Session step-up re-presents an application credential. An OIDC-only browser
-  session cannot mint a grant without the instance token; a fresh OIDC
-  round-trip as step-up is not implemented.
+- Session step-up has two paths. `POST /api/auth/step-up` re-presents an
+  application credential. `GET /api/auth/oidc/step-up` ("Confirm it's you")
+  sends the browser through a fresh provider sign-in (`prompt=login`,
+  `max_age=0`); the callback grants the 5-minute step-up only when the same
+  person signed in within the last two minutes. An OIDC-only browser session
+  therefore does not need the instance token to elevate.
+  (`tests/test_oidc.py`, `fresh_sign_in_grants_step_up`.)
 
 These gaps are recorded rather than changing implementation or weakening an
 adopted contract during documentation reconciliation. Manual screen-reader,
