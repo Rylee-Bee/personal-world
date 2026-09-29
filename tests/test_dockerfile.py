@@ -57,6 +57,14 @@ class TestDockerfile:
         assert "# TODO: pin by digest" in text
 
 
+class TestImageContents:
+    def test_runtime_image_has_no_test_extra(self):
+        text = _dockerfile_text()
+        sync = [l for l in text.splitlines() if "uv sync" in l]
+        assert sync and all("--extra test" not in l for l in sync), sync
+        assert any("--extra crypto" in l for l in sync)
+
+
 class TestDockerignore:
     def test_private_material_excluded(self):
         text = _dockerignore_text()
