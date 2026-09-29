@@ -5426,11 +5426,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         report = {k: v for k, v in report.items() if k not in ("new", "changed", "gone")}
         return JSONResponse({"ok": True, "data": {**report, "dry_run": dry, "room": room}})
 
-    @app.post("/api/lore/confirm", dependencies=[Depends(require_auth)])
+    @app.post("/api/lore/confirm", dependencies=[Depends(require_step_up)])
     async def lore_confirm(request: Request) -> dict:
         """Confirm lore: ``{"keys": [...]}``, or ``{"accepted": true}`` for
         every suggested item its source marked accepted. A person's explicit
-        act (step-up); confirmed lore is what Worlds treats as true."""
+        act, so it needs a step-up ("Confirm it's you"); confirmed lore is
+        what Worlds treats as true."""
         from . import lore_sync
 
         principal = _principal(request)

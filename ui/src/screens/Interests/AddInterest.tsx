@@ -1,8 +1,9 @@
 /**
  * Follow something you're curious about, right here (owner's first-day
  * walk-through, 2026-09-27: with nothing followed, the page had nowhere to
- * go). One box, then "Confirm it's you" once (POST /api/discovery/interests
- * is a step-up write), then it says so in words.
+ * go). One box, then it says so in words (POST /api/discovery/interests is a
+ * signed-in person's own write and needs no step-up; if the server ever
+ * asks for one, the confirm prompt below still handles it).
  */
 import { useId, useState } from "react";
 import { addDiscoveryInterest } from "../../data/api";
