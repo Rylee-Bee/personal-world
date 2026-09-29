@@ -35,7 +35,7 @@ Tone only affects display; it is not a priority. Urgent items go in needs-you.
 | `workshop` | Project Home: tasks, approvals, what's live, secrets | the workstation |
 | `studio` | Designs, demos, screenshots and themes | the workstation |
 | `engine-room` | The homelab's health (`lab room serve` in the homelab repo) | the workstation |
-| `candy` | Discovery (books, music, shows, releases); per person | a container on the workstation |
+| `candy` | The backend for the Interests category (discovery: books, music, shows, releases); per person. Not implemented quite right yet | a container on the workstation |
 
 Source of truth for the live list: the room registry (below), not this table.
 

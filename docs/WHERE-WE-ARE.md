@@ -55,8 +55,9 @@ says `personal_world` in places. That's fine; the name you'll see is Worlds.
 4. One way to update, and it always asks first.
 5. Worlds is the main app and sets the look; other tools become rooms.
 6. Rooms open on their own sites in a new tab. No proxy.
-7. Candy takes over discovery, media, calendars and notifications. It's
-   multi-user and behind your sign-in.
+7. Candy is only the backend for Interests (discovery). It's multi-user and
+   behind your sign-in, and not implemented quite right yet. Media, calendars
+   and notifications are not Candy's.
 8. Station is a theme you can keep, not the layout of the app.
 9. Starfield is the default theme.
 

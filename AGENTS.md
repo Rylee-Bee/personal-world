@@ -184,9 +184,10 @@ Rooms, in one breath (full guide: `docs/ROOMS.md`):
   `X-Worlds-Principal` alongside their own token; keep one person's cards out
   of another's answer.
 - Room links open on the room's own site in a new tab; there is no proxy.
-- Discovery, media, calendars and notifications are moving to the **Candy**
-  room. They still exist in Worlds today; remove them only in the planned
-  order, never ad hoc.
+- **Candy** is intended to be only the backend for the Interests category
+  (discovery); it is not implemented quite right yet. Media, calendars and
+  notifications are **not** Candy's scope. Discovery still exists in Worlds
+  today; remove it only in the planned order, never ad hoc.
 - The look is exported as the Worlds kit (`ui/dist-kit/`, `npm run kit:check`
   in CI). Other repos vendor it with `npm run kit:stamp`; never hand-edit a
   vendored copy.
