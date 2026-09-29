@@ -2853,11 +2853,20 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
     @app.post("/api/discovery/interests", dependencies=[Depends(require_auth)])
     async def discovery_add_interest(request: Request) -> dict:
-        """Add an interest."""
+        """Add an interest. Person-only, like the person's other own-data writes."""
         from .providers.native_discovery import Interest
 
+        _require_person(getattr(request.state, "principal", None))
         discovery = _discovery_for(request)
         data = await request.json()
+        if (
+            not isinstance(data, dict)
+            or not isinstance(data.get("id"), str)
+            or not data["id"].strip()
+            or not isinstance(data.get("name"), str)
+            or not data["name"].strip()
+        ):
+            raise HTTPException(status_code=422, detail="id and name are required")
         interest = Interest(
             id=data.get("id", ""),
             name=data.get("name", ""),
