@@ -64,6 +64,17 @@ Then sign in once; the session cookie should persist across restarts (Secure +
 HTTPS). If login bounces forever, the proxy is not sending `X-Forwarded-Proto`
 — check `--proxy-headers` and the proxy's forwarded-headers config.
 
+## Content-Security-Policy (report-only)
+The interface page is served with `Content-Security-Policy-Report-Only`
+(`station_ui.CSP_REPORT_ONLY`): it blocks nothing, and the browser console
+lists what a stricter policy would refuse. Tighten it from that evidence,
+then switch the header to enforcing.
+
+Which security headers your reverse proxy adds on top (HSTS, frame options,
+its own CSP, referrer policy) is **not recorded in this repo yet and is
+UNVERIFIED**. Record the real header set here, with placeholders for hosts,
+once someone has checked the running proxy.
+
 ## Sanitization rule
 Private hostnames, LAN addresses, and IdP URLs belong in your **private**
 infra repo only. This repo ships the pattern with placeholders, and

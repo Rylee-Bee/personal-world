@@ -141,6 +141,18 @@ class TestServing:
         assert "no-cache" in r.headers["cache-control"] or "must-revalidate" in r.headers["cache-control"]
         assert "immutable" not in r.headers["cache-control"]
 
+    def test_interface_page_carries_a_report_only_policy(self, client):
+        session = _session(client)
+        for path in ("/", "/some/deep/link"):
+            r = client.get(path, headers=session)
+            assert r.status_code == 200
+            csp = r.headers["content-security-policy-report-only"]
+            assert "default-src 'self'" in csp and "object-src 'none'" in csp
+            # report-only: nothing may be enforced yet
+            assert "content-security-policy" not in {k.lower() for k in r.headers}
+        assets = client.get("/assets/app.js", headers=session)
+        assert "content-security-policy-report-only" not in assets.headers
+
     def test_unknown_path_serves_the_spa(self, client):
         # Client-side routing: an unknown document path is index.html,
         # not a 404 dead end.
