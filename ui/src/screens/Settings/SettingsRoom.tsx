@@ -20,9 +20,8 @@
  *     again ("Applied: …") so what persisted stays visible.
  *
  * Read-only honesty: a setting whose write endpoint the station does
- * not expose (or has not granted: PUT /api/prefs is step-up gated) is
- * shown read-only with a plain sentence why — never as a fake
- * editable control.
+ * not expose is shown read-only with a plain sentence why — never as
+ * a fake editable control.
  *
  * Accessibility floor (docs/accessibility/ACCESSIBILITY_CONTRACT.md):
  * §2.1 ≥44px targets · §2.2 keyboard-only operable · §2.4 focus ring
@@ -33,13 +32,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import {
-  useCrew,
-  usePrefs,
-  usePrefsSchema,
-  usePutPrefs,
-  useSession,
-} from "../../data/hooks";
+import { useCrew, usePrefs, usePrefsSchema, usePutPrefs } from "../../data/hooks";
 import { describeError } from "../../data/errors";
 import type { PrefsUpdateRequest } from "../../data/contract";
 import { WorldButton } from "../../components/WorldButton";
@@ -199,7 +192,6 @@ function PrefsControl({
 export function SettingsRoom() {
   const prefsQuery = usePrefs();
   const schemaQuery = usePrefsSchema();
-  const sessionQuery = useSession();
   const putPrefs = usePutPrefs();
 
   const crewQuery = useCrew();
@@ -238,9 +230,6 @@ export function SettingsRoom() {
 
   const [note, setNote] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const [lastApplied, setLastApplied] = useState<PrefsChange[]>([]);
-
-  const hasStepUp = sessionQuery.data?.data?.has_step_up === true;
-  const stepUpKnown = !sessionQuery.isPending && !sessionQuery.isError;
 
   const setValue = useCallback(
     (key: string, value: PrefsValue) =>
@@ -439,7 +428,7 @@ export function SettingsRoom() {
         variant="primary"
         type="button"
         onPress={applyChanges}
-        isDisabled={changes.length === 0 || putPrefs.isPending || !hasStepUp}
+        isDisabled={changes.length === 0 || putPrefs.isPending}
       >
         {putPrefs.isPending
           ? "Saving…"
@@ -448,15 +437,6 @@ export function SettingsRoom() {
       <span className="ml-[var(--pw-spacing-sm)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
         Nothing is saved until this button is pressed.
       </span>
-
-      {/* Read-only honesty: the write gate is server truth. */}
-      {!hasStepUp && (
-        <p className="mt-[var(--pw-spacing-md)] text-[length:var(--pw-typography-size_small)] text-[var(--pw-text-secondary)]">
-          {stepUpKnown
-            ? "Read-only for now: saving settings needs you to confirm it’s you first. You can still preview the values above."
-            : "Read-only for now: this screen can’t tell whether you’re allowed to save, so Apply is off."}
-        </p>
-      )}
 
       {note && (
         <p

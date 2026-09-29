@@ -394,7 +394,12 @@ describe("SettingsRoom", () => {
     ).toBe("");
   });
 
-  it("without step-up the room says why it is read-only — no fake write affordance", () => {
+  it("PUT /api/prefs is no longer step-up gated: a pending change makes Apply usable and shows no read-only notice, even when has_step_up is false", async () => {
+    // Scoped step-up relaxation: PUT/PATCH /api/prefs moved to
+    // require_auth, so the room no longer needs — or reads — session
+    // step-up truth to decide whether Apply is usable. This pins that
+    // the old preemptive step-up gate (and its "Read-only for now…"
+    // notice) does not regress back in.
     mocks.sessionState = {
       isPending: false,
       isError: false,
@@ -408,12 +413,15 @@ describe("SettingsRoom", () => {
         },
       },
     };
+    const user = userEvent.setup();
     renderRoom();
-    expect(
-      screen.getByText(/Read-only for now: saving settings needs you to confirm it’s you first/),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Apply changes/ })).toBeDisabled();
-    expect(mutate).not.toHaveBeenCalled();
+
+    expect(screen.queryByText(/Read-only for now/)).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/Motion/i), "subtle");
+
+    expect(screen.queryByText(/Read-only for now/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Apply changes/ })).toBeEnabled();
   });
 
   it("an unusable schema entry becomes a read-only row with a plain sentence", async () => {

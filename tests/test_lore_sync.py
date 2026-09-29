@@ -1,7 +1,9 @@
 """Lore sync: rylee_lore (through the Engine room's view) into the world.
 
 Everything lands as suggested; confirmed lore is never touched; only a
-person's step-up request confirms; gone items are marked, never deleted.
+person's own authenticated request confirms (POST /api/lore/confirm is
+plain require_auth as of the scoped step-up relaxation — no step-up
+grant needed); gone items are marked, never deleted.
 """
 import sys
 from pathlib import Path
@@ -115,9 +117,16 @@ def test_sync_route_previews_then_imports_then_confirms(client):
     assert client.get("/api/lore", headers=AUTH).json()["data"]["counts"] == {"suggested": 1, "confirmed": 1}
 
 
-def test_confirm_needs_step_up(client, monkeypatch):
+def test_confirm_no_longer_needs_step_up(client, monkeypatch):
+    """POST /api/lore/confirm moved from require_step_up to require_auth
+    (scoped step-up relaxation): a plain authenticated request — no
+    step-up grant, loopback exception explicitly turned off — succeeds.
+    See tests/test_step_up_relaxation.py for the full route list this
+    change covers."""
     import personal_world.api as api_mod
 
     monkeypatch.setattr(api_mod, "_is_true_loopback", lambda request: False)
     client.post("/api/lore/sync", json={}, headers=AUTH)
-    assert client.post("/api/lore/confirm", json={"accepted": True}, headers=AUTH).status_code == 403
+    r = client.post("/api/lore/confirm", json={"accepted": True}, headers=AUTH)
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["confirmed"] == 1

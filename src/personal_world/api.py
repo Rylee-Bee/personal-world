@@ -2446,9 +2446,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         save_world(world, uw)
         return {"ok": True, "data": data}
 
-    @app.put("/api/prefs", dependencies=[Depends(require_step_up)])
+    @app.put("/api/prefs", dependencies=[Depends(require_auth)])
     async def prefs_put(request: Request) -> dict:
-        """Save preference updates (step-up gated).
+        """Save preference updates.
 
         The handler has always applied exactly the keys it was given, so
         ``PATCH`` is registered as an alias for clients that name a partial
@@ -2456,7 +2456,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """
         return await _prefs_write(request)
 
-    @app.patch("/api/prefs", dependencies=[Depends(require_step_up)])
+    @app.patch("/api/prefs", dependencies=[Depends(require_auth)])
     async def prefs_patch(request: Request) -> dict:
         """Partial preference update — the PUT alias (see ``prefs_put``)."""
         return await _prefs_write(request)
@@ -2851,7 +2851,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             return {"ok": True, "data": {"interests": interests}}
         return {"ok": False, "status": r.status, "warnings": r.warnings}
 
-    @app.post("/api/discovery/interests", dependencies=[Depends(require_step_up)])
+    @app.post("/api/discovery/interests", dependencies=[Depends(require_auth)])
     async def discovery_add_interest(request: Request) -> dict:
         """Add an interest."""
         from .providers.native_discovery import Interest
@@ -4630,7 +4630,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             },
         }
 
-    @app.put("/api/identity/principal", dependencies=[Depends(require_step_up)])
+    @app.put("/api/identity/principal", dependencies=[Depends(require_auth)])
     async def identity_principal_update(request: Request) -> dict:
         """Set the caller's own display name. Persisted in private runtime
         state (data/users.json), never in tracked config. Persons only."""
@@ -5426,7 +5426,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         report = {k: v for k, v in report.items() if k not in ("new", "changed", "gone")}
         return JSONResponse({"ok": True, "data": {**report, "dry_run": dry, "room": room}})
 
-    @app.post("/api/lore/confirm", dependencies=[Depends(require_step_up)])
+    @app.post("/api/lore/confirm", dependencies=[Depends(require_auth)])
     async def lore_confirm(request: Request) -> dict:
         """Confirm lore: ``{"keys": [...]}``, or ``{"accepted": true}`` for
         every suggested item its source marked accepted. A person's explicit
