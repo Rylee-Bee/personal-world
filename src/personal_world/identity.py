@@ -8,7 +8,10 @@ headers are never authorization, only possible login convenience.
 
 Identity modes via PW_IDENTITY_MODE ("single" | "multi"):
 - "single" (default): the legacy single-token gate continues to work.
-  The principal is the instance bootstrap person, id "primary".
+  The principal is the instance bootstrap person, id "primary". Agent
+  tokens (POST /api/identity/agents, which is not mode-gated) still
+  resolve to their agent principal in this mode -- only person/user
+  tokens are confined to the single instance-token gate.
 - "multi": tokens are in data/users.json (hashed); each token maps
   to exactly one local user (or agent principal).
 
@@ -628,7 +631,17 @@ def resolve_principal(
         if not found:
             raise NoPrincipalError("no principal for token")
         return principal_from_record(found, source="token", store=store)
-    # single mode: bootstrap "primary" directly from the instance token
+    # single mode: the instance token remains the only way to become the
+    # primary person, but an agent token (POST /api/identity/agents works
+    # in single mode too, scoped under the primary owner) must still
+    # resolve -- otherwise a credential the API happily mints can never
+    # authenticate anything. Only "agent" records match here; a "user"
+    # record never does, so single-mode person resolution stays exactly
+    # the legacy single-token gate the module docstring promises.
+    if store is not None and token:
+        found = store.match_token(token)
+        if found is not None and found.get("kind") == "agent":
+            return principal_from_record(found, source="token", store=store)
     if (
         not instance_token
         or not token

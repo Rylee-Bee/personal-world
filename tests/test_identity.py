@@ -38,6 +38,42 @@ class TestSingleMode:
         with pytest.raises(NoPrincipalError):
             resolve_principal(None, None, "single", "insttok123")
 
+    @pytest.fixture
+    def store_with_agent(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("PW_DATA_DIR", str(tmp_path))
+        s = IdentityStore(tmp_path)
+        s.create_agent(
+            "uat-harness", "primary", ("read",), plain_token="agent-tok-1"
+        )
+        return s
+
+    def test_agent_token_resolves_even_in_single_mode(self, store_with_agent):
+        p = resolve_principal(
+            "agent-tok-1", store_with_agent, "single", "insttok123"
+        )
+        assert p.id == "uat-harness" and p.kind == "agent"
+
+    def test_person_token_still_ignores_store_in_single_mode(
+        self, store_with_agent
+    ):
+        # A "user" record (not "agent") in the store must NOT satisfy
+        # single-mode resolution -- only the instance token can.
+        store_with_agent.create_user(
+            "someone", "Someone", initial_plain_token="user-tok-1"
+        )
+        with pytest.raises(NoPrincipalError):
+            resolve_principal(
+                "user-tok-1", store_with_agent, "single", "insttok123"
+            )
+
+    def test_instance_token_still_wins_in_single_mode_with_store(
+        self, store_with_agent
+    ):
+        p = resolve_principal(
+            "insttok123", store_with_agent, "single", "insttok123"
+        )
+        assert p.id == "primary" and p.kind == "person"
+
 
 class TestMultiMode:
     """Multi mode resolves hashed user tokens from IdentityStore."""
