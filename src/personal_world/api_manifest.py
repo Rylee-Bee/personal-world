@@ -512,14 +512,22 @@ ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     # Preferences / layout / apps / themes.
     _e("API-030-get", "GET", "/api/prefs", "prefs", "read", "none"),
-    _e("API-030-put", "PUT", "/api/prefs", "prefs", "write", "step-up"),
+    _e(
+        "API-030-put",
+        "PUT",
+        "/api/prefs",
+        "prefs",
+        "write",
+        "none",
+        note="own-account write: signed-in person only, no step-up",
+    ),
     _e(
         "API-030-patch",
         "PATCH",
         "/api/prefs",
         "prefs",
         "write",
-        "step-up",
+        "none",
         note="alias of API-030-put: the same partial update, the same gate "
         "(the handler has always applied exactly the keys it was given)",
     ),
@@ -676,7 +684,8 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/discovery/interests",
         "discovery",
         "write",
-        "step-up",
+        "none",
+        note="own-account write: signed-in person only, no step-up",
     ),
     _e(
         "API-052",
@@ -789,7 +798,15 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "step-up",
     ),
     _e("API-073", "GET", "/api/identity/principal", "identity", "read", "none"),
-    _e("API-074", "PUT", "/api/identity/principal", "identity", "write", "step-up"),
+    _e(
+        "API-074",
+        "PUT",
+        "/api/identity/principal",
+        "identity",
+        "write",
+        "none",
+        note="own-account write: signed-in person only, no step-up",
+    ),
     # People & roles (owner-approved 2026-09-26): code asks
     # `roles.can(principal, permission)`; admins manage accounts, never
     # content. Responses are allow-listed (no secrets, no tokens).
