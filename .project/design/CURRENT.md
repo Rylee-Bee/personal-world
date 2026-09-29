@@ -150,7 +150,7 @@ notes, reservation attachments, and superseded-iteration mapping is
     gesture. Owner decision pending: introduce a larger Today tier or
     accept 64px.
   - **waves-ladder `17:586` (waterline):** fetched as a canonical export
-    (`design/assets/today/waves-ladder.svg`, served via `/today/`) but
+    (`media_files/designs/personal-world/today/waves-ladder.svg`, served via `/today/`) but
     deliberately UNPLACED — its divider-like role overlaps the existing
     quiet-divider semantics; relationship needs owner review before it
     enters Today.
@@ -301,7 +301,7 @@ Today/Journal/Vault). Legacy server UI coexists (`PW_FRONTEND` selects).
   transparent **cutouts**, true-vector **SVGs** (five residents + planet emblem),
   the **app-icon/favicon set**, the three **attention-voice marks**, wide **room**
   art for People/Media/Systems/Places, **skies**, and **pose sheets**. See
-  `design/assets/crew/README.md`.
+  `media_files/designs/personal-world/crew/README.md`.
 - Deliberate artwork — do not casually regenerate: Mermaid master Lottie
   (byte-identical by decision), companion source rigs, icon library,
   screen SVGs.

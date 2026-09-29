@@ -68,8 +68,8 @@ are unchanged.)
 | [THEME_PACK_FRAMEWORK.md](../design/THEME_PACK_FRAMEWORK.md) | Spec; partial implementation | Pack invariants; manifest registry exists, full frontend pack integration remains incomplete. |
 | [RYLEE_THEME_PACK.md](../design/RYLEE_THEME_PACK.md) | Spec | The personal Mermaid theme pack. |
 | [LOTTIEFILES_HANDOFF.md](../design/LOTTIEFILES_HANDOFF.md) | Canonical | Production lessons for Lottie Creator workflows. |
-| [Asset index](../design/assets/README.md) | Canonical | Icons, companion rigs, the Mermaid master animation. |
-| [Companion collection](../design/assets/companions/README.md) | Canonical | Source rigs and per-companion animation handoffs. |
+| [Asset index](../design/assets/README.md) | Canonical | Where the design masters live (moved to the shared media library); only the icon sprite and manifest stay in this repo. |
+| Companion collection (in the media library, `designs/personal-world/companions/README.md`) | Canonical | Source rigs and per-companion animation handoffs. |
 | [Screen library](../design/screens/) | Canonical | Today/Journal/Settings/Chat screens, both themes, narrow + desktop. |
 | [Exports (0.1)](../design/exports/0.1/) | Canonical visual source | The Figma export set the palette reconciliation targeted. |
 | [handoff/](../design/handoff/README.md) | Archived | The original 0.1 spec package, preserved verbatim. Canonical accessibility docs now live under [docs/accessibility/](accessibility/ACCESSIBILITY_CONTRACT.md). |

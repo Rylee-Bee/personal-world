@@ -117,10 +117,10 @@ Everything below arrived in `design/owner/crew/newassets/` (owner drop, gitignor
 - **True-vector crew SVGs (~3 KB each):** `project-worlds-crew-svg-clean/{renai, ratatoskr, bolt, burrito-journalism, personal-world, planet-emblem}.svg`.
 - **App icon + favicon set:** `project-worlds-app-icons/` — 1024→16 px PNG + multi-size `.ico`, navy `#051437`, emblem centred.
 - **Attention-voice marks:** `goodnews.png`, `softdot.png`, `lantern.png`.
-- **Rooms (the four areas):** `peoplebg.png`, `mediabg.png`, `systemsbg.png`, `placesbg.png` (1672×941).
+- **Rooms (the four areas):** `media_files/backgrounds/peoplebg.png`, `mediabg.png`, `systemsbg.png`, `placesbg.png` (1672×941).
 - **Skies:** `bgstars1.png`, `bgstars2.png`.
 - **Pose sheets:** `renaipose`, `ratatoskrpose`, `boltpose`, `burritopose`.
-- **Emblem:** `badge.png`.
+- **Emblem:** `media_files/icons/badge.png`.
 
 Still to do (repo housekeeping, not art): label which poses are the six product states.
 The asset set is now **tracked** in `design/assets/crew/` (promoted 2026-09-17 from the
@@ -131,8 +131,8 @@ mostly implementation-ready assets, plus four undrawn areas.
 
 | Still missing | Why |
 |---|---|
-| ~~Mira transparent cutout~~ | ✅ DELIVERED 2026-09-18 — `design/owner/station/mira.png` (1024×1536, alpha), promoted to `design/assets/station/characters/mira.png`. Art request #21. |
-| ~~Today room background~~ | ✅ DELIVERED 2026-09-18 — `design/owner/station/bridgebg.png` (1672×941), promoted to `design/assets/station/backgrounds/bridgebg.png`. |
+| ~~Mira transparent cutout~~ | ✅ DELIVERED 2026-09-18 — `design/owner/station/mira.png` (1024×1536, alpha), promoted to `media_files/characters/character-poses/mira.png`. Art request #21. |
+| ~~Today room background~~ | ✅ DELIVERED 2026-09-18 — `design/owner/station/media_files/backgrounds/rooms/bridgebg.png` (1672×941), promoted to `media_files/backgrounds/rooms/bridgebg.png`. |
 | **Vector / SVG for new crew** | The 2026-09-17 art set has PNGs; Hekek, Bruma, Mira need vector SVGs matching the existing `design/assets/crew/vector/` set. |
 | **Settings SVG export** | ❌ MISSING — bed icon as vector + 16/32/48px PNGs (art request #28). |
 | **The six product states, labeled** | The sheets have "Six Key Poses"; the Station reacts to `REST · CURIOUS · ATTENTIVE · ENGAGED · PROTECTIVE · GIVING SPACE`. If those poses are not mapped to those, that is the one character gap. |
@@ -322,7 +322,7 @@ for: Interests, Projects, Journal, People, Media, Systems, Places.)
 
 ## 9. New area crew — Hekek · Bruma · Mira (added 2026-09-17)
 
-Already delivered in `design/assets/crew/newchars.png`: turnarounds
+Already delivered in `media_files/characters/character-poses/newchars.png`: turnarounds
 (front / ¾ / side / back), expression rows, the six labeled states, the combadge,
 and role detail insets — plus the **Settings** bed-icon set with sizes.
 
@@ -414,7 +414,7 @@ sizes in `ui/public/assets/crew/{256,512}/`. The hello image was replaced the sa
 clean-edge cutout (no glow, no waving hand), padded to a 1024² square so it sits on any panel.
 
 The Assistant is Worlds' **plain default companion**: who answers when the person
-hasn't chosen anyone. Today it's a drawn SVG (`design/assets/crew/assistant/assistant.svg`):
+hasn't chosen anyone. Today it's a drawn SVG (`media_files/characters/assistant/assistant.svg`):
 a friendly computer monitor in the crew's navy and gold, with a small gold
 ringed-planet commbadge (Sol's shape, no face) on its stand. This asks for a painted
 version that sits beside the rest of the crew without standing out.
@@ -428,9 +428,9 @@ It is not Sol (the planet logo) and never wears her face.
 
 | File | What | Canvas | Used for |
 | --- | --- | --- | --- |
-| `assistant-portrait.png` | Round-porthole bust, **same framing as `portraits/bolt-portrait.png`** (screen centred, face at the same height) | 1024 × 1024, transparent | Crew page, keeper emblems, briefing speaker (24–84 px) |
-| `assistant-listening.png` | Bust, face turned slightly to the reader, attentive | 1024 × 1024, transparent | Beside Chat (the "Chat with your companion" board) |
-| `assistant-hello.png` | Full monitor on its stand, smiling; a small gold cursor-hand waves **on the screen** | 1024 × 1536, transparent | Empty states, first-day guide |
+| `media_files/characters/assistant/assistant-portrait.png` | Round-porthole bust, **same framing as `portraits/bolt-portrait.png`** (screen centred, face at the same height) | 1024 × 1024, transparent | Crew page, keeper emblems, briefing speaker (24–84 px) |
+| `media_files/characters/assistant/assistant-listening.png` | Bust, face turned slightly to the reader, attentive | 1024 × 1024, transparent | Beside Chat (the "Chat with your companion" board) |
+| `media_files/characters/assistant/assistant-hello.png` | Full monitor on its stand, smiling; a small gold cursor-hand waves **on the screen** | 1024 × 1536, transparent | Empty states, first-day guide |
 | `assistant-sheet.png` (optional) | The six states on one sheet: REST · CURIOUS · ATTENTIVE · ENGAGED · PROTECTIVE · GIVING SPACE | any, flat | Reference |
 
 - PNG with real transparency, no baked-in text, no background glow or halo in the cutouts.
@@ -450,10 +450,10 @@ A small gold ringed-planet commbadge (a planet with a ring, no face) sits on the
 No arms or legs; emotion comes from the face and a slight tilt. Calm, helpful, a little
 shy; cute but competent. No text anywhere.
 Deliver, each as a transparent PNG:
-1) assistant-portrait.png — 1024×1024 round-porthole bust, framed exactly like the other
+1) media_files/characters/assistant/assistant-portrait.png — 1024×1024 round-porthole bust, framed exactly like the other
    crew portraits (screen centred, face at the same height).
-2) assistant-listening.png — 1024×1024 bust, attentive, turned slightly toward the viewer.
-3) assistant-hello.png — 1024×1536 full monitor on its stand, smiling, with a small gold
+2) media_files/characters/assistant/assistant-listening.png — 1024×1024 bust, attentive, turned slightly toward the viewer.
+3) media_files/characters/assistant/assistant-hello.png — 1024×1536 full monitor on its stand, smiling, with a small gold
    cursor-hand waving on the screen.
 Optional: a sheet of six states (rest, curious, attentive, engaged, protective, giving space).
 It must still read at 24 px.
@@ -481,22 +481,22 @@ with about 10% empty margin, no shadow or glow outside the object.
 
 | File | Object | Where it shows |
 | --- | --- | --- |
-| `spot-memory.png` | An open book with a small star rising from the pages | Memory, empty journal |
-| `spot-chat.png` | A round speech bubble with a sparkle inside | Chat, empty conversation |
-| `spot-secrets.png` | An ornate gold key | Secrets section, "Confirm it's you" |
-| `spot-room.png` | A small arched doorway with warm light inside | Rooms, "No rooms yet" |
-| `spot-people.png` | Two mugs side by side, steam curling together | People page |
-| `spot-helper.png` | Two cupped hands holding a small star | "Let someone help me" |
-| `spot-limits.png` | A lantern, softly lit | "Your limits" |
-| `spot-guest.png` | A ticket with a star punched in it | Guests |
-| `spot-candy.png` | A wrapped sweet with a starry wrapper | Candy, discovery |
-| `spot-approve.png` | A wax seal pressed with a star | Approvals, "Decided just now" |
-| `spot-quiet.png` | A crescent moon with a small star, sleepy | Quiet days, nothing needs you |
-| `spot-unreachable.png` | A small lantern behind a wisp of fog | A room Worlds can't reach |
-| `spot-find.png` | A brass spyglass | Find a room, search empty |
-| `spot-settings.png` | A brass cog with a star in the middle | Settings |
-| `spot-journal.png` | A quill resting on a rolled scroll | Writing a note |
-| `spot-crew.png` | A compass rose badge | Your crew |
+| `media_files/designs/personal-world/icons/spot/spot-memory.png` | An open book with a small star rising from the pages | Memory, empty journal |
+| `media_files/designs/personal-world/icons/spot/spot-chat.png` | A round speech bubble with a sparkle inside | Chat, empty conversation |
+| `media_files/designs/personal-world/icons/spot/spot-secrets.png` | An ornate gold key | Secrets section, "Confirm it's you" |
+| `media_files/designs/personal-world/icons/spot/spot-room.png` | A small arched doorway with warm light inside | Rooms, "No rooms yet" |
+| `media_files/designs/personal-world/icons/spot/spot-people.png` | Two mugs side by side, steam curling together | People page |
+| `media_files/designs/personal-world/icons/spot/spot-helper.png` | Two cupped hands holding a small star | "Let someone help me" |
+| `media_files/designs/personal-world/icons/spot/spot-limits.png` | A lantern, softly lit | "Your limits" |
+| `media_files/designs/personal-world/icons/spot/spot-guest.png` | A ticket with a star punched in it | Guests |
+| `media_files/designs/personal-world/icons/spot/spot-candy.png` | A wrapped sweet with a starry wrapper | Candy, discovery |
+| `media_files/designs/personal-world/icons/spot/spot-approve.png` | A wax seal pressed with a star | Approvals, "Decided just now" |
+| `media_files/designs/personal-world/icons/spot/spot-quiet.png` | A crescent moon with a small star, sleepy | Quiet days, nothing needs you |
+| `media_files/designs/personal-world/requests/worlds-art-2026-09-26/spot-unreachable.png` | A small lantern behind a wisp of fog | A room Worlds can't reach |
+| `media_files/designs/personal-world/icons/spot/spot-find.png` | A brass spyglass | Find a room, search empty |
+| `media_files/designs/personal-world/icons/spot/spot-settings.png` | A brass cog with a star in the middle | Settings |
+| `media_files/designs/personal-world/icons/spot/spot-journal.png` | A quill resting on a rolled scroll | Writing a note |
+| `media_files/designs/personal-world/icons/spot/spot-crew.png` | A compass rose badge | Your crew |
 
 **Copy-paste request:**
 
@@ -529,41 +529,41 @@ state should have a Sol that fits, so Worlds never needs extra words to feel
 kind. Sol stays **voiceless**: these are faces, not speech.
 
 **Deliver:** 4 PNGs, **1024 × 1024, real transparency**, framed exactly like
-`design/assets/crew/sol/sol-cheer.png` (same size and position of the planet
+`media_files/characters/solace/sol-cheer.png` (same size and position of the planet
 and ring), no text, no glow outside the art. Must read at 48 px.
 
 | File | Mood | Where it shows |
 | --- | --- | --- |
-| `sol-searching.png` | Peering through a tiny brass telescope, one eye closed, curious smile | Searching, "Finding who's here…", loading |
-| `sol-sleeping.png` | Eyes closed, snug under a little cloud blanket, three tiny stars floating up (no "Zz" letters) | Offline, "Can't reach Worlds" |
-| `sol-proud.png` | Beaming, eyes happy arcs, a small gold ribbon medal on the ring | "You're all settled in", everything done |
-| `sol-oops.png` | Sheepish smile, one small bandage on the planet, holding a tiny wrench on the ring | Something went wrong (nothing lost) |
+| `media_files/characters/solace/sol-searching.png` | Peering through a tiny brass telescope, one eye closed, curious smile | Searching, "Finding who's here…", loading |
+| `media_files/characters/solace/sol-sleeping.png` | Eyes closed, snug under a little cloud blanket, three tiny stars floating up (no "Zz" letters) | Offline, "Can't reach Worlds" |
+| `media_files/characters/solace/sol-proud.png` | Beaming, eyes happy arcs, a small gold ribbon medal on the ring | "You're all settled in", everything done |
+| `media_files/characters/solace/sol-oops.png` | Sheepish smile, one small bandage on the planet, holding a tiny wrench on the ring | Something went wrong (nothing lost) |
 
 **Copy-paste request:**
 
 ```
 Paint four more moods for Sol, the Project Worlds logo: the same smiling ringed planet
-as sol-cheer.png (blue-green planet, gold ring, rosy cheeks, big friendly eyes), in the
+as media_files/characters/solace/sol-cheer.png (blue-green planet, gold ring, rosy cheeks, big friendly eyes), in the
 same warm painterly style with crisp dark outlines. Keep the planet and ring exactly the
-same size and position as sol-cheer.png so the moods swap cleanly. No text, no letters,
+same size and position as media_files/characters/solace/sol-cheer.png so the moods swap cleanly. No text, no letters,
 no outer glow. Each a transparent PNG, 1024×1024, readable at 48 px:
-1) sol-searching.png — peering through a tiny brass telescope, one eye closed, curious smile.
-2) sol-sleeping.png — eyes closed, snug under a little cloud blanket, three tiny stars
+1) media_files/characters/solace/sol-searching.png — peering through a tiny brass telescope, one eye closed, curious smile.
+2) media_files/characters/solace/sol-sleeping.png — eyes closed, snug under a little cloud blanket, three tiny stars
    floating up (no Zz letters).
-3) sol-proud.png — beaming, eyes as happy arcs, a small gold ribbon medal on the ring.
-4) sol-oops.png — sheepish smile, one small bandage on the planet, holding a tiny wrench.
+3) media_files/characters/solace/sol-proud.png — beaming, eyes as happy arcs, a small gold ribbon medal on the ring.
+4) media_files/characters/solace/sol-oops.png — sheepish smile, one small bandage on the planet, holding a tiny wrench.
 ```
 
 ## 13. App icon (requested and DELIVERED 2026-09-26)
 
-**Delivered:** `design/assets/brand/app-icon.png`, cropped past a white margin
+**Delivered:** `media_files/designs/personal-world/brand/app-icon.png`, cropped past a white margin
 in the original so it is navy to the edges, and a circle-safe
-`app-icon-maskable.png` (#124).
+`media_files/designs/personal-world/brand/app-icon-maskable.png` (#124).
 
 Worlds has no proper icon for the browser tab, the phone home screen or
 installing it as an app. Sol is the mark, so the icon is Sol on a tile.
 
-**Deliver:** `app-icon.png`, **1024 × 1024, no transparency**: Sol (the
+**Deliver:** `media_files/designs/personal-world/brand/app-icon.png`, **1024 × 1024, no transparency**: Sol (the
 `sol-mark` pose) centred on a deep navy (#161a30 to #1f2442) rounded tile
 with a few tiny gold stars. Keep everything that matters inside the **middle
 80%** (phones crop the corners to circles or squircles). Must read at
@@ -577,7 +577,7 @@ builds the GitHub social preview image (1280 × 640) from the showcase art.
 
 ```
 Make the Project Worlds app icon: Sol, the smiling ringed planet logo (same design as
-sol-mark.png), centred on a deep navy rounded-square tile (#161a30 to #1f2442) with a few
+media_files/characters/solace/sol-mark.png), centred on a deep navy rounded-square tile (#161a30 to #1f2442) with a few
 tiny gold stars. Warm painterly style, crisp dark outlines. 1024×1024 PNG, no
 transparency. Keep everything important inside the middle 80% so it survives circle and
 squircle crops, and make Sol large enough to read at 16 px. No text.
@@ -620,14 +620,14 @@ silhouette in the dim light is enough.
 
 | File | Who | The sleepy pose |
 | --- | --- | --- |
-| `renai-sleepy.png` | Renai | Curled in a soft kelp hammock, rainbow braid dimmed to pastel, eyes closed, one hand under her cheek |
-| `bolt-sleepy.png` | Bolt | Sitting with a tiny blanket over its knees, antenna glow turned down to an ember, eyes as half-lit arcs |
-| `hekek-sleepy.png` | Hekek | Dozing in a worn armchair, tools set down beside him, a mug in both hands, a dim lantern at his feet |
-| `ratatoskr-sleepy.png` | Ratatoskr | Curled in a tree hollow, tail wrapped round as a blanket, satchel as a pillow, cap tipped over one eye |
-| `bruma-sleepy.png` | Bruma | Under a knitted blanket with a closed book on her chest, one small reading lamp turned low |
-| `mira-sleepy.png` | Mira | Asleep with her head on an open notebook, the telescope capped beside her, a pencil still in her hand |
-| `scoop-sleepy.png` | Scoop | The burrito truck parked for the night: headlights off, one warm porch light, the news sign dark, a little blanket over the hood |
-| `assistant-sleepy.png` | The Assistant | The screen in night mode (dim, warm), eyes as sleepy arcs, a tiny blanket draped over the stand |
+| `media_files/designs/personal-world/requests/worlds-sleepy-crew-2026-09-26/renai-sleepy.png` | Renai | Curled in a soft kelp hammock, rainbow braid dimmed to pastel, eyes closed, one hand under her cheek |
+| `media_files/designs/personal-world/requests/worlds-sleepy-crew-2026-09-26/bolt-sleepy.png` | Bolt | Sitting with a tiny blanket over its knees, antenna glow turned down to an ember, eyes as half-lit arcs |
+| `media_files/designs/personal-world/requests/worlds-sleepy-crew-2026-09-26/hekek-sleepy.png` | Hekek | Dozing in a worn armchair, tools set down beside him, a mug in both hands, a dim lantern at his feet |
+| `media_files/designs/personal-world/requests/worlds-sleepy-crew-2026-09-26/ratatoskr-sleepy.png` | Ratatoskr | Curled in a tree hollow, tail wrapped round as a blanket, satchel as a pillow, cap tipped over one eye |
+| `media_files/designs/personal-world/requests/worlds-sleepy-crew-2026-09-26/bruma-sleepy.png` | Bruma | Under a knitted blanket with a closed book on her chest, one small reading lamp turned low |
+| `media_files/designs/personal-world/requests/worlds-sleepy-crew-2026-09-26/mira-sleepy.png` | Mira | Asleep with her head on an open notebook, the telescope capped beside her, a pencil still in her hand |
+| `media_files/designs/personal-world/requests/worlds-sleepy-crew-2026-09-26/scoop-sleepy.png` | Scoop | The burrito truck parked for the night: headlights off, one warm porch light, the news sign dark, a little blanket over the hood |
+| `media_files/designs/personal-world/requests/worlds-sleepy-crew-2026-09-26/assistant-sleepy.png` | The Assistant | The screen in night mode (dim, warm), eyes as sleepy arcs, a tiny blanket draped over the stand |
 
 Sol already has `sol-sleeping` (§12), so she isn't needed here.
 
@@ -707,8 +707,8 @@ transparent at its edges so it sits on any background, no text.
 | `shelf-hive-corporate.png` | Hive Works | Honeycomb shelving holding tidy handbook binders with coloured tabs; two worker bees in tiny ties filing a binder, a small "company" desk lamp |
 | `shelf-vefr.png` | VEFR | A storyteller's study in charcoal and parchment with gold trim: leather tomes, a candle, a map pinned open, a quill (VEFR's own palette: charcoal, parchment, gold, teal) |
 
-**One more Sol mood:** `sol-reading.png`, framed exactly like
-`sol-cheer.png` (§12): Sol with a tiny open storybook on the ring, reading
+**One more Sol mood:** `media_files/characters/solace/sol-reading.png`, framed exactly like
+`media_files/characters/solace/sol-cheer.png` (§12): Sol with a tiny open storybook on the ring, reading
 happily, a small star-shaped bookmark. For the Library's header and the
 first-day guide's "Want to know how this works?". Must read at 48 px.
 
