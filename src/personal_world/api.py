@@ -404,7 +404,6 @@ VIEWER_DENIED_PREFIXES: tuple[str, ...] = (
     "/api/recall",
     "/api/journal",
     "/api/memory",
-    "/api/chat/history",
     "/api/records",
     "/api/learning",
     "/api/backup",
@@ -418,6 +417,17 @@ VIEWER_DENIED_PREFIXES: tuple[str, ...] = (
     "/api/connections/config",
 )
 
+#: Narrow, named exceptions to the prefixes above (exact path match only):
+#: structure a viewer may read inside an otherwise denied area.
+#: - ``/api/records/categories``: category names, counts and the locked flag,
+#:   never a record's contents.
+VIEWER_ALLOWED_EXACT: tuple[str, ...] = ("/api/records/categories",)
+
+#: Chat history is a mixed route (structure plus what was said). A viewer
+#: gets the structure only, by allow-list: each entry keeps just these keys,
+#: so a content field added later is omitted by default.
+VIEWER_CHAT_ENTRY_KEYS = ("ts", "role")
+
 _VIEWER_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
@@ -427,6 +437,8 @@ def _viewer_refusal(principal, method: str, path: str) -> str | None:
         return None
     if method.upper() not in _VIEWER_SAFE_METHODS:
         return "read-only token: this credential can only read"
+    if path in VIEWER_ALLOWED_EXACT:
+        return None
     if any(path == p or path.startswith(p + "/") for p in VIEWER_DENIED_PREFIXES):
         return "read-only token: this route is not available to a read-only credential"
     return None
@@ -1823,6 +1835,12 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         (per-user, decision #13). Never another principal's."""
         transcript = ChatHistory(_scoped_path(_principal(request), "chat_history"))
         entries = transcript.recent(min(max(n, 1), 500))
+        if getattr(_principal(request), "read_only", False):
+            # Structure only for a read-only viewer: when and who, never
+            # what was said.
+            entries = [
+                {k: e[k] for k in VIEWER_CHAT_ENTRY_KEYS if k in e} for e in entries
+            ]
         return {"ok": True, "data": {"entries": entries, "count": len(entries)}}
 
     @app.get("/api/chat/providers", dependencies=[Depends(require_auth)])

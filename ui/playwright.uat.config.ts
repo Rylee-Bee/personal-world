@@ -14,6 +14,9 @@ import { defineConfig, devices } from "@playwright/test";
  *     read-only viewer token (POST /api/identity/viewers, owner + step-up):
  *     it acts as the owner for reads only and can never write or elevate,
  *     so person-only screens load without handing the walk owner power.
+ *     In Memory and Chat it sees structure only (record category names and
+ *     counts; chat entries as when/who, no text); journal entries, record
+ *     contents, memory search, recall and message bodies answer 403.
  *     See docs/IDENTITY-BOUNDARY.md ("Read-only viewer credential");
  *   - it writes findings (JSON + Markdown) and screenshots under
  *     PW_UAT_OUT, which stays on the machine that ran it.

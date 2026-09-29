@@ -197,14 +197,24 @@ that walks users or agents (sessions, listings, sign-in) can match one.
   accepts it on the API's bearer path).
 - **Deny list** (`api.VIEWER_DENIED_PREFIXES`, tested): a viewer gets 403 on
   `/api/vault`, `/api/secrets`, `/api/lab/secrets`, `/api/lab/settings`,
-  `/api/native-lab/settings`, `/api/recall`, `/api/journal`, `/api/memory`,
-  `/api/chat/history`, `/api/records`, `/api/learning`, `/api/backup`,
-  `/api/worlds`, `/api/exports`, `/api/identity/{agents,users,viewers}`,
+  `/api/native-lab/settings`, `/api/recall`, `/api/journal`, `/api/memory`
+  (search), `/api/records`, `/api/learning`, `/api/backup`, `/api/worlds`,
+  `/api/exports`, `/api/identity/{agents,users,viewers}`,
   `/api/people/invites`, `/api/push/subscriptions` and
   `/api/connections/config`: secret values and names, raw personal material,
   whole-instance archives, credential administration and infrastructure
   configuration. Other person-only reads (preferences, sections, briefing,
   place, lore, later) work.
+- **Memory and Chat: structure yes, content no.** A viewer can read:
+  `GET /api/records/categories` (category names, counts, locked flag; the one
+  named exact exception, `VIEWER_ALLOWED_EXACT`) and `GET /api/chat/history`
+  with each entry cut down to `ts` and `role` (when and who, plus the count;
+  `VIEWER_CHAT_ENTRY_KEYS`, an allow-list, so a content field added later is
+  omitted by default). A viewer cannot read what was said or remembered:
+  message bodies, journal entries, record contents, memory search results and
+  recall all answer 403 (or omit the field). Lore and later are still
+  allowed as before and do return their text; tighten them the same way if
+  that is not wanted.
 - If the owner is disabled or expires, the viewer stops resolving.
 
 ## Invites, helpers, limits, guests

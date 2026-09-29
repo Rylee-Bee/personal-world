@@ -258,3 +258,58 @@ def test_every_non_get_route_refuses_a_viewer_or_is_declared_self_authenticating
                 if route.path != "/api/auth/logout" and not first_run:  # logout: no session to end
                     assert r.status_code != 200, (method, route.path)
     assert checked > 60
+
+
+# ── Memory and Chat: structure yes, content no ──────────────────────────
+
+
+def _seed_chat(tmp_path, mode):
+    from personal_world.chat_history import ChatHistory
+    from personal_world.identity import Principal, principal_scoped_path
+
+    path = principal_scoped_path(tmp_path, Principal(id="primary"), "chat_history", mode=mode)
+    h = ChatHistory(path)
+    h.append("user", "SECRET-SAID-BY-PERSON")  # pw-safety: synthetic
+    h.append("assistant", "SECRET-SAID-BY-COMPANION")  # pw-safety: synthetic
+
+
+def test_chat_history_gives_a_viewer_structure_but_never_what_was_said(env):
+    client, app, make_viewer, tmp_path, *_ = env
+    mode = "multi" if "multi" in str(app.state.identity["mode"]) else "single"
+    _seed_chat(tmp_path, mode)
+    viewer = _h(make_viewer())
+    r = client.get("/api/chat/history", headers=viewer)
+    assert r.status_code == 200, r.text
+    data = r.json()["data"]
+    assert data["count"] == 2
+    assert [set(e) for e in data["entries"]] == [{"ts", "role"}, {"ts", "role"}]
+    assert "SECRET-SAID" not in r.text
+    # the owner still gets the full transcript
+    assert "SECRET-SAID-BY-PERSON" in client.get("/api/chat/history", headers=OWNER).text
+
+
+def test_records_categories_are_structure_and_records_are_content(env):
+    client, _app, make_viewer, *_ = env
+    viewer = _h(make_viewer())
+    r = client.get("/api/records/categories", headers=viewer)
+    assert r.status_code == 200, r.text
+    assert "categories" in r.text
+    for path in ("/api/records", "/api/records?category=medical"):
+        assert client.get(path, headers=viewer).status_code == 403, path
+    from personal_world.api import _viewer_refusal
+    from personal_world.identity import Principal
+
+    ro = Principal(id="primary", read_only=True)
+    for path in ("/api/records/categories/x", "/api/records/other", "/api/records/categories2"):
+        assert _viewer_refusal(ro, "GET", path), path
+
+
+def test_memory_search_stays_denied_and_the_exceptions_are_only_the_named_ones(env):
+    client, *_ = env
+    from personal_world.api import VIEWER_ALLOWED_EXACT
+
+    assert VIEWER_ALLOWED_EXACT == ("/api/records/categories",)
+    make = env[2]
+    viewer = _h(make())
+    for path in ("/api/memory/search?q=x", "/api/recall?q=x", "/api/journal", "/api/journal/last", "/api/vault/status", "/api/backup", "/api/exports/story"):
+        assert client.get(path, headers=viewer).status_code == 403, path
