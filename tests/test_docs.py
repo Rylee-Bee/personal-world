@@ -29,7 +29,18 @@ CANONICAL_FILES = (
     "design/COMPANION_INTEGRATION.md",
 )
 
-EXCLUDED_DIRS = (".venv", "node_modules", ".git", "data", "config.local")
+# Build output and test-run leftovers are not documentation: without these
+# the number of link checks depended on what a working tree happened to hold.
+EXCLUDED_DIRS = (
+    ".venv",
+    "node_modules",
+    ".git",
+    "data",
+    "config.local",
+    ".pytest_cache",
+    "test-results",
+    "ui/dist/",
+)
 
 
 def _markdown_files() -> list[Path]:
@@ -47,17 +58,58 @@ def test_canonical_files_exist():
         assert (REPO_ROOT / rel).exists(), f"canonical file missing: {rel}"
 
 
+_LINK = re.compile(r"\]\(([^)\s]*?)(#[^)\s]*)?\)")
+_FENCE = re.compile(r"^\s*(```|~~~)")
+
+
+def _anchors(md: Path) -> set[str]:
+    """The fragment ids a markdown file offers: GitHub-style heading slugs
+    (with -1, -2 suffixes for repeats) plus explicit id/name attributes."""
+    text = md.read_text(errors="ignore")
+    found: set[str] = set()
+    seen: dict[str, int] = {}
+    in_fence = False
+    for line in text.splitlines():
+        if _FENCE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = re.match(r"^#{1,6}\s+(.*?)\s*#*\s*$", line)
+        if not m:
+            continue
+        title = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", m.group(1))
+        title = re.sub(r"[`*_~]", "", title).lower()
+        slug = re.sub(r"[^\w\- ]", "", title).strip().replace(" ", "-")
+        n = seen.get(slug, 0)
+        seen[slug] = n + 1
+        found.add(slug if n == 0 else f"{slug}-{n}")
+    found.update(re.findall(r"""(?:id|name)=["']([^"']+)["']""", text))
+    return found
+
+
 @pytest.mark.parametrize("md", _markdown_files(), ids=lambda p: str(p))
 def test_internal_links_resolve(md: Path):
     text = md.read_text(errors="ignore")
     missing = []
-    for m in re.finditer(r"\]\(([^)#\s]+?)(#[^)]*)?\)", text):
+    bad_anchor = []
+    for m in _LINK.finditer(text):
         target = m.group(1).strip()
+        fragment = (m.group(2) or "")[1:]
         if target.startswith(("http://", "https://", "mailto:")):
             continue
-        if not (md.parent / target).resolve().exists():
-            missing.append(target)
+        if target:
+            resolved = (md.parent / target).resolve()
+            if not resolved.exists():
+                missing.append(target)
+                continue
+        else:
+            resolved = md
+        if fragment and resolved.is_file() and resolved.suffix == ".md":
+            if fragment.lower() not in {a.lower() for a in _anchors(resolved)}:
+                bad_anchor.append(f"{target}#{fragment}")
     assert not missing, f"{md}: broken internal links: {missing}"
+    assert not bad_anchor, f"{md}: links to headings that do not exist: {bad_anchor}"
 
 # ---------------------------------------------------------------------------
 # Accessibility contract discoverability (truth-repair epoch 2026-09-07)
