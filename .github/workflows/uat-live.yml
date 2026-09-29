@@ -21,7 +21,7 @@ name: uat-live
 
 on:
   push:
-    branches: [main, feat/station-vnext-foundation]
+    branches: [main]
   pull_request:
 
 permissions:
