@@ -335,6 +335,21 @@ async def require_step_up(request: Request) -> None:
         raise HTTPException(status_code=403, detail="write requires step-up auth")
 
 
+async def require_estate_custody(request: Request) -> None:
+    """Whole-instance export/import: owner or admin only.
+
+    Backup and restore move every person's data and the vault in one
+    archive, so a valid elevation alone is not enough: the caller must
+    also hold ``estate_secrets`` (owner and admin bundles only; members,
+    supervised and guest accounts and agent keys never carry it). Mounted
+    next to ``require_step_up`` as a route dependency, so a refusal
+    happens before any one-time download token is created or consumed.
+    """
+    principal = getattr(request.state, "principal", None)
+    if not can(principal, "estate_secrets"):
+        raise HTTPException(status_code=403, detail="estate custody required")
+
+
 def _is_true_loopback(request: Request) -> bool:
     """True ONLY for 127.0.0.1, ::1, and the literal hostname
     'localhost' resolved to one of those. Deliberately NOT
@@ -636,7 +651,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     from .worlds_backup import register_worlds_backup
 
     register_worlds_backup(
-        app, data_dir=data_dir, config_dir=config_dir, step_up=require_step_up
+        app,
+        data_dir=data_dir,
+        config_dir=config_dir,
+        step_up=require_step_up,
+        owner_gate=require_estate_custody,
     )
 
     # --- Durable brain-proposal store (D3) ---

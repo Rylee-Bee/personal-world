@@ -403,6 +403,17 @@ def test_register_refuses_without_step_up_gate():
         worlds_backup.register_worlds_backup(FakeApp(), data_dir=Path("/tmp"))
 
 
+def test_register_refuses_without_owner_gate():
+    class FakeApp:
+        def post(self, *a, **k):  # pragma: no cover
+            raise AssertionError("must not register without an owner gate")
+
+    with pytest.raises(ValueError, match="owner"):
+        worlds_backup.register_worlds_backup(
+            FakeApp(), data_dir=Path("/tmp"), step_up=lambda: None
+        )
+
+
 def test_registered_routes_roundtrip_behind_stub_gate(instance, tmp_path):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
@@ -415,6 +426,7 @@ def test_registered_routes_roundtrip_behind_stub_gate(instance, tmp_path):
         config_dir=config,
         home_config_dir=home,
         step_up=lambda: "stepped-up",
+        owner_gate=lambda: "owner",
     )
     client = TestClient(app)
 
