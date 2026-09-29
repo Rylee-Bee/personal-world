@@ -64,6 +64,27 @@ jobs:
       test-command: "npx playwright install --with-deps chromium && npx playwright test"
       upload-dist: false
 
+  # Real-browser UAT (docs guide: docs/guides/agent-driven-uat.md, estate
+  # root, no remote): real mouse/touch/keyboard interaction plus axe-core,
+  # against a live Worlds instance, read-only (every non-GET /api request
+  # is aborted and recorded, never sent). PW_UAT_URL/PW_UAT_TOKEN must be
+  # repo secrets or variables, never inlined here -- see SECURITY.md and
+  # tests/test_public_safety.py, which fail closed on tracked topology.
+  uat-live:
+    permissions:
+      actions: write
+    uses: Rylee-Bee/ci-harness/.github/workflows/reusable-uat.yml@main
+    with:
+      working-directory: "ui"
+      uat-url: ${{ secrets.PW_UAT_URL }}
+      read-only: true
+      uat-command: >-
+        npx playwright install --with-deps chromium &&
+        PW_UAT_URL="$UAT_URL" PW_UAT_TOKEN="$UAT_TOKEN" PW_UAT_OUT=uat-out
+        npx playwright test -c playwright.uat.config.ts
+    secrets:
+      uat-token: ${{ secrets.PW_UAT_TOKEN }}
+
   security-gates:
     uses: Rylee-Bee/ci-harness/.github/workflows/reusable-python.yml@main
     with:
