@@ -107,10 +107,10 @@ Rationale: [`docs/adr/0001-capabilities-core-owned-providers-optional.md`](docs/
   adopted here as one manifest.
 - **Contract:** [`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml)
   — the project's one adoption manifest (declared by
-  `.project/project.yaml: contracts.manifest`), pinned to Play-Nice
-  revision `0a7fb10002396c4724b4fecd196308f786ee960d` (2026-09-26).
-  The manifest records the pinned contract count; check it there rather
-  than trusting a number in prose.
+  `.project/project.yaml: contracts.manifest`). The manifest's
+  `source.revision` is the pinned Play-Nice revision (moved by the pin
+  robot) and it records the pinned contract count; check both there
+  rather than trusting a SHA or number in prose.
 - **Source:** [`Rylee-Bee/play-nice-contracts`](https://github.com/Rylee-Bee/play-nice-contracts)
   — public shared library, MIT license.
 
