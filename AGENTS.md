@@ -34,7 +34,7 @@ Before doing substantive work, read [`AGENT_POLICY.md`](./AGENT_POLICY.md) and f
 | Python env | `uv sync --frozen --extra test --extra crypto` | `CONTRIBUTING.md`, `validate.yml` |
 | Backend tests | `uv run pytest --timeout=30` | `validate.yml` (test job) |
 | Framework invariants | `uv run personal-world framework validate --json` | `validate.yml` (framework-gates) |
-| UI install | `cd ui && npm ci` | `ci.yml` |
+| UI install | `cd ui && npm ci && npx playwright install chromium` (vitest's Storybook project needs Chromium) | `ci.yml` |
 | UI gates | `cd ui && npm run tokens:check && npm run kit:check && npx tsc -b && npm run lint && npx vitest run && npm run build` | `ci.yml` |
 | UI behaviour | `cd ui && npx playwright test` (boots the seeded fixture API `ui/scripts/e2e-api.mjs`; axe with color-contrast on) | `validate.yml` (browser) |
 | Kit preview | `cd ui && npm run kit:test:e2e` | `ci.yml` |
