@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(secrets/**)",
+      "Read(**/*.key)",
+      "Read(**/*.pem)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(**/*.age)",
+      "Read(/config.local/**)",
+      "Read(/config/*.local.json)",
+      "Read(/config/principal.json)",
+      "Read(/data/**)",
+      "Read(/data.bak.*/**)",
+      "Read(node_modules/**)",
+      "Read(.venv/**)",
+      "Read(__pycache__/**)",
+      "Read(.pytest_cache/**)",
+      "Read(.fossil/**)",
+      "Read(/src/personal_world/static/app/**)",
+      "Read(/ui/dist/**)",
+      "Read(/ui/storybook-static/**)",
+      "Read(/ui/test-results/**)",
+      "Read(/ui/playwright-report/**)"
+    ]
+  }
+}

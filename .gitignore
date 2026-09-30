@@ -99,3 +99,7 @@ data/content.db
 
 # runtime agent lock (state, never content)
 .agent/agent-lock.json
+
+# Local, per-person agent settings (never shared)
+CLAUDE.local.md
+.claude/settings.local.json
