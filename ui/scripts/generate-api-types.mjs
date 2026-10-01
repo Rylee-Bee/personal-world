@@ -28,18 +28,28 @@ if (!existsSync(specPath)) {
 
 console.log(`Generating types from ${specPath}...`);
 
-// Invoke the locally installed CLI directly. Going through `npx` added
-// an npm-install round trip that emitted an `npm warn install-scripts`
-// line on every build (and could resolve a remote version).
-const bin = resolve(
-  __dirname, "..", "node_modules", ".bin",
-  `openapi-typescript${process.platform === "win32" ? ".cmd" : ""}`,
-);
+// openapi-typescript needs the TypeScript *JS* compiler API, which
+// TypeScript 7 (native) no longer ships. Run it in isolation with its own
+// pinned TypeScript 5 so the app itself can stay on TypeScript 7.
+// Pinned exactly for reproducible output.
+const CODEGEN_OPENAPI = "openapi-typescript@7.13.0";
+const CODEGEN_TS = "typescript@5.9.3";
 
-const result = spawnSync(bin, [specPath, "-o", outputPath], {
-  stdio: "inherit",
-  cwd: resolve(__dirname, ".."),
-});
+const result = spawnSync(
+  "npm",
+  [
+    "exec",
+    "--yes",
+    `--package=${CODEGEN_OPENAPI}`,
+    `--package=${CODEGEN_TS}`,
+    "--",
+    "openapi-typescript",
+    specPath,
+    "-o",
+    outputPath,
+  ],
+  { stdio: "inherit", cwd: resolve(__dirname, "..") },
+);
 
 if (result.error || result.status !== 0) {
   console.error(
