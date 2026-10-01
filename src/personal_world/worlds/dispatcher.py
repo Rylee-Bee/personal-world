@@ -23,6 +23,7 @@ import hashlib
 import json
 import logging
 import os
+import socket
 import sqlite3
 import threading
 import time
@@ -62,14 +63,16 @@ CREATE TABLE leases (instance_id TEXT PRIMARY KEY, heartbeat REAL NOT NULL)"""),
     (3, """ALTER TABLE leases ADD COLUMN pid INTEGER;
 ALTER TABLE leases ADD COLUMN boot_id TEXT;
 ALTER TABLE leases ADD COLUMN started TEXT"""),
+    (4, "ALTER TABLE leases ADD COLUMN host TEXT"),
 ])
 
 LEASE_TTL_S = 30.0
+LEASE_RENEW_S = LEASE_TTL_S / 3   # how often a live process renews; a lease older than this has missed a beat
 
 
-def process_identity() -> tuple[str, int, str]:
-    """(boot id, pid, process start time): tells a restarted process from its predecessor at once,
-    even when the pid is reused (a container restart is pid 1 again)."""
+def process_identity() -> tuple[str, int, str, str]:
+    """(boot id, pid, process start time, host name). The host name is the container id in Docker, so two
+    containers sharing a volume (both pid 1, same kernel boot id) are told apart."""
     try:
         boot = open("/proc/sys/kernel/random/boot_id").read().strip()
     except OSError:
@@ -78,7 +81,7 @@ def process_identity() -> tuple[str, int, str]:
         started = open("/proc/self/stat").read().rsplit(")", 1)[1].split()[19]
     except (OSError, IndexError):
         started = "0"
-    return boot, os.getpid(), started
+    return boot, os.getpid(), started, socket.gethostname()
 
 
 class DispatchError(Exception):
@@ -123,8 +126,8 @@ def classify_outcome(result: Any) -> tuple[Literal["SUCCEEDED", "FAILED", "UNKNO
             return "FAILED", code, "http_4xx"
         return "UNKNOWN", code, "http_5xx" if code >= 500 else "http_4xx" if code >= 400 else "redirect_refused"
     if isinstance(result, ConfinementError):
-        if result.error_class in ("confinement_denied", "auth_failed"):
-            return "FAILED", result.status_code, result.error_class  # refused before anything was sent
+        if result.pre_send or result.error_class in ("confinement_denied", "auth_failed"):
+            return "FAILED", result.status_code, result.error_class  # nothing was sent: it provably did not run
         return "UNKNOWN", result.status_code, result.error_class
     return "UNKNOWN", None, "malformed"
 
@@ -141,7 +144,7 @@ class Dispatcher:
         governed_by_project_home: Callable[[Provider], bool] | None = None,
         project_home_verifier: PHVerifier | None = None,
         ttl_s: int = DEFAULT_TTL_S,
-        identity: tuple[str, int, str] | None = None,
+        identity: tuple[str, int, str, str] | None = None,
     ):
         self._db, self._store = db, store
         self._send = send if send is not None else confined_request
@@ -162,9 +165,9 @@ class Dispatcher:
         """Renew this process's lease. Call it regularly (production runs a timer); it is also
         renewed on every execute, so a busy process is never mistaken for a dead one."""
         with self._db.write_tx() as tx:
-            tx.execute("INSERT INTO leases(instance_id, heartbeat, pid, boot_id, started) VALUES (?,?,?,?,?) "
+            tx.execute("INSERT INTO leases(instance_id, heartbeat, pid, boot_id, started, host) VALUES (?,?,?,?,?,?) "
                        "ON CONFLICT(instance_id) DO UPDATE SET heartbeat=excluded.heartbeat",
-                       (self.instance_id, self._clock(), self.identity[1], self.identity[0], self.identity[2]))
+                       (self.instance_id, self._clock(), self.identity[1], self.identity[0], self.identity[2], self.identity[3]))
 
     # ------------------------------------------------------------ helpers
 
@@ -387,15 +390,22 @@ class Dispatcher:
         and any live process's rows are never touched.
         """
         now = self._clock()
-        boot, pid, started = self.identity
+        boot, pid, started, host = self.identity
         alive = {self.instance_id}
-        for lease in self._db.conn().execute("SELECT instance_id, heartbeat, pid, boot_id, started FROM leases").fetchall():
+        for lease in self._db.conn().execute(
+                "SELECT instance_id, heartbeat, pid, boot_id, started, host FROM leases").fetchall():
             if lease["instance_id"] == self.instance_id:
                 continue
-            fresh = lease["heartbeat"] > now - LEASE_TTL_S
-            other_boot = lease["boot_id"] is not None and lease["boot_id"] != boot
-            restarted = lease["boot_id"] == boot and lease["pid"] == pid and lease["started"] != started
-            if fresh and not other_boot and not restarted:
+            expired = lease["heartbeat"] <= now - LEASE_TTL_S
+            same_host = lease["host"] is not None and lease["host"] == host
+            # Identity can only settle a lease EARLY when it is provably this host's own past: the host
+            # rebooted, or this process is the restart of that pid (same boot, same pid, new start time)
+            # and the old one has missed a heartbeat. Anything else (another container or machine sharing
+            # the volume) is alive until its lease actually expires.
+            rebooted = same_host and lease["boot_id"] is not None and lease["boot_id"] != boot
+            restarted = (same_host and lease["boot_id"] == boot and lease["pid"] == pid and lease["started"] != started
+                         and lease["heartbeat"] <= now - LEASE_RENEW_S)
+            if not (expired or rebooted or restarted):
                 alive.add(lease["instance_id"])
         evidence = json.dumps({"error_class": None, "note": "interrupted before a result was recorded"})
         marks = ",".join("?" for _ in alive)

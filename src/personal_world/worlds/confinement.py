@@ -67,6 +67,8 @@ class ConfinementError:
     note: str = ""
     status_code: int | None = None
     duration_ms: int | None = None
+    # True when NOTHING was sent (refused, unresolved, no credential): the action provably did not run.
+    pre_send: bool = False
 
 
 _METADATA = {
@@ -160,7 +162,7 @@ def classify_address(address: str, *, lan: bool) -> str | None:
 
 
 def _deny(note: str, started: float | None = None) -> ConfinementError:
-    return ConfinementError("confinement_denied", note, duration_ms=_ms(started))
+    return ConfinementError("confinement_denied", note, duration_ms=_ms(started), pre_send=True)
 
 
 def _ms(started: float | None) -> int | None:
@@ -214,13 +216,13 @@ def _auth_headers(provider: Any) -> dict[str, str] | ConfinementError:
         return {}
     value = resolve_secret_ref(auth.secret_ref)
     if not value:
-        return ConfinementError("auth_failed", "credential is not available")
+        return ConfinementError("auth_failed", "credential is not available", pre_send=True)
     try:
         value.encode("ascii")  # header values go out as latin-1 at best; only ASCII is safe everywhere
     except UnicodeEncodeError:
-        return ConfinementError("auth_failed", "credential contains characters that cannot be sent")
+        return ConfinementError("auth_failed", "credential contains characters that cannot be sent", pre_send=True)
     if any(ord(c) < 32 or ord(c) == 127 for c in value):
-        return ConfinementError("auth_failed", "credential contains control characters")
+        return ConfinementError("auth_failed", "credential contains control characters", pre_send=True)
     if auth.type == "bearer":
         return {"Authorization": f"Bearer {value}"}
     if auth.type == "header":
@@ -229,7 +231,7 @@ def _auth_headers(provider: Any) -> dict[str, str] | ConfinementError:
         try:
             check_auth_header_name(auth.header_name or "")
         except ValueError:
-            return ConfinementError("confinement_denied", "credential header name is not allowed")
+            return ConfinementError("confinement_denied", "credential header name is not allowed", pre_send=True)
         return {auth.header_name: value}
     if auth.type == "basic":
         return {"Authorization": "Basic " + base64.b64encode(value.encode()).decode()}
@@ -351,20 +353,42 @@ class _WatchedTransport(httpx.HTTPTransport):
 
 
 _DNS_POOL = ThreadPoolExecutor(max_workers=8, thread_name_prefix="worlds-dns")
+_DNS_PER_PROVIDER = 2
+_dns_slots: dict[str, threading.BoundedSemaphore] = {}
+_dns_lock = threading.Lock()
 
 
-def resolve_within(resolver: Resolver, host: str, port: int, deadline: Deadline) -> list[str] | ConfinementError:
-    """Run DNS on a small bounded pool so a slow resolver can neither outlive the budget nor pile up threads."""
-    future = _DNS_POOL.submit(resolver, host, port)
+def _dns_slot(key: str) -> threading.BoundedSemaphore:
+    with _dns_lock:
+        return _dns_slots.setdefault(key, threading.BoundedSemaphore(_DNS_PER_PROVIDER))
+
+
+def resolve_within(resolver: Resolver, host: str, port: int, deadline: Deadline, key: str = "") -> list[str] | ConfinementError:
+    """DNS on a small shared pool with at most two lookups in flight per provider, so a hostile or slow
+    resolver can neither outlive the budget, pile up threads, nor starve other providers' lookups.
+    Nothing has been sent when a lookup fails or times out, so every failure here is ``pre_send``."""
+    slot = _dns_slot(key or host)
+    if not slot.acquire(blocking=False):
+        return ConfinementError("timeout", "too many name lookups in flight for this provider",
+                                duration_ms=_ms(deadline.started), pre_send=True)
+
+    def run() -> list[str]:
+        try:
+            return resolver(host, port)
+        finally:
+            slot.release()
+
+    future = _DNS_POOL.submit(run)
     try:
         addresses = future.result(timeout=max(deadline.remaining(), 0.0))
     except FutureTimeout:
-        future.cancel()  # not started yet: it never runs; already running: it finishes on its own
-        return ConfinementError("timeout", "name lookup did not finish in time", duration_ms=_ms(deadline.started))
+        if future.cancel():  # it never started: nothing will release the slot, so do it here
+            slot.release()
+        return ConfinementError("timeout", "name lookup did not finish in time", duration_ms=_ms(deadline.started), pre_send=True)
     except Exception:  # a failed or broken lookup
-        return ConfinementError("connection", "host did not resolve", duration_ms=_ms(deadline.started))
+        return ConfinementError("connection", "host did not resolve", duration_ms=_ms(deadline.started), pre_send=True)
     if not addresses:
-        return ConfinementError("connection", "host did not resolve", duration_ms=_ms(deadline.started))
+        return ConfinementError("connection", "host did not resolve", duration_ms=_ms(deadline.started), pre_send=True)
     return list(addresses)
 
 
@@ -410,7 +434,7 @@ def _send(provider: Any, request: Any, effect: str, resolver: Resolver, deadline
             return _deny("header contains a control character", started)
         headers[name] = value
 
-    addresses = resolve_within(resolver, host, port, deadline)
+    addresses = resolve_within(resolver, host, port, deadline, key=str(getattr(provider, 'id', '')))
     if isinstance(addresses, ConfinementError):
         return addresses
     lan = bool(provider.network.lan)

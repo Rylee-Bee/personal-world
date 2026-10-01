@@ -1,5 +1,7 @@
 # Worlds backup & restore — the SOS escape hatch
 
+> **Superseded in part by [ADR-0008](adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../FRONTEND-INVENTORY.md).
+
 > **Status:** Reference · **Verified:** 2026-09-29 · **Canonical for:** the encrypted full-instance backup/restore (`pw-worlds-backup/1`) · **Read this if:** you need to save or move a whole Worlds instance
 
 **In short:** One encrypted file plus a passphrase is enough to rebuild the same instance on a fresh machine. This page is the how-to, the archive format, and the exact limits of what is and is not inside.

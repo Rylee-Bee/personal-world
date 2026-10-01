@@ -18,3 +18,7 @@
 - **Backup:** `POST /api/memory/backup` makes `$PW_DATA_DIR/backups/worlds-YYYYMMDD-HHMMSS.db` through SQLite's online backup API (consistent while Worlds is writing; mode 0600, directory 0700; an existing file is never overwritten) and writes a `backup` event to History. A backup contains everything in `worlds.db` including locked records and session/token hashes: keep it as private as the database.
 - **Restore:** stop Worlds, then `python -c "from personal_world.worlds.memory_store import restore_backup; print(restore_backup('<backup file>', '<new data dir>'))"`. It checks the file is a SQLite database with the Memory tables and passes `PRAGMA integrity_check`, refuses to overwrite an existing `worlds.db`, and prints the row counts. Start Worlds against that data dir; recovery of interrupted actions runs at startup.
 - Old Worlds data is **not** imported (owner decision 2026-10-01); the old backups stay where they are until retirement.
+
+## Known edge: interrupted-action recovery
+
+Recovery turns an interrupted action into UNKNOWN (nothing is ever re-sent) once its owner's lease is gone. Two containers that share a volume **and** use host networking (same kernel boot id, both pid 1, same host name) cannot be told apart by identity; each is treated as alive until its lease expires (30 s). The cost is a delay in settling an interrupted row, never a repeat dispatch. Accepted 2026-10-01.

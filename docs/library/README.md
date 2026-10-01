@@ -1,5 +1,7 @@
 # The Worlds library
 
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 > **Status:** Current · **Verified:** 2026-09-27 · **Canonical for:** nothing (plain-words teaching; each book points to the doc that is canonical) · **Read this if:** you want to understand how Worlds works and why, without reading code.
 
 **In short:** short books that teach how Worlds works: how the pieces fit,

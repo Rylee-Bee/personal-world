@@ -374,3 +374,70 @@ def test_dns_lookups_run_on_a_small_bounded_pool():
     release.set()
     assert len(results) == 30 and all(isinstance(r, ConfinementError) and r.error_class == "timeout" for r in results)
     assert len(started) <= 8                               # queued lookups were cancelled, not started late
+
+
+# ---- review #237 re-check 3: per-provider DNS cap, DNS failure means nothing was sent
+def test_one_hostile_resolver_cannot_starve_other_providers():
+    release = threading.Event()
+    started = []
+
+    def hostile(host, port):
+        started.append(host)
+        release.wait(3)
+        return ["127.0.0.1"]
+
+    bad = Provider(id="bad", name="Bad", kind="http", base_url="http://hostile.example.test", network={"lan": True}, timeout_s=0.4)
+    out = []
+    ts = [threading.Thread(target=lambda: out.append(confined_request(
+        bad, Request(id="bad.r", provider="bad", path="/x"), effect="read", resolver=hostile))) for _ in range(12)]
+    [t.start() for t in ts]
+    time.sleep(0.15)
+    with ReferenceServer() as ref:
+        good = Provider(id="good", name="Good", kind="http", base_url=ref.base_url, network={"lan": True}, timeout_s=2)
+        t0 = time.monotonic()
+        ok = confined_request(good, Request(id="good.r", provider="good", path="/items"), effect="read")
+        assert ok.status_code == 200 and time.monotonic() - t0 < 1.0     # the other provider is untouched
+    [t.join() for t in ts]
+    release.set()
+    assert len(started) == 2                                             # only two lookups for the hostile provider
+    assert all(isinstance(r, ConfinementError) and r.pre_send for r in out)
+    assert sum("too many name lookups" in r.note for r in out) == 10
+
+
+def test_pre_send_is_set_exactly_when_nothing_was_sent(monkeypatch):
+    import socket as _socket
+    p = Provider(id="p", name="P", kind="http", base_url="http://x.example.test", network={"lan": False})
+    r = Request(id="p.r", provider="p", path="/x")
+    assert confined_request(p, r, effect="read", resolver=lambda h, port: ["10.0.0.5"]).pre_send is True     # pw-safety: synthetic
+    assert confined_request(p, r, effect="read", resolver=lambda h, port: (_ for _ in ()).throw(OSError("no"))).pre_send is True
+    assert confined_request(p, r, effect="read", resolver=lambda h, port: []).pre_send is True
+    monkeypatch.setenv("NOPE_SECRET", "")
+    q = p.model_copy(update={"auth": Auth(type="bearer", secret_ref="env:NOPE_SECRET")})
+    assert confined_request(q, r, effect="read", resolver=lambda h, port: ["93.184.216.34"]).pre_send is True
+    s = _socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.close()
+    lan = Provider(id="p", name="P", kind="http", base_url=f"http://127.0.0.1:{port}", network={"lan": True})
+    refused = confined_request(lan, r, effect="read")
+    assert refused.error_class == "connection" and refused.pre_send is False                              # we did try to connect
+
+
+def test_dispatcher_settles_a_dns_timeout_as_failed_not_unknown(tmp_path):
+    from personal_world.worlds.authn import Principal
+    from personal_world.worlds.config_store import ConfigStore
+    from personal_world.worlds.db import Database
+    from personal_world.worlds.dispatcher import Dispatcher
+    from personal_world.worlds.models import Action
+    store = ConfigStore(tmp_path / "cfg")
+    store.save("provider", Provider(id="svc", name="S", kind="http", base_url="http://slow.example.test", network={"lan": True}, timeout_s=0.3))
+    store.save("request", Request(id="svc.go", provider="svc", method="POST", path="/go"))
+    store.save("action", Action(id="go", request="svc.go", name="Go"))
+    release = threading.Event()
+
+    def slow_send(provider, request, *, effect):
+        return confined_request(provider, request, effect=effect, resolver=lambda h, p: release.wait(2) and ["127.0.0.1"])
+
+    d = Dispatcher(Database.in_dir(tmp_path / "data"), store, send=slow_send)
+    o = Principal("owner", "owner", step_up_at=time.time(), via="session")
+    a = d.approve(o, d.request_authorization(o, "go")["id"])
+    receipt = d.execute(o, a["id"])
+    release.set()
+    assert receipt["state"] == "FAILED" and receipt["evidence"]["error_class"] == "timeout"

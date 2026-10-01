@@ -17,6 +17,7 @@ The file holds no secret value. A missing or invalid file means nobody can sign 
 from __future__ import annotations
 
 import hashlib
+import re
 import hmac
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,7 +29,13 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from .secrets import resolve_secret_ref
 
-MIN_BOOTSTRAP_SECRET = 20
+BOOTSTRAP_SECRET_RE = re.compile(r"^[A-Za-z0-9_-]{22,}$")  # >=32 hex or >=22 base64url chars (>=128 bits from a generator)
+
+
+def strong_secret(value: str | None) -> bool:
+    if not value or not BOOTSTRAP_SECRET_RE.match(value):
+        return False
+    return len(value) >= 32 if re.fullmatch(r"[0-9A-Fa-f]+", value) else True   # hex needs 32 chars (4 bits each)
 
 
 class OwnerOIDC(BaseModel):
@@ -80,8 +87,8 @@ class OwnerPolicy:
         o = self.file.oidc if self.file else None
         if o is None or not issuer or not subject:
             return False
-        a = hmac.compare_digest(issuer.rstrip("/").encode(), o.issuer.rstrip("/").encode())
-        b = hmac.compare_digest(subject.encode(), o.subject.encode())
+        a = hmac.compare_digest(hashlib.sha256(issuer.rstrip("/").encode()).digest(), hashlib.sha256(o.issuer.rstrip("/").encode()).digest())
+        b = hmac.compare_digest(hashlib.sha256(subject.encode()).digest(), hashlib.sha256(o.subject.encode()).digest())
         return bool(a and b)
 
     def bootstrap_matches(self, presented: str) -> bool:
@@ -89,9 +96,10 @@ class OwnerPolicy:
         if b is None or not b.enabled or not presented:
             return False
         secret = resolve_secret_ref(b.secret_ref)
-        if not secret or len(secret) < MIN_BOOTSTRAP_SECRET:   # a short secret is refused outright (fail closed)
+        if not strong_secret(secret):   # a short secret is refused outright (fail closed)
             return False
-        return hmac.compare_digest(presented.encode(), secret.encode())
+        # compare fixed-length digests so the comparison cannot leak either length
+        return hmac.compare_digest(hashlib.sha256(presented.encode()).digest(), hashlib.sha256(secret.encode()).digest())
 
 
 def load_owner_policy(config_dir: str | Path) -> OwnerPolicy:

@@ -1,126 +1,60 @@
 # Worlds — Frontend Inventory
 
-> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** what the browser interface is and where each piece lives · **Read this if:** you are about to work on the UI and want the map before the code
+> **Status:** Current · **Verified:** 2026-10-01 · **Canonical for:** what the browser interface is and where each piece lives · **Read this if:** you are about to work on the UI and want the map before the code
 
-**In short:** The interface is the React app in `ui/`, not the old Station. It is built into the Docker image and served same-origin at `/` by the backend. This page names the screens, the shell, the design language, the tests, and the commands you need.
+**In short:** The interface is the front door, a small React app in `ui/src/fd/` (ADR-0008): four landmarks (Home · Connect · Memory · Settings), served same-origin at `/` by the backend and mounted by `ui/src/main.tsx`. The old screens, components and mock API were deleted; git history is the archive. Anything that names `src/screens`, `src/components` or `ui/e2e/` is describing the old interface.
 
 ---
 
-## The one stack
-
-There used to be two stacks (a server-rendered Station and a React rebuild) side
-by side. There is one now. Since the **2026-09-22 flip**, `ui/` is the only
-interface: built into the image, served at `/`, auth-gated (no setup-complete →
-`/setup`; unauthenticated → `/login`). `/station*` and `/vnext*` redirect to `/`.
-The vanilla Station and the old `frontend/` suite are deleted from the tree (git
-history is the archive); the Station survives only as a **theme package**.
+## The stack
 
 | Piece | What | Where |
 |---|---|---|
-| **The app** | React 19 + TypeScript + Vite + Tailwind v4 | `ui/` |
-| **Generated code** | Tokens + typed API client | `ui/src/generated/` |
-| **Design tokens (truth)** | Semantic tokens, per theme | `design/themes/*.json` → `ui/src/generated/tokens.{css,ts}` |
-| **Design language export** | The framework-free "Worlds kit" | `ui/dist-kit/` |
-| **Browser tests** | Vitest units + Playwright e2e + axe | `ui/src/test/`, `ui/e2e/` |
+| **The app** | React 19 + TypeScript + Vite + Tailwind v4 (preflight only) | `ui/` |
+| **Entry** | mounts `FdApp` inside the query and preferences providers | `ui/src/main.tsx` |
+| **Front-door code** | everything the user sees | `ui/src/fd/` |
+| **Styles** | one stylesheet: lab tokens (dark default, Daylight light set), shell, rows, strip, meters | `ui/src/fd/fd.css` |
+| **Generated code** | tokens, icon sprite, API types (the build regenerates them) | `ui/src/generated/` |
+| **Design tokens (truth)** | `design/tokens.json`, `design/themes/*.json` | → `ui/src/generated/tokens.{css,ts}` |
+| **Worlds kit** | the framework-free design export other repos vendor | `ui/dist-kit/` (`npm run kit:build`, `kit:check`) |
 
----
+## What is in `ui/src/fd/`
 
-## Screens (`ui/src/screens/`)
-
-| Screen | What it is |
+| File | What it is |
 |---|---|
-| **Bridge** | The home screen (area id `overview`): the Keeper, the briefing, and the rooms as doorway cards; remembers where you were; the older `Overview.tsx` screen was removed 2026-09-29 |
-| **Memory** | Journal and records |
-| **Chat** | One companion voice, with tone registers |
-| **Settings** | Preferences, themes, accessibility, connections; opens **Crew** |
-| **Crew** | Your companions, per-room keepers, and doorway choices (also reachable from the Bridge) |
-| **Interests** | Discovery — moving to Candy, but the code is still in Worlds today (`src/personal_world/discovery/`) |
-| **Projects** | Teams, projects and tickets, read from the Hive Works room (`ui/src/screens/Projects/`) |
-| **Systems** | A calm map of your machines and what runs on them (`ui/src/screens/Computers/`) |
+| `FdApp.tsx` | hash routing (`#home`, `#connect`, `#memory`, `#settings`; unknown or old ids fall back to Home), preference attributes on `<html>`, the Station decoration |
+| `Shell.tsx`, `route.ts` | skip link, header / nav / main in fixed order; rail on desktop, bottom bar on phone |
+| `Home.tsx` | greeting and briefing, whole-world strip, Edit Home, Needs you, Needs a look, Your life, Quietly working; independent loading; focus-hold |
+| `Strip.tsx`, `Row.tsx`, `Meter.tsx` | the strip tiles, the instrument row with its drill-in, the seven meter types |
+| `home-model.ts` | grouping rules (C6), briefing, greeting |
+| `api.ts`, `safe-href.ts` | read hooks with per-request timeouts; link allow-list |
+| `use-board-edit.ts`, `edit-model.ts` | Edit Home as C1 board writes (`PUT /api/config/board/{id}` with `If-Match`, 409 / 422 handling, Undo is another write) |
+| `Connect.tsx`, `Memory.tsx`, `Settings.tsx`, `Tabs.tsx` | the other three landmarks (Connect and Memory are skeletons; their actions are labelled sample data) |
+| `prefs.tsx`, `prefs-core.ts` | Words (Minimal / Short / Full), Density (Calm / Standard / Detailed), Station pack, theme, text size |
+| `types.ts` | C1 / C2 / C6 types |
+| `fixtures.ts`, `board-server.ts`, `msw.ts` | typed fixtures, an in-memory board server with the real rules, MSW handlers. **Tests only.** |
 
-**First Light** is the first-run setup wizard (crew on/off, companion choice), at
-`/api/setup-wizard/*`.
+## API the UI uses
 
----
+`GET /api/boards/home`, `GET /api/needs-you`, `GET /api/cards/{id}`, `GET` and `PUT /api/config/board/{id}`. Shapes are in `docs/rebuild/CONTRACTS.md` (C2 envelope, C6 read API). `/api/pickup` is reserved; Pick up is omitted until it exists.
 
-## The shell (`ui/src/app/App.tsx`)
+## Tests and commands (from `ui/`)
 
-- **State-routed, not URL-routed.** There is no router; every destination
-  activates through `setActiveArea`, so there are no links to URLs nothing serves.
-- **Two-tier navigation.** The fixed landmarks (`Overview · Memory · Chat ·
-  Settings`) render first, in a fixed order, always. Below them the person's own
-  sections come from `GET /api/sections`.
-- **Themes.** First run defaults to **starfield** (`DEFAULT_THEME` in
-  `ui/src/app/prefs-dom.ts`); a device choice wins and survives reloads via
-  `localStorage`. Themes: starfield (default), doorways, station, moss, ocean,
-  plain.
-- **Status.** Status readouts come from the live `/healthz` probe, never hardcoded,
-  and are always stated in words.
-
-### Components (`ui/src/components/`)
-
-`WorldButton`, `WorldSignal`, `WorldDrawer`, `WorldAssistant`, `WorldAreaLink`,
-`WorldKeeper`, `ResidentPresence`, `RoomsPanel`, plus `crew/` and `rooms/` helpers.
-
-### Data layer (`ui/src/data/`)
-
-Typed API client (`api.ts`), React Query hooks (`hooks.ts`), section/area
-derivation (`types.ts`), and the draft-sync helper (`draft-sync.ts`).
-
----
-
-## Design language
-
-- **Tokens.** `design/themes/*.json` are the source; the generator
-  (`ui/scripts/generate-tokens.mjs`) writes `ui/src/generated/`. **Never hand-edit
-  `ui/src/generated/`** — run the generator. Drift gate:
-  `npm run tokens:check`.
-- **Minimum text size.** Every theme meets it: body ≥ 16px, labels ≥ 13px.
-- **Minimum accessibility.** 44px targets, status always in words, visible focus,
-  no sideways scroll at 390px, no motion by default.
-- **Worlds kit** (`ui/dist-kit/`, kit.json version `0.1.0+<content hash>`): a
-  framework-free export of the design language — `tokens.css` (all themes),
-  `base.css` (`wk-` components, tokens only), fonts, `preview.html`. Vendored
-  today by Studio, Project Home, and Candy. **Never hand-edit a vendored copy;
-  re-stamp it.**
-
----
-
-## Tests and gates
-
-| Gate | Command (`cd ui`) |
+| Check | Command |
 |---|---|
-| Unit tests (vitest) | `npx vitest run` |
-| End-to-end + axe | `npm run test:e2e` |
-| Type check | `npx tsc -b` |
+| Install | `npm ci` |
+| Tokens | `npm run tokens:check` |
+| Types | `npx tsc -b` |
 | Lint | `npm run lint` |
-| Token drift | `npm run tokens:check` |
-| Kit build / drift / e2e | `npm run kit:build`, `kit:check`, `kit:test:e2e` |
+| Unit | `npx vitest run` (files `src/test/**`; fd tests are `src/test/fd-*`) |
+| Build | `npm run build` |
+| Browser | `npx playwright test` — `e2e-fd/` against a mocked API and `e2e-fd-live/` against the real read API (`python -m personal_world.worlds.dev`); 390px and 1280px; axe with color-contrast on |
+| Kit | `npm run kit:check`, `npm run kit:test:e2e` |
 
-The e2e suite runs against the real hub UI (`npm run preview`) and a seeded
-fixture API (`ui/scripts/e2e-api.mjs`). Counts are deliberately not quoted here —
-run the gate rather than trust a number.
+## Floors
 
----
+Every UI change answers `docs/accessibility/ACCESSIBILITY_CONTRACT.md`: body 16px, labels at least 13px, 44px targets (56px strip tiles), a visible focus ring, no colour-only state (shape and word), motion off unless the device allows it, no horizontal overflow at 390px or 200% zoom. The manual screen-reader pass is a script, not yet a result: `docs/accessibility/FRONT-DOOR-SCREEN-READER-WALKTHROUGH.md`.
 
-## How to run it
+## Not here
 
-```bash
-cd ui
-npm install          # first time only
-npm run dev          # dev server; proxies /api to a local backend
-npm run build        # tokens:generate → api:generate → tsc -b → vite build
-```
-
-The dev server proxies `/api` to a local backend at `VITE_API_PROXY_TARGET`
-(default `http://127.0.0.1:8000`). In production the app is served same-origin by
-the backend, so `VITE_API_URL` is empty.
-
----
-
-## What is not here
-
-- **`design/handoff/`** is an archived Figma spec package — do not edit it.
-- **Old design mockups** are inspiration, not the product; they are not part of
-  this repo's build.
-- **The Station** is a theme package (`design/themes/station.json`), not a UI.
+Rooms, the Play-Nice contracts, shared CI workflows and the homelab live in other repos. The protected character art is not used by the front door; Station adds placeholder marks only.

@@ -171,22 +171,62 @@ def load_csrf_key(data_dir: str | os.PathLike[str]) -> bytes:
 
 
 def load_key(data_dir: str | os.PathLike[str], name: str) -> bytes:
-    """A persisted random 32-byte key (0600) so every worker process and every restart agrees on it."""
-    path = Path(data_dir) / name
-    if path.exists():
-        key = path.read_bytes()
+    """A persisted random 32-byte key (0600) so every worker process and every restart agrees on it.
+
+    Safe when several processes start at once: the key is written to a uniquely named private file and
+    published with ``link`` (atomic, fails with EEXIST if somebody else got there first); the loser
+    reads the winner's key. There is no shared temporary name, and no reader ever sees a partial key.
+    """
+    directory = Path(data_dir)
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path = directory / name
+    for _ in range(50):
+        existing = _read_key(path)
+        if existing is not None:
+            return existing
+        key = secrets.token_bytes(32)
+        tmp = directory / f".{name}.{secrets.token_hex(8)}.new"
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(key)
+                handle.flush()
+                os.fsync(handle.fileno())
+            try:
+                os.link(tmp, path)          # atomic publish; EEXIST means another process won
+                return key
+            except FileExistsError:
+                continue                    # read the winner's key on the next pass
+            except OSError:
+                # a filesystem without hard links: exclusive create, and readers wait for the full key
+                try:
+                    fd2 = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                except FileExistsError:
+                    continue
+                with os.fdopen(fd2, "wb") as handle:
+                    handle.write(key)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                return key
+        finally:
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+    raise RuntimeError(f"could not create or read {name}")
+
+
+def _read_key(path: Path) -> bytes | None:
+    """The key if the file holds a complete one; a file still being written is waited for briefly."""
+    for _ in range(20):
+        try:
+            key = path.read_bytes()
+        except FileNotFoundError:
+            return None
         if len(key) >= 32:
-            return key
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    key = secrets.token_bytes(32)
-    tmp = path.with_suffix(".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "wb") as f:
-        f.write(key)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-    return key
+            return key[:32] if len(key) == 32 else key
+        time.sleep(0.05)
+    raise RuntimeError(f"{path.name} exists but is not a complete key")
 
 
 @dataclass

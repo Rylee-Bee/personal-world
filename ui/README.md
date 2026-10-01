@@ -56,9 +56,9 @@ When the backend adds/changes endpoints:
    the SERVER is truth; the spec must describe its real envelope.
 2. Edit `src/generated/openapi.json` accordingly.
 3. Regenerate types: `npm run api:generate`.
-4. Update hooks in `src/data/api.ts` / `src/data/hooks.ts` and the MSW
-   fixtures in `src/mocks/handlers.ts` (mocks must mirror the real
-   envelope or they teach fiction).
+4. Update the front-door client in `src/fd/api.ts` and the MSW handlers
+   in `src/fd/msw.ts` (mocks must mirror the real envelope or they teach
+   fiction).
 
 If a deployment ever re-enables schema export, `curl
 http://127.0.0.1:8000/openapi.json > src/generated/openapi.json`
@@ -70,26 +70,25 @@ replaces the fixture wholesale.
 npm run build && npm run test:e2e
 ```
 
-Playwright boots two servers (see `playwright.config.ts`): the
-deterministic mock station API (`scripts/e2e-api.mjs`, port 4174,
-speaking the real `{ok, status, data}` contract — the live backend is
-auth-gated and e2e must never carry a token) and the production
-preview build (port 4173) with its `/api` + `/healthz` proxy pointed
-at the mock via `VITE_API_PROXY_TARGET`.
+Playwright runs the front-door suites (see `playwright.config.ts`):
+`e2e-fd/` against a mocked API (`page.route`, fixtures in
+`src/fd/fixtures.ts`) on a Vite dev server (port 4180, no backend),
+and `e2e-fd-live/` against the real read API
+(`python -m personal_world.worlds.dev`) through the Vite proxy on
+port 4181. Phone (390) and desktop (1280) are both first-class.
 
 ## Project Structure
 
 ```
 ui/
 ├── src/
-│   ├── app/            # App shell, QueryProvider, router
-│   ├── components/     # Reusable UI (WorldButton, WorldSignal, WorldDrawer, etc.)
-│   ├── screens/        # Page-level components (Today, Journal, Vault, Settings, Chat)
-│   ├── data/           # API client, hooks, types
+│   ├── app/            # QueryProvider
+│   ├── data/           # TanStack Query client
+│   ├── fd/             # Front-door UI (shell, screens, CSS, API client, fixtures)
 │   ├── generated/      # Auto-generated (tokens, API types, OpenAPI spec)
-│   ├── mocks/          # MSW handlers for offline dev
-│   ├── stories/        # Storybook stories
-│   └── styles/         # CSS (world.css, index.css)
+│   └── test/           # Vitest unit tests
+├── e2e-fd/             # Playwright e2e against the mocked API
+├── e2e-fd-live/        # Playwright e2e against the real read API
 ├── scripts/            # Token + API type generation
 ├── public/             # Static assets (fonts, images, icons)
 └── dist/               # Production build output

@@ -9,7 +9,7 @@ from personal_world.worlds.authn import Principal
 from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.config_store import ConfigStore
 from personal_world.worlds.db import Database
-from personal_world.worlds.dispatcher import (LEASE_TTL_S, BadRequest, DispatchError, Dispatcher, NotConsumable,
+from personal_world.worlds.dispatcher import (LEASE_RENEW_S, LEASE_TTL_S, BadRequest, DispatchError, Dispatcher, NotConsumable,
                                               NotPermitted, classify_outcome)
 from personal_world.worlds.models import Action, Provider, Request
 from personal_world.worlds.reference_provider import ReferenceServer, reference_send
@@ -570,36 +570,60 @@ def _crash_in_flight(env, identity):
     return d2
 
 
-def test_restart_with_the_same_pid_settles_the_dead_predecessor_at_once(env):
+def test_restart_with_the_same_pid_settles_the_dead_predecessor_after_one_missed_beat(env):
     d, db, store, send, clock = env
-    _crash_in_flight(env, ("boot-1", 1, "100"))                      # container pid 1, started at tick 100
-    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-1", 1, "900"))   # restarted: pid 1 again
-    assert me.recover() == 1                                         # no 30 s wait: same pid, different start time
+    _crash_in_flight(env, ("boot-1", 1, "100", "host-a"))            # container pid 1, started at tick 100
+    clock.t += LEASE_RENEW_S + 1                                     # the old process missed a beat
+    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-1", 1, "900", "host-a"))   # restarted: pid 1 again
+    assert me.recover() == 1                                         # no 30 s wait
     assert db.conn().execute("select state from executions").fetchone()[0] == "UNKNOWN"
 
 
-def test_a_lease_from_a_previous_boot_is_dead_immediately(env):
+def test_a_fresh_lease_is_never_settled_early_even_with_the_same_pid(env):
     d, db, store, send, clock = env
-    _crash_in_flight(env, ("boot-OLD", 4242, "100"))
-    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-NEW", 77, "5"))
+    _crash_in_flight(env, ("boot-1", 1, "100", "host-a"))
+    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-1", 1, "900", "host-a"))
+    assert me.recover() == 0                                         # it beat a moment ago: could be alive
+    clock.t += LEASE_TTL_S + 1
+    me.heartbeat()
     assert me.recover() == 1
+
+
+def test_a_lease_from_a_previous_boot_of_the_same_host_is_dead_immediately(env):
+    d, db, store, send, clock = env
+    _crash_in_flight(env, ("boot-OLD", 4242, "100", "host-a"))
+    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-NEW", 77, "5", "host-a"))
+    assert me.recover() == 1
+
+
+def test_two_containers_on_a_shared_volume_are_told_apart(env):
+    d, db, store, send, clock = env
+    _crash_in_flight(env, ("boot-1", 1, "100", "container-a"))        # container A, pid 1, same kernel boot
+    clock.t += LEASE_RENEW_S + 1
+    b = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-1", 1, "900", "container-b"))   # container B, pid 1
+    assert b.recover() == 0                                          # a different host: only its lease expiry counts
+    other_machine = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-9", 5, "7", "machine-b"))
+    assert other_machine.recover() == 0                              # another machine's boot id proves nothing about A
+    clock.t += LEASE_TTL_S + 1
+    b.heartbeat()
+    assert b.recover() == 1
 
 
 def test_a_different_live_process_on_the_same_boot_is_left_alone(env):
     d, db, store, send, clock = env
-    _crash_in_flight(env, ("boot-1", 4242, "100"))
-    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-1", 77, "5"))
+    _crash_in_flight(env, ("boot-1", 4242, "100", "host-a"))
+    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-1", 77, "5", "host-a"))
     assert me.recover() == 0                                         # fresh lease, different pid: still alive
     clock.t += LEASE_TTL_S + 1
     me.heartbeat()
     assert me.recover() == 1                                         # until its lease lapses
 
 
-def test_process_identity_is_boot_pid_start():
+def test_process_identity_is_boot_pid_start_host():
     from personal_world.worlds.dispatcher import process_identity
-    boot, pid, started = process_identity()
-    import os
-    assert pid == os.getpid() and boot and started
+    import os, socket
+    boot, pid, started, host = process_identity()
+    assert pid == os.getpid() and boot and started and host == socket.gethostname()
 
 
 def test_a_row_settled_between_consume_and_dispatch_is_never_sent(env):

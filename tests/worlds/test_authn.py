@@ -6,7 +6,7 @@ import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from personal_world.worlds.authn import (ABSOLUTE_SECONDS, CSRF_COOKIE, IDLE_SECONDS, SESSION_COOKIE, Auth, Principal,
+from personal_world.worlds.authn import (ABSOLUTE_SECONDS, CSRF_COOKIE, IDLE_SECONDS, SESSION_COOKIE, Auth, Principal, load_key,
                                          load_csrf_key, principal_dependency)
 from personal_world.worlds.db import Database
 
@@ -220,3 +220,45 @@ def test_database_files_and_directory_are_private(tmp_path):
     assert "worlds.db" in names
     for n in names:
         assert not stat.S_IMODE((d / n).stat().st_mode) & 0o077, n
+
+
+def test_key_creation_is_race_free_private_and_leaves_no_temp_files(tmp_path):
+    import multiprocessing as mp
+    import threading
+    out = []
+    ts = [threading.Thread(target=lambda: out.append(load_key(tmp_path / "d", "oidc-flow.key"))) for _ in range(24)]
+    [t.start() for t in ts]
+    [t.join() for t in ts]
+    assert len(out) == 24 and len({bytes(k) for k in out}) == 1 and len(out[0]) == 32     # everyone agrees
+    f = tmp_path / "d" / "oidc-flow.key"
+    assert f.read_bytes() == out[0] and not stat.S_IMODE(f.stat().st_mode) & 0o077
+    assert sorted(p.name for p in (tmp_path / "d").iterdir()) == ["oidc-flow.key"]        # no .tmp/.new litter
+
+
+def test_key_creation_across_processes(tmp_path):
+    import subprocess, sys
+    code = ("import sys; from personal_world.worlds.authn import load_key; "
+            "sys.stdout.write(load_key(sys.argv[1], 'csrf.key').hex())")
+    procs = [subprocess.Popen([sys.executable, "-c", code, str(tmp_path / "x")], stdout=subprocess.PIPE) for _ in range(8)]
+    keys = {p.communicate()[0] for p in procs}
+    assert len(keys) == 1 and len(next(iter(keys))) == 64
+    assert sorted(p.name for p in (tmp_path / "x").iterdir()) == ["csrf.key"]
+
+
+def test_key_never_exposes_a_partial_file_and_a_short_existing_file_is_not_a_key(tmp_path):
+    d = tmp_path / "k"
+    d.mkdir()
+    (d / "csrf.key").write_bytes(b"short")
+    with pytest.raises(RuntimeError):
+        load_key(d, "csrf.key")                              # never silently replaced: that would end every session
+    (d / "csrf.key").write_bytes(b"\x01" * 32)
+    assert load_key(d, "csrf.key") == b"\x01" * 32
+
+
+def test_key_falls_back_to_exclusive_create_when_hard_links_are_unavailable(tmp_path, monkeypatch):
+    def nolink(src, dst, **kw):
+        raise OSError("hard links not supported")
+    monkeypatch.setattr(os, "link", nolink)
+    key = load_key(tmp_path / "nl", "csrf.key")
+    assert len(key) == 32 and load_key(tmp_path / "nl", "csrf.key") == key
+    assert sorted(p.name for p in (tmp_path / "nl").iterdir()) == ["csrf.key"]

@@ -375,3 +375,17 @@ def test_app_from_env_reads_trusted_proxies_and_rejects_junk(monkeypatch, tmp_pa
     monkeypatch.setenv("PW_TRUSTED_PROXIES", "192.0.2.10, nonsense")
     with pytest.raises(SystemExit):
         app_from_env()
+
+
+def test_startup_fails_closed_on_a_weak_bootstrap_secret(tmp_path, monkeypatch):
+    cfg = tmp_path / "cfg"
+    cfg.mkdir()
+    write_owner(cfg)
+    monkeypatch.setenv("PW_TEST_BOOTSTRAP", "guessable-ish")
+    with pytest.raises(SystemExit) as exc:
+        create_app(cfg, tmp_path / "data", maintenance_interval=3600)
+    assert "token_urlsafe(32)" in str(exc.value)
+    monkeypatch.delenv("PW_TEST_BOOTSTRAP")
+    assert create_app(cfg, tmp_path / "data2", maintenance_interval=3600).title     # unset: bootstrap is simply unusable
+    monkeypatch.setenv("PW_TEST_BOOTSTRAP", "a" * 32)
+    assert create_app(cfg, tmp_path / "data3", maintenance_interval=3600).title
