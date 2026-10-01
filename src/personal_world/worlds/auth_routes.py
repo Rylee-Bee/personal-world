@@ -35,7 +35,7 @@ GLOBAL_CEILING = 30        # failures in the window, across everybody, before th
 GLOBAL_GAP = 2.0           # ...to one attempt per this many seconds. It slows; it never locks.
 OIDC_LOGIN_KEY = "oidc_login_binding"
 ESCAPE_SUCCESS_GAP = 900.0  # in back-off, the correct secret passes at most once per 15 minutes
-MIN_BOOTSTRAP_SECRET = 20  # shorter secrets are refused outright (generate one: openssl rand -hex 24)
+EVAL_GAP = 2.0             # in back-off, at most one guess is even compared per client key per this many seconds
 
 
 class _Limiter:
@@ -50,6 +50,7 @@ class _Limiter:
     def __init__(self, clock: Callable[[], float]):
         self._clock = clock
         self._clients: dict[str, tuple[int, float, float]] = {}   # key -> (fails, blocked_until, last_fail)
+        self._last_eval: dict[str, float] = {}
         self._global = deque()
         self._last_attempt = -1e18
 
@@ -71,8 +72,8 @@ class _Limiter:
     def fail(self, client: str) -> None:
         now = self._clock()
         fails, _blocked, _last = self._clients.get(client, (0, 0.0, 0.0))
-        fails += 1
-        delay = 0.0 if fails <= FREE_FAILURES else min(5.0 * 2 ** (fails - FREE_FAILURES - 1), MAX_BACKOFF)
+        fails = min(fails + 1, 10_000)   # a capped count can never overflow the delay below
+        delay = 0.0 if fails <= FREE_FAILURES else min(5.0 * 2 ** min(fails - FREE_FAILURES - 1, 16), MAX_BACKOFF)
         self._clients[client] = (fails, now + delay, now)
         self._global.append(now)
 
@@ -84,6 +85,17 @@ class _Limiter:
     # attacker sends can occupy a slot the owner needs: a correct secret passes whenever the 15-minute
     # success slot is free, regardless of any back-off. Wrong guesses in back-off lengthen it further.
     _escape_passed = -1e18
+
+    def eval_slot(self, client: str) -> bool:
+        """In back-off a key gets one evaluated guess per EVAL_GAP; others are refused WITHOUT comparing, so
+        back-off still throttles guessing. Keys are independent: nobody can use up another key's slot."""
+        now = self._clock()
+        if now - self._last_eval.get(client, -1e18) < EVAL_GAP:
+            return False
+        self._last_eval[client] = now
+        if len(self._last_eval) > 10_000:
+            self._last_eval = {k: v for k, v in self._last_eval.items() if now - v < FAILURE_WINDOW}
+        return True
 
     def escape_pass_slot(self) -> bool:
         return self._clock() - self._escape_passed >= ESCAPE_SUCCESS_GAP
@@ -198,20 +210,23 @@ def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], O
     def check_bootstrap(client: str, token: str) -> bool:
         """True when this attempt is the owner. Always does the same work (the secret comparison)."""
         wait = limiter.check(client)
-        matches = bootstrap_open() and policy().bootstrap_matches(token)      # constant-time, always evaluated
         if not wait:
+            matches = bootstrap_open() and policy().bootstrap_matches(token)      # constant-time
             if matches:
                 limiter.clear(client)
                 return True
             limiter.fail(client)
             raise HTTPException(status_code=401, detail="that did not work")
-        # In back-off: refused, EXCEPT the owner's escape: the correct secret, at most once per 15 minutes.
-        if matches and limiter.escape_pass_slot():
-            limiter.escape_passed()
-            limiter.clear(client)
-            return True
-        if not matches:
-            limiter.fail(client)            # a wrong guess in back-off lengthens it (the owner's escape ignores it)
+        # In back-off: this key may test one guess per EVAL_GAP (over the rate: refused without comparing);
+        # the correct secret then passes, at most once per 15 minutes, so the owner is never locked out.
+        if limiter.eval_slot(client):
+            matches = bootstrap_open() and policy().bootstrap_matches(token)
+            if matches and limiter.escape_pass_slot():
+                limiter.escape_passed()
+                limiter.clear(client)
+                return True
+            if not matches:
+                limiter.fail(client)        # a wrong guess lengthens the back-off (the escape ignores it)
         raise HTTPException(status_code=429, detail="too many attempts; wait and try again",
                             headers={"Retry-After": str(int(wait) + 1)})
 

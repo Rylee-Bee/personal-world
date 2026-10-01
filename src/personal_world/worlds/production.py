@@ -23,7 +23,7 @@ from .auth_routes import parse_trusted_proxies
 from .authn import Auth, load_csrf_key, load_key, principal_dependency
 from .db import Database
 from .dispatcher import LEASE_TTL_S, Dispatcher
-from .owner import load_owner_policy
+from .owner import load_owner_policy, strong_secret
 from .secrets import resolve_secret_ref
 from .server import build_app
 
@@ -48,6 +48,11 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
                maintenance_interval: float = LEASE_TTL_S / 3, trusted_proxies: tuple[Any, ...] | None = None) -> FastAPI:
     config_dir, data_dir = Path(config_dir), Path(data_dir)
     policy = load_owner_policy(config_dir)
+    if policy.file and policy.file.bootstrap.enabled:
+        value = resolve_secret_ref(policy.file.bootstrap.secret_ref)
+        if value and not strong_secret(value):  # fail closed: never run with a guessable bootstrap secret
+            raise SystemExit("the bootstrap secret is too weak: use at least 32 hex or 22 base64url characters, e.g. "
+                             "python -c \"import secrets;print(secrets.token_urlsafe(32))\"")
     db = Database.in_dir(data_dir)
     origins = frozenset({policy.public_origin}) if policy.public_origin else frozenset()
     # Sessions are bound to the owner identity: editing owner.yaml's issuer/subject ends them all.

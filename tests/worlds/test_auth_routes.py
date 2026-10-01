@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from personal_world.oidc import FLOW_COOKIE, OIDCLoginError, VerifiedIdentity
-from personal_world.worlds.auth_routes import (ESCAPE_SUCCESS_GAP, FREE_FAILURES, FRESH_AUTH_SECONDS, GLOBAL_CEILING, GLOBAL_GAP, MAX_BACKOFF,
+from personal_world.worlds.auth_routes import (ESCAPE_SUCCESS_GAP, EVAL_GAP, FREE_FAILURES, FRESH_AUTH_SECONDS, GLOBAL_CEILING, GLOBAL_GAP, MAX_BACKOFF,
                                                OIDC_LOGIN_KEY, client_key, parse_trusted_proxies, register_auth_routes)
 from personal_world.worlds.authn import CSRF_COOKIE, SESSION_COOKIE, Auth, load_csrf_key
 from personal_world.worlds.db import Database
@@ -128,6 +128,7 @@ def test_bootstrap_backoff_is_per_client_and_exponential(env):
     assert ok.status_code == 200
     # every further wrong guess doubles the delay (capped); waiting it out makes the client normal again
     def wrong():
+        env.clock.t += EVAL_GAP + 0.1
         return c.post("/api/auth/bootstrap", json={"token": "nope"}, headers={"Origin": ORIGIN})
 
     first, second, third = (int(wrong().headers["retry-after"]) for _ in range(3))
@@ -153,11 +154,14 @@ def test_owner_can_escape_a_back_off_they_did_not_cause_once_per_15_minutes(env)
         boot_from(env, shared)
     c, wrong = boot_from(env, shared)
     assert wrong.status_code == 429                                       # the key is in back-off
+    env.clock.t += EVAL_GAP + 0.1
     assert c.post("/api/auth/bootstrap", json={"token": "wrong-guess"}, headers={"Origin": ORIGIN}).status_code == 429
+    env.clock.t += EVAL_GAP + 0.1
     ok = c.post("/api/auth/bootstrap", json={"token": right}, headers={"Origin": ORIGIN})
     assert ok.status_code == 200 and SESSION_COOKIE in ok.headers.get("set-cookie", "")   # the owner got in, no waiting
     for _ in range(FREE_FAILURES + 1):                                    # the attacker puts the key back in back-off
         boot_from(env, shared)
+    env.clock.t += EVAL_GAP + 0.1
     again = c.post("/api/auth/bootstrap", json={"token": right}, headers={"Origin": ORIGIN})
     assert again.status_code == 429                                       # but only ONE escape per 15 minutes
     env.clock.t += ESCAPE_SUCCESS_GAP + 1
@@ -183,11 +187,17 @@ def test_wrong_guesses_in_back_off_lengthen_it_but_never_block_the_owner(env):
     for _ in range(FREE_FAILURES + 1):
         boot_from(env, ip)
     c, _ = boot_from(env, ip)
-    first = int(c.post("/api/auth/bootstrap", json={"token": "x"}, headers={"Origin": ORIGIN}).headers["retry-after"])
-    for _ in range(6):
-        c.post("/api/auth/bootstrap", json={"token": "x"}, headers={"Origin": ORIGIN})
-    later = int(c.post("/api/auth/bootstrap", json={"token": "x"}, headers={"Origin": ORIGIN}).headers["retry-after"])
+
+    def wrong():
+        env.clock.t += EVAL_GAP + 0.1
+        return c.post("/api/auth/bootstrap", json={"token": "x"}, headers={"Origin": ORIGIN})
+
+    first = int(wrong().headers["retry-after"])
+    for _ in range(3):
+        wrong()
+    later = int(wrong().headers["retry-after"])
     assert later > first
+    env.clock.t += EVAL_GAP + 0.1
     assert c.post("/api/auth/bootstrap", json={"token": BOOT}, headers={"Origin": ORIGIN}).status_code == 200
 
 
@@ -202,9 +212,57 @@ def test_bootstrap_comparison_does_not_depend_on_length(env, monkeypatch):
     assert seen and all(pair == (32, 32) for pair in seen)               # sha256 digests on both sides, always
 
 
-def test_short_bootstrap_secrets_are_refused_outright(env, monkeypatch):
-    monkeypatch.setenv("PW_TEST_BOOTSTRAP", "short-secret")
-    assert boot_from(env, "198.51.100.1", "short-secret")[1].status_code == 401
+@pytest.mark.parametrize("weak", ["short-secret", "open sesame correct horse", "x" * 21, "correct.horse.battery.staple.9", "a1b2c3d4" * 3])
+def test_weak_bootstrap_secrets_are_refused_outright(env, monkeypatch, weak):
+    monkeypatch.setenv("PW_TEST_BOOTSTRAP", weak)
+    assert boot_from(env, "198.51.100.1", weak)[1].status_code == 401
+
+
+@pytest.mark.parametrize("strong", ["a" * 32, "0123456789abcdef0123456789abcdef", "Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5", "x" * 22])
+def test_strong_bootstrap_secrets_are_accepted(env, monkeypatch, strong):
+    monkeypatch.setenv("PW_TEST_BOOTSTRAP", strong)
+    assert boot_from(env, "198.51.100.1", strong)[1].status_code == 200
+
+
+def test_in_back_off_a_key_gets_one_evaluated_guess_per_gap_and_the_rest_are_not_compared(env, monkeypatch):
+    ip = "203.0.113.9"
+    for _ in range(FREE_FAILURES + 1):
+        boot_from(env, ip)
+    calls = []
+    import personal_world.worlds.owner as owner_mod
+    real = owner_mod.OwnerPolicy.bootstrap_matches
+    monkeypatch.setattr(owner_mod.OwnerPolicy, "bootstrap_matches", lambda self, t: calls.append(t) or real(self, t))
+    c, _ = boot_from(env, ip)
+    calls.clear()
+    env.clock.t += EVAL_GAP + 0.1
+    for i in range(400):                                                   # ~ hundreds of guesses per second, clock frozen
+        c.post("/api/auth/bootstrap", json={"token": f"guess-{i}"}, headers={"Origin": ORIGIN})
+    assert len(calls) == 1                                                 # only one was even compared (the first, then the gap)
+    r = c.post("/api/auth/bootstrap", json={"token": BOOT}, headers={"Origin": ORIGIN})
+    assert r.status_code == 429 and len(calls) == 1                        # the right secret inside the gap is not compared either
+    env.clock.t += EVAL_GAP + 0.1
+    assert c.post("/api/auth/bootstrap", json={"token": BOOT}, headers={"Origin": ORIGIN}).status_code == 200
+
+
+def test_the_eval_gap_is_per_key_so_the_owner_on_her_own_key_cannot_be_starved(env):
+    for _ in range(FREE_FAILURES + 1):
+        boot_from(env, "203.0.113.9")
+    c, _ = boot_from(env, "203.0.113.9")
+    for i in range(500):
+        c.post("/api/auth/bootstrap", json={"token": f"g{i}"}, headers={"Origin": ORIGIN})   # the attacker hammers its own key
+    assert boot_from(env, "198.51.100.40", BOOT)[1].status_code == 200                       # the owner's key is independent
+
+
+def test_five_thousand_failures_never_overflow(env):
+    ip = "203.0.113.77"
+    c, _ = boot_from(env, ip)
+    for _ in range(5000):
+        env.clock.t += EVAL_GAP + 0.1
+        r = c.post("/api/auth/bootstrap", json={"token": "x"}, headers={"Origin": ORIGIN})
+        assert r.status_code in (401, 429)                                 # never a 500
+    assert int(r.headers["retry-after"]) <= int(MAX_BACKOFF) + 1
+    env.clock.t += EVAL_GAP + 0.1
+    assert c.post("/api/auth/bootstrap", json={"token": BOOT}, headers={"Origin": ORIGIN}).status_code == 200
 
 
 def test_global_ceiling_slows_but_never_locks_the_owner_out(env):
