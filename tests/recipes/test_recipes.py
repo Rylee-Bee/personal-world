@@ -102,7 +102,8 @@ def test_cards_have_plain_names_and_meaning(name):
     for c in recipe.cards:
         assert CARD_ID_RE.match(c.id) and c.title.strip() and c.meaning.short.strip() and c.meaning.concept.strip()
         assert c.group in ("life", "machine")
-        assert c.title == c.title.strip() and not any(w in c.title.lower() for w in ("arr", "api"))  # plain names: TV, not Sonarr API
+        assert c.title == c.title.strip()
+        assert not re.search(r"\b(sonarr|radarr|lidarr|prowlarr|bazarr|cleanuparr|qbittorrent|gatus|authelia|traefik|bindery|grimmory|api)\b", c.title, re.I), "plain names: TV, not Sonarr"
 
 
 @pytest.mark.parametrize("name", READY)
