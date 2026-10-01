@@ -40,11 +40,36 @@ class _Strict(BaseModel):
     schema_version: Literal[1] = 1
 
 
+# Header names a credential may NOT be placed in: framing, hop-by-hop, proxy and forwarding headers.
+FORBIDDEN_AUTH_HEADERS = {
+    "host", "cookie", "set-cookie", "transfer-encoding", "content-length", "content-type", "connection", "upgrade",
+    "te", "trailer", "keep-alive", "expect", "authorization", "proxy-authorization", "proxy-authenticate",
+    "proxy-connection", "forwarded", "via", "x-real-ip", "origin", "referer", "accept", "user-agent", "range",
+    "idempotency-key", "if-match", "if-none-match", "if-modified-since", "content-encoding", "accept-encoding",
+}
+_TOKEN_HEADER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,63}$")
+
+
+def check_auth_header_name(name: str) -> str:
+    """A credential header must be a plain token name outside the framing/forwarding set."""
+    low = name.lower()
+    if not _TOKEN_HEADER.match(name):
+        raise ValueError("header_name must be letters, digits and hyphens only")
+    if low in FORBIDDEN_AUTH_HEADERS or low.startswith(("x-forwarded-", "proxy-", "sec-")):
+        raise ValueError(f"header_name {name!r} cannot carry a credential (use auth.type bearer for Authorization)")
+    return name
+
+
 class Auth(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["none", "bearer", "header", "basic"] = "none"
     header_name: str | None = None
     secret_ref: str | None = None
+
+    @field_validator("header_name")
+    @classmethod
+    def _header(cls, v: str | None) -> str | None:
+        return check_auth_header_name(v) if v is not None else v
 
     @model_validator(mode="after")
     def _check(self) -> "Auth":

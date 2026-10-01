@@ -26,6 +26,7 @@ import base64
 import ipaddress
 import json
 import socket
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
@@ -178,6 +179,12 @@ def _auth_headers(provider: Any) -> dict[str, str] | ConfinementError:
     if auth.type == "bearer":
         return {"Authorization": f"Bearer {value}"}
     if auth.type == "header":
+        from .models import check_auth_header_name
+
+        try:
+            check_auth_header_name(auth.header_name or "")
+        except ValueError:
+            return ConfinementError("confinement_denied", "credential header name is not allowed")
         return {auth.header_name: value}
     if auth.type == "basic":
         return {"Authorization": "Basic " + base64.b64encode(value.encode()).decode()}
@@ -250,10 +257,8 @@ def _send(provider: Any, request: Any, effect: str, resolver: Resolver, started:
     url = f"{scheme}://{literal}:{port}{target}"
     limit = int(provider.max_bytes)
     budget = float(request.timeout_s or provider.timeout_s)
-    timeout = httpx.Timeout(budget, connect=min(budget, 5.0))
+    timeout = make_timeout(budget)
     extensions = {"sni_hostname": host} if scheme == "https" else {}
-    chunks: list[bytes] = []
-    size = 0
     try:
         # verify/limits belong on the transport: httpx ignores them on a Client given a transport.
         transport = httpx.HTTPTransport(
@@ -269,25 +274,75 @@ def _send(provider: Any, request: Any, effect: str, resolver: Resolver, started:
                 if 300 <= status < 400:
                     return ConfinementError("redirect_refused", "provider answered with a redirect",
                                             status_code=status, duration_ms=_ms(started))
-                declared = resp.headers.get("content-length")
-                if declared and declared.isdigit() and int(declared) > limit:
-                    return ConfinementError("too_large", "response larger than max_bytes",
-                                            status_code=status, duration_ms=_ms(started))
-                for chunk in resp.iter_bytes():
-                    size += len(chunk)
-                    if size > limit:
-                        return ConfinementError("too_large", "response larger than max_bytes",
-                                                status_code=status, duration_ms=_ms(started))
-                    chunks.append(chunk)
-                    if time.monotonic() - started > budget:
-                        return ConfinementError("timeout", "total time budget exceeded",
-                                                status_code=status, duration_ms=_ms(started))
+                data = read_body(resp, started, budget, limit)
+                if isinstance(data, ConfinementError):
+                    return data
                 out_headers = {k.lower(): v for k, v in resp.headers.items()}
     except httpx.TimeoutException:
         return ConfinementError("timeout", "no answer in time", duration_ms=_ms(started))
     except httpx.HTTPError as exc:
         return ConfinementError("connection", f"transport failed: {type(exc).__name__}", duration_ms=_ms(started))
-    return RawResponse(status_code=status, headers=out_headers, body=b"".join(chunks), duration_ms=_ms(started) or 0)
+    return RawResponse(status_code=status, headers=out_headers, body=data, duration_ms=_ms(started) or 0)
+
+
+def make_timeout(budget: float) -> httpx.Timeout:
+    """Phase timeouts that add up to about one budget before the first byte (connect + wait)."""
+    connect = min(budget / 2, 5.0)
+    return httpx.Timeout(connect=connect, read=max(budget - connect, 0.05), write=max(budget / 4, 0.05), pool=budget)
+
+
+def read_body(resp: httpx.Response, started: float, budget: float, limit: int) -> bytes | ConfinementError:
+    """Stream the body under ONE wall-clock deadline and the size cap.
+
+    The deadline is enforced by a watchdog that shuts the socket down, so a single blocked read
+    cannot run past the budget (a per-read timeout alone allows ~2x). Used by the dev sender too.
+    """
+    status = resp.status_code
+    declared = resp.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > limit:
+        return ConfinementError("too_large", "response larger than max_bytes", status_code=status, duration_ms=_ms(started))
+    remaining = budget - (time.monotonic() - started)
+    if remaining <= 0:
+        return ConfinementError("timeout", "total time budget exceeded", status_code=status, duration_ms=_ms(started))
+    expired = threading.Event()
+    sock = None
+    stream = resp.extensions.get("network_stream")
+    if stream is not None:
+        try:
+            sock = stream.get_extra_info("socket")
+        except Exception:
+            sock = None
+
+    def fire() -> None:
+        expired.set()
+        if sock is not None:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+
+    timer = threading.Timer(remaining, fire)
+    timer.daemon = True
+    timer.start()
+    chunks: list[bytes] = []
+    size = 0
+    try:
+        for chunk in resp.iter_bytes():
+            size += len(chunk)
+            if size > limit:
+                return ConfinementError("too_large", "response larger than max_bytes", status_code=status, duration_ms=_ms(started))
+            chunks.append(chunk)
+            if expired.is_set() or time.monotonic() - started > budget:
+                return ConfinementError("timeout", "total time budget exceeded", status_code=status, duration_ms=_ms(started))
+    except httpx.HTTPError:
+        if expired.is_set():
+            return ConfinementError("timeout", "total time budget exceeded", status_code=status, duration_ms=_ms(started))
+        raise
+    finally:
+        timer.cancel()
+    if expired.is_set():
+        return ConfinementError("timeout", "total time budget exceeded", status_code=status, duration_ms=_ms(started))
+    return b"".join(chunks)
 
 
 def _nondefault(scheme: str, port: int) -> bool:

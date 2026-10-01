@@ -33,11 +33,12 @@ Errors are answers, not tracebacks: a refused config is a one-line ``detail``.
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import ValidationError
 
 from .cards import CardService, home_board_defs
@@ -82,6 +83,39 @@ def _check_kind(kind: str) -> None:
         raise HTTPException(status_code=404, detail=f"no config kind {kind!r}")
 
 
+# --------------------------------------------------------------- host guard
+
+
+def parse_host(value: str | None) -> str | None:
+    """The hostname in a Host header (port and IPv6 brackets handled), or None when malformed."""
+    if not value or any(c in value for c in "@/\\ \t\r\n?#"):
+        return None
+    try:
+        parts = urlsplit("//" + value)
+        hostname = parts.hostname
+        parts.port  # raises ValueError on a bad port
+    except ValueError:
+        return None
+    return hostname.lower() if hostname else None
+
+
+class HostGuard:
+    """Reject any request whose Host header is not an allowed name (stops DNS rebinding)."""
+
+    def __init__(self, app: Any, allowed_hosts: list[str]):
+        self.app = app
+        self.allowed = {h.strip("[]").lower() for h in allowed_hosts}
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if scope["type"] in ("http", "websocket"):
+            raw = next((v.decode("latin-1") for k, v in scope["headers"] if k == b"host"), None)
+            if parse_host(raw) not in self.allowed:
+                if scope["type"] == "http":
+                    await PlainTextResponse("invalid host", status_code=400)(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
+
+
 # --------------------------------------------------------------- app
 
 
@@ -111,9 +145,7 @@ def build_app(
     app.state.runner = runner
     app.state.cards = cards
     if allowed_hosts is not None:
-        from starlette.middleware.trustedhost import TrustedHostMiddleware
-
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(allowed_hosts))
+        app.add_middleware(HostGuard, allowed_hosts=list(allowed_hosts))
 
     principal = Depends(principal_dependency)
 
@@ -224,14 +256,23 @@ def build_app(
         )
 
     @app.delete("/api/config/{kind}/{obj_id}", dependencies=[principal], status_code=204)
-    def delete_config(kind: str, obj_id: str) -> Response:
-        """Remove one object. Refused with 409 while anything still refers to it."""
+    def delete_config(kind: str, obj_id: str, request: Request) -> Response:
+        """Remove one object. 409 while anything refers to it or on a stale etag.
+
+        ``If-Match: <etag>`` is optional for a valid object. A file that is invalid on disk (listed
+        in ``errors``) can only be removed with the etag from that list.
+        """
         _check_kind(kind)
-        lookup(kind, obj_id)  # 404 before we try
+        etag = _parse_etag(request.headers.get("if-match"))
+        if etag == "*":
+            raise HTTPException(status_code=428, detail="If-Match needs the current etag")
         try:
-            store.delete(kind, obj_id)
-        except ConfigInvalid as exc:
+            store.delete(kind, obj_id, etag=etag)
+        except EtagMismatch as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from None
+        except ConfigInvalid as exc:
+            missing = str(exc).startswith("no ") or "does not match" in str(exc)
+            raise HTTPException(status_code=404 if missing else 409, detail=str(exc)) from None
         return Response(status_code=204)
 
     return app

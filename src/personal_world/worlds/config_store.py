@@ -298,16 +298,26 @@ class ConfigStore:
         self._notify(changed)
         return new_etag
 
-    def delete(self, kind: str, obj_id: str) -> None:
+    def delete(self, kind: str, obj_id: str, *, etag: str | None = None) -> None:
+        """Remove one object. ``etag`` (if given) must be current. A file that is invalid on disk and
+        has no valid version can only be removed with the etag listed in ``errors()``."""
         self._check_kind(kind)
         self._check_id(kind, obj_id)
         with self._lock:
-            if obj_id not in self._objects[kind]:
+            current = self._etags[kind].get(obj_id)
+            if obj_id in self._objects[kind]:
+                if etag is not None and etag != current:
+                    raise EtagMismatch(f"{kind} {obj_id} etag is stale")
+                self._check_not_referenced(kind, obj_id)
+            elif any(e.get("kind") == kind and e.get("id") == obj_id for e in self._errors):
+                if not etag or etag != current:
+                    raise EtagMismatch(f"{kind} {obj_id} is invalid on disk; delete needs its current etag")
+            else:
                 raise ConfigInvalid(f"no {kind} {obj_id}")
-            self._check_not_referenced(kind, obj_id)
             self._unlink(self._path_for(kind, obj_id))
             self._objects[kind].pop(obj_id, None)
             self._etags[kind].pop(obj_id, None)
+            self._errors = [e for e in self._errors if not (e.get("kind") == kind and e.get("id") == obj_id)]
             changed = self._refresh_versions()
         self._notify(changed)
 

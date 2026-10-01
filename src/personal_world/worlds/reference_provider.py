@@ -31,12 +31,12 @@ import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Iterable, Literal
 from urllib.parse import parse_qsl, urlsplit
 
 import httpx
 
-from .confinement import ConfinementError, RawResponse
+from .confinement import make_timeout, read_body, ConfinementError, RawResponse
 from .models import Provider, Request
 
 __all__ = ["ReferenceServer", "reference_send"]
@@ -146,6 +146,17 @@ class _Handler(BaseHTTPRequestHandler):
         elif path == "/slow":
             time.sleep(float(dict(parse_qsl(query)).get("delay", "1")))
             self._json(200, {"slept": True})
+        elif path == "/stall":
+            # Headers and one chunk, then silence: one blocked read must not outlive the deadline.
+            try:
+                self.send_response(200)
+                self.send_header("Transfer-Encoding", "chunked")
+                self.end_headers()
+                self.wfile.write(b"1\r\nz\r\n")
+                self.wfile.flush()
+                time.sleep(float(dict(parse_qsl(query)).get("delay", "5")))
+            except OSError:
+                self.close_connection = True
         elif path == "/boom":
             self._json(500, {"error": "boom"})
         elif path == "/malformed":
@@ -200,6 +211,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._json(404, {"error": "not_found"})
 
 
+# Ports of reference servers that are running right now: the dev sender talks to these and no others.
+_LIVE_PORTS: set[int] = set()
+
+
 class ReferenceServer:
     """A loopback HTTP server with the endpoints the acceptance tests need.
 
@@ -219,6 +234,7 @@ class ReferenceServer:
         self._httpd.owner = self
         self._thread: threading.Thread | None = None
         host, port = self._httpd.server_address[:2]
+        self.port = port
         self.base_url = f"http://{host}:{port}"
 
     # -- lifecycle --------------------------------------------------------
@@ -228,9 +244,11 @@ class ReferenceServer:
             return self
         self._thread = threading.Thread(target=self._httpd.serve_forever, daemon=True)
         self._thread.start()
+        _LIVE_PORTS.add(self.port)
         return self
 
     def stop(self) -> None:
+        _LIVE_PORTS.discard(self.port)
         self._httpd.shutdown()
         if self._thread is not None:
             self._thread.join(timeout=5)
@@ -269,7 +287,6 @@ class ReferenceServer:
             self.calls.append((method, path, headers))
 
 
-_LOOPBACK_NAMES = {"127.0.0.1", "::1", "localhost"}
 Sender = Callable[[Provider, Request], RawResponse | ConfinementError]
 
 
@@ -298,7 +315,7 @@ def _auth_headers(auth: Any, secrets: dict[str, str]) -> tuple[dict[str, str] | 
     return {"Authorization": f"Basic {encoded}"}, None
 
 
-def reference_send(secrets: dict[str, str]) -> Sender:
+def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | None = None) -> Sender:
     """Build the TEST-ONLY sender used by the reference-provider tests.
 
     TEST ONLY. This is **not** the confinement module and not the production
@@ -317,10 +334,16 @@ def reference_send(secrets: dict[str, str]) -> Sender:
         def elapsed_ms() -> int:
             return int((time.monotonic() - started) * 1000)
 
-        host = urlsplit(provider.base_url).hostname or ""
-        if provider.kind != "reference" or host not in _LOOPBACK_NAMES:
+        parts = urlsplit(provider.base_url)
+        try:
+            port = parts.port
+        except ValueError:
+            port = None
+        permitted = set(allowed_ports) if allowed_ports is not None else _LIVE_PORTS
+        if provider.kind != "reference" or parts.hostname != "127.0.0.1" or port not in permitted:
             return ConfinementError(
-                "confinement_denied", "reference sender only serves kind=reference on loopback",
+                "confinement_denied",
+                "reference sender only serves kind=reference at 127.0.0.1 on a running reference server's port",
                 duration_ms=elapsed_ms(),
             )
         headers: dict[str, str] = dict(request.headers)
@@ -331,7 +354,7 @@ def reference_send(secrets: dict[str, str]) -> Sender:
         headers.update(auth_headers)
 
         timeout_s = request.timeout_s or provider.timeout_s
-        client = httpx.Client(follow_redirects=False, trust_env=False, timeout=timeout_s)
+        client = httpx.Client(follow_redirects=False, trust_env=False, timeout=make_timeout(timeout_s))
         try:
             with client.stream(
                 request.method,
@@ -347,25 +370,13 @@ def reference_send(secrets: dict[str, str]) -> Sender:
                         status_code=response.status_code,
                         duration_ms=elapsed_ms(),
                     )
-                body = bytearray()
-                for chunk in response.iter_bytes():
-                    body.extend(chunk)
-                    if time.monotonic() - started > timeout_s:  # wall clock, not per-read
-                        return ConfinementError(
-                            "timeout", f"no complete answer within {timeout_s}s",
-                            status_code=response.status_code, duration_ms=elapsed_ms(),
-                        )
-                    if len(body) > provider.max_bytes:
-                        return ConfinementError(
-                            "too_large",
-                            f"body over max_bytes={provider.max_bytes}",
-                            status_code=response.status_code,
-                            duration_ms=elapsed_ms(),
-                        )
+                data = read_body(response, started, timeout_s, provider.max_bytes)
+                if isinstance(data, ConfinementError):
+                    return data
                 return RawResponse(
                     status_code=response.status_code,
                     headers=dict(response.headers),
-                    body=bytes(body),
+                    body=data,
                     duration_ms=elapsed_ms(),
                 )
         except httpx.TimeoutException:
