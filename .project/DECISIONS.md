@@ -758,3 +758,7 @@ dark ink at the same strengths, so rank is still encoded by contrast alone.
 ## 2026-10-01 — Front-door rebuild approved (ADR-0008)
 
 Owner approved PR #231 (head dbc1218) with refinements in `HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md`: clean rebuild authorized; authority and durable single dispatch before any side effect (including Connect test/run); Worlds asks the owner directly for actions on services Project Home does not govern and keeps bindings and receipts; Memory durable from day one; Chat optional; landmarks `Home · Connect · Memory · Settings`. Recorded as `docs/adr/0008-front-door.md` (accepted, amends ADR-0001), with dated supersession notes on S1–S10 sources. Archive tag `archive/pre-front-door` preserves the last pre-rebuild source (61397e0, which is also the commit production runs).
+
+## 2026-10-01 — Rebuild: start fresh, private notes in SOPS, stack kept
+
+Owner answers after S0: **old Worlds data is not imported.** The old journal, `world.json`, stickers and search index stay in the private backups and the old data dir until retirement; no migration code is built. Private reconstruction notes get a SOPS-encrypted permanent home in the owner's private operator docs (location being established; plaintext is never committed). The orchestrator kept the stack (Python/FastAPI/uv, React/Vite/TypeScript/react-query) and set the five rebuild contracts in `docs/rebuild/CONTRACTS.md`; obsolete modules are deleted on `rebuild/front-door`, not adapted.
