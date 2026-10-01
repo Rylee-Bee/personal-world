@@ -94,3 +94,14 @@ export const needsYou: NeedsYouEntry[] = [
   { id: "ny-1", text: "Approve Hive Works plan", source: "Hive Works", created_at: T, action: { kind: "approve", authorization_id: "auth-1" } },
   { id: "ny-2", text: "Review the new reading list", source: "Memory", created_at: T, action: { kind: "open", href: "#memory" } },
 ];
+
+/** Sample Connect data. Replaced by the real API when the Connect routes land. */
+export const sampleBindings = [
+  { id: "sonarr-queue", name: "Read Sonarr queue", access: "read" as const, scope: "sonarr" },
+  { id: "sonarr-restart", name: "Restart Sonarr", access: "write" as const, scope: "sonarr", outcome: "SUCCEEDED" as const },
+  { id: "backup-now", name: "Start a backup", access: "write" as const, scope: "restic", outcome: "UNKNOWN" as const },
+];
+export const sampleSecrets = [
+  { name: "PW_SONARR_TOKEN", set: true },
+  { name: "PW_WEATHER_KEY", set: false },
+];
