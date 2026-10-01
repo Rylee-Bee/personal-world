@@ -22,3 +22,7 @@
 ## Known edge: interrupted-action recovery
 
 Recovery turns an interrupted action into UNKNOWN (nothing is ever re-sent) once its owner's lease is gone. Two containers that share a volume **and** use host networking (same kernel boot id, both pid 1, same host name) cannot be told apart by identity; each is treated as alive until its lease expires (30 s). The cost is a delay in settling an interrupted row, never a repeat dispatch. Accepted 2026-10-01.
+
+## Known edge: interrupted-action recovery
+
+Recovery turns an interrupted action into UNKNOWN (nothing is ever re-sent) once its owner's lease is gone. Two containers that share a volume **and** use host networking (same kernel boot id, both pid 1, same host name) cannot be told apart by identity; each is treated as alive until its lease expires (30 s). The cost is a delay in settling an interrupted row, never a repeat dispatch. Accepted 2026-10-01.
