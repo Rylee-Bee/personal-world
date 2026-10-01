@@ -60,3 +60,16 @@ SQLite at `$PW_DATA_DIR/worlds.db`, WAL, `BEGIN IMMEDIATE`.
 ## C5 Card accessibility props (UI ⇄ API)
 
 Every rendered card or row exposes: accessible name; state word plus shape (● healthy, ▲ needs attention, ■ unavailable, ◌ stale, ○ unknown, ◇ not configured, ◆ degraded); value text with unit; meter `text_equivalent`; freshness text; a link to detail. Targets ≥44px; labels ≥13px; body 16px; no colour-only state; static unless `prefers-reduced-motion: no-preference`.
+
+## C6 Home read API
+
+Orchestrator decisions, 2026-10-01. Values come only from the per-card C2 envelope (`GET /api/cards/{id}`).
+
+- `GET /api/boards/home` → `{id, title, items:[{card, size S|M|L, hidden, title, icon, group life|machine, view, fields:[{key, label, format, unit}], meter_type|null}]}`. The display definition is derived from the C1 card. No request ids, paths, provider URLs or JSONPaths in the payload. The primary value is `fields[0]`. `needs_you` is not a board item field.
+- `GET /api/needs-you` → `[{id, text, source, created_at, action:{kind: open|approve, href?|authorization_id?}}]`. `text` is a terse imperative ("Approve Hive Works plan"). Fed by pending Project Home approvals (room/0) and pending Worlds authorizations. Needs you is never inferred from `source_state`.
+- Grouping, by C2 envelope:
+  - **Needs a look:** `source_state` in {unavailable, degraded, stale, needs_attention, unknown} or `freshness: stale`. Worst first: unavailable, degraded, stale, needs_attention, unknown.
+  - **Your life:** healthy + `group: life`. **Quietly working:** healthy + `group: machine` (folds to one line in Calm density).
+  - **not_configured:** not a row on Home. It shows as ◇ in the whole-world strip only, linking to Connect.
+  - An empty Needs a look shows "Nothing needs a look. Everything is answering." Groups never reorder.
+- **Pick up (reserved):** omit the section entirely when there is no data. The future source is `GET /api/pickup`, backed by Memory Later and History (L-memory).

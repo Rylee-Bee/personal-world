@@ -1,4 +1,4 @@
-import type { Board, BoardItem, CardEnvelope } from "./types";
+import type { Board, BoardItem, CardEnvelope, Format, NeedsYouEntry } from "./types";
 
 const T = "2026-10-01T09:30:00Z";
 const EARLIER = "2026-10-01T08:12:00Z";
@@ -20,13 +20,6 @@ export const cards: Record<string, CardEnvelope> = {
     meter: { type: "shelf", items: ["Piranesi", "Hyperion", "Ancillary Justice"], text_equivalent: "On the shelf: Piranesi, Hyperion, Ancillary Justice" },
     meaning: { short: "Books you are in", full: "Books you have started and not finished." },
     evidence: ev("reading.shelf", "/shelf"),
-  },
-  inbox: {
-    card_id: "inbox", source_state: "needs_attention", freshness: "current", observed_at: T, fetched_at: T, last_good_at: T,
-    values: { waiting: { text: "5", raw: 5 } },
-    meter: { type: "marks", shown: 3, more: 2, text_equivalent: "5 waiting; 3 shown, 2 more" },
-    meaning: { short: "Waiting on you", full: "Items from your rooms that need a decision from you." },
-    evidence: ev("inbox.needs-you", "/room/needs-you"),
   },
   downloads: {
     card_id: "downloads", source_state: "unavailable", freshness: "stale", observed_at: null, fetched_at: T, last_good_at: EARLIER,
@@ -79,21 +72,25 @@ export const cards: Record<string, CardEnvelope> = {
   },
 };
 
-const item = (card: string, title: string, icon: string, group: BoardItem["group"], field: string, unit?: string, extra: Partial<BoardItem> = {}): BoardItem =>
-  ({ card, size: "M", hidden: false, title, icon, group, primary: { field, unit }, ...extra });
+const item = (card: string, title: string, icon: string, group: BoardItem["group"], key: string, label: string, format: Format, unit: string | undefined, meter_type: BoardItem["meter_type"], extra: Partial<BoardItem> = {}): BoardItem =>
+  ({ card, size: "M", hidden: false, title, icon, group, view: "stat", fields: [{ key, label, format, unit }], meter_type, ...extra });
 
 export const homeBoard: Board = {
-  id: "home", title: "Home", home: true,
+  id: "home", title: "Home",
   items: [
-    item("inbox", "Inbox", "inbox", "life", "waiting", "waiting", { needs_you: true }),
-    item("weather", "Weather", "sun", "life", "temp", "°C"),
-    item("reading", "Reading", "book", "life", "left", "books"),
-    item("later", "Later", "bookmark", "life", "count", "kept"),
-    item("music", "Music", "music", "life", "count"),
-    item("downloads", "Downloads", "download", "machine", "active", "active", { size: "L" }),
-    item("backup", "Backup", "archive", "machine", "age", "h ago"),
-    item("malformed", "Calendar", "calendar", "life", "count"),
-    item("disk", "Disk", "disk", "machine", "used", "%", { size: "S" }),
-    item("checks", "Checks", "check", "machine", "passing", "of 24", { size: "S" }),
+    item("weather", "Weather", "sun", "life", "temp", "Temperature", "number", "°C", "day"),
+    item("reading", "Reading", "book", "life", "left", "In progress", "number", "books", "shelf"),
+    item("later", "Later", "bookmark", "life", "count", "Kept", "number", "kept", "marks"),
+    item("music", "Music", "music", "life", "count", "Playing", "text", undefined, null),
+    item("downloads", "Downloads", "download", "machine", "active", "Active", "number", "active", "progress", { size: "L" }),
+    item("backup", "Backup", "archive", "machine", "age", "Last run", "duration", "h ago", "bars"),
+    item("malformed", "Calendar", "calendar", "life", "count", "Today", "number", undefined, null),
+    item("disk", "Disk", "disk", "machine", "used", "Used", "percent", "%", "progress", { size: "S" }),
+    item("checks", "Checks", "check", "machine", "passing", "Passing", "number", "of 24", "dots", { size: "S" }),
   ],
 };
+
+export const needsYou: NeedsYouEntry[] = [
+  { id: "ny-1", text: "Approve Hive Works plan", source: "Hive Works", created_at: T, action: { kind: "approve", authorization_id: "auth-1" } },
+  { id: "ny-2", text: "Review the new reading list", source: "Memory", created_at: T, action: { kind: "open", href: "#memory" } },
+];

@@ -20,13 +20,13 @@ const renderHome = () =>
   );
 
 describe("Home", () => {
-  it("orders: greeting, briefing, strip, Edit Home, then the five sections", async () => {
+  it("orders: briefing, strip, Edit Home, then the sections (Pick up omitted when empty)", async () => {
     renderHome();
     await screen.findByRole("heading", { name: "Needs you" });
     const main = document.body;
     const heads = within(main).getAllByRole("heading").map((h) => h.textContent);
-    expect(heads).toEqual(["Home", "Needs you", "Needs a look", "Pick up", "Your life", "Quietly working"]);
-    expect(screen.getByText("1 for you · Downloads down · Backup stale · rest quiet")).toBeInTheDocument();
+    expect(heads).toEqual(["Home", "Needs you", "Needs a look", "Your life", "Quietly working"]);
+    expect(screen.getByText("2 for you · Downloads down · Backup stale · 1 more to look at · rest quiet")).toBeInTheDocument();
     const strip = screen.getByRole("group", { name: "Whole world" });
     const edit = screen.getByRole("button", { name: "Edit Home" });
     const needsYou = screen.getByRole("heading", { name: "Needs you" });
@@ -37,19 +37,37 @@ describe("Home", () => {
     renderHome();
     const strip = await screen.findByRole("group", { name: "Whole world" });
     const b = within(strip).getAllByRole("button");
-    expect(b).toHaveLength(10);
+    expect(b).toHaveLength(8);
     expect(within(strip).getByRole("button", { name: "Downloads: Unavailable. Show details" })).toBeInTheDocument();
     expect(within(strip).getByRole("button", { name: "Disk: Healthy. Show details" })).toBeInTheDocument();
-    expect(within(strip).getByRole("button", { name: "Music: Not configured. Show details" })).toBeInTheDocument();
+    const music = within(strip).getByRole("link", { name: "Music: Not configured. Set up in Connect" });
+    expect(music).toHaveAttribute("href", "#connect");
   });
   it("sections hold the right rows and Needs you is finite", async () => {
     renderHome();
     const needsYou = (await screen.findByRole("heading", { name: "Needs you" })).closest("section")!;
-    expect(within(needsYou).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(needsYou).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(needsYou).getByText("Approve Hive Works plan")).toBeInTheDocument();
+    expect(within(needsYou).getByRole("button", { name: "Approve: Approve Hive Works plan" })).toBeInTheDocument();
+    expect(within(needsYou).getByRole("link", { name: "Open: Review the new reading list" })).toHaveAttribute("href", "#memory");
     const look = screen.getByRole("heading", { name: "Needs a look" }).closest("section")!;
     const names = within(look).getAllByRole("listitem").map((li) => li.textContent ?? "");
     expect(names[0]).toMatch(/Downloads/);
     expect(names[1]).toMatch(/Backup/);
+    expect(names[2]).toMatch(/Calendar/);
+    expect(screen.queryByRole("heading", { name: "Pick up" })).not.toBeInTheDocument();
+  });
+  it("not_configured is never a row", async () => {
+    renderHome();
+    await screen.findByRole("heading", { name: "Your life" });
+    for (const li of screen.getAllByRole("listitem")) expect(li).not.toHaveTextContent("Music");
+  });
+  it("empty Needs you says so; the section stays", async () => {
+    const { http, HttpResponse } = await import("msw");
+    server.use(http.get("/api/needs-you", () => HttpResponse.json([])));
+    renderHome();
+    const sec = (await screen.findByRole("heading", { name: "Needs you" })).closest("section")!;
+    expect(within(sec).getByText("Nothing for you right now.")).toBeInTheDocument();
   });
   it("opens a row's drill-in in place and closes it again", async () => {
     renderHome();

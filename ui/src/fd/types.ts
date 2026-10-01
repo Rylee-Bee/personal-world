@@ -39,7 +39,10 @@ export interface CardEnvelope {
   };
 }
 
-/** Card definition fields the UI needs to lay a row out (C1 card, as the board response carries it). */
+export type Format = "number" | "percent" | "bytes" | "duration" | "relative_time" | "text";
+export type MeterType = Meter["type"];
+
+/** C6: display definition derived from the C1 card. No request ids, paths, URLs or JSONPaths. Primary value is fields[0]. */
 export interface BoardItem {
   card: string;
   size: Size;
@@ -47,17 +50,24 @@ export interface BoardItem {
   title: string;
   icon: string;
   group: CardGroup;
-  /** Name of the primary entry in `values`, and its unit label. */
-  primary: { field: string; unit?: string };
-  /** True only when the item needs the owner to act (a room/0 needs-you entry). Never inferred from state. */
-  needs_you?: boolean;
+  view: "stat" | "list" | "table" | "status" | "meter" | "link" | "markdown";
+  fields: { key: string; label: string; format: Format; unit?: string }[];
+  meter_type: MeterType | null;
 }
 
 export interface Board {
   id: string;
   title: string;
-  home: boolean;
   items: BoardItem[];
+}
+
+/** C6: GET /api/needs-you */
+export interface NeedsYouEntry {
+  id: string;
+  text: string;
+  source: string;
+  created_at: string;
+  action: { kind: "open"; href: string } | { kind: "approve"; authorization_id: string };
 }
 
 export type Words = "minimal" | "short" | "full";

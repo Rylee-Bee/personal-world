@@ -23,7 +23,7 @@ describe("Meter", () => {
     expect(screen.getByRole("img")).toHaveAttribute("data-frozen", "true");
   });
   it("shows only waiting marks plus +N more", () => {
-    render(<Meter meter={cards.inbox.meter} frozen={false} />);
+    render(<Meter meter={{ type: "marks", shown: 3, more: 2, text_equivalent: "5 waiting; 3 shown, 2 more" }} frozen={false} />);
     expect(screen.getByText("+2 more")).toBeInTheDocument();
   });
   it("puts day labels under the track as text", () => {
@@ -61,14 +61,6 @@ describe("Row anatomy", () => {
     row("later");
     expect(screen.getByText("0")).toBeInTheDocument();
     expect(screen.getByText("Healthy")).toBeInTheDocument();
-  });
-  it("not configured: dashed empty, Set up and Optional, no nag", () => {
-    row("music");
-    expect(screen.getByText("◇")).toBeInTheDocument();
-    expect(screen.getByText("Not configured")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Set up/ })).toHaveAttribute("href", "#connect");
-    expect(screen.getByText("Optional")).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
   it("Words: Minimal drops meaning; Full shows the long meaning and freshness", () => {
     const { unmount } = row("disk", { words: "minimal" });
