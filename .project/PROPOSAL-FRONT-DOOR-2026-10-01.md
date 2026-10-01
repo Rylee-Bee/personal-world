@@ -176,7 +176,7 @@ Home · Connect · Memory · Settings
 
 | Landmark | Answers | Contains |
 |---|---|---|
-| **Home** | *What matters right now?* | Orientation; **Needs you** (only what waits on a person, never an inbox); pinned cards; where you left off; one small "Something new" discovery card; quiet stale/unavailable cards. Home is a board. It must never feel like an API dashboard |
+| **Home** | *What matters right now?* | **The full state of everything in one view** (owner refinement, rev 3.1): one sentence of state, a summary count by state (icon + word), a short **Needs you** action list, then **Everything**: one same-shaped tile per source (state · one number · one line · source · freshness), with details opening in place. Discovery is just another tile; "where you left off" is one line. Home is a board. It must never feel like an API dashboard |
 | **Connect** | *Where does the plumbing live?* | Requests (saved requests, test/run, map, save, pin); Providers; Recipes; Actions (governed bindings); Advanced (secrets as references, connection details, raw technical state). Powerful, and never required for ordinary use |
 | **Memory** | *What did I keep, and where was I?* | Kept · Later · Records · History · Find |
 | **Settings** | *How does Worlds look and behave?* | Experience pack, theme, comfort/accessibility, assistant (optional, not installed by default). No plumbing |
@@ -462,6 +462,13 @@ remove.**
 | **B: Connect** | One request page carries the whole loop: Run → assertions → map fields → concept → Save and pin, with the YAML it writes beside it. Actions show "9 saved requests · 4 bound as actions", which makes *saved request ≠ tool* visible. The UNKNOWN receipt reads plainly and refuses to resend |
 | **C: Memory** | Kept · Later · Records · History · Find work as one deterministic place, and Find needs no model. Enrichment is a single line. Locked Records say "confirm it's you" |
 | **D: Station pack** | The crew voice, HUD eyebrow, card brackets, starfield and stickers appear and vanish with the pack; navigation and layout don't move. The lab used placeholder marks, not the protected art |
+
+**Experiment A2: Home at a glance** (owner request, rev 3.1: "simpler and easier to see the full state of everything in one view"):
+
+- **Desktop (1280×900):** the greeting, the state sentence, the summary counts, Needs you and every source tile all fit without scrolling.
+- **Phone (390px):** the summary, Needs you and the first row of tiles fit on the first screen. Tiles use two columns, and an opened tile spans the full width.
+- **What it replaced:** large mixed cards, a separate discovery section and a history section. Every source now has the same tile shape, so state can be compared at a glance. Detail is one tap away, in place.
+- **Checks:** axe reports 0 violations in all states, including the opened tile and the Station pack.
 
 **Design observations for Phase 2:**
 
