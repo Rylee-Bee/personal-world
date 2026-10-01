@@ -179,8 +179,54 @@ describe("Edit Home", () => {
     await settled();
     expect(screen.queryByRole("button", { name: /^Move .* earlier$/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
-    expect(screen.getByRole("button", { name: "Done" })).toHaveAttribute("aria-pressed", "true");
+    await screen.findByRole("button", { name: "Move Reading earlier" });
+    expect(screen.getByRole("button", { name: "Edit Home" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "+ Add to Home" })).toBeInTheDocument();
+  });
+  it("it says Saving… until the server confirms, then announces the result", async () => {
+    server.use(http.put("/api/config/board/home", async ({ request }) => {
+      await delay(150);
+      const r = boardServer.put(request.headers.get("if-match"), null, (await request.json()) as never);
+      return HttpResponse.json(r.body as Record<string, unknown>, { status: r.status, headers: { etag: r.etag } });
+    }));
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Move Reading later" }));
+    expect(screen.getByText("Saving…")).toBeInTheDocument();
+    expect(screen.queryByText("Moved Reading later")).not.toBeInTheDocument();
+    expect(order("Your life")).toEqual(["Weather", "Later", "Reading"]);
+    expect(await screen.findByText("Moved Reading later")).toBeInTheDocument();
+    expect(screen.queryByText("Saving…")).not.toBeInTheDocument();
+  });
+  it("a change made elsewhere before the first edit is shown first and never overwritten", async () => {
+    renderHome();
+    await settled();
+    expect(screen.getByRole("button", { name: "Checks: Healthy. Show details" })).toBeInTheDocument();
+    // another editor hides Checks after this page loaded
+    boardServer.external(boardServer.items().map((i) => (i.card === "checks" ? { ...i, hidden: true } : i)));
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await screen.findByRole("button", { name: "Move Reading earlier" });
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Checks: Healthy. Show details" })).not.toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Move Reading earlier" }));
+    await waitFor(() => expect(boardServer.puts).toHaveLength(1));
+    expect(boardServer.puts[0].body.items.find((i) => i.card === "checks")!.hidden).toBe(true);
+  });
+  it("Done clears the status line", async () => {
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Move Reading earlier" }));
+    expect(await screen.findByText("Moved Reading earlier")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    expect(screen.queryByText("Moved Reading earlier")).not.toBeInTheDocument();
+  });
+  it("Edit mode unfolds Calm's Quietly working", async () => {
+    renderHome({ prefs: { density: "calm" } });
+    await settled();
+    expect(screen.getByText(/2 quiet:/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    expect(await screen.findByRole("button", { name: "Move Checks earlier" })).toBeInTheDocument();
   });
   it("moves a row earlier and later, keeps focus on the control, and the ends are disabled", async () => {
     renderHome();
@@ -191,7 +237,7 @@ describe("Edit Home", () => {
     expect(order("Your life")).toEqual(["Reading", "Weather", "Later"]);
     await waitFor(() => expect(screen.getByRole("button", { name: "Move Reading earlier" })).toBeDisabled());
     expect(screen.getByRole("button", { name: "Move Reading later" })).toHaveFocus();
-    expect(screen.getByText("Moved Reading earlier")).toBeInTheDocument();
+    expect(await screen.findByText("Moved Reading earlier")).toBeInTheDocument();
   });
   it("hides a row, offers it under + Add to Home, and Undo restores it", async () => {
     renderHome();
@@ -204,7 +250,7 @@ describe("Edit Home", () => {
     expect(screen.getByRole("button", { name: "Add Later to Home" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
     expect(order("Your life")).toEqual(["Weather", "Reading", "Later"]);
-    expect(screen.getByText("Undid: hid later")).toBeInTheDocument();
+    expect(await screen.findByText("Undid: hid Later")).toBeInTheDocument();
   });
   it("adds a hidden row back with Add to Home", async () => {
     renderHome();
@@ -257,21 +303,46 @@ describe("Edit Home", () => {
     expect(boardServer.puts[1].body.items.find((i) => i.card === "later")!.hidden).toBe(false);
     await waitFor(() => expect(order("Your life")).toEqual(["Weather", "Reading", "Later"]));
   });
-  it("409: says it wasn't saved, reverts, and Reload reads the board again", async () => {
+  it("409: says it wasn't saved, pauses editing with a reason, reverts; Reload reads again and restores focus", async () => {
     renderHome();
     await settled();
     await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
-    await userEvent.click(screen.getByRole("button", { name: "Move Reading earlier" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Move Reading earlier" }));
     await waitFor(() => expect(boardServer.puts).toHaveLength(1));
     // someone else changes Home; this editor's next write carries a stale tag
     boardServer.bump();
     await userEvent.click(screen.getByRole("button", { name: "Move Later earlier" }));
     expect(await screen.findByText("Home changed somewhere else, your edit wasn't saved.")).toBeInTheDocument();
+    expect(screen.getByText("Editing is paused until you reload.")).toBeInTheDocument();
     await waitFor(() => expect(order("Your life")).toEqual(["Reading", "Weather", "Later"]));
+    // no dead controls: they are disabled, with the visible reason above
+    expect(screen.getByRole("button", { name: "Move Weather later" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Hide Later" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Reload" }));
     await waitFor(() => expect(screen.queryByText("Home changed somewhere else, your edit wasn't saved.")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Edit Home" })).toHaveFocus();
     await userEvent.click(screen.getByRole("button", { name: "Move Later earlier" }));
     await waitFor(() => expect(order("Your life")).toEqual(["Reading", "Later", "Weather"]));
+  });
+  it("Reload drops queued saves instead of replaying them", async () => {
+    server.use(http.put("/api/config/board/home", async ({ request }) => {
+      await delay(150);
+      const r = boardServer.put(request.headers.get("if-match"), null, (await request.json()) as never);
+      return HttpResponse.json(r.body as Record<string, unknown>, { status: r.status, headers: { etag: r.etag } });
+    }));
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await screen.findByRole("button", { name: "Move Reading earlier" });
+    boardServer.bump();
+    await userEvent.click(screen.getByRole("button", { name: "Move Reading earlier" }));
+    await userEvent.click(screen.getByRole("button", { name: "Hide Later" }));
+    await screen.findByText("Home changed somewhere else, your edit wasn't saved.");
+    await userEvent.click(screen.getByRole("button", { name: "Reload" }));
+    await new Promise((r) => setTimeout(r, 400));
+    expect(boardServer.puts).toHaveLength(1); // only the refused one; the queued Hide was never sent
+    expect(order("Your life")).toEqual(["Weather", "Reading", "Later"]);
   });
   it("422: shows the server's reason and keeps the board as it was", async () => {
     server.use(http.put("/api/config/board/home", () => HttpResponse.json({ detail: "board home: unknown card(s) later" }, { status: 422 })));
@@ -279,7 +350,10 @@ describe("Edit Home", () => {
     await settled();
     await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
     await userEvent.click(screen.getByRole("button", { name: "Hide Later" }));
-    expect(await screen.findByText("Couldn't save: board home: unknown card(s) later")).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't save that change.")).toBeInTheDocument();
+    const details = screen.getByText("Details").closest("details")!;
+    expect(details).not.toHaveAttribute("open");
+    expect(within(details).getByText("board home: unknown card(s) later")).toBeInTheDocument();
     await waitFor(() => expect(order("Your life")).toEqual(["Weather", "Reading", "Later"]));
   });
 });
