@@ -298,16 +298,26 @@ class ConfigStore:
         self._notify(changed)
         return new_etag
 
-    def delete(self, kind: str, obj_id: str) -> None:
+    def delete(self, kind: str, obj_id: str, *, etag: str | None = None) -> None:
+        """Remove one object. ``etag`` (if given) must be current. A file that is invalid on disk and
+        has no valid version can only be removed with the etag listed in ``errors()``."""
         self._check_kind(kind)
         self._check_id(kind, obj_id)
         with self._lock:
-            if obj_id not in self._objects[kind]:
+            current = self._etags[kind].get(obj_id)
+            if obj_id in self._objects[kind]:
+                if etag is not None and etag != current:
+                    raise EtagMismatch(f"{kind} {obj_id} etag is stale")
+                self._check_not_referenced(kind, obj_id)
+            elif any(e.get("kind") == kind and e.get("id") == obj_id for e in self._errors):
+                if not etag or etag != current:
+                    raise EtagMismatch(f"{kind} {obj_id} is invalid on disk; delete needs its current etag")
+            else:
                 raise ConfigInvalid(f"no {kind} {obj_id}")
-            self._check_not_referenced(kind, obj_id)
             self._unlink(self._path_for(kind, obj_id))
             self._objects[kind].pop(obj_id, None)
             self._etags[kind].pop(obj_id, None)
+            self._errors = [e for e in self._errors if not (e.get("kind") == kind and e.get("id") == obj_id)]
             changed = self._refresh_versions()
         self._notify(changed)
 
@@ -319,6 +329,9 @@ class ConfigStore:
             missing = [obj.id] if obj.provider not in self._objects["provider"] else []
             if missing:
                 raise ConfigInvalid(f"request {obj.id}: unknown provider {obj.provider!r}")
+            for action in self._objects["action"].values():
+                if action.request == obj.id:
+                    self._check_action_policy(action, obj)
         elif kind == "card":
             unknown = [r for r in obj.request_ids() if r not in self._objects["request"]]
             if unknown:
@@ -328,8 +341,19 @@ class ConfigStore:
             if unknown:
                 raise ConfigInvalid(f"board {obj.id}: unknown card(s) {', '.join(unknown)}")
         elif kind == "action":
-            if obj.request not in self._objects["request"]:
+            request = self._objects["request"].get(obj.request)
+            if request is None:
                 raise ConfigInvalid(f"action {obj.id}: unknown request {obj.request!r}")
+            self._check_action_policy(obj, request)
+
+    @staticmethod
+    def _check_action_policy(action: Any, request: Any) -> None:
+        """access must match the request's effect; approval: never on a write needs the owner's waiver."""
+        write = request.resolved_effect() == "write"
+        if write and action.access == "read":
+            raise ConfigInvalid(f"action {action.id}: access is read but request {request.id} writes")
+        if write and action.approval == "never" and not action.owner_waives_approval:
+            raise ConfigInvalid(f"action {action.id}: approval never on a write needs owner_waives_approval: true")
 
     def _check_not_referenced(self, kind: str, obj_id: str) -> None:
         if kind == "provider":
