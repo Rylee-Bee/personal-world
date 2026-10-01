@@ -467,6 +467,31 @@ Anti-patterns avoided:
 | L14 | **No gamified maintenance.** Station's strip counts *discoveries* (books, albums), never connections, cleared warnings, visits or streaks | No streaks or guilt (AQ 41-42) | Apple ring-guilt complaints |
 | L15 | **Quiet = lower emphasis, never lower legibility.** Body 16px, labels ≥13px, sentence-case headings, 2px teal focus ring, ≥44px targets, still by default | PLAIN_LANGUAGE 45-46 (no all-caps headings); WAC 2.4 focus; WAC 2.1 targets; SS 18 | BDA dyslexia style guide |
 
+### Visual directions under test (rev 3.3)
+
+Owner feedback on Lamplight: "it feels kinda … text-y". Three more visual encodings of the **same facts and the same IA** were built in the lab, each centred on visual accessibility. The lab's "Visual direction" control switches between them.
+
+| Direction | Encoding | Strongest for | Watch-outs |
+|---|---|---|---|
+| **Lamplight** | Sentences: a meaning line per card | Reading on a good day; personality | Text-heavy (owner feedback) |
+| **Glyph** | A large pictogram with the status shape on the icon, one big number, 2–3 words; a one-row state strip under the greeting shows every source at once | Recognition without reading; the fastest whole-state glance | The healthy status mark on the icon is small; its word is screen-reader-only, and the shape still differs from ▲ and ■ |
+| **Instruments** | One row per source with a visual meter: health segments, download progress bars (striped when frozen at the last good value), reading progress, project marks, Later dots; numbers line up in one column | Scanning the whole state top to bottom; quantities; "how far along" | Densest of the four; best on desktop |
+| **Big & Bold** | Two or three large cards per row, a thick status band (shape + word), 40px icons, 3rem numbers, fewest words | Low vision, 200% zoom, tired eyes, across-the-room glance | Fewer sources fit per screen |
+
+**Checks on all directions:**
+
+- axe reports 0 violations at 390px and 1280px, with and without Station, and with an opened card.
+- The Core/Station invariance probe passes in every direction.
+- Every meter carries a text equivalent.
+- Drilling in (card → detail → Technical evidence) works identically in all four.
+
+**Recommendation, pending owner reaction:**
+
+- Make **Glyph the default Home**.
+- Use **Instruments** as the Detailed density, which is where it naturally belongs.
+- Make **Big & Bold** a comfort preference ("Larger cards"), not a theme.
+- Keep Lamplight's *language* (human meaning lines, the healthy vocabulary) in the drill-in detail and the briefing sentence, where words help most.
+
 ### Core personality vs pack personality
 
 | Core (Experience pack: None) | Station pack adds |
