@@ -143,9 +143,9 @@ def test_unknown_schema_version_rejected(tmp_path):
 
 
 def test_traversal_ids_rejected(store):
+    evil = Provider.model_construct(schema_version=1, id="../evil", name="x", kind="http", base_url="http://x")
     with pytest.raises(ConfigInvalid):
-        store.save("provider", provider.__wrapped__ if False else Provider.model_construct(
-            schema_version=1, id="../evil", name="x", kind="http", base_url="http://x"))
+        store.save("provider", evil)
 
 
 def test_delete_blocked_while_referenced(store):
