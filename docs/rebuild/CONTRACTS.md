@@ -114,3 +114,16 @@ bootstrap:                                    # optional local sign-in
 - **Bootstrap:** the owner can sign in with the secret behind `secret_ref` (POST /api/auth/bootstrap, allowed Origin required). It also serves as step-up. Failed guesses are limited **per client address**: 3 free, then exponential back-off (5 s doubling, capped at 15 minutes); a client in back-off is refused without its secret being checked. A global ceiling (30 failures in 10 minutes) only spaces attempts 2 s apart; it never locks the owner out, and OIDC sign-in is unaffected. Bootstrap is available while `bootstrap.enabled` is true, and **switches itself off once OIDC is configured and one OIDC owner sign-in has succeeded** (sign-in and step-up both); remove or disable the block to turn it off sooner (the file is re-read on every request).
 - **Session binding:** a session is bound to a hash of `public_origin` + OIDC issuer + subject (or bootstrap-only). Changing the owner identity in the file ends every existing session.
 - **Step-up** (needed to approve anything): a fresh proof inside 120 seconds (OIDC re-login with `auth_time` fresh for the same subject, or the bootstrap secret) stamps the session; it counts for 5 minutes. An agent token never has step-up and never approves.
+
+## C1.3 Card mapping and query additions
+
+Orchestrator decisions, 2026-10-01. Small and closed; everything else in C1 is unchanged.
+
+- **`format: count`** is the length of the list at the path (`$.records` or `$.records[*]`). A missing path, or a value that is not a list, reads `{"text":"unknown"}` with no `raw`. An existing empty list is a real `"0"` with `raw: 0`. A `unit` is appended as for `number`.
+- **Query templates**, in query values only (never path, host or headers): `{today}`, `{today+Nd}`, `{today-Nd}` (N 0 to 366) as a UTC date, and `{now}` as a UTC datetime. Rendered server side when the request is built. No other substitution, no nesting; an unknown token or a stray brace fails validation at save time.
+- **Status aggregation**, `status.mode: first | all | any` (default `first`, the first extracted value decides):
+  - `all`: `needs_attention` if any value is in `needs_attention`; else `healthy` only if every value is in `healthy`; else `unknown` (an unrecognised value makes it unknown).
+  - `any`: `needs_attention` if any value is in `needs_attention`; else `healthy` if at least one value is in `healthy` (unrecognised values are tolerated, for redundant endpoints); else `unknown`.
+  - An empty match is `unknown` in every mode, never healthy. **Addition from L-recipes:** `status.empty: healthy` (default `unknown`) makes an EXISTING empty list read `healthy`, for health lists where empty means no problems. A missing path is still `unknown`.
+- **Last element:** `[-1]` is allowed in a path. No other negative index, no slices.
+

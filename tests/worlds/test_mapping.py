@@ -15,15 +15,14 @@ def test_extract_paths():
     assert extract(DOC, "$.z") == [None]
 
 
-def test_missing_is_empty_not_zero_and_negative_index_missing():
+def test_missing_is_empty_not_zero():
     assert extract(DOC, "$.nope") == []
     assert extract(DOC, "$.a.c[9]") == []
-    assert extract(DOC, "$.a.c[-1]") == []
     assert extract(DOC, "$.a.b.c") == []
 
 
 @pytest.mark.parametrize("bad", ["a.b", "$..a", "$.a[?(@.b>1)]", "$.a[1:2]", "$.a['b']", "$.a;drop", "$.a.__class__",
-                                 "$.a[*][*]x", "", "$.", "$.a b", "$.a.(1+1)", "$[0]x"])
+                                 "$.a[*][*]x", "", "$.", "$.a b", "$.a.(1+1)", "$[0]x", "$.a.c[-2]", "$.a.c[-0]"])
 def test_unsupported_syntax_rejected(bad):
     with pytest.raises(MappingError):
         extract(DOC, bad)
@@ -68,3 +67,26 @@ def test_relative_time_is_deterministic_with_now():
     assert format_value("2026-10-01T11:59:30Z", "relative_time", None, now=now) == "just now"
     assert format_value("2026-09-29T12:00:00Z", "relative_time", None, now=now) == "2 days ago"
     assert format_value("not a date", "relative_time", None, now=now) == "unknown"
+
+
+def test_last_element_index():
+    assert extract(DOC, "$.a.c[-1]") == [30]
+    assert extract(DOC, "$.items[-1].n") == ["y"]
+    assert extract({"l": []}, "$.l[-1]") == []          # an empty list has no last element
+    assert extract(DOC, "$.a.b[-1]") == []              # not a list
+
+
+def test_count_of_a_list():
+    from personal_world.worlds.mapping import count_of, resolve
+
+    def n(doc, path):
+        return count_of(resolve(doc, path), path)
+
+    assert n({"r": [1, 2, 3]}, "$.r") == 3
+    assert n({"r": [1, 2, 3]}, "$.r[*]") == 3
+    assert n({"r": []}, "$.r") == 0                      # an existing empty list is a real 0
+    assert n({"r": []}, "$.r[*]") == 0
+    assert n({"r": 5}, "$.r") is None                    # not a list: unknown, never 0
+    assert n({"r": {"a": 1}}, "$.r") is None
+    assert n({"x": 1}, "$.r") is None                    # missing: unknown, never 0
+    assert n({"r": [[1, 2], [3]]}, "$.r[*]") == 2

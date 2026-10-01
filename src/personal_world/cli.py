@@ -710,6 +710,50 @@ def cmd_worlds_restore(world, registry, journal, args) -> int:
     return _emit(result, args.json)
 
 
+def cmd_recipes(world, registry, journal, args) -> int:
+    """List, show or install the sanitized service recipes (config/recipes) into the owner's Worlds config."""
+    from .worlds import recipes as rc
+
+    root = Path(args.recipes_dir) if getattr(args, "recipes_dir", None) else None
+    try:
+        if args.recipes_cmd == "list":
+            infos = rc.list_recipes(root)
+            if args.json:
+                print(json.dumps([i.model_dump(mode="json") for i in infos], indent=2))
+            else:
+                for i in infos:
+                    print(f"{i.name:<14} {i.status:<8} {i.title}" + (f"  ({i.note})" if i.note else ""))
+            return 0
+        recipe = rc.load_recipe(args.name, root)
+        if args.recipes_cmd == "show":
+            print(json.dumps({
+                "recipe": recipe.info.model_dump(mode="json"),
+                "provider": recipe.provider.model_dump(mode="json") if recipe.provider else None,
+                "requests": [r.id for r in recipe.requests],
+                "cards": [c.id for c in recipe.cards],
+                "actions": [a.id for a in recipe.actions],
+            }, indent=2))
+            return 0
+        from .worlds.config_store import ConfigStore
+
+        config_dir = Path(args.config_dir)  # the global --config-dir (PW_CONFIG_DIR)
+        written = rc.install(ConfigStore(config_dir), recipe, base_url=args.base_url, secret_ref=args.secret_ref, overwrite=args.overwrite)
+        if args.json:
+            print(json.dumps({"written": written}))
+        else:
+            print(f"installed {recipe.info.name}: {len(written)} object(s) written under {config_dir / 'worlds'}" if written else f"{recipe.info.name}: already installed (use --overwrite to replace)")
+            for w in written:
+                print(f"  {w}")
+        return 0
+    except rc.RecipeError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # ConfigInvalid and friends: short, no values
+        print(f"error: {type(exc).__name__}: {str(exc)[:200]}", file=sys.stderr)
+        return 1
+
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="personal-world")
     p.add_argument("--data-dir", default="./data")
@@ -837,6 +881,24 @@ def main(argv: list[str] | None = None) -> int:
     up_s.add_argument(
         "--live", action="store_true", help="include a read-only check per target"
     )
+
+    rcp = sub.add_parser("recipes", help="sanitized homelab service recipes (config/recipes): list, show, install")
+    rcp.add_argument("--recipes-dir", default=None, help="recipe templates (default: $PW_RECIPES_DIR or config/recipes)")
+    rcp_sub = rcp.add_subparsers(dest="recipes_cmd", required=True)
+    rl = rcp_sub.add_parser("list", help="list recipes and whether each can be installed")
+    rl.add_argument("--json", action="store_true")
+    rl.set_defaults(fn=cmd_recipes)
+    rs = rcp_sub.add_parser("show", help="what a recipe would write (no secrets, no real hosts)")
+    rs.add_argument("name")
+    rs.add_argument("--json", action="store_true")
+    rs.set_defaults(fn=cmd_recipes)
+    ri = rcp_sub.add_parser("install", help="write a recipe into $PW_CONFIG_DIR/worlds/")
+    ri.add_argument("name")
+    ri.add_argument("--base-url", default=None, help="the real address of the service (stays in your config dir only)")
+    ri.add_argument("--secret-ref", default=None, help="env:NAME or vault:NAME holding the API key (a name, never the key)")
+    ri.add_argument("--overwrite", action="store_true", help="replace objects that already exist (default: keep them)")
+    ri.add_argument("--json", action="store_true")
+    ri.set_defaults(fn=cmd_recipes)
 
     w = sub.add_parser(
         "worlds",
