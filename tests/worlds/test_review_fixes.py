@@ -112,7 +112,7 @@ def test_board_defs_and_envelope_use_same_unique_keys(store, send):
     from personal_world.worlds.runner import Runner
     add_request(store, ttl_s=0)
     add_card(store, fields=[{"path": "$.a", "label": "Size"}, {"path": "$.b", "label": "size"}],
-             meter={"type": "progress"})
+             meter={"type": "progress", "value": "cpu-load", "max": 1})
     store.save("board", Board(id="home", title="H", home=True, items=[{"card": "c1"}]))
     send.responses["/items"] = ok({"a": 1, "b": 2})
     keys = [f["key"] for f in home_board_defs(store)["items"][0]["fields"]]

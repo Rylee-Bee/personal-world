@@ -116,7 +116,7 @@ def seed_reference_config(store: ConfigStore, base_url: str) -> list[str]:
             request="reference.status",
             view="stat",
             status={"path": "$.state", "healthy": ["ok"]},
-            meter={"type": "progress"},
+            meter={"type": "progress", "value": "cpu", "max": 1.0},
             meaning={
                 "concept": "How the reference provider is doing right now.",
                 "short": "Is the reference provider answering?",
