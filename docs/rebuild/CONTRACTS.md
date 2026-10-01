@@ -33,6 +33,14 @@ One per card fetch. The API returns only mapped data.
 - Evidence is redacted: no secrets, no upstream body beyond 2 KB, never the Authorization header.
 - `error_class`: `timeout | connection | http_4xx | http_5xx | malformed | redirect_refused | too_large | confinement_denied | auth_failed`.
 
+### C2.1 Values and states (accepted 2026-10-01)
+
+- **Field key** = slug(label): lowercase, non-alphanumerics become `-`, trimmed; a collision gets `-2`, `-3`.
+- A **missing** value is `{"text":"unknown"}` with no `raw` key (never 0). An **empty list** is `{"text":"none","raw":[]}` and is healthy, not unavailable.
+- **Failure mapping** (`error_class` → `source_state`): `timeout`, `connection`, `http_5xx`, `redirect_refused`, `too_large`, `confinement_denied` → `unavailable`; `auth_failed` (HTTP 401/403) → `needs_attention`; `http_4xx`, `malformed` → `degraded`. Missing config → `not_configured`.
+- After a failure the card keeps last-good values with `freshness: stale` and `last_good_at`; with none, every field reads `unknown`.
+- **Config PUT** needs the real etag in `If-Match` (update) or `If-None-Match: *` (create). `If-Match: *` is refused with 428.
+
 ## C3 Action, authority and receipt lifecycle
 
 SQLite at `$PW_DATA_DIR/worlds.db`, WAL, `BEGIN IMMEDIATE`.

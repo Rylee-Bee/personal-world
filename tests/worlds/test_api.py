@@ -127,3 +127,9 @@ def test_secret_values_never_in_any_response(tmp_path, ref):
 def test_app_lifespan_healthz(tmp_path, ref):
     c = make_client(tmp_path, ref)
     assert c.get("/healthz").status_code == 200  # healthz is public and has no auth dependency
+
+
+def test_if_match_star_is_refused(tmp_path, ref):
+    c = make_client(tmp_path, ref)
+    obj = c.get("/api/config/provider/reference").json()
+    assert c.put("/api/config/provider/reference", json=obj, headers={"If-Match": "*"}).status_code == 428

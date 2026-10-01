@@ -241,10 +241,7 @@ def _precondition(request: Request, store: ConfigStore, kind: str, obj_id: str) 
     if if_match is not None:
         value = _parse_etag(if_match)
         if value == "*":
-            current = store.etag(kind, obj_id)
-            if current is None:
-                raise HTTPException(status_code=409, detail=f"no {kind} {obj_id!r} to match")
-            return current
+            raise HTTPException(status_code=428, detail="If-Match needs the current etag; use If-None-Match: * to create")
         if not value:
             raise HTTPException(status_code=400, detail="If-Match must carry an etag")
         return value
