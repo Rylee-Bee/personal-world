@@ -46,6 +46,10 @@ One per card fetch. The API returns only mapped data.
 - **C1 card `meter`** names its data sources: `{type, value?, max?, count?, filled?, items?}`. `value` is a field key or a `$` path; `max`, `count`, `filled` are a number, a field key or a `$` path; `items` is a `$` path to a list. A `progress` meter needs `value`; `segments` needs `count` and `filled`. Unknown keys are rejected; paths are validated at save time.
 - **C2 envelope `meter`** is `{type, text_equivalent, value?, max?, count?, filled?, items?}` with the resolved numbers. A source that cannot be resolved to a finite number (missing, not a number, a boolean) is **omitted**, never 0; an explicit 0 is kept. `items` keeps only numbers, booleans and strings (strings cut at 80 characters), at most 200; an existing empty list is `[]`, a missing one is omitted. When the card is stale the numbers come from last-good data, like `values`. The UI draws nothing for an omitted number.
 
+### C1.2 `approval: never` on writes (accepted 2026-10-01)
+
+`approval` defaults to `always`. `never` is honoured only because the owner wrote it in config (config writes are owner-only; an agent token cannot change it). For a request whose effect is `write`, `never` also requires the action to say `access: write`; a read-labelled action whose request would write is never auto-approved. A retry always needs a fresh approval. Project Home-governed operations are never auto-approved.
+
 ## C3 Action, authority and receipt lifecycle
 
 SQLite at `$PW_DATA_DIR/worlds.db`, WAL, `BEGIN IMMEDIATE`.
@@ -73,3 +77,24 @@ SQLite at `$PW_DATA_DIR/worlds.db`, WAL, `BEGIN IMMEDIATE`.
 ## C5 Card accessibility props (UI ⇄ API)
 
 Every rendered card or row exposes: accessible name; state word plus shape (● healthy, ▲ needs attention, ■ unavailable, ◌ stale, ○ unknown, ◇ not configured, ◆ degraded); value text with unit; meter `text_equivalent`; freshness text; a link to detail. Targets ≥44px; labels ≥13px; body 16px; no colour-only state; static unless `prefers-reduced-motion: no-preference`.
+
+## C7 Owner and identity
+
+Identity is not a provider, request or card, so it is not under `worlds/`. One file, `<config dir>/owner.yaml`:
+
+```yaml
+schema_version: 1
+public_origin: https://worlds.example.test   # scheme://host[:port] only; the one origin cookies, CSRF and OIDC redirects are built for
+oidc:                                         # optional
+  issuer: https://auth.example.test
+  subject: <the stable subject the provider asserts for the owner>
+bootstrap:                                    # optional local sign-in
+  enabled: true
+  secret_ref: env:PW_BOOTSTRAP_TOKEN
+```
+
+- **No secret values** are ever in the file: only `secret_ref` (`env:` or `vault:`).
+- **Fail closed:** a missing, unreadable, mis-versioned or invalid file means nobody can sign in, there is no allowed Origin, and cookie-authenticated writes are refused. There is no development bypass.
+- **OIDC:** a sign-in succeeds only when the verified `issuer` and `sub` equal the file's (constant-time compare). Any other verified identity gets 403 and no session. The redirect URI is `public_origin` + `/api/auth/oidc/callback`, never derived from the Host header.
+- **Bootstrap:** the owner can sign in with the secret behind `secret_ref` (POST /api/auth/bootstrap, allowed Origin required, 5 failures per 10 minutes then 429). It also serves as step-up. It is available only while `bootstrap.enabled` is true; set it to `false` (or remove the block) once OIDC works, and bootstrap sign-in and bootstrap step-up stop immediately (the file is re-read on every request).
+- **Step-up** (needed to approve anything): a fresh proof inside 120 seconds (OIDC re-login with `auth_time` fresh for the same subject, or the bootstrap secret) stamps the session; it counts for 5 minutes. An agent token never has step-up and never approves.

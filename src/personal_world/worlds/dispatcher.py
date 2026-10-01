@@ -173,7 +173,10 @@ class Dispatcher:
             raise BadRequest("bad idempotency key")
         version = self._store.action_version(action_id)
         now = self._clock()
-        auto = action.approval == "never" and _retry_of is None
+        # "never" skips approval only when the owner wrote it AND, for a write effect, declared the action
+        # access: write. A read-labelled action whose request would write is never auto-approved.
+        write_effect = request.resolved_effect() == "write"
+        auto = action.approval == "never" and _retry_of is None and not (write_effect and action.access != "write")
         aid = uuid.uuid4().hex
         governed = self._ph_governs(provider)
         with self._db.write_tx() as tx:

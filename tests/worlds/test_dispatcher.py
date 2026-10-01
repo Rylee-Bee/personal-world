@@ -436,3 +436,27 @@ def test_ph_approval_unavailable_without_verifier_and_for_ungoverned(env):
 
 def test_classify_outcome_unknown_input():
     assert classify_outcome(object())[0] == "UNKNOWN"
+
+
+# ---------------------------------------------------- approval: never on writes (C1.2)
+
+def test_never_applies_to_a_write_only_when_the_owner_wrote_it_and_declared_access_write(env):
+    d, db, store, send, _ = env
+    default = Action(id="dflt", request="ref.go", name="D")
+    assert default.approval == "always"                                  # missing means always
+    store.save("action", default)
+    assert d.request_authorization(owner(), "dflt")["state"] == "pending"
+    store.save("action", Action(id="never-w", request="ref.go", name="N", access="write", approval="never"))
+    assert d.request_authorization(owner(), "never-w")["state"] == "approved"
+    # a read-labelled action whose request would write is NOT auto-approved even with approval: never
+    store.save("action", Action(id="never-r", request="ref.go", name="R", access="read", approval="never"))
+    a = d.request_authorization(owner(), "never-r")
+    assert a["state"] == "pending" and a["approved_by"] is None
+    # a genuinely read request with approval: never is fine
+    store.save("request", Request(id="ref.look", provider="ref", path="/look"))
+    store.save("action", Action(id="look", request="ref.look", name="L", access="read", approval="never"))
+    assert d.request_authorization(owner(), "look")["state"] == "approved"
+    # an agent asking for a never-write action gets the policy the owner wrote (never an agent choice)
+    store.save("action", Action(id="agent-never", request="ref.go", name="A", access="write", approval="never",
+                                exposed=True, scope="deploy.run"))
+    assert d.request_authorization(agent(), "agent-never")["state"] == "approved"
