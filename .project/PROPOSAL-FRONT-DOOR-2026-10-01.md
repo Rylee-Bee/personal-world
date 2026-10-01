@@ -586,6 +586,39 @@ Freshness always shows on rows that need a look.
 - No horizontal overflow; one Detailed-phone overflow was found and fixed.
 - The Core/Station invariance probe passes.
 
+### Owner review of the lab (2026-10-01): "yes, this could actually be my front door"
+
+**Settled:** the architecture, and Instruments as the Home direction. The Home rhythm is:
+
+```
+orient → what needs me → what deserves a look → where I left off → my life
+```
+
+**Owner asked to preserve these** (treat each as a design invariant):
+
+- The terse briefing: "2 for you · Downloads down · rest quiet".
+- **Needs you** is finite and action-oriented, then stops.
+- **Needs a look** is distinct from Needs you: unhealthy is not an obligation.
+- **Pick up**: returning to threads left on the desk, not a task manager.
+- **Your life** keeps Home from becoming an observability dashboard.
+- **Not set up yet / Optional:** missing capability is not failure and never nags.
+- The four bottom landmarks are stable and dependable.
+- **Core already has heart without any pack.** "Halfway", "Quiet evening", "The Dispossessed", "Call with Mum", "Ready" and "Pick up" do the emotional work.
+
+**Refinements applied (rev 3.6):**
+
+1. **Edit Home** sits below the briefing and the strip, as a quiet grey outlined button. Ordinary use beats customization in the hierarchy.
+2. **The world strip** is made of obvious tap targets:
+   - Each segment shows its name under the icon and state shape, and is at least 56px tall.
+   - Each has a strong accessible name, e.g. "Downloads: Unavailable. Show details".
+   - It wraps to a 4-column grid on the phone.
+3. **"+ Add" → "+ Add to Home".**
+4. **Projects pill density:** only projects waiting on you show as pills. Others collapse to "+1 more"; the full list is in the drill-down.
+
+**Watch item:** pill density on Projects. If it grows, secondary states move to the drill-down.
+
+**Checks:** axe reports 0 violations in 16 states, there is no horizontal overflow, and the Core/Station invariance probe passes.
+
 ### Core personality vs pack personality
 
 | Core (Experience pack: None) | Station pack adds |
@@ -686,6 +719,7 @@ Freshness always shows on rows that need a look.
 | 2026-10-01 (taps) | Personality becomes an optional pack; just Rylee + scoped agent tokens; keep OIDC in Worlds; refine before building |
 | 2026-10-01 (review 2) | Mapping as the semantic layer; governed actions with single dispatch; Memory stays core; doc conflicts resolved explicitly; UI-first with lossless YAML; Chat parked; recipes Project Home → Sonarr → Homelab Health; reference provider in Phase 1 |
 | 2026-10-01 (naming) | Standard names in core, not themed ones |
+| 2026-10-01 (lab review) | Architecture and Instruments settled ("this could actually be my front door"); four refinements: Edit Home placement, named strip targets, "+ Add to Home", Projects pill density |
 | 2026-10-01 (importance) | Show the eyes what is important; Words layers and setting (Minimal / Short / Full) |
 | 2026-10-01 (direction) | Home direction: **Instruments**, made more robust and warm |
 | 2026-10-01 (review 3) | Skeleton `Home · Connect · Memory · Settings`; raw mechanics live only in Connect; the Station pack is an overlay that never changes structure; quiet means lower emphasis, not harder to read; the Make prototype is a disposable lab |
