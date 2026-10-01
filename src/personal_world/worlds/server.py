@@ -127,6 +127,7 @@ def build_app(
     allowed_hosts: Iterable[str] | None = None,
     data_dir: str | os.PathLike[str] | None = None,
     secret_values: Iterable[str] = (),
+    needs_you: Callable[[], list[Any]] | None = None,
 ) -> FastAPI:
     """Build the Worlds app. Nothing here reads a secret but its redactor."""
     store = ConfigStore(config_dir)
@@ -178,9 +179,9 @@ def build_app(
         return envelope
 
     @app.get("/api/needs-you", dependencies=[principal])
-    def needs_you() -> list[Any]:
-        """Nothing needs the owner yet. Honest, not stubbed."""
-        return []
+    def needs_you_route() -> list[Any]:
+        """What waits on the owner (C6). Empty unless a provider of items is wired (production wires approvals)."""
+        return needs_you() if needs_you is not None else []
 
     # ------------------------------------------------------------ config
 
