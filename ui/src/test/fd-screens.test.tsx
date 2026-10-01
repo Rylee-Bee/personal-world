@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { Connect } from "../fd/Connect";
 import { Memory } from "../fd/Memory";
-import { PrefsProvider, usePrefs } from "../fd/prefs";
+import { PrefsProvider } from "../fd/prefs";
+import { usePrefs } from "../fd/prefs-core";
 import { Settings } from "../fd/Settings";
 
 afterEach(cleanup);
@@ -28,6 +29,7 @@ describe("Connect", () => {
     await userEvent.click(run);
     const dlg = screen.getByRole("dialog", { name: /Restart Sonarr/ });
     expect(dlg).toHaveAttribute("aria-modal", "true");
+    expect(within(dlg).getByText("Sample, nothing was sent.")).toBeInTheDocument();
     expect(screen.queryByText("SUCCEEDED")).not.toBeInTheDocument();
     await userEvent.click(within(dlg).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -35,7 +37,24 @@ describe("Connect", () => {
     await userEvent.click(run);
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirm" }));
     expect(screen.getByRole("status")).toHaveTextContent("SUCCEEDED");
+    expect(screen.getByRole("status")).toHaveTextContent("Sample, nothing was sent.");
+    expect(run).toHaveFocus();
     expect(screen.getByText("Sample data")).toBeInTheDocument();
+  });
+  it("B7: the dialog traps focus in both directions", async () => {
+    render(<Connect />);
+    await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
+    await userEvent.click(screen.getByRole("button", { name: "Run: Restart Sonarr" }));
+    const dlg = screen.getByRole("dialog");
+    const confirm = within(dlg).getByRole("button", { name: "Confirm" });
+    const cancel = within(dlg).getByRole("button", { name: "Cancel" });
+    confirm.focus();
+    await userEvent.tab();
+    expect(cancel).toHaveFocus();
+    await userEvent.tab();
+    expect(confirm).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    expect(cancel).toHaveFocus();
   });
   it("Advanced: secret names with set or not set, write-only replace, never a value", async () => {
     render(<Connect />);

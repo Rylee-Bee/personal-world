@@ -11,6 +11,8 @@ export interface RowProps {
   timeZone?: string;
   expanded: boolean;
   onToggle: () => void;
+  /** Visual weight: 1 needs a look (loud), 2 your life, 3 quietly working. */
+  tier?: 1 | 2 | 3;
 }
 
 /** Decorative glyph per source icon. A plain placeholder is fine; never focusable. */
@@ -51,17 +53,20 @@ function readPrimary(item: BoardItem, card: CardEnvelope): { text: string; prese
   return { text: entry.text, present: true, unit: field?.unit };
 }
 
-function Meaning({ words, card }: { words: Words; card: CardEnvelope }) {
+function Meaning({ words, card, title }: { words: Words; card: CardEnvelope; title: string }) {
   if (words === "minimal") return null;
-  return <span className="fd-row-meaning">{words === "full" ? card.meaning.full : card.meaning.short}</span>;
+  const text = words === "full" ? card.meaning.full : card.meaning.short;
+  // The card's own meaning, never the name said twice.
+  if (!text || text.trim().toLowerCase() === title.trim().toLowerCase()) return null;
+  return <span className="fd-row-meaning">{text}</span>;
 }
 
 function evidenceRows(card: CardEnvelope): { key: string; value: string | number }[] {
   const e = card.evidence;
   const candidates: [string, string | number | undefined][] = [
-    ["request_id", e.request_id],
-    ["method", e.method],
-    ["path", e.path],
+    ["request_id", e.request_id || undefined],
+    ["method", e.method || undefined],
+    ["path", e.path || undefined],
     ["status_code", e.status_code],
     ["duration_ms", e.duration_ms],
     ["error_class", e.error_class],
@@ -73,73 +78,93 @@ function evidenceRows(card: CardEnvelope): { key: string; value: string | number
 }
 
 /**
- * One Home row: a disclosure button holding the icon, name and meaning, the
- * meter, value, unit, state shape + word and freshness. Expanding renders the
- * drill-in region in place.
+ * One Home row: icon, a disclosure button holding the name and meaning, the meter, value + unit
+ * (kept together), state shape + word and freshness. Expanding renders the drill-in in place.
+ * The whole row is the click target (the button stretches over it); the drill-in sits above.
  */
-export function Row({ item, card, words, density, timeZone, expanded, onToggle }: RowProps) {
+export function Row({ item, card, words, density, timeZone, expanded, onToggle, tier = 2 }: RowProps) {
   const { text: valueText, present, unit } = readPrimary(item, card);
   const state = STATE_SHAPE[card.source_state];
   const frozen = card.freshness === "stale" || card.source_state === "unavailable" || card.source_state === "stale";
+  const problem = card.source_state !== "healthy" || card.freshness === "stale";
 
-  let freshnessText: string | null = null;
-  if (card.freshness === "stale") {
+  // A row with a problem always says when it was last good. Healthy rows say it only in Full.
+  let freshness: { visible: string; hidden?: string } | null = null;
+  if (problem) {
     const at = card.last_good_at ?? card.observed_at;
     const clock = at ? formatClock(at, timeZone) : null;
-    if (clock) freshnessText = `as of ${clock}`;
+    freshness = clock ? { visible: `Last good ${clock}` } : { visible: "Last good —", hidden: "Last good: never" };
   } else if (words === "full") {
-    freshnessText = "Current";
+    freshness = { visible: "Current" };
   }
+  const freshnessNode = freshness && (
+    <span className="fd-row-freshness">
+      {freshness.hidden ? (
+        <>
+          <span aria-hidden="true">{freshness.visible}</span>
+          <span className="fd-sr">{freshness.hidden}</span>
+        </>
+      ) : (
+        freshness.visible
+      )}
+    </span>
+  );
 
   const values = Object.entries(card.values);
   const evidence = evidenceRows(card);
   const regionLabel = `${item.title} details`;
+  const label = (key: string) => item.fields.find((f) => f.key === key)?.label ?? key;
+  const cls = ["fd-row", `fd-row--t${tier}`, item.size === "S" ? "fd-row--slim" : "", card.source_state === "unavailable" ? "is-bad" : "", card.source_state === "degraded" ? "is-degraded" : "", expanded ? "is-open" : ""]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <li className={`fd-row${item.size === "S" ? " fd-row--slim" : ""}`}>
+    <li className={cls} id={`fd-row-${item.card}`}>
+      <span className="fd-row-icon" aria-hidden="true">
+        {glyph(item.icon)}
+      </span>
       <button type="button" className="fd-row-name" aria-expanded={expanded} onClick={onToggle}>
-        <span className="fd-row-icon" aria-hidden="true">
-          {glyph(item.icon)}
-        </span>
-        <span className="fd-row-titles">
-          <span className="fd-row-title">{item.title}</span>
-          <Meaning words={words} card={card} />
-        </span>
+        <span className="fd-row-title">{item.title}</span>
+        <Meaning words={words} card={card} title={item.title} />
       </button>
-      {card.meter && <Meter meter={card.meter} frozen={frozen} />}
-      <span className="fd-row-value">
-        {present ? (
-          valueText
-        ) : (
-          <>
-            <span aria-hidden="true">{valueText}</span>
-            <span className="fd-sr">unknown</span>
-          </>
-        )}
-      </span>
-      {present && unit && <span className="fd-row-unit">{unit}</span>}
-      <span className="fd-row-state">
-        <span className="fd-row-shape" aria-hidden="true">
-          {state.shape}
+      <span className="fd-row-meter">{card.meter && <Meter meter={card.meter} frozen={frozen} />}</span>
+      <span className="fd-row-val">
+        <span className="fd-row-value">
+          {present ? (
+            valueText
+          ) : (
+            <>
+              <span aria-hidden="true">{valueText}</span>
+              <span className="fd-sr">unknown</span>
+            </>
+          )}
         </span>
-        <span className="fd-row-state-word">{state.word}</span>
+        {present && unit && <span className="fd-row-unit">{unit}</span>}
       </span>
-      {freshnessText && <span className="fd-row-freshness">{freshnessText}</span>}
+      <span className="fd-row-status">
+        <span className="fd-row-state">
+          <span className="fd-row-shape" aria-hidden="true">
+            {state.shape}
+          </span>
+          <span className="fd-row-state-word">{state.word}</span>
+        </span>
+        {freshnessNode}
+      </span>
       {expanded && (
         <section className="fd-row-details" role="region" aria-label={regionLabel}>
-          <p className="fd-row-detail-meaning">{card.meaning.full}</p>
+          <p className="fd-row-detail-meaning">{card.meaning.full || card.meaning.short || item.title}</p>
           <p className="fd-row-detail-state">
             <span aria-hidden="true">{state.shape}</span> <span>{state.word}</span>
           </p>
           <dl className="fd-row-detail-values">
             {values.map(([key, value]) => (
               <div key={key} className="fd-row-detail-value">
-                <dt>{key}</dt>
+                <dt>{label(key)}</dt>
                 <dd>{value.text}</dd>
               </div>
             ))}
           </dl>
-          {freshnessText && <p className="fd-row-detail-freshness">{freshnessText}</p>}
+          {freshness && <p className="fd-row-detail-freshness">{freshnessNode}</p>}
           <details className="fd-row-evidence" open={density === "detailed"}>
             <summary>Technical evidence</summary>
             <ul>

@@ -23,7 +23,10 @@ export async function open(page: Page, hash = "#home", scenario: Scenario = "mix
   await mockApi(page, scenario);
   await page.goto(`/${hash}`);
   await expect(page.getByRole("main")).toBeVisible();
-  if (hash === "#home" && scenario !== "board-error") await page.getByRole("heading", { name: "Needs you" }).waitFor();
+  if (hash === "#home" && scenario !== "board-error") {
+    await page.getByRole("heading", { name: "Needs a look" }).waitFor();
+    await expect(page.getByRole("status")).toHaveCount(0);
+  }
 }
 
 export async function axe(page: Page) {

@@ -9,14 +9,11 @@ export type ErrorClass =
 export type CardGroup = "life" | "machine";
 export type Size = "S" | "M" | "L";
 
+/** C2 meter. A key is absent when its number is missing (draw nothing); an explicit 0 is real; items [] is an existing empty list. */
 export type Meter =
-  | { type: "segments"; filled: number; total: number; text_equivalent: string }
-  | { type: "bars"; values: number[]; max?: number; text_equivalent: string }
-  | { type: "progress"; value: number; max: number; text_equivalent: string }
-  | { type: "marks"; shown: number; more: number; text_equivalent: string }
-  | { type: "dots"; on: number; total: number; text_equivalent: string }
-  | { type: "day"; events: { at: string; label: string }[]; text_equivalent: string }
-  | { type: "shelf"; items: string[]; text_equivalent: string };
+  | { type: "progress"; text_equivalent: string; value?: number; max?: number }
+  | { type: "segments"; text_equivalent: string; count?: number; filled?: number }
+  | { type: "bars" | "dots" | "marks" | "day" | "shelf"; text_equivalent: string; items?: (number | string | boolean)[] };
 
 export interface CardEnvelope {
   card_id: string;

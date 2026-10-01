@@ -1,8 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import type { Density, Pack, Theme, Words } from "./types";
-
-export interface Prefs { words: Words; density: Density; pack: Pack; theme: Theme }
-export const DEFAULT_PREFS: Prefs = { words: "short", density: "standard", pack: "none", theme: "starfield" };
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { DEFAULT_PREFS, PrefsCtx, type Prefs } from "./prefs-core";
 const KEY = "worlds.prefs.v2";
 
 function load(): Prefs {
@@ -14,8 +11,6 @@ function load(): Prefs {
   }
 }
 
-const Ctx = createContext<{ prefs: Prefs; set: (p: Partial<Prefs>) => void }>({ prefs: DEFAULT_PREFS, set: () => undefined });
-
 export function PrefsProvider({ children, initial }: { children: ReactNode; initial?: Partial<Prefs> }) {
   const [prefs, setPrefs] = useState<Prefs>(() => ({ ...load(), ...initial }));
   const set = useCallback((p: Partial<Prefs>) => {
@@ -26,6 +21,5 @@ export function PrefsProvider({ children, initial }: { children: ReactNode; init
     });
   }, []);
   const value = useMemo(() => ({ prefs, set }), [prefs, set]);
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return <PrefsCtx.Provider value={value}>{children}</PrefsCtx.Provider>;
 }
-export const usePrefs = () => useContext(Ctx);

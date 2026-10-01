@@ -1,4 +1,4 @@
-import { usePrefs } from "./prefs";
+import { usePrefs } from "./prefs-core";
 
 /**
  * Station adds decoration only, in space that is always reserved so toggling it never shifts layout.

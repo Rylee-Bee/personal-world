@@ -57,12 +57,17 @@ test("keyboard path: skip link, nav, strip, drill-in; focus ring on every contro
   await page.keyboard.press("Enter");
   await expect(page.getByRole("main")).toBeFocused();
   // every control gets a visible outline when focused by keyboard
-  const controls = page.locator("main :is(a[href], button, summary, input, [tabindex='0'])");
+  const controls = page.locator("main :is(a[href], button:not(:disabled), summary, input, [tabindex='0'])");
   const n = await controls.count();
   expect(n).toBeGreaterThan(8);
   for (let i = 0; i < Math.min(n, 12); i++) {
     await controls.nth(i).focus();
-    const outline = await controls.nth(i).evaluate((e) => { const s = getComputedStyle(e); return `${s.outlineStyle} ${s.outlineWidth}`; });
+    // a row's name button draws its ring on the ::after that stretches over the whole row
+    const outline = await controls.nth(i).evaluate((e) => {
+      const ring = (s: CSSStyleDeclaration) => `${s.outlineStyle} ${s.outlineWidth}`;
+      const own = ring(getComputedStyle(e));
+      return /^none|\b0px$/.test(own) ? ring(getComputedStyle(e, "::after")) : own;
+    });
     expect(outline, `control ${i}`).not.toMatch(/^none|\b0px$/);
   }
   const btn = page.getByRole("button", { name: /^Downloads/ }).first();
@@ -77,7 +82,8 @@ test("targets are at least 44px (strip at least 56px)", async ({ page }) => {
   await open(page);
   const strip = page.getByRole("group", { name: "Whole world" }).locator("button, a");
   for (let i = 0; i < (await strip.count()); i++) expect((await strip.nth(i).boundingBox())!.height).toBeGreaterThanOrEqual(56);
-  const rows = page.locator("main li > button");
+  // the whole row is the click target: the name button stretches over it
+  const rows = page.locator("main li.fd-row");
   for (let i = 0; i < (await rows.count()); i++) expect((await rows.nth(i).boundingBox())!.height).toBeGreaterThanOrEqual(44);
 });
 

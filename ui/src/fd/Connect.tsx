@@ -36,12 +36,27 @@ function RunDialog({ name, onConfirm, onCancel }: { name: string; onConfirm: () 
         if (event.key === "Escape") {
           event.preventDefault();
           onCancel();
+        } else if (event.key === "Tab") {
+          // Trap focus: Tab and Shift+Tab cycle inside the dialog.
+          const items = Array.from(ref.current?.querySelectorAll<HTMLElement>("button, [href], input, [tabindex]:not([tabindex='-1'])") ?? []);
+          if (items.length === 0) return;
+          const first = items[0];
+          const last = items[items.length - 1];
+          const at = document.activeElement;
+          if (event.shiftKey && (at === first || at === ref.current)) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && at === last) {
+            event.preventDefault();
+            first.focus();
+          }
         }
       }}
     >
       <h2 id={titleId} className="fd-dialog-title">
         Run {name}?
       </h2>
+      <p className="fd-dialog-sample">Sample, nothing was sent.</p>
       <div className="fd-dialog-actions">
         <button type="button" className="fd-btn" onClick={onConfirm}>
           Confirm
@@ -71,8 +86,10 @@ function ActionsPanel() {
 
   const confirm = () => {
     if (!running || running.access !== "write") return;
-    setReceipt(`${running.name}: ${outcomeText(running.outcome)}`);
+    const id = running.id;
+    setReceipt(`${running.name}: ${outcomeText(running.outcome)}. Sample, nothing was sent.`);
     setRunning(null);
+    runRefs.current[id]?.focus();
   };
 
   return (

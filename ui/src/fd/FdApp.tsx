@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Connect } from "./Connect";
 import { Home } from "./Home";
 import { Memory } from "./Memory";
-import { usePrefs } from "./prefs";
+import { usePrefs } from "./prefs-core";
 import { hashFor, parseHash, type Landmark } from "./route";
 import { Settings } from "./Settings";
 import { Shell } from "./Shell";

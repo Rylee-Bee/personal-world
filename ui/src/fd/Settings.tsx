@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { usePrefs } from "./prefs";
+import { usePrefs } from "./prefs-core";
 import type { Density, Pack, Theme, Words } from "./types";
 import "./fd.css";
 

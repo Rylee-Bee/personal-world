@@ -6,160 +6,126 @@ export interface MeterProps {
   frozen: boolean;
 }
 
-/** Clamp a count into [0, total] so an off-by-one upstream can never draw extra marks. */
-function clamp(n: number, total: number): number {
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(total, Math.round(n)));
+const MARKS_SHOWN = 6;
+
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+
+/** Parse "09:00 Walk" into a position along the day and a label. Items that do not parse are not drawn. */
+function dayEvents(items: (number | string | boolean)[]): { at: number; clock: string; label: string }[] {
+  const out: { at: number; clock: string; label: string }[] = [];
+  for (const it of items) {
+    const m = typeof it === "string" ? it.match(/^(\d{1,2}):(\d{2})\s*(.*)$/) : null;
+    if (m) out.push({ at: clamp01((Number(m[1]) * 60 + Number(m[2])) / 1440), clock: `${m[1].padStart(2, "0")}:${m[2]}`, label: m[3] });
+  }
+  return out;
 }
 
-function Segments({ meter }: { meter: Extract<MeterData, { type: "segments" }> }) {
-  const total = Math.max(0, Math.round(meter.total));
-  const filled = clamp(meter.filled, total);
-  return (
-    <span className="fd-meter-parts">
-      {Array.from({ length: total }, (_, i) => (
-        <span key={i} className={i < filled ? "fd-meter-seg fd-meter-seg--on" : "fd-meter-seg"} />
-      ))}
-    </span>
-  );
-}
-
-function Bars({ meter }: { meter: Extract<MeterData, { type: "bars" }> }) {
-  const max = meter.max !== undefined && meter.max > 0 ? meter.max : Math.max(1, ...meter.values);
-  return (
-    <span className="fd-meter-bars">
-      {meter.values.map((value, i) => {
-        const pct = Math.max(0, Math.min(100, (value / max) * 100));
-        return <span key={i} className="fd-meter-bar" style={{ height: `${pct}%` }} />;
-      })}
-    </span>
-  );
-}
-
-function Progress({ meter }: { meter: Extract<MeterData, { type: "progress" }> }) {
-  const pct = meter.max > 0 ? Math.max(0, Math.min(100, (meter.value / meter.max) * 100)) : 0;
-  return (
-    <span className="fd-meter-progress">
-      <span className="fd-meter-progress-fill" style={{ width: `${pct}%` }} />
-    </span>
-  );
-}
-
-function Marks({ meter }: { meter: Extract<MeterData, { type: "marks" }> }) {
-  const shown = Math.max(0, Math.round(meter.shown));
-  const more = Math.max(0, Math.round(meter.more));
-  return (
-    <span className="fd-meter-parts">
-      {Array.from({ length: shown }, (_, i) => (
-        <span key={i} className="fd-meter-mark" />
-      ))}
-      {more > 0 && <span className="fd-meter-more">{`+${more} more`}</span>}
-    </span>
-  );
-}
-
-function Dots({ meter }: { meter: Extract<MeterData, { type: "dots" }> }) {
-  const total = Math.max(0, Math.round(meter.total));
-  const on = clamp(meter.on, total);
-  return (
-    <span className="fd-meter-parts">
-      {Array.from({ length: total }, (_, i) => (
-        <span key={i} className={i < on ? "fd-meter-dot fd-meter-dot--on" : "fd-meter-dot"} />
-      ))}
-    </span>
-  );
-}
-
-/** Minutes since midnight for an "HH:MM" label, or null when it cannot be read. */
-function dayPosition(at: string): number | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(at);
-  if (!match) return null;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (hours > 23 || minutes > 59) return null;
-  return ((hours * 60 + minutes) / (24 * 60)) * 100;
-}
-
-function Day({ meter }: { meter: Extract<MeterData, { type: "day" }> }) {
-  return (
-    <span className="fd-meter-day">
-      <span className="fd-meter-day-track">
-        {meter.events.map((event, i) => {
-          const pos = dayPosition(event.at);
-          return pos === null ? null : (
-            <span key={i} className="fd-meter-day-mark" style={{ left: `${pos}%` }} />
-          );
-        })}
-      </span>
-      <span className="fd-meter-day-labels">
-        {meter.events.map((event, i) => (
-          <span key={i} className="fd-meter-day-label">
-            <span className="fd-meter-day-time">{event.at}</span>
-            <span>{event.label}</span>
-          </span>
-        ))}
-      </span>
-    </span>
-  );
-}
-
-function Shelf({ meter }: { meter: Extract<MeterData, { type: "shelf" }> }) {
-  return (
-    <span className="fd-meter-shelf">
-      {meter.items.map((item, i) => (
-        <span key={i} className="fd-meter-shelf-item">
-          {item}
+/**
+ * The drawing for a meter, or null when the data to draw it is missing: never invent progress. The
+ * text equivalent still names the whole meter for assistive tech.
+ */
+function body(m: MeterData): React.JSX.Element | null {
+  switch (m.type) {
+    case "progress": {
+      if (typeof m.value !== "number" || typeof m.max !== "number" || m.max <= 0) return null;
+      return (
+        <span className="fd-track">
+          <span className="fd-fill" style={{ width: `${clamp01(m.value / m.max) * 100}%` }} />
         </span>
-      ))}
-    </span>
-  );
-}
-
-function MeterBody({ meter }: { meter: MeterData }) {
-  switch (meter.type) {
-    case "segments":
-      return <Segments meter={meter} />;
-    case "bars":
-      return <Bars meter={meter} />;
-    case "progress":
-      return <Progress meter={meter} />;
-    case "marks":
-      return <Marks meter={meter} />;
-    case "dots":
-      return <Dots meter={meter} />;
-    case "day":
-      return <Day meter={meter} />;
-    case "shelf":
-      return <Shelf meter={meter} />;
+      );
+    }
+    case "segments": {
+      if (typeof m.count !== "number" || typeof m.filled !== "number" || m.count <= 0) return null;
+      return (
+        <span className="fd-seg">
+          {Array.from({ length: m.count }, (_, i) => (
+            <i key={i} className={i < m.filled! ? "on" : "off"} />
+          ))}
+        </span>
+      );
+    }
+    case "bars": {
+      if (!Array.isArray(m.items)) return null;
+      const nums = m.items.filter((x): x is number => typeof x === "number");
+      const max = Math.max(1, ...nums);
+      return (
+        <span className="fd-bars">
+          {nums.map((n, i) => (
+            <i key={i} style={{ height: `${Math.max(8, (n / max) * 100)}%` }} />
+          ))}
+        </span>
+      );
+    }
+    case "dots": {
+      if (!Array.isArray(m.items)) return null;
+      return (
+        <span className="fd-dots">
+          {m.items.map((x, i) => (
+            <i key={i} className={x ? "on" : ""} />
+          ))}
+        </span>
+      );
+    }
+    case "marks": {
+      if (!Array.isArray(m.items)) return null;
+      const more = m.items.length - MARKS_SHOWN;
+      return (
+        <span className="fd-marks">
+          {m.items.slice(0, MARKS_SHOWN).map((x, i) => (
+            <span key={i} className="fd-mk on">
+              {String(x)}
+            </span>
+          ))}
+          {more > 0 && <span className="fd-mk">{`+${more} more`}</span>}
+        </span>
+      );
+    }
+    case "day": {
+      if (!Array.isArray(m.items)) return null;
+      const ev = dayEvents(m.items);
+      return (
+        <span className="fd-day">
+          <span className="fd-day-track">
+            {ev.map((e, i) => (
+              <span key={i} className="fd-day-dot" style={{ left: `${e.at * 100}%` }} />
+            ))}
+          </span>
+          <span className="fd-day-labels">
+            {ev.map((e, i) => (
+              <span key={i} className="fd-day-label">
+                <span className="fd-day-clock">{e.clock}</span> {e.label}
+              </span>
+            ))}
+          </span>
+        </span>
+      );
+    }
+    case "shelf": {
+      if (!Array.isArray(m.items)) return null;
+      return (
+        <span className="fd-shelf">
+          {m.items.map((x, i) => (
+            <span key={i} className="fd-spine">
+              {String(x)}
+            </span>
+          ))}
+        </span>
+      );
+    }
     default:
       return null;
   }
 }
 
 /**
- * One visual meter. The whole thing is a single image to assistive tech: the
- * text equivalent is the name, the drawn marks are presentational, and the
- * meter never animates. Frozen draws a striped, dashed "last good" treatment.
+ * One visual meter. A single image to assistive tech named by the text equivalent; the drawn marks
+ * are presentational and never animate. Frozen draws the striped last-good treatment. A meter with no
+ * data to draw renders nothing.
  */
-/** The API may send a meter with only `type` and `text_equivalent`. Draw nothing then: never invent progress. */
-function drawable(m: MeterData): boolean {
-  const o = m as unknown as Record<string, unknown>;
-  const num = (k: string) => typeof o[k] === "number";
-  const arr = (k: string) => Array.isArray(o[k]);
-  switch (m.type) {
-    case "segments": return num("filled") && num("total");
-    case "bars": return arr("values");
-    case "progress": return num("value") && num("max");
-    case "marks": return num("shown") && num("more");
-    case "dots": return num("on") && num("total");
-    case "day": return arr("events");
-    case "shelf": return arr("items");
-    default: return false;
-  }
-}
-
 export function Meter({ meter, frozen }: MeterProps) {
-  if (!meter || !drawable(meter)) return null;
+  if (!meter) return null;
+  const drawn = body(meter);
+  if (!drawn) return null;
   return (
     <span
       className={`fd-meter fd-meter--${meter.type}${frozen ? " fd-meter--frozen" : ""}`}
@@ -167,7 +133,7 @@ export function Meter({ meter, frozen }: MeterProps) {
       aria-label={meter.text_equivalent}
       data-frozen={frozen ? "true" : undefined}
     >
-      <MeterBody meter={meter} />
+      {drawn}
     </span>
   );
 }

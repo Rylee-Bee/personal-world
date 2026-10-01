@@ -6,6 +6,7 @@ const SHOTS = process.env.PW_FD_SHOTS;
 test("Home against the real reference provider", async ({ page }, info) => {
   await page.goto("/#home");
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
+  await expect(page.getByRole("status")).toHaveCount(0);
 
   // unavailable, degraded, locked all land in Needs a look, worst first
   const look = page.getByRole("heading", { name: "Needs a look" }).locator("xpath=ancestor::section");

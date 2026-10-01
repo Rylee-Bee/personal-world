@@ -21,8 +21,14 @@ describe("Meter", () => {
     expect(container).toBeEmptyDOMElement();
   });
   it("draws nothing when the API sends a meter with no data to draw", () => {
-    const bare = { type: "progress", text_equivalent: "Uptime: 1h 2m" } as unknown as Parameters<typeof Meter>[0]["meter"];
+    const bare = { type: "progress", text_equivalent: "Uptime: 1h 2m" } as const;
     const { container } = render(<Meter meter={bare} frozen={false} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+  it("an explicit 0 is real and draws; a missing number does not", () => {
+    const { container, rerender } = render(<Meter meter={{ type: "progress", value: 0, max: 1, text_equivalent: "0 of 1" }} frozen={false} />);
+    expect(container.querySelector(".fd-fill")).not.toBeNull();
+    rerender(<Meter meter={{ type: "progress", max: 1, text_equivalent: "x" }} frozen={false} />);
     expect(container).toBeEmptyDOMElement();
   });
   it("marks a frozen meter", () => {
@@ -30,7 +36,7 @@ describe("Meter", () => {
     expect(screen.getByRole("img")).toHaveAttribute("data-frozen", "true");
   });
   it("shows only waiting marks plus +N more", () => {
-    render(<Meter meter={{ type: "marks", shown: 3, more: 2, text_equivalent: "5 waiting; 3 shown, 2 more" }} frozen={false} />);
+    render(<Meter meter={{ type: "marks", items: ["a", "b", "c", "d", "e", "f", "g", "h"], text_equivalent: "8 waiting" }} frozen={false} />);
     expect(screen.getByText("+2 more")).toBeInTheDocument();
   });
   it("puts day labels under the track as text", () => {
@@ -55,7 +61,7 @@ describe("Row anatomy", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("Unavailable")).toBeInTheDocument();
     expect(screen.getByText("■")).toBeInTheDocument();
-    expect(screen.getByText("as of 08:12")).toBeInTheDocument();
+    expect(screen.getByText("Last good 08:12")).toBeInTheDocument();
     expect(screen.getByRole("img")).toHaveAttribute("data-frozen", "true");
   });
   it("a value of text \"unknown\" with no raw shows a dash, never 0 or the word, and no meter", () => {
@@ -79,6 +85,22 @@ describe("Row anatomy", () => {
     expect(screen.getByText("How full the main disk is.")).toBeInTheDocument();
     expect(screen.getByText("Current")).toBeInTheDocument();
   });
+  it("a problem row always says when it was last good; unknown says never", () => {
+    row("malformed");
+    expect(screen.getByText("Last good —")).toBeInTheDocument();
+    expect(screen.getByText("Last good: never")).toHaveClass("fd-sr");
+  });
+  it("does not repeat the name as its meaning", () => {
+    row("malformed");
+    expect(screen.getAllByText("Calendar")).toHaveLength(1);
+    expect(screen.getByText("Today's events")).toBeInTheDocument();
+  });
+  it("the drill-in shows field labels, never keys", () => {
+    row("downloads", { expanded: true });
+    const region = screen.getByRole("region", { name: "Downloads details" });
+    expect(within(region).getByText("Active")).toBeInTheDocument();
+    expect(within(region).queryByText("active")).not.toBeInTheDocument();
+  });
   it("the whole row is one disclosure button", async () => {
     const onToggle = vi.fn();
     row("disk", { onToggle });
@@ -94,10 +116,10 @@ describe("Row anatomy", () => {
     const at = (s: string) => text.indexOf(s);
     expect(at("The queue Sonarr")).toBeGreaterThanOrEqual(0);
     expect(at("The queue Sonarr")).toBeLessThan(at("Unavailable"));
-    expect(at("Unavailable")).toBeLessThan(at("as of 08:12"));
+    expect(at("Unavailable")).toBeLessThan(at("Last good 08:12"));
     const ev = within(region).getByText("Technical evidence");
     expect(ev.closest("summary")).not.toBeNull();
-    expect(at("as of 08:12")).toBeLessThan(text.indexOf("Technical evidence"));
+    expect(at("Last good 08:12")).toBeLessThan(text.indexOf("Technical evidence"));
     expect(within(region).getByRole("link", { name: "Open in Connect" })).toHaveAttribute("href", "#connect");
     expect(region.querySelector("details")).toHaveTextContent(/sonarr\.queue/);
     expect(region.querySelector("details")).toHaveTextContent(/http_5xx/);
