@@ -226,12 +226,14 @@ def test_startup_recovery_marks_interrupted_executions_unknown(tmp_path, monkeyp
     cfg.mkdir()
     write_owner(cfg)
     seed(cfg, ref)
-    app = create_app(cfg, data)
+    app = create_app(cfg, data, maintenance_interval=3600)
     d = app.state.dispatcher
     from personal_world.worlds.authn import Principal
     o = Principal("owner", "owner", step_up_at=time.time(), via="session")
     a = d.approve(o, d.request_authorization(o, "ping")["id"])
     d._consume(o, a["id"])                               # the process "dies" here
+    with app.state.db.write_tx() as tx:                  # the dead process's lease lapses
+        tx.execute("update leases set heartbeat = heartbeat - 1000")
     app.state.db.close()
     again = create_app(cfg, data)
     assert again.state.recovered == 1
@@ -253,3 +255,68 @@ def test_fails_closed_without_a_valid_owner_policy(tmp_path, ref):
                 headers={"Origin": ORIGIN, "X-CSRF-Token": app.state.auth.csrf_token(sid)})
     assert r.status_code == 403
     assert c2.post("/api/auth/bootstrap", json={"token": BOOT}, headers={"Origin": ORIGIN}).status_code == 403
+
+
+def test_recovery_has_already_run_before_the_first_request(tmp_path, monkeypatch, ref):
+    monkeypatch.setenv("PW_TEST_BOOTSTRAP", BOOT)
+    cfg, data = tmp_path / "cfg", tmp_path / "data"
+    cfg.mkdir()
+    write_owner(cfg)
+    seed(cfg, ref)
+    first = create_app(cfg, data, maintenance_interval=3600)
+    d = first.state.dispatcher
+    from personal_world.worlds.authn import Principal
+    o = Principal("owner", "owner", step_up_at=time.time(), via="session")
+    d._consume(o, d.approve(o, d.request_authorization(o, "ping")["id"])["id"])
+    with first.state.db.write_tx() as tx:
+        tx.execute("update leases set heartbeat = heartbeat - 1000")
+    first.state.db.close()
+    second = create_app(cfg, data, maintenance_interval=3600)
+    c = TestClient(second, base_url=ORIGIN, follow_redirects=False)
+    h = login(second, c)
+    assert c.get("/api/receipts").json()[0]["state"] == "UNKNOWN"      # already settled when the first request lands
+
+
+def test_a_live_process_is_not_recovered_out_from_under_itself(tmp_path, monkeypatch, ref):
+    monkeypatch.setenv("PW_TEST_BOOTSTRAP", BOOT)
+    cfg, data = tmp_path / "cfg", tmp_path / "data"
+    cfg.mkdir()
+    write_owner(cfg)
+    seed(cfg, ref)
+    live = create_app(cfg, data, maintenance_interval=3600)
+    from personal_world.worlds.authn import Principal
+    o = Principal("owner", "owner", step_up_at=time.time(), via="session")
+    d = live.state.dispatcher
+    d._consume(o, d.approve(o, d.request_authorization(o, "ping")["id"])["id"])     # in flight in a LIVE process
+    second = create_app(cfg, data, maintenance_interval=3600)                         # a second process starts
+    assert second.state.recovered == 0
+    assert live.state.db.conn().execute("select state from executions").fetchone()[0] == "INTENT"
+
+
+def test_new_app_does_not_use_the_old_auth_stack():
+    import subprocess, sys
+    out = subprocess.run([sys.executable, "-c",
+                          "import sys, personal_world.worlds.production as p; "
+                          "print([m for m in ('personal_world.api','personal_world.auth','personal_world.auth_routes','personal_world.identity') if m in sys.modules])"],
+                         capture_output=True, text=True, check=True).stdout.strip()
+    assert out == "[]"
+
+
+def test_app_from_env_requires_both_directories(monkeypatch, tmp_path):
+    from personal_world.worlds.production import app_from_env
+    monkeypatch.delenv("PW_CONFIG_DIR", raising=False)
+    monkeypatch.setenv("PW_DATA_DIR", str(tmp_path))
+    with pytest.raises(SystemExit):
+        app_from_env()
+    monkeypatch.setenv("PW_CONFIG_DIR", str(tmp_path / "cfg"))
+    (tmp_path / "cfg").mkdir()
+    assert app_from_env().title
+
+
+def test_sessions_are_bound_to_the_owner_identity_in_production(env):
+    app, c, cfg, data = env
+    login(app, c)
+    assert c.get("/api/auth/session").json()["authenticated"]
+    (cfg / "owner.yaml").write_text(yaml.safe_dump({"schema_version": 1, "public_origin": ORIGIN, "bootstrap": {"enabled": True, "secret_ref": "env:PW_TEST_BOOTSTRAP"},
+                                         "oidc": {"issuer": "https://auth.example.test", "subject": "new-owner"}}))
+    assert c.get("/api/auth/session").json()["authenticated"] is False
