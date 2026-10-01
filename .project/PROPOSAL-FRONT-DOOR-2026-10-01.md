@@ -538,6 +538,44 @@ icon · name + what it means · meter · value + unit · state + freshness
   - No horizontal overflow; one timeline-label overflow was found and fixed.
   - The Core/Station invariance probe passes.
 
+### Importance hierarchy and word layers (rev 3.5)
+
+Owner request: "make the design show your eyes what is important"; earlier, "it feels kinda … text-y". Importance is carried by **size, brightness and position before any word is read** (Few's pre-attentive attributes).
+
+**Home top to bottom, by importance:**
+
+1. **Greeting**, plus a one-line briefing (its length depends on the Words setting).
+2. **World strip.** Every source as one segment, worst first, shown as icon + state shape. Unavailable is a dashed ■, stale a dashed ◌, needs-attention an outlined ▲, healthy a calm ●, not-set-up a dashed ◇. Tapping a segment opens that row. The whole world's proportion of quiet to not-quiet is visible in one glance.
+3. **Needs you**, an amber band and the brightest element on the page, with primary buttons.
+4. **Needs a look**: **tall** rows (52px icon, 2.4rem value, full meter), sorted worst first (unavailable → stale → needs attention).
+5. **Continue**, as chips.
+6. **Your life**: **medium** rows.
+7. **Quietly working**: **slim** one-line rows, transparent, no meter unless Detailed.
+
+**Word layers (who owns which words):**
+
+| Layer | Example | Owner | Pack may change? |
+|---|---|---|---|
+| Facts | "Downloads", "2", "Unavailable", "Last good 19:42", "HTTP 500" | Core, fixed and generic | Never |
+| Meaning | "Can't check in", "Quietly working" (≈4 words) | Core default | Re-voice only, same meaning ("Missed check-in") |
+| Voice | Briefing flavour, crew lines, lore in empty states | Packs | Freely |
+
+**Words, a comfort setting independent of the pack:**
+
+| Setting | Shows |
+|---|---|
+| **Minimal** | Facts only: name, number, unit, state word |
+| **Short** (default) | Adds the meaning label and a terse briefing: "2 need you · Downloads can't check in · rest quiet" |
+| **Full** | Adds the sentence briefing, meaning on quiet rows, and freshness on every row |
+
+Freshness always shows on rows that need a look.
+
+**Checks:**
+
+- axe reports 0 violations in 16 states (three Words settings, all answering, Station, Detailed with stale data, strip-jump, edit; 390px and 1280px).
+- No horizontal overflow; one Detailed-phone overflow was found and fixed.
+- The Core/Station invariance probe passes.
+
 ### Core personality vs pack personality
 
 | Core (Experience pack: None) | Station pack adds |
@@ -638,6 +676,7 @@ icon · name + what it means · meter · value + unit · state + freshness
 | 2026-10-01 (taps) | Personality becomes an optional pack; just Rylee + scoped agent tokens; keep OIDC in Worlds; refine before building |
 | 2026-10-01 (review 2) | Mapping as the semantic layer; governed actions with single dispatch; Memory stays core; doc conflicts resolved explicitly; UI-first with lossless YAML; Chat parked; recipes Project Home → Sonarr → Homelab Health; reference provider in Phase 1 |
 | 2026-10-01 (naming) | Standard names in core, not themed ones |
+| 2026-10-01 (importance) | Show the eyes what is important; Words layers and setting (Minimal / Short / Full) |
 | 2026-10-01 (direction) | Home direction: **Instruments**, made more robust and warm |
 | 2026-10-01 (review 3) | Skeleton `Home · Connect · Memory · Settings`; raw mechanics live only in Connect; the Station pack is an overlay that never changes structure; quiet means lower emphasis, not harder to read; the Make prototype is a disposable lab |
 
