@@ -80,6 +80,19 @@ SQLite at `$PW_DATA_DIR/worlds.db`, WAL, `BEGIN IMMEDIATE`.
 
 Every rendered card or row exposes: accessible name; state word plus shape (● healthy, ▲ needs attention, ■ unavailable, ◌ stale, ○ unknown, ◇ not configured, ◆ degraded); value text with unit; meter `text_equivalent`; freshness text; a link to detail. Targets ≥44px; labels ≥13px; body 16px; no colour-only state; static unless `prefers-reduced-motion: no-preference`.
 
+## C6 Home read API
+
+Orchestrator decisions, 2026-10-01. Values come only from the per-card C2 envelope (`GET /api/cards/{id}`).
+
+- `GET /api/boards/home` → `{id, title, items:[{card, size S|M|L, hidden, title, icon, group life|machine, view, fields:[{key, label, format, unit}], meter_type|null}]}`. The display definition is derived from the C1 card. No request ids, paths, provider URLs or JSONPaths in the payload. The primary value is `fields[0]`. `needs_you` is not a board item field.
+- `GET /api/needs-you` → `[{id, text, source, created_at, action:{kind: open|approve, href?|authorization_id?}}]`. `text` is a terse imperative ("Approve Hive Works plan"). Fed by pending Project Home approvals (room/0) and pending Worlds authorizations. Needs you is never inferred from `source_state`.
+- Grouping, by C2 envelope:
+  - **Needs a look:** `source_state` in {unavailable, degraded, stale, needs_attention, unknown} or `freshness: stale`. Worst first: unavailable, degraded, stale, needs_attention, unknown.
+  - **Your life:** healthy + `group: life`. **Quietly working:** healthy + `group: machine` (folds to one line in Calm density).
+  - **not_configured:** not a row on Home. It shows as ◇ in the whole-world strip only, linking to Connect.
+  - An empty Needs a look shows "Nothing needs a look. Everything is answering." Groups never reorder.
+- **Pick up (reserved):** omit the section entirely when there is no data. The future source is `GET /api/pickup`, backed by Memory Later and History (L-memory).
+
 ## C7 Owner and identity
 
 Identity is not a provider, request or card, so it is not under `worlds/`. One file, `<config dir>/owner.yaml`:
@@ -101,3 +114,6 @@ bootstrap:                                    # optional local sign-in
 - **Bootstrap:** the owner can sign in with the secret behind `secret_ref` (POST /api/auth/bootstrap, allowed Origin required). It also serves as step-up. Failed guesses are limited **per client address**: 3 free, then exponential back-off (5 s doubling, capped at 15 minutes); a client in back-off is refused without its secret being checked. A global ceiling (30 failures in 10 minutes) only spaces attempts 2 s apart; it never locks the owner out, and OIDC sign-in is unaffected. Bootstrap is available while `bootstrap.enabled` is true, and **switches itself off once OIDC is configured and one OIDC owner sign-in has succeeded** (sign-in and step-up both); remove or disable the block to turn it off sooner (the file is re-read on every request).
 - **Session binding:** a session is bound to a hash of `public_origin` + OIDC issuer + subject (or bootstrap-only). Changing the owner identity in the file ends every existing session.
 - **Step-up** (needed to approve anything): a fresh proof inside 120 seconds (OIDC re-login with `auth_time` fresh for the same subject, or the bootstrap secret) stamps the session; it counts for 5 minutes. An agent token never has step-up and never approves.
+- **Who is "a client"** for the bootstrap rate limit: the peer address, or, when `PW_TRUSTED_PROXIES` (comma-separated IPs/CIDRs of your reverse proxies) is set, the right-most `X-Forwarded-For` hop that is not a trusted proxy (a peer that is not a trusted proxy is never believed about that header; a garbage hop means none of it is trusted). With `PW_TRUSTED_PROXIES` unset and `X-Forwarded-For` arriving from a non-loopback peer, Worlds logs a warning once: everyone behind that proxy then shares one limit.
+- **The owner can never be locked out by others:** while a client is in back-off, one guess is evaluated at most every 2 seconds (globally), a wrong guess is refused with no penalty and no hint, and the correct secret passes at most once per 15 minutes. The comparison is always made in constant time, in every branch.
+- **The bootstrap secret must be at least 20 characters** (generate one with `openssl rand -hex 24`); a shorter secret disables bootstrap sign-in outright.

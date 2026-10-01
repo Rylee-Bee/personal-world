@@ -558,3 +558,62 @@ def test_a_settled_row_is_not_overwritten_by_a_late_result(env, caplog):
     r = d.execute(owner(), approved(env)["id"])
     assert r["state"] == "UNKNOWN"                            # a 200 arriving late does not turn it into SUCCEEDED
     assert any("settled elsewhere" in m for m in caplog.messages)
+
+
+# ------------------------------------------- fast restart (review #237): identity beats the lease TTL
+
+def _crash_in_flight(env, identity):
+    d, db, store, send, clock = env
+    d2 = Dispatcher(db, store, send=Sender(), clock=clock, identity=identity)
+    a = d2.approve(owner(), d2.request_authorization(owner(), "go")["id"])
+    d2._consume(owner(), a["id"])
+    return d2
+
+
+def test_restart_with_the_same_pid_settles_the_dead_predecessor_at_once(env):
+    d, db, store, send, clock = env
+    _crash_in_flight(env, ("boot-1", 1, "100"))                      # container pid 1, started at tick 100
+    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-1", 1, "900"))   # restarted: pid 1 again
+    assert me.recover() == 1                                         # no 30 s wait: same pid, different start time
+    assert db.conn().execute("select state from executions").fetchone()[0] == "UNKNOWN"
+
+
+def test_a_lease_from_a_previous_boot_is_dead_immediately(env):
+    d, db, store, send, clock = env
+    _crash_in_flight(env, ("boot-OLD", 4242, "100"))
+    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-NEW", 77, "5"))
+    assert me.recover() == 1
+
+
+def test_a_different_live_process_on_the_same_boot_is_left_alone(env):
+    d, db, store, send, clock = env
+    _crash_in_flight(env, ("boot-1", 4242, "100"))
+    me = Dispatcher(db, store, send=Sender(), clock=clock, identity=("boot-1", 77, "5"))
+    assert me.recover() == 0                                         # fresh lease, different pid: still alive
+    clock.t += LEASE_TTL_S + 1
+    me.heartbeat()
+    assert me.recover() == 1                                         # until its lease lapses
+
+
+def test_process_identity_is_boot_pid_start():
+    from personal_world.worlds.dispatcher import process_identity
+    boot, pid, started = process_identity()
+    import os
+    assert pid == os.getpid() and boot and started
+
+
+def test_a_row_settled_between_consume_and_dispatch_is_never_sent(env):
+    d, db, store, send, _ = env
+    a = approved(env)
+    real = d.heartbeat
+
+    def settle_then_beat():
+        with db.write_tx() as tx:
+            tx.execute("update executions set state='UNKNOWN', evidence_redacted='{}' where state='INTENT'")
+        real()
+
+    d.heartbeat = settle_then_beat
+    with pytest.raises(DispatchError):
+        d.execute(owner(), a["id"])
+    assert send.calls == []
+    assert db.conn().execute("select state from executions").fetchone()[0] == "UNKNOWN"

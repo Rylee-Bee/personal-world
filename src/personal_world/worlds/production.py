@@ -19,15 +19,33 @@ from fastapi import FastAPI
 from ..oidc import OIDCService
 from .actions_routes import register_action_routes
 from .auth_routes import register_auth_routes
-from .authn import Auth, load_csrf_key, principal_dependency
+from .auth_routes import parse_trusted_proxies
+from .authn import Auth, load_csrf_key, load_key, principal_dependency
 from .db import Database
 from .dispatcher import LEASE_TTL_S, Dispatcher
 from .owner import load_owner_policy
+from .secrets import resolve_secret_ref
 from .server import build_app
 
 
+class LiveSecrets:
+    """Every credential the providers currently resolve to, looked up at redaction time, so a secret
+    rotated after startup is still scrubbed from notes and receipts. Iterating yields values only."""
+
+    def __init__(self, store: Any, extra: tuple[str, ...] = ()):
+        self._store, self._extra = store, tuple(extra)
+
+    def __iter__(self):
+        yield from self._extra
+        for kind, obj in self._store.iter_all():
+            if kind == "provider" and obj.auth.secret_ref:
+                value = resolve_secret_ref(obj.auth.secret_ref)
+                if value:
+                    yield value
+
+
 def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[str], *, secret_values: tuple[str, ...] = (),
-               maintenance_interval: float = LEASE_TTL_S / 3) -> FastAPI:
+               maintenance_interval: float = LEASE_TTL_S / 3, trusted_proxies: tuple[Any, ...] | None = None) -> FastAPI:
     config_dir, data_dir = Path(config_dir), Path(data_dir)
     policy = load_owner_policy(config_dir)
     db = Database.in_dir(data_dir)
@@ -51,9 +69,13 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
                  "action": {"kind": "approve", "authorization_id": r["id"]}} for r in rows]
 
     hosts = [urlsplit(policy.public_origin).hostname] if policy.public_origin else []
+    from .config_store import ConfigStore
+
+    live = LiveSecrets(ConfigStore(config_dir), secret_values)        # a second read-only view for redaction
     app = build_app(config_dir, principal_dependency=owner_dep, allowed_hosts=hosts or ["invalid.invalid"],
-                    data_dir=data_dir, secret_values=secret_values, needs_you=needs_you)
-    dispatcher = Dispatcher(db, app.state.store, secret_values=secret_values)
+                    data_dir=data_dir, secret_values=live, needs_you=needs_you)
+    live._store = app.state.store
+    dispatcher = Dispatcher(db, app.state.store, secret_values=live)
     holder["d"] = dispatcher
     # Recovery runs HERE, before create_app returns, so no route can be served first. Rows owned by a
     # live process (a lease renewed within LEASE_TTL_S) are left alone; the maintenance thread keeps
@@ -79,13 +101,16 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
     def oidc_service() -> Any:
         return oidc["svc"]
 
+    flow_key = load_key(data_dir, "oidc-flow.key")   # persisted: any worker can finish a login another started
+
     class _Lazy:
         def client(self):
             if oidc["svc"] is None:
-                oidc["svc"] = OIDCService(config_dir)
+                oidc["svc"] = OIDCService(config_dir, flow_key=flow_key)
             return oidc["svc"].client()
 
-    register_auth_routes(app, auth, lambda: load_owner_policy(config_dir), _Lazy())
+    proxies = trusted_proxies if trusted_proxies is not None else parse_trusted_proxies(os.environ.get("PW_TRUSTED_PROXIES"))
+    register_auth_routes(app, auth, lambda: load_owner_policy(config_dir), _Lazy(), trusted_proxies=proxies)
     register_action_routes(app, auth, dispatcher, anyone=anyone_dep, owner=owner_dep)
     return app
 
@@ -95,4 +120,8 @@ def app_from_env() -> FastAPI:
     config, data = os.environ.get("PW_CONFIG_DIR"), os.environ.get("PW_DATA_DIR")
     if not config or not data:
         raise SystemExit("PW_CONFIG_DIR and PW_DATA_DIR must both be set")
-    return create_app(config, data)
+    try:
+        proxies = parse_trusted_proxies(os.environ.get("PW_TRUSTED_PROXIES"))
+    except ValueError as exc:
+        raise SystemExit(f"PW_TRUSTED_PROXIES is not a list of IPs/CIDRs: {exc}") from None
+    return create_app(config, data, trusted_proxies=proxies)

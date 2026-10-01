@@ -167,7 +167,12 @@ class AgentTokenStore:
 
 
 def load_csrf_key(data_dir: str | os.PathLike[str]) -> bytes:
-    path = Path(data_dir) / "csrf.key"
+    return load_key(data_dir, "csrf.key")
+
+
+def load_key(data_dir: str | os.PathLike[str], name: str) -> bytes:
+    """A persisted random 32-byte key (0600) so every worker process and every restart agrees on it."""
+    path = Path(data_dir) / name
     if path.exists():
         key = path.read_bytes()
         if len(key) >= 32:

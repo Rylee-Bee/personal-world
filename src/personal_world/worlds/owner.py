@@ -28,6 +28,8 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from .secrets import resolve_secret_ref
 
+MIN_BOOTSTRAP_SECRET = 20
+
 
 class OwnerOIDC(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -87,7 +89,7 @@ class OwnerPolicy:
         if b is None or not b.enabled or not presented:
             return False
         secret = resolve_secret_ref(b.secret_ref)
-        if not secret:
+        if not secret or len(secret) < MIN_BOOTSTRAP_SECRET:   # a short secret is refused outright (fail closed)
             return False
         return hmac.compare_digest(presented.encode(), secret.encode())
 
