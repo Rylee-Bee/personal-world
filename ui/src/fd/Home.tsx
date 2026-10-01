@@ -113,23 +113,23 @@ interface Raw {
 type EditAction = "earlier" | "later" | "hide" | "size-S" | "size-M" | "size-L";
 
 /** The arrange controls for one row: keyboard operable, 44px targets, every name says which row. */
-function EditControls({ item, index, count, onAction }: { item: BoardItem; index: number; count: number; onAction: (a: EditAction) => void }) {
+function EditControls({ item, index, count, disabled, onAction }: { item: BoardItem; index: number; count: number; disabled: boolean; onAction: (a: EditAction) => void }) {
   const t = item.title;
   const key = (a: EditAction) => `${item.card}:${a}`;
   return (
     <div className="fd-row-edit" role="group" aria-label={`Arrange ${t}`}>
-      <button type="button" className="fd-btn fd-btn--quiet" data-edit={key("earlier")} disabled={index === 0} aria-label={`Move ${t} earlier`} onClick={() => onAction("earlier")}>
+      <button type="button" className="fd-btn fd-btn--quiet" data-edit={key("earlier")} disabled={disabled || index === 0} aria-label={`Move ${t} earlier`} onClick={() => onAction("earlier")}>
         Earlier
       </button>
-      <button type="button" className="fd-btn fd-btn--quiet" data-edit={key("later")} disabled={index === count - 1} aria-label={`Move ${t} later`} onClick={() => onAction("later")}>
+      <button type="button" className="fd-btn fd-btn--quiet" data-edit={key("later")} disabled={disabled || index === count - 1} aria-label={`Move ${t} later`} onClick={() => onAction("later")}>
         Later
       </button>
-      <button type="button" className="fd-btn fd-btn--quiet" data-edit={key("hide")} aria-label={`Hide ${t}`} onClick={() => onAction("hide")}>
+      <button type="button" className="fd-btn fd-btn--quiet" data-edit={key("hide")} disabled={disabled} aria-label={`Hide ${t}`} onClick={() => onAction("hide")}>
         Hide
       </button>
       <span className="fd-row-edit-sizes" role="group" aria-label={`Size of ${t}`}>
         {(["S", "M", "L"] as Size[]).map((s) => (
-          <button key={s} type="button" className="fd-btn fd-btn--quiet" data-edit={key(`size-${s}` as EditAction)} aria-pressed={item.size === s} aria-label={`${t} size ${s}`} onClick={() => onAction(`size-${s}` as EditAction)}>
+          <button key={s} type="button" className="fd-btn fd-btn--quiet" data-edit={key(`size-${s}` as EditAction)} disabled={disabled} aria-pressed={item.size === s} aria-label={`${t} size ${s}`} onClick={() => onAction(`size-${s}` as EditAction)}>
             {s}
           </button>
         ))}
@@ -158,6 +158,7 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   const rootRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [opening, setOpening] = useState(false);
   const edit = useBoardEdit(board);
   const { edits, arranged, note } = edit;
   const focusRef = useRef<string | null>(null);
@@ -215,7 +216,7 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
 
   const sections = snap.sections;
   const { words, density } = prefs;
-  const calmQuiet = density === "calm" && !quietOpen;
+  const calmQuiet = density === "calm" && !quietOpen && !editing;
 
   const reveal = (cardId: string) => {
     setOpenId(cardId);
@@ -255,13 +256,13 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
       expanded={openId === row.item.card}
       onToggle={() => toggle(row.item.card)}
       tier={tier}
-      controls={editing ? <EditControls item={row.item} index={index} count={list.length} onAction={(a) => act(row, list, a)} /> : undefined}
+      controls={editing ? <EditControls item={row.item} index={index} count={list.length} disabled={!!edit.error} onAction={(a) => act(row, list, a)} /> : undefined}
     />
   );
   const hiddenItems = arranged?.items.filter((i) => i.hidden) ?? [];
 
   return (
-    <div className="fd-home" ref={rootRef} onFocus={onFocus} onBlur={onBlur}>
+    <div className="fd-home" ref={rootRef} data-saving={edit.saving ? "true" : "false"} onFocus={onFocus} onBlur={onBlur}>
       <header className="fd-home-head">
         <h1 className="fd-home-title">{greeting(now ?? new Date(), prefs.name)}</h1>
         {ledeText && <p className="fd-home-briefing">{ledeText}</p>}
@@ -292,15 +293,33 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
             </p>
           )}
           <div className="fd-home-editrow">
-            <button type="button" className="fd-btn fd-btn--quiet fd-home-edit" aria-pressed={editing} onClick={() => { setEditing((e) => !e); setAddOpen(false); }}>
-              {editing ? "Done" : "Edit Home"}
+            <button
+              type="button"
+              className="fd-btn fd-btn--quiet fd-home-edit"
+              aria-pressed={editing}
+              aria-busy={opening}
+              onClick={async () => {
+                if (editing) {
+                  setEditing(false);
+                  setAddOpen(false);
+                  edit.clearNote();
+                } else if (!opening) {
+                  // Read the board file first: what you edit is what is saved, never an older copy.
+                  setOpening(true);
+                  const ok = await edit.begin();
+                  setOpening(false);
+                  if (ok) setEditing(true);
+                }
+              }}
+            >
+              Edit Home
             </button>
             {editing && (
               <>
-                <button type="button" className="fd-btn fd-btn--quiet" data-edit-add="" aria-expanded={addOpen} onClick={() => setAddOpen((o) => !o)}>
+                <button type="button" className="fd-btn fd-btn--quiet" data-edit-add="" disabled={!!edit.error} aria-expanded={addOpen} onClick={() => setAddOpen((o) => !o)}>
                   + Add to Home
                 </button>
-                <button type="button" className="fd-btn fd-btn--quiet" data-edit="undo" disabled={!edit.canUndo} onClick={undo}>
+                <button type="button" className="fd-btn fd-btn--quiet" data-edit="undo" disabled={!edit.canUndo || !!edit.error} onClick={undo}>
                   Undo
                 </button>
               </>
@@ -325,10 +344,26 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
           )}
           {edit.error && (
             <div className="fd-home-problem">
-              <p className="fd-home-error" role="alert">
-                {edit.error.text}
-              </p>
-              <button type="button" className="fd-btn fd-home-retry" onClick={edit.reload}>
+              <div>
+                <p className="fd-home-error" role="alert">
+                  {edit.error.text}
+                </p>
+                {edit.error.detail && (
+                  <details className="fd-home-detail">
+                    <summary>Details</summary>
+                    <p>{edit.error.detail}</p>
+                  </details>
+                )}
+                <p className="fd-home-note">Editing is paused until you reload.</p>
+              </div>
+              <button
+                type="button"
+                className="fd-btn fd-home-retry"
+                onClick={async () => {
+                  await edit.reload();
+                  rootRef.current?.querySelector<HTMLElement>(".fd-home-edit")?.focus();
+                }}
+              >
                 Reload
               </button>
             </div>

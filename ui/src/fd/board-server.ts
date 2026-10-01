@@ -21,6 +21,9 @@ export function createBoardServer() {
     reset() { doc = fresh(); version = 1; puts.length = 0; },
     /** Another editor changed the board: the next PUT with the old tag gets 409. */
     bump() { version += 1; },
+    /** Another editor saved this arrangement. */
+    external(items: ConfigItem[]) { doc = { ...doc, items }; version += 1; },
+    items(): ConfigItem[] { return doc.items; },
     display(): Board {
       const byCard = new Map(homeBoard.items.map((i) => [i.card, i]));
       return { ...homeBoard, items: doc.items.map((c) => ({ ...byCard.get(c.card)!, size: c.size, hidden: c.hidden })) };

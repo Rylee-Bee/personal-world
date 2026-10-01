@@ -130,7 +130,7 @@ test("Edit Home: keyboard-operable, axe clean, 44px controls, no overflow", asyn
   await open(page);
   await page.getByRole("button", { name: "Edit Home" }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit Home" })).toHaveAttribute("aria-pressed", "true");
   const reading = page.getByRole("button", { name: "Move Reading earlier" });
   await reading.focus();
   await page.keyboard.press("Enter");
@@ -188,3 +188,25 @@ test("phone: the bottom bar clears the home indicator and never covers content",
   });
   expect(gap).toBeGreaterThanOrEqual(0);
 });
+
+for (const size of ["Large", "Larger"]) {
+  test(`Text size ${size}: nothing in a strip tile spills past its border`, async ({ page }, info) => {
+    test.skip(info.project.name !== "phone-390", "phone layout only");
+    await open(page, "#settings");
+    await page.getByRole("radiogroup", { name: "Text size" }).getByLabel(size, { exact: true }).check();
+    await page.getByRole("link", { name: "Home" }).first().click();
+    await page.getByRole("heading", { name: "Needs a look" }).waitFor();
+    await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+    const spills = await page.getByRole("group", { name: "Whole world" }).locator("button, a").evaluateAll((tiles) =>
+      tiles.flatMap((tile) => {
+        const box = tile.getBoundingClientRect();
+        return Array.from(tile.querySelectorAll("*"))
+          .filter((c) => { const r = c.getBoundingClientRect(); return r.width > 0 && (r.right > box.right + 0.5 || r.left < box.left - 0.5); })
+          .map((c) => `${tile.getAttribute("aria-label")} > ${c.className}`);
+      }),
+    );
+    expect(spills).toEqual([]);
+    await noHorizontalOverflow(page);
+    await shot(page, `home-text-${size.toLowerCase()}`, info);
+  });
+}
