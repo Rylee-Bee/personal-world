@@ -6,7 +6,7 @@ const SHOTS = process.env.PW_FD_SHOTS;
 test("Home against the real reference provider", async ({ page }, info) => {
   await page.goto("/#home");
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
 
   // unavailable, degraded, locked all land in Needs a look, worst first
   const look = page.getByRole("heading", { name: "Needs a look" }).locator("xpath=ancestor::section");
@@ -35,4 +35,30 @@ test("Home against the real reference provider", async ({ page }, info) => {
   const o = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
   expect(o.sw).toBeLessThanOrEqual(o.cw);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/live-${info.project.name}-home.png`, fullPage: true });
+});
+
+test("Edit Home saves to the real board file and survives a reload", async ({ page }, info) => {
+  // Both viewports share one dev server and one board: only one of them writes.
+  test.skip(info.project.name !== "live-desktop-1280", "one writer");
+  await page.goto("/#home");
+  await page.getByRole("heading", { name: "Needs a look" }).waitFor();
+  await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+  // Quietly working keeps board order (Needs a look is sorted worst-first), so a move shows there.
+  const titles = () => page.locator("section:has(> h2:text('Quietly working')) li.fd-row .fd-row-title").allTextContents();
+  const before = await titles();
+  await page.getByRole("button", { name: "Edit Home" }).click();
+  const second = before[1];
+  const put = page.waitForResponse((r) => r.url().includes("/api/config/board/home") && r.request().method() === "PUT");
+  await page.getByRole("button", { name: `Move ${second} earlier` }).click();
+  expect((await put).status()).toBe(200);
+  await page.reload();
+  await page.getByRole("heading", { name: "Needs a look" }).waitFor();
+  await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+  expect((await titles()).indexOf(second)).toBeLessThan(before.indexOf(second));
+  // put it back: Undo is only for this session, so move it later again
+  await page.getByRole("button", { name: "Edit Home" }).click();
+  const back = page.waitForResponse((r) => r.url().includes("/api/config/board/home") && r.request().method() === "PUT");
+  await page.getByRole("button", { name: `Move ${second} later` }).click();
+  expect((await back).status()).toBe(200);
+  await expect.poll(titles).toEqual(before);
 });

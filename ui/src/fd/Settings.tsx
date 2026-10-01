@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { usePrefs } from "./prefs-core";
-import type { Density, Pack, Theme, Words } from "./types";
+import type { Density, Pack, TextSize, Theme, Words } from "./types";
 import "./fd.css";
 
 interface Option<T extends string> {
@@ -23,6 +23,12 @@ const DENSITY_OPTIONS: Option<Density>[] = [
   { value: "calm", label: "Calm" },
   { value: "standard", label: "Standard" },
   { value: "detailed", label: "Detailed" },
+];
+
+const TEXT_OPTIONS: Option<TextSize>[] = [
+  { value: "standard", label: "Standard" },
+  { value: "large", label: "Large" },
+  { value: "larger", label: "Larger" },
 ];
 
 const WORDS_OPTIONS: Option<Words>[] = [
@@ -105,6 +111,13 @@ export function Settings() {
           options={WORDS_OPTIONS}
           value={prefs.words}
           onChange={(words) => set({ words })}
+        />
+        <RadioGroup
+          label="Text size"
+          description="Scales all text. Standard is 16px."
+          options={TEXT_OPTIONS}
+          value={prefs.text}
+          onChange={(text) => set({ text })}
         />
         <p className="fd-settings-note">Motion follows your device setting.</p>
       </section>

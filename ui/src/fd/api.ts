@@ -59,6 +59,8 @@ export interface HomeData {
   pending: string[];
 }
 
+export const BOARD_KEY = ["fd", "board", "home"] as const;
+
 const NO_ITEMS: BoardItem[] = [];
 const NO_ENTRIES: NeedsYouEntry[] = [];
 
@@ -67,7 +69,7 @@ const NO_ENTRIES: NeedsYouEntry[] = [];
  * failing never hides the rest.
  */
 export function useHomeData(timeoutMs: number = DEFAULT_TIMEOUT_MS): HomeData {
-  const boardQ = useQuery({ queryKey: ["fd", "board", "home"], queryFn: () => getJson<Board>("/api/boards/home", timeoutMs), retry: 1, retryDelay: 150 });
+  const boardQ = useQuery({ queryKey: BOARD_KEY, queryFn: () => getJson<Board>("/api/boards/home", timeoutMs), retry: 1, retryDelay: 150 });
   const nyQ = useQuery({ queryKey: ["fd", "needs-you"], queryFn: () => getJson<NeedsYouEntry[]>("/api/needs-you", timeoutMs), retry: 1, retryDelay: 150 });
   const items = boardQ.data?.items ?? NO_ITEMS;
 
