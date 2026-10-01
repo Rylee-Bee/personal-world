@@ -34,7 +34,6 @@ FAILURE_WINDOW = 600.0
 GLOBAL_CEILING = 30        # failures in the window, across everybody, before the whole endpoint slows
 GLOBAL_GAP = 2.0           # ...to one attempt per this many seconds. It slows; it never locks.
 OIDC_LOGIN_KEY = "oidc_login_binding"
-ESCAPE_CHECK_GAP = 2.0     # in back-off, at most one guess is even evaluated per this many seconds (globally)
 ESCAPE_SUCCESS_GAP = 900.0  # in back-off, the correct secret passes at most once per 15 minutes
 MIN_BOOTSTRAP_SECRET = 20  # shorter secrets are refused outright (generate one: openssl rand -hex 24)
 
@@ -80,18 +79,11 @@ class _Limiter:
     def clear(self, client: str) -> None:
         self._clients.pop(client, None)
 
-    # The owner's way out of a back-off they did not cause (a shared proxy address, an attacker holding
-    # the key). A guess is evaluated at most every ESCAPE_CHECK_GAP seconds, and a correct one passes at
-    # most once per ESCAPE_SUCCESS_GAP. A wrong guess in back-off is just refused: no penalty, no hint.
-    _escape_checked = -1e18
+    # The owner's way out of a back-off they did not cause (a shared proxy address, an attacker holding the
+    # key). EVERY guess is evaluated (the comparison is made on every request anyway), so nothing an
+    # attacker sends can occupy a slot the owner needs: a correct secret passes whenever the 15-minute
+    # success slot is free, regardless of any back-off. Wrong guesses in back-off lengthen it further.
     _escape_passed = -1e18
-
-    def escape_check_slot(self) -> bool:
-        now = self._clock()
-        if now - self._escape_checked < ESCAPE_CHECK_GAP:
-            return False
-        self._escape_checked = now
-        return True
 
     def escape_pass_slot(self) -> bool:
         return self._clock() - self._escape_passed >= ESCAPE_SUCCESS_GAP
@@ -113,13 +105,22 @@ def parse_trusted_proxies(value: str | None) -> tuple[Any, ...]:
 _warned = {"xff": False}
 
 
+def _strip_port(hop: str) -> str:
+    """``1.2.3.4:5678`` -> ``1.2.3.4``; ``[::1]:80`` / ``[::1]`` -> ``::1``; a bare IPv6 stays as it is."""
+    if hop.startswith("["):
+        return hop[1:hop.index("]")] if "]" in hop else hop
+    if hop.count(":") == 1:
+        return hop.split(":", 1)[0]
+    return hop
+
+
 def client_key(request: Request, trusted: tuple[Any, ...]) -> str:
     """Who to rate-limit. Behind trusted proxies: the right-most X-Forwarded-For hop that is NOT a trusted
     proxy. A peer that is not a trusted proxy is never believed about X-Forwarded-For. With no trusted
     proxies configured the peer address is used, and a warning is logged once if requests arrive with
     X-Forwarded-For from a non-loopback peer (everyone then shares the proxy's key)."""
     peer = request.client.host if request.client else "unknown"
-    xff = request.headers.get("x-forwarded-for")
+    xff = ",".join(request.headers.getlist("x-forwarded-for")) or None   # every header line, in order
     try:
         peer_ip = ipaddress.ip_address(peer)
     except ValueError:
@@ -134,7 +135,7 @@ def client_key(request: Request, trusted: tuple[Any, ...]) -> str:
         return peer
     for hop in reversed([h.strip() for h in xff.split(",")]):
         try:
-            ip = ipaddress.ip_address(hop)
+            ip = ipaddress.ip_address(_strip_port(hop))
         except ValueError:
             return peer                      # garbage in the chain: do not trust any of it
         if not any(ip in net for net in trusted):
@@ -204,11 +205,13 @@ def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], O
                 return True
             limiter.fail(client)
             raise HTTPException(status_code=401, detail="that did not work")
-        # In back-off: refused, EXCEPT the owner's escape (a limited, evaluated-rarely path).
-        if limiter.escape_check_slot() and matches and limiter.escape_pass_slot():
+        # In back-off: refused, EXCEPT the owner's escape: the correct secret, at most once per 15 minutes.
+        if matches and limiter.escape_pass_slot():
             limiter.escape_passed()
             limiter.clear(client)
             return True
+        if not matches:
+            limiter.fail(client)            # a wrong guess in back-off lengthens it (the owner's escape ignores it)
         raise HTTPException(status_code=429, detail="too many attempts; wait and try again",
                             headers={"Retry-After": str(int(wait) + 1)})
 

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from personal_world.oidc import FLOW_COOKIE, OIDCLoginError, VerifiedIdentity
-from personal_world.worlds.auth_routes import (ESCAPE_CHECK_GAP, ESCAPE_SUCCESS_GAP, FREE_FAILURES, FRESH_AUTH_SECONDS, GLOBAL_CEILING, GLOBAL_GAP, MAX_BACKOFF,
+from personal_world.worlds.auth_routes import (ESCAPE_SUCCESS_GAP, FREE_FAILURES, FRESH_AUTH_SECONDS, GLOBAL_CEILING, GLOBAL_GAP, MAX_BACKOFF,
                                                OIDC_LOGIN_KEY, client_key, parse_trusted_proxies, register_auth_routes)
 from personal_world.worlds.authn import CSRF_COOKIE, SESSION_COOKIE, Auth, load_csrf_key
 from personal_world.worlds.db import Database
@@ -126,13 +126,14 @@ def test_bootstrap_backoff_is_per_client_and_exponential(env):
     # the owner, from another address, is not held back by the attacker
     owner_c, ok = boot_from(env, "198.51.100.9", token=BOOT)
     assert ok.status_code == 200
-    # delays double and a wrong guess in back-off adds no penalty
-    env.clock.t += 6
-    assert boot_from(env, attacker)[1].status_code == 401                # the 5 s delay has passed: evaluated, wrong -> 10 s
-    env.clock.t += 6
-    assert c.post("/api/auth/bootstrap", json={"token": "nope"}, headers={"Origin": ORIGIN}).status_code == 429
-    env.clock.t += 5
-    assert boot_from(env, attacker, BOOT)[1].status_code == 200
+    # every further wrong guess doubles the delay (capped); waiting it out makes the client normal again
+    def wrong():
+        return c.post("/api/auth/bootstrap", json={"token": "nope"}, headers={"Origin": ORIGIN})
+
+    first, second, third = (int(wrong().headers["retry-after"]) for _ in range(3))
+    assert first < second < third
+    env.clock.t += third + 1
+    assert boot_from(env, attacker, BOOT)[1].status_code == 200          # out of back-off: the right secret just works
 
 
 def test_backoff_is_capped(env):
@@ -152,33 +153,53 @@ def test_owner_can_escape_a_back_off_they_did_not_cause_once_per_15_minutes(env)
         boot_from(env, shared)
     c, wrong = boot_from(env, shared)
     assert wrong.status_code == 429                                       # the key is in back-off
-    env.clock.t += ESCAPE_CHECK_GAP + 0.1
     assert c.post("/api/auth/bootstrap", json={"token": "wrong-guess"}, headers={"Origin": ORIGIN}).status_code == 429
-    env.clock.t += ESCAPE_CHECK_GAP + 0.1
     ok = c.post("/api/auth/bootstrap", json={"token": right}, headers={"Origin": ORIGIN})
-    assert ok.status_code == 200 and SESSION_COOKIE in ok.headers.get("set-cookie", "")   # the owner got in
+    assert ok.status_code == 200 and SESSION_COOKIE in ok.headers.get("set-cookie", "")   # the owner got in, no waiting
     for _ in range(FREE_FAILURES + 1):                                    # the attacker puts the key back in back-off
-        env.clock.t += 1
         boot_from(env, shared)
-    env.clock.t += ESCAPE_CHECK_GAP + 0.1
     again = c.post("/api/auth/bootstrap", json={"token": right}, headers={"Origin": ORIGIN})
     assert again.status_code == 429                                       # but only ONE escape per 15 minutes
     env.clock.t += ESCAPE_SUCCESS_GAP + 1
     assert c.post("/api/auth/bootstrap", json={"token": right}, headers={"Origin": ORIGIN}).status_code == 200
 
 
-def test_escape_evaluates_at_most_one_guess_per_gap_and_hides_the_result(env):
-    ip = "192.0.2.88"
-    right = BOOT
+def test_an_attacker_flooding_from_another_key_cannot_starve_the_owner(env):
+    for i in range(300):                                                  # a flood with no pauses at all (the clock never moves)
+        boot_from(env, f"203.0.113.{i % 200 + 1}", token=f"guess-{i}")
+    assert boot_from(env, "198.51.100.30", BOOT)[1].status_code == 200    # the owner's correct secret still gets in
+    _, again = boot_from(env, "198.51.100.31", BOOT)                      # (a fresh key is not in back-off at all)
+    assert again.status_code in (200, 429)
+    shared = "192.0.2.99"                                                 # and when the owner shares the attacker's key
+    for _ in range(100):
+        boot_from(env, shared, token="spam")
+    env.clock.t += ESCAPE_SUCCESS_GAP + 1                                 # within one 15-minute window the success slot is free
+    c, r = boot_from(env, shared, BOOT)
+    assert r.status_code == 200
+
+
+def test_wrong_guesses_in_back_off_lengthen_it_but_never_block_the_owner(env):
+    ip = "192.0.2.55"
     for _ in range(FREE_FAILURES + 1):
         boot_from(env, ip)
     c, _ = boot_from(env, ip)
-    env.clock.t += ESCAPE_CHECK_GAP + 0.1
-    first = c.post("/api/auth/bootstrap", json={"token": "wrong"}, headers={"Origin": ORIGIN})   # takes the evaluation slot
-    second = c.post("/api/auth/bootstrap", json={"token": right}, headers={"Origin": ORIGIN})    # right, but no slot yet
-    assert first.status_code == 429 and second.status_code == 429
-    assert first.text == second.text                                       # the answer never says which guess was right
-    assert SESSION_COOKIE not in second.headers.get("set-cookie", "")
+    first = int(c.post("/api/auth/bootstrap", json={"token": "x"}, headers={"Origin": ORIGIN}).headers["retry-after"])
+    for _ in range(6):
+        c.post("/api/auth/bootstrap", json={"token": "x"}, headers={"Origin": ORIGIN})
+    later = int(c.post("/api/auth/bootstrap", json={"token": "x"}, headers={"Origin": ORIGIN}).headers["retry-after"])
+    assert later > first
+    assert c.post("/api/auth/bootstrap", json={"token": BOOT}, headers={"Origin": ORIGIN}).status_code == 200
+
+
+def test_bootstrap_comparison_does_not_depend_on_length(env, monkeypatch):
+    import personal_world.worlds.owner as owner_mod
+    seen = []
+    real = owner_mod.hmac.compare_digest
+    monkeypatch.setattr(owner_mod.hmac, "compare_digest", lambda a, b: seen.append((len(a), len(b))) or real(a, b))
+    pol = owner_mod.load_owner_policy(env.cfg)
+    pol.bootstrap_matches("x")
+    pol.bootstrap_matches("x" * 500)
+    assert seen and all(pair == (32, 32) for pair in seen)               # sha256 digests on both sides, always
 
 
 def test_short_bootstrap_secrets_are_refused_outright(env, monkeypatch):
@@ -370,3 +391,20 @@ def test_with_trusted_proxies_clients_behind_the_proxy_have_separate_limits(env)
         attempt("203.0.113.5", "nope")
     assert attempt("203.0.113.5", "nope").status_code == 429               # the attacker is in back-off
     assert attempt("198.51.100.20", BOOT).status_code == 200   # the owner behind the same proxy is not
+
+
+def _req_multi(peer, lines):
+    from starlette.requests import Request
+    return Request({"type": "http", "method": "POST", "path": "/", "client": (peer, 1),
+                    "headers": [(b"x-forwarded-for", line.encode()) for line in lines]})
+
+
+def test_every_x_forwarded_for_line_is_read_in_order_and_ports_are_stripped():
+    trusted = parse_trusted_proxies("192.0.2.10")
+    assert client_key(_req_multi("192.0.2.10", ["198.51.100.200", "203.0.113.5"]), trusted) == "203.0.113.5"   # a second header line
+    assert client_key(_req_multi("192.0.2.10", ["203.0.113.5", "192.0.2.10"]), trusted) == "203.0.113.5"
+    assert client_key(_req("192.0.2.10", "203.0.113.5:51234"), trusted) == "203.0.113.5"
+    assert client_key(_req("192.0.2.10", "203.0.113.5:51234, 192.0.2.10:443"), trusted) == "203.0.113.5"       # proxy hop with a port
+    assert client_key(_req("192.0.2.10", "[2001:db8::5]:443"), trusted) == "2001:db8::5"
+    assert client_key(_req("192.0.2.10", "[2001:db8::5]"), trusted) == "2001:db8::5"
+    assert client_key(_req("192.0.2.10", "2001:db8::5"), trusted) == "2001:db8::5"
