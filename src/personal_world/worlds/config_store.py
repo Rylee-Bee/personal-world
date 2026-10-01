@@ -329,6 +329,9 @@ class ConfigStore:
             missing = [obj.id] if obj.provider not in self._objects["provider"] else []
             if missing:
                 raise ConfigInvalid(f"request {obj.id}: unknown provider {obj.provider!r}")
+            for action in self._objects["action"].values():
+                if action.request == obj.id:
+                    self._check_action_policy(action, obj)
         elif kind == "card":
             unknown = [r for r in obj.request_ids() if r not in self._objects["request"]]
             if unknown:
@@ -338,8 +341,19 @@ class ConfigStore:
             if unknown:
                 raise ConfigInvalid(f"board {obj.id}: unknown card(s) {', '.join(unknown)}")
         elif kind == "action":
-            if obj.request not in self._objects["request"]:
+            request = self._objects["request"].get(obj.request)
+            if request is None:
                 raise ConfigInvalid(f"action {obj.id}: unknown request {obj.request!r}")
+            self._check_action_policy(obj, request)
+
+    @staticmethod
+    def _check_action_policy(action: Any, request: Any) -> None:
+        """access must match the request's effect; approval: never on a write needs the owner's waiver."""
+        write = request.resolved_effect() == "write"
+        if write and action.access == "read":
+            raise ConfigInvalid(f"action {action.id}: access is read but request {request.id} writes")
+        if write and action.approval == "never" and not action.owner_waives_approval:
+            raise ConfigInvalid(f"action {action.id}: approval never on a write needs owner_waives_approval: true")
 
     def _check_not_referenced(self, kind: str, obj_id: str) -> None:
         if kind == "provider":

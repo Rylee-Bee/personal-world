@@ -29,6 +29,10 @@ class Database:
     def __init__(self, path: str | os.PathLike[str]):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        try:
+            os.chmod(self.path.parent, 0o700)   # also when the directory already existed with looser bits
+        except OSError:
+            pass
         self._local = threading.local()
         self._conns: list[sqlite3.Connection] = []
         self._lock = threading.Lock()
@@ -45,7 +49,11 @@ class Database:
     def conn(self) -> sqlite3.Connection:
         c = getattr(self._local, "conn", None)
         if c is None:
-            c = sqlite3.connect(self.path, isolation_level=None, timeout=10, check_same_thread=False)
+            old_umask = os.umask(0o077)  # new db/-wal/-shm files are born private
+            try:
+                c = sqlite3.connect(self.path, isolation_level=None, timeout=10, check_same_thread=False)
+            finally:
+                os.umask(old_umask)
             c.row_factory = sqlite3.Row
             c.execute("PRAGMA journal_mode=WAL")
             c.execute("PRAGMA synchronous=FULL")
@@ -54,7 +62,15 @@ class Database:
             self._local.conn = c
             with self._lock:
                 self._conns.append(c)
+            self._tighten()
         return c
+
+    def _tighten(self) -> None:
+        for suffix in ("", "-wal", "-shm"):
+            try:
+                os.chmod(f"{self.path}{suffix}", 0o600)
+            except OSError:
+                pass
 
     @contextmanager
     def write_tx(self) -> Iterator[sqlite3.Connection]:

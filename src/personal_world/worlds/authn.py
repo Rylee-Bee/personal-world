@@ -45,6 +45,8 @@ register_migrations("authn", [
 CREATE TABLE agent_tokens (
         id TEXT PRIMARY KEY, name TEXT NOT NULL, token_hash TEXT NOT NULL, scopes TEXT NOT NULL,
         created_at REAL NOT NULL, expires_at REAL, revoked_at REAL, last_used_at REAL)"""),
+    (2, """ALTER TABLE sessions ADD COLUMN binding TEXT NOT NULL DEFAULT '';
+CREATE TABLE owner_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)"""),
 ])
 
 
@@ -81,15 +83,20 @@ class Principal:
 
 
 class SessionStore:
-    def __init__(self, db: Database, *, clock: Callable[[], float] = time.time):
-        self._db, self._clock = db, clock
+    """Sessions are bound to the owner identity (``binding``): when owner.yaml's issuer/subject change,
+    every older session stops working."""
+
+    def __init__(self, db: Database, *, clock: Callable[[], float] = time.time,
+                 binding: Callable[[], str] = lambda: ""):
+        self._db, self._clock, self._binding = db, clock, binding
 
     def create(self, principal: str = "owner", method: str = "oidc") -> str:
         sid = secrets.token_urlsafe(32)
         now = self._clock()
         with self._db.write_tx() as tx:
-            tx.execute("INSERT INTO sessions(id_hash,principal,method,created_at,last_seen_at,expires_at,step_up_at) VALUES (?,?,?,?,?,?,?)",
-                       (_h(sid), principal, method, now, now, now + ABSOLUTE_SECONDS, None))
+            tx.execute("INSERT INTO sessions(id_hash,principal,method,created_at,last_seen_at,expires_at,step_up_at,binding) "
+                       "VALUES (?,?,?,?,?,?,?,?)",
+                       (_h(sid), principal, method, now, now, now + ABSOLUTE_SECONDS, None, self._binding()))
         return sid
 
     def get(self, sid: str | None) -> dict | None:
@@ -99,7 +106,7 @@ class SessionStore:
         if row is None:
             return None
         now = self._clock()
-        if now >= row["expires_at"] or now - row["last_seen_at"] > IDLE_SECONDS:
+        if now >= row["expires_at"] or now - row["last_seen_at"] > IDLE_SECONDS or row["binding"] != self._binding():
             self.invalidate(sid)
             return None
         if now - row["last_seen_at"] > 60:
@@ -185,12 +192,21 @@ class Auth:
     csrf_key: bytes
     allowed_origins: frozenset[str]
     clock: Callable[[], float] = time.time
+    binding: Callable[[], str] = lambda: ""
     sessions: SessionStore = field(init=False)
     tokens: AgentTokenStore = field(init=False)
 
     def __post_init__(self):
-        self.sessions = SessionStore(self.db, clock=self.clock)
+        self.sessions = SessionStore(self.db, clock=self.clock, binding=self.binding)
         self.tokens = AgentTokenStore(self.db, clock=self.clock)
+
+    def get_state(self, key: str) -> str | None:
+        row = self.db.conn().execute("SELECT value FROM owner_state WHERE key=?", (key,)).fetchone()
+        return row["value"] if row else None
+
+    def set_state(self, key: str, value: str) -> None:
+        with self.db.write_tx() as tx:
+            tx.execute("INSERT INTO owner_state(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, value))
 
     def csrf_token(self, session_id: str) -> str:
         return hmac.new(self.csrf_key, session_id.encode(), hashlib.sha256).hexdigest()

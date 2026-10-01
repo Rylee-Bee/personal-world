@@ -183,3 +183,135 @@ def test_reference_sender_accepts_only_loopback_literal_and_live_ports():
         assert default(prov(other.base_url), r, effect="read").status_code == 200
     gone = reference_send({"DEV": "t"})(prov(other.base_url), r, effect="read")
     assert gone.error_class == "confinement_denied"                           # server stopped: port no longer live
+
+
+# ---- review #236 M1: the budget covers DNS + connect + headers, not just the body
+def _drip_header_server(gap):
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(5)
+
+    def run():
+        while True:
+            try:
+                c, _ = srv.accept()
+            except OSError:
+                return
+
+            def talk(c=c):
+                try:
+                    c.recv(4096)
+                    c.sendall(b"HTTP/1.1 200 OK\r\n")
+                    for i in range(40):
+                        time.sleep(gap)
+                        c.sendall(f"X-Slow-{i}: y\r\n".encode())
+                except OSError:
+                    pass
+                finally:
+                    c.close()
+
+            threading.Thread(target=talk, daemon=True).start()
+
+    threading.Thread(target=run, daemon=True).start()
+    return srv
+
+
+def test_header_drip_ends_within_the_budget():
+    srv = _drip_header_server(0.4)
+    try:
+        port = srv.getsockname()[1]
+        p = Provider(id="p", name="P", kind="http", base_url=f"http://127.0.0.1:{port}", network={"lan": True}, timeout_s=1.0)
+        t0 = time.monotonic()
+        out = confined_request(p, Request(id="p.r", provider="p", path="/x"), effect="read")
+        took = time.monotonic() - t0
+        assert isinstance(out, ConfinementError) and out.error_class == "timeout"
+        assert took <= 1.3, took
+    finally:
+        srv.close()
+
+
+def test_slow_dns_ends_within_the_budget():
+    release = threading.Event()
+
+    def slow_resolver(host, port):
+        release.wait(5)
+        return ["127.0.0.1"]
+
+    p = Provider(id="p", name="P", kind="http", base_url="http://slow.example.test", network={"lan": True}, timeout_s=0.5)
+    t0 = time.monotonic()
+    out = confined_request(p, Request(id="p.r", provider="p", path="/x"), effect="read", resolver=slow_resolver)
+    release.set()
+    assert isinstance(out, ConfinementError) and out.error_class == "timeout"
+    assert time.monotonic() - t0 <= 0.8
+
+
+def test_stalled_tls_handshake_ends_within_the_budget():
+    srv = _silent_server(5)
+    try:
+        port = srv.getsockname()[1]
+        p = Provider(id="p", name="P", kind="http", base_url=f"https://app.example.test:{port}", network={"lan": True},
+                     timeout_s=0.6)
+        t0 = time.monotonic()
+        out = confined_request(p, Request(id="p.r", provider="p", path="/x"), effect="read",
+                               resolver=lambda h, port_: ["127.0.0.1"])
+        assert isinstance(out, ConfinementError) and out.error_class in ("timeout", "connection")
+        assert time.monotonic() - t0 <= 0.9
+    finally:
+        srv.close()
+
+
+# ---- minors
+@pytest.mark.parametrize("secret", ["abc\r\nX-Evil: 1", "abc\ndef", "tab\there", "snowman-☃", "del\x7f"])
+def test_unsendable_secret_values_fail_closed_before_sending(monkeypatch, secret):
+    with ReferenceServer(token="t") as ref:
+        monkeypatch.setenv("BAD_SECRET", secret)
+        p = Provider(id="p", name="P", kind="http", base_url=ref.base_url, network={"lan": True},
+                     auth={"type": "bearer", "secret_ref": "env:BAD_SECRET"})
+        out = confined_request(p, Request(id="p.r", provider="p", path="/items"), effect="read")
+        assert isinstance(out, ConfinementError) and out.error_class == "auth_failed" and ref.calls == []
+
+
+@pytest.mark.parametrize("addr", ["fec0::1", "2002:0a00:0001::1", "2002:a9fe:a9fe::1", "64:ff9b::a9fe:a9fe", "168.63.129.16",
+                                  "2001:0:4136:e378:8000:63bf:3f57:fefd"])
+def test_more_always_or_default_denied_addresses(addr):
+    from personal_world.worlds.confinement import classify_address
+    assert classify_address(addr, lan=False)
+
+
+@pytest.mark.parametrize("addr", ["2002:a9fe:a9fe::1", "64:ff9b::a9fe:a9fe", "168.63.129.16", "::ffff:168.63.129.16"])
+def test_metadata_hidden_in_ipv6_is_refused_even_with_lan(addr):
+    from personal_world.worlds.confinement import classify_address
+    assert classify_address(addr, lan=True)
+
+
+def test_encoded_bodies_are_refused_and_never_decompressed():
+    import gzip
+    import http.server
+
+    bomb = gzip.compress(b"0" * 5_000_000)
+
+    class H(http.server.BaseHTTPRequestHandler):
+        seen = []
+
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            H.seen.append(self.headers.get("Accept-Encoding"))
+            self.send_response(200)
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Length", str(len(bomb)))
+            self.end_headers()
+            self.wfile.write(bomb)
+
+    s = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=s.serve_forever, daemon=True).start()
+    try:
+        p = Provider(id="p", name="P", kind="http", base_url=f"http://127.0.0.1:{s.server_address[1]}", network={"lan": True},
+                     max_bytes=1000 * 1024)
+        out = confined_request(p, Request(id="p.r", provider="p", path="/x"), effect="read")
+        assert isinstance(out, ConfinementError) and out.error_class == "malformed"
+        assert H.seen == ["identity"]
+    finally:
+        s.shutdown()
+        s.server_close()

@@ -6,7 +6,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from personal_world.oidc import FLOW_COOKIE, OIDCLoginError, VerifiedIdentity
-from personal_world.worlds.auth_routes import FRESH_AUTH_SECONDS, MAX_FAILURES, register_auth_routes
+from personal_world.worlds.auth_routes import (FREE_FAILURES, FRESH_AUTH_SECONDS, GLOBAL_CEILING, GLOBAL_GAP, MAX_BACKOFF,
+                                               OIDC_LOGIN_KEY, register_auth_routes)
 from personal_world.worlds.authn import CSRF_COOKIE, SESSION_COOKIE, Auth, load_csrf_key
 from personal_world.worlds.db import Database
 from personal_world.worlds.owner import load_owner_policy
@@ -62,7 +63,8 @@ def env(tmp_path, monkeypatch):
     write_policy(cfg)
     clock = Clock()
     db = Database.in_dir(tmp_path / "data")
-    auth = Auth(db, load_csrf_key(tmp_path / "data"), frozenset({ORIGIN}), clock=clock)
+    auth = Auth(db, load_csrf_key(tmp_path / "data"), frozenset({ORIGIN}), clock=clock,
+                binding=lambda: load_owner_policy(cfg).binding())
     fake = FakeClient()
     service = SimpleNamespace(client=lambda: fake)
     app = FastAPI()
@@ -106,12 +108,79 @@ def test_bootstrap_requires_origin_and_right_secret(env):
     assert info["authenticated"] and info["principal"] == "owner" and info["step_up"] is False and info["csrf_token"]
 
 
-def test_bootstrap_is_rate_limited_then_recovers(env):
-    for _ in range(MAX_FAILURES):
-        assert boot(env, token="nope").status_code == 401
-    assert boot(env).status_code == 429          # even the right secret waits
-    env.clock.t += 601
-    assert boot(env).status_code == 200
+def boot_from(env, ip, token="nope"):
+    from fastapi.testclient import TestClient
+    c = TestClient(env.c.app, base_url=ORIGIN, follow_redirects=False, client=(ip, 5555))
+    return c, c.post("/api/auth/bootstrap", json={"token": token}, headers={"Origin": ORIGIN})
+
+
+def test_bootstrap_backoff_is_per_client_and_exponential(env):
+    attacker = "203.0.113.7"
+    for _ in range(FREE_FAILURES):
+        assert boot_from(env, attacker)[1].status_code == 401          # the first few guesses cost nothing
+    c, r = boot_from(env, attacker)
+    assert r.status_code == 401                                          # this one is wrong too, and now arms the delay
+    r = c.post("/api/auth/bootstrap", json={"token": "open-sesame-123"}, headers={"Origin": ORIGIN})
+    assert r.status_code == 429 and int(r.headers["retry-after"]) >= 5   # even the RIGHT secret waits: no guessing in back-off
+    assert SESSION_COOKIE not in r.headers.get("set-cookie", "")
+    # the owner, from another address, is not locked out by the attacker
+    owner_c, ok = boot_from(env, "198.51.100.9", token="open-sesame-123")
+    assert ok.status_code == 200
+    # delays double and are capped
+    env.clock.t += 6
+    assert boot_from(env, attacker)[1].status_code == 401                # wrong again -> next delay is 10s
+    env.clock.t += 6
+    assert boot_from(env, attacker, "open-sesame-123")[1].status_code == 429
+    env.clock.t += 5
+    assert boot_from(env, attacker, "open-sesame-123")[1].status_code == 200
+    for _ in range(40):
+        env.clock.t += MAX_BACKOFF + 1
+        boot_from(env, "203.0.113.50")
+    c2, r2 = boot_from(env, "203.0.113.50")
+    r2 = c2.post("/api/auth/bootstrap", json={"token": "x"}, headers={"Origin": ORIGIN})
+    assert int(r2.headers.get("retry-after", "0")) <= int(MAX_BACKOFF) + 1
+
+
+def test_global_ceiling_slows_but_never_locks_the_owner_out(env):
+    for i in range(GLOBAL_CEILING + 1):                                   # a botnet: many addresses, one guess each
+        boot_from(env, f"192.0.2.{i % 250 + 1}")
+    _, fast = boot_from(env, "198.51.100.77", token="open-sesame-123")
+    _, again = boot_from(env, "198.51.100.78", token="open-sesame-123")
+    assert 429 in (fast.status_code, again.status_code)                   # attempts are spaced out...
+    env.clock.t += GLOBAL_GAP + 0.1
+    _, later = boot_from(env, "198.51.100.79", token="open-sesame-123")
+    assert later.status_code == 200                                        # ...but the owner gets through
+
+
+def test_oidc_login_is_never_blocked_by_bootstrap_lockout(env):
+    for _ in range(FREE_FAILURES + 3):
+        boot_from(env, "203.0.113.7")
+    cb = login_via_oidc(env)
+    assert cb.status_code == 303 and env.c.get("/api/auth/session").json()["authenticated"]
+
+
+def test_sessions_end_when_the_owner_identity_changes(env):
+    login_via_oidc(env)
+    assert env.c.get("/api/auth/session").json()["authenticated"]
+    (env.cfg / "owner.yaml").write_text((env.cfg / "owner.yaml").read_text().replace(OWNER_SUB, "someone-else"))
+    assert env.c.get("/api/auth/session").json()["authenticated"] is False
+
+
+def test_bootstrap_switches_itself_off_once_oidc_has_worked(env):
+    assert boot_from(env, "198.51.100.1", "open-sesame-123")[1].status_code == 200   # before OIDC has worked: fine
+    assert env.c.get("/api/auth/session").json()["bootstrap_available"] is True
+    login_via_oidc(env)
+    assert env.auth.get_state(OIDC_LOGIN_KEY)
+    assert env.c.get("/api/auth/session").json()["bootstrap_available"] is False
+    assert boot_from(env, "198.51.100.2", "open-sesame-123")[1].status_code == 401   # bootstrap sign-in is off now
+    sid = env.c.cookies.get(SESSION_COOKIE)
+    h = {"Origin": ORIGIN, "X-CSRF-Token": env.auth.csrf_token(sid)}
+    assert env.c.post("/api/auth/step-up", json={"token": "open-sesame-123"}, headers=h).status_code == 401   # and so is its step-up
+
+
+def test_bootstrap_stays_available_when_oidc_is_configured_but_never_used(env):
+    assert env.c.get("/api/auth/session").json()["bootstrap_available"] is True
+    assert boot_from(env, "198.51.100.1", "open-sesame-123")[1].status_code == 200
 
 
 def test_bootstrap_disabled_without_policy(env):

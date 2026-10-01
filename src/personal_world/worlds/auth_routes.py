@@ -25,25 +25,58 @@ from .authn import CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE, Auth
 from .owner import OwnerPolicy
 
 FRESH_AUTH_SECONDS = 120
-MAX_FAILURES = 5
-FAILURE_WINDOW = 600
+FREE_FAILURES = 3          # per client: this many wrong guesses cost nothing
+MAX_BACKOFF = 900.0        # per client: exponential back-off is capped at 15 minutes
+FAILURE_WINDOW = 600.0
+GLOBAL_CEILING = 30        # failures in the window, across everybody, before the whole endpoint slows
+GLOBAL_GAP = 2.0           # ...to one attempt per this many seconds. It slows; it never locks.
+OIDC_LOGIN_KEY = "oidc_login_binding"
 
 
 class _Limiter:
+    """Per-client exponential back-off plus a global slow-down (never a global lock-out).
+
+    The client key is the peer address as the server reports it; behind a reverse proxy run uvicorn
+    with proxy headers limited to the proxy's address (``--forwarded-allow-ips``) so it is the real
+    client, not the proxy. A client in back-off is refused WITHOUT its secret being checked, so
+    back-off cannot be used to keep guessing.
+    """
+
     def __init__(self, clock: Callable[[], float]):
-        self._clock, self._fails = clock, deque()
+        self._clock = clock
+        self._clients: dict[str, tuple[int, float, float]] = {}   # key -> (fails, blocked_until, last_fail)
+        self._global = deque()
+        self._last_attempt = -1e18
 
-    def blocked(self) -> bool:
+    def check(self, client: str) -> float:
+        """Seconds the caller must wait (0 = go ahead). Records the attempt time for the global gap."""
         now = self._clock()
-        while self._fails and now - self._fails[0] > FAILURE_WINDOW:
-            self._fails.popleft()
-        return len(self._fails) >= MAX_FAILURES
+        while self._global and now - self._global[0] > FAILURE_WINDOW:
+            self._global.popleft()
+        for key in [k for k, v in self._clients.items() if now - v[2] > FAILURE_WINDOW * 3 and v[1] <= now]:
+            del self._clients[key]
+        _fails, blocked_until, _last = self._clients.get(client, (0, 0.0, 0.0))
+        wait = max(blocked_until - now, 0.0)
+        if not wait and len(self._global) >= GLOBAL_CEILING:
+            wait = max(GLOBAL_GAP - (now - self._last_attempt), 0.0)
+        if not wait:
+            self._last_attempt = now
+        return wait
 
-    def fail(self) -> None:
-        self._fails.append(self._clock())
+    def fail(self, client: str) -> None:
+        now = self._clock()
+        fails, _blocked, _last = self._clients.get(client, (0, 0.0, 0.0))
+        fails += 1
+        delay = 0.0 if fails <= FREE_FAILURES else min(5.0 * 2 ** (fails - FREE_FAILURES - 1), MAX_BACKOFF)
+        self._clients[client] = (fails, now + delay, now)
+        self._global.append(now)
 
-    def clear(self) -> None:
-        self._fails.clear()
+    def clear(self, client: str) -> None:
+        self._clients.pop(client, None)
+
+
+def _client_key(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
 
 
 def _safe_return(path: str | None) -> str:
@@ -57,6 +90,15 @@ def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], O
 
     def policy() -> OwnerPolicy:
         return policy_loader()
+
+    def bootstrap_open() -> bool:
+        """Bootstrap sign-in/step-up works while enabled, until OIDC is configured AND has worked once."""
+        pol = policy()
+        if not (pol.file and pol.file.bootstrap.enabled):
+            return False
+        if pol.file.oidc and auth.get_state(OIDC_LOGIN_KEY) == pol.binding():
+            return False
+        return True
 
     def require_origin(request: Request) -> None:
         origin = request.headers.get("origin")
@@ -79,7 +121,7 @@ def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], O
         sid = request.cookies.get(SESSION_COOKIE)
         row = auth.sessions.get(sid)
         pol = policy()
-        base = {"oidc_available": bool(pol.file and pol.file.oidc), "bootstrap_available": bool(pol.file and pol.file.bootstrap.enabled)}
+        base = {"oidc_available": bool(pol.file and pol.file.oidc), "bootstrap_available": bootstrap_open()}
         if row is None:
             return JSONResponse({"authenticated": False, **base}, headers={"Cache-Control": "no-store"})
         step = row["step_up_at"] is not None and auth.clock() - row["step_up_at"] <= 300
@@ -91,13 +133,16 @@ def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], O
     @app.post("/api/auth/bootstrap")
     async def bootstrap(request: Request) -> JSONResponse:
         require_origin(request)
-        if limiter.blocked():
-            raise HTTPException(status_code=429, detail="too many attempts; wait and try again")
+        client = _client_key(request)
+        wait = limiter.check(client)
+        if wait:
+            raise HTTPException(status_code=429, detail="too many attempts; wait and try again",
+                                headers={"Retry-After": str(int(wait) + 1)})
         body = await _json(request)
-        if not policy().bootstrap_matches(str(body.get("token", ""))):
-            limiter.fail()
+        if not bootstrap_open() or not policy().bootstrap_matches(str(body.get("token", ""))):
+            limiter.fail(client)
             raise HTTPException(status_code=401, detail="that did not work")
-        limiter.clear()
+        limiter.clear(client)
         resp = JSONResponse({"ok": True})
         start_session(resp, "bootstrap")
         return resp
@@ -107,13 +152,16 @@ def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], O
         principal = auth.authenticate(request)  # session + CSRF checked here
         if not principal.is_owner or principal.via != "session":
             raise HTTPException(status_code=403, detail="owner session required")
-        if limiter.blocked():
-            raise HTTPException(status_code=429, detail="too many attempts; wait and try again")
+        client = _client_key(request)
+        wait = limiter.check(client)
+        if wait:
+            raise HTTPException(status_code=429, detail="too many attempts; wait and try again",
+                                headers={"Retry-After": str(int(wait) + 1)})
         body = await _json(request)
-        if not policy().bootstrap_matches(str(body.get("token", ""))):
-            limiter.fail()
+        if not bootstrap_open() or not policy().bootstrap_matches(str(body.get("token", ""))):
+            limiter.fail(client)
             raise HTTPException(status_code=401, detail="that did not work")
-        limiter.clear()
+        limiter.clear(client)
         sid = request.cookies.get(SESSION_COOKIE) or ""
         auth.sessions.mark_step_up(sid)
         return JSONResponse({"ok": True})
@@ -187,6 +235,7 @@ def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], O
             resp = RedirectResponse(_safe_return(pending.return_to), status_code=303, headers={"Cache-Control": "no-store"})
             resp.delete_cookie(FLOW_COOKIE, path="/")
             return resp
+        auth.set_state(OIDC_LOGIN_KEY, pol.binding())   # OIDC works: bootstrap may now switch itself off
         resp = RedirectResponse("/", status_code=303, headers={"Cache-Control": "no-store"})
         start_session(resp, "oidc")
         resp.delete_cookie(FLOW_COOKIE, path="/")

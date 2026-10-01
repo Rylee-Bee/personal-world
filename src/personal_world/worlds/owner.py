@@ -16,6 +16,7 @@ The file holds no secret value. A missing or invalid file means nobody can sign 
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 from dataclasses import dataclass
 from pathlib import Path
@@ -64,6 +65,14 @@ class OwnerPolicy:
     @property
     def public_origin(self) -> str | None:
         return self.file.public_origin if self.file else None
+
+    def binding(self) -> str:
+        """A hash of who the owner is. Sessions carry it; changing the identity ends every session."""
+        if not self.file:
+            return "none"
+        o = self.file.oidc
+        basis = f"{self.file.public_origin}|{o.issuer.rstrip('/')}|{o.subject}" if o else f"{self.file.public_origin}|bootstrap"
+        return hashlib.sha256(basis.encode()).hexdigest()
 
     def is_owner_identity(self, issuer: str, subject: str) -> bool:
         o = self.file.oidc if self.file else None

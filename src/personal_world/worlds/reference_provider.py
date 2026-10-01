@@ -32,11 +32,11 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable, Iterable, Literal
-from urllib.parse import parse_qsl, urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 import httpx
 
-from .confinement import make_timeout, read_body, ConfinementError, RawResponse
+from .confinement import ConfinementError, Deadline, RawResponse, perform
 from .models import Provider, Request
 
 __all__ = ["ReferenceServer", "reference_send"]
@@ -354,40 +354,17 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
         headers.update(auth_headers)
 
         timeout_s = request.timeout_s or provider.timeout_s
-        client = httpx.Client(follow_redirects=False, trust_env=False, timeout=make_timeout(timeout_s))
+        deadline = Deadline(timeout_s)
         try:
-            with client.stream(
-                request.method,
-                _build_url(provider, request),
-                params=request.query or None,
-                headers=headers,
-                json=request.body if request.body is not None else None,
-            ) as response:
-                if 300 <= response.status_code < 400:
-                    return ConfinementError(
-                        "redirect_refused",
-                        "refused a redirect (target not recorded)",
-                        status_code=response.status_code,
-                        duration_ms=elapsed_ms(),
-                    )
-                data = read_body(response, started, timeout_s, provider.max_bytes)
-                if isinstance(data, ConfinementError):
-                    return data
-                return RawResponse(
-                    status_code=response.status_code,
-                    headers=dict(response.headers),
-                    body=data,
-                    duration_ms=elapsed_ms(),
-                )
-        except httpx.TimeoutException:
-            return ConfinementError("timeout", f"no answer within {timeout_s}s", duration_ms=elapsed_ms())
-        except httpx.TransportError as exc:
-            return ConfinementError(
-                "connection",
-                f"transport failure: {type(exc).__name__}",
-                duration_ms=elapsed_ms(),
-            )
+            url = _build_url(provider, request)
+            if request.query:
+                url += "?" + urlencode(request.query)
+            content = json.dumps(request.body).encode() if request.body is not None else None
+            if content is not None:
+                headers.setdefault("Content-Type", "application/json")
+            return perform(deadline, request.method, url, headers=headers, content=content, extensions={},
+                           verify=False, limit=provider.max_bytes)
         finally:
-            client.close()
+            deadline.disarm()
 
     return send
