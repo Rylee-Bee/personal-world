@@ -1,5 +1,7 @@
 # Worlds Accessibility Contract
 
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** §5.2 Bridge reading order now applies to Home; §9.2 "Customize" becomes Settings + Edit Home; §2.4 focus teal must reach ≥3:1 per theme. All other requirements are unchanged.
+
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the accessibility floor every screen, component, token and theme must meet · **Read this if:** you are designing, building or reviewing anything a person perceives or operates.
 
 **In short:** the non-negotiable accessibility floor for Worlds — contrast, 44px targets, keyboard and focus, drawer/dialog behaviour, headings and landmarks, live-region restraint, companion rules. It is a contract, not a description of the current build: components must satisfy it, and no theme or preference may lower it.

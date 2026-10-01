@@ -1,5 +1,7 @@
 # Plan — Project Worlds (owner-approved 2026-09-25)
 
+> **Superseded in part by [ADR-0008](../docs/adr/0008-front-door.md) (2026-10-01):** Step 1b ("personality ships here") and Steps 1c–3 (built-in media/calendar/inbox sources) are replaced by the front-door rebuild; see `.project/PROPOSAL-FRONT-DOOR-2026-10-01.md` and the approval handoff (S4, S7).
+
 Status: approved by the owner (Rylee) 2026-09-25 after the Worlds vision review. Step 1 GO given 2026-09-25.
 Review document: https://claude.ai/code/artifact/bd38f7ef-13ee-42e2-b700-9dc4079712f5 (sections A–L).
 

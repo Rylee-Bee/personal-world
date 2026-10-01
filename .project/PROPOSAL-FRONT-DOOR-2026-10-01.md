@@ -1,6 +1,6 @@
 # Proposal: Worlds as the universal front door (2026-10-01)
 
-> **Status:** PROPOSED (not approved). Owner: Rylee. Revision 3 (refine-only
+> **Status:** APPROVED 2026-10-01 with owner refinements (see HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md). Owner: Rylee. Revision 3 (refine-only
 > round, 2026-10-01). Claude drafted it from a full backend, UI and
 > provider-machinery inventory, an open-source survey, three owner review rounds,
 > the owner's Figma Make prototype and an interactive design lab. Nothing here is

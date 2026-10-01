@@ -1,5 +1,7 @@
 # Rooms
 
+> **Superseded in part by [ADR-0008](adr/0008-front-door.md) (2026-10-01):** Worlds code calls an external room/0 system a "service"; the upstream contract name `room/0` is unchanged (S9).
+
 > **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** how Worlds finds, checks and shows rooms (the contract itself is canonical in Play-Nice `ROOM.md`) · **Read this if:** you want to add a room, understand a room's status, or change how Worlds talks to rooms.
 
 **In short:** A room is a separate service (your project workshop, your

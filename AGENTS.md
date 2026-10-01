@@ -6,6 +6,8 @@ Before doing substantive work, read [`AGENT_POLICY.md`](./AGENT_POLICY.md) and f
 
 # AGENTS.md
 
+> **Superseded in part by [ADR-0008](docs/adr/0008-front-door.md) (2026-10-01):** the "Workbench & Node direction" skeleton rule and the `overview`→Bridge note are superseded: landmarks are `Home · Connect · Memory · Settings`; worlds code calls external room/0 systems "services" (S1, S2, S9). Rewrite pending.
+
 > **Status:** Reference · **Verified:** 2026-09-29 · **Canonical for:** the working-tree rules, commands, boundaries and where each kind of source of truth is · **Read this if:** you are about to edit, stage, or commit in this repo.
 
 **In short:** Worlds (repo `personal-world`, package `personal_world`, env prefix `PW_`) is a personal control plane: a FastAPI backend (`src/personal_world/`) plus the React interface (`ui/`). It owns the Worlds app, its personal screens and the Worlds kit; it does not own rooms (other repos), the Play-Nice contracts, the shared CI workflows, or the homelab. Estate-wide rules live in `~/.agents/AGENTS.md`; they are not repeated here.

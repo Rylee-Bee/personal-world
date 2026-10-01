@@ -1,5 +1,7 @@
 # Worlds — Product Language & Interaction Contract
 
+> **Superseded in part by [ADR-0008](adr/0008-front-door.md) (2026-10-01):** the stable skeleton is now `Home · Connect · Memory · Settings`; Bridge/`overview` leaves the core vocabulary; Chat is optional, not core navigation; personality is an optional Station pack, not structural (S1, S2, S3, S5). Rewrite pending.
+
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** first-release product language, vocabulary, and information architecture · **Read this if:** you are writing user-facing copy or deciding where a feature surfaces.
 
 **In short:** the durable contract for what things are called and how the
