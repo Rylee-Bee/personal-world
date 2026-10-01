@@ -1,5 +1,7 @@
 # UI → API MATRIX — Project Worlds
 
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** which API surface each UI action reads or writes (the prose view of `api_manifest.py`) · **Read this if:** you need to know what a screen calls, and what gate that call passes
 
 **In short:** Maps UI actions onto API IDs and their read/write gate. The API-side rows are still code-verified; the `UI-*` IDs name the retired 2026-09-22 SPA, so the current screens are listed separately below.

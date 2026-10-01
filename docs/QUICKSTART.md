@@ -1,5 +1,7 @@
 # QUICKSTART — give Worlds to anyone
 
+> **Superseded in part by [ADR-0008](adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../FRONTEND-INVENTORY.md).
+
 > **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** installing and first-running Worlds · **Read this if:** you want to run Worlds on your own machine, or you need the plain-language on-ramp.
 
 **In short:** one command installs Worlds and a setup wizard walks you

@@ -1,4 +1,7 @@
 # CONNECTIONS & PROVIDERS — RECEIPT (audited)
+
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 # implementation commit: ee488b1
 # receipt commit: 353e04c
 # audit fix commit: 0e3d940

@@ -1,5 +1,7 @@
 # Notifications — Web Push, in plain words
 
+> **Superseded in part by [ADR-0008](adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../FRONTEND-INVENTORY.md).
+
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** how Worlds sends notifications (VAPID keys, the API doors, the Settings screen, iPhone) · **Read this if:** you want notifications on your phone, or you run a World and need to switch the whole thing on.
 
 **In short:** Worlds is the notification hub. Your browser's own push

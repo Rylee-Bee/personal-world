@@ -1,5 +1,7 @@
 # Worlds — Documentation
 
+> **Superseded in part by [ADR-0008](adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../FRONTEND-INVENTORY.md).
+
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** the docs map: the source-of-truth file for each subject · **Read this if:** you need to find the one file that owns a subject before reading or editing it.
 
 **In short:** this is the router for the `docs/` tree. It names one

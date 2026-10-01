@@ -1,5 +1,7 @@
 # Repository Inventory — Project Worlds
 
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 > **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see [`.project/CURRENT.md`](../../.project/CURRENT.md)) · **Read this if:** you need the dated SHA `60823ae` inventory of the repo for provenance · **Superseded by:** the running code and [`.project/CURRENT.md`](../../.project/CURRENT.md).
 
 **In short:** a read-only extraction of what every major artifact is and
