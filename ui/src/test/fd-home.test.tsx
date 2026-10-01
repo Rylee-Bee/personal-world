@@ -5,14 +5,14 @@ import { delay, http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { Home } from "../fd/Home";
-import { handlers } from "../fd/msw";
+import { boardServer, handlers } from "../fd/msw";
 import { cards, needsYou } from "../fd/fixtures";
 import { PrefsProvider } from "../fd/prefs";
 import type { Prefs } from "../fd/prefs-core";
 
 const server = setupServer(...handlers);
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => { cleanup(); server.resetHandlers(); window.localStorage.clear(); });
+afterEach(() => { cleanup(); server.resetHandlers(); boardServer.reset(); document.cookie = "pw_csrf=; max-age=0"; });
 afterAll(() => server.close());
 
 function renderHome(opts: { timeoutMs?: number; prefs?: Partial<Prefs> } = {}) {
@@ -226,15 +226,61 @@ describe("Edit Home", () => {
     await userEvent.click(screen.getByRole("button", { name: "Weather size S" }));
     expect(li()).toHaveClass("fd-row--slim");
   });
-  it("the arrangement is remembered after a reload", async () => {
+  it("saves every action as a board write with If-Match, in display order; the arrangement survives a reload", async () => {
+    document.cookie = "pw_csrf=tok123";
     const first = renderHome();
     await settled();
     await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
     await userEvent.click(screen.getByRole("button", { name: "Move Reading earlier" }));
+    await waitFor(() => expect(boardServer.puts).toHaveLength(1));
+    const put = boardServer.puts[0];
+    expect(put.ifMatch).toBe('"v1"');
+    expect(put.csrf).toBe("tok123");
+    expect(put.body.items.map((i) => i.card).slice(0, 3)).toEqual(["reading", "weather", "later"]);
+    expect(put.body.items[0]).toEqual({ card: "reading", size: "M", hidden: false });
+    expect(Object.keys(put.body.items[0])).toEqual(["card", "size", "hidden"]);
     first.unmount();
     renderHome();
     await settled();
     expect(order("Your life")).toEqual(["Reading", "Weather", "Later"]);
+  });
+  it("Undo is another write", async () => {
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await userEvent.click(screen.getByRole("button", { name: "Hide Later" }));
+    await waitFor(() => expect(boardServer.puts).toHaveLength(1));
+    expect(boardServer.puts[0].body.items.find((i) => i.card === "later")!.hidden).toBe(true);
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(boardServer.puts).toHaveLength(2));
+    expect(boardServer.puts[1].ifMatch).toBe('"v2"');
+    expect(boardServer.puts[1].body.items.find((i) => i.card === "later")!.hidden).toBe(false);
+    await waitFor(() => expect(order("Your life")).toEqual(["Weather", "Reading", "Later"]));
+  });
+  it("409: says it wasn't saved, reverts, and Reload reads the board again", async () => {
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await userEvent.click(screen.getByRole("button", { name: "Move Reading earlier" }));
+    await waitFor(() => expect(boardServer.puts).toHaveLength(1));
+    // someone else changes Home; this editor's next write carries a stale tag
+    boardServer.bump();
+    await userEvent.click(screen.getByRole("button", { name: "Move Later earlier" }));
+    expect(await screen.findByText("Home changed somewhere else, your edit wasn't saved.")).toBeInTheDocument();
+    await waitFor(() => expect(order("Your life")).toEqual(["Reading", "Weather", "Later"]));
+    await userEvent.click(screen.getByRole("button", { name: "Reload" }));
+    await waitFor(() => expect(screen.queryByText("Home changed somewhere else, your edit wasn't saved.")).not.toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Move Later earlier" }));
+    await waitFor(() => expect(order("Your life")).toEqual(["Reading", "Later", "Weather"]));
+  });
+  it("422: shows the server's reason and keeps the board as it was", async () => {
+    server.use(http.put("/api/config/board/home", () => HttpResponse.json({ detail: "board home: unknown card(s) later" }, { status: 422 })));
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await userEvent.click(screen.getByRole("button", { name: "Hide Later" }));
+    expect(await screen.findByText("Couldn't save: board home: unknown card(s) later")).toBeInTheDocument();
+    await waitFor(() => expect(order("Your life")).toEqual(["Weather", "Reading", "Later"]));
   });
 });
 

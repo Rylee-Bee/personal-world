@@ -1,8 +1,9 @@
 import type { Board, Size } from "./types";
 
 /**
- * Edit Home overlay: the owner's order, visibility and sizes on top of the served board. Pure data; the
- * server board is never mutated. (Persisting to the board config arrives with the board write API.)
+ * Edit Home overlay: the owner's order, visibility and sizes on top of the served board, shown while a save
+ * is in flight. The source of truth is the board file (PUT /api/config/board/{id}); the overlay is dropped
+ * once the server confirms.
  */
 export interface Edits {
   /** Card ids in the owner's order. Cards not listed keep board order after the listed ones. */
@@ -44,21 +45,17 @@ export function move(board: Board, e: Edits, card: string, dir: -1 | 1, siblings
 export const setVisible = (e: Edits, card: string, visible: boolean): Edits => ({ ...e, visible: { ...e.visible, [card]: visible } });
 export const setSize = (e: Edits, card: string, size: Size): Edits => ({ ...e, sizes: { ...e.sizes, [card]: size } });
 
-const KEY = "worlds.home.edits.v1";
-export function loadEdits(): Edits {
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return NO_EDITS;
-    const p = JSON.parse(raw) as Partial<Edits>;
-    return { order: Array.isArray(p.order) ? p.order.filter((x) => typeof x === "string") : [], visible: p.visible ?? {}, sizes: p.sizes ?? {} };
-  } catch {
-    return NO_EDITS;
-  }
-}
-export function saveEdits(e: Edits): void {
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify(e));
-  } catch {
-    /* storage unavailable: the arrangement lasts until reload */
-  }
+/** One item as the C1 board file stores it. */
+export interface ConfigItem { card: string; size: Size; hidden: boolean }
+
+/** The arrangement as C1 board items, in display order. */
+export const toItems = (board: Board): ConfigItem[] => board.items.map(({ card, size, hidden }) => ({ card, size, hidden }));
+
+/** An overlay that shows exactly these items (used to show an arrangement before the server confirms it). */
+export function fromItems(items: ConfigItem[]): Edits {
+  return {
+    order: items.map((i) => i.card),
+    visible: Object.fromEntries(items.map((i) => [i.card, !i.hidden])),
+    sizes: Object.fromEntries(items.map((i) => [i.card, i.size])),
+  };
 }

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState, type FocusEvent, type ReactNode }
 import { DEFAULT_TIMEOUT_MS, useHomeData, type CardFailure } from "./api";
 import { usePrefs } from "./prefs-core";
 import { briefing, buildSections, greeting, SECTION_TITLE, type Row as HomeRow, type Sections } from "./home-model";
-import { applyEdits, loadEdits, move, saveEdits, setSize, setVisible, type Edits } from "./edit-model";
+import { move, setSize, setVisible } from "./edit-model";
+import { useBoardEdit } from "./use-board-edit";
 import { Row } from "./Row";
 import { safeHref } from "./safe-href";
 import { Strip, type StripEntry } from "./Strip";
@@ -157,15 +158,14 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   const rootRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [edits, setEdits] = useState<Edits>(loadEdits);
-  const [past, setPast] = useState<{ edits: Edits; note: string }[]>([]);
-  const [note, setNote] = useState("");
+  const edit = useBoardEdit(board);
+  const { edits, arranged, note } = edit;
   const focusRef = useRef<string | null>(null);
   const [focusTick, setFocusTick] = useState(0);
 
   const liveRaw = useMemo<Raw>(() => ({ board, cards, failures, pending, needsYou }), [board, cards, failures, pending, needsYou]);
+  // The board is the owner's own arrangement, so it is never held; everything that updates by itself is.
   const raw = focusIn && heldRaw?.board ? heldRaw : liveRaw;
-  const arranged = useMemo(() => (raw.board ? applyEdits(raw.board, edits) : undefined), [raw.board, edits]);
   const snap = useMemo(() => snapshot(arranged, raw.cards, raw.failures, raw.pending, raw.needsYou), [arranged, raw]);
   const onFocus = () => {
     if (!focusIn) {
@@ -202,21 +202,13 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
     target?.focus();
   }, [focusTick]);
 
-  const change = (next: Edits, message: string, focusKey: string) => {
-    setPast((p) => [...p, { edits, note: message }]);
-    setEdits(next);
-    saveEdits(next);
-    setNote(message);
+  const change = (next: typeof edits, message: string, focusKey: string) => {
+    edit.apply(next, message);
     focusRef.current = focusKey;
     setFocusTick((n) => n + 1);
   };
   const undo = () => {
-    const last = past[past.length - 1];
-    if (!last) return;
-    setPast((p) => p.slice(0, -1));
-    setEdits(last.edits);
-    saveEdits(last.edits);
-    setNote(`Undid: ${last.note.toLowerCase()}`);
+    edit.undo();
     focusRef.current = "undo";
     setFocusTick((n) => n + 1);
   };
@@ -308,7 +300,7 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
                 <button type="button" className="fd-btn fd-btn--quiet" data-edit-add="" aria-expanded={addOpen} onClick={() => setAddOpen((o) => !o)}>
                   + Add to Home
                 </button>
-                <button type="button" className="fd-btn fd-btn--quiet" data-edit="undo" disabled={past.length === 0} onClick={undo}>
+                <button type="button" className="fd-btn fd-btn--quiet" data-edit="undo" disabled={!edit.canUndo} onClick={undo}>
                   Undo
                 </button>
               </>
@@ -329,6 +321,16 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
                   ))}
                 </ul>
               )}
+            </div>
+          )}
+          {edit.error && (
+            <div className="fd-home-problem">
+              <p className="fd-home-error" role="alert">
+                {edit.error.text}
+              </p>
+              <button type="button" className="fd-btn fd-home-retry" onClick={edit.reload}>
+                Reload
+              </button>
             </div>
           )}
           <p className="fd-home-editnote" role="status">{note}</p>

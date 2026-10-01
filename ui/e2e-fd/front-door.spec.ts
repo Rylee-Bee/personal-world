@@ -35,7 +35,7 @@ test.describe("axe and overflow", () => {
       await page.getByRole("radiogroup", { name: group }).getByLabel(option).check();
       await page.getByRole("link", { name: "Home" }).first().click();
       await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-      await expect(page.getByRole("status")).toHaveCount(0);
+      await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
       expect(await axe(page), `${group} ${option}`).toEqual([]);
       await noHorizontalOverflow(page);
       await shot(page, `home-${option.toLowerCase()}`, info);
@@ -110,7 +110,7 @@ test("Station invariance: same nav, headings, controls and row order on all four
     await page.getByRole("main").waitFor();
     if (hash === "#home") {
       await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-      await expect(page.getByRole("status")).toHaveCount(0);
+      await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
     }
     const off = await snap();
     await page.goto("/#settings");
@@ -119,9 +119,72 @@ test("Station invariance: same nav, headings, controls and row order on all four
     await page.getByRole("main").waitFor();
     if (hash === "#home") {
       await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-      await expect(page.getByRole("status")).toHaveCount(0);
+      await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
     }
     const on = await snap();
     expect(on, hash).toEqual(off);
   }
+});
+
+test("Edit Home: keyboard-operable, axe clean, 44px controls, no overflow", async ({ page }, info) => {
+  await open(page);
+  await page.getByRole("button", { name: "Edit Home" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
+  const reading = page.getByRole("button", { name: "Move Reading earlier" });
+  await reading.focus();
+  await page.keyboard.press("Enter");
+  const titles = () => page.locator("section:has(> h2:text('Your life')) li.fd-row .fd-row-title").allTextContents();
+  await expect.poll(titles).toEqual(["Reading", "Weather", "Later"]);
+  // focus stays on a control of the moved row (Earlier is now disabled, so it lands on Later)
+  await expect(page.getByRole("button", { name: "Move Reading later" })).toBeFocused();
+  for (const b of await page.locator(".fd-row-edit button").all()) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await page.getByRole("button", { name: "+ Add to Home" }).click();
+  expect(await axe(page)).toEqual([]);
+  await noHorizontalOverflow(page);
+  await shot(page, "home-edit", info);
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect.poll(titles).toEqual(["Weather", "Reading", "Later"]);
+});
+
+test("Text size Larger: no overflow, axe clean", async ({ page }, info) => {
+  await open(page, "#settings");
+  await page.getByRole("radiogroup", { name: "Text size" }).getByLabel("Larger").check();
+  await page.getByRole("link", { name: "Home" }).first().click();
+  await page.getByRole("heading", { name: "Needs a look" }).waitFor();
+  await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe("20.8px");
+  expect(await axe(page)).toEqual([]);
+  await noHorizontalOverflow(page);
+  await shot(page, "home-text-larger", info);
+});
+
+test("phone: strip tiles are all the same height", async ({ page }, info) => {
+  test.skip(info.project.name !== "phone-390", "phone layout only");
+  await open(page);
+  const heights = await page.getByRole("group", { name: "Whole world" }).locator("button, a").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+  expect(new Set(heights).size, JSON.stringify(heights)).toBe(1);
+});
+
+test("phone: the bottom bar clears the home indicator and never covers content", async ({ page }, info) => {
+  test.skip(info.project.name !== "phone-390", "phone layout only");
+  await open(page);
+  // Headless Chromium reports env(safe-area-inset-bottom) as 0, so pin the variable the CSS reads.
+  await page.addStyleTag({ content: ":root { --fd-safe-bottom: 34px !important; }" });
+  const m = await page.evaluate(() => {
+    const nav = document.querySelector(".fd-nav")!.getBoundingClientRect();
+    const navPad = parseFloat(getComputedStyle(document.querySelector(".fd-nav")!).paddingBottom);
+    const mainPad = parseFloat(getComputedStyle(document.querySelector(".fd-main")!).paddingBottom);
+    return { navPad, mainPad, navH: nav.height, bottom: Math.round(nav.bottom), vh: window.innerHeight };
+  });
+  expect(m.navPad).toBe(6 + 34);
+  expect(m.bottom).toBe(m.vh);
+  expect(m.mainPad).toBeGreaterThanOrEqual(m.navH);
+  // scrolled to the end, the last row sits above the bar
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const gap = await page.evaluate(() => {
+    const rows = document.querySelectorAll("li.fd-row");
+    return document.querySelector(".fd-nav")!.getBoundingClientRect().top - rows[rows.length - 1].getBoundingClientRect().bottom;
+  });
+  expect(gap).toBeGreaterThanOrEqual(0);
 });
