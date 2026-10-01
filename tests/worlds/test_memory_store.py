@@ -407,3 +407,64 @@ def test_failed_write_rolls_back_rows_index_and_history_together(ms, monkeypatch
     assert ms.db.conn().execute("select count(*) from kept").fetchone()[0] == 0
     assert ms.db.conn().execute("select count(*) from find_index").fetchone()[0] == 0
     assert ms.db.conn().execute("select count(*) from history").fetchone()[0] == before
+
+
+# ----------------------------------------------------------- review hardening
+
+def test_step_up_must_be_exactly_true(ms):
+    rec = ms.add("records", title="L", body="b", sensitivity="locked", actor="owner")
+    for truthy in ("yes", 1, "true", [1], object()):
+        with pytest.raises(Locked):
+            ms.get("records", rec["id"], step_up=truthy)
+        with pytest.raises(Locked):
+            ms.update("records", rec["id"], {"body": "x"}, actor="owner", step_up=truthy)
+        with pytest.raises(Locked):
+            ms.delete("records", rec["id"], actor="owner", step_up=truthy)
+    assert ms.get("records", rec["id"], step_up=True)["body"] == "b"
+
+
+def test_the_lock_is_checked_inside_the_write_transaction(ms, monkeypatch):
+    """A record locked between a caller's read and its write is still protected."""
+    rec = ms.add("records", title="L", body="b", actor="owner")
+    real = ms._fetch
+
+    def lock_then_fetch(table, row_id, conn=None):
+        if conn is not None:                                   # the in-transaction read: someone locked it just before
+            conn.execute("update records set sensitivity='locked' where id=?", (row_id,))
+        return real(table, row_id, conn)
+
+    monkeypatch.setattr(ms, "_fetch", lock_then_fetch)
+    with pytest.raises(Locked):
+        ms.update("records", rec["id"], {"body": "overwritten"}, actor="owner")
+    with pytest.raises(Locked):
+        ms.delete("records", rec["id"], actor="owner")
+    assert ms.db.conn().execute("select body from records").fetchone()[0] == "b"
+
+
+def test_tags_update_round_trips(ms):
+    k = ms.add("kept", title="t", tags=["a"], actor="owner")
+    assert ms.update("kept", k["id"], {"tags": ["a", "b"]}, actor="owner")["tags"] == ["a", "b"]
+    assert ms.get("kept", k["id"])["tags"] == ["a", "b"]
+    assert ms.update("kept", k["id"], {"tags": None}, actor="owner")["tags"] == []
+
+
+def test_export_and_backup_are_logged_and_export_says_whether_locked_rows_were_included(ms, tmp_path):
+    ms.add("records", title="L", sensitivity="locked", actor="owner")
+    list(ms.export_ndjson("records"))
+    list(ms.export_ndjson("records", step_up=True))
+    ms.backup(tmp_path / "b")
+    ev = ms.history(limit=5)
+    assert ev[0]["event"] == "backup" and "file" in ev[0]["detail"]
+    assert [e["detail"] for e in ev[1:3]] == [{"locked_included": True}, {"locked_included": False}]
+
+
+def test_a_refused_export_is_refused_at_call_time_and_not_logged(ms):
+    n = len(ms.history(limit=100))
+    with pytest.raises(MemoryError_):
+        ms.export_ndjson("sqlite_master")                      # not even iterated
+    assert len(ms.history(limit=100)) == n
+
+
+def test_foreign_schema_cannot_run_functions(tmp_path):
+    db = Database.in_dir(tmp_path / "d")
+    assert db.conn().execute("pragma trusted_schema").fetchone()[0] == 0
