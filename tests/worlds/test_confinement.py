@@ -249,13 +249,21 @@ def test_base_url_userinfo_is_rejected(srv):
 # ---- headers, effect, body
 
 
-@pytest.mark.parametrize("h", ["Host", "Content-Length", "Transfer-Encoding", "Connection", "Upgrade", "Expect", "TE"])
+def raw_req(headers, path="/x"):
+    """A request that bypassed model validation: confinement must refuse these on its own."""
+    return Request.model_construct(schema_version=1, id="p.r", provider="p", method="GET", path=path, query={},
+                                   headers=headers, body=None, effect="auto", known_safe=False, ttl_s=0,
+                                   timeout_s=None, assertions=[])
+
+
+@pytest.mark.parametrize("h", ["Host", "Content-Length", "Transfer-Encoding", "Connection", "Upgrade", "Expect", "TE",
+                               "Authorization", "Cookie"])
 def test_framing_headers_refused(srv, h):
-    denied(go(prov(srv), req(headers={h: "x"})), "not allowed")
+    denied(go(prov(srv), raw_req({h: "x"})), "not allowed")
 
 
 def test_crlf_in_header_value_refused(srv):
-    denied(go(prov(srv), req(headers={"X-A": "a\r\nX-B: b"})), "control")
+    denied(go(prov(srv), raw_req({"X-A": "a\r\nX-B: b"})), "control")
 
 
 def test_read_effect_cannot_send_mutating_method(srv):
