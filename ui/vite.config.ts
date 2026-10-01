@@ -8,9 +8,9 @@ import { playwright } from '@vitest/browser-playwright';
 const dirname = import.meta.dirname;
 
 // The Station serves UI and API same-origin in production; for dev and
-// preview the API is proxied. Default target is the live backend;
-// e2e overrides it (VITE_API_PROXY_TARGET) to the deterministic mock
-// API in scripts/e2e-api.mjs — see playwright.config.ts.
+// preview the API is proxied. Default target is the live backend; the
+// e2e-fd-live suite overrides it (VITE_API_PROXY_TARGET) to the real
+// dev API — see playwright.config.ts.
 const API_TARGET = process.env.VITE_API_PROXY_TARGET ?? "http://127.0.0.1:8000";
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
