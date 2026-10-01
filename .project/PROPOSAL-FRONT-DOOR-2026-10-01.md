@@ -485,12 +485,58 @@ Owner feedback on Lamplight: "it feels kinda … text-y". Three more visual enco
 - Every meter carries a text equivalent.
 - Drilling in (card → detail → Technical evidence) works identically in all four.
 
-**Recommendation, pending owner reaction:**
+**Recommendation (superseded by the owner's choice of Instruments, below):**
 
 - Make **Glyph the default Home**.
 - Use **Instruments** as the Detailed density, which is where it naturally belongs.
 - Make **Big & Bold** a comfort preference ("Larger cards"), not a theme.
 - Keep Lamplight's *language* (human meaning lines, the healthy vocabulary) in the drill-in detail and the briefing sentence, where words help most.
+
+### Home direction: Instruments (owner choice, 2026-10-01)
+
+Owner reaction to the four directions: "I really enjoy instruments", with a request to make it more robust and warm. **Instruments is the chosen Home direction.** Lamplight's language survives inside it: meaning lines, the healthy vocabulary, the briefing.
+
+**Row anatomy (one shape for every source):**
+
+```
+icon · name + what it means · meter · value + unit · state + freshness
+```
+
+- **Fixed groups in a fixed order:**
+  - **Needs a look** comes first. These are the lit rows: brighter surface plus an accent edge (a coral edge when unavailable).
+  - **Your life** comes second.
+  - **Quietly working** comes last.
+  - A row changes group when its state changes; the groups never move. When nothing needs a look, the first group says so explicitly ("Nothing needs a look. Everything is answering.") and stops.
+- **Healthy is quiet.** Healthy rows show a plain "● Healthy" (machines) or "● Up to date" (life) with no pill. Only exceptions get a bordered badge, so there's no wall of green.
+- **Every state has a meter:**
+
+  | Meter | Used for |
+  |---|---|
+  | Segments | Health (Homelab: a ▲ marks the broken one) |
+  | Progress bars | Each download |
+  | Progress | Reading |
+  | Stage marks | Projects |
+  | Dots | Later |
+  | Day timeline | Today, with the past shaded and a "now" line; labels sit under the track so they never collide |
+  | Shelf | Interests, recent finds as spines; ✦ marks the new one |
+
+  - **When stale or unavailable**, the meter freezes: striped, with "as of 19:42".
+  - **When not set up**, the track is an honest dashed empty one with a "Set up Music" button and "Optional. Nothing is missing until you want it."
+  - **Missing values show "—", never 0.**
+- **Warmth:**
+  - Young Serif meaning lines ("A gentle evening", "Quietly working", "Halfway through").
+  - Brass-and-teal meters.
+  - Icon wells tinted with the accent.
+  - Life rows (Today, Reading, Interests, Memory) carry as much visual weight as machines.
+- **Comfort settings:**
+  - Calm folds Quietly working into one line.
+  - Detailed adds a 24-check strip to machine rows and opens technical evidence by default.
+  - Edit Home moves, hides, shows and undoes rows.
+- **Drill-in:** row → meaning, detail and rows → Technical evidence (two interactions) → Open in Connect.
+- **Checks:**
+  - axe reports 0 violations in 14 states: Sonarr down, all answering, Station, Calm, Detailed with stale data, drill-in and edit, each at 390px and 1280px.
+  - No horizontal overflow; one timeline-label overflow was found and fixed.
+  - The Core/Station invariance probe passes.
 
 ### Core personality vs pack personality
 
@@ -592,6 +638,7 @@ Owner feedback on Lamplight: "it feels kinda … text-y". Three more visual enco
 | 2026-10-01 (taps) | Personality becomes an optional pack; just Rylee + scoped agent tokens; keep OIDC in Worlds; refine before building |
 | 2026-10-01 (review 2) | Mapping as the semantic layer; governed actions with single dispatch; Memory stays core; doc conflicts resolved explicitly; UI-first with lossless YAML; Chat parked; recipes Project Home → Sonarr → Homelab Health; reference provider in Phase 1 |
 | 2026-10-01 (naming) | Standard names in core, not themed ones |
+| 2026-10-01 (direction) | Home direction: **Instruments**, made more robust and warm |
 | 2026-10-01 (review 3) | Skeleton `Home · Connect · Memory · Settings`; raw mechanics live only in Connect; the Station pack is an overlay that never changes structure; quiet means lower emphasis, not harder to read; the Make prototype is a disposable lab |
 
 ## Open owner questions
