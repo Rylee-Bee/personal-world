@@ -353,6 +353,72 @@ the estate.
 - No AI is required for ordinary configuration or for Memory.
 - `UNKNOWN` remains a valid outcome.
 
+## Design reference: the owner's Figma Make prototype (2026-10-01)
+
+Rylee built an example in Figma Make (file key `eS6fzNT9NC1hjSGWf3yFO3`). It is a
+single-file React prototype, `App.tsx`, about 2.8k lines.
+
+- Every API call in it is simulated with `setTimeout`, and its sample data is mock data.
+- **Do not copy its sample hostnames, tokens or data into this public repo.**
+- It is a reference for **structure and flow**, not for styling (see Accessibility below).
+
+### What it confirms
+
+| Prototype | Proposal equivalent |
+|---|---|
+| Bridge: greeting, status line, "needs you" tasks shown **only when something is pending**, a grid of room tiles, a **+ New Room** tile | Home board: calm, human-shaped, needs-you surfaced, not shouted |
+| Each room has three tabs: **Room · API · Learn** | Card/board view with a **scoped Connect** one tap away (see below) |
+| A room's **API** tab: suggested providers, each with a **role** ("Primary storage", "Vector search", "Auto-tagging"), a few config fields, **Test**, and **Pull** with a JSON preview | Provider → Request → Mapping, with test and query; the *role* is the Mapping's `meaning`. This is direct validation of the semantic layer |
+| Systems → Providers · Variables · Connections · Health · Settings | Connect + secrets + status, grouped as one workshop area |
+| Health list (label, ok/warn/error, latency, note) | A built-in board generated from provider status rules |
+| Custom rooms: name, emoji, colour, type `list` · `board` (kanban) · `blank` | User-created boards |
+| Phone bottom nav **Bridge · Needs you · Search**; desktop sidebar of rooms with **Systems** at the bottom | Answers open question 3: Connect lives in Systems, not in the phone's primary nav |
+
+### What it changes or adds
+
+1. **A per-room API tab.** Each board gets a scoped workshop that shows only the providers,
+   requests and mappings feeding *this* board. The global workshop still exists under
+   Systems. This is progressive disclosure where you already are: Home stays human,
+   and depth is one tap away. Proposed for Phase 2.
+2. **Needs you and Search as landmarks.** "Needs you" aggregates room/0 `needs-you`
+   plus card status rules. "Search" starts as Memory's deterministic Find and later
+   spans card results.
+3. **Providers vs connections.** The prototype separates vendor accounts (API key,
+   model) from project endpoints (URL plus auth type). The proposal keeps **one Provider
+   concept** to avoid two registries again. The UI may group providers by category
+   ("Services" and "My projects").
+4. **Variables means names, never values.** The prototype shows editable secret values
+   in the browser, which the security boundary forbids. The Worlds version lists each
+   variable's name, source and set/not-set, with **write-only** value entry behind step-up.
+5. **Room types.** `blank` is an empty board, Phase 2. `list` is local items, aligned
+   with Memory/Kept, Phase 2–3. `board` (kanban) is **deferred**, because it is a
+   product of its own.
+6. **Learn tab, achievements and XP** go to the personality/experience pack, later.
+   They are kin to the existing stickers and learning features.
+
+### Accessibility: take the structure, not the styling
+
+- **Text size and contrast.** Labels in the prototype are 9–10px monospace at 15–35%
+  white. They fail the type floor (labels ≥13px) and contrast.
+- **Colour-only encoding.** Each room is identified by colour alone.
+- **Motion and focus.** Animations are on by default, and there are no visible focus states.
+- **What Worlds renders instead.** The structure uses the existing tokens, complete
+  themes, 44px targets and WorldButton/kit primitives, per
+  `docs/accessibility/ACCESSIBILITY_CONTRACT.md`.
+
+### Naming to settle (owner decision)
+
+- **"Room" collision.** The prototype calls user-facing spaces **rooms** and home the
+  **Bridge**. In this repo, "room" already means a Play-Nice room/0 *service*.
+- **Options:**
+  - (a) User-facing "Room" means a board, and the room/0 service becomes a "room
+    provider" in docs and code.
+  - (b) Keep "board" in the UI.
+- **Nav options:**
+  - The prototype's `Bridge · Needs you · Search`, with rooms and Systems in the
+    sidebar or menu.
+  - Revision 2's `Home · Connect · Memory · Settings`.
+
 ## Owner answers and review
 
 **Tap-questions (2026-10-01):**
