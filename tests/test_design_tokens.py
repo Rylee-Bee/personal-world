@@ -75,19 +75,42 @@ def test_focus_ring_matches_accessibility_contract():
     )
 
     # the served surface must still ship the resolved ring (no build-time
-    # surprise). Evidence moved with the 2026-09-22 cutover: the interface
-    # is the React rebuild (ui/), not the retired vanilla Station. The
-    # silent-drop class this guards is unchanged: literal 2px width, the
-    # offset a SEPARATE declaration, never folded into the shorthand.
-    world_css = (repo_root / "ui" / "src" / "styles" / "world.css").read_text()
-    assert "outline: 2px solid" in world_css, (
-        "the rebuild's focus ring no longer carries a literal 2px width — "
-        "the exact silent-drop failure this test was born from"
+    # surprise). The interface is the front door (ui/src/fd, ADR-0008); its one
+    # stylesheet carries the focus rule. The silent-drop class this guards is
+    # unchanged: literal 2px width, the offset a SEPARATE declaration, never
+    # folded into the shorthand.
+    fd_css = (repo_root / "ui" / "src" / "fd" / "fd.css").read_text()
+    assert "outline: 2px solid var(--focus)" in fd_css, (
+        "the front door's focus ring no longer carries a literal 2px width in "
+        "ui/src/fd/fd.css - the exact silent-drop failure this test was born from"
     )
-    assert "outline-offset: 2px" in world_css, (
-        "outline-offset vanished as a separate declaration in ui/src/styles/"
-        "world.css — folding it back into the shorthand reintroduces the "
-        "2026-09-11 browser-drop bug"
+    assert "outline-offset: 2px" in fd_css, (
+        "outline-offset vanished as a separate declaration in ui/src/fd/fd.css - "
+        "folding it back into the shorthand reintroduces the 2026-09-11 browser-drop bug"
     )
 
+    # the focus token itself: teal (the station accent) in the dark default, and every
+    # surface a focus ring can sit on keeps at least 3:1 against it (WCAG 1.4.11).
+    def block(selector: str) -> dict[str, str]:
+        m = re.search(re.escape(selector) + r"\s*\{(.*?)\}", fd_css, re.S)
+        assert m, f"{selector} block not found in ui/src/fd/fd.css"
+        return dict(re.findall(r"--([a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})", m.group(1)))
 
+    def luminance(hex_color: str) -> float:
+        rgb = [int(hex_color[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+        lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+    def contrast(a: str, b: str) -> float:
+        hi, lo = sorted((luminance(a), luminance(b)), reverse=True)
+        return (hi + 0.05) / (lo + 0.05)
+
+    dark = block(":root")
+    light = {**dark, **block(':root[data-theme="daylight"]')}
+    assert dark["focus"].lower() == station["accent"]["primary"].lower(), (
+        "the dark theme's --focus is no longer the teal station accent"
+    )
+    for name, theme in (("dark", dark), ("daylight", light)):
+        for surface in ("void", "canvas", "hull", "panel", "elevated", "raised"):
+            ratio = contrast(theme["focus"], theme[surface])
+            assert ratio >= 3, f"{name}: focus ring on --{surface} is {ratio:.2f}:1, below 3:1"
