@@ -76,7 +76,7 @@ def test_connection_class_when_nothing_listens():
         base = s.base_url
     p = Provider(id="ref", name="R", kind="reference", base_url=base, network={"lan": True})
     r = Request(id="ref.t", provider="ref", path="/items")
-    out = reference_send({})(p, r, effect="read")
+    out = reference_send({}, allowed_ports={int(base.rsplit(":", 1)[1])})(p, r, effect="read")
     assert isinstance(out, ConfinementError) and out.error_class == "connection"
 
 

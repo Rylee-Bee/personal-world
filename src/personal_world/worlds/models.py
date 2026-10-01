@@ -40,11 +40,36 @@ class _Strict(BaseModel):
     schema_version: Literal[1] = 1
 
 
+# Header names a credential may NOT be placed in: framing, hop-by-hop, proxy and forwarding headers.
+FORBIDDEN_AUTH_HEADERS = {
+    "host", "cookie", "set-cookie", "transfer-encoding", "content-length", "content-type", "connection", "upgrade",
+    "te", "trailer", "keep-alive", "expect", "authorization", "proxy-authorization", "proxy-authenticate",
+    "proxy-connection", "forwarded", "via", "x-real-ip", "origin", "referer", "accept", "user-agent", "range",
+    "idempotency-key", "if-match", "if-none-match", "if-modified-since", "content-encoding", "accept-encoding",
+}
+_TOKEN_HEADER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,63}$")
+
+
+def check_auth_header_name(name: str) -> str:
+    """A credential header must be a plain token name outside the framing/forwarding set."""
+    low = name.lower()
+    if not _TOKEN_HEADER.match(name):
+        raise ValueError("header_name must be letters, digits and hyphens only")
+    if low in FORBIDDEN_AUTH_HEADERS or low.startswith(("x-forwarded-", "proxy-", "sec-")):
+        raise ValueError(f"header_name {name!r} cannot carry a credential (use auth.type bearer for Authorization)")
+    return name
+
+
 class Auth(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["none", "bearer", "header", "basic"] = "none"
     header_name: str | None = None
     secret_ref: str | None = None
+
+    @field_validator("header_name")
+    @classmethod
+    def _header(cls, v: str | None) -> str | None:
+        return check_auth_header_name(v) if v is not None else v
 
     @model_validator(mode="after")
     def _check(self) -> "Auth":
@@ -72,9 +97,15 @@ class Provider(_Strict):
     path_prefix: str = ""
     auth: Auth = Field(default_factory=Auth)
     network: Network = Field(default_factory=Network)
+    # Who approves operations on this provider. None: room0 providers are governed by Project Home
+    # (fail closed), everything else by Worlds.
+    governance: Literal["worlds", "project_home"] | None = None
     tls_verify: bool = True
     timeout_s: float = Field(default=5, gt=0, le=15)
     max_bytes: int = Field(default=2 * 1024 * 1024, gt=0, le=8 * 1024 * 1024)
+
+    def governed_by_project_home(self) -> bool:
+        return self.governance == "project_home" or (self.governance is None and self.kind == "room0")
 
     @field_validator("base_url")
     @classmethod
@@ -194,9 +225,63 @@ class StatusMap(BaseModel):
     needs_attention: list[Any] = Field(default_factory=list)
 
 
+_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _check_ref(v: Any, *, allow_number: bool) -> Any:
+    """A meter source: a number, a JSONPath ($...), or the key of one of the card's fields."""
+    if v is None:
+        return v
+    if isinstance(v, bool):
+        raise ValueError("meter source must be a number, a $ path or a field key")
+    if isinstance(v, (int, float)):
+        if not allow_number:
+            raise ValueError("this meter source cannot be a literal number")
+        return v
+    if isinstance(v, str):
+        if v.startswith("$"):
+            _check_path(v)
+            return v
+        if _KEY_RE.match(v):
+            return v
+    raise ValueError("meter source must be a number, a $ path or a field key")
+
+
 class Meter(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    """Which card data feeds the meter (C1). The envelope carries the resolved numbers (C2)."""
+
+    model_config = ConfigDict(extra="forbid")
     type: Literal["segments", "bars", "progress", "marks", "dots", "day", "shelf"]
+    value: Any = None      # progress: field key or path
+    max: Any = None        # progress: number, field key or path
+    count: Any = None      # segments: number, field key or path
+    filled: Any = None     # segments: number, field key or path
+    items: str | None = None  # bars/marks/dots/day/shelf: path to a list
+
+    @field_validator("value")
+    @classmethod
+    def _v(cls, v: Any) -> Any:
+        return _check_ref(v, allow_number=False)
+
+    @field_validator("max", "count", "filled")
+    @classmethod
+    def _n(cls, v: Any) -> Any:
+        return _check_ref(v, allow_number=True)
+
+    @field_validator("items")
+    @classmethod
+    def _i(cls, v: str | None) -> str | None:
+        if v is not None and not v.startswith("$"):
+            raise ValueError("meter items must be a $ path to a list")
+        return _check_path(v)
+
+    @model_validator(mode="after")
+    def _shape(self) -> "Meter":
+        if self.type == "progress" and self.value is None:
+            raise ValueError("a progress meter needs value")
+        if self.type == "segments" and (self.count is None or self.filled is None):
+            raise ValueError("a segments meter needs count and filled")
+        return self
 
 
 class Card(_Strict):
@@ -245,10 +330,13 @@ class Action(_Strict):
     scope: str = ""
     idempotency: Literal["required", "optional", "none"] = "optional"
     exposed: bool = False
+    # Only an owner (config writes are owner-only) can waive approval for a request that WRITES.
+    owner_waives_approval: bool = False
 
     @model_validator(mode="after")
-    def _write_needs_approval(self) -> "Action":
-        # A write action defaults to always-approve; "never" is an explicit owner choice.
+    def _waiver_needs_never(self) -> "Action":
+        if self.owner_waives_approval and self.approval != "never":
+            raise ValueError("owner_waives_approval only makes sense with approval: never")
         return self
 
 

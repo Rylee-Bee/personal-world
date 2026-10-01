@@ -126,8 +126,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         app = build_app(
             config_dir,
             principal_dependency=dev_principal,
-            send_override=reference_send({"REF_TOKEN": DEV_TOKEN}),
-            allowed_hosts=["127.0.0.1", "::1", "[::1]", "localhost"],
+            send_override=reference_send({"REF_TOKEN": DEV_TOKEN}, allowed_ports={reference.port}),
+            allowed_hosts=["127.0.0.1", "::1", "localhost"],
             secret_values=(DEV_TOKEN,),
         )
         created = seed_reference_config(app.state.store, reference.base_url)

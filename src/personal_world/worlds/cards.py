@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import math
 import re
 import time
 from typing import Any, Callable
@@ -139,7 +140,7 @@ class CardService:
             "fetched_at": _iso(evidence_fetch.fetched_at),
             "last_good_at": _iso(last_good_at),
             "values": values,
-            "meter": self._meter(card, values),
+            "meter": self._meter(card, values, document),
             "meaning": {"short": card.meaning.short, "full": card.meaning.full},
             "evidence": evidence_fetch.as_evidence(),
         }
@@ -247,18 +248,65 @@ class CardService:
         value = found[0] if len(found) == 1 else found
         return {"text": mapping.format_value(value, field.format, field.unit, now=now), "raw": value}
 
-    def _meter(self, card: Card, values: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
-        """The meter as configured, plus the text a screen reader reads out."""
+    def _meter(self, card: Card, values: dict[str, dict[str, Any]], document: Any) -> dict[str, Any] | None:
+        """The meter: its type, the numbers it draws, and the text a screen reader reads out.
+
+        A number that cannot be resolved is OMITTED (never 0), so the UI draws nothing for it.
+        """
         if card.meter is None:
             return None
-        meter = card.meter.model_dump()
         keys = _field_keys(card)
         spoken = "; ".join(
             f"{field.label}: {values.get(key, _NO_MATCH)['text']}"
             for field, key in zip(card.fields, keys)
         )
-        meter["text_equivalent"] = spoken
+        meter: dict[str, Any] = {"type": card.meter.type, "text_equivalent": spoken}
+        spec = card.meter
+        for name in ("value", "max", "count", "filled"):
+            number = self._meter_number(getattr(spec, name), values, document)
+            if number is not None:
+                meter[name] = number
+        if spec.items is not None:
+            items = self._meter_items(spec.items, document)
+            if items is not None:
+                meter["items"] = items
         return meter
+
+    @staticmethod
+    def _meter_number(ref: Any, values: dict[str, dict[str, Any]], document: Any) -> int | float | None:
+        if ref is None:
+            return None
+        if isinstance(ref, (int, float)) and not isinstance(ref, bool):
+            return ref if math.isfinite(ref) else None
+        if isinstance(ref, str) and ref.startswith("$"):
+            try:
+                res = mapping.resolve(document, ref)
+            except mapping.MappingError:
+                return None
+            raw = res.values[0] if len(res.values) == 1 else None
+        else:
+            raw = (values.get(ref) or {}).get("raw")
+        if isinstance(raw, bool) or not isinstance(raw, (int, float)) or not math.isfinite(raw):
+            return None
+        return raw
+
+    @staticmethod
+    def _meter_items(path: str, document: Any) -> list[Any] | None:
+        try:
+            res = mapping.resolve(document, path)
+        except mapping.MappingError:
+            return None
+        if not res.found:
+            return None
+        items: list[Any] = []
+        for value in res.values[:200]:
+            if isinstance(value, bool):
+                items.append(value)
+            elif isinstance(value, (int, float)) and math.isfinite(value):
+                items.append(value)
+            elif isinstance(value, str):
+                items.append(value[:80])
+        return items
 
 
 def _field_keys(card: Card) -> list[str]:
