@@ -1069,3 +1069,6 @@ html[data-pack="station"] .fd-main::before, html[data-pack="station"] .fd-main::
 html[data-pack="station"] .fd-main::before { top: 8px; left: 8px; border-right: 0; border-bottom: 0; }
 html[data-pack="station"] .fd-main::after { top: 8px; right: 8px; border-left: 0; border-bottom: 0; }
 .fd-main { position: relative; }
+
+/* visually hidden, still read by screen readers */
+.fd-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

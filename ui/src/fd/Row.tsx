@@ -107,7 +107,16 @@ export function Row({ item, card, words, density, timeZone, expanded, onToggle }
         </span>
       </button>
       {card.meter && <Meter meter={card.meter} frozen={frozen} />}
-      <span className="fd-row-value">{valueText}</span>
+      <span className="fd-row-value">
+        {present ? (
+          valueText
+        ) : (
+          <>
+            <span aria-hidden="true">{valueText}</span>
+            <span className="fd-sr">unknown</span>
+          </>
+        )}
+      </span>
       {present && unit && <span className="fd-row-unit">{unit}</span>}
       <span className="fd-row-state">
         <span className="fd-row-shape" aria-hidden="true">

@@ -141,8 +141,25 @@ function MeterBody({ meter }: { meter: MeterData }) {
  * text equivalent is the name, the drawn marks are presentational, and the
  * meter never animates. Frozen draws a striped, dashed "last good" treatment.
  */
+/** The API may send a meter with only `type` and `text_equivalent`. Draw nothing then: never invent progress. */
+function drawable(m: MeterData): boolean {
+  const o = m as unknown as Record<string, unknown>;
+  const num = (k: string) => typeof o[k] === "number";
+  const arr = (k: string) => Array.isArray(o[k]);
+  switch (m.type) {
+    case "segments": return num("filled") && num("total");
+    case "bars": return arr("values");
+    case "progress": return num("value") && num("max");
+    case "marks": return num("shown") && num("more");
+    case "dots": return num("on") && num("total");
+    case "day": return arr("events");
+    case "shelf": return arr("items");
+    default: return false;
+  }
+}
+
 export function Meter({ meter, frozen }: MeterProps) {
-  if (!meter) return null;
+  if (!meter || !drawable(meter)) return null;
   return (
     <span
       className={`fd-meter fd-meter--${meter.type}${frozen ? " fd-meter--frozen" : ""}`}

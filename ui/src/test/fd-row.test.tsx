@@ -20,6 +20,11 @@ describe("Meter", () => {
     const { container } = render(<Meter meter={null} frozen={false} />);
     expect(container).toBeEmptyDOMElement();
   });
+  it("draws nothing when the API sends a meter with no data to draw", () => {
+    const bare = { type: "progress", text_equivalent: "Uptime: 1h 2m" } as unknown as Parameters<typeof Meter>[0]["meter"];
+    const { container } = render(<Meter meter={bare} frozen={false} />);
+    expect(container).toBeEmptyDOMElement();
+  });
   it("marks a frozen meter", () => {
     render(<Meter meter={cards.downloads.meter} frozen />);
     expect(screen.getByRole("img")).toHaveAttribute("data-frozen", "true");
@@ -57,7 +62,7 @@ describe("Row anatomy", () => {
     row("malformed");
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.queryByText("0")).not.toBeInTheDocument();
-    expect(screen.queryByText("unknown")).not.toBeInTheDocument();
+    expect(screen.getByText("unknown")).toHaveClass("fd-sr");
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
   it("an empty list is healthy and shows 'none'", () => {
