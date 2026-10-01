@@ -120,30 +120,49 @@ def _read_bracket(path: str, i: int, steps: list[Any]) -> int:
 # --------------------------------------------------------------------------
 
 
-def extract(doc: Any, path: str) -> list[Any]:
-    """Read ``path`` out of ``doc``.
+@dataclass(frozen=True)
+class Resolved:
+    """Result of reading a path: the values, and whether the path actually exists.
 
-    Returns every matching value, in document order. A step that does not apply
-    (missing key, out-of-range or negative index, wildcard over a non-list)
-    contributes nothing: the result is ``[]``, never ``0`` and never ``None``.
+    ``found`` is False when a step did not apply anywhere (missing key, bad or
+    out-of-range index, wildcard over a non-list) and nothing was produced. A
+    wildcard over a list that exists but is empty is ``found=True`` with no values.
     """
+
+    values: list[Any]
+    found: bool
+
+
+def resolve(doc: Any, path: str) -> Resolved:
     current = [doc]
+    skipped = False
     for step in parse_path(path):
-        found: list[Any] = []
+        nxt: list[Any] = []
         for node in current:
             if isinstance(step, _Name):
                 if isinstance(node, dict) and step.name in node:
-                    found.append(node[step.name])
+                    nxt.append(node[step.name])
+                else:
+                    skipped = True
             elif isinstance(step, _Wildcard):
                 if isinstance(node, (list, tuple)):
-                    found.extend(node)
+                    nxt.extend(node)
+                else:
+                    skipped = True
             else:
                 if isinstance(node, (list, tuple)) and 0 <= step.index < len(node):
-                    found.append(node[step.index])
-        current = found
+                    nxt.append(node[step.index])
+                else:
+                    skipped = True
+        current = nxt
         if not current:
-            return []
-    return current
+            return Resolved([], found=not skipped)
+    return Resolved(current, found=True)
+
+
+def extract(doc: Any, path: str) -> list[Any]:
+    """Every matching value in document order; ``[]`` when nothing matches (never 0, never None)."""
+    return resolve(doc, path).values
 
 
 # --------------------------------------------------------------------------

@@ -43,6 +43,7 @@ from pydantic import ValidationError
 from .cards import CardService, home_board_defs
 from .config_store import MODEL_BY_KIND, ConfigInvalid, ConfigStore, EtagMismatch
 from .config_store import _describe as _config_error  # one wording for every refusal
+from .confinement import confined_request
 from .runner import Runner
 
 __all__ = ["build_app"]
@@ -88,15 +89,18 @@ def build_app(
     config_dir: str | os.PathLike[str],
     *,
     principal_dependency: Callable[..., Any],
-    send: Callable[..., Any],
+    send_override: Callable[..., Any] | None = None,
+    allowed_hosts: Iterable[str] | None = None,
     data_dir: str | os.PathLike[str] | None = None,
     secret_values: Iterable[str] = (),
 ) -> FastAPI:
     """Build the Worlds app. Nothing here reads a secret but its redactor."""
     store = ConfigStore(config_dir)
+    # Production sends ONLY through the confinement module. ``send_override`` exists for tests and
+    # the loopback dev server; no production entrypoint passes it.
     runner = Runner(
         store,
-        send,
+        send_override if send_override is not None else confined_request,
         cache_dir=(Path(data_dir) / "cache") if data_dir is not None else None,
         secret_values=secret_values,
     )
@@ -106,6 +110,10 @@ def build_app(
     app.state.store = store
     app.state.runner = runner
     app.state.cards = cards
+    if allowed_hosts is not None:
+        from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(allowed_hosts))
 
     principal = Depends(principal_dependency)
 

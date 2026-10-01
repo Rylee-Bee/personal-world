@@ -269,6 +269,7 @@ class ReferenceServer:
             self.calls.append((method, path, headers))
 
 
+_LOOPBACK_NAMES = {"127.0.0.1", "::1", "localhost"}
 Sender = Callable[[Provider, Request], RawResponse | ConfinementError]
 
 
@@ -316,6 +317,12 @@ def reference_send(secrets: dict[str, str]) -> Sender:
         def elapsed_ms() -> int:
             return int((time.monotonic() - started) * 1000)
 
+        host = urlsplit(provider.base_url).hostname or ""
+        if provider.kind != "reference" or host not in _LOOPBACK_NAMES:
+            return ConfinementError(
+                "confinement_denied", "reference sender only serves kind=reference on loopback",
+                duration_ms=elapsed_ms(),
+            )
         headers: dict[str, str] = dict(request.headers)
         auth_headers, missing = _auth_headers(provider.auth, secrets)
         if auth_headers is None:
@@ -336,13 +343,18 @@ def reference_send(secrets: dict[str, str]) -> Sender:
                 if 300 <= response.status_code < 400:
                     return ConfinementError(
                         "redirect_refused",
-                        f"refused redirect to {response.headers.get('Location', '?')}",
+                        "refused a redirect (target not recorded)",
                         status_code=response.status_code,
                         duration_ms=elapsed_ms(),
                     )
                 body = bytearray()
                 for chunk in response.iter_bytes():
                     body.extend(chunk)
+                    if time.monotonic() - started > timeout_s:  # wall clock, not per-read
+                        return ConfinementError(
+                            "timeout", f"no complete answer within {timeout_s}s",
+                            status_code=response.status_code, duration_ms=elapsed_ms(),
+                        )
                     if len(body) > provider.max_bytes:
                         return ConfinementError(
                             "too_large",

@@ -23,7 +23,7 @@ def make_client(tmp_path, ref, authed=True):
             raise HTTPException(status_code=401, detail="unauthorized")
         return "owner"
 
-    app = build_app(tmp_path / "cfg", principal_dependency=principal, send=reference_send({"REF_TOKEN": "tok"}),
+    app = build_app(tmp_path / "cfg", principal_dependency=principal, send_override=reference_send({"REF_TOKEN": "tok"}),
                     data_dir=tmp_path / "data")
     seed_reference_config(app.state.store, ref.base_url)
     return TestClient(app)

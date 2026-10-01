@@ -230,13 +230,16 @@ class CardService:
 
     def _field_value(self, document: Any, field: Any, now: dt.datetime) -> dict[str, Any]:
         try:
-            found = mapping.extract(document, field.path)
+            res = mapping.resolve(document, field.path)
         except mapping.MappingError as exc:
             logger.warning("card field %r has an unparseable path: %s", field.label, exc)
             return dict(_NO_MATCH)
+        found = res.values
+        if not res.found:
+            return dict(_NO_MATCH)  # the path does not exist: unknown, never none or 0
         if _is_wildcard(field.path):
-            # A wildcard that matched nothing is an empty list, which is a real
-            # value: it reads as "none", not "unknown".
+            # A wildcard over a list that exists but is empty is a real value:
+            # it reads as "none", not "unknown".
             text = ", ".join(mapping.format_value(v, field.format, field.unit, now=now) for v in found)
             return {"text": text or "none", "raw": list(found)}
         if not found:
@@ -249,12 +252,19 @@ class CardService:
         if card.meter is None:
             return None
         meter = card.meter.model_dump()
+        keys = _field_keys(card)
         spoken = "; ".join(
-            f"{field.label}: {values.get(slug(field.label), _NO_MATCH)['text']}"
-            for field in card.fields
+            f"{field.label}: {values.get(key, _NO_MATCH)['text']}"
+            for field, key in zip(card.fields, keys)
         )
         meter["text_equivalent"] = spoken
         return meter
+
+
+def _field_keys(card: Card) -> list[str]:
+    """Keys for a card's fields: the one keying used by the envelope, the meter and board defs."""
+    taken: dict[str, int] = {}
+    return [_unique_slug(f.label, taken) for f in card.fields]
 
 
 def _is_wildcard(path: str) -> bool:
@@ -301,8 +311,8 @@ def _item_defs(card: Card, item: Any) -> dict[str, Any]:
         "group": card.group,
         "view": card.view,
         "fields": [
-            {"key": slug(f.label), "label": f.label, "format": f.format, "unit": f.unit}
-            for f in card.fields
+            {"key": key, "label": f.label, "format": f.format, "unit": f.unit}
+            for f, key in zip(card.fields, _field_keys(card))
         ],
         "meter_type": card.meter.type if card.meter else None,
     }

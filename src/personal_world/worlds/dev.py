@@ -58,7 +58,7 @@ def assert_loopback(host: str) -> None:
     """Refuse to start unless ``host`` is a loopback literal. Raises SystemExit.
 
     Exact string comparison, no DNS and no normalisation: ``0.0.0.0``,
-    ``192.168.1.5``, ``example.com``, ``localhost`` and ``""`` are all refused.
+    an address like ``192.0.2.1``, ``example.com``, ``localhost`` and ``""`` are all refused.
     """
     if not isinstance(host, str) or host not in LOOPBACK_HOSTS:
         allowed = ", ".join(sorted(LOOPBACK_HOSTS))
@@ -126,7 +126,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         app = build_app(
             config_dir,
             principal_dependency=dev_principal,
-            send=reference_send({"REF_TOKEN": DEV_TOKEN}),
+            send_override=reference_send({"REF_TOKEN": DEV_TOKEN}),
+            allowed_hosts=["127.0.0.1", "::1", "[::1]", "localhost"],
             secret_values=(DEV_TOKEN,),
         )
         created = seed_reference_config(app.state.store, reference.base_url)

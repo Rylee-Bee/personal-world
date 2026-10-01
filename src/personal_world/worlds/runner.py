@@ -351,12 +351,13 @@ class Runner:
             if assertion.path is None:
                 continue
             try:
-                found = mapping.extract(data, assertion.path)
+                res = mapping.resolve(data, assertion.path)
             except mapping.MappingError as exc:
                 return f"assertion failed: {exc}"
-            if assertion.exists and not found:
+            found = res.values
+            if assertion.exists and not res.found:
                 return f"assertion failed: {assertion.path} is missing"
-            if assertion.is_list and not all(isinstance(value, list) for value in found):
+            if assertion.is_list and (not found or not all(isinstance(value, list) for value in found)):
                 return f"assertion failed: {assertion.path} is not a list"
             if assertion.equals is not None and found != [assertion.equals]:
                 return f"assertion failed: {assertion.path} is not the expected value"
