@@ -44,7 +44,7 @@ domain-specific integrations**, not a rewrite.
 ## The core model
 
 ```
-Provider → Request → Mapping → Card → Board
+Provider → Request → Mapping → Card → Room
                 │
                 └→ Governed Action → assistant / automation
 ```
@@ -55,7 +55,7 @@ Provider → Request → Mapping → Card → Board
 | **Request** | transport mechanics | `provider, method, path, params, headers, body, assertions[], ttl` (Bruno-style) | `requests/<provider>/<id>.yaml` |
 | **Mapping** | interpretation and human meaning | `request(s), fields[] {path (JSONPath), label, format, unit, remap}, status rule, meaning {concept}` | inside the card file, or `mappings/<id>.yaml` when shared |
 | **Card** | presentation | `mapping, title, view (stat · list · table · status · link · markdown)` | `cards/<id>.yaml` |
-| **Board** | composition | ordered cards and sections; "Home" is a board | `boards/<id>.yaml` |
+| **Room** | composition | ordered cards and sections; the **Bridge** is the home room (revision 2 called this "Board"; renamed by owner decision) | `rooms/<id>.yaml` |
 | **Governed Action** | executable authority | `request, exposed, name, access (read · write), approval (never · always), idempotency` | `actions/<id>.yaml` |
 
 The verbs everywhere are **list · query · test · save**, plus **pin**.
@@ -234,15 +234,20 @@ the repo carries only the reference provider and example recipes.
 
 ## Navigation and product language
 
-`Home · Connect · Memory · Settings`
+`Bridge · Needs you · Search` (owner decision, 2026-10-01; see Design reference)
 
-- **Home** shows only human-shaped results: boards of cards. It is the calm daily
-  landmark.
-- **Connect** is the workshop, where raw API work happens. Technical depth is there
-  when you want it, and the everyday experience is never an API console. This keeps
-  AGENT_POLICY's "personal appliance, not an administration console" rule true.
-- **Memory** is core (above).
-- **Settings** covers preferences, themes, accessibility and packs.
+- **Bridge** shows only human-shaped results: the cards and room tiles that matter
+  now. It is the calm daily landmark.
+- **Needs you** gathers what needs a person, from services' needs-you lists and from
+  card status rules.
+- **Search** starts as Memory's deterministic Find.
+- **Rooms** are listed in the sidebar (desktop) or a room list (phone). Memory is a
+  built-in room, and it is core.
+- **Systems** is the workshop: the global Connect (providers, requests, mappings,
+  actions), secrets/variables, health and settings. Each room also has an **API** tab
+  scoped to that room. Technical depth is there when you want it, and the everyday
+  experience is never an API console. This keeps AGENT_POLICY's "personal appliance,
+  not an administration console" rule true.
 
 ## Superseded decisions (so no future agent "corrects" Worlds back)
 
@@ -251,8 +256,8 @@ If this proposal is approved, Phase 0 edits these documents in place with a date
 
 | Document / decision | Old wording | New direction |
 |---|---|---|
-| `docs/PRODUCT-LANGUAGE.md` § Stable skeleton (also `AGENTS.md`, `docs/TRUE-NORTH.md` scope) | `Bridge · Memory · Chat · Settings` | `Home · Connect · Memory · Settings`. **Home supersedes Bridge/Overview** as the primary daily landmark. **Connect** becomes a stable first-class landmark. **Chat is no longer required core navigation**: it becomes an optional client of governed actions, later |
-| `docs/PRODUCT-LANGUAGE.md` § Overview | Overview/Bridge aggregates each section's headline | The Home board does this through cards and mappings; there is no separate aggregator |
+| `docs/PRODUCT-LANGUAGE.md` § Stable skeleton (also `AGENTS.md`, `docs/TRUE-NORTH.md` scope) | `Bridge · Memory · Chat · Settings` | `Bridge · Needs you · Search`, with rooms and **Systems** (where Connect lives) one level down. The **Bridge stays** as the daily landmark but is rebuilt as the home room; the `overview` id is retired. **Chat is no longer required core navigation**: it becomes an optional client of governed actions, later |
+| `docs/PRODUCT-LANGUAGE.md` § Overview | Overview/Bridge aggregates each section's headline | The Bridge does this through cards and mappings; there is no separate aggregator |
 | `docs/PRODUCT-LANGUAGE.md` § theme principles | "Character art, a light sci-fi feel, and visible companions stay part of Worlds" | Crew, Keeper, stickers, Sol, star map, lore and related character behaviour **move out of core code into an optional theme/experience pack**. Art and character canon stay preserved in the repo. **Kept from the old rule:** plain still never means sterile or grey enterprise. Core keeps a warm, recognisable identity through typography, softness, interaction quality and complete themes |
 | `.project/PLAN.md` Step 1b | "**Personality ships here, not later**" | Superseded: personality ships as the optional pack, after the front door works |
 | `.project/PLAN.md` Steps 1c–3 | media, calendars, inboxes as built-in sources | They arrive as providers, recipes or rooms on the front-door model |
@@ -278,7 +283,7 @@ replaced.
 |---|---|---|---|
 | 0 | **Decide and record** | ADR-0008 (meaning/mechanics, mapping concepts, governed actions, single dispatch); the superseded-decision edits above; DECISIONS entry; tag `archive/pre-front-door`; delete the dead discovery engine (no behaviour change) | ADR merged, conflicting docs updated, pytest green |
 | 1 | **Provider + Request + Mapping foundations** | SSRF guard, secret refs, request runner, assertions/test, YAML store with round-trip, Connect UI (add provider → Test → build request → Run → JSON viewer → map a field → Save → list), **the reference provider**, a deterministic test suite | The full Provider → Request → Mapping flow passes in CI against the reference provider, and you save a working request from your phone |
-| 2 | **Cards + Boards** | Cards, mapping editor (click a JSON field to map it), status rules, TTL cache with stale/last-good, room/0 provider kind, Home board; writes run through the governed path with the single-dispatch invariant | Home shows your real rooms plus pinned cards, and one broken provider doesn't blank it |
+| 2 | **Cards + Rooms** | Cards, mapping editor (click a JSON field to map it), status rules, TTL cache with stale/last-good, room/0 provider kind (`service`), the Bridge as home room, per-room API tab, Needs you, `blank` and `list` room types; writes run through the governed path with the single-dispatch invariant | Home shows your real rooms plus pinned cards, and one broken provider doesn't blank it |
 | 3 | **Recipes, then import** | Recipes, in order: **1. Project Home**, **2. Sonarr**, **3. Homelab Health**. GitHub comes fourth, later. OpenAPI import only **after** the recipe model is proven by hand | Each of the three runs from a recipe with no Python adapter |
 | 4 | **The cut** | One PR per removal family (persona → pack, multi-user, then each ported provider once its recipe or room works); tests leave with their code | Backend and UI at target size; all gates green; nothing removed without a working replacement |
 | 5 | **Memory enrichment + assistant** | Memory already has its core baseline before this phase. Phase 5 adds external/semantic memory providers, governed action bindings for the assistant, the optional chat client, and the replacement of the handwritten tool registry | See acceptance below |
@@ -323,7 +328,7 @@ each of these cases:
 | oversized response | the size cap holds |
 
 **Architectural acceptance:** the front-door model works even when Rylee's personal
-infrastructure does not exist. The whole Provider → Request → Mapping → Card → Board
+infrastructure does not exist. The whole Provider → Request → Mapping → Card → Room
 flow runs with no Sonarr, no Project Home, no LAN, no personal tokens and none of
 the estate.
 
@@ -342,7 +347,7 @@ the estate.
 - Worlds remains small and fast. No rewrite.
 - Replace before remove.
 - One generic substrate replaces many domain-specific integrations.
-- Raw API work lives in Connect, never on Home; Home shows only human-shaped results.
+- Raw API work lives in Connect (Systems or a room's API tab), never on the Bridge; the Bridge shows only human-shaped results.
 - Rooms remain for integrations that need logic. Recipes remain data.
 - OpenAPI import comes after the request model is proven. MCP comes later.
 - Theme and personality code leave core; canon and art are preserved.
@@ -366,7 +371,7 @@ single-file React prototype, `App.tsx`, about 2.8k lines.
 
 | Prototype | Proposal equivalent |
 |---|---|
-| Bridge: greeting, status line, "needs you" tasks shown **only when something is pending**, a grid of room tiles, a **+ New Room** tile | Home board: calm, human-shaped, needs-you surfaced, not shouted |
+| Bridge: greeting, status line, "needs you" tasks shown **only when something is pending**, a grid of room tiles, a **+ New Room** tile | The Bridge (home room): calm, human-shaped, needs-you surfaced, not shouted |
 | Each room has three tabs: **Room · API · Learn** | Card/board view with a **scoped Connect** one tap away (see below) |
 | A room's **API** tab: suggested providers, each with a **role** ("Primary storage", "Vector search", "Auto-tagging"), a few config fields, **Test**, and **Pull** with a JSON preview | Provider → Request → Mapping, with test and query; the *role* is the Mapping's `meaning`. This is direct validation of the semantic layer |
 | Systems → Providers · Variables · Connections · Health · Settings | Connect + secrets + status, grouped as one workshop area |
@@ -378,7 +383,7 @@ single-file React prototype, `App.tsx`, about 2.8k lines.
 
 1. **A per-room API tab.** Each board gets a scoped workshop that shows only the providers,
    requests and mappings feeding *this* board. The global workshop still exists under
-   Systems. This is progressive disclosure where you already are: Home stays human,
+   Systems. This is progressive disclosure where you already are: the Bridge stays human,
    and depth is one tap away. Proposed for Phase 2.
 2. **Needs you and Search as landmarks.** "Needs you" aggregates room/0 `needs-you`
    plus card status rules. "Search" starts as Memory's deterministic Find and later
@@ -406,7 +411,34 @@ single-file React prototype, `App.tsx`, about 2.8k lines.
   themes, 44px targets and WorldButton/kit primitives, per
   `docs/accessibility/ACCESSIBILITY_CONTRACT.md`.
 
-### Naming to settle (owner decision)
+### Naming and navigation: owner decision (2026-10-01)
+
+- **Navigation:** `Bridge · Needs you · Search` is primary, as in the prototype.
+  - Rooms (Memory is a built-in room) are in the desktop sidebar and in a room list on the phone.
+  - **Systems** holds the global Connect workshop, secrets/variables, health and settings.
+  - Each room has its own **API** tab.
+  - This supersedes revision 2's `Home · Connect · Memory · Settings` and the "Home" landmark name.
+- **Plain names in the code too** (owner answer). The words Rylee sees are the words
+  in the code, with no translation layer. Today's area id `overview`, which renders
+  the Bridge, is exactly what to retire.
+
+  | The person sees | Code / API / files use |
+  |---|---|
+  | Bridge | `bridge` |
+  | a room | `room` (rooms/<id>.yaml) |
+  | Needs you | `needs_you` |
+  | a card | `card` |
+  | Systems | `systems` |
+  | a connected service (Workshop, Candy, Engine room…) | **`service`**, with provider kind `room0` |
+
+- **The external contract keeps its name.** The Play-Nice contract is still called
+  `room/0` upstream; Worlds does not rename someone else's contract. Only Worlds' own
+  code stops calling those services "rooms", which frees the word for Rylee's spaces.
+  The rename lands as one mechanical PR in Phase 4. Until then, the existing `rooms.py`
+  is documented as "services that speak room/0".
+- **"Board" leaves the vocabulary.** Revision 2's Board is now **room**.
+
+### Naming to settle (superseded by the decision above)
 
 - **"Room" collision.** The prototype calls user-facing spaces **rooms** and home the
   **Bridge**. In this repo, "room" already means a Play-Nice room/0 *service*.
