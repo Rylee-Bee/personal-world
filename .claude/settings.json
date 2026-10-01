@@ -27,6 +27,11 @@
       "Read(/ui/storybook-static/**)",
       "Read(/ui/test-results/**)",
       "Read(/ui/playwright-report/**)"
+    ],
+    "allow": [
+      "mcp__homelab-memory__memory_search",
+      "mcp__memory-graph__search_nodes",
+      "Bash(offload --help)"
     ]
   }
 }
