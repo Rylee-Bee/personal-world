@@ -6,16 +6,33 @@ import hashlib
 import json
 import re
 from typing import Annotated, Any, Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 ID_RE = r"^[a-z0-9][a-z0-9-]{0,62}$"
 REQUEST_ID_RE = r"^[a-z0-9][a-z0-9-]{0,62}\.[a-z0-9][a-z0-9-]{0,62}$"
 SECRET_REF_RE = re.compile(r"^(env|vault):[A-Za-z_][A-Za-z0-9_.-]*$")
-FORBIDDEN_HEADERS = {"authorization", "cookie", "proxy-authorization", "set-cookie"}
+# Request headers are an ALLOW-list (C1). Credentials come only from the provider's auth block.
+ALLOWED_HEADERS = {
+    "accept", "accept-language", "content-type", "user-agent", "if-none-match", "if-modified-since",
+    "idempotency-key",  # required by C3 for actions that declare idempotency
+}
 
 Id = Annotated[str, StringConstraints(pattern=ID_RE)]
 RequestId = Annotated[str, StringConstraints(pattern=REQUEST_ID_RE)]
+
+
+def _check_path(path: str | None) -> str | None:
+    """Reject a path outside the JSONPath subset at save time, not at first render."""
+    if path is not None:
+        from .mapping import MappingError, parse_path
+
+        try:
+            parse_path(path)
+        except MappingError as exc:
+            raise ValueError(str(exc)) from None
+    return path
 
 
 class _Strict(BaseModel):
@@ -62,8 +79,11 @@ class Provider(_Strict):
     @field_validator("base_url")
     @classmethod
     def _base(cls, v: str) -> str:
-        if not re.match(r"^https?://[^/\s]+(/[^\s]*)?$", v):
-            raise ValueError("base_url must be http(s)://host[:port][/path]")
+        if not re.match(r"^https?://[^/\s@]+(/[^\s]*)?$", v):
+            raise ValueError("base_url must be http(s)://host[:port][/path] without userinfo")
+        parts = urlsplit(v)
+        if parts.username is not None or parts.password is not None or parts.query or parts.fragment:
+            raise ValueError("base_url must not carry userinfo, query or fragment")
         return v
 
     @field_validator("path_prefix")
@@ -86,6 +106,7 @@ class Assertion(BaseModel):
     def _check(self) -> "Assertion":
         if self.status is None and self.path is None:
             raise ValueError("assertion needs status or path")
+        _check_path(self.path)
         return self
 
 
@@ -115,9 +136,12 @@ class Request(_Strict):
     @field_validator("headers")
     @classmethod
     def _headers(cls, v: dict[str, str]) -> dict[str, str]:
-        bad = [h for h in v if h.lower() in FORBIDDEN_HEADERS]
+        bad = [h for h in v if h.lower() not in ALLOWED_HEADERS]
         if bad:
-            raise ValueError(f"headers not allowed: {bad}")
+            raise ValueError(f"headers not allowed (allow-list: {sorted(ALLOWED_HEADERS)}): {bad}")
+        for name, value in v.items():
+            if any(c in f"{name}{value}" for c in ("\r", "\n", "\x00")):
+                raise ValueError("header contains a control character")
         return v
 
     @model_validator(mode="after")
@@ -144,6 +168,11 @@ class Field_(BaseModel):
     format: Literal["number", "percent", "bytes", "duration", "relative_time", "text"] = "text"
     unit: str | None = None
 
+    @field_validator("path")
+    @classmethod
+    def _jsonpath(cls, v: str) -> str:
+        return _check_path(v) or v
+
 
 class Meaning(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -155,6 +184,12 @@ class Meaning(BaseModel):
 class StatusMap(BaseModel):
     model_config = ConfigDict(extra="forbid")
     path: str
+
+    @field_validator("path")
+    @classmethod
+    def _jsonpath(cls, v: str) -> str:
+        return _check_path(v) or v
+
     healthy: list[Any] = Field(default_factory=list)
     needs_attention: list[Any] = Field(default_factory=list)
 

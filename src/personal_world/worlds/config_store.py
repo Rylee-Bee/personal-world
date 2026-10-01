@@ -143,6 +143,19 @@ class ConfigStore:
 
     # -------------------------------------------------------------- loading
 
+    def _file_etag(self, path: Path) -> str | None:
+        try:
+            return hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError:
+            return None
+
+    def _rel(self, path: Path) -> str:
+        """A path relative to the config dir; absolute filesystem paths never leave this module."""
+        try:
+            return str(path.relative_to(self._root))
+        except ValueError:
+            return path.name
+
     def _load_file(self, kind: str, path: Path) -> tuple[BaseModel | None, str | None]:
         """Return (object, etag) or (None, error message). Never raises."""
         obj_id = path.stem
@@ -183,14 +196,16 @@ class ConfigStore:
                 for path in self._files(kind):
                     obj, info = self._load_file(kind, path)
                     if obj is None:
-                        errors.append({"path": str(path), "message": info or "invalid config"})
+                        # The file changed on disk, so its etag changed: a stale PUT must get 409.
+                        bad_etag = self._file_etag(path)
+                        errors.append({"path": self._rel(path), "kind": kind, "id": path.stem,
+                                       "etag": bad_etag or "", "message": info or "invalid config"})
+                        if bad_etag is not None:
+                            etags[kind][path.stem] = bad_etag
                         # An invalid file keeps the last valid object active.
                         previous = self._objects[kind].get(path.stem)
                         if previous is not None:
                             objects[kind][path.stem] = previous
-                            old_etag = self._etags[kind].get(path.stem)
-                            if old_etag is not None:
-                                etags[kind][path.stem] = old_etag
                         continue
                     objects[kind][obj.id] = obj
                     etags[kind][obj.id] = info or ""
@@ -278,6 +293,7 @@ class ConfigStore:
             new_etag = self._atomic_write(path, payload)
             self._objects[kind][obj.id] = obj
             self._etags[kind][obj.id] = new_etag
+            self._errors = [e for e in self._errors if not (e.get("kind") == kind and e.get("id") == obj.id)]
             changed = self._refresh_versions()
         self._notify(changed)
         return new_etag
