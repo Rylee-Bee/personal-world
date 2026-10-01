@@ -1,0 +1,191 @@
+/* shell */
+
+/*
+ * The shell is layout-only: a mobile bottom bar that becomes a left rail
+ * at 900px and up. Everything is styled from the four shell elements
+ * (skip link, header, nav, main); no wrapper is introduced.
+ */
+
+.fd-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 30;
+  padding: var(--pw-spacing-sm) var(--pw-spacing-lg);
+  border-radius: var(--pw-radius-sm);
+  background: var(--pw-surface-raised);
+  color: var(--pw-text-primary);
+  font-size: var(--pw-typography-size_body);
+  text-decoration: none;
+}
+
+.fd-skip:focus,
+.fd-skip:focus-visible {
+  left: var(--pw-spacing-lg);
+  top: var(--pw-spacing-lg);
+  outline: var(--pw-focus-ring_width) solid var(--pw-accent-primary);
+  outline-offset: var(--pw-focus-ring_offset);
+}
+
+.fd-header {
+  display: flex;
+  align-items: center;
+  min-height: var(--pw-targets-large);
+  box-sizing: border-box;
+  padding: var(--pw-spacing-sm) var(--pw-spacing-lg);
+  background: var(--pw-surface-panel);
+  border-bottom: 1px solid var(--pw-border-subtle);
+}
+
+.fd-header-brand {
+  color: var(--pw-text-primary);
+  font-size: var(--pw-typography-size_lead);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.fd-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--pw-spacing-xs);
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: var(--pw-spacing-xs) var(--pw-spacing-sm);
+  padding-bottom: calc(var(--pw-spacing-xs) + env(safe-area-inset-bottom));
+  background: var(--pw-surface-panel);
+  border-top: 1px solid var(--pw-border-subtle);
+}
+
+.fd-nav-landmarks {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: var(--pw-spacing-xs);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fd-nav-landmarks li {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.fd-nav-boards {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fd-nav a {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--pw-targets-minimum);
+  padding: var(--pw-spacing-xs) var(--pw-spacing-sm);
+  border-radius: var(--pw-radius-sm);
+  color: var(--pw-text-secondary);
+  font-size: var(--pw-typography-size_label);
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.fd-nav a[aria-current="page"] {
+  color: var(--pw-text-primary);
+  font-weight: 600;
+  background: var(--pw-surface-raised);
+}
+
+.fd-nav a:focus-visible {
+  outline: var(--pw-focus-ring_width) solid var(--pw-accent-primary);
+  outline-offset: var(--pw-focus-ring_offset);
+}
+
+.fd-main {
+  display: block;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--pw-spacing-lg);
+  padding-bottom: calc(
+    var(--pw-targets-large) + var(--pw-spacing-lg) + env(safe-area-inset-bottom)
+  );
+  color: var(--pw-text-primary);
+  font-size: var(--pw-typography-size_body);
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.fd-main:focus-visible {
+  outline: var(--pw-focus-ring_width) solid var(--pw-accent-primary);
+  outline-offset: calc(-1 * var(--pw-focus-ring_offset));
+}
+
+@media (min-width: 900px) {
+  .fd-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: var(--pw-targets-large);
+    z-index: 21;
+    border-bottom: 1px solid var(--pw-border-subtle);
+  }
+
+  .fd-nav {
+    top: var(--pw-targets-large);
+    right: auto;
+    bottom: 0;
+    width: 240px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--pw-spacing-sm);
+    padding: var(--pw-spacing-lg);
+    border-top: none;
+    border-right: 1px solid var(--pw-border-subtle);
+    overflow-y: auto;
+  }
+
+  .fd-nav-landmarks {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--pw-spacing-xs);
+  }
+
+  .fd-nav-landmarks li {
+    flex: 0 0 auto;
+  }
+
+  .fd-nav-boards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pw-spacing-xs);
+  }
+
+  .fd-nav a {
+    justify-content: flex-start;
+  }
+
+  .fd-main {
+    margin-left: 240px;
+    padding: var(--pw-spacing-2xl);
+  }
+}

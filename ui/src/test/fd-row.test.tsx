@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Meter } from "../fd/Meter";
 import { Row } from "../fd/Row";
 import { cards, homeBoard } from "../fd/fixtures";
@@ -8,6 +8,8 @@ import { cards, homeBoard } from "../fd/fixtures";
 const item = (id: string) => homeBoard.items.find((i) => i.card === id)!;
 const row = (id: string, props: Partial<Parameters<typeof Row>[0]> = {}) =>
   render(<Row item={item(id)} card={cards[id]} words="short" density="standard" timeZone="UTC" expanded={false} onToggle={() => undefined} {...props} />);
+
+afterEach(cleanup);
 
 describe("Meter", () => {
   it("exposes the text equivalent as the accessible name", () => {
@@ -51,15 +53,16 @@ describe("Row anatomy", () => {
     expect(screen.getByText("as of 08:12")).toBeInTheDocument();
     expect(screen.getByRole("img")).toHaveAttribute("data-frozen", "true");
   });
-  it("malformed shows a dash, never 0, and no meter", () => {
+  it("a value of text \"unknown\" with no raw shows a dash, never 0 or the word, and no meter", () => {
     row("malformed");
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.queryByText("0")).not.toBeInTheDocument();
+    expect(screen.queryByText("unknown")).not.toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
-  it("an empty list is healthy and shows 0", () => {
+  it("an empty list is healthy and shows 'none'", () => {
     row("later");
-    expect(screen.getByText("0")).toBeInTheDocument();
+    expect(screen.getByText("none")).toBeInTheDocument();
     expect(screen.getByText("Healthy")).toBeInTheDocument();
   });
   it("Words: Minimal drops meaning; Full shows the long meaning and freshness", () => {

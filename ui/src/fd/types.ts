@@ -25,7 +25,7 @@ export interface CardEnvelope {
   observed_at: string | null;
   fetched_at: string;
   last_good_at: string | null;
-  values: Record<string, { text: string; raw?: number | string | null }>;
+  values: Record<string, { text: string; raw?: number | string | null | unknown[] }>;
   meter: Meter | null;
   meaning: { short: string; full: string };
   evidence: {

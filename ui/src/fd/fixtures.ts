@@ -52,7 +52,7 @@ export const cards: Record<string, CardEnvelope> = {
   /** Reference-provider response that did not match the mapping: no values, no meter, never 0. */
   malformed: {
     card_id: "malformed", source_state: "unknown", freshness: "stale", observed_at: null, fetched_at: T, last_good_at: null,
-    values: {}, meter: null,
+    values: { count: { text: "unknown" } }, meter: null,
     meaning: { short: "Calendar", full: "Your calendar. The answer could not be read." },
     evidence: ev("cal.today", "/today", { error_class: "malformed", note: "Response did not match the card mapping" }),
   },
@@ -65,7 +65,7 @@ export const cards: Record<string, CardEnvelope> = {
   /** An empty list is healthy, not unavailable. */
   later: {
     card_id: "later", source_state: "healthy", freshness: "current", observed_at: T, fetched_at: T, last_good_at: T,
-    values: { count: { text: "0", raw: 0 } },
+    values: { count: { text: "none", raw: [] } },
     meter: { type: "marks", shown: 0, more: 0, text_equivalent: "Nothing waiting" },
     meaning: { short: "Kept for later", full: "Things you set aside to come back to." },
     evidence: ev("memory.later", "/memory/later"),

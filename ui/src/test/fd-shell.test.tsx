@@ -1,8 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Shell } from "../fd/Shell";
 import { hashFor, parseHash } from "../fd/route";
+
+afterEach(cleanup);
 
 describe("routing", () => {
   it("parses the four landmarks and falls back to home", () => {
