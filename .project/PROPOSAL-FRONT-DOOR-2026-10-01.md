@@ -422,6 +422,84 @@ remove.**
 **Rough target, an estimate:** backend about 12–15k LOC and about 40 routes; UI with
 4 landmarks.
 
+## Visual style: Lamplight (rev 3.2, proposed)
+
+> *The house is calm and dim. The window that needs you is the lit one.*
+> The skeleton is right; this puts the heart back on top of it, without putting organs back into the walls.
+
+Researched against Rylee's adopted Play-Nice contracts (library pinned at `2084747`, read in full) and against well-loved dashboards:
+
+- Uptime Kuma: heartbeat strips
+- Glance: `show-failing-only`
+- Homepage: one card shape
+- Home Assistant: fixed grid with titled sections; masonry dropped for unpredictability
+- Apple Weather and widgets: cached values, never spinners
+- Oura and Garmin readiness: word bands
+- Grafana stat: hero value
+- Few and Tufte: exception-based, word-sized graphics
+- Calm technology (Weiser and Brown; Case)
+
+Anti-patterns avoided:
+
+- Grafana-style wall of panels
+- red or green everywhere
+- streak and ring guilt
+- masonry reflow
+- tiny HUD text
+
+### The rules
+
+| # | Rule | Contract basis | Evidence |
+|---|---|---|---|
+| L1 | **Luminance is attention.** Anything not healthy sits on a brighter surface with a stronger edge; healthy recedes but stays ≥4.5:1. Rank is never hue alone; tone never uses the rank channel | Luminance-only rank (`ui/THEMES.md`); tone is not priority (ROOM 46-48); no wall of green (ATTENTION_AND_QUIET 31-32) | Few, exception display; alert-fatigue analyses |
+| L2 | **Status is shape + word + colour,** in that order of reliance: ● Healthy · ▲ Needs attention · ■ Unavailable · ◌ Stale · ○ Unknown, using the canonical words only | Status never by colour alone (ACCESSIBILITY 38-39); canonical vocabulary (STATUS_AND_STATE 29-36) | Astro UXDS-style shape-plus-colour system |
+| L3 | **One sentence first.** A low-drama briefing in human words, then counts by state | First screen answers "what needs me" (AQ 46-47); write for a strained reader (HUMAN_RELIABILITY 42-43) | Apple Weather context lines; Oura summaries |
+| L4 | **Human meaning, then state, then detail, then evidence.** "Downloads can't check in right now" → ■ Unavailable → "2 were downloading the last time I heard from it" → Last good 19:42 → *Technical evidence:* GET /api/v3/queue · Sonarr returned 500 · 212 ms | Meaning → actions → safety → implementation (DEPTH_ON_DEMAND 47-48); full technical detail within two interactions (DoD 88-89); degraded shows reason + last verified (SAS 65-66) | Glance → peek → open (calm tech; HA tile → more-info) |
+| L5 | **Healthy has a vocabulary,** reassuring and never celebratory: Quietly working · All quiet · Ready when you are · Halfway through | "Nothing needed" shown explicitly, then stop (AQ 35-36); calm static confirmation (SENSORY_SAFETY 55-56) | Linear's calmer refresh; Things 3 |
+| L6 | **Life sits beside machines.** Home order: lit windows (not healthy) first, then life (Interests, Memory, Reading), then quiet machines. A technically healthy Home with nothing human on it fails | What needs me / what was I working on / what's coming up (AQ 46) | HA favorites on top; the owner's Interests observation |
+| L7 | **Continuity is a first-class section.** "Continue where you left off" lists threads that stopped because you stopped: a board being arranged, a half-built request, a Later item | Returning costs "no archaeology" (AQ 52-57); stopping is success (WHAT_WHY_NEXT 53-54) | — |
+| L8 | **One card anatomy, fixed grid, three sizes** (S = 1 column, M = 2, L = 2 and expanded). No masonry; nothing reflows when data changes | Stable reading order (WAC 5); dense surfaces are still (SS 40) | Homepage, HA sections, Apple widget sizes |
+| L9 | **Stale keeps its last value,** with a dashed edge plus "Last good 19:42". No dimming below contrast, no blank, no spinner | Stale is a state (EVENTS_AND_CACHING 33); missing stays missing (ONE_TRUTH_TWO_VIEWS 42-44); static loaders only (SS 36-38) | Apple HIG: cached data, never a spinner |
+| L10 | **Density is a comfort preference, not a mode:** Calm (healthy machines fold into one "Quietly working" row), Standard, Detailed (check strips plus evidence open) | Density is a stored preference (WEB_UI 45-46, TP 35); "no accessibility mode" (TP 38-39) | Glance `collapse-after`; ADHD low-density dashboard study (ACM 2025) |
+| L11 | **Edit Home is explicit and separate:** size, move earlier or later, hide, show, undo. Keyboard buttons, 44px. Glancing never rearranges anything | Customization without changing structure (TP 48-49) | Homarr no-YAML editing; HA drag-and-drop sections |
+| L12 | **Presence is optional and inert.** A small mark beside the greeting that rests when quiet and looks up when something needs you. Static, `aria-hidden`, no actions, can be turned off. In Station it becomes Sol (placeholder in the lab) | Decoration carries no meaning (TP 40-42); nothing moves on its own (SS 39-40) | Calm tech: the periphery |
+| L13 | **Personality never hides truth.** Station rewrites voice only: "Downloads missed their last check-in" vs Core "Downloads can't check in right now". The same evidence and timestamps appear in both | A calm surface never hides truth (HR 44-45); human wording may translate but not change meaning (SAS 47-48) | — |
+| L14 | **No gamified maintenance.** Station's strip counts *discoveries* (books, albums), never connections, cleared warnings, visits or streaks | No streaks or guilt (AQ 41-42) | Apple ring-guilt complaints |
+| L15 | **Quiet = lower emphasis, never lower legibility.** Body 16px, labels ≥13px, sentence-case headings, 2px teal focus ring, ≥44px targets, still by default | PLAIN_LANGUAGE 45-46 (no all-caps headings); WAC 2.4 focus; WAC 2.1 targets; SS 18 | BDA dyslexia style guide |
+
+### Core personality vs pack personality
+
+| Core (Experience pack: None) | Station pack adds |
+|---|---|
+| Warm human copy; a healthy-state vocabulary; life on Home; the continuation section; a quiet presence mark; warm dark palette; Young Serif for meaning lines; the date in the eyebrow | Sol; a crew line (placed **below** the cards so nothing shifts); HUD eyebrow ("Home · deck 1 · evening watch"); corner brackets; a starfield; playful but exact copy; a discovery strip |
+
+**Proven in the lab:** a probe compares navigation, headings, every actionable control and card order between Core and Station on all four screens, with providers both healthy and failing. It finds **no differences**. The eyebrow is the same height in both, so the greeting doesn't move.
+
+### Tensions this resolves (from the contract read)
+
+- **Same-shaped tiles vs "one attention list beats forty equal cards":** a separate Needs you list, luminance ranking, lit windows sorted first, and Calm density folding healthy machines.
+- **Stale dimming vs contrast:** dashed edge plus a timestamp instead of dimming.
+- **The fixed teal focus colour vs Daylight:** the lab uses `#72b1b1` on dark and a darker teal on Daylight, so the ring keeps 3:1. Recommend amending WAC 2.4 to "teal at ≥3:1 per theme".
+- **WAC 5.2's Bridge reading order** (needs-you 4th) is superseded by the Home order above. Add it to the S2 supersession.
+- **WAC 9.2 names the settings section "Customize";** the skeleton says Settings. Proposal: the landmark is **Settings**, and "Customize Home" is the Edit Home action. Record in ADR-0008.
+- **No contract defines a low-capacity mode.** Lamplight answers with comfort preferences (Calm density), never a mode.
+
+### The seven success conditions (lab status)
+
+| Condition | Lab status |
+|---|---|
+| Architecture: I understand where things live | Met. Four landmarks; boards beneath; invariance probe passes |
+| Low capacity: what needs me without investigating | Met in the lab. Briefing sentence, Needs you, lit windows; Calm density for bad days |
+| Technical depth: drill all the way down | Met. Card → detail → Technical evidence (2 interactions) → Open in Connect |
+| Continuity: return without reconstructing | Designed, with example data. Real continuation needs journal events (Phase 2) |
+| Personality: my world, not a template | Designed. Needs Rylee's judgement; the lab uses placeholder art for Sol |
+| Replaceability: providers disappear, concepts stay | Met. Sonarr 500 leaves `media.downloads` and the card intact, with last good shown |
+| Theme boundary: Station transforms experience, not IA | Met. The probe passes on all four screens, healthy and failing |
+
+**Known trade-off:** the richer Continue section costs vertical space. On a 1280×900 desktop the life cards start at the fold in Standard density, and Calm density brings Home back to one screen. Accepted for now; revisit with real data.
+
+**UNKNOWN:** a manual screen-reader walk; how Lamplight looks with the real protected companion art.
+
 ## Design evidence
 
 ### The owner's Figma Make prototype (the "before")
