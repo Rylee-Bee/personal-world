@@ -28,9 +28,13 @@ The owner approved the front-door direction ([`PROPOSAL-FRONT-DOOR-2026-10-01.md
   live" (ask-first; backup, `personal-world:pre-<stamp>` rollback tag, health
   wait). Running commit: `GET /healthz` → `commit`. Runbook:
   [`docs/OPERATIONS.md`](../docs/OPERATIONS.md).
-- **The Bridge is home** (`ui/src/screens/Bridge/`); Memory, Chat, Settings,
-  Crew, Interests, Projects and Systems are real screens. First Light is the first-run setup. Starfield is the default
-  theme; every theme meets the type floor (body 16px, labels 13px).
+- **The front door is being built** on `rebuild/front-door` (ADR-0008): Home ·
+  Connect · Memory · Settings in `ui/src/fd/` (Home, Edit Home, Settings are
+  real; Connect and Memory are skeletons on sample data). The old screens (the
+  Bridge, Chat, Crew and the rest) are removed from the rebuild branch (PR #239); they
+  still exist on `main` and in the deployed image. **Rebuild in progress, not
+  deployed.** Starfield is the default theme; every theme meets the type floor
+  (body 16px, labels 13px). Map: `FRONTEND-INVENTORY.md`.
 - **Rooms** are the architecture: Workshop, Studio, Engine room and Candy, read
   from Project Home's runtime registry; per-person rooms get
   `X-Worlds-Principal`; a read-only, admin-only Secrets section sits in the
