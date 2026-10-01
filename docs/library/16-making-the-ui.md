@@ -5,6 +5,9 @@ order: 16
 for: everyone
 short: Screens are built from shared pieces and tokens, checked by people and robots, and every screen has to work for everyone.
 ---
+
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 A Worlds screen is built from **pieces** (buttons, cards, drawers) that
 already exist and already follow the rules. A new screen mostly arranges
 pieces; it rarely invents one.

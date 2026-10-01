@@ -1,5 +1,7 @@
 # Handoff: the Bridge, Step 1b "first light" (2026-09-25)
 
+> **Superseded in part by [ADR-0008](../docs/adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../FRONTEND-INVENTORY.md).
+
 **Read first:** [`PLAN.md`](PLAN.md) (the owner-approved plan) and then this file.
 Review document with all evidence (sections A–L):
 https://claude.ai/code/artifact/bd38f7ef-13ee-42e2-b700-9dc4079712f5

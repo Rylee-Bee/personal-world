@@ -1,5 +1,7 @@
 # Master Surface Registry — Project Worlds
 
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 > **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (the code and `.project/CURRENT.md` win) · **Read this if:** you need a stable ID (`UI-001`, `API-003`, `PROV-001`, …) and a dated extraction of what existed on 2026-09-14 · **Superseded by:** the code and `.project/CURRENT.md`; current backend maps live in the sibling `docs/surfaces/` matrices
 
 **In short:** A dated, read-only index of every meaningful surface extracted on 2026-09-14 (with a 2026-09-15 correction pass). Its **IDs are still the stable index** other docs resolve against, but the rows that cite `frontend/` describe the retired pre-flip SPA, not today's interface. Treat every "State" cell as point-in-time; verify against the code before relying on it.

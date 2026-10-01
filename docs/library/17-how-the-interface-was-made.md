@@ -5,6 +5,9 @@ order: 17
 for: everyone
 short: The screens were drawn first, built from shared pieces, checked by people and robots, and handed back and forth in one shared note.
 ---
+
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 Worlds' screens were made by a design lane working alongside a backend
 lane. The design lane draws and builds what you see and touch. The backend
 lane builds what's underneath and ships everything. The owner decides.
