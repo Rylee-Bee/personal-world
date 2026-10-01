@@ -14,7 +14,7 @@ from personal_world.worlds.production import create_app
 from personal_world.worlds.reference_provider import ReferenceServer
 
 ORIGIN = "https://worlds.example.test"
-BOOT = "open-sesame-123"
+BOOT = "open-sesame-correct-horse-1"  # pw-safety: synthetic
 
 
 @pytest.fixture
@@ -320,3 +320,58 @@ def test_sessions_are_bound_to_the_owner_identity_in_production(env):
     (cfg / "owner.yaml").write_text(yaml.safe_dump({"schema_version": 1, "public_origin": ORIGIN, "bootstrap": {"enabled": True, "secret_ref": "env:PW_TEST_BOOTSTRAP"},
                                          "oidc": {"issuer": "https://auth.example.test", "subject": "new-owner"}}))
     assert c.get("/api/auth/session").json()["authenticated"] is False
+
+
+# ------------------------------------------------------------- review #237 follow-up 5
+
+def test_redaction_knows_every_provider_secret_without_being_told_and_follows_rotation(tmp_path, monkeypatch, ref):
+    monkeypatch.setenv("PW_TEST_BOOTSTRAP", BOOT)
+    monkeypatch.setenv("SVC_TOKEN", "first-secret-value-1234")
+    cfg, data = tmp_path / "cfg", tmp_path / "data"
+    cfg.mkdir()
+    write_owner(cfg)
+    s = ConfigStore(cfg)
+    s.save("provider", Provider(id="svc", name="Svc", kind="http", base_url=ref.base_url, network={"lan": True},
+                                auth={"type": "bearer", "secret_ref": "env:SVC_TOKEN"}))
+    s.save("request", Request(id="svc.items", provider="svc", path="/items", ttl_s=0))
+    app = create_app(cfg, data, maintenance_interval=3600)                 # secret_values NOT passed
+    runner = app.state.runner
+    from personal_world.worlds.confinement import ConfinementError
+    runner._send = lambda p, r, *, effect: ConfinementError("connection", "failed with first-secret-value-1234 inside")
+    assert "first-secret-value-1234" not in runner.fetch("svc.items").note
+    monkeypatch.setenv("SVC_TOKEN", "rotated-secret-value-9999")           # rotated after startup
+    runner._send = lambda p, r, *, effect: ConfinementError("connection", "now rotated-secret-value-9999 leaked?")
+    assert "rotated-secret-value-9999" not in runner.fetch("svc.items", force=True).note
+    d = app.state.dispatcher
+    from personal_world.worlds.authn import Principal
+    app.state.store.save("request", Request(id="svc.go", provider="svc", method="POST", path="/go"))
+    app.state.store.save("action", Action(id="go", request="svc.go", name="Go"))
+    o = Principal("owner", "owner", step_up_at=time.time(), via="session")
+    d._send = lambda p, r, *, effect: ConfinementError("timeout", "slow rotated-secret-value-9999 here")
+    a = d.approve(o, d.request_authorization(o, "go")["id"])
+    receipt = d.execute(o, a["id"])
+    assert "rotated-secret-value-9999" not in json.dumps(receipt)
+
+
+def test_oidc_flow_key_is_persisted_privately_and_shared(tmp_path, monkeypatch, ref):
+    monkeypatch.setenv("PW_TEST_BOOTSTRAP", BOOT)
+    cfg, data = tmp_path / "cfg", tmp_path / "data"
+    cfg.mkdir()
+    write_owner(cfg)
+    create_app(cfg, data, maintenance_interval=3600)
+    key = (data / "oidc-flow.key").read_bytes()
+    assert len(key) == 32 and not (data / "oidc-flow.key").stat().st_mode & 0o077
+    create_app(cfg, data, maintenance_interval=3600)
+    assert (data / "oidc-flow.key").read_bytes() == key                       # a second worker/restart agrees
+
+
+def test_app_from_env_reads_trusted_proxies_and_rejects_junk(monkeypatch, tmp_path):
+    from personal_world.worlds.production import app_from_env
+    (tmp_path / "cfg").mkdir()
+    monkeypatch.setenv("PW_CONFIG_DIR", str(tmp_path / "cfg"))
+    monkeypatch.setenv("PW_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("PW_TRUSTED_PROXIES", "192.0.2.10, 198.51.100.0/24")
+    assert app_from_env().title
+    monkeypatch.setenv("PW_TRUSTED_PROXIES", "192.0.2.10, nonsense")
+    with pytest.raises(SystemExit):
+        app_from_env()

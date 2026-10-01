@@ -29,6 +29,8 @@ import os
 import socket
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 from urllib.parse import quote, urlencode, urlsplit
@@ -214,7 +216,7 @@ def _auth_headers(provider: Any) -> dict[str, str] | ConfinementError:
     if not value:
         return ConfinementError("auth_failed", "credential is not available")
     try:
-        value.encode("latin-1")
+        value.encode("ascii")  # header values go out as latin-1 at best; only ASCII is safe everywhere
     except UnicodeEncodeError:
         return ConfinementError("auth_failed", "credential contains characters that cannot be sent")
     if any(ord(c) < 32 or ord(c) == 127 for c in value):
@@ -261,6 +263,11 @@ class Deadline:
             if not self._done:
                 self._fds.add(fd)
 
+    def unregister(self, fd: int) -> None:
+        """Called when a stream closes, BEFORE the descriptor number can be reused."""
+        with self._lock:
+            self._fds.discard(fd)
+
     def _fire(self) -> None:
         with self._lock:
             if self._done:
@@ -287,21 +294,47 @@ class Deadline:
     close = disarm
 
 
+def _track(stream: Any, deadline: "Deadline", fd: int) -> Any:
+    """Make ``stream`` (and the TLS stream it may turn into) unregister its fd the moment it closes,
+    and clamp TLS-handshake time to what is left of the budget."""
+    original_close = stream.close
+    original_tls = stream.start_tls
+
+    def close() -> None:
+        deadline.unregister(fd)  # first: once closed, the number may belong to someone else
+        original_close()
+
+    def start_tls(ssl_context, server_hostname=None, timeout=None):
+        left = max(deadline.remaining(), 0.01)
+        tls = original_tls(ssl_context, server_hostname=server_hostname, timeout=min(timeout, left) if timeout else left)
+        return _track(tls, deadline, fd)
+
+    stream.close = close
+    stream.start_tls = start_tls
+    return stream
+
+
 class _WatchedBackend(httpcore.SyncBackend):
-    """Registers each new connection with the deadline so the watchdog can shut it down."""
+    """Registers each new connection with the deadline so the watchdog can shut it down, applies the
+    remaining budget to connect, and unregisters the descriptor when the stream closes."""
 
     def __init__(self, deadline: Deadline):
         self._deadline = deadline
 
     def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
-        stream = super().connect_tcp(host, port, timeout=timeout, local_address=local_address, socket_options=socket_options)
+        left = max(self._deadline.remaining(), 0.01)
+        stream = super().connect_tcp(host, port, timeout=min(timeout, left) if timeout else left,
+                                     local_address=local_address, socket_options=socket_options)
         sock = stream.get_extra_info("socket")
-        if sock is not None:
-            self._deadline.register(sock.fileno())
+        if sock is None:
+            return stream
+        fd = sock.fileno()
+        self._deadline.register(fd)
         if self._deadline.expired.is_set():
+            self._deadline.unregister(fd)
             stream.close()
             raise httpcore.ConnectTimeout("deadline passed while connecting")
-        return stream
+        return _track(stream, self._deadline, fd)
 
 
 class _WatchedTransport(httpx.HTTPTransport):
@@ -317,26 +350,22 @@ class _WatchedTransport(httpx.HTTPTransport):
         )
 
 
+_DNS_POOL = ThreadPoolExecutor(max_workers=8, thread_name_prefix="worlds-dns")
+
+
 def resolve_within(resolver: Resolver, host: str, port: int, deadline: Deadline) -> list[str] | ConfinementError:
-    """Run DNS in a helper thread so a slow resolver cannot outlive the budget."""
-    box: dict[str, Any] = {}
-
-    def work() -> None:
-        try:
-            box["addresses"] = resolver(host, port)
-        except (OSError, UnicodeError) as exc:
-            box["error"] = exc
-        except Exception as exc:  # a broken resolver is a failed lookup, not a crash
-            box["error"] = exc
-
-    thread = threading.Thread(target=work, daemon=True)
-    thread.start()
-    thread.join(max(deadline.remaining(), 0.0))
-    if thread.is_alive():
+    """Run DNS on a small bounded pool so a slow resolver can neither outlive the budget nor pile up threads."""
+    future = _DNS_POOL.submit(resolver, host, port)
+    try:
+        addresses = future.result(timeout=max(deadline.remaining(), 0.0))
+    except FutureTimeout:
+        future.cancel()  # not started yet: it never runs; already running: it finishes on its own
         return ConfinementError("timeout", "name lookup did not finish in time", duration_ms=_ms(deadline.started))
-    if "error" in box or not box.get("addresses"):
+    except Exception:  # a failed or broken lookup
         return ConfinementError("connection", "host did not resolve", duration_ms=_ms(deadline.started))
-    return list(box["addresses"])
+    if not addresses:
+        return ConfinementError("connection", "host did not resolve", duration_ms=_ms(deadline.started))
+    return list(addresses)
 
 
 def confined_request(

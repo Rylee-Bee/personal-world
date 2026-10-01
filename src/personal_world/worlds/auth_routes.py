@@ -13,6 +13,8 @@
 from __future__ import annotations
 
 import time
+import ipaddress
+import logging
 from collections import deque
 from typing import Any, Callable
 from urllib.parse import urlsplit
@@ -24,6 +26,7 @@ from ..oidc import FLOW_COOKIE, OIDCError, OIDCLoginError
 from .authn import CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE, Auth
 from .owner import OwnerPolicy
 
+_log = logging.getLogger(__name__)
 FRESH_AUTH_SECONDS = 120
 FREE_FAILURES = 3          # per client: this many wrong guesses cost nothing
 MAX_BACKOFF = 900.0        # per client: exponential back-off is capped at 15 minutes
@@ -31,6 +34,9 @@ FAILURE_WINDOW = 600.0
 GLOBAL_CEILING = 30        # failures in the window, across everybody, before the whole endpoint slows
 GLOBAL_GAP = 2.0           # ...to one attempt per this many seconds. It slows; it never locks.
 OIDC_LOGIN_KEY = "oidc_login_binding"
+ESCAPE_CHECK_GAP = 2.0     # in back-off, at most one guess is even evaluated per this many seconds (globally)
+ESCAPE_SUCCESS_GAP = 900.0  # in back-off, the correct secret passes at most once per 15 minutes
+MIN_BOOTSTRAP_SECRET = 20  # shorter secrets are refused outright (generate one: openssl rand -hex 24)
 
 
 class _Limiter:
@@ -74,9 +80,66 @@ class _Limiter:
     def clear(self, client: str) -> None:
         self._clients.pop(client, None)
 
+    # The owner's way out of a back-off they did not cause (a shared proxy address, an attacker holding
+    # the key). A guess is evaluated at most every ESCAPE_CHECK_GAP seconds, and a correct one passes at
+    # most once per ESCAPE_SUCCESS_GAP. A wrong guess in back-off is just refused: no penalty, no hint.
+    _escape_checked = -1e18
+    _escape_passed = -1e18
 
-def _client_key(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    def escape_check_slot(self) -> bool:
+        now = self._clock()
+        if now - self._escape_checked < ESCAPE_CHECK_GAP:
+            return False
+        self._escape_checked = now
+        return True
+
+    def escape_pass_slot(self) -> bool:
+        return self._clock() - self._escape_passed >= ESCAPE_SUCCESS_GAP
+
+    def escape_passed(self) -> None:
+        self._escape_passed = self._clock()
+
+
+def parse_trusted_proxies(value: str | None) -> tuple[Any, ...]:
+    """``PW_TRUSTED_PROXIES``: comma-separated IPs/CIDRs of the reverse proxies in front of Worlds."""
+    nets = []
+    for part in (value or "").split(","):
+        part = part.strip()
+        if part:
+            nets.append(ipaddress.ip_network(part, strict=False))   # raises ValueError on junk: fail at startup
+    return tuple(nets)
+
+
+_warned = {"xff": False}
+
+
+def client_key(request: Request, trusted: tuple[Any, ...]) -> str:
+    """Who to rate-limit. Behind trusted proxies: the right-most X-Forwarded-For hop that is NOT a trusted
+    proxy. A peer that is not a trusted proxy is never believed about X-Forwarded-For. With no trusted
+    proxies configured the peer address is used, and a warning is logged once if requests arrive with
+    X-Forwarded-For from a non-loopback peer (everyone then shares the proxy's key)."""
+    peer = request.client.host if request.client else "unknown"
+    xff = request.headers.get("x-forwarded-for")
+    try:
+        peer_ip = ipaddress.ip_address(peer)
+    except ValueError:
+        return peer
+    if not trusted:
+        if xff and not peer_ip.is_loopback and not _warned["xff"]:
+            _warned["xff"] = True
+            _log.warning("X-Forwarded-For seen from %s but PW_TRUSTED_PROXIES is unset: all clients behind it share one "
+                         "sign-in rate-limit key. Set PW_TRUSTED_PROXIES to the proxy's address.", peer)
+        return peer
+    if not xff or not any(peer_ip in net for net in trusted):
+        return peer
+    for hop in reversed([h.strip() for h in xff.split(",")]):
+        try:
+            ip = ipaddress.ip_address(hop)
+        except ValueError:
+            return peer                      # garbage in the chain: do not trust any of it
+        if not any(ip in net for net in trusted):
+            return str(ip)
+    return peer
 
 
 def _safe_return(path: str | None) -> str:
@@ -85,7 +148,8 @@ def _safe_return(path: str | None) -> str:
     return path
 
 
-def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], OwnerPolicy], oidc_service: Any | None = None) -> None:
+def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], OwnerPolicy], oidc_service: Any | None = None,
+                         trusted_proxies: tuple[Any, ...] = ()) -> None:
     limiter = _Limiter(auth.clock)
 
     def policy() -> OwnerPolicy:
@@ -130,19 +194,29 @@ def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], O
         resp.set_cookie(CSRF_COOKIE, auth.csrf_token(sid), httponly=False, secure=True, samesite="strict", path="/")
         return resp
 
+    def check_bootstrap(client: str, token: str) -> bool:
+        """True when this attempt is the owner. Always does the same work (the secret comparison)."""
+        wait = limiter.check(client)
+        matches = bootstrap_open() and policy().bootstrap_matches(token)      # constant-time, always evaluated
+        if not wait:
+            if matches:
+                limiter.clear(client)
+                return True
+            limiter.fail(client)
+            raise HTTPException(status_code=401, detail="that did not work")
+        # In back-off: refused, EXCEPT the owner's escape (a limited, evaluated-rarely path).
+        if limiter.escape_check_slot() and matches and limiter.escape_pass_slot():
+            limiter.escape_passed()
+            limiter.clear(client)
+            return True
+        raise HTTPException(status_code=429, detail="too many attempts; wait and try again",
+                            headers={"Retry-After": str(int(wait) + 1)})
+
     @app.post("/api/auth/bootstrap")
     async def bootstrap(request: Request) -> JSONResponse:
         require_origin(request)
-        client = _client_key(request)
-        wait = limiter.check(client)
-        if wait:
-            raise HTTPException(status_code=429, detail="too many attempts; wait and try again",
-                                headers={"Retry-After": str(int(wait) + 1)})
         body = await _json(request)
-        if not bootstrap_open() or not policy().bootstrap_matches(str(body.get("token", ""))):
-            limiter.fail(client)
-            raise HTTPException(status_code=401, detail="that did not work")
-        limiter.clear(client)
+        check_bootstrap(client_key(request, trusted_proxies), str(body.get("token", "")))
         resp = JSONResponse({"ok": True})
         start_session(resp, "bootstrap")
         return resp
@@ -152,18 +226,9 @@ def register_auth_routes(app: FastAPI, auth: Auth, policy_loader: Callable[[], O
         principal = auth.authenticate(request)  # session + CSRF checked here
         if not principal.is_owner or principal.via != "session":
             raise HTTPException(status_code=403, detail="owner session required")
-        client = _client_key(request)
-        wait = limiter.check(client)
-        if wait:
-            raise HTTPException(status_code=429, detail="too many attempts; wait and try again",
-                                headers={"Retry-After": str(int(wait) + 1)})
         body = await _json(request)
-        if not bootstrap_open() or not policy().bootstrap_matches(str(body.get("token", ""))):
-            limiter.fail(client)
-            raise HTTPException(status_code=401, detail="that did not work")
-        limiter.clear(client)
-        sid = request.cookies.get(SESSION_COOKIE) or ""
-        auth.sessions.mark_step_up(sid)
+        check_bootstrap(client_key(request, trusted_proxies), str(body.get("token", "")))
+        auth.sessions.mark_step_up(request.cookies.get(SESSION_COOKIE) or "")
         return JSONResponse({"ok": True})
 
     @app.post("/api/auth/logout")

@@ -315,3 +315,62 @@ def test_encoded_bodies_are_refused_and_never_decompressed():
     finally:
         s.shutdown()
         s.server_close()
+
+
+# ---- review #237 follow-ups: descriptor race, connect clamp, bounded DNS
+def test_descriptor_is_unregistered_the_moment_its_stream_closes():
+    from personal_world.worlds.confinement import Deadline, _WatchedBackend
+    with ReferenceServer() as ref:
+        dl = Deadline(5)
+        try:
+            stream = _WatchedBackend(dl).connect_tcp("127.0.0.1", ref.port, timeout=2)
+            fd = stream.get_extra_info("socket").fileno()
+            assert fd in dl._fds
+            stream.close()
+            assert fd not in dl._fds                      # gone BEFORE the number can be reused
+            dl._fire()                                    # a late fire must have nothing left to shut down
+        finally:
+            dl.disarm()
+
+
+def test_connect_gets_only_the_remaining_budget(monkeypatch):
+    import httpcore
+    from personal_world.worlds.confinement import Deadline, _WatchedBackend
+    seen = {}
+
+    def fake(self, host, port, timeout=None, local_address=None, socket_options=None):
+        seen["timeout"] = timeout
+        raise httpcore.ConnectTimeout("stop")
+
+    monkeypatch.setattr(httpcore.SyncBackend, "connect_tcp", fake)
+    dl = Deadline(0.5)
+    try:
+        time.sleep(0.2)
+        with pytest.raises(httpcore.ConnectTimeout):
+            _WatchedBackend(dl).connect_tcp("x", 1, timeout=5.0)
+        assert seen["timeout"] <= 0.31
+    finally:
+        dl.disarm()
+
+
+def test_dns_lookups_run_on_a_small_bounded_pool():
+    release = threading.Event()
+    started = []
+
+    def slow(host, port):
+        started.append(1)
+        release.wait(3)
+        return ["127.0.0.1"]
+
+    p = Provider(id="p", name="P", kind="http", base_url="http://slow.example.test", network={"lan": True}, timeout_s=0.3)
+    results = []
+    ts = [threading.Thread(target=lambda: results.append(
+        confined_request(p, Request(id="p.r", provider="p", path="/x"), effect="read", resolver=slow))) for _ in range(30)]
+    [t.start() for t in ts]
+    time.sleep(0.5)
+    dns_threads = [t for t in threading.enumerate() if t.name.startswith("worlds-dns")]
+    assert 0 < len(dns_threads) <= 8                       # never one thread per request
+    [t.join() for t in ts]
+    release.set()
+    assert len(results) == 30 and all(isinstance(r, ConfinementError) and r.error_class == "timeout" for r in results)
+    assert len(started) <= 8                               # queued lookups were cancelled, not started late
