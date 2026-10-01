@@ -37,10 +37,10 @@ def test_install_refuses_the_placeholder_and_never_writes_it(tmp_path):
 def test_install_writes_the_real_address_and_secret_name_only(tmp_path):
     make(tmp_path)
     store = ConfigStore(tmp_path / "cfg")
-    written = install(store, load_recipe("thing", tmp_path), base_url="http://10.0.0.9:1234", secret_ref="env:MY_KEY")
+    written = install(store, load_recipe("thing", tmp_path), base_url="http://thing.home.test:1234", secret_ref="env:MY_KEY")
     assert written == ["provider:thing", "request:thing.status", "card:thing"]
     p = store.get("provider", "thing")
-    assert p.base_url == "http://10.0.0.9:1234" and p.auth.secret_ref == "env:MY_KEY"
+    assert p.base_url == "http://thing.home.test:1234" and p.auth.secret_ref == "env:MY_KEY"
     text = (tmp_path / "cfg" / "worlds" / "providers" / "thing.yaml").read_text()
     assert "MY_KEY" in text and "secret" not in text.replace("secret_ref", "")
 
@@ -48,23 +48,23 @@ def test_install_writes_the_real_address_and_secret_name_only(tmp_path):
 def test_install_keeps_existing_config_unless_overwrite(tmp_path):
     make(tmp_path)
     store = ConfigStore(tmp_path / "cfg")
-    install(store, load_recipe("thing", tmp_path), base_url="http://10.0.0.9:1234")
-    assert install(store, load_recipe("thing", tmp_path), base_url="http://10.0.0.10:1234") == []
-    assert store.get("provider", "thing").base_url == "http://10.0.0.9:1234"
-    assert "provider:thing" in install(store, load_recipe("thing", tmp_path), base_url="http://10.0.0.10:1234", overwrite=True)
-    assert store.get("provider", "thing").base_url == "http://10.0.0.10:1234"
+    install(store, load_recipe("thing", tmp_path), base_url="http://thing.home.test:1234")
+    assert install(store, load_recipe("thing", tmp_path), base_url="http://thing2.home.test:1234") == []
+    assert store.get("provider", "thing").base_url == "http://thing.home.test:1234"
+    assert "provider:thing" in install(store, load_recipe("thing", tmp_path), base_url="http://thing2.home.test:1234", overwrite=True)
+    assert store.get("provider", "thing").base_url == "http://thing2.home.test:1234"
 
 
 def test_a_planned_recipe_lists_but_does_not_install(tmp_path):
     make(tmp_path, status="planned")
     assert list_recipes(tmp_path)[0].status == "planned"
     with pytest.raises(RecipeError, match="waiting"):
-        install(ConfigStore(tmp_path / "cfg"), load_recipe("thing", tmp_path), base_url="http://10.0.0.9:1234")
+        install(ConfigStore(tmp_path / "cfg"), load_recipe("thing", tmp_path), base_url="http://thing.home.test:1234")
 
 
 def test_a_bad_secret_ref_or_name_is_refused(tmp_path):
     make(tmp_path)
     with pytest.raises(Exception):
-        install(ConfigStore(tmp_path / "cfg"), load_recipe("thing", tmp_path), base_url="http://10.0.0.9:1234", secret_ref="literal-key-value")
+        install(ConfigStore(tmp_path / "cfg"), load_recipe("thing", tmp_path), base_url="http://thing.home.test:1234", secret_ref="literal-key-value")
     with pytest.raises(RecipeError):
         load_recipe("../etc", tmp_path)
