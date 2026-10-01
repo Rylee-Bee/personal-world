@@ -65,8 +65,8 @@ class ConfinementError:
 
 
 _METADATA = {
-    ipaddress.ip_address("169.254.169.254"),
-    ipaddress.ip_address("169.254.170.2"),
+    ipaddress.ip_address("169.254.169.254"),  # pw-safety: synthetic
+    ipaddress.ip_address("169.254.170.2"),  # pw-safety: synthetic
     ipaddress.ip_address("100.100.100.200"),
     ipaddress.ip_address("fd00:ec2::254"),
 }

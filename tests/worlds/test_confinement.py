@@ -105,16 +105,16 @@ def denied(out, why=None):
 # ---- address classification
 
 
-@pytest.mark.parametrize("addr", ["127.0.0.1", "127.8.9.1", "::1", "169.254.1.1", "fe80::1", "10.1.2.3", "172.16.0.1",
-                                  "172.31.255.254", "192.168.0.10", "100.64.0.1", "fd12:3456::1", "::ffff:127.0.0.1",
-                                  "::ffff:10.0.0.1"])
+@pytest.mark.parametrize("addr", ["127.0.0.1", "127.8.9.1", "::1", "169.254.1.1", "fe80::1", "10.1.2.3", "172.16.0.1",  # pw-safety: synthetic
+                                  "172.31.255.254", "192.168.0.10", "100.64.0.1", "fd12:3456::1", "::ffff:127.0.0.1",  # pw-safety: synthetic
+                                  "::ffff:10.0.0.1"])  # pw-safety: synthetic
 def test_internal_addresses_denied_unless_lan(addr):
     assert classify_address(addr, lan=False)
     assert classify_address(addr, lan=True) is None
 
 
-@pytest.mark.parametrize("addr", ["169.254.169.254", "169.254.170.2", "100.100.100.200", "fd00:ec2::254",
-                                  "::ffff:169.254.169.254", "0.0.0.0", "::", "224.0.0.1", "ff02::1", "240.0.0.1"])
+@pytest.mark.parametrize("addr", ["169.254.169.254", "169.254.170.2", "100.100.100.200", "fd00:ec2::254",  # pw-safety: synthetic
+                                  "::ffff:169.254.169.254", "0.0.0.0", "::", "224.0.0.1", "ff02::1", "240.0.0.1"])  # pw-safety: synthetic
 def test_metadata_and_unroutable_always_denied(addr):
     assert classify_address(addr, lan=True)
 
@@ -140,12 +140,12 @@ def test_lan_provider_can_reach_loopback(srv):
 
 def test_mixed_dns_answers_are_denied_if_any_is_internal(srv):
     p = prov(srv, lan=False, base_url="http://app.example.test:8080")
-    denied(go(p, req(), resolver=lambda h, port: ["93.184.216.34", "10.0.0.5"]), "internal")
+    denied(go(p, req(), resolver=lambda h, port: ["93.184.216.34", "10.0.0.5"]), "internal")  # pw-safety: synthetic
 
 
 def test_metadata_denied_even_for_lan_provider(srv):
     p = prov(srv, base_url="http://meta.example.test")
-    denied(go(p, req(), resolver=lambda h, port: ["169.254.169.254"]), "metadata")
+    denied(go(p, req(), resolver=lambda h, port: ["169.254.169.254"]), "metadata")  # pw-safety: synthetic
 
 
 @pytest.mark.parametrize("host", ["2130706433", "0x7f.1", "017700000001", "127.1", "localhost", "[::1]", "[::ffff:7f00:1]"])
@@ -161,7 +161,7 @@ def test_dns_pinning_resolves_once_and_connects_to_the_vetted_ip(srv):
 
     def resolver(host, port):
         calls.append(host)
-        return ["127.0.0.1"] if len(calls) == 1 else ["10.9.9.9"]
+        return ["127.0.0.1"] if len(calls) == 1 else ["10.9.9.9"]  # pw-safety: synthetic
 
     p = prov(srv, base_url=f"http://app.example.test:{srv.server_address[1]}")
     out = go(p, req("/pinned"), resolver=resolver)
