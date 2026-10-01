@@ -1,47 +1,62 @@
 # Proposal — Worlds as the universal front door (2026-10-01)
 
-> **Status:** PROPOSED (not approved). Owner: Rylee. Drafted by Claude from a
-> full backend + UI + provider-machinery inventory and an open-source survey;
-> refined 2026-10-01 from the owner's review (revision 2). Nothing here is
-> implemented. If approved, it supersedes `.project/PLAN.md` Step 1c onward and
-> the conflicting decisions listed in **Superseded decisions** below, and gets
-> ADR-0008 plus a `DECISIONS.md` entry.
+> **Status:** PROPOSED (not approved). Owner: Rylee. **Revision 3** (refine-only
+> round, 2026-10-01). Drafted by Claude from a full backend + UI +
+> provider-machinery inventory, an open-source survey, three owner review rounds,
+> the owner's Figma Make prototype and an interactive design lab. Nothing here is
+> implemented. Production code is untouched until this is approved. If approved,
+> it supersedes `.project/PLAN.md` Step 1c onward and every decision listed in
+> **Superseded decisions**, and gets ADR-0008 (draft wording below) plus a
+> `DECISIONS.md` entry.
 
-## The goal and the principle
+## North star
 
-> **A small personal front door that gathers a large world without having to
-> contain the whole world.**
->
 > **Worlds owns meaning. Providers own mechanics.**
+>
+> **Worlds is a small personal front door that gathers a large world without
+> having to contain the whole world.**
 
-Worlds becomes a small, fast, accessible front door that speaks APIs natively.
-You register a **provider** (any HTTP API, a Play-Nice room, later MCP); then
-you **list** what it offers, **query** it, **test** it and **save** the
-request. A **mapping** gives the result a human meaning, a **card** presents
-it, and **boards** of cards are home. Your projects, interests and homelab
-arrive as providers, never as code Worlds must ship to boot. **Memory stays a
-core Worlds concept** with a deterministic local baseline; providers only
-enrich it.
+You register a **provider** (any HTTP API, a service that speaks room/0, later
+MCP); then you **list** what it offers, **query** it, **test** it and **save**
+the request. A **mapping** gives the result a human meaning, a **card** presents
+it, and **boards** of cards make up Home and any personal sections. **Memory
+stays a core Worlds concept** with a deterministic local baseline; providers only
+enrich it. Personality (Station, crew, Sol, lore) is an optional **experience
+pack** layered over a structure that never moves.
+
+## What the UI test taught us
+
+The Make prototype exposed **two architectures living on top of each other**.
+
+| Keep: a strong human-facing Worlds | Relocate: provider plumbing leaking into the product |
+|---|---|
+| A calm Home/Bridge orientation | Every room knows about APIs and providers |
+| "What needs me?" | Rooms expose API and Learn tabs directly |
+| Useful destinations | Systems owns Providers, Variables, Connections and Health |
+| A dark, warm visual language with a strong sense of place | Provider configuration starts to define what Memory, Projects, Hive and Journal *are* (Memory = Supabase + Pinecone + Claude) |
+| Personality without needing technical knowledge | Achievements, rank and Station terms become structural instead of optional |
+
+This revision keeps the left column and gives the right column one home: **Connect**.
 
 ## Why now: what the inventory found
 
 | Fact | Evidence |
 |---|---|
 | The backend is 41.8k LOC and 228 routes; `api.py` alone is 6.1k LOC and 192 routes | wc + route grep |
-| Only about 1.4k LOC of route body serves the front-door core (connections, rooms, vault, sections, manifest, status, setup, apps) | backend inventory |
-| About 2.5k LOC of `discovery/` is **dead**: the old candy-dispenser engine, imported by nothing | import graph |
-| The auth stack is about 5.3k LOC. About 1.1k is needed for one owner, about 2.4k serves multi-user and about 1.6k is OIDC | backend inventory |
-| There are 17 UI screens; 10 are persona or feature screens (Crew, Stickers, Lore, RoughNight, Library…) | UI inventory |
-| Connection test, save and schema hooks **exist but no screen uses them** | `ui/src/data/hooks.ts` |
-| There are about 7 partial "generic HTTP" primitives, 2 provider registries that disagree, 3 approval models and 3 capability lists | provider inventory |
+| Only about 1.4k LOC of route body serves the front-door core | backend inventory |
+| About 2.5k LOC of `discovery/` is **dead** (the old candy-dispenser engine; nothing imports it) | import graph |
+| The auth stack is about 5.3k LOC: about 1.1k needed for one owner, about 2.4k multi-user, about 1.6k OIDC | backend inventory |
+| There are 17 UI screens, 10 of them persona or feature screens | UI inventory |
+| Connection test, save and schema hooks **exist, but no screen uses them** | `ui/src/data/hooks.ts` |
+| Overlapping machinery: about 7 partial "generic HTTP" primitives, 2 provider registries that disagree, 3 approval models, 3 capability lists | provider inventory |
 | There is no request runner, no saved requests, no OpenAPI import and no MCP client | grep |
-| `rooms.py` is the one solid generic layer: registry, token-by-env-name, caching, `unreachable`/`incompatible`, receipts, idempotency | provider inventory |
+| `rooms.py` is the one solid generic layer | provider inventory |
 
-**Conclusion:** the bones are good. The bloat is integrations and persona
-features baked into core. The fix is **one generic substrate that replaces many
-domain-specific integrations**, not a rewrite.
+The bones are good. The bloat is integrations and persona features baked into core. The
+fix is **one generic substrate that replaces many domain-specific integrations**, not
+a rewrite.
 
-## The core model
+## The model
 
 ```
 Provider → Request → Mapping → Card → Board
@@ -49,127 +64,83 @@ Provider → Request → Mapping → Card → Board
                 └→ Governed Action → assistant / automation
 ```
 
-| Layer | Owns | Shape (sketch) | Stored as |
+| Layer | Owns | Examples | Stored as |
 |---|---|---|---|
-| **Provider** | connectivity | `id, name, kind (http · openapi · room · mcp-later · reference), base_url, auth {type, secret_ref}, path_prefix, tls, timeout` | `providers/<id>.yaml` |
-| **Request** | transport mechanics | `provider, method, path, params, headers, body, assertions[], ttl` (Bruno-style) | `requests/<provider>/<id>.yaml` |
-| **Mapping** | interpretation and human meaning | `request(s), fields[] {path (JSONPath), label, format, unit, remap}, status rule, meaning {concept}` | inside the card file, or `mappings/<id>.yaml` when shared |
-| **Card** | presentation | `mapping, title, view (stat · list · table · status · link · markdown)` | `cards/<id>.yaml` |
-| **Board** | composition | ordered cards and sections; **Home** is a board | `boards/<id>.yaml` |
-| **Governed Action** | executable authority | `request, exposed, name, access (read · write), approval (never · always), idempotency` | `actions/<id>.yaml` |
-
-The verbs everywhere are **list · query · test · save**, plus **pin**.
-
-### Worlds owns meaning: the semantic layer
-
-A saved HTTP request is never itself a product concept. Meaning lives in the
-**Mapping**:
+| **Provider** | connectivity | Project Home, Sonarr, a Gatus health API, a room/0 service, the reference provider; MCP later | `providers/<id>.yaml` |
+| **Request** | transport mechanics | `GET /queue`, `GET /projects?status=active`, a POST action; parameters, assertions, TTL | `requests/<provider>/<id>.yaml` |
+| **Mapping** | human interpretation, the seam between external data and Worlds' meaning | `concept: media.downloads`, fields, status rule | inside the card file, or `mappings/<id>.yaml` when shared |
+| **Card** | human-shaped presentation | Tier-1 views: stat · list · table · status · link · markdown | `cards/<id>.yaml` |
+| **Board** | composition | Home is a board; personal sections are boards | `boards/<id>.yaml` |
+| **Governed Action** | executable authority | `media.downloads` (read), `downloads.pause_all` (write) | `actions/<id>.yaml` |
 
 ```yaml
 request: sonarr.queue
+meaning:
+  concept: media.downloads
 card:
   title: Downloads
   view: list
-meaning:
-  concept: media.downloads
 ```
 
-- `concept` is **descriptive metadata**: a namespaced, free-form label that Worlds
-  uses for grouping, summaries, Memory links and, later, assistant discovery. It is
-  **not** a globally enumerated capability, and adding a new one needs no core code
-  change.
-- This keeps ADR-0001's principle (Worlds owns the concept; the vendor's shape never
-  becomes product truth). It drops the oversized machinery: the hard-coded capability
-  registry, the three capability lists and the `status_map` equality invariant.
-- Swapping Sonarr for another downloader means changing the request and mapping.
-  The card, the board and the `media.downloads` meaning stay.
-
-### Mapping details
-
-- **Tier 1 (no code), the rendering system:** Homepage-style fields
-  `{path, label, format, unit, remap}` feed a fixed set of accessible views
-  (stat · list · table · status · link · markdown). Worlds owns these views, so
-  44px targets, contrast, luminance-only rank and reduced motion hold everywhere.
-- **Tier 2 (later):** a sandboxed template, as the escape hatch.
-- **Status rule as data:** `{path, ok:[...], warn:[...]}`. A transport failure becomes
+- **`concept` is descriptive metadata**, not a global capability enum. A new concept
+  needs no core code change.
+- **The principle behind it is ADR-0001's:** Worlds owns the meaning; the vendor's
+  shape never becomes product truth. Swap Sonarr for another downloader and only the
+  request and mapping change. The card, the board and `media.downloads` stay.
+- **Tier-1 views are fixed and accessible.** Worlds owns them, so 44px targets,
+  contrast, luminance-only rank and reduced motion hold everywhere. A sandboxed
+  template is a later escape hatch.
+- **Status is data:** `{path, ok, warn}`. A transport failure renders as
   `unavailable`, or `stale` with the last-good time. **One provider failing never
   blanks a board.**
-
-### Providers, rooms and recipes
-
-- **room/0 is a provider kind.** Its cards and needs-you arrive pre-mapped, and
-  existing rooms keep working unchanged.
+- **room/0 services are a provider kind.** Their cards and needs-you arrive pre-mapped.
 - **Rooms remain** for integrations that genuinely need logic.
-- **Recipes are data:** a provider template plus suggested requests, mappings and
-  cards (for example `recipes/sonarr.yaml`). Recipes replace Python adapters for
-  services that are only an API.
-- **The reference provider** (`kind: reference`) is built in and synthetic. It is
-  for development, CI, examples and open-source verification only (see Phase 1).
+- **Recipes are data:** a provider template plus requests, mappings and suggested cards.
 
-### Governed actions: saved request ≠ tool
+## Governed actions: saved request ≠ tool
 
-A saved request is **not** automatically something an assistant or automation
-can call. It becomes callable only through an explicit **action binding** that
-states its authority:
-
-```yaml
-# read, no approval
-tool:
-  exposed: true
-  name: media.downloads
-  access: read
-  approval: never
+```
+Saved Request → optional Governed Action Binding → assistant / automation tool
 ```
 
 ```yaml
-# write, always approved, single dispatch
-tool:
-  exposed: true
-  name: service.restart
-  access: write
-  approval: always
-  idempotency: required
+tool: { exposed: true, name: media.downloads, access: read,  approval: never }
+tool: { exposed: true, name: service.restart, access: write, approval: always, idempotency: required }
 ```
 
-`GET /queue`, `GET /medical-records`, `POST /restart-server` and
-`DELETE /episode/1234` are all "saved requests", but they are not equivalent.
-**Assistants and automation discover governed action bindings, never raw
-request definitions.**
+- **Assistants and automation discover governed actions, never raw requests.**
+  `GET /queue`, `GET /medical-records`, `POST /restart-server` and
+  `DELETE /episode/1234` are all saved requests, and they are not equivalent.
+- **One authority path for every caller.**
 
-- **Defaults fail closed.** A request has no binding until you create one. Any method
-  other than GET/HEAD is `access: write`. A binding with no `approval` field is
-  treated as `always`.
-- **One authority path.** The UI, the CLI, the assistant and automation all run writes
-  through the same governed path: confirm, then idempotency key, receipt and journal
-  entry. This replaces today's three approval models (rooms, `ProposalStore`,
-  deployment).
+  ```
+  human UI · assistant · automation → governed action → authority / approval → request execution
+  ```
 
-### Single-dispatch approval invariant
+  This replaces today's three approval models (rooms, `ProposalStore`, deployment).
+- **Defaults fail closed.**
+  - A request has no binding until one is created.
+  - Any method other than GET/HEAD counts as `access: write`.
+  - A missing `approval` field means `always`.
+- **Single dispatch:**
 
-Borrowed from Open Dots (an external project; it is not in this repo):
+  ```
+  approve → consume authorization → dispatch once → SUCCEEDED / FAILED / UNKNOWN
+  ```
 
-```
-approve → consume authorization → dispatch exactly once
-```
-
-- An approval is consumed at dispatch and **cannot be replayed**, even if the client
-  never receives the result.
-- If the request is cancelled, times out or loses its connection **after** dispatch,
-  the outcome is recorded as **`UNKNOWN`**, with no silent success or failure.
-- A potentially side-effecting request is **never retried automatically**. Retrying
-  is a new, separately approved action.
-- This extends the room/0 idempotency rule to every write and keeps `UNKNOWN`
-  first-class.
+  - An approval is used up at dispatch. A potentially completed side effect is
+    **never replayed** just because the result was lost, and nothing is retried
+    automatically.
+  - Lost after dispatch means **`UNKNOWN`**, a first-class outcome. A retry is a new,
+    separately approved action.
+  - Borrowed from Open Dots (an external project, not in this repo).
+  - The lab demonstrates it: Connect → Actions, simulate "Connection drops after a
+    write is sent".
 
 ## Memory: a core concept, not a provider
 
 > **Memory is continuity:** things I intentionally kept, things I need to return
 > to, durable things about me, and enough history to re-orient myself.
-
-Product Language already defines Memory as a deterministic place: model-independent,
-opens instantly, browseable, searchable by ordinary means, with Records inside it and
-pinned or important things there. AI is optional enrichment, never the only way in.
-The existing promise stands: *remember, recall, Later: one place, nothing to chase.*
 
 ```
 Memory
@@ -180,295 +151,346 @@ Memory
 └── Find      deterministic local search
 ```
 
-**Core baseline (stays in Worlds):** Remember/Kept, Later, Records, ordinary local
-text search, and the journal and history infrastructure that supports them.
+- **Core baseline (stays in Worlds):** Kept, Later, Records, History and local text
+  search.
+- **Acceptance:** turn off every model and every external provider. Memory still
+  opens, saved things can be browsed, Later works, Records work, History can be
+  browsed, and local search works.
+- **Enrichment (optional, replaceable):** semantic recall, Pollen, `rylee_lore`,
+  Project Home context, associations, other retrieval systems.
+- **Memory is never shown as its implementation.** The prototype framed it as
+  "Supabase + Pinecone + Claude". In the lab, enrichment is one quiet line ("Models:
+  off · Enrichment: none connected") that deep-links to Connect.
+- **The journal-gate principle survives.** Agents get deliberately narrow, governed
+  answers about private memory, never arbitrary retrieval. The implementation may go;
+  the rule moves into governed actions. The lab's example is `memory.later.count`:
+  how many Later items there are, never their contents.
 
-**Acceptance:** unplug every model and every memory provider (semantic retrieval,
-Pollen, `rylee_lore`, Project Home context). Memory still opens, saved things can
-be browsed, Later works, Records work, and local deterministic search works.
+## Navigation: the stable skeleton
 
-**Provider enrichment (optional, replaceable):** semantic recall, Pollen,
-`rylee_lore`, Project Home context, and future association or retrieval systems.
-They enrich Memory; they are never prerequisites for it to exist.
+**Core skeleton (owner decision, revision 3):**
 
-**The journal-gate policy survives.** The `journal_gate` implementation may be
-replaced or removed, but its rule moves into the governed-action model: *agents get
-deliberately narrow, governed answers about private memory, never arbitrary
-retrieval access.* Concretely, Memory exposes a small set of read bindings with
-fixed questions and bounded answers. No raw "search everything" tool is exposed to
-an agent.
+```
+Home · Connect · Memory · Settings
+```
+
+| Landmark | Answers | Contains |
+|---|---|---|
+| **Home** | *What matters right now?* | Orientation; **Needs you** (only what waits on a person, never an inbox); pinned cards; where you left off; one small "Something new" discovery card; quiet stale/unavailable cards. Home is a board. It must never feel like an API dashboard |
+| **Connect** | *Where does the plumbing live?* | Requests (saved requests, test/run, map, save, pin); Providers; Recipes; Actions (governed bindings); Advanced (secrets as references, connection details, raw technical state). Powerful, and never required for ordinary use |
+| **Memory** | *What did I keep, and where was I?* | Kept · Later · Records · History · Find |
+| **Settings** | *How does Worlds look and behave?* | Experience pack, theme, comfort/accessibility, assistant (optional, not installed by default). No plumbing |
+
+- **Optional and personal content arrives as boards, cards and sections, never as
+  new permanent navigation.** Boards (Media, Homelab…) are listed under the
+  skeleton on desktop and reachable from Home on the phone. They are the person's
+  own list, not product landmarks.
+- **Raw API mechanics have one home: Connect.** A card or Memory may offer **View
+  source** or **Configure source**. Those deep-link into Connect; no human-facing
+  area embeds a mini provider console. This **reverses** revision 2's per-board
+  "Sources" tab (taken from the prototype's per-room API tab).
+- **Search** in the first version is Memory → Find. A global search can come later
+  without a new landmark.
+- **Chat** is not core navigation. It becomes an optional client of governed actions
+  (Phase 5). Until then, the existing Chat screen stays reachable from Settings
+  (replace before remove).
+
+### Names: standard in core, and stable under every pack
+
+- **One word everywhere.** The UI, code, API and files use the same plain word:
+  `home`, `connect`, `memory`, `settings`, `board`, `card`, `provider`, `request`,
+  `mapping`, `action`, `service`.
+- **Retired:** the area id `overview` (which renders "Bridge") and the reuse of
+  "room" for external services.
+- **The external contract keeps its name.** The upstream Play-Nice contract is still
+  `room/0`. Worlds' own code calls those things **services**. The rename is one
+  mechanical PR in Phase 4.
+- **Packs may not rename or move the four landmarks.** Home is still Home under
+  Station. This replaces revision 2's "a pack may relabel Home as Bridge" rule.
+
+## Personality: Station as an optional experience pack
+
+**Invariant: changing themes or packs must not require relearning Worlds.**
+
+| Moves into the Station / personality pack | Stays in the repo, never deleted |
+|---|---|
+| Station rank, XP, achievements, stickers, module codes, Bridge/operator terminology, lore, crew, Sol, companion mechanics, star-map navigation | The art, canon, characters, visual language, playful interactions and theme assets |
+
+What a pack **may** do:
+
+- characters report status ("Bolt: the lab's steady…")
+- Sol appears in small moments
+- HUD treatment (eyebrows such as "Home · deck 1", corner brackets on cards)
+- a starfield backdrop
+- achievements and stickers
+- lore enriching empty states and transitions
+
+What a pack **may not** do:
+
+- move, rename, add or remove a landmark
+- change card positions
+- gate any function behind the pack
+- lower text size or contrast
+
+**Lab evidence:**
+
+- With the pack off, no pack element is visible.
+- With Station on, three pack elements appear.
+- The navigation reads `Home · Connect · Memory · Settings` in both cases, checked
+  programmatically.
+
+**Not yet proven:** the lab uses placeholder marks, not the protected character art.
+A richer pack with the real art is a later design pass, done under the same invariant.
+
+## Accessibility: quiet means lower emphasis, not harder to read
+
+**Kept from the prototype:**
+
+- the dark, warm palette
+- generous spacing
+- restrained motion and the existing `prefers-reduced-motion` behaviour
+- the low-stimulation background
+
+**Changed** (all answered in the lab):
+
+| Prototype | Lab |
+|---|---|
+| 9–11px monospace labels at 15–35% white | Labels ≥13px; secondary text uses the theme's `text-secondary`/`text-muted` tokens, which pass contrast; body text is 16px |
+| Status by colour alone (dots, room colours) | Every state is icon + word: ✓ Healthy · ! Needs attention · ◷ Stale · ✕ Unavailable · ? Unknown |
+| No visible focus states | A 3px focus ring on every control |
+| Small tap targets | ≥44px controls; a 56px bottom bar on the phone |
+| Animations on by default | One short fade, only under `prefers-reduced-motion: no-preference` |
+| Important state buried in dense metadata | Failures say what went wrong and when it last worked, in a sentence |
+
+**Lab verification:**
+
+- axe-core (WCAG 2.0/2.1 A and AA plus best practice) reports **no violations** on all
+  12 captured states: four screens in both packs, at 390px and 1280px.
+- There is no horizontal overflow at 390px.
+- A manual screen-reader walk is still **UNKNOWN**. It is not done and stays required
+  before Phase 2 is called done.
 
 ## Editing: UI first, files underneath
 
 ```
-normal day:       Connect → edit/build → Save
-power-user day:   YAML / git / bulk edit
+normal use:   Connect → edit → test → save
+power use:    YAML / git / bulk edit
 ```
 
-Both paths produce the same portable files. The UI owns **no hidden
-configuration state**.
+**Invariant:** every UI-created configuration round-trips through the documented file
+format without loss. **No hidden UI-only config database becomes canonical truth.**
 
-**Invariant:** every configuration created through the UI round-trips through the
-documented file format without loss.
+- **The lab shows the file behind each request.** Its request page includes "The
+  files this writes", the YAML for the request and its card, which updates as the
+  mapping is edited.
+- **Real configuration lives in the data/config volume, outside the public repo.**
+  The repo carries only the reference provider and example recipes.
 
-The YAML stays portable, bulk-editable, diffable, versionable, recoverable, and
-editable without the Worlds UI. On a low-energy day you never need to touch a file.
-Real user configuration lives in the data/config volume, outside the public repo;
-the repo carries only the reference provider and example recipes.
+## Security boundary (unchanged)
 
-## Security boundary (non-negotiable, unchanged)
+- **Confinement:** requests go only to a provider's registered `base_url` +
+  `path_prefix`.
+- **Network limits:**
+  - no redirects
+  - response size and time caps
+  - SSRF protection against link-local and metadata addresses, unless a provider is
+    explicitly marked LAN
+- **Credentials:**
+  - stored only as references (`env:`, `vault:`, later OpenBao per ADR-0007)
+  - injected server-side, and redacted in responses and logs
+  - **the browser never receives a secret value**
+  - the lab's Secrets view shows names and set/not-set only, with write-only replace
+- **Step-up** is required for provider and secret edits. Owner-only, plus scoped agent
+  tokens.
+- **Governed actions** carry receipts and follow single dispatch.
+- **`tests/test_public_safety.py`** still gates every change.
 
-- Requests go **only** to the provider's registered `base_url` + `path_prefix`.
-- No redirects are followed. Responses have size and time caps.
-- SSRF protection blocks link-local and cloud-metadata addresses, unless a provider is
-  explicitly marked LAN.
-- Credentials are stored only as **references** (`env:NAME`, `vault:name`, later
-  OpenBao per ADR-0007). The server injects them, and responses and logs redact them.
-  **The browser never receives a secret value.**
-- Adding or editing providers or secrets needs **step-up**. Owner-only by default,
-  with scoped agent tokens.
-- Governed actions are redacted, carry receipts, and follow the single-dispatch
-  invariant.
-- A provider failure degrades visibly and never blanks a board.
-- `tests/test_public_safety.py` still gates every change.
+## First recipes
 
-## Navigation and product language
-
-`Home · Needs you · Search` (owner decision, 2026-10-01; standard names, see Naming)
-
-- **Home** shows only human-shaped results: the cards and boards that matter
-  now. It is the calm daily landmark.
-- **Needs you** gathers what needs a person, from services' needs-you lists and from
-  card status rules.
-- **Search** starts as Memory's deterministic Find.
-- **Boards** and **Memory** are listed in the sidebar (desktop) or a list (phone).
-  Memory is core.
-- **Settings** holds the workshop, **Connections** (providers, requests, mappings,
-  actions), plus Secrets, Health and preferences. Each board also has a **Sources**
-  tab scoped to that board. Technical depth is there when you want it, and the everyday
-  experience is never an API console. This keeps AGENT_POLICY's "personal appliance,
-  not an administration console" rule true.
-
-## Superseded decisions (so no future agent "corrects" Worlds back)
-
-If this proposal is approved, Phase 0 edits these documents in place with a dated
-"superseded by ADR-0008" note:
-
-| Document / decision | Old wording | New direction |
+| # | Recipe | Proves |
 |---|---|---|
-| `docs/PRODUCT-LANGUAGE.md` § Stable skeleton (also `AGENTS.md`, `docs/TRUE-NORTH.md` scope) | `Bridge · Memory · Chat · Settings` | `Home · Needs you · Search`, with boards, Memory and **Settings** (where Connections lives) one level down. **Home supersedes Bridge/Overview**; "Bridge" becomes a pack label only, and the `overview` id is retired. **Chat is no longer required core navigation**: it becomes an optional client of governed actions, later |
-| `docs/PRODUCT-LANGUAGE.md` § Overview | Overview/Bridge aggregates each section's headline | The Home board does this through cards and mappings; there is no separate aggregator |
-| `docs/PRODUCT-LANGUAGE.md` § theme principles | "Character art, a light sci-fi feel, and visible companions stay part of Worlds" | Crew, Keeper, stickers, Sol, star map, lore and related character behaviour **move out of core code into an optional theme/experience pack**. Art and character canon stay preserved in the repo. **Kept from the old rule:** plain still never means sterile or grey enterprise. Core keeps a warm, recognisable identity through typography, softness, interaction quality and complete themes |
-| `.project/PLAN.md` Step 1b | "**Personality ships here, not later**" | Superseded: personality ships as the optional pack, after the front door works |
-| `.project/PLAN.md` Steps 1c–3 | media, calendars, inboxes as built-in sources | They arrive as providers, recipes or rooms on the front-door model |
-| ADR-0001 | core-owned enumerated capabilities, enforced by `framework validate` | ADR-0008 keeps the principle (*Worlds owns meaning*), moves meaning into Mapping `concept` metadata, and retires the enumerated registry and the `status_map` equality invariant for front-door providers. A small built-in set (Memory, vault, journal) keeps its contracts |
-| `ARCHITECTURE.md` API-only routes (`/api/lab/*`, `/api/exports/story`, `/api/reconciler/status`) | declared product contract | They are removed in Phase 4 only once a recipe or room replaces each one, as a recorded owner decision |
+| 1 | **Project Home** | First-party evolving API, structured project data, richer mappings, internal ecosystem integration |
+| 2 | **Sonarr** | Ordinary third-party REST, auth, list data, recipe portability |
+| 3 | **Homelab Health** | Many small status values, stale/degraded/unavailable, aggregation, graceful provider failure |
+| later | GitHub | Its enormous API must not shape the first abstraction |
 
-## What stays, shrinks, moves, goes
+OpenAPI import comes only after these are proven by hand.
 
-| Keep (core) | Shrink | Move out (provider · recipe · room · pack) | Remove |
-|---|---|---|---|
-| The rooms reader, connections, secret_resolver, vault, envelope, status, sections → boards, setup, healthz, manifest + `api` CLI, the journal, the **Memory baseline (Kept, Later, Records, Find)**, themes/tokens/kit, a11y prefs, OIDC login | Auth (owner + agent tokens + OIDC), identity (single mode only), prefs, briefing (→ a summary card), backup, push | **Provider/recipe/room:** media, lab_*, reconciler, calendar, updates, deployment, source_control, github, agent_sync, project_home, traefik, discovery (live part), reminders, learning, semantic memory (`native_memory`), chat + tool_registry. **Pack:** crew, voice, briefing-voice, stickers, lore, theme_pack, Sol/Keeper/star-map UI | The dead discovery engine, content_db (personal paths), people/invites/helpers/roles/user, the `journal_gate` *implementation* (its policy moves to governed actions), legacy `/station` redirects |
+## The reference provider (Phase 1 requirement)
 
-**Rough target, an estimate:** backend about 12–15k LOC and about 40 routes; UI with
-4 landmarks plus Connect's builder.
-
-## Phases
-
-Each phase is a vertical slice that ends with phone and desktop screenshots.
-**Replace before remove:** Phase 4 removes only what Phases 1–3 have already
-replaced.
-
-| # | Slice | Includes | Done when |
-|---|---|---|---|
-| 0 | **Decide and record** | ADR-0008 (meaning/mechanics, mapping concepts, governed actions, single dispatch); the superseded-decision edits above; DECISIONS entry; tag `archive/pre-front-door`; delete the dead discovery engine (no behaviour change) | ADR merged, conflicting docs updated, pytest green |
-| 1 | **Provider + Request + Mapping foundations** | SSRF guard, secret refs, request runner, assertions/test, YAML store with round-trip, Connect UI (add provider → Test → build request → Run → JSON viewer → map a field → Save → list), **the reference provider**, a deterministic test suite | The full Provider → Request → Mapping flow passes in CI against the reference provider, and you save a working request from your phone |
-| 2 | **Cards + Boards** | Cards, mapping editor (click a JSON field to map it), status rules, TTL cache with stale/last-good, room/0 provider kind (`service`), the Home board, per-board Sources tab, Needs you, `blank` and `list` board types; writes run through the governed path with the single-dispatch invariant | Home shows your real rooms plus pinned cards, and one broken provider doesn't blank it |
-| 3 | **Recipes, then import** | Recipes, in order: **1. Project Home**, **2. Sonarr**, **3. Homelab Health**. GitHub comes fourth, later. OpenAPI import only **after** the recipe model is proven by hand | Each of the three runs from a recipe with no Python adapter |
-| 4 | **The cut** | One PR per removal family (persona → pack, multi-user, then each ported provider once its recipe or room works); tests leave with their code | Backend and UI at target size; all gates green; nothing removed without a working replacement |
-| 5 | **Memory enrichment + assistant** | Memory already has its core baseline before this phase. Phase 5 adds external/semantic memory providers, governed action bindings for the assistant, the optional chat client, and the replacement of the handwritten tool registry | See acceptance below |
-| Later | — | MCP provider kind; tier-2 templates; sharing recipes | — |
-
-**Phase 5 acceptance:**
-
-- Memory works with all models off.
-- Chat off does not break Worlds.
-- The assistant cannot call raw saved requests directly.
-- Every write follows the same governed authority path as the UI.
-
-### Assistant sequencing
-
-The Chat UI is parked until Phase 5, but the request and action contracts from
-Phases 1–3 are designed to be safe for assistant use from day one:
-
-```
-assistant → discovers governed action bindings → same authority/approval path as the UI → saved requests
-```
-
-Chat becomes another client of Worlds, not a subsystem the rest of Worlds bends
-around. The handwritten tool registry can then disappear without being replaced by
-implicit authority.
-
-## The reference provider (Phase 1)
-
-A built-in synthetic provider for development, tests, examples and open-source
-verification. It is never used for real data. It has deterministic endpoints for
-each of these cases:
+A built-in synthetic provider for development, CI, examples and open-source
+verification only.
 
 | Case | Proves |
 |---|---|
 | GET list / GET object | list and stat mappings |
 | POST idempotent action | governed action, receipt, single dispatch |
-| slow response | timeout → `UNKNOWN` / `unavailable` |
-| 500 response | degraded card, the board survives |
-| malformed payload | an honest error, no fake data |
-| secret-required endpoint | secret ref injection and redaction |
-| stale data | stale + last-good display |
-| redirect attempt | the redirect is refused |
-| oversized response | the size cap holds |
+| slow response | timeout → `unavailable` / `UNKNOWN` |
+| 500 response | degraded card, board survives |
+| malformed response | honest error, nothing guessed |
+| secret-required request | secret-ref injection and redaction |
+| stale result | stale + last-good display |
+| redirect attempt | refused |
+| oversized response | size cap holds |
 
-**Architectural acceptance:** the front-door model works even when Rylee's personal
-infrastructure does not exist. The whole Provider → Request → Mapping → Card → Board
-flow runs with no Sonarr, no Project Home, no LAN, no personal tokens and none of
-the estate.
+**Acceptance:** the architecture works even when Rylee's infrastructure does not
+exist. The whole Provider → Request → Mapping → Card → Board flow runs with no Sonarr,
+no Project Home, no LAN, no personal tokens and none of the estate. The lab's
+"Reference provider simulates" control previews the user-visible side of five of these
+cases.
 
-## Invariants this changes (needs ADR-0008)
+## Superseded decisions
 
-- `framework validate` fixes the capability set and requires each connection's
-  capability to be declared. Front-door providers carry `meaning.concept` metadata
-  instead. ADR-0008 amends ADR-0001 so validation checks schema, secret-refs and
-  confinement, not membership in a capability enum.
-- The secret-rule key naming stays and extends to the new YAML (`secret_ref` only).
-- Zero-provider boot stays: Worlds starts, and Memory works, with no providers at all.
-- room/0 is pinned upstream in Play-Nice; this plan does not change it.
+Phase 0 edits each source in place with a dated "superseded by ADR-0008" note, so
+future agents do not restore the old architecture.
 
-## Strengths kept from revision 1
-
-- Worlds remains small and fast. No rewrite.
-- Replace before remove.
-- One generic substrate replaces many domain-specific integrations.
-- Raw API work lives in Connections (Settings, or a board's Sources tab), never on Home; Home shows only human-shaped results.
-- Rooms remain for integrations that need logic. Recipes remain data.
-- OpenAPI import comes after the request model is proven. MCP comes later.
-- Theme and personality code leave core; canon and art are preserved.
-- One owner plus scoped agent tokens. OIDC remains.
-- Real user config lives outside the public repo. Secrets remain references.
-- Provider failure degrades visibly, never silently.
-- Accessible fixed views remain the Tier-1 card rendering.
-- No AI is required for ordinary configuration or for Memory.
-- `UNKNOWN` remains a valid outcome.
-
-## Design reference: the owner's Figma Make prototype (2026-10-01)
-
-Rylee built an example in Figma Make (file key `eS6fzNT9NC1hjSGWf3yFO3`). It is a
-single-file React prototype, `App.tsx`, about 2.8k lines.
-
-- Every API call in it is simulated with `setTimeout`, and its sample data is mock data.
-- **Do not copy its sample hostnames, tokens or data into this public repo.**
-- It is a reference for **structure and flow**, not for styling (see Accessibility below).
-
-### What it confirms
-
-| Prototype | Proposal equivalent |
-|---|---|
-| Bridge: greeting, status line, "needs you" tasks shown **only when something is pending**, a grid of room tiles, a **+ New Room** tile | The Home board: calm, human-shaped, needs-you surfaced, not shouted |
-| Each room has three tabs: **Room · API · Learn** | Card/board view with a **scoped Connect** one tap away (see below) |
-| A room's **API** tab: suggested providers, each with a **role** ("Primary storage", "Vector search", "Auto-tagging"), a few config fields, **Test**, and **Pull** with a JSON preview | Provider → Request → Mapping, with test and query; the *role* is the Mapping's `meaning`. This is direct validation of the semantic layer |
-| Systems → Providers · Variables · Connections · Health · Settings | Connect + secrets + status, grouped as one workshop area |
-| Health list (label, ok/warn/error, latency, note) | A built-in board generated from provider status rules |
-| Custom rooms: name, emoji, colour, type `list` · `board` (kanban) · `blank` | User-created boards |
-| Phone bottom nav **Bridge · Needs you · Search**; desktop sidebar of rooms with **Systems** at the bottom | Answers open question 3: Connections lives in Settings, not in the phone's primary nav |
-
-### What it changes or adds
-
-1. **A per-board Sources tab** (the prototype's per-room API tab). Each board gets a scoped
-   workshop that shows only the providers, requests and mappings feeding *this* board.
-   The global workshop, Connections, still exists under Settings. This is progressive disclosure where you already are: Home stays human,
-   and depth is one tap away. Proposed for Phase 2.
-2. **Needs you and Search as landmarks.** "Needs you" aggregates room/0 `needs-you`
-   plus card status rules. "Search" starts as Memory's deterministic Find and later
-   spans card results.
-3. **Providers vs connections.** The prototype separates vendor accounts (API key,
-   model) from project endpoints (URL plus auth type). The proposal keeps **one Provider
-   concept** to avoid two registries again. The UI may group providers by category
-   ("Services" and "My projects").
-4. **Variables means names, never values.** The prototype shows editable secret values
-   in the browser, which the security boundary forbids. The Worlds version lists each
-   variable's name, source and set/not-set, with **write-only** value entry behind step-up.
-5. **Room types.** `blank` is an empty board, Phase 2. `list` is local items, aligned
-   with Memory/Kept, Phase 2–3. `board` (kanban) is **deferred**, because it is a
-   product of its own.
-6. **Learn tab, achievements and XP** go to the personality/experience pack, later.
-   They are kin to the existing stickers and learning features.
-
-### Accessibility: take the structure, not the styling
-
-- **Text size and contrast.** Labels in the prototype are 9–10px monospace at 15–35%
-  white. They fail the type floor (labels ≥13px) and contrast.
-- **Colour-only encoding.** Each room is identified by colour alone.
-- **Motion and focus.** Animations are on by default, and there are no visible focus states.
-- **What Worlds renders instead.** The structure uses the existing tokens, complete
-  themes, 44px targets and WorldButton/kit primitives, per
-  `docs/accessibility/ACCESSIBILITY_CONTRACT.md`.
-
-### Naming and navigation: owner decision (2026-10-01)
-
-**Standard names in core; themed names only in the pack.** Core Worlds uses plain,
-standard words, and the code, API, files and UI all use the same word. Themed words
-from the prototype ("Bridge", "Rooms", "Systems", "Operator", "Modules") are **not**
-core vocabulary. They belong to the personality/experience pack, which may relabel
-the UI through a vocabulary map. Code and file names never use pack labels.
-
-| Core name (UI = code) | Code / API / files | What it is | A pack may relabel it as |
+| # | Source | Old decision | New decision |
 |---|---|---|---|
-| **Home** | `home` | the daily landing board | Bridge |
-| **Needs you** | `needs_you` | what needs a person, from services' needs-you and card status rules | — |
-| **Search** | `search` | deterministic Find, starting with Memory | — |
-| **Board** | `board`, `boards/<id>.yaml` | a person's own space of cards; Home is a board | Room |
-| **Card** | `card` | one presented result | — |
-| **Memory** | `memory` | core (above); not a board | — |
-| **Settings** | `settings` | preferences, themes, accessibility, packs, and the workshop below | Systems |
-| **Connections** | `connections` | the workshop: providers, requests, mappings, actions | — |
-| **Sources** (tab on a board) | `sources` | the connections and requests feeding *this* board (the prototype's "API" tab) | — |
-| **Secrets** | `secrets` | names and set/not-set only; write-only values | — |
-| **Service** | `service`, provider kind `room0` | an external service that speaks room/0 (Workshop, Candy, Engine room…) | — |
+| S1 | `docs/PRODUCT-LANGUAGE.md` § Stable skeleton; `AGENTS.md` (Workbench & Node rules, "The frontend is Worlds"); `docs/TRUE-NORTH.md` scope | `Bridge · Memory · Chat · Settings` is the required stable navigation | `Home · Connect · Memory · Settings` |
+| S2 | `docs/PRODUCT-LANGUAGE.md` § Overview; `AGENTS.md` ("area id `overview` renders the **Bridge**") | Bridge/Overview is the primary home landmark | **Home**, a board; `overview` and "Bridge" retire from core vocabulary |
+| S3 | `docs/PRODUCT-LANGUAGE.md`, `docs/TRUE-NORTH.md` (Chat in the core four and in G-voice) | Chat is required core navigation | Chat is an optional later client of governed actions |
+| S4 | `.project/PLAN.md` Step 1b | "**Personality ships here, not later**" | Personality ships as the optional Station/experience pack, after the front door works |
+| S5 | `docs/PRODUCT-LANGUAGE.md` theme principles ("Character art, a light sci-fi feel, and visible companions stay part of Worlds") | Baseline personality is structurally embedded in core | Personality is an overlay pack. **Kept:** plain never means sterile; core keeps a warm identity through type, softness and complete themes |
+| S6 | ADR-0001; `framework validate` (capability-ownership, the `status_map` equality test) | Every provider must implement a core-registered capability, which forces provider semantics into core | Meaning moves into Mapping `concept` metadata; the capability enum is retired for front-door providers; a small built-in set (Memory, vault, journal) keeps its contracts |
+| S7 | `.project/PLAN.md` Steps 1c–3 | Media, calendars and inboxes are built-in sources | They arrive as providers, recipes or services |
+| S8 | `docs/ARCHITECTURE.md` (API-only routes `/api/lab/*` etc. as a product contract) | Removing them is off-limits | Each is removed in Phase 4 only once a recipe or service replaces it, recorded as an owner decision |
+| S9 | `docs/ROOMS.md`; `AGENTS.md` (rooms) | "Room" means an external room/0 service | Worlds code calls it a **service**; the upstream contract name `room/0` is unchanged |
+| S10 | This proposal, revisions 1–2 | `Home · Connect · Memory · Settings` (rev 1–2), then `Home · Needs you · Search` with packs allowed to rename landmarks and a per-board Sources tab (rev 2 addenda) | Revision 3 as written above |
 
-- **Navigation (structure from the prototype, standard labels):** `Home · Needs you · Search`
-  is primary.
-  - Boards and Memory are listed in the desktop sidebar and in a list on the phone.
-  - **Settings** holds Connections, Secrets, Health and preferences.
-  - Every board has a **Sources** tab.
-- **One word, one meaning.** The area id `overview` (which renders the "Bridge") and
-  the reuse of "room" for external services both retire.
-- **The external contract keeps its name.** The Play-Nice contract is still called
-  `room/0` upstream; Worlds does not rename someone else's contract. Worlds' own code
-  calls those things **services**. The rename lands as one mechanical PR in Phase 4.
-  Until then, `rooms.py` is documented as "services that speak room/0".
-- **Supersedes:** revision 2's `Home · Connect · Memory · Settings` (Connect is now
-  Connections, inside Settings) and this revision's earlier "Bridge/Room" draft.
+## ADR-0008 draft wording
+
+**Proposed ADR-0008: the front door — meaning, mechanics, authority**
+
+- **Status:** proposed (lands in Phase 0 after owner approval).
+- **Amends:** ADR-0001.
+- **Relates to:** ADR-0006 (event envelope = journal entry), ADR-0007 (secrets).
+
+**Decision.**
+
+1. **Worlds owns meaning; providers own mechanics.** External systems connect as
+   Providers. Requests carry transport. Mappings carry meaning as descriptive
+   `concept` metadata. Cards present. Boards compose. A provider's API shape never
+   becomes a Worlds concept.
+2. **Core-owned concepts are few and named:** Home, Connect, Memory, Settings, and the
+   Memory baseline (Kept, Later, Records, History, Find). They work with zero
+   providers and zero models.
+3. **ADR-0001's capability registry is retired for front-door providers.**
+   Validation checks schema, secret references and confinement instead of membership
+   in a capability enum.
+4. **Authority is explicit.**
+   - Only governed action bindings are callable by assistants or automation, and
+     every caller uses one approval path.
+   - Writes follow single dispatch: approve → consume → dispatch once → SUCCEEDED,
+     FAILED or UNKNOWN, with no automatic replay.
+   - Agents get only narrow, bound answers about private memory.
+5. **Configuration is files.** Every UI-created configuration round-trips through the
+   documented YAML without loss. No UI-only store is canonical.
+6. **Structure is invariant under presentation.** Themes and experience packs may
+   change look, voice and moments. They may not move, rename, add or remove a
+   landmark, or gate a function.
+7. **Replace before remove.** A subsystem is deleted only after its replacement works,
+   one removal family per change.
+
+**Consequences.**
+
+- Provider integrations become data (recipes); Python adapters shrink.
+- `framework validate` and `tests/test_framework.py` change in Phase 1.
+- Room/0 integration continues unchanged as a provider kind.
+- Station and character canon are preserved as a pack.
+
+## Phases
+
+Each phase is a vertical slice with phone and desktop screenshots. **Replace before
+remove.**
+
+| # | Slice | Includes | Done when |
+|---|---|---|---|
+| 0 | **Decide** | Refine the proposal (this); ADR-0008; supersession notes S1–S10; DECISIONS entry; tag `archive/pre-front-door`; delete the dead discovery engine (no behaviour change). **No production implementation** | ADR merged, conflicting docs updated, gates green |
+| 1 | **Connect foundation** | Provider, Request, Mapping; YAML store with lossless round-trip; secret refs; SSRF guard; request runner and tester; the reference provider; Connect UI; a deterministic test suite | The full flow passes in CI against the reference provider, and Rylee saves a working request from her phone |
+| 2 | **Human presentation** | Cards, boards, Home; stale/last-good; the mapping editor; room/0 provider support; Needs you; deep links from cards to Connect | Home shows real services and pinned cards; one broken provider doesn't blank it; a manual screen-reader walk passes |
+| 3 | **Recipes, then import** | Project Home → Sonarr → Homelab Health, then OpenAPI import | Each of the three runs from a recipe with no Python adapter |
+| 4 | **The cut** | One PR per removal family: personality → pack, multi-user, the rename `rooms` → `services`, then each ported provider once its recipe or service works | Target size reached; all gates green; nothing removed without a working replacement |
+| 5 | **Memory enrichment + assistant** | The Memory baseline already exists. Adds provider-backed enrichment, semantic recall, governed action bindings, an optional assistant/chat client, and removal of the hand-written tool registry once its replacement is proven | Memory works with models off; Chat can be entirely absent; the assistant cannot execute arbitrary saved requests; writes use the same governed path as the human UI |
+| later | — | MCP provider kind; tier-2 templates; sharing recipes | — |
+
+## What stays, shrinks, moves, goes
+
+| Keep (core) | Shrink | Move out (provider · recipe · service · pack) | Remove |
+|---|---|---|---|
+| Services reader (today's `rooms.py`), connections, secret_resolver, vault, envelope, status, sections → boards, setup, healthz, manifest + `api` CLI, journal, **Memory baseline**, themes/tokens/kit, a11y prefs, OIDC login | Auth (owner + agent tokens + OIDC), identity (single mode), prefs, briefing (→ cards), backup, push | **Provider/recipe/service:** media, lab_*, reconciler, calendar, updates, deployment, source_control, github, agent_sync, project_home, traefik, discovery (live part), reminders, learning, semantic memory, chat + tool_registry. **Pack:** crew, voice, briefing-voice, stickers, lore, theme_pack, Sol/Keeper/star-map UI | Dead discovery engine, content_db, people/invites/helpers/roles/user, the `journal_gate` implementation (policy kept), legacy `/station` redirects |
+
+**Rough target, an estimate:** backend about 12–15k LOC and about 40 routes; UI with
+4 landmarks.
+
+## Design evidence
+
+### The owner's Figma Make prototype (the "before")
+
+- **File:** key `eS6fzNT9NC1hjSGWf3yFO3`. It is one React file of about 2.8k lines, and
+  every call in it is simulated.
+- **Kept as the "before" reference.** The Figma tools can read a Make file but cannot
+  write one, so the experiments ran in a forked lab instead (below).
+- **Its mock hostnames, tokens and data are never copied into this repo.**
+
+**What the lab took from it:**
+
+- the calm greeting
+- "needs you" only when pending
+- destination tiles
+- the dark, warm language
+- **the role idea:** each provider in a room carried a *role*, which became the
+  Mapping's meaning
+
+**What the lab relocated:**
+
+- per-room API and Learn tabs → Connect, and the pack
+- Systems' Providers/Variables/Connections/Health → Connect
+- achievements and XP → the pack
+- custom room types → boards (kanban deferred)
+
+### The design lab (the "after")
+
+- **Where:** https://claude.ai/artifact/Tjki6MHSBKXxijd6rNjiXg (private, interactive).
+  The source is kept outside the repo.
+- **What it is built from:** Worlds' real tokens (starfield dark, daylight light) and
+  fonts (Atkinson Hyperlegible Next, Young Serif).
+- **Controls:** the experience pack and the reference-provider scenario.
+
+| Experiment | What it showed |
+|---|---|
+| **A: Home** | Home reads as a personal page, not a dashboard, when it leads with a sentence ("2 things need you. 1 source isn't answering; its card says so"), then Needs you, then cards. A failing provider becomes a dashed card that says what went wrong and when it last worked, and the rest of Home is unaffected. The "View source" link is the only plumbing on Home |
+| **B: Connect** | One request page carries the whole loop: Run → assertions → map fields → concept → Save and pin, with the YAML it writes beside it. Actions show "9 saved requests · 4 bound as actions", which makes *saved request ≠ tool* visible. The UNKNOWN receipt reads plainly and refuses to resend |
+| **C: Memory** | Kept · Later · Records · History · Find work as one deterministic place, and Find needs no model. Enrichment is a single line. Locked Records say "confirm it's you" |
+| **D: Station pack** | The crew voice, HUD eyebrow, card brackets, starfield and stickers appear and vanish with the pack; navigation and layout don't move. The lab used placeholder marks, not the protected art |
+
+**Design observations for Phase 2:**
+
+1. **Lead Home with one sentence of state before any cards.** It does more for calm
+   than any visual treatment.
+2. **A degraded card must say what went wrong and when it last worked, without
+   leaving its slot.** A dashed border plus a word beats any colour cue.
+3. **"View source" on every card is enough plumbing for Home.** More would leak.
+4. **On the phone, long action names and pills need room.** Rows must wrap. The lab hit
+   this, and it is fixed there.
+5. **A pack's moments need a place reserved in the layout.** The crew line sits where a
+   blank space would otherwise be, so turning the pack off never reflows the page.
 
 ## Owner answers and review
 
-**Tap-questions (2026-10-01):**
-
-| Question | Answer |
+| Date | Decision |
 |---|---|
-| Personality layer | **Optional theme/experience pack.** Out of core code; art and canon stay in the repo |
-| Who uses Worlds | **Just Rylee + scoped agent tokens** |
-| Built-in SSO | **Keep OIDC in Worlds** |
-| How to start | **Refine the plan first.** Nothing built yet |
+| 2026-10-01 (taps) | Personality becomes an optional pack; just Rylee + scoped agent tokens; keep OIDC in Worlds; refine before building |
+| 2026-10-01 (review 2) | Mapping as the semantic layer; governed actions with single dispatch; Memory stays core; doc conflicts resolved explicitly; UI-first with lossless YAML; Chat parked; recipes Project Home → Sonarr → Homelab Health; reference provider in Phase 1 |
+| 2026-10-01 (naming) | Standard names in core, not themed ones |
+| 2026-10-01 (review 3) | Skeleton `Home · Connect · Memory · Settings`; raw mechanics live only in Connect; the Station pack is an overlay that never changes structure; quiet means lower emphasis, not harder to read; the Make prototype is a disposable lab |
 
-**Owner review (2026-10-01, revision 2):** keep the direction; add Mapping as the
-semantic layer; governed actions with single dispatch; Memory stays core with a
-deterministic baseline and optional enrichment; journal-gate policy preserved; resolve
-the doc conflicts explicitly; UI-first with lossless YAML round-trip; Chat parked until
-Phase 5 but contracts assistant-safe from Phase 1; recipes Project Home → Sonarr →
-Homelab Health (GitHub fourth); a reference provider in Phase 1.
+## Open owner questions
 
-## Still open
+1. **Approve revision 3 to start Phase 0?** Phase 0 is docs, the ADR, an archive tag and
+   dead-code deletion only.
+2. **Information, not a decision:** where Pollen and Open Dots live is UNKNOWN; neither
+   is referenced in this repo. A pointer would let ADR-0008 cite them properly.
 
-1. ADR-0008 wording, drafted in Phase 0 for your approval.
-2. Exact `concept` naming convention (proposed: `area.thing`, free-form, lower-case).
-3. Where Connect lives on the phone: a nav item, or inside Settings on narrow
-   screens. To be decided with screenshots in Phase 1.
-4. UNKNOWN: where Pollen and Open Dots live; neither is referenced in this repo.
+Everything else (exact Connect sub-tabs, `concept` naming such as `area.thing`, where
+boards appear on the phone, card visuals) is a Claude-owned implementation call inside
+this direction.
