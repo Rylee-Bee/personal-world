@@ -1,5 +1,7 @@
 # Worlds Architecture
 
+> **Superseded in part by [ADR-0008](adr/0008-front-door.md) (2026-10-01):** API-only `/api/lab/*` routes are no longer an off-limits product contract (S8), and the capability registry is retired for front-door providers (S6). Rewrite pending.
+
 > **Status:** Current · **Verified:** 2026-09-29 · **Canonical for:** how Worlds is structured — world model, rooms, API surface, identity/auth, Vault, exports · **Read this if:** you need to know where something lives before changing it.
 
 **In short:** how Worlds is put together: one small durable core (facts, intent, policy, lore, capabilities, journal, packs) surrounded by replaceable providers, plus **rooms** — separate services Worlds renders. It also covers the API surface, identity and auth, the Vault, the daily loop, and export contracts.

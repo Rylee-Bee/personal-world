@@ -754,3 +754,7 @@ dark ink at the same strengths, so rank is still encoded by contrast alone.
 - **API-only routes.** `/api/lab/*`, `/api/exports/story` and
   `/api/reconciler/status` have no screen on purpose. They stay as the
   intentional API-only "Lego box" contract (see `docs/ARCHITECTURE.md`).
+
+## 2026-10-01 — Front-door rebuild approved (ADR-0008)
+
+Owner approved PR #231 (head dbc1218) with refinements in `HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md`: clean rebuild authorized; authority and durable single dispatch before any side effect (including Connect test/run); Worlds asks the owner directly for actions on services Project Home does not govern and keeps bindings and receipts; Memory durable from day one; Chat optional; landmarks `Home · Connect · Memory · Settings`. Recorded as `docs/adr/0008-front-door.md` (accepted, amends ADR-0001), with dated supersession notes on S1–S10 sources. Archive tag `archive/pre-front-door` preserves the last pre-rebuild source (61397e0, which is also the commit production runs).
