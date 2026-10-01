@@ -8,6 +8,10 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
+## 2026-10-01 — Rebuild S1 started (S0 accepted, #231 merged)
+
+Integration branch `rebuild/front-door` exists; slice PRs target it. S1a (contracts, `docs/rebuild/CONTRACTS.md`) is in review; lanes start after it merges. Owner decision: start fresh with Worlds data (no import of the old journal, world.json, stickers or search index; backups remain). Production is unchanged.
+
 ## 2026-10-01 — Front-door rebuild APPROVED; campaign started (S0 in review)
 
 The owner approved the front-door direction ([`PROPOSAL-FRONT-DOOR-2026-10-01.md`](PROPOSAL-FRONT-DOOR-2026-10-01.md)) with refinements ([`HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md`](HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md); [ADR-0008](../docs/adr/0008-front-door.md)). Slice S0 (approval and preservation) is in review: tag `archive/pre-front-door` is at 61397e0, which is also the commit production runs (read from `/healthz` and the image revision label); the private reconstruction capture is done and kept outside this repo. The rebuild lands on `rebuild/front-door`. Production is unchanged. The sections below describe the pre-rebuild app and are superseded where ADR-0008 says so.
