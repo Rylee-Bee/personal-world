@@ -1,5 +1,7 @@
 # Screenshot gallery
 
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 > **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** what Worlds looks like today, screen by screen · **Read this if:** you want to see Worlds without running it, or you are refreshing the pictures after a UI change.
 
 **In short:** Every Worlds screen, at phone (390px) and desktop (1440px)
