@@ -1,5 +1,7 @@
 # Project Worlds — Design Handoff (V0.1)
 
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 > **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/CURRENT.md`) · **Read this if:** you need the V0.1 design baseline and the accessibility/architectural intent behind today's product · **Superseded by:** `.project/CURRENT.md`
 
 **In short:** the V0.1 design-stage handoff — product purpose, information architecture, status vocabulary, accessibility contract, and design constraints as they stood at commit `7c16a61`+. It is provenance now, not current product truth.

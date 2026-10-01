@@ -1,5 +1,7 @@
 # Why the build drifted from Figma — and what to change in future packs
 
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 > **Status:** Historical · **Verified:** 2026-09-26 · **Canonical for:** nothing (see `.project/design/CURRENT.md`) · **Read this if:** you are writing a design/implementation handoff and want the 2026-09-11 postmortem on composition drift. · **Superseded by:** `.project/design/CURRENT.md`.
 
 **In short:** a postmortem of why the built screens drifted from the Figma packs, and the process fixes proposed for later handoffs. Kept for provenance; it describes the pre-2026-09-22 `frontend/` tree, which has since been replaced by `ui/` and the retired server-rendered Station (now a theme package).

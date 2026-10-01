@@ -1,5 +1,7 @@
 # Worlds — Responsive Rules
 
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 > **Status:** Reference · **Verified:** 2026-09-26 · **Canonical for:** how the interface adapts to viewport width and reflow · **Read this if:** you are changing layout, navigation or a screen's narrow-width behaviour.
 
 **In short:** how the live interface adapts from wide desktop down to a phone — one breakpoint at 860px, a single top navigation bar that scrolls rather than widens, safe-area padding, and the reflow rules it must keep. The [Accessibility contract](ACCESSIBILITY_CONTRACT.md) governs every viewport; this page records the implementation that meets it.

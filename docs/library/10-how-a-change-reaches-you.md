@@ -5,6 +5,9 @@ order: 10
 for: everyone
 short: A change goes from a checked pull request, to an image, to the server, to your phone.
 ---
+
+> **Superseded in part by [ADR-0008](../adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 Every change to Worlds starts as a **pull request**: a proposed change that
 checks run against. Tests, the browser checks, security scanning and
 accessibility checks all have to pass.
