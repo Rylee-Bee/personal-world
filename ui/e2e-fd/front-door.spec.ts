@@ -34,7 +34,8 @@ test.describe("axe and overflow", () => {
       await open(page, "#settings");
       await page.getByRole("radiogroup", { name: group }).getByLabel(option).check();
       await page.getByRole("link", { name: "Home" }).first().click();
-      await page.getByRole("heading", { name: "Needs you" }).waitFor();
+      await page.getByRole("heading", { name: "Needs a look" }).waitFor();
+      await expect(page.getByRole("status")).toHaveCount(0);
       expect(await axe(page), `${group} ${option}`).toEqual([]);
       await noHorizontalOverflow(page);
       await shot(page, `home-${option.toLowerCase()}`, info);
@@ -107,13 +108,19 @@ test("Station invariance: same nav, headings, controls and row order on all four
     await page.getByRole("radiogroup", { name: "Experience pack" }).getByLabel("None").check();
     await page.goto(`/${hash}`);
     await page.getByRole("main").waitFor();
-    if (hash === "#home") await page.getByRole("heading", { name: "Needs you" }).waitFor();
+    if (hash === "#home") {
+      await page.getByRole("heading", { name: "Needs a look" }).waitFor();
+      await expect(page.getByRole("status")).toHaveCount(0);
+    }
     const off = await snap();
     await page.goto("/#settings");
     await page.getByRole("radiogroup", { name: "Experience pack" }).getByLabel("Station").check();
     await page.goto(`/${hash}`);
     await page.getByRole("main").waitFor();
-    if (hash === "#home") await page.getByRole("heading", { name: "Needs you" }).waitFor();
+    if (hash === "#home") {
+      await page.getByRole("heading", { name: "Needs a look" }).waitFor();
+      await expect(page.getByRole("status")).toHaveCount(0);
+    }
     const on = await snap();
     expect(on, hash).toEqual(off);
   }

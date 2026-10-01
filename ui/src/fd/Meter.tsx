@@ -15,7 +15,7 @@ function dayEvents(items: (number | string | boolean)[]): { at: number; clock: s
   const out: { at: number; clock: string; label: string }[] = [];
   for (const it of items) {
     const m = typeof it === "string" ? it.match(/^(\d{1,2}):(\d{2})\s*(.*)$/) : null;
-    if (m) out.push({ at: clamp01((Number(m[1]) * 60 + Number(m[2])) / 1440), clock: `${m[1].padStart(2, "0")}:${m[2]}`, label: m[3] });
+    if (m && Number(m[1]) <= 23 && Number(m[2]) <= 59) out.push({ at: clamp01((Number(m[1]) * 60 + Number(m[2])) / 1440), clock: `${m[1].padStart(2, "0")}:${m[2]}`, label: m[3] });
   }
   return out;
 }
@@ -51,7 +51,7 @@ function body(m: MeterData): React.JSX.Element | null {
       return (
         <span className="fd-bars">
           {nums.map((n, i) => (
-            <i key={i} style={{ height: `${Math.max(8, (n / max) * 100)}%` }} />
+            <i key={i} style={{ height: `${(n / max) * 100}%` }} />
           ))}
         </span>
       );
@@ -61,7 +61,7 @@ function body(m: MeterData): React.JSX.Element | null {
       return (
         <span className="fd-dots">
           {m.items.map((x, i) => (
-            <i key={i} className={x ? "on" : ""} />
+            <i key={i} className={x === true || (typeof x === "number" && x > 0) ? "on" : ""} />
           ))}
         </span>
       );

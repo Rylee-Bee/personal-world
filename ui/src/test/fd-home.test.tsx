@@ -166,7 +166,7 @@ describe("B11 a failed refetch keeps the data, marked stale", () => {
     server.use(http.get("/api/cards/disk", () => HttpResponse.json({}, { status: 500 })));
     await client.refetchQueries({ queryKey: ["fd", "card", "disk"] });
     await waitFor(() => expect(within(section("Needs a look")).getByText("Disk")).toBeInTheDocument());
-    expect(within(section("Needs a look")).getByRole("button", { name: /Disk/ }).closest("li")).toHaveTextContent(/Last good \d\d:\d\d/);
+    expect(within(section("Needs a look")).getByRole("button", { name: /Disk/ }).closest("li")).toHaveTextContent("Last good 09:30");
     expect(screen.getByRole("button", { name: /^Disk: .*Show details$/ })).toBeInTheDocument();
   });
 });

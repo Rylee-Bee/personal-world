@@ -31,6 +31,22 @@ describe("Meter", () => {
     rerender(<Meter meter={{ type: "progress", max: 1, text_equivalent: "x" }} frozen={false} />);
     expect(container).toBeEmptyDOMElement();
   });
+  it("drops day items with an impossible time", () => {
+    render(<Meter meter={{ type: "day", items: ["25:00 Never", "10:75 Nope", "09:00 Walk"], text_equivalent: "day" }} frozen={false} />);
+    expect(screen.getByText("Walk")).toBeInTheDocument();
+    expect(screen.queryByText("Never")).not.toBeInTheDocument();
+    expect(screen.queryByText("Nope")).not.toBeInTheDocument();
+  });
+  it("a real 0 bar draws as 0, not a minimum", () => {
+    const { container } = render(<Meter meter={{ type: "bars", items: [0, 4], text_equivalent: "bars" }} frozen={false} />);
+    const bars = container.querySelectorAll<HTMLElement>(".fd-bars i");
+    expect(bars[0].style.height).toBe("0%");
+    expect(bars[1].style.height).toBe("100%");
+  });
+  it("dots are on only for true or a number above 0", () => {
+    const { container } = render(<Meter meter={{ type: "dots", items: [true, 2, false, 0, "false", "0"], text_equivalent: "dots" }} frozen={false} />);
+    expect(Array.from(container.querySelectorAll(".fd-dots i")).map((e) => e.classList.contains("on"))).toEqual([true, true, false, false, false, false]);
+  });
   it("marks a frozen meter", () => {
     render(<Meter meter={cards.downloads.meter} frozen />);
     expect(screen.getByRole("img")).toHaveAttribute("data-frozen", "true");

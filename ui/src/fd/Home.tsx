@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FocusEvent, type ReactNode } from "react";
 import { DEFAULT_TIMEOUT_MS, useHomeData, type CardFailure } from "./api";
 import { usePrefs } from "./prefs-core";
-import { briefing, buildSections, SECTION_TITLE, type Row as HomeRow, type Sections } from "./home-model";
+import { briefing, buildSections, greeting, SECTION_TITLE, type Row as HomeRow, type Sections } from "./home-model";
 import { Row } from "./Row";
 import { safeHref } from "./safe-href";
 import { Strip, type StripEntry } from "./Strip";
@@ -14,12 +14,6 @@ export interface HomeProps {
   timeoutMs?: number;
   /** For tests: the clock the greeting reads. */
   now?: Date;
-}
-
-export function greeting(now: Date, name?: string): string {
-  const h = now.getHours();
-  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-  return name ? `${part}, ${name}` : part;
 }
 
 /**
@@ -117,30 +111,36 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   const { prefs } = usePrefs();
   const [openId, setOpenId] = useState<string | null>(null);
   const [quietOpen, setQuietOpen] = useState(false);
-  const [revealId, setRevealId] = useState<string | null>(null);
-  const [, bump] = useState(0);
+  const [revealTick, setRevealTick] = useState(0);
+  const revealRef = useRef<string | null>(null);
+  // While focus is inside Home, show the snapshot taken when focus arrived, so nothing moves under the user.
+  const [focusIn, setFocusIn] = useState(false);
+  const [heldSnap, setHeldSnap] = useState<Snapshot | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const live = useMemo(() => snapshot(board, cards, failures, pending, needsYou), [board, cards, failures, pending, needsYou]);
-  const held = useRef<Snapshot>(live);
-  const active = typeof document !== "undefined" ? document.activeElement : null;
-  const focusInside = !!rootRef.current && active instanceof HTMLElement && rootRef.current.contains(active) && !!active.closest(".fd-home-body");
-  if (!focusInside || !held.current.sections) held.current = live;
-  const snap = held.current;
+  const snap = focusIn && heldSnap?.sections ? heldSnap : live;
+  const onFocus = () => {
+    if (!focusIn) {
+      setHeldSnap(live);
+      setFocusIn(true);
+    }
+  };
   const onBlur = (e: FocusEvent) => {
-    if (!(e.relatedTarget instanceof Node && rootRef.current?.contains(e.relatedTarget))) bump((n) => n + 1);
+    if (!(e.relatedTarget instanceof Node && rootRef.current?.contains(e.relatedTarget))) setFocusIn(false);
   };
 
   // A strip tap opens the row, unfolds Calm's quiet line if needed, scrolls to it and moves focus to it.
   useEffect(() => {
-    if (!revealId) return;
-    const el = document.getElementById(`fd-row-${revealId}`);
+    const id = revealRef.current;
+    if (!id) return;
+    const el = document.getElementById(`fd-row-${id}`);
     if (!el) return;
+    revealRef.current = null;
     const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.scrollIntoView?.({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
     el.querySelector<HTMLElement>("button.fd-row-name")?.focus({ preventScroll: true });
-    setRevealId(null);
-  }, [revealId, quietOpen, openId]);
+  }, [revealTick, quietOpen, openId]);
 
   const sections = snap.sections;
   const { words, density } = prefs;
@@ -149,7 +149,8 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   const reveal = (cardId: string) => {
     setOpenId(cardId);
     if (sections?.quietly_working.some((r) => r.item.card === cardId)) setQuietOpen(true);
-    setRevealId(cardId);
+    revealRef.current = cardId;
+    setRevealTick((n) => n + 1);
   };
   const toggle = (cardId: string) => setOpenId((cur) => (cur === cardId ? null : cardId));
 
@@ -176,7 +177,7 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   );
 
   return (
-    <div className="fd-home" ref={rootRef} onBlur={onBlur}>
+    <div className="fd-home" ref={rootRef} onFocus={onFocus} onBlur={onBlur}>
       <header className="fd-home-head">
         <h1 className="fd-home-title">{greeting(now ?? new Date(), prefs.name)}</h1>
         {ledeText && <p className="fd-home-briefing">{ledeText}</p>}

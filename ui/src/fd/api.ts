@@ -72,14 +72,13 @@ export function useHomeData(timeoutMs: number = DEFAULT_TIMEOUT_MS): HomeData {
   const items = boardQ.data?.items ?? NO_ITEMS;
 
   const combine = useCallback(
-    (results: { data?: CardEnvelope; isError: boolean; isPending: boolean; error: unknown; dataUpdatedAt: number }[]): CardsResult => {
+    (results: { data?: CardEnvelope; isError: boolean; isPending: boolean; error: unknown }[]): CardsResult => {
       const out: CardsResult = { cards: {}, failures: {}, pending: [] };
       results.forEach((q, n) => {
         const id = items[n].card;
         if (q.data) {
-          out.cards[id] = q.isError
-            ? { ...q.data, freshness: "stale", last_good_at: new Date(q.dataUpdatedAt).toISOString() }
-            : q.data;
+          // A failed refetch keeps the old envelope, marked stale. Its own last_good_at is never overwritten.
+          out.cards[id] = q.isError ? { ...q.data, freshness: "stale" } : q.data;
         } else if (q.isError) {
           const e = q.error instanceof ApiError ? q.error : new ApiError("connection");
           out.failures[id] = { errorClass: e.errorClass, status: e.status };

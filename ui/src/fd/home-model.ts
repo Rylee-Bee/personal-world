@@ -62,3 +62,9 @@ export function briefing(sections: Sections): string {
   parts.push(parts.length === 0 ? "all quiet" : "rest quiet");
   return parts.join(" · ");
 }
+
+export function greeting(now: Date, name?: string): string {
+  const h = now.getHours();
+  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  return name ? `${part}, ${name}` : part;
+}
