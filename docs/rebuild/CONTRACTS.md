@@ -1,6 +1,6 @@
 # Rebuild contracts C1–C5
 
-> **Status:** Proposed for orchestrator approval · **Date:** 2026-10-01 · **Canonical for:** the five contracts the front-door rebuild lanes build against · **Read this if:** you are working on any `rebuild/*` lane. Authority: [ADR-0008](../adr/0008-front-door.md). Baseline: `.project/PROPOSAL-FRONT-DOOR-2026-10-01.md`.
+> **Status:** Accepted 2026-10-01 by orchestrator · **Date:** 2026-10-01 · **Canonical for:** the five contracts the front-door rebuild lanes build against · **Read this if:** you are working on any `rebuild/*` lane. Authority: [ADR-0008](../adr/0008-front-door.md). Baseline: `.project/PROPOSAL-FRONT-DOOR-2026-10-01.md`.
 
 **Stack (orchestrator decision):** Python 3 + FastAPI + uv; React + Vite + TypeScript + react-query. Package `personal_world`, env prefix `PW_`, image name and `/healthz` `commit` are kept. On `rebuild/front-door`, obsolete modules are deleted, not adapted.
 
@@ -32,6 +32,14 @@ One per card fetch. The API returns only mapped data.
 - Missing is not 0. An empty list is not unavailable.
 - Evidence is redacted: no secrets, no upstream body beyond 2 KB, never the Authorization header.
 - `error_class`: `timeout | connection | http_4xx | http_5xx | malformed | redirect_refused | too_large | confinement_denied | auth_failed`.
+
+### C2.1 Values and states (accepted 2026-10-01)
+
+- **Field key** = slug(label): lowercase, non-alphanumerics become `-`, trimmed; a collision gets `-2`, `-3`.
+- A **missing** value is `{"text":"unknown"}` with no `raw` key (never 0). An **empty list** is `{"text":"none","raw":[]}` and is healthy, not unavailable.
+- **Failure mapping** (`error_class` → `source_state`): `timeout`, `connection`, `http_5xx`, `redirect_refused`, `too_large`, `confinement_denied` → `unavailable`; `auth_failed` (HTTP 401/403) → `needs_attention`; `http_4xx`, `malformed` → `degraded`. Missing config → `not_configured`.
+- After a failure the card keeps last-good values with `freshness: stale` and `last_good_at`; with none, every field reads `unknown`.
+- **Config PUT** needs the real etag in `If-Match` (update) or `If-None-Match: *` (create). `If-Match: *` is refused with 428.
 
 ## C3 Action, authority and receipt lifecycle
 
