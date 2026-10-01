@@ -41,6 +41,11 @@ One per card fetch. The API returns only mapped data.
 - After a failure the card keeps last-good values with `freshness: stale` and `last_good_at`; with none, every field reads `unknown`.
 - **Config PUT** needs the real etag in `If-Match` (update) or `If-None-Match: *` (create). `If-Match: *` is refused with 428.
 
+### C1.1 / C2.2 Meter (accepted 2026-10-01)
+
+- **C1 card `meter`** names its data sources: `{type, value?, max?, count?, filled?, items?}`. `value` is a field key or a `$` path; `max`, `count`, `filled` are a number, a field key or a `$` path; `items` is a `$` path to a list. A `progress` meter needs `value`; `segments` needs `count` and `filled`. Unknown keys are rejected; paths are validated at save time.
+- **C2 envelope `meter`** is `{type, text_equivalent, value?, max?, count?, filled?, items?}` with the resolved numbers. A source that cannot be resolved to a finite number (missing, not a number, a boolean) is **omitted**, never 0; an explicit 0 is kept. `items` keeps only numbers, booleans and strings (strings cut at 80 characters), at most 200; an existing empty list is `[]`, a missing one is omitted. When the card is stale the numbers come from last-good data, like `values`. The UI draws nothing for an omitted number.
+
 ## C3 Action, authority and receipt lifecycle
 
 SQLite at `$PW_DATA_DIR/worlds.db`, WAL, `BEGIN IMMEDIATE`.

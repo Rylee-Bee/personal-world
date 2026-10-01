@@ -194,9 +194,63 @@ class StatusMap(BaseModel):
     needs_attention: list[Any] = Field(default_factory=list)
 
 
+_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _check_ref(v: Any, *, allow_number: bool) -> Any:
+    """A meter source: a number, a JSONPath ($...), or the key of one of the card's fields."""
+    if v is None:
+        return v
+    if isinstance(v, bool):
+        raise ValueError("meter source must be a number, a $ path or a field key")
+    if isinstance(v, (int, float)):
+        if not allow_number:
+            raise ValueError("this meter source cannot be a literal number")
+        return v
+    if isinstance(v, str):
+        if v.startswith("$"):
+            _check_path(v)
+            return v
+        if _KEY_RE.match(v):
+            return v
+    raise ValueError("meter source must be a number, a $ path or a field key")
+
+
 class Meter(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    """Which card data feeds the meter (C1). The envelope carries the resolved numbers (C2)."""
+
+    model_config = ConfigDict(extra="forbid")
     type: Literal["segments", "bars", "progress", "marks", "dots", "day", "shelf"]
+    value: Any = None      # progress: field key or path
+    max: Any = None        # progress: number, field key or path
+    count: Any = None      # segments: number, field key or path
+    filled: Any = None     # segments: number, field key or path
+    items: str | None = None  # bars/marks/dots/day/shelf: path to a list
+
+    @field_validator("value")
+    @classmethod
+    def _v(cls, v: Any) -> Any:
+        return _check_ref(v, allow_number=False)
+
+    @field_validator("max", "count", "filled")
+    @classmethod
+    def _n(cls, v: Any) -> Any:
+        return _check_ref(v, allow_number=True)
+
+    @field_validator("items")
+    @classmethod
+    def _i(cls, v: str | None) -> str | None:
+        if v is not None and not v.startswith("$"):
+            raise ValueError("meter items must be a $ path to a list")
+        return _check_path(v)
+
+    @model_validator(mode="after")
+    def _shape(self) -> "Meter":
+        if self.type == "progress" and self.value is None:
+            raise ValueError("a progress meter needs value")
+        if self.type == "segments" and (self.count is None or self.filled is None):
+            raise ValueError("a segments meter needs count and filled")
+        return self
 
 
 class Card(_Strict):

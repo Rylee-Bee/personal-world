@@ -122,7 +122,7 @@ def test_unknown_card_returns_none(store, send):
 
 def test_meter_text_equivalent_and_no_meter_is_none(store, send):
     add_request(store, "status", "/status", ttl_s=0)
-    add_card(store, request="ref.status", fields=fields(), meter={"type": "progress"})
+    add_card(store, request="ref.status", fields=fields(), meter={"type": "progress", "value": "cpu-load", "max": 1})
     send.responses["/status"] = ok(STATUS)
     e = svc(store, send).build("c1")
     assert e["meter"]["type"] == "progress" and "Uptime: 1h 2m" in e["meter"]["text_equivalent"]
@@ -157,7 +157,7 @@ def test_evidence_is_redacted_and_has_no_body(store, send):
 
 def test_home_board_defs_are_display_only(store, send):
     add_request(store, "status", "/status")
-    add_card(store, request="ref.status", fields=fields(), meter={"type": "progress"}, icon="cpu", group="machine")
+    add_card(store, request="ref.status", fields=fields(), meter={"type": "progress", "value": "cpu-load", "max": 1}, icon="cpu", group="machine")
     store.save("board", Board(id="home", title="Home", home=True, items=[{"card": "c1", "size": "L"}]))
     d = home_board_defs(store)
     assert d["id"] == "home" and d["title"] == "Home"
