@@ -69,6 +69,7 @@ export interface NeedsYouEntry {
 
 export type Words = "minimal" | "short" | "full";
 export type Density = "calm" | "standard" | "detailed";
+export type TextSize = "standard" | "large" | "larger";
 export type Pack = "none" | "station";
 export type Theme = "starfield" | "daylight" | "plain";
 

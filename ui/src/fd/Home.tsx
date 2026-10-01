@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState, type FocusEvent, type ReactNode }
 import { DEFAULT_TIMEOUT_MS, useHomeData, type CardFailure } from "./api";
 import { usePrefs } from "./prefs-core";
 import { briefing, buildSections, greeting, SECTION_TITLE, type Row as HomeRow, type Sections } from "./home-model";
+import { applyEdits, loadEdits, move, saveEdits, setSize, setVisible, type Edits } from "./edit-model";
 import { Row } from "./Row";
 import { safeHref } from "./safe-href";
 import { Strip, type StripEntry } from "./Strip";
-import type { Board, BoardItem, CardEnvelope, NeedsYouEntry } from "./types";
+import type { Board, BoardItem, CardEnvelope, NeedsYouEntry, Size } from "./types";
 import "./fd.css";
 
 export interface HomeProps {
@@ -100,6 +101,42 @@ function NeedsYouList({ entries }: { entries: NeedsYouEntry[] }) {
   );
 }
 
+interface Raw {
+  board: Board | undefined;
+  cards: Record<string, CardEnvelope>;
+  failures: Record<string, CardFailure>;
+  pending: string[];
+  needsYou: NeedsYouEntry[];
+}
+
+type EditAction = "earlier" | "later" | "hide" | "size-S" | "size-M" | "size-L";
+
+/** The arrange controls for one row: keyboard operable, 44px targets, every name says which row. */
+function EditControls({ item, index, count, onAction }: { item: BoardItem; index: number; count: number; onAction: (a: EditAction) => void }) {
+  const t = item.title;
+  const key = (a: EditAction) => `${item.card}:${a}`;
+  return (
+    <div className="fd-row-edit" role="group" aria-label={`Arrange ${t}`}>
+      <button type="button" className="fd-btn fd-btn--quiet" data-edit={key("earlier")} disabled={index === 0} aria-label={`Move ${t} earlier`} onClick={() => onAction("earlier")}>
+        Earlier
+      </button>
+      <button type="button" className="fd-btn fd-btn--quiet" data-edit={key("later")} disabled={index === count - 1} aria-label={`Move ${t} later`} onClick={() => onAction("later")}>
+        Later
+      </button>
+      <button type="button" className="fd-btn fd-btn--quiet" data-edit={key("hide")} aria-label={`Hide ${t}`} onClick={() => onAction("hide")}>
+        Hide
+      </button>
+      <span className="fd-row-edit-sizes" role="group" aria-label={`Size of ${t}`}>
+        {(["S", "M", "L"] as Size[]).map((s) => (
+          <button key={s} type="button" className="fd-btn fd-btn--quiet" data-edit={key(`size-${s}` as EditAction)} aria-pressed={item.size === s} aria-label={`${t} size ${s}`} onClick={() => onAction(`size-${s}` as EditAction)}>
+            {s}
+          </button>
+        ))}
+      </span>
+    </div>
+  );
+}
+
 /**
  * The front door. Greeting and briefing first, the whole-world strip, then the finite Needs you and
  * the row sections. The board, the needs-you list and every card load independently. Pick up is omitted
@@ -113,16 +150,26 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   const [quietOpen, setQuietOpen] = useState(false);
   const [revealTick, setRevealTick] = useState(0);
   const revealRef = useRef<string | null>(null);
-  // While focus is inside Home, show the snapshot taken when focus arrived, so nothing moves under the user.
+  // While focus is inside Home, served data holds the snapshot taken when focus arrived, so nothing moves
+  // under the user. The owner's own arrangement (edits) always applies at once.
   const [focusIn, setFocusIn] = useState(false);
-  const [heldSnap, setHeldSnap] = useState<Snapshot | null>(null);
+  const [heldRaw, setHeldRaw] = useState<Raw | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [edits, setEdits] = useState<Edits>(loadEdits);
+  const [past, setPast] = useState<{ edits: Edits; note: string }[]>([]);
+  const [note, setNote] = useState("");
+  const focusRef = useRef<string | null>(null);
+  const [focusTick, setFocusTick] = useState(0);
 
-  const live = useMemo(() => snapshot(board, cards, failures, pending, needsYou), [board, cards, failures, pending, needsYou]);
-  const snap = focusIn && heldSnap?.sections ? heldSnap : live;
+  const liveRaw = useMemo<Raw>(() => ({ board, cards, failures, pending, needsYou }), [board, cards, failures, pending, needsYou]);
+  const raw = focusIn && heldRaw?.board ? heldRaw : liveRaw;
+  const arranged = useMemo(() => (raw.board ? applyEdits(raw.board, edits) : undefined), [raw.board, edits]);
+  const snap = useMemo(() => snapshot(arranged, raw.cards, raw.failures, raw.pending, raw.needsYou), [arranged, raw]);
   const onFocus = () => {
     if (!focusIn) {
-      setHeldSnap(live);
+      setHeldRaw(liveRaw);
       setFocusIn(true);
     }
   };
@@ -141,6 +188,38 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
     el.scrollIntoView?.({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
     el.querySelector<HTMLElement>("button.fd-row-name")?.focus({ preventScroll: true });
   }, [revealTick, quietOpen, openId]);
+
+  // After an arrange action the moved control keeps focus (its element is re-inserted by the reorder).
+  useEffect(() => {
+    const want = focusRef.current;
+    if (!want) return;
+    focusRef.current = null;
+    const q = (k: string) => rootRef.current?.querySelector<HTMLElement>(`[data-edit="${k}"]`);
+    const [card, action] = want.split(":");
+    const el = q(want);
+    const fallback = action === "earlier" ? q(`${card}:later`) : action === "later" ? q(`${card}:earlier`) : null;
+    const target = el && !(el as HTMLButtonElement).disabled ? el : fallback ?? rootRef.current?.querySelector<HTMLElement>("[data-edit-add]");
+    target?.focus();
+  }, [focusTick]);
+
+  const change = (next: Edits, message: string, focusKey: string) => {
+    setPast((p) => [...p, { edits, note: message }]);
+    setEdits(next);
+    saveEdits(next);
+    setNote(message);
+    focusRef.current = focusKey;
+    setFocusTick((n) => n + 1);
+  };
+  const undo = () => {
+    const last = past[past.length - 1];
+    if (!last) return;
+    setPast((p) => p.slice(0, -1));
+    setEdits(last.edits);
+    saveEdits(last.edits);
+    setNote(`Undid: ${last.note.toLowerCase()}`);
+    focusRef.current = "undo";
+    setFocusTick((n) => n + 1);
+  };
 
   const sections = snap.sections;
   const { words, density } = prefs;
@@ -162,7 +241,18 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
       : "";
   const ledeText = failedCheck ? ["Couldn't check what needs you", base].filter(Boolean).join(" · ") : base;
 
-  const renderRow = (tier: 1 | 2 | 3) => (row: HomeRow) => (
+  const act = (row: HomeRow, list: HomeRow[], a: EditAction) => {
+    if (!arranged) return;
+    const { card, title } = row.item;
+    const key = `${card}:${a}`;
+    if (a === "earlier" || a === "later") {
+      const next = move(arranged, edits, card, a === "earlier" ? -1 : 1, list.map((r) => r.item.card));
+      if (next !== edits) change(next, `Moved ${title} ${a}`, key);
+    } else if (a === "hide") change(setVisible(edits, card, false), `Hid ${title}`, key);
+    else change(setSize(edits, card, a.slice(5) as Size), `Set ${title} to size ${a.slice(5)}`, key);
+  };
+
+  const renderRow = (tier: 1 | 2 | 3, list: HomeRow[]) => (row: HomeRow, index: number) => (
     <Row
       key={row.item.card}
       item={row.item}
@@ -173,8 +263,10 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
       expanded={openId === row.item.card}
       onToggle={() => toggle(row.item.card)}
       tier={tier}
+      controls={editing ? <EditControls item={row.item} index={index} count={list.length} onAction={(a) => act(row, list, a)} /> : undefined}
     />
   );
+  const hiddenItems = arranged?.items.filter((i) => i.hidden) ?? [];
 
   return (
     <div className="fd-home" ref={rootRef} onFocus={onFocus} onBlur={onBlur}>
@@ -208,10 +300,38 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
             </p>
           )}
           <div className="fd-home-editrow">
-            <button type="button" className="fd-btn fd-btn--quiet fd-home-edit">
-              Edit Home
+            <button type="button" className="fd-btn fd-btn--quiet fd-home-edit" aria-pressed={editing} onClick={() => { setEditing((e) => !e); setAddOpen(false); }}>
+              {editing ? "Done" : "Edit Home"}
             </button>
+            {editing && (
+              <>
+                <button type="button" className="fd-btn fd-btn--quiet" data-edit-add="" aria-expanded={addOpen} onClick={() => setAddOpen((o) => !o)}>
+                  + Add to Home
+                </button>
+                <button type="button" className="fd-btn fd-btn--quiet" data-edit="undo" disabled={past.length === 0} onClick={undo}>
+                  Undo
+                </button>
+              </>
+            )}
           </div>
+          {editing && addOpen && (
+            <div className="fd-home-add" role="group" aria-label="Add to Home">
+              {hiddenItems.length === 0 ? (
+                <p className="fd-home-empty">Everything is on Home.</p>
+              ) : (
+                <ul className="fd-home-add-list">
+                  {hiddenItems.map((i) => (
+                    <li key={i.card}>
+                      <button type="button" className="fd-btn" onClick={() => change(setVisible(edits, i.card, true), `Added ${i.title} to Home`, `${i.card}:size-${i.size}`)}>
+                        {`Add ${i.title} to Home`}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          <p className="fd-home-editnote" role="status">{note}</p>
         </>
       )}
 
@@ -243,13 +363,13 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
               {sections.needs_look.length === 0 ? (
                 <p className="fd-home-empty">Nothing needs a look. Everything is answering.</p>
               ) : (
-                <ul className="fd-home-rows">{sections.needs_look.map(renderRow(1))}</ul>
+                <ul className="fd-home-rows">{sections.needs_look.map(renderRow(1, sections.needs_look))}</ul>
               )}
             </Section>
 
             {sections.your_life.length > 0 && (
               <Section title={SECTION_TITLE.your_life}>
-                <ul className="fd-home-rows">{sections.your_life.map(renderRow(2))}</ul>
+                <ul className="fd-home-rows">{sections.your_life.map(renderRow(2, sections.your_life))}</ul>
               </Section>
             )}
 
@@ -263,7 +383,7 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
                     </button>
                   </p>
                 ) : (
-                  <ul className="fd-home-rows">{sections.quietly_working.map(renderRow(3))}</ul>
+                  <ul className="fd-home-rows">{sections.quietly_working.map(renderRow(3, sections.quietly_working))}</ul>
                 )}
               </Section>
             )}

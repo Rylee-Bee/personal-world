@@ -38,7 +38,8 @@ export function FdApp() {
     root.dataset.theme = prefs.theme;
     root.dataset.density = prefs.density;
     root.dataset.pack = prefs.pack;
-  }, [prefs.theme, prefs.density, prefs.pack]);
+    root.dataset.text = prefs.text;
+  }, [prefs.theme, prefs.density, prefs.pack, prefs.text]);
 
   const navigate = useCallback((l: Landmark) => {
     window.location.hash = hashFor(l);

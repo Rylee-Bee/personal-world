@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { STATE_SHAPE, type BoardItem, type CardEnvelope, type Density, type Words } from "./types";
 import { Meter } from "./Meter";
 import "./fd.css";
@@ -13,6 +14,8 @@ export interface RowProps {
   onToggle: () => void;
   /** Visual weight: 1 needs a look (loud), 2 your life, 3 quietly working. */
   tier?: 1 | 2 | 3;
+  /** Edit Home controls, rendered at the foot of the row. */
+  controls?: ReactNode;
 }
 
 /** Decorative glyph per source icon. A plain placeholder is fine; never focusable. */
@@ -82,10 +85,12 @@ function evidenceRows(card: CardEnvelope): { key: string; value: string | number
  * (kept together), state shape + word and freshness. Expanding renders the drill-in in place.
  * The whole row is the click target (the button stretches over it); the drill-in sits above.
  */
-export function Row({ item, card, words, density, timeZone, expanded, onToggle, tier = 2 }: RowProps) {
+export function Row({ item, card, words, density, timeZone, expanded, onToggle, tier = 2, controls }: RowProps) {
   const { text: valueText, present, unit } = readPrimary(item, card);
   const state = STATE_SHAPE[card.source_state];
   const frozen = card.freshness === "stale" || card.source_state === "unavailable" || card.source_state === "stale";
+  // Quietly working rows carry no meter unless the owner chose Detailed.
+  const showMeter = !!card.meter && (tier !== 3 || density === "detailed");
   const problem = card.source_state !== "healthy" || card.freshness === "stale";
 
   // A row with a problem always says when it was last good. Healthy rows say it only in Full.
@@ -114,7 +119,7 @@ export function Row({ item, card, words, density, timeZone, expanded, onToggle, 
   const evidence = evidenceRows(card);
   const regionLabel = `${item.title} details`;
   const label = (key: string) => item.fields.find((f) => f.key === key)?.label ?? key;
-  const cls = ["fd-row", `fd-row--t${tier}`, item.size === "S" ? "fd-row--slim" : "", card.source_state === "unavailable" ? "is-bad" : "", card.source_state === "degraded" ? "is-degraded" : "", expanded ? "is-open" : ""]
+  const cls = ["fd-row", `fd-row--t${tier}`, item.size === "S" ? "fd-row--slim" : item.size === "L" ? "fd-row--l" : "", showMeter ? "" : "fd-row--nometer", card.source_state === "unavailable" ? "is-bad" : "", card.source_state === "degraded" ? "is-degraded" : "", expanded ? "is-open" : ""]
     .filter(Boolean)
     .join(" ");
 
@@ -127,7 +132,11 @@ export function Row({ item, card, words, density, timeZone, expanded, onToggle, 
         <span className="fd-row-title">{item.title}</span>
         <Meaning words={words} card={card} title={item.title} />
       </button>
-      <span className="fd-row-meter">{card.meter && <Meter meter={card.meter} frozen={frozen} />}</span>
+      {showMeter && (
+        <span className="fd-row-meter">
+          <Meter meter={card.meter} frozen={frozen} />
+        </span>
+      )}
       <span className="fd-row-val">
         <span className="fd-row-value">
           {present ? (
@@ -180,6 +189,7 @@ export function Row({ item, card, words, density, timeZone, expanded, onToggle, 
           </a>
         </section>
       )}
+      {controls}
     </li>
   );
 }

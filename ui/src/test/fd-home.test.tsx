@@ -12,7 +12,7 @@ import type { Prefs } from "../fd/prefs-core";
 
 const server = setupServer(...handlers);
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => { cleanup(); server.resetHandlers(); });
+afterEach(() => { cleanup(); server.resetHandlers(); window.localStorage.clear(); });
 afterAll(() => server.close());
 
 function renderHome(opts: { timeoutMs?: number; prefs?: Partial<Prefs> } = {}) {
@@ -25,7 +25,7 @@ function renderHome(opts: { timeoutMs?: number; prefs?: Partial<Prefs> } = {}) {
   return { client, ...utils };
 }
 /** Everything loaded: no "Checking" or "Loading" status line left. */
-const settled = () => waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument(), { timeout: 3000 });
+const settled = () => waitFor(() => expect(screen.queryAllByRole("status").filter((e) => e.textContent?.trim())).toHaveLength(0), { timeout: 3000 });
 const section = (name: string) => screen.getByRole("heading", { name }).closest("section")!;
 
 describe("Home", () => {
@@ -111,7 +111,7 @@ describe("B1 Home does not wait on every card", () => {
     renderHome({ timeoutMs: 300 });
     await screen.findByRole("button", { name: "Disk: Healthy. Show details" });
     expect(screen.getByRole("button", { name: "Downloads: Loading" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent(/Checking 1 source/);
+    expect(screen.getByText(/Checking 1 source/)).toBeInTheDocument();
     expect(within(section("Needs a look")).queryByText("Downloads")).not.toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Downloads: Unknown. Show details" }, { timeout: 3000 })).toBeInTheDocument();
     await userEvent.click(within(section("Needs a look")).getByRole("button", { name: /Downloads/ }));
@@ -168,5 +168,84 @@ describe("B11 a failed refetch keeps the data, marked stale", () => {
     await waitFor(() => expect(within(section("Needs a look")).getByText("Disk")).toBeInTheDocument());
     expect(within(section("Needs a look")).getByRole("button", { name: /Disk/ }).closest("li")).toHaveTextContent("Last good 09:30");
     expect(screen.getByRole("button", { name: /^Disk: .*Show details$/ })).toBeInTheDocument();
+  });
+});
+
+describe("Edit Home", () => {
+  const order = (name: string) => within(section(name)).getAllByRole("listitem").map((li) => li.querySelector(".fd-row-title")?.textContent);
+
+  it("is explicit and secondary: nothing to arrange until Edit Home is pressed", async () => {
+    renderHome();
+    await settled();
+    expect(screen.queryByRole("button", { name: /^Move .* earlier$/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    expect(screen.getByRole("button", { name: "Done" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "+ Add to Home" })).toBeInTheDocument();
+  });
+  it("moves a row earlier and later, keeps focus on the control, and the ends are disabled", async () => {
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    expect(screen.getByRole("button", { name: "Move Weather earlier" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Move Reading earlier" }));
+    expect(order("Your life")).toEqual(["Reading", "Weather", "Later"]);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Move Reading earlier" })).toBeDisabled());
+    expect(screen.getByRole("button", { name: "Move Reading later" })).toHaveFocus();
+    expect(screen.getByText("Moved Reading earlier")).toBeInTheDocument();
+  });
+  it("hides a row, offers it under + Add to Home, and Undo restores it", async () => {
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await userEvent.click(screen.getByRole("button", { name: "Hide Later" }));
+    expect(order("Your life")).toEqual(["Weather", "Reading"]);
+    expect(screen.queryByRole("button", { name: "Later: Healthy. Show details" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "+ Add to Home" }));
+    expect(screen.getByRole("button", { name: "Add Later to Home" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(order("Your life")).toEqual(["Weather", "Reading", "Later"]);
+    expect(screen.getByText("Undid: hid later")).toBeInTheDocument();
+  });
+  it("adds a hidden row back with Add to Home", async () => {
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await userEvent.click(screen.getByRole("button", { name: "Hide Later" }));
+    await userEvent.click(screen.getByRole("button", { name: "+ Add to Home" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add Later to Home" }));
+    expect(order("Your life")).toEqual(["Weather", "Reading", "Later"]);
+  });
+  it("sizes: S is slim, L is large, M is the default; the choice is pressed", async () => {
+    renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    const li = () => document.getElementById("fd-row-weather")!;
+    await userEvent.click(screen.getByRole("button", { name: "Weather size L" }));
+    expect(li()).toHaveClass("fd-row--l");
+    expect(screen.getByRole("button", { name: "Weather size L" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(screen.getByRole("button", { name: "Weather size S" }));
+    expect(li()).toHaveClass("fd-row--slim");
+  });
+  it("the arrangement is remembered after a reload", async () => {
+    const first = renderHome();
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await userEvent.click(screen.getByRole("button", { name: "Move Reading earlier" }));
+    first.unmount();
+    renderHome();
+    await settled();
+    expect(order("Your life")).toEqual(["Reading", "Weather", "Later"]);
+  });
+});
+
+describe("Quietly working is slim", () => {
+  it("has no meters unless Density is Detailed", async () => {
+    renderHome();
+    await settled();
+    expect(within(section("Quietly working")).queryByRole("img")).not.toBeInTheDocument();
+    cleanup();
+    renderHome({ prefs: { density: "detailed" } });
+    await settled();
+    expect(within(section("Quietly working")).getAllByRole("img").length).toBeGreaterThan(0);
   });
 });
