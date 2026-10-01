@@ -96,6 +96,62 @@ test("walk Worlds as the owner, read-only", async ({ page, request }, info) => {
     }
   }
 
+  // ── Every screen by its address (#memory, #library …) ────────────
+  // Direct loads, like a bookmark. Each must stay on its address, show a
+  // heading, never scroll sideways, and keep tap targets at least 44 px.
+  const ADDRESSES = ["bridge", "memory", "chat", "settings", "interests", "projects", "computers",
+    "crew", "people", "helpers", "rough-night", "library", "lore", "at-home"];
+  const screens: { address: string; heading: string | null; small_targets: number; overflow_px: number }[] = [];
+  for (const address of ADDRESSES) {
+    where = `#${address}`;
+    try {
+      await page.goto(`/#${address}`);
+      await settle();
+      const hash = await page.evaluate(() => window.location.hash);
+      if (hash !== `#${address}`)
+        findings.push({ level: "problem", where, what: `Opening #${address} ended on "${hash || "(no address)"}".` });
+      const heading = await page.locator("main h1").first().textContent({ timeout: 3000 }).catch(() => null);
+      if (!heading) findings.push({ level: "note", where, what: "No main heading (h1) on this screen." });
+      const layout = await page.evaluate(() => {
+        const overflow = document.documentElement.scrollWidth - window.innerWidth;
+        const small = Array.from(document.querySelectorAll("main button, main a[href], main [role=button]"))
+          .filter((el) => {
+            const r = (el as HTMLElement).getBoundingClientRect();
+            const st = getComputedStyle(el as HTMLElement);
+            if (r.width === 0 || r.height === 0 || st.visibility === "hidden") return false;
+            // Inline text links inside a sentence are exempt (WCAG 2.5.8).
+            if (el.tagName === "A" && st.display === "inline") return false;
+            return r.height < 44 || r.width < 24;
+          })
+          .map((el) => ((el as HTMLElement).innerText || el.getAttribute("aria-label") || "").trim().slice(0, 40));
+        return { overflow, small };
+      });
+      if (layout.overflow > 1)
+        findings.push({ level: "problem", where, what: `The page scrolls sideways by ${layout.overflow}px.` });
+      if (layout.small.length)
+        findings.push({ level: "note", where, what: `${layout.small.length} tap target(s) under 44px: ${layout.small.slice(0, 5).map((t) => `"${t}"`).join(", ")}` });
+      screens.push({ address, heading: heading?.trim() ?? null, small_targets: layout.small.length, overflow_px: layout.overflow });
+      await shot(`address-${address}`);
+    } catch (e) {
+      findings.push({ level: "problem", where, what: `Couldn't open this address: ${(e as Error).message.split("\n")[0]}` });
+    }
+  }
+
+  // ── Back and forward move between screens ─────────────────────────
+  where = "Back/forward";
+  try {
+    await page.goto("/#memory");
+    await settle();
+    await page.goto("/#library");
+    await settle();
+    await page.goBack();
+    await settle();
+    const back = await page.evaluate(() => window.location.hash);
+    if (back !== "#memory") findings.push({ level: "problem", where, what: `Back from #library landed on "${back}", not #memory.` });
+  } catch (e) {
+    findings.push({ level: "problem", where, what: `Back/forward check failed: ${(e as Error).message.split("\n")[0]}` });
+  }
+
   // ── Every room drawer: does it show what the room says? ──────────
   const roomsRes = await request.get("/api/rooms");
   const rows: Array<Record<string, unknown>> = roomsRes.ok() ? ((await roomsRes.json()).data ?? []) : [];
@@ -160,6 +216,7 @@ test("walk Worlds as the owner, read-only", async ({ page, request }, info) => {
     live_commit: live,
     bundle: baked ? new URL(baked).pathname : null,
     areas: visited,
+    screens,
     rooms: roomSummary,
     blocked_writes: blocked,
     findings,
