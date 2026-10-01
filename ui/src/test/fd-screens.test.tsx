@@ -94,7 +94,7 @@ describe("Memory", () => {
 
 function Probe() {
   const { prefs } = usePrefs();
-  return <output aria-label="prefs">{`${prefs.pack}|${prefs.theme}|${prefs.density}|${prefs.words}`}</output>;
+  return <output aria-label="prefs">{`${prefs.pack}|${prefs.theme}|${prefs.density}|${prefs.words}|${prefs.text}`}</output>;
 }
 const renderSettings = () => render(<PrefsProvider><Settings /><Probe /></PrefsProvider>);
 
@@ -106,15 +106,17 @@ describe("Settings", () => {
     expect(opts("Theme")).toEqual(["Starfield", "Daylight", "Plain"]);
     expect(opts("Density")).toEqual(["Calm", "Standard", "Detailed"]);
     expect(opts("Words")).toEqual(["Minimal", "Short", "Full"]);
+    expect(opts("Text size")).toEqual(["Standard", "Large", "Larger"]);
   });
   it("defaults to None, Starfield, Standard, Short and changes preferences", async () => {
     renderSettings();
-    expect(screen.getByLabelText("prefs")).toHaveTextContent("none|starfield|standard|short");
+    expect(screen.getByLabelText("prefs")).toHaveTextContent("none|starfield|standard|short|standard");
     await userEvent.click(screen.getByRole("radio", { name: "Station" }));
     await userEvent.click(screen.getByRole("radio", { name: "Full" }));
     await userEvent.click(screen.getByRole("radio", { name: "Detailed" }));
     await userEvent.click(screen.getByRole("radio", { name: "Daylight" }));
-    expect(screen.getByLabelText("prefs")).toHaveTextContent("station|daylight|detailed|full");
+    await userEvent.click(screen.getByRole("radio", { name: "Larger" }));
+    expect(screen.getByLabelText("prefs")).toHaveTextContent("station|daylight|detailed|full|larger");
   });
   it("says motion follows the device and the assistant is not installed", () => {
     renderSettings();
