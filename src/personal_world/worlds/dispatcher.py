@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import sqlite3
 import threading
 import time
@@ -35,6 +36,7 @@ from .db import Database, register_migrations
 from .models import Action, Provider, Request, canonical_json
 from .runner import redact
 
+log = logging.getLogger(__name__)
 DEFAULT_TTL_S = 600
 MAX_PARAMS_BYTES = 8192
 # 4xx replies that prove the server did NOT run the action. 408/409/425/429 are ambiguous: UNKNOWN.
@@ -54,7 +56,11 @@ CREATE TABLE executions (
         state TEXT NOT NULL CHECK (state IN ('INTENT','DISPATCHING','SUCCEEDED','FAILED','UNKNOWN')),
         status_code INTEGER, evidence_redacted TEXT, idempotency_key TEXT);
 CREATE INDEX idx_auth_state ON authorizations(state, expires_at)"""),
+    (2, """ALTER TABLE executions ADD COLUMN owner_id TEXT;
+CREATE TABLE leases (instance_id TEXT PRIMARY KEY, heartbeat REAL NOT NULL)"""),
 ])
+
+LEASE_TTL_S = 30.0
 
 
 class DispatchError(Exception):
@@ -114,16 +120,30 @@ class Dispatcher:
         send: Send | None = None,
         clock: Callable[[], float] = time.time,
         secret_values: tuple[str, ...] = (),
-        governed_by_project_home: Callable[[Provider], bool] = lambda provider: False,
+        governed_by_project_home: Callable[[Provider], bool] | None = None,
         project_home_verifier: PHVerifier | None = None,
         ttl_s: int = DEFAULT_TTL_S,
     ):
         self._db, self._store = db, store
         self._send = send if send is not None else confined_request
         self._clock, self._secrets = clock, tuple(secret_values)
-        self._ph_governs, self._ph_verify = governed_by_project_home, project_home_verifier
+        # Fail closed: by default a provider marked (or, for room0, defaulting to) Project Home governance
+        # can only be approved there.
+        self._ph_governs = governed_by_project_home or (lambda provider: provider.governed_by_project_home())
+        self._ph_verify = project_home_verifier
         self._ttl = ttl_s
+        self.instance_id = uuid.uuid4().hex   # this process's identity; its rows are protected by a live lease
+        self.heartbeat()
         self._unsubscribe = store.on_change(self._on_actions_changed)
+
+    # ------------------------------------------------------------ lease
+
+    def heartbeat(self) -> None:
+        """Renew this process's lease. Call it regularly (production runs a timer); it is also
+        renewed on every execute, so a busy process is never mistaken for a dead one."""
+        with self._db.write_tx() as tx:
+            tx.execute("INSERT INTO leases(instance_id, heartbeat) VALUES (?,?) "
+                       "ON CONFLICT(instance_id) DO UPDATE SET heartbeat=excluded.heartbeat", (self.instance_id, self._clock()))
 
     # ------------------------------------------------------------ helpers
 
@@ -173,21 +193,23 @@ class Dispatcher:
             raise BadRequest("bad idempotency key")
         version = self._store.action_version(action_id)
         now = self._clock()
-        # "never" skips approval only when the owner wrote it AND, for a write effect, declared the action
-        # access: write. A read-labelled action whose request would write is never auto-approved.
-        write_effect = request.resolved_effect() == "write"
-        auto = action.approval == "never" and _retry_of is None and not (write_effect and action.access != "write")
-        aid = uuid.uuid4().hex
         governed = self._ph_governs(provider)
+        # "never" skips approval only when the owner wrote it. For a WRITE effect it also needs the
+        # owner's explicit waiver and access: write, and only an owner caller benefits: an agent's
+        # write always waits for the owner. A read-labelled action that would write is never waived.
+        write_effect = request.resolved_effect() == "write"
+        waived_write = action.owner_waives_approval and action.access == "write" and principal.is_owner
+        auto = (action.approval == "never" and _retry_of is None and not governed
+                and (not write_effect or waived_write) and not (write_effect and action.access != "write"))
+        aid = uuid.uuid4().hex
         with self._db.write_tx() as tx:
             tx.execute(
                 "INSERT INTO authorizations(id,action_id,action_version,caller,destination,params_hash,params_json,created_at,"
                 "expires_at,state,authority,approved_at,approved_by,idempotency_key,retry_of,previous_may_have_run) "
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (aid, action_id, version, principal.id, destination_of(provider), params_hash(params),
-                 canonical_json(params), now, now + self._ttl, "approved" if auto and not governed else "pending",
-                 "worlds_owner" if auto and not governed else None, now if auto and not governed else None,
-                 "policy:never" if auto and not governed else None, idempotency_key, _retry_of, int(_warn)))
+                 canonical_json(params), now, now + self._ttl, "approved" if auto else "pending",
+                 "policy:never" if auto else None, now if auto else None, "policy:never" if auto else None, idempotency_key, _retry_of, int(_warn)))
         return self.get_authorization(aid)
 
     def get_authorization(self, authorization_id: str) -> dict:
@@ -291,12 +313,13 @@ class Dispatcher:
                     state = "invalidated"
                 raise NotConsumable(f"authorization is {state}")
             execution_id = uuid.uuid4().hex
-            tx.execute("INSERT INTO executions(id,authorization_id,intent_at,state,idempotency_key) VALUES (?,?,?,'INTENT',?)",
-                       (execution_id, authorization_id, now, row["idempotency_key"]))
+            tx.execute("INSERT INTO executions(id,authorization_id,intent_at,state,idempotency_key,owner_id) VALUES (?,?,?,'INTENT',?,?)",
+                       (execution_id, authorization_id, now, row["idempotency_key"], self.instance_id))
         return row, execution_id, action, request, provider
 
     def execute(self, principal: Principal, authorization_id: str) -> dict:
         row, execution_id, action, request, provider = self._consume(principal, authorization_id)
+        self.heartbeat()
         with self._db.write_tx() as tx:
             tx.execute("UPDATE executions SET state='DISPATCHING', dispatch_started_at=? WHERE id=? AND state='INTENT'",
                        (self._clock(), execution_id))
@@ -323,17 +346,29 @@ class Dispatcher:
         if note:
             evidence["note"] = note
         with self._db.write_tx() as tx:
-            tx.execute("UPDATE executions SET state=?, status_code=?, evidence_redacted=?, finished_at=? "
-                       "WHERE id=? AND state='DISPATCHING'",
-                       (state, status, json.dumps(evidence), self._clock(), execution_id))
+            cur = tx.execute("UPDATE executions SET state=?, status_code=?, evidence_redacted=?, finished_at=? "
+                             "WHERE id=? AND state='DISPATCHING'",
+                             (state, status, json.dumps(evidence), self._clock(), execution_id))
+        if cur.rowcount != 1:
+            # Someone (recovery) already settled this row as UNKNOWN. UNKNOWN stays: do not overwrite it.
+            log.warning("execution %s was settled elsewhere; keeping its recorded state", execution_id)
         return self.receipt(execution_id)
 
     def recover(self) -> int:
-        """Startup recovery: anything INTENT or DISPATCHING becomes UNKNOWN. Never re-sent."""
+        """INTENT/DISPATCHING rows whose owning process is gone become UNKNOWN. Never re-sent.
+
+        A row is "gone" when it has no owner or its owner's lease has not been renewed within
+        LEASE_TTL_S. This process's own rows and any live process's rows are never touched.
+        """
+        now = self._clock()
         evidence = json.dumps({"error_class": None, "note": "interrupted before a result was recorded"})
         with self._db.write_tx() as tx:
-            cur = tx.execute("UPDATE executions SET state='UNKNOWN', finished_at=?, evidence_redacted=? "
-                             "WHERE state IN ('INTENT','DISPATCHING')", (self._clock(), evidence))
+            cur = tx.execute(
+                "UPDATE executions SET state='UNKNOWN', finished_at=?, evidence_redacted=? "
+                "WHERE state IN ('INTENT','DISPATCHING') AND (owner_id IS NULL OR (owner_id != ? AND owner_id NOT IN "
+                "(SELECT instance_id FROM leases WHERE heartbeat > ?)))",
+                (now, evidence, self.instance_id, now - LEASE_TTL_S))
+            tx.execute("DELETE FROM leases WHERE heartbeat <= ? AND instance_id != ?", (now - 10 * LEASE_TTL_S, self.instance_id))
         return cur.rowcount
 
     def request_retry(self, principal: Principal, execution_id: str) -> dict:

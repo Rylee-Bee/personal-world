@@ -204,3 +204,19 @@ def test_no_dev_bypass_symbols():
     src = open(a.__file__).read().lower()
     for word in ("testclient", "dev_bypass", "no_auth", "skip_auth"):
         assert word not in src
+
+
+def test_database_files_and_directory_are_private(tmp_path):
+    import os
+    d = tmp_path / "data"
+    d.mkdir(mode=0o755)
+    os.chmod(d, 0o755)                                   # an existing, too-open data directory
+    db = Database.in_dir(d)
+    with db.write_tx() as tx:
+        tx.execute("create table t(x)")
+        tx.execute("insert into t values (1)")
+    assert stat.S_IMODE(d.stat().st_mode) == 0o700
+    names = [p.name for p in d.iterdir() if p.name.startswith("worlds.db")]
+    assert "worlds.db" in names
+    for n in names:
+        assert not stat.S_IMODE((d / n).stat().st_mode) & 0o077, n

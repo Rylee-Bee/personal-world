@@ -25,6 +25,7 @@ from __future__ import annotations
 import base64
 import ipaddress
 import json
+import os
 import socket
 import threading
 import time
@@ -32,6 +33,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 from urllib.parse import quote, urlencode, urlsplit
 
+import httpcore
 import httpx
 
 from .secrets import resolve_secret_ref
@@ -70,6 +72,7 @@ _METADATA = {
     ipaddress.ip_address("169.254.170.2"),  # pw-safety: synthetic
     ipaddress.ip_address("100.100.100.200"),
     ipaddress.ip_address("fd00:ec2::254"),
+    ipaddress.ip_address("168.63.129.16"),  # Azure wire server / metadata
 }
 _CGNAT = ipaddress.ip_network("100.64.0.0/10")
 _NEVER = (ipaddress.ip_network("0.0.0.0/8"), ipaddress.ip_network("240.0.0.0/4"))
@@ -93,14 +96,47 @@ def _system_resolver(host: str, port: int) -> list[str]:
     return out
 
 
+_SITE_LOCAL = ipaddress.ip_network("fec0::/10")
+_NAT64 = ipaddress.ip_network("64:ff9b::/96")
+_6TO4 = ipaddress.ip_network("2002::/16")
+_TEREDO = ipaddress.ip_network("2001::/32")
+
+
+def _embedded_v4(ip: ipaddress.IPv6Address) -> list[ipaddress.IPv4Address]:
+    """IPv4 addresses hidden inside an IPv6 one (mapped, NAT64, 6to4, Teredo)."""
+    found: list[ipaddress.IPv4Address] = []
+    if ip.ipv4_mapped is not None:
+        found.append(ip.ipv4_mapped)
+    raw = ip.packed
+    if ip in _NAT64:
+        found.append(ipaddress.IPv4Address(raw[12:16]))
+    if ip in _6TO4:
+        found.append(ipaddress.IPv4Address(raw[2:6]))
+    if ip in _TEREDO:
+        found.append(ipaddress.IPv4Address(raw[4:8]))                                   # server
+        found.append(ipaddress.IPv4Address(bytes(b ^ 0xFF for b in raw[12:16])))        # client (obfuscated)
+    return found
+
+
 def classify_address(address: str, *, lan: bool) -> str | None:
     """Return None when allowed, else a short reason. Uses the RESOLVED address, never the text."""
     try:
         ip = ipaddress.ip_address(address.split("%", 1)[0])
     except ValueError:
         return "unparseable address"
-    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
-        ip = ip.ipv4_mapped
+    if isinstance(ip, ipaddress.IPv6Address):
+        embedded = _embedded_v4(ip)
+        for v4 in embedded:  # a metadata/unroutable IPv4 hidden in IPv6 is refused even with lan
+            inner = classify_address(str(v4), lan=lan)
+            if inner and ("metadata" in inner or "unroutable" in inner):
+                return inner
+        if embedded and not lan:
+            for v4 in embedded:
+                inner = classify_address(str(v4), lan=False)
+                if inner:
+                    return inner
+        if ip.ipv4_mapped is not None:
+            ip = ip.ipv4_mapped
     if ip in _METADATA:
         return "cloud metadata address"
     if ip.is_unspecified or ip.is_multicast:
@@ -112,6 +148,7 @@ def classify_address(address: str, *, lan: bool) -> str | None:
         or ip.is_link_local
         or ip.is_private
         or (isinstance(ip, ipaddress.IPv4Address) and ip in _CGNAT)
+        or (isinstance(ip, ipaddress.IPv6Address) and ip in _SITE_LOCAL)
     )
     if ip.is_reserved and not internal:  # ::1 is "reserved" to ipaddress but is loopback
         return "unroutable address"
@@ -176,6 +213,12 @@ def _auth_headers(provider: Any) -> dict[str, str] | ConfinementError:
     value = resolve_secret_ref(auth.secret_ref)
     if not value:
         return ConfinementError("auth_failed", "credential is not available")
+    try:
+        value.encode("latin-1")
+    except UnicodeEncodeError:
+        return ConfinementError("auth_failed", "credential contains characters that cannot be sent")
+    if any(ord(c) < 32 or ord(c) == 127 for c in value):
+        return ConfinementError("auth_failed", "credential contains control characters")
     if auth.type == "bearer":
         return {"Authorization": f"Bearer {value}"}
     if auth.type == "header":
@@ -191,6 +234,111 @@ def _auth_headers(provider: Any) -> dict[str, str] | ConfinementError:
     return ConfinementError("auth_failed", "unknown auth type")
 
 
+class Deadline:
+    """ONE wall-clock budget for a whole call: DNS, connect, TLS, headers and body.
+
+    A timer fires at the budget and shuts down every socket the call opened (by dup'd descriptor, so
+    TLS-wrapped sockets are covered too), which unblocks any read or write. Disarm it before the
+    sockets are closed so a late fire can never touch a recycled descriptor.
+    """
+
+    def __init__(self, budget: float):
+        self.budget = float(budget)
+        self.started = time.monotonic()
+        self.expired = threading.Event()
+        self._lock = threading.Lock()
+        self._fds: set[int] = set()
+        self._done = False
+        self._timer = threading.Timer(self.budget, self._fire)
+        self._timer.daemon = True
+        self._timer.start()
+
+    def remaining(self) -> float:
+        return self.budget - (time.monotonic() - self.started)
+
+    def register(self, fd: int) -> None:
+        with self._lock:
+            if not self._done:
+                self._fds.add(fd)
+
+    def _fire(self) -> None:
+        with self._lock:
+            if self._done:
+                return
+            self.expired.set()
+            for fd in self._fds:
+                try:
+                    dup = socket.socket(fileno=os.dup(fd))
+                except OSError:
+                    continue
+                try:
+                    dup.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+                finally:
+                    dup.close()
+
+    def disarm(self) -> None:
+        with self._lock:
+            self._done = True
+            self._fds.clear()
+        self._timer.cancel()
+
+    close = disarm
+
+
+class _WatchedBackend(httpcore.SyncBackend):
+    """Registers each new connection with the deadline so the watchdog can shut it down."""
+
+    def __init__(self, deadline: Deadline):
+        self._deadline = deadline
+
+    def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
+        stream = super().connect_tcp(host, port, timeout=timeout, local_address=local_address, socket_options=socket_options)
+        sock = stream.get_extra_info("socket")
+        if sock is not None:
+            self._deadline.register(sock.fileno())
+        if self._deadline.expired.is_set():
+            stream.close()
+            raise httpcore.ConnectTimeout("deadline passed while connecting")
+        return stream
+
+
+class _WatchedTransport(httpx.HTTPTransport):
+    """httpx transport whose connection pool reports its sockets to a :class:`Deadline`."""
+
+    def __init__(self, deadline: Deadline, *, verify: bool):
+        super().__init__(verify=verify, retries=0, limits=httpx.Limits(max_keepalive_connections=0))
+        self._pool.close()
+        self._pool = httpcore.ConnectionPool(
+            ssl_context=httpx.create_ssl_context(verify=verify, trust_env=False),
+            max_connections=1, max_keepalive_connections=0, http1=True, http2=False, retries=0,
+            network_backend=_WatchedBackend(deadline),
+        )
+
+
+def resolve_within(resolver: Resolver, host: str, port: int, deadline: Deadline) -> list[str] | ConfinementError:
+    """Run DNS in a helper thread so a slow resolver cannot outlive the budget."""
+    box: dict[str, Any] = {}
+
+    def work() -> None:
+        try:
+            box["addresses"] = resolver(host, port)
+        except (OSError, UnicodeError) as exc:
+            box["error"] = exc
+        except Exception as exc:  # a broken resolver is a failed lookup, not a crash
+            box["error"] = exc
+
+    thread = threading.Thread(target=work, daemon=True)
+    thread.start()
+    thread.join(max(deadline.remaining(), 0.0))
+    if thread.is_alive():
+        return ConfinementError("timeout", "name lookup did not finish in time", duration_ms=_ms(deadline.started))
+    if "error" in box or not box.get("addresses"):
+        return ConfinementError("connection", "host did not resolve", duration_ms=_ms(deadline.started))
+    return list(box["addresses"])
+
+
 def confined_request(
     provider: Any,
     request: Any,
@@ -199,14 +347,21 @@ def confined_request(
     resolver: Resolver | None = None,
 ) -> RawResponse | ConfinementError:
     """Send one request. Never retries, never follows redirects, never raises."""
-    started = time.monotonic()
     try:
-        return _send(provider, request, effect, resolver or _system_resolver, started)
+        budget = float(request.timeout_s or provider.timeout_s)
+    except Exception:
+        return ConfinementError("connection", "internal error: bad request or provider")
+    deadline = Deadline(budget)
+    try:
+        return _send(provider, request, effect, resolver or _system_resolver, deadline)
     except Exception as exc:  # a bug here must fail closed, with no secret in the note
-        return ConfinementError("connection", f"internal error: {type(exc).__name__}", duration_ms=_ms(started))
+        return ConfinementError("connection", f"internal error: {type(exc).__name__}", duration_ms=_ms(deadline.started))
+    finally:
+        deadline.disarm()
 
 
-def _send(provider: Any, request: Any, effect: str, resolver: Resolver, started: float):
+def _send(provider: Any, request: Any, effect: str, resolver: Resolver, deadline: Deadline):
+    started = deadline.started
     method = request.method.upper()
     if effect not in ("read", "write"):
         return _deny("unknown effect", started)
@@ -226,12 +381,9 @@ def _send(provider: Any, request: Any, effect: str, resolver: Resolver, started:
             return _deny("header contains a control character", started)
         headers[name] = value
 
-    try:
-        addresses = resolver(host, port)
-    except (OSError, UnicodeError):
-        return ConfinementError("connection", "host did not resolve", duration_ms=_ms(started))
-    if not addresses:
-        return ConfinementError("connection", "host did not resolve", duration_ms=_ms(started))
+    addresses = resolve_within(resolver, host, port, deadline)
+    if isinstance(addresses, ConfinementError):
+        return addresses
     lan = bool(provider.network.lan)
     for address in addresses:
         reason = classify_address(address, lan=lan)
@@ -255,32 +407,40 @@ def _send(provider: Any, request: Any, effect: str, resolver: Resolver, started:
 
     literal = f"[{pinned}]" if ":" in pinned else pinned
     url = f"{scheme}://{literal}:{port}{target}"
-    limit = int(provider.max_bytes)
-    budget = float(request.timeout_s or provider.timeout_s)
-    timeout = make_timeout(budget)
     extensions = {"sni_hostname": host} if scheme == "https" else {}
+    return perform(deadline, method, url, headers=headers, content=body, extensions=extensions,
+                   verify=bool(provider.tls_verify), limit=int(provider.max_bytes))
+
+
+def perform(deadline: Deadline, method: str, url: str, *, headers: dict[str, str], content: bytes | None,
+            extensions: dict[str, Any], verify: bool, limit: int) -> RawResponse | ConfinementError:
+    """One HTTP exchange under ``deadline``. Shared with the dev sender; does no address vetting."""
+    started = deadline.started
+    headers = {**headers, "Accept-Encoding": "identity"}
     try:
-        # verify/limits belong on the transport: httpx ignores them on a Client given a transport.
-        transport = httpx.HTTPTransport(
-            verify=bool(provider.tls_verify),
-            retries=0,
-            limits=httpx.Limits(max_keepalive_connections=0),
-        )
-        with httpx.Client(
-            trust_env=False, follow_redirects=False, timeout=timeout, transport=transport
-        ) as client:
-            with client.stream(method, url, headers=headers, content=body, extensions=extensions) as resp:
-                status = resp.status_code
-                if 300 <= status < 400:
-                    return ConfinementError("redirect_refused", "provider answered with a redirect",
-                                            status_code=status, duration_ms=_ms(started))
-                data = read_body(resp, started, budget, limit)
-                if isinstance(data, ConfinementError):
-                    return data
-                out_headers = {k.lower(): v for k, v in resp.headers.items()}
+        transport = _WatchedTransport(deadline, verify=verify)
+        with httpx.Client(trust_env=False, follow_redirects=False, timeout=make_timeout(deadline.budget),
+                          transport=transport) as client:
+            try:
+                with client.stream(method, url, headers=headers, content=content, extensions=extensions) as resp:
+                    try:
+                        status = resp.status_code
+                        if 300 <= status < 400:
+                            return ConfinementError("redirect_refused", "provider answered with a redirect",
+                                                    status_code=status, duration_ms=_ms(started))
+                        data = read_body(resp, deadline, limit)
+                        if isinstance(data, ConfinementError):
+                            return data
+                        out_headers = {k.lower(): v for k, v in resp.headers.items()}
+                    finally:
+                        deadline.disarm()
+            finally:
+                deadline.disarm()
     except httpx.TimeoutException:
         return ConfinementError("timeout", "no answer in time", duration_ms=_ms(started))
     except httpx.HTTPError as exc:
+        if deadline.expired.is_set():
+            return ConfinementError("timeout", "total time budget exceeded", duration_ms=_ms(started))
         return ConfinementError("connection", f"transport failed: {type(exc).__name__}", duration_ms=_ms(started))
     return RawResponse(status_code=status, headers=out_headers, body=data, duration_ms=_ms(started) or 0)
 
@@ -291,56 +451,37 @@ def make_timeout(budget: float) -> httpx.Timeout:
     return httpx.Timeout(connect=connect, read=max(budget - connect, 0.05), write=max(budget / 4, 0.05), pool=budget)
 
 
-def read_body(resp: httpx.Response, started: float, budget: float, limit: int) -> bytes | ConfinementError:
-    """Stream the body under ONE wall-clock deadline and the size cap.
+def read_body(resp: httpx.Response, deadline: Deadline, limit: int) -> bytes | ConfinementError:
+    """Stream the RAW body under the call's deadline and the size cap.
 
-    The deadline is enforced by a watchdog that shuts the socket down, so a single blocked read
-    cannot run past the budget (a per-read timeout alone allows ~2x). Used by the dev sender too.
+    Raw bytes are counted (never decompressed), so a compression bomb cannot expand past the cap;
+    an encoded response is refused. The deadline's watchdog unblocks a stalled read.
     """
-    status = resp.status_code
+    started, status = deadline.started, resp.status_code
+    encoding = resp.headers.get("content-encoding", "identity").strip().lower()
+    if encoding not in ("", "identity"):
+        return ConfinementError("malformed", "provider sent an encoded body (identity was requested)",
+                                status_code=status, duration_ms=_ms(started))
     declared = resp.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > limit:
         return ConfinementError("too_large", "response larger than max_bytes", status_code=status, duration_ms=_ms(started))
-    remaining = budget - (time.monotonic() - started)
-    if remaining <= 0:
+    if deadline.remaining() <= 0 or deadline.expired.is_set():
         return ConfinementError("timeout", "total time budget exceeded", status_code=status, duration_ms=_ms(started))
-    expired = threading.Event()
-    sock = None
-    stream = resp.extensions.get("network_stream")
-    if stream is not None:
-        try:
-            sock = stream.get_extra_info("socket")
-        except Exception:
-            sock = None
-
-    def fire() -> None:
-        expired.set()
-        if sock is not None:
-            try:
-                sock.shutdown(socket.SHUT_RDWR)
-            except OSError:
-                pass
-
-    timer = threading.Timer(remaining, fire)
-    timer.daemon = True
-    timer.start()
     chunks: list[bytes] = []
     size = 0
     try:
-        for chunk in resp.iter_bytes():
+        for chunk in resp.iter_raw():
             size += len(chunk)
             if size > limit:
                 return ConfinementError("too_large", "response larger than max_bytes", status_code=status, duration_ms=_ms(started))
             chunks.append(chunk)
-            if expired.is_set() or time.monotonic() - started > budget:
+            if deadline.expired.is_set() or deadline.remaining() <= 0:
                 return ConfinementError("timeout", "total time budget exceeded", status_code=status, duration_ms=_ms(started))
     except httpx.HTTPError:
-        if expired.is_set():
+        if deadline.expired.is_set():
             return ConfinementError("timeout", "total time budget exceeded", status_code=status, duration_ms=_ms(started))
         raise
-    finally:
-        timer.cancel()
-    if expired.is_set():
+    if deadline.expired.is_set():
         return ConfinementError("timeout", "total time budget exceeded", status_code=status, duration_ms=_ms(started))
     return b"".join(chunks)
 

@@ -97,9 +97,15 @@ class Provider(_Strict):
     path_prefix: str = ""
     auth: Auth = Field(default_factory=Auth)
     network: Network = Field(default_factory=Network)
+    # Who approves operations on this provider. None: room0 providers are governed by Project Home
+    # (fail closed), everything else by Worlds.
+    governance: Literal["worlds", "project_home"] | None = None
     tls_verify: bool = True
     timeout_s: float = Field(default=5, gt=0, le=15)
     max_bytes: int = Field(default=2 * 1024 * 1024, gt=0, le=8 * 1024 * 1024)
+
+    def governed_by_project_home(self) -> bool:
+        return self.governance == "project_home" or (self.governance is None and self.kind == "room0")
 
     @field_validator("base_url")
     @classmethod
@@ -324,10 +330,13 @@ class Action(_Strict):
     scope: str = ""
     idempotency: Literal["required", "optional", "none"] = "optional"
     exposed: bool = False
+    # Only an owner (config writes are owner-only) can waive approval for a request that WRITES.
+    owner_waives_approval: bool = False
 
     @model_validator(mode="after")
-    def _write_needs_approval(self) -> "Action":
-        # A write action defaults to always-approve; "never" is an explicit owner choice.
+    def _waiver_needs_never(self) -> "Action":
+        if self.owner_waives_approval and self.approval != "never":
+            raise ValueError("owner_waives_approval only makes sense with approval: never")
         return self
 
 

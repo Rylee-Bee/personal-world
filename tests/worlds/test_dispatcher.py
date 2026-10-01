@@ -9,8 +9,8 @@ from personal_world.worlds.authn import Principal
 from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.config_store import ConfigStore
 from personal_world.worlds.db import Database
-from personal_world.worlds.dispatcher import (BadRequest, DispatchError, Dispatcher, NotConsumable, NotPermitted,
-                                              classify_outcome)
+from personal_world.worlds.dispatcher import (LEASE_TTL_S, BadRequest, DispatchError, Dispatcher, NotConsumable,
+                                              NotPermitted, classify_outcome)
 from personal_world.worlds.models import Action, Provider, Request
 from personal_world.worlds.reference_provider import ReferenceServer, reference_send
 
@@ -152,9 +152,9 @@ def test_unapproved_pending_denied_cannot_execute(env):
 
 def test_policy_never_is_auto_approved_but_still_leaves_a_receipt(env):
     d, db, store, send, _ = env
-    store.save("action", Action(id="auto", request="ref.go", name="A", approval="never"))
+    store.save("action", Action(id="auto", request="ref.go", name="A", access="write", approval="never", owner_waives_approval=True))
     a = d.request_authorization(owner(), "auto")
-    assert a["state"] == "approved" and a["approved_by"] == "policy:never" and a["authority"] == "worlds_owner"
+    assert a["state"] == "approved" and a["approved_by"] == "policy:never" and a["authority"] == "policy:never"
     r = d.execute(owner(), a["id"])
     assert r["state"] == "SUCCEEDED" and d.list_receipts()[0]["execution_id"] == r["execution_id"]
 
@@ -347,6 +347,9 @@ def test_crash_after_consume_before_dispatch_becomes_unknown_never_sent(env, tmp
     a = approved(env)
     d._consume(owner(), a["id"])          # process dies right here: INTENT row exists, nothing sent
     fresh = Dispatcher(Database.in_dir(tmp_path / "data"), store, send=Sender(), clock=clock)
+    assert fresh.recover() == 0                      # the dead process's lease has not lapsed yet
+    clock.t += LEASE_TTL_S + 1
+    fresh.heartbeat()
     assert fresh.recover() == 1
     ex = fresh.list_receipts()[0]
     assert ex["state"] == "UNKNOWN" and send.calls == []
@@ -363,6 +366,8 @@ def test_crash_during_dispatch_becomes_unknown_and_is_not_resent(env, tmp_path):
     assert db.conn().execute("select state from executions").fetchone()[0] == "DISPATCHING"
     send2 = Sender()
     fresh = Dispatcher(Database.in_dir(tmp_path / "data"), store, send=send2, clock=clock)
+    clock.t += LEASE_TTL_S + 1
+    fresh.heartbeat()
     assert fresh.recover() == 1 and fresh.recover() == 0
     assert fresh.list_receipts()[0]["state"] == "UNKNOWN" and send2.calls == []
     with pytest.raises(NotConsumable):
@@ -372,7 +377,7 @@ def test_crash_during_dispatch_becomes_unknown_and_is_not_resent(env, tmp_path):
 
 def test_retry_is_a_new_authorization_with_a_warning(env):
     d, db, store, send, _ = env
-    store.save("action", Action(id="auto", request="ref.go", name="A", approval="never"))
+    store.save("action", Action(id="auto", request="ref.go", name="A", access="write", approval="never", owner_waives_approval=True))
     send.result = RawResponse(503)
     r = d.execute(owner(), approved(env)["id"])
     assert r["state"] == "UNKNOWN"
@@ -421,7 +426,7 @@ def test_project_home_governed_operations_use_ph_authority(env, tmp_path):
 
 def test_ph_policy_never_does_not_bypass_project_home(env):
     d0, db, store, send, clock = env
-    store.save("action", Action(id="auto", request="ref.go", name="A", approval="never"))
+    store.save("action", Action(id="auto", request="ref.go", name="A", access="write", approval="never", owner_waives_approval=True))
     d = Dispatcher(db, store, send=send, clock=clock, governed_by_project_home=lambda p: True,
                    project_home_verifier=lambda *_: True)
     assert d.request_authorization(owner(), "auto")["state"] == "pending"
@@ -438,25 +443,118 @@ def test_classify_outcome_unknown_input():
     assert classify_outcome(object())[0] == "UNKNOWN"
 
 
-# ---------------------------------------------------- approval: never on writes (C1.2)
+# ---------------------------------------------------- approval: never on writes (C1.2, review M3)
 
-def test_never_applies_to_a_write_only_when_the_owner_wrote_it_and_declared_access_write(env):
+def test_never_on_a_write_needs_the_owners_waiver_and_access_write(env, tmp_path):
+    from personal_world.worlds.config_store import ConfigInvalid
     d, db, store, send, _ = env
     default = Action(id="dflt", request="ref.go", name="D")
     assert default.approval == "always"                                  # missing means always
     store.save("action", default)
     assert d.request_authorization(owner(), "dflt")["state"] == "pending"
-    store.save("action", Action(id="never-w", request="ref.go", name="N", access="write", approval="never"))
-    assert d.request_authorization(owner(), "never-w")["state"] == "approved"
-    # a read-labelled action whose request would write is NOT auto-approved even with approval: never
-    store.save("action", Action(id="never-r", request="ref.go", name="R", access="read", approval="never"))
-    a = d.request_authorization(owner(), "never-r")
-    assert a["state"] == "pending" and a["approved_by"] is None
-    # a genuinely read request with approval: never is fine
+    with pytest.raises(ConfigInvalid):                                   # never + write, no waiver: refused at save
+        store.save("action", Action(id="nope", request="ref.go", name="N", access="write", approval="never"))
+    with pytest.raises(ConfigInvalid):                                   # access read must not point at a write request
+        store.save("action", Action(id="mislabel", request="ref.go", name="M", access="read"))
+    with pytest.raises(Exception):                                       # a waiver without approval: never is meaningless
+        Action(id="w", request="ref.go", name="W", owner_waives_approval=True)
+    store.save("action", Action(id="waived", request="ref.go", name="W", access="write", approval="never",
+                                owner_waives_approval=True, exposed=True, scope="deploy.run"))
+    a = d.request_authorization(owner(), "waived")
+    assert a["state"] == "approved" and a["authority"] == "policy:never" and a["approved_by"] == "policy:never"
+    # an agent's write ALWAYS waits for the owner, even with the owner's waiver
+    ag = d.request_authorization(agent(), "waived")
+    assert ag["state"] == "pending" and ag["authority"] is None and ag["approved_by"] is None
+    # a genuine read request with never is fine for owner and agent alike
     store.save("request", Request(id="ref.look", provider="ref", path="/look"))
-    store.save("action", Action(id="look", request="ref.look", name="L", access="read", approval="never"))
-    assert d.request_authorization(owner(), "look")["state"] == "approved"
-    # an agent asking for a never-write action gets the policy the owner wrote (never an agent choice)
-    store.save("action", Action(id="agent-never", request="ref.go", name="A", access="write", approval="never",
+    store.save("action", Action(id="look", request="ref.look", name="L", access="read", approval="never",
                                 exposed=True, scope="deploy.run"))
-    assert d.request_authorization(agent(), "agent-never")["state"] == "approved"
+    assert d.request_authorization(owner(), "look")["state"] == "approved"
+    assert d.request_authorization(agent(), "look")["state"] == "approved"
+    # editing the request into a write after the fact is refused while a read action points at it
+    with pytest.raises(ConfigInvalid):
+        store.save("request", Request(id="ref.look", provider="ref", path="/look", method="POST"),
+                   etag=store.etag("request", "ref.look"))
+
+
+def test_hand_edited_files_cannot_smuggle_an_auto_approved_write(env, tmp_path):
+    d, db, store, send, _ = env
+    f = tmp_path / "cfg" / "worlds" / "actions" / "smuggled.yaml"
+    f.write_text("schema_version: 1\nid: smuggled\nrequest: ref.go\nname: S\naccess: write\napproval: never\n"
+                 "exposed: true\nscope: deploy.run\n")
+    f2 = tmp_path / "cfg" / "worlds" / "actions" / "mislabelled.yaml"
+    f2.write_text("schema_version: 1\nid: mislabelled\nrequest: ref.go\nname: S\naccess: read\napproval: never\n"
+                  "owner_waives_approval: true\n")
+    store.reload()                                           # loads: the dispatcher is the second wall
+    assert d.request_authorization(owner(), "smuggled")["state"] == "pending"
+    assert d.request_authorization(owner(), "mislabelled")["state"] == "pending"
+    assert d.request_authorization(agent(), "smuggled")["state"] == "pending"
+
+
+def test_project_home_governance_fails_closed_by_default(env):
+    d, db, store, send, clock = env
+    store.save("provider", Provider(id="ref", name="Ref", kind="room0", base_url="http://127.0.0.1:9"), etag=store.etag("provider", "ref"))
+    dd = Dispatcher(db, store, send=send, clock=clock)       # no governed_by_project_home passed
+    a = dd.request_authorization(owner(), "go")
+    with pytest.raises(NotPermitted):
+        dd.approve(owner(), a["id"])                         # room0 defaults to Project Home authority
+    store.save("provider", Provider(id="ref", name="Ref", kind="room0", base_url="http://127.0.0.1:9", governance="worlds"),
+               etag=store.etag("provider", "ref"))
+    b = dd.request_authorization(owner(), "go")
+    assert dd.approve(owner(), b["id"])["state"] == "approved"
+    store.save("provider", Provider(id="ref", name="Ref", kind="http", base_url="http://127.0.0.1:9", governance="project_home"),
+               etag=store.etag("provider", "ref"))
+    c = dd.request_authorization(owner(), "go")
+    with pytest.raises(NotPermitted):
+        dd.approve(owner(), c["id"])
+
+
+# ----------------------------------------------------------- leases (review minor)
+
+def test_recover_never_touches_a_live_process_or_its_own_rows(env, tmp_path):
+    d, db, store, send, clock = env
+    a = approved(env)
+    d._consume(owner(), a["id"])                              # in flight in a LIVE process
+    other = Dispatcher(Database.in_dir(tmp_path / "data"), store, send=Sender(), clock=clock)
+    assert other.recover() == 0 and d.recover() == 0
+    clock.t += LEASE_TTL_S - 1
+    d.heartbeat()                                             # still alive: keeps renewing
+    clock.t += LEASE_TTL_S - 1
+    other.heartbeat()
+    assert other.recover() == 0
+    assert db.conn().execute("select state from executions").fetchone()[0] == "INTENT"
+    clock.t += LEASE_TTL_S + 1                                # now the owner stopped renewing
+    other.heartbeat()
+    assert other.recover() == 1 and d.recover() == 0
+
+
+def test_rows_with_no_owner_are_recovered(env):
+    d, db, store, send, _ = env
+    a = approved(env)
+    d._consume(owner(), a["id"])
+    with db.write_tx() as tx:
+        tx.execute("update executions set owner_id=NULL")
+    assert d.recover() == 1
+
+
+def test_execute_renews_the_lease(env):
+    d, db, store, send, clock = env
+    clock.t += 5
+    d.execute(owner(), approved(env)["id"])
+    hb = db.conn().execute("select heartbeat from leases where instance_id=?", (d.instance_id,)).fetchone()[0]
+    assert hb == clock.t
+
+
+def test_a_settled_row_is_not_overwritten_by_a_late_result(env, caplog):
+    d, db, store, send, _ = env
+
+    class Settling(Sender):
+        def __call__(self, provider, request, *, effect):
+            with db.write_tx() as tx:                         # recovery settled it as UNKNOWN meanwhile
+                tx.execute("update executions set state='UNKNOWN', evidence_redacted='{}' where state='DISPATCHING'")
+            return super().__call__(provider, request, effect=effect)
+
+    d._send = Settling(RawResponse(200))
+    r = d.execute(owner(), approved(env)["id"])
+    assert r["state"] == "UNKNOWN"                            # a 200 arriving late does not turn it into SUCCEEDED
+    assert any("settled elsewhere" in m for m in caplog.messages)
