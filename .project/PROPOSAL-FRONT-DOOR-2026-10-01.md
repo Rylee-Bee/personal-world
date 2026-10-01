@@ -565,10 +565,20 @@ Owner request: "make the design show your eyes what is important"; earlier, "it 
 | Setting | Shows |
 |---|---|
 | **Minimal** | Facts only: name, number, unit, state word |
-| **Short** (default) | Adds the meaning label and a terse briefing: "2 need you · Downloads can't check in · rest quiet" |
+| **Short** (default) | Adds a meaning label of at most about 3 words ("Can't check in", "Your call", "Backups late") and a terse briefing: "2 for you · Downloads down · rest quiet" |
 | **Full** | Adds the sentence briefing, meaning on quiet rows, and freshness on every row |
 
 Freshness always shows on rows that need a look.
+
+**Sparse-language pass** (owner: "sparse the language some"). In Short:
+
+- **Freshness** is compact: "2m ago", with "Last good 19:42" kept exact.
+- **Units** are short: "waiting", "last known", "read", "left today".
+- **Needs you** are terse imperatives: "Approve Hive Works plan", "Backups 3 days old".
+- **Source names** move to Full.
+- **Section and button labels:** "Continue" becomes "Pick up", and "+ Add".
+- **Healthy life rows** say "Current".
+- **The drill-in detail keeps full sentences.** Depth is where words belong.
 
 **Checks:**
 
