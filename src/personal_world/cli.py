@@ -10,9 +10,7 @@ from . import export, prefs
 from .app import build_registry, load_world, save_world
 from .envelope import EXIT_DENIED, EXIT_DRIFT, EXIT_ERROR, EXIT_OK, Result
 from .framework import (
-    validate_connections,
-    validate_compose_file,
-    validate_settings_export,
+    validate_framework,
     validate_participant_packs,
 )
 from .init import init_world
@@ -341,36 +339,18 @@ def cmd_manifest(world, registry, journal, args) -> int:
 
 
 def cmd_framework_validate(world, registry, journal, args) -> int:
-    """Validate connections.json, compose, and settings-export against
-    the framework invariants (docs/NATIVE-BASELINE-AND-ENRICHMENT.md)."""
-    import json as _json
+    """Validate the front-door framework invariants (ADR-0008 decision 3).
 
-    conn_path = Path(args.config_dir) / "connections.json"
-    if not conn_path.exists():
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=["no connections.json to validate"],
-            ),
-            args.json,
-        )
-    connections = _json.loads(conn_path.read_text())
-    known = set(registry._contracts.keys())
-    result = validate_connections(connections, known)
-    compose_path = Path(__file__).resolve().parents[2] / "compose.yaml"
-    if compose_path.exists():
-        provider_names = {c.get("name") for c in connections.get("connections", [])}
-        compose_result = validate_compose_file(compose_path, provider_names)
-        result.violations.extend(compose_result.violations)
-        result.ok = result.ok and compose_result.ok
-    if result.ok:
-        sx = export.settings_export(world)
-        sx_result = validate_settings_export(sx)
-        result.violations.extend(sx_result.violations)
-        result.ok = result.ok and sx_result.ok
+    Checks the C1 config store (schema, ids, references, no inline secrets),
+    the shipped recipes, the core compose's provider independence, the
+    zero-provider/zero-model baseline boot, and the shareable Memory exports.
+    Read-only with respect to the configured config directory."""
+    result = validate_framework(Path(args.config_dir))
     payload = {
-        "violations": [str(v) for v in result.violations],
+        "violations": [
+            {"rule": violation.rule, "detail": violation.detail}
+            for violation in result.violations
+        ],
         "count": len(result.violations),
     }
     if result.ok:
@@ -379,7 +359,7 @@ def cmd_framework_validate(world, registry, journal, args) -> int:
         Result(
             ok=False,
             status="unhealthy",
-            warnings=[str(v) for v in result.violations],
+            warnings=[f"[{v.rule}] {v.detail}" for v in result.violations],
             data=payload,
         ),
         args.json,
