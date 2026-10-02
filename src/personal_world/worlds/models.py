@@ -183,6 +183,19 @@ class Request(_Strict):
             raise ValueError("path must be relative to the provider (start with /, no scheme or host)")
         if ".." in v.split("?")[0].split("/") or "%2e" in v.lower() or "%2f" in v.lower():
             raise ValueError("path must not contain .. or encoded separators")
+        from .templates import has_template
+
+        if has_template(v):
+            raise ValueError("templates like {today} are only allowed in query values")
+        return v
+
+    @field_validator("query")
+    @classmethod
+    def _query(cls, v: dict[str, str]) -> dict[str, str]:
+        from .templates import check_query_value
+
+        for value in v.values():
+            check_query_value(value)
         return v
 
     @field_validator("headers")
@@ -191,9 +204,13 @@ class Request(_Strict):
         bad = [h for h in v if h.lower() not in ALLOWED_HEADERS]
         if bad:
             raise ValueError(f"headers not allowed (allow-list: {sorted(ALLOWED_HEADERS)}): {bad}")
+        from .templates import has_template
+
         for name, value in v.items():
             if any(c in f"{name}{value}" for c in ("\r", "\n", "\x00")):
                 raise ValueError("header contains a control character")
+            if has_template(value):
+                raise ValueError("templates like {today} are only allowed in query values")
         return v
 
     @model_validator(mode="after")
@@ -217,7 +234,7 @@ class Field_(BaseModel):
     model_config = ConfigDict(extra="forbid")
     path: str
     label: str
-    format: Literal["number", "percent", "bytes", "duration", "relative_time", "text"] = "text"
+    format: Literal["number", "percent", "bytes", "duration", "relative_time", "text", "count"] = "text"
     unit: str | None = None
 
     @field_validator("path")
@@ -233,6 +250,23 @@ class Meaning(BaseModel):
     full: str = ""
 
 
+class Above(BaseModel):
+    """A threshold (C1.3): when the first extracted value is a number above ``value``, the card is in ``state``."""
+
+    model_config = ConfigDict(extra="forbid")
+    value: float
+    state: Literal["needs_attention", "degraded"]
+
+    @field_validator("value")
+    @classmethod
+    def _finite(cls, v: float) -> float:
+        import math
+
+        if isinstance(v, bool) or not math.isfinite(v):
+            raise ValueError("above.value must be a finite number")
+        return v
+
+
 class StatusMap(BaseModel):
     model_config = ConfigDict(extra="forbid")
     path: str
@@ -244,6 +278,12 @@ class StatusMap(BaseModel):
 
     healthy: list[Any] = Field(default_factory=list)
     needs_attention: list[Any] = Field(default_factory=list)
+    # first: the first extracted value decides. all / any: every extracted value counts (C1.3).
+    mode: Literal["first", "all", "any"] = "first"
+    # What an EXISTING but empty list means (e.g. a health list with no problems). A missing path is always unknown.
+    empty: Literal["unknown", "healthy"] = "unknown"
+    # A numeric threshold, checked before the healthy / needs_attention lists.
+    above: Above | None = None
 
 
 _KEY_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")

@@ -13,7 +13,7 @@ Supported path grammar (nothing else parses)::
     path    := "$" step*
     step    := "." name | "[" index "]" | "[*]"
     name    := [A-Za-z_][A-Za-z0-9_-]*      ; a leading "__" is refused
-    index   := digits | "-" digits           ; non-negative only (see below)
+    index   := digits | "-1"                 ; "-1" is the last element; no other negatives
 
 No filters, slices, recursion, quoted keys, scripts or unions.
 """
@@ -106,10 +106,11 @@ def _read_bracket(path: str, i: int, steps: list[Any]) -> int:
     inner = path[i + 1 : close]
     if inner == "*":
         steps.append(_Wildcard())
-    elif inner.isdigit() or (inner[:1] == "-" and inner[1:].isdigit()):
-        # A negative index parses (so a bad path fails loudly at the mapping seam
-        # rather than as a silent miss) but never resolves: there is no "-1".
+    elif inner.isdigit() or inner == "-1":
+        # [-1] is the last element (C1.3). No other negative index, and no slice.
         steps.append(_Index(int(inner)))
+    elif inner[:1] == "-" and inner[1:].isdigit():
+        raise MappingError(f"only [-1] is allowed as a negative index, not [{inner}] in path {path!r}")
     else:
         raise MappingError(f"unsupported bracket {inner!r} in path {path!r}")
     return close + 1
@@ -150,7 +151,7 @@ def resolve(doc: Any, path: str) -> Resolved:
                 else:
                     skipped = True
             else:
-                if isinstance(node, (list, tuple)) and 0 <= step.index < len(node):
+                if isinstance(node, (list, tuple)) and (step.index == -1 and len(node) > 0 or 0 <= step.index < len(node)):
                     nxt.append(node[step.index])
                 else:
                     skipped = True
@@ -158,6 +159,22 @@ def resolve(doc: Any, path: str) -> Resolved:
         if not current:
             return Resolved([], found=not skipped)
     return Resolved(current, found=True)
+
+
+def count_of(res: Resolved, path: str) -> int | None:
+    """``format: count`` (C1.3): the length of the list at the path.
+
+    A wildcard path counts what it matched (``$.items[*]``); any other path must resolve to one list.
+    A path that is not there, or a value that is not a list, is None (unknown, never 0); an existing
+    empty list is a real 0.
+    """
+    if not res.found:
+        return None
+    if "[*]" in path:
+        return len(res.values)
+    if len(res.values) == 1 and isinstance(res.values[0], (list, tuple)):
+        return len(res.values[0])
+    return None
 
 
 def extract(doc: Any, path: str) -> list[Any]:
@@ -169,7 +186,7 @@ def extract(doc: Any, path: str) -> list[Any]:
 # formats
 # --------------------------------------------------------------------------
 
-FORMATS = ("number", "percent", "bytes", "duration", "relative_time", "text")
+FORMATS = ("number", "percent", "bytes", "duration", "relative_time", "text", "count")
 _IEC_UNITS = ("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB")
 _MAX_DECIMALS = 6
 _JUST_NOW_S = 60
@@ -177,7 +194,7 @@ _JUST_NOW_S = 60
 
 def format_value(
     value: Any,
-    fmt: Literal["number", "percent", "bytes", "duration", "relative_time", "text"],
+    fmt: Literal["number", "percent", "bytes", "duration", "relative_time", "text", "count"],
     unit: str | None,
     *,
     now: dt.datetime | None = None,

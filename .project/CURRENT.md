@@ -8,6 +8,29 @@ found stale and mutually inconsistent. This file routes — canonical
 truth lives in the files it names. When this file and a canonical file
 disagree, the canonical file wins.
 
+## 2026-10-01 (night) — Rebuild handoff: backend lanes done through rooms; stopped for the night
+
+**Merged into `rebuild/front-door`:** #232 contracts C1–C5, #233 foundation (config store, mapping, runner, C2 cards, read API, reference provider), #235 meter numbers, #236 confinement + owner auth + C3 dispatcher, #237 action routes + production app + agent tokens, #241 Memory (C4), plus the UI and recipe work (#234, #239, #240, #244, #245) by FOREMAN-UI and the orchestrator.
+
+**Open:**
+- **#242 L-rooms** (`rebuild/rooms`): room/0 adapter (cards, needs, adoptable actions), generic room recipes (status `planned`), review fixes pushed (head e90197a); waiting for the orchestrator's verify and merge.
+- **#243 first_run** (`rebuild/first-run`): `GET /api/boards/home` carries `first_run`; it is stacked on #242, so **retarget it to `rebuild/front-door` after #242 merges**.
+- **`rebuild/connect`** (pushed, no PR): the Connect API (`POST /api/connect/try`, `/api/connect/preview`, C9). It contains #242 + #243 + Memory, so open its PR after those land (merge front-door in first).
+- homelab PR #192: SOPS-encrypted reconstruction notes.
+
+**Next:** open the L-connect-api PR, then the backlog below.
+
+**Backlog (from the orchestrator):**
+- answer a room need from Worlds (choices / allow_text; goes through C3 like any write);
+- the room `/changed` ping (ROOM rule 15);
+- Memory restore: treat restored history rows' `actor`/`event` as untrusted display text (document it); wrap the duplicate-id `sqlite3.IntegrityError` in `MemoryError_`;
+- the process-global `umask` flips in `backup()` and `Database.conn()`: create files with `os.open(..., 0o600)` / `fchmod` instead;
+- qBittorrent (cookie session) and password-grant token (Grimmory) auth kinds;
+- a room-recipe install path in the recipe loader (FOREMAN-UI);
+- the old-module deletion PR.
+
+**State of the machines:** no offload worker or sub-foreman is running; every lane worktree is clean and pushed. Worker clones under `~/worktrees/offload` on the workstation host hold no unique work and can be removed.
+
 ## 2026-10-01 — Rebuild S1 started (S0 accepted, #231 merged)
 
 Integration branch `rebuild/front-door` exists; slice PRs target it. S1a (contracts, `docs/rebuild/CONTRACTS.md`) is in review; lanes start after it merges. Owner decision: start fresh with Worlds data (no import of the old journal, world.json, stickers or search index; backups remain). Production is unchanged.

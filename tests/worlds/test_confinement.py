@@ -365,3 +365,17 @@ def test_https_pins_ip_but_verifies_by_hostname(tmp_path):
     finally:
         s.shutdown()
         s.server_close()
+
+
+def test_query_templates_render_in_the_joined_url():
+    import datetime as dt
+
+    from personal_world.worlds.confinement import build_url
+    from personal_world.worlds.models import Provider, Request
+
+    provider = Provider(id="p", name="P", kind="http", base_url="http://svc.lan.example:8989")
+    request = Request(id="p.cal", provider="p", path="/api/v3/calendar", query={"start": "{today}", "end": "{today+7d}", "unmonitored": "false"})
+    now = dt.datetime(2026, 10, 1, 12, 0, tzinfo=dt.timezone.utc)
+    target = build_url(provider, request, now)
+    assert not isinstance(target, str)
+    assert target[3] == "/api/v3/calendar?start=2026-10-01&end=2026-10-08&unmonitored=false"

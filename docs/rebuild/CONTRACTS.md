@@ -118,6 +118,19 @@ bootstrap:                                    # optional local sign-in
 - **The owner can never be locked out by others, and back-off still throttles guessing:** a client key in back-off gets ONE evaluated guess per 2 seconds; guesses over that rate are refused without being compared at all, so an attacker cannot test guesses at network speed. Keys are independent, so nobody can use up another key's guess. The correct secret passes at most once per 15 minutes while in back-off. A wrong guess lengthens the back-off (5 s doubling, the exponent capped so it can never overflow, ceiling 15 minutes). OIDC sign-in is unaffected. A global ceiling (30 failures in 10 minutes) only adds spacing for wrong guesses. Comparisons are constant-time over fixed-length digests.
 - **The bootstrap secret must carry at least 128 bits from a generator:** at least 32 hex characters or 22 base64url characters. Generate one with `python -c "import secrets;print(secrets.token_urlsafe(32))"`. A weaker secret stops Worlds from starting (fail closed); an unset one just leaves bootstrap unusable.
 
+## C1.3 Card mapping and query additions
+
+Orchestrator decisions, 2026-10-01. Small and closed; everything else in C1 is unchanged.
+
+- **`format: count`** is the length of the list at the path (`$.records` or `$.records[*]`). A missing path, or a value that is not a list, reads `{"text":"unknown"}` with no `raw`. An existing empty list is a real `"0"` with `raw: 0`. A `unit` is appended as for `number`.
+- **Query templates**, in query values only (never path, host or headers): `{today}`, `{today+Nd}`, `{today-Nd}` (N 0 to 366) as a UTC date, and `{now}` as a UTC datetime. Rendered server side when the request is built. No other substitution, no nesting; an unknown token or a stray brace fails validation at save time.
+- **Status aggregation**, `status.mode: first | all | any` (default `first`, the first extracted value decides):
+  - `all`: `needs_attention` if any value is in `needs_attention`; else `healthy` only if every value is in `healthy`; else `unknown` (an unrecognised value makes it unknown).
+  - `any`: `needs_attention` if any value is in `needs_attention`; else `healthy` if at least one value is in `healthy` (unrecognised values are tolerated, for redundant endpoints); else `unknown`.
+  - An empty match is `unknown` in every mode, never healthy. **Addition from L-recipes:** `status.empty: healthy` (default `unknown`) makes an EXISTING empty list read `healthy`, for health lists where empty means no problems. A missing path is still `unknown`.
+  - **Threshold (orchestrator, 2026-10-02):** `status.above: {value: <number>, state: needs_attention|degraded}` applies when the first extracted value is a number greater than `value` (a bool or text never counts), and is checked before the `healthy` / `needs_attention` lists.
+- **Last element:** `[-1]` is allowed in a path. No other negative index, no slices.
+
 ## C8 room/0 providers
 
 A provider of `kind: room0` is a Play-Nice room (`contracts/surfaces/ROOM.md`). Worlds maps it; there are no per-card files.
@@ -126,6 +139,7 @@ A provider of `kind: room0` is a Play-Nice room (`contracts/surfaces/ROOM.md`). 
 - **Cards:** every `/room/cards` entry becomes a C2 envelope with id `r-<provider>-<slug>-<hash>` and appears on Home through `GET /api/boards/home` (display defs, `group` from the provider). Descriptor status maps healthy→healthy, degraded→degraded, unhealthy→needs_attention, unknown→unknown. A card past `stale_after_s` is `stale`. Links must be same-origin paths (rule 6) or they are dropped. An unknown tone reads as `update` (logged). A card that cannot be read honestly is `degraded` with every value `unknown`. An unreachable room shows its last-known cards stale with the room `unavailable`, or one `unavailable` status card when there is no history; it never blanks the other rooms.
 - **Needs:** `/room/needs-you` feeds `GET /api/needs-you` as `{id, text, source, created_at, action: {kind: "open", href?}}`; `href` exists only when the room's link is a safe path and `public_url` is set.
 - **Actions:** `/room/actions` are candidates, listed with `adopted`. `POST /api/rooms/{id}/actions/{room_action_id}/adopt` (owner, CSRF) creates a C1 request and action that is never exposed to agents, `approval: always`, `access: write` (the room's own `writes` claim is not trusted), `idempotency: required`. Running one goes through the C3 dispatcher; the room's receipt `{ok, summary, changed}` decides the outcome (`ok: true` → SUCCEEDED, `ok: false` with nothing changed → FAILED, `ok: false` with changes or an unreadable receipt → UNKNOWN). A room's own `ask_first` approval token is not supplied by Worlds: such an action fails closed at the room (FAILED).
+- **Fast on a bad day:** a failing room is not retried for 30 s (doubling to 5 min); a request waits at most 0.25 s behind another request's fetch and then serves what is known; a card request asks only its own room; every room always answers (last-known cards stale, or one explicit `unavailable` card), so a slow or dead room never delays or removes the others. The room's own receipt is trusted for FAILED only when it says `changed` is empty (documented, accepted). Adopted action ids carry a short hash of the raw room action id so look-alike ids cannot collide.
 
 ### C6.1 first run (accepted 2026-10-01)
 

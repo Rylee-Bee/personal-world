@@ -7,6 +7,7 @@ from typing import Callable
 from fastapi import Depends, FastAPI, HTTPException
 
 from .authn import Principal
+from .config_store import ConfigInvalid, EtagMismatch
 from .room0 import RoomService
 
 
@@ -25,7 +26,12 @@ def register_room_routes(app: FastAPI, rooms: RoomService, *, owner: Callable[..
     @app.post("/api/rooms/{provider_id}/actions/{room_action_id}/adopt")
     def adopt(provider_id: str, room_action_id: str, p: Principal = Depends(owner)) -> dict:
         """Make a room's action callable (never exposed to agents, approval always). Sends nothing."""
-        action = rooms.adopt(provider_id, room_action_id)
+        try:
+            action = rooms.adopt(provider_id, room_action_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from None
+        except (ConfigInvalid, EtagMismatch) as exc:
+            raise HTTPException(status_code=409, detail=f"cannot adopt: {exc}") from None
         if action is None:
             raise HTTPException(status_code=404, detail="no such room action")
         return {"action_id": action.id, "exposed": action.exposed, "approval": action.approval, "access": action.access}
