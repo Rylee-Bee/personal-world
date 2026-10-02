@@ -1,0 +1,9 @@
+schema_version: 1
+name: project-home
+title: Project Home
+summary: The development estate's gateway, as a room. Its cards appear on Home; its approvals are made in Project Home itself.
+status: planned
+note: A room/0 service and the approval authority for what it governs, so the default governance (project_home) is kept. There are no card files to install; use provider.yaml as the starting point (real address and principal_id go in your private config). One-click install for rooms arrives with the Connect screen.
+verified: false
+env:
+  - PROJECT_HOME_ROOM_TOKEN

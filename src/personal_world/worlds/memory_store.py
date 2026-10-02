@@ -496,6 +496,15 @@ class MemoryStore:
                    (float(self.clock()), actor, event, table, row_id,
                     json.dumps(detail) if detail is not None else None))
 
+    #: Events other modules may append to History (content-free details only).
+    EXTERNAL_EVENTS = ("connect_try",)
+
+    def record_event(self, event: str, detail: dict | None, *, actor: str) -> None:
+        """Append one allow-listed event written by another module (never a title or a body)."""
+        if event not in self.EXTERNAL_EVENTS:
+            raise MemoryError_(f"{event!r} is not an event other modules may record")
+        self._log(event, None, None, detail, actor=_actor(actor))
+
     def _log(self, event: str, table: str | None, row_id: str | None, detail: dict | None, *, actor: str) -> None:
         with self.db.write_tx() as tx:
             self._record_history(tx, event, table, row_id, detail, actor=actor)

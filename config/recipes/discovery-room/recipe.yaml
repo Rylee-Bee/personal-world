@@ -1,0 +1,9 @@
+schema_version: 1
+name: discovery-room
+title: A discovery room
+summary: A room that finds things for you. Its cards appear on Home under "Your life"; its actions must be adopted by you before they can run.
+status: planned
+note: A room/0 service maps its own cards, needs and actions, so there are no card files to install. Use provider.yaml as the starting point for a room provider (set the real address and principal_id in your private config). One-click install for rooms arrives with the Connect screen.
+verified: false
+env:
+  - DISCOVERY_ROOM_TOKEN
