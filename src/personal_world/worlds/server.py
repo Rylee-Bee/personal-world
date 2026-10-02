@@ -128,6 +128,8 @@ def build_app(
     data_dir: str | os.PathLike[str] | None = None,
     secret_values: Iterable[str] = (),
     needs_you: Callable[[], list[Any]] | None = None,
+    home_extra: Callable[[], list[dict[str, Any]]] | None = None,
+    card_fallback: Callable[[str], dict[str, Any] | None] | None = None,
 ) -> FastAPI:
     """Build the Worlds app. Nothing here reads a secret but its redactor."""
     store = ConfigStore(config_dir)
@@ -166,14 +168,19 @@ def build_app(
         No request id, path, provider name or fetched value crosses this route.
         """
         board = home_board_defs(store)
+        extra = home_extra() if home_extra is not None else []
         if board is None:
-            raise HTTPException(status_code=404, detail="no home board is configured")
-        return board
+            if not extra:
+                raise HTTPException(status_code=404, detail="no home board is configured")
+            return {"id": "home", "title": "Home", "items": extra}
+        return {**board, "items": [*board["items"], *extra]}
 
     @app.get("/api/cards/{card_id}", dependencies=[principal])
     def card_envelope(card_id: str) -> dict[str, Any]:
         """The C2 envelope for one card. The only route that may reach the seam."""
         envelope = cards.build(card_id)
+        if envelope is None and card_fallback is not None:
+            envelope = card_fallback(card_id)
         if envelope is None:
             raise HTTPException(status_code=404, detail=f"no card {card_id!r}")
         return envelope

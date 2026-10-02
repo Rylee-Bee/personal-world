@@ -1,0 +1,19 @@
+# Recipe: Project Home as a room. Project Home is a room/0 service and the canonical approval authority
+# for what it governs, so the default governance (project_home) is kept: approvals are made there.
+# Copy the `provider` block into $PW_CONFIG_DIR/worlds/providers/project-home.yaml and replace placeholders.
+schema_version: 1
+id: project-home
+name: Project Home
+description: The development estate's gateway. Its cards appear on Home; its approvals are made in Project Home itself.
+provider:
+  schema_version: 1
+  id: project-home
+  name: Project Home
+  kind: room0
+  base_url: https://project-home.example.test     # placeholder: the room's API address
+  public_url: https://project-home.example.test   # placeholder: where its links open
+  principal_id: your-person-id                    # placeholder
+  group: machine
+  auth:
+    type: bearer
+    secret_ref: env:PROJECT_HOME_ROOM_TOKEN       # a NAME only

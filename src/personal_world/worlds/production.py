@@ -23,6 +23,8 @@ from .auth_routes import parse_trusted_proxies
 from .authn import Auth, load_csrf_key, load_key, principal_dependency
 from .db import Database
 from .dispatcher import LEASE_TTL_S, Dispatcher
+from .room0 import Room0Client, RoomService
+from .room_routes import register_room_routes
 from .owner import load_owner_policy, strong_secret
 from .secrets import resolve_secret_ref
 from .server import build_app
@@ -64,6 +66,7 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
 
     def needs_you() -> list[dict[str, Any]]:
         d = holder["d"]
+        room_needs = holder["rooms"].needs()
         d.expire_due()
         now = auth.clock()
         rows = db.conn().execute(
@@ -71,15 +74,18 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
             (now,))
         return [{"id": f"authorization:{r['id']}", "text": f"Approve '{r['action_id']}' requested by {r['caller']}",
                  "source": "actions", "created_at": r["created_at"],
-                 "action": {"kind": "approve", "authorization_id": r["id"]}} for r in rows]
+                 "action": {"kind": "approve", "authorization_id": r["id"]}} for r in rows] + room_needs
 
     hosts = [urlsplit(policy.public_origin).hostname] if policy.public_origin else []
     from .config_store import ConfigStore
 
     live = LiveSecrets(ConfigStore(config_dir), secret_values)        # a second read-only view for redaction
     app = build_app(config_dir, principal_dependency=owner_dep, allowed_hosts=hosts or ["invalid.invalid"],
-                    data_dir=data_dir, secret_values=live, needs_you=needs_you)
+                    data_dir=data_dir, secret_values=live, needs_you=needs_you,
+                    home_extra=lambda: holder["rooms"].home_items(), card_fallback=lambda cid: holder["rooms"].card(cid))
     live._store = app.state.store
+    holder["rooms"] = RoomService(app.state.store, Room0Client(app.state.store))
+    app.state.rooms = holder["rooms"]
     dispatcher = Dispatcher(db, app.state.store, secret_values=live)
     holder["d"] = dispatcher
     # Recovery runs HERE, before create_app returns, so no route can be served first. Rows owned by a
@@ -117,6 +123,7 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
     proxies = trusted_proxies if trusted_proxies is not None else parse_trusted_proxies(os.environ.get("PW_TRUSTED_PROXIES"))
     register_auth_routes(app, auth, lambda: load_owner_policy(config_dir), _Lazy(), trusted_proxies=proxies)
     register_action_routes(app, auth, dispatcher, anyone=anyone_dep, owner=owner_dep)
+    register_room_routes(app, holder["rooms"], owner=owner_dep)
     return app
 
 

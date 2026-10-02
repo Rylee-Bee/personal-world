@@ -26,6 +26,7 @@ import base64
 import ipaddress
 import json
 import os
+import re
 import socket
 import threading
 import time
@@ -448,6 +449,12 @@ def _send(provider: Any, request: Any, effect: str, resolver: Resolver, deadline
     if isinstance(auth, ConfinementError):
         return auth
     headers.update(auth)
+    principal = getattr(provider, "principal_id", None)
+    if provider.kind == "room0" and principal:
+        # Worlds speaks for one named person, from the provider's validated setting: never a request header.
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", principal):
+            return _deny("principal_id is not valid", started)
+        headers["X-Worlds-Principal"] = principal
 
     body = None
     if request.body is not None and method not in ("GET", "HEAD"):

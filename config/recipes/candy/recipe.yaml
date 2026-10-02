@@ -1,0 +1,20 @@
+# Recipe: a discovery room (Candy). A room/0 service: Worlds maps its cards, needs and actions itself,
+# so there are no per-card files. Copy the `provider` block into $PW_CONFIG_DIR/worlds/providers/candy.yaml
+# and replace every placeholder. Keep your real settings in your PRIVATE config, never in this repository.
+schema_version: 1
+id: candy
+name: Candy
+description: A discovery room. Its cards appear on Home under "Your life"; its actions must be adopted by you before they can run.
+provider:
+  schema_version: 1
+  id: candy
+  name: Candy
+  kind: room0
+  base_url: https://candy.example.test            # placeholder: the room's API address
+  public_url: https://candy.example.test          # placeholder: where its links open
+  principal_id: your-person-id                    # placeholder: which person Worlds speaks for (letters, digits, - and _)
+  governance: worlds                              # room0 providers default to project_home; this room is approved in Worlds
+  group: life
+  auth:
+    type: bearer
+    secret_ref: env:CANDY_ROOM_TOKEN              # a NAME only; the value lives in the environment or the vault
