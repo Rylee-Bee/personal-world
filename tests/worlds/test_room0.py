@@ -681,3 +681,71 @@ def test_adopt_with_an_invalid_id_is_a_plain_400_and_a_leftover_request_is_reuse
     app.state.store.save("request", Req(id=rid, provider="demo", method="POST", path="/room/actions/refresh", ttl_s=0))
     ok = c.post("/api/rooms/demo/actions/refresh/adopt", headers=h)
     assert ok.status_code == 200 and app.state.store.get("action", aid) is not None
+
+
+# ------------------------------------------------------------- review #242 follow-ups
+
+def test_long_provider_ids_keep_card_and_status_lookups_consistent(tmp_path, monkeypatch):
+    monkeypatch.setenv("DEMO_ROOM_TOKEN", "room-token-value-0123456789")
+    r = FakeRoom()
+    try:
+        store = ConfigStore(tmp_path / "cfg")
+        pid = "livingroom-thermostat-1x-extra-long-id"                 # > 20 and > 30 chars
+        assert len(pid) > 30
+        store.save("provider", make_provider(r, id=pid, name="Thermostat"))
+        svc = RoomService(store, Room0Client(store, ttl_s=0))
+        item = svc.home_items()[0]
+        assert svc.card(item["card"]) is not None                       # the id Home lists resolves
+        r.stop()
+        svc._client._cache.clear()
+        svc._client._fails.clear()
+        items = svc.home_items()                                          # now only the status card (it has a 40-char id part)
+        assert svc.card(items[0]["card"]) is not None
+        for room_id in ("a" * 22, "b" * 40, "c" * 300):
+            cid = room_card_id(pid, room_id)
+            assert re.fullmatch(r"^[a-z0-9][a-z0-9-]{0,62}$", cid) and cid.startswith("r-")
+    finally:
+        r.stop()
+
+
+def test_a_cached_snapshot_served_after_its_ttl_is_marked_stale(env, room):
+    store, client, svc, clock, _ = env
+    client._ttl = 15
+    svc.SNAPSHOT_BUDGET_S = 0.05
+    client.snapshot("demo")                                               # fresh, cached
+    clock["t"] += 100                                                     # well past the TTL
+    import threading as _t
+    gate = _t.Event()
+    real = client._fetch
+    client._fetch = lambda provider: (gate.wait(2), real(provider))[1]    # the refresh is slow: the budget serves the cache
+    e = svc.card(room_card_id("demo", "finds"))
+    gate.set()
+    assert e["freshness"] == "stale"
+
+
+@pytest.mark.parametrize("bad", [".", "..", "...", ":", "-", "a..b", "../x"])
+def test_dot_only_and_dotdot_action_ids_are_not_actions(env, room, bad):
+    room.actions = [{"id": bad, "label": "x"}, {"id": "fine", "label": "Fine"}]
+    store, client, svc, clock, _ = env
+    assert [c["room_action_id"] for c in svc.candidates("demo")] == ["fine"]
+    with pytest.raises(ValueError):
+        svc.adopt("demo", bad)
+
+
+def test_a_leftover_request_is_reused_only_if_it_is_exactly_this_actions_own(env, room):
+    from personal_world.worlds.config_store import ConfigInvalid
+    from personal_world.worlds.models import Request as Req
+    room.actions = ACTIONS
+    store, client, svc, clock, _ = env
+    rid, aid = svc._ids("demo", "refresh")
+    store.save("request", Req(id=rid, provider="demo", method="POST", path="/room/actions/other-thing", ttl_s=0))
+    with pytest.raises(ConfigInvalid):
+        svc.adopt("demo", "refresh")
+    assert store.get("action", aid) is None
+    store.delete("request", rid)
+    store.save("request", Req(id=rid, provider="demo", method="POST", path="/room/actions/refresh", body={"sneaky": 1}, ttl_s=0))
+    with pytest.raises(ConfigInvalid):
+        svc.adopt("demo", "refresh")                                      # a fixed body would override the caller's params
+    store.delete("request", rid)
+    store.save("request", Req(id=rid, provider="demo", method="POST", path="/room/actions/refresh", ttl_s=0))
+    assert svc.adopt("demo", "refresh").id == aid                         # exactly ours: reused

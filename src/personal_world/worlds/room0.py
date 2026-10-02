@@ -21,11 +21,12 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable
 from urllib.parse import quote
 
 from .confinement import ConfinementError, RawResponse, confined_request
+from .config_store import ConfigInvalid
 from .models import Action, Provider, Request
 
 log = logging.getLogger(__name__)
@@ -50,7 +51,12 @@ def slug(text: str, limit: int = 24) -> str:
 def room_card_id(provider_id: str, room_id: str) -> str:
     """A stable Worlds card id for a room card: valid under the C1 id pattern, unique per room card."""
     digest = hashlib.sha256(f"{provider_id}\0{room_id}".encode()).hexdigest()[:6]
-    return f"r-{provider_id[:20].strip('-')}-{slug(room_id, 22)}-{digest}"[:63].rstrip("-")
+    return f"{card_prefix(provider_id)}{slug(room_id, 22)}-{digest}"[:63].rstrip("-")
+
+
+def card_prefix(provider_id: str) -> str:
+    """The prefix every room card id of this provider starts with (same builder as room_card_id)."""
+    return f"r-{provider_id[:20].strip('-')}-"
 
 
 def status_card_id(provider_id: str) -> str:
@@ -153,7 +159,8 @@ class RoomAction:
 
 
 def parse_action(doc: Any) -> RoomAction | None:
-    if not isinstance(doc, dict) or not isinstance(doc.get("id"), str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", doc["id"]):
+    if (not isinstance(doc, dict) or not isinstance(doc.get("id"), str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", doc["id"])
+            or ".." in doc["id"] or re.fullmatch(r"[.:-]+", doc["id"])):
         return None
     label = _text(doc.get("label"), 120)
     if not label or not label.strip():
@@ -380,7 +387,9 @@ class RoomService:
                 except Exception:
                     snap = None
             if snap is None:
-                snap = self._client._cache.get(p.id) or self._client._unavailable(p, "no answer in time")
+                cached = self._client._cache.get(p.id)
+                # past its TTL this is not current: serve it marked stale, never as fresh
+                snap = replace(cached, stale=True) if cached is not None else self._client._unavailable(p, "no answer in time")
             out.append((p, snap))
         return out
 
@@ -398,7 +407,7 @@ class RoomService:
         if not isinstance(card_id, str) or not card_id.startswith("r-"):
             return None
         now = self._clock()
-        mine = [p for p in self.providers() if card_id.startswith(f"r-{p.id[:20].strip('-')}-")]
+        mine = [p for p in self.providers() if card_id == status_card_id(p.id) or card_id.startswith(card_prefix(p.id))]
         for provider, snap in self._snapshots(mine):
             if card_id == status_card_id(provider.id) and (snap.error_class or not snap.cards):
                 return card_envelope(provider, snap, None, now=now)
@@ -447,7 +456,8 @@ class RoomService:
         """Owner adoption: a callable C1 action (never exposed, always approval, treated as a write,
         idempotency key required). Nothing is sent. Returns None when the room has no such action; raises
         ValueError (a plain message) for an id no room action could have."""
-        if not isinstance(room_action_id, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", room_action_id) or ".." in room_action_id:
+        if (not isinstance(room_action_id, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", room_action_id)
+                or ".." in room_action_id or re.fullmatch(r"[.:-]+", room_action_id)):
             raise ValueError("that is not a valid room action id")
         provider = self._client.provider(provider_id)
         snap = self._client.snapshot(provider_id)
@@ -459,9 +469,14 @@ class RoomService:
         request_id, action_id = self._ids(provider_id, found.room_id)
         if self._store.get("action", action_id) is not None:
             return self._store.get("action", action_id)
-        if self._store.get("request", request_id) is None:           # a request left behind by a half-finished adoption is reused
-            self._store.save("request", Request(id=request_id, provider=provider_id, method="POST",
-                                                path=f"/room/actions/{quote(found.room_id, safe='')}", ttl_s=0), etag="")
+        wanted_path = f"/room/actions/{quote(found.room_id, safe='')}"
+        leftover = self._store.get("request", request_id)
+        if leftover is None:
+            self._store.save("request", Request(id=request_id, provider=provider_id, method="POST", path=wanted_path, ttl_s=0), etag="")
+        elif not (leftover.provider == provider_id and leftover.method == "POST" and leftover.path == wanted_path
+                  and leftover.body is None and leftover.resolved_effect() == "write"):
+            # only a request that is exactly this room action's own is reused; anything else is not ours to reuse
+            raise ConfigInvalid(f"request {request_id} already exists and is not this room action's request")
         action = Action(id=action_id, request=request_id, name=found.label, access="write", approval="always",
                         scope=f"room.{provider_id}.{slug(found.room_id, 40)}", idempotency="required", exposed=False)
         self._store.save("action", action, etag="")
