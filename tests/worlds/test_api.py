@@ -133,3 +133,26 @@ def test_if_match_star_is_refused(tmp_path, ref):
     c = make_client(tmp_path, ref)
     obj = c.get("/api/config/provider/reference").json()
     assert c.put("/api/config/provider/reference", json=obj, headers={"If-Match": "*"}).status_code == 428
+
+
+def test_home_is_a_guided_first_run_when_there_is_nothing_to_show(tmp_path):
+    app = build_app(tmp_path / "cfg", principal_dependency=lambda: "owner", send_override=lambda *a, **k: None)
+    c = TestClient(app, base_url="http://127.0.0.1")
+    r = c.get("/api/boards/home")
+    assert r.status_code == 200                                    # never a 404: first run is a state, not an error
+    assert r.json() == {"id": "home", "title": "Home", "items": [], "first_run": True}
+
+
+def test_first_run_ends_once_there_is_a_card(tmp_path, ref):
+    c = make_client(tmp_path, ref)
+    body = c.get("/api/boards/home").json()
+    assert body["first_run"] is False and body["items"]
+
+
+def test_an_empty_configured_home_board_is_still_first_run(tmp_path):
+    app = build_app(tmp_path / "cfg", principal_dependency=lambda: "owner", send_override=lambda *a, **k: None)
+    c = TestClient(app, base_url="http://127.0.0.1")
+    c.put("/api/config/board/home", json={"schema_version": 1, "id": "home", "title": "Mine", "home": True, "items": []},
+          headers={"If-None-Match": "*"})
+    body = c.get("/api/boards/home").json()
+    assert body["title"] == "Mine" and body["items"] == [] and body["first_run"] is True

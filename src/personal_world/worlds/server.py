@@ -169,11 +169,10 @@ def build_app(
         """
         board = home_board_defs(store)
         extra = home_extra() if home_extra is not None else []
-        if board is None:
-            if not extra:
-                raise HTTPException(status_code=404, detail="no home board is configured")
-            return {"id": "home", "title": "Home", "items": extra}
-        return {**board, "items": [*board["items"], *extra]}
+        out = {"id": "home", "title": "Home", "items": extra} if board is None else {**board, "items": [*board["items"], *extra]}
+        # Nothing to show yet: Home is a guided start (connect a first service, then Memory), not an error.
+        out["first_run"] = not out["items"]
+        return out
 
     @app.get("/api/cards/{card_id}", dependencies=[principal])
     def card_envelope(card_id: str) -> dict[str, Any]:
