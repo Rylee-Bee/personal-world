@@ -94,7 +94,23 @@ class CardService:
         card = self._get("card", card_id)
         if card is None:
             return None
+        return self.build_for(card)
 
+    def preview(self, card: Card, document: Any) -> dict[str, Any]:
+        """The envelope ``card`` WOULD produce from ``document`` (a sample). No network, nothing stored."""
+        now = _iso(self._clock())
+        values = self._values(card, document)
+        return {
+            "card_id": card.id, "source_state": self._source_state_from_status(card, document), "freshness": "current",
+            "observed_at": now, "fetched_at": now, "last_good_at": now, "values": values,
+            "meter": self._meter(card, values, document),
+            "meaning": {"short": card.meaning.short, "full": card.meaning.full},
+            "evidence": {"request_id": card.request or (card.requests[0] if card.requests else "preview"), "method": "GET",
+                         "path": "(sample)", "status_code": None, "duration_ms": None, "error_class": None},
+        }
+
+    def build_for(self, card: Card) -> dict[str, Any]:
+        """The C2 envelope for a card object (saved or not): reads its requests through the runner."""
         request_ids = card.request_ids()
         fetches: dict[str, Fetch] = {}
         for request_id in request_ids:
