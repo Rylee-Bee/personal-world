@@ -2,7 +2,7 @@
 
 A recipe is a directory under ``config/recipes/<name>/``::
 
-    recipe.yaml            name, title, summary, status (ready | planned), note, env (secret NAMES the provider uses)
+    recipe.yaml            name, title, summary, status (ready | room | planned), note, env (secret NAMES the provider uses)
     provider.yaml          C1 provider with a placeholder base_url (``*.lan.example``) and an ``env:NAME`` secret_ref
     requests/<name>.yaml   C1 requests (read-only; the one exception is a request an action points at)
     cards/<id>.yaml        C1 cards
@@ -10,6 +10,15 @@ A recipe is a directory under ``config/recipes/<name>/``::
 
 Real hostnames, domains and keys never live in a recipe. ``install`` writes the objects through the same
 :class:`ConfigStore` the API uses, so they get the same validation, references and etags.
+
+``status`` has three values, not two:
+
+* ``ready`` - an ordinary HTTP service: the provider, requests, cards and actions are installed.
+* ``room`` - a ``kind: room0`` provider with no card files: the room maps its own cards through C8, so
+  ``install`` writes the provider only and invents no request/card/action files. It is listed and
+  installable, but it is deliberately not a member of the HTTP-shaped ``ready`` set (an HTTP recipe always
+  ships cards), so this honest third marker keeps the two kinds apart.
+* ``planned`` - listed but not installable yet; ``note`` says what it waits for.
 """
 
 from __future__ import annotations
@@ -41,8 +50,9 @@ class RecipeInfo(BaseModel):
     name: Id
     title: str = Field(min_length=1, max_length=120)
     summary: str = Field(min_length=1, max_length=400)
-    #: ready = installable; planned = listed, cannot be installed yet (``note`` says why).
-    status: str = Field(default="ready", pattern="^(ready|planned)$")
+    #: ready = HTTP service, installable; room = room0 provider, installable provider-only;
+    #: planned = listed, cannot be installed yet (``note`` says why).
+    status: str = Field(default="ready", pattern="^(ready|room|planned)$")
     note: str = ""
     #: True only once a foreman has checked the shapes read-only against a real service. Recipes start unverified.
     verified: bool = False
@@ -135,10 +145,15 @@ def install(
 ) -> list[str]:
     """Write the recipe into ``store``. Returns the ids written. Existing objects are kept unless ``overwrite``.
 
+    ``ready`` and ``room`` recipes are installable; a ``planned`` one is not. A ``room`` recipe has a
+    ``room0`` provider and no card files, so only the provider is written - the room maps its own cards
+    through C8 and the install must not invent request/card/action files for it.
+
     The provider's placeholder ``base_url`` is never installed: the owner supplies the real one here, at install
-    time, and it goes only into their own config directory.
+    time, and it goes only into their own config directory. A room provider keeps its ``your-person-id``
+    ``principal_id`` placeholder; the owner replaces it in their own config.
     """
-    if recipe.info.status != "ready" or recipe.provider is None:
+    if recipe.info.status not in ("ready", "room") or recipe.provider is None:
         raise RecipeError(f"{recipe.info.name} cannot be installed yet: {recipe.info.note or 'not ready'}")
     provider = recipe.provider.model_copy(deep=True)
     if base_url:
