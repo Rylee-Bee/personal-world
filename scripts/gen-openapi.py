@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
-"""S2: regenerate ui/src/generated/openapi.json from the LIVE app.
+"""S2: regenerate ui/src/generated/openapi.json from the LIVE rebuild app.
 
-The committed spec went 54-paths stale because nothing could be rebuilt
-reproducibly — app.openapi() had been silently broken by a route annotation
-(worlds_backup FileResponse). One command now, run it whenever routes
-change; CI gate for this is D5 (arming pending):
+The front-door app is ``personal_world.worlds.production:create_app``; the old
+``personal_world.api:create_app`` is being deleted. This writes the committed
+OpenAPI document from the new app built on a throwaway config/data dir, so no
+owner policy, credential or network is needed:
 
-    uv run --extra crypto python scripts/gen-openapi.py
+    uv run python scripts/gen-openapi.py
+
+Consumer: ``ui/scripts/generate-api-types.mjs`` (run by ``npm run api:generate``,
+which is part of ``npm run build``) reads this file and writes
+``ui/src/generated/api-types.ts``.
 """
 import json, sys, tempfile
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from personal_world.api import create_app  # noqa: E402
 
-tmp = Path(tempfile.mkdtemp())
-spec = create_app(data_dir=tmp / "data", config_dir=tmp / "config").openapi()
-out = Path(__file__).resolve().parent.parent / "ui" / "src" / "generated" / "openapi.json"
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from personal_world.worlds.production import create_app  # noqa: E402
+
+tmp = Path(tempfile.mkdtemp(prefix="pw-openapi-"))
+spec = create_app(tmp / "config", tmp / "data").openapi()
+out = ROOT / "ui" / "src" / "generated" / "openapi.json"
 out.write_text(json.dumps(spec, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
 print(f"regenerated {out} — {len(spec['paths'])} paths from live routes")
