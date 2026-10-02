@@ -64,4 +64,4 @@ Not recipes: a dashboard that Worlds replaces, and DNS (it is file-based, not HT
 
 ## Writing or changing a recipe
 
-Keep it sanitized: placeholder host `http://<service>.lan.example:<port>`, secret names only. `tests/recipes/test_recipes.py` checks that every ready recipe installs, is read-only, has plain card names, maps its sample responses, and contains no real-looking host, domain or private word. Add a sample for the healthy case, the empty case and the service-down case.
+Keep it sanitized: placeholder host of the shape `sonarr.lan.example` with the service port, secret names only. `tests/recipes/test_recipes.py` checks that every ready recipe installs, is read-only, has plain card names, maps its sample responses, and contains no real-looking host, domain or private word. Add a sample for the healthy case, the empty case and the service-down case.

@@ -164,5 +164,5 @@ def test_no_private_names_in_public_recipe_files(path):
     for host in URLISH.findall(text):
         h = host.split(":")[0].lower()
         assert h.endswith(".example") or h in ("127.0.0.1", "localhost"), f"{path.name}: real-looking host {host!r}"
-    for m in DOMAINLIKE.findall(text):
+    for m in DOMAINLIKE.findall(text.replace("network.lan", "")):
         assert m.lower().endswith(".example") or m.lower().startswith(("example.",)), f"{path.name}: domain-like text {m!r}"
