@@ -101,15 +101,19 @@ describe("Row anatomy", () => {
     expect(screen.getByText("How full the main disk is.")).toBeInTheDocument();
     expect(screen.getByText("Current")).toBeInTheDocument();
   });
-  it("a problem row always says when it was last good; unknown says never", () => {
+  it("a problem row always says when it was last good; one that never answered says so", () => {
     row("malformed");
-    expect(screen.getByText("Last good —")).toBeInTheDocument();
-    expect(screen.getByText("Last good: never")).toHaveClass("fd-sr");
+    expect(screen.getByText("Never answered")).toBeInTheDocument();
+    expect(screen.queryByText(/Last good/)).not.toBeInTheDocument();
   });
   it("does not repeat the name as its meaning", () => {
     row("malformed");
     expect(screen.getAllByText("Calendar")).toHaveLength(1);
     expect(screen.getByText("Today's events")).toBeInTheDocument();
+  });
+  it("the drill-in keeps units next to the value", () => {
+    row("backup", { expanded: true });
+    expect(within(screen.getByRole("region", { name: "Backup details" })).getByText("26 h ago")).toBeInTheDocument();
   });
   it("the drill-in shows field labels, never keys", () => {
     row("downloads", { expanded: true });
@@ -137,8 +141,10 @@ describe("Row anatomy", () => {
     expect(ev.closest("summary")).not.toBeNull();
     expect(at("Last good 08:12")).toBeLessThan(text.indexOf("Technical evidence"));
     expect(within(region).getByRole("link", { name: "Open in Connect" })).toHaveAttribute("href", "#connect");
-    expect(region.querySelector("details")).toHaveTextContent(/sonarr\.queue/);
-    expect(region.querySelector("details")).toHaveTextContent(/http_5xx/);
+    expect(region.querySelector("details")).toHaveTextContent("Request: sonarr.queue");
+    expect(region.querySelector("details")).toHaveTextContent("Error: Server error");
+    expect(region.querySelector("details")).toHaveTextContent("Status code: 500");
+    expect(region.querySelector("details")).not.toHaveTextContent(/http_5xx|status_code|error_class/);
   });
   it("Detailed density opens the evidence", () => {
     row("downloads", { expanded: true, density: "detailed" });

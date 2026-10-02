@@ -3,7 +3,7 @@ import { Connect } from "./Connect";
 import { Home } from "./Home";
 import { Memory } from "./Memory";
 import { usePrefs } from "./prefs-core";
-import { hashFor, parseHash, type Landmark } from "./route";
+import { hashFor, LANDMARKS, parseHash, type Landmark } from "./route";
 import { Settings } from "./Settings";
 import { Shell } from "./Shell";
 import { StationDecor } from "./StationDecor";
@@ -31,6 +31,12 @@ export function FdApp() {
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
   }, []);
+
+  // Each screen names the tab: "Home · Worlds".
+  useEffect(() => {
+    const label = LANDMARKS.find((l) => l.id === current)?.label ?? "Home";
+    document.title = `${label} · Worlds`;
+  }, [current]);
 
   // Preferences live on <html> so CSS (theme, density, pack) needs no re-render.
   useEffect(() => {

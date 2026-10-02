@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { STATE_SHAPE, type BoardItem, type CardEnvelope, type Density, type Words } from "./types";
 import { Meter } from "./Meter";
+import { formatClock } from "./time";
 import "./fd.css";
 
 export interface RowProps {
@@ -35,17 +36,6 @@ function glyph(icon: string): string {
   return ICONS[icon] ?? "◆";
 }
 
-function formatClock(iso: string, timeZone?: string): string | null {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-    timeZone,
-  }).format(date);
-}
-
 /** C2.1: a value is missing when it is absent, or "unknown" with no raw. Never 0. */
 function readPrimary(item: BoardItem, card: CardEnvelope): { text: string; present: boolean; unit?: string } {
   const field = item.fields[0];
@@ -64,20 +54,31 @@ function Meaning({ words, card, title }: { words: Words; card: CardEnvelope; tit
   return <span className="fd-row-meaning">{text}</span>;
 }
 
-function evidenceRows(card: CardEnvelope): { key: string; value: string | number }[] {
+const ERROR_LABEL: Record<string, string> = {
+  timeout: "Timed out",
+  connection: "Couldn't connect",
+  http_4xx: "Refused the request",
+  http_5xx: "Server error",
+  malformed: "Unreadable answer",
+  redirect_refused: "Redirect refused",
+  too_large: "Answer too large",
+  confinement_denied: "Not allowed",
+  auth_failed: "Sign-in refused",
+};
+
+/** Plain labels, no raw keys or capitals. Only what is really there is listed. */
+function evidenceRows(card: CardEnvelope): { label: string; value: string | number }[] {
   const e = card.evidence;
   const candidates: [string, string | number | undefined][] = [
-    ["request_id", e.request_id || undefined],
-    ["method", e.method || undefined],
-    ["path", e.path || undefined],
-    ["status_code", e.status_code],
-    ["duration_ms", e.duration_ms],
-    ["error_class", e.error_class],
-    ["note", e.note],
+    ["Request", e.request_id || undefined],
+    ["Method", e.method || undefined],
+    ["Path", e.path || undefined],
+    ["Status code", e.status_code],
+    ["Took", e.duration_ms === undefined ? undefined : `${e.duration_ms} ms`],
+    ["Error", e.error_class ? (ERROR_LABEL[e.error_class] ?? e.error_class) : undefined],
+    ["Note", e.note],
   ];
-  return candidates
-    .filter((pair): pair is [string, string | number] => pair[1] !== undefined)
-    .map(([key, value]) => ({ key, value }));
+  return candidates.filter((pair): pair is [string, string | number] => pair[1] !== undefined).map(([label, value]) => ({ label, value }));
 }
 
 /**
@@ -94,31 +95,21 @@ export function Row({ item, card, words, density, timeZone, expanded, onToggle, 
   const problem = card.source_state !== "healthy" || card.freshness === "stale";
 
   // A row with a problem always says when it was last good. Healthy rows say it only in Full.
-  let freshness: { visible: string; hidden?: string } | null = null;
+  let freshness: { visible: string } | null = null;
   if (problem) {
     const at = card.last_good_at ?? card.observed_at;
     const clock = at ? formatClock(at, timeZone) : null;
-    freshness = clock ? { visible: `Last good ${clock}` } : { visible: "Last good —", hidden: "Last good: never" };
+    freshness = clock ? { visible: `Last good ${clock}` } : { visible: "Never answered" };
   } else if (words === "full") {
     freshness = { visible: "Current" };
   }
-  const freshnessNode = freshness && (
-    <span className="fd-row-freshness">
-      {freshness.hidden ? (
-        <>
-          <span aria-hidden="true">{freshness.visible}</span>
-          <span className="fd-sr">{freshness.hidden}</span>
-        </>
-      ) : (
-        freshness.visible
-      )}
-    </span>
-  );
+  const freshnessNode = freshness && <span className="fd-row-freshness">{freshness.visible}</span>;
 
   const values = Object.entries(card.values);
   const evidence = evidenceRows(card);
   const regionLabel = `${item.title} details`;
   const label = (key: string) => item.fields.find((f) => f.key === key)?.label ?? key;
+  const unitOf = (key: string) => item.fields.find((f) => f.key === key)?.unit ?? "";
   const cls = ["fd-row", `fd-row--t${tier}`, item.size === "S" ? "fd-row--slim" : item.size === "L" ? "fd-row--l" : "", showMeter ? "" : "fd-row--nometer", card.source_state === "unavailable" ? "is-bad" : "", card.source_state === "degraded" ? "is-degraded" : "", expanded ? "is-open" : ""]
     .filter(Boolean)
     .join(" ");
@@ -169,7 +160,7 @@ export function Row({ item, card, words, density, timeZone, expanded, onToggle, 
             {values.map(([key, value]) => (
               <div key={key} className="fd-row-detail-value">
                 <dt>{label(key)}</dt>
-                <dd>{value.text}</dd>
+                <dd>{unitOf(key) && value.raw !== undefined ? `${value.text} ${unitOf(key)}` : value.text}</dd>
               </div>
             ))}
           </dl>
@@ -178,8 +169,8 @@ export function Row({ item, card, words, density, timeZone, expanded, onToggle, 
             <summary>Technical evidence</summary>
             <ul>
               {evidence.map((row) => (
-                <li key={row.key}>
-                  {row.key}: {row.value}
+                <li key={row.label}>
+                  {row.label}: {row.value}
                 </li>
               ))}
             </ul>

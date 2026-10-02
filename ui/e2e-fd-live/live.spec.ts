@@ -6,7 +6,7 @@ const SHOTS = process.env.PW_FD_SHOTS;
 test("Home against the real reference provider", async ({ page }, info) => {
   await page.goto("/#home");
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
 
   // unavailable, degraded, locked all land in Needs a look, worst first
   const look = page.getByRole("heading", { name: "Needs a look" }).locator("xpath=ancestor::section");
@@ -28,7 +28,7 @@ test("Home against the real reference provider", async ({ page }, info) => {
   await look.getByRole("button", { name: /Reference down/ }).click();
   const region = page.getByRole("region", { name: "Reference down details" });
   await region.getByText("Technical evidence").click();
-  await expect(region).toContainText("http_5xx");
+  await expect(region).toContainText("Server error");
 
   const violations = (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()).violations;
   expect(violations.map((v) => v.id)).toEqual([]);
@@ -42,7 +42,7 @@ test("Edit Home saves to the real board file and survives a reload", async ({ pa
   test.skip(info.project.name !== "live-desktop-1280", "one writer");
   await page.goto("/#home");
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
   // Quietly working keeps board order (Needs a look is sorted worst-first), so a move shows there.
   const titles = () => page.locator("section:has(> h2:text('Quietly working')) li.fd-row .fd-row-title").allTextContents();
   const before = await titles();
@@ -53,7 +53,7 @@ test("Edit Home saves to the real board file and survives a reload", async ({ pa
   expect((await put).status()).toBe(200);
   await page.reload();
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
   expect((await titles()).indexOf(second)).toBeLessThan(before.indexOf(second));
   // put it back: Undo is only for this session, so move it later again
   await page.getByRole("button", { name: "Edit Home" }).click();
