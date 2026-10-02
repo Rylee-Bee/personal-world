@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { briefing, buildSections } from "../fd/home-model";
+import { briefing, briefingFull, buildSections } from "../fd/home-model";
 import { cards, homeBoard, needsYou } from "../fd/fixtures";
 
 describe("home model", () => {
@@ -27,7 +27,19 @@ describe("home model", () => {
     expect(ids(buildSections(b, cards, []).needs_look)).toEqual(["downloads", "backup"]);
   });
   it("writes a terse briefing", () => {
-    expect(briefing(s)).toBe("2 for you · Downloads down · Backup stale · 1 more to look at · rest quiet");
+    expect(briefing(s)).toBe("2 for you · Downloads unavailable · Backup stale · 1 more to look at · rest quiet");
     expect(briefing({ needs_you: [], needs_look: [], your_life: [], quietly_working: [], not_configured: [] })).toBe("all quiet");
+  });
+  it("uses the badge words in the terse briefing", () => {
+    const all = (state: "degraded" | "needs_attention" | "unknown") =>
+      briefing(buildSections({ ...homeBoard, items: homeBoard.items.filter((i) => i.card === "disk") }, { disk: { ...cards.disk, source_state: state } }, []));
+    expect(all("degraded")).toBe("Disk degraded · rest quiet");
+    expect(all("needs_attention")).toBe("Disk needs attention · rest quiet");
+    expect(all("unknown")).toBe("Disk unknown · rest quiet");
+  });
+  it("Words Full: whole sentences with the same facts", () => {
+    const text = briefingFull(s, "UTC");
+    expect(text).toBe("Two things need you. Downloads isn't answering; it last worked at 08:12. Backup is out of date; it last updated at 08:12. 1 more needs a look. Everything else is quiet.");
+    expect(briefingFull({ needs_you: [], needs_look: [], your_life: [], quietly_working: [], not_configured: [] })).toBe("All quiet.");
   });
 });
