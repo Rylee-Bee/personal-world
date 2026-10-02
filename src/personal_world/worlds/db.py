@@ -58,6 +58,7 @@ class Database:
             c.execute("PRAGMA journal_mode=WAL")
             c.execute("PRAGMA synchronous=FULL")
             c.execute("PRAGMA foreign_keys=ON")
+            c.execute("PRAGMA trusted_schema=OFF")  # a restored/foreign database cannot run functions from its schema
             c.execute("PRAGMA busy_timeout=10000")
             self._local.conn = c
             with self._lock:
