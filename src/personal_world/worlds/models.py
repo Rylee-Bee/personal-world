@@ -61,26 +61,67 @@ def check_auth_header_name(name: str) -> str:
 
 
 class Auth(BaseModel):
+    """How a provider authenticates. Values are never here: ``secret_ref`` names them.
+
+    ``cookie_session`` describes a login POST whose ``Set-Cookie`` answer is held in memory by
+    the sender (C1). A username is not strictly a secret, but every credential-ish value in this
+    repo travels by ``secret_ref``, so the login takes the whole pair from one secret
+    (``username:password``, the same convention ``basic`` uses) rather than write a literal
+    username into config. Thus ``cookie_session`` needs only ``secret_ref`` and ``login_path``.
+    ``login_path`` is where the credential is POSTed; ``username_field``/``password_field`` name
+    the form fields that carry it. A cookie can never be a request header:
+    :data:`FORBIDDEN_AUTH_HEADERS` keeps ``cookie``/``set-cookie`` out of ``header_name``, and the
+    sender attaches the session internally instead.
+    """
+
     model_config = ConfigDict(extra="forbid")
-    type: Literal["none", "bearer", "header", "basic"] = "none"
+    type: Literal["none", "bearer", "header", "basic", "cookie_session"] = "none"
     header_name: str | None = None
     secret_ref: str | None = None
+    # cookie_session only: the login endpoint and the form fields it reads.
+    login_path: str | None = None
+    username_field: str = "username"
+    password_field: str = "password"
 
     @field_validator("header_name")
     @classmethod
     def _header(cls, v: str | None) -> str | None:
         return check_auth_header_name(v) if v is not None else v
 
+    @field_validator("login_path")
+    @classmethod
+    def _login_path(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if (not v.startswith("/") or v.startswith("//") or "://" in v or "\\" in v
+                or "?" in v or ".." in v.split("/")):
+            raise ValueError("login_path must be a plain path starting with /")
+        return v
+
+    @field_validator("username_field", "password_field")
+    @classmethod
+    def _form_field(cls, v: str) -> str:
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{0,63}", v or ""):
+            raise ValueError("login form field names must be simple names")
+        return v
+
     @model_validator(mode="after")
     def _check(self) -> "Auth":
         if self.type == "none":
             if self.secret_ref:
                 raise ValueError("auth.type none must not have secret_ref")
+            if self.login_path:
+                raise ValueError("login_path is only for auth.type cookie_session")
             return self
         if not self.secret_ref or not SECRET_REF_RE.match(self.secret_ref):
             raise ValueError("secret_ref must be env:NAME, vault:NAME or file:NAME")
         if self.type == "header" and not self.header_name:
             raise ValueError("auth.type header needs header_name")
+        if self.type == "cookie_session":
+            if not self.login_path:
+                raise ValueError("auth.type cookie_session needs login_path")
+        elif self.login_path:
+            raise ValueError("login_path is only for auth.type cookie_session")
         return self
 
 

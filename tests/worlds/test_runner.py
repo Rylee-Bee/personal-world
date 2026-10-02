@@ -7,7 +7,8 @@ import time
 import pytest
 
 from personal_world.worlds.confinement import ConfinementError, RawResponse
-from personal_world.worlds.models import Assertion
+from personal_world.worlds.models import Assertion, Auth, Provider, Request
+from personal_world.worlds.reference_provider import ReferenceServer, reference_send
 from personal_world.worlds.runner import Runner
 
 from .conftest import add_request, ok
@@ -173,3 +174,110 @@ def test_single_flight_for_concurrent_fetches(store, send):
     ts = [threading.Thread(target=lambda: out.append(r.fetch("ref.items"))) for _ in range(5)]
     [t.start() for t in ts]; [t.join() for t in ts]
     assert send.count() == 1 and len(out) == 5 and all(o.ok for o in out)
+
+
+# ---- cookie_session auth (T9): the session cookie lives only in the sender's memory ---------------------------
+
+COOKIE_USERNAME = "admin"
+COOKIE_PASSWORD = "pw-s3cret-cookie-9c1f"
+COOKIE_LOGIN_PATH = "/api/v2/auth/login"
+
+
+@pytest.fixture
+def cookie_server():
+    with ReferenceServer(username=COOKIE_USERNAME, password=COOKIE_PASSWORD) as srv:
+        yield srv
+
+
+def cookie_provider(server, **kw):
+    d = dict(
+        id="cookie",
+        name="Cookie",
+        kind="reference",
+        base_url=server.base_url,
+        network={"lan": True},
+        auth=Auth(
+            type="cookie_session",
+            login_path=COOKIE_LOGIN_PATH,
+            secret_ref="env:COOKIE_CREDENTIALS",
+        ),
+    )
+    d.update(kw)
+    return Provider(**d)
+
+
+def cookie_secrets():
+    return {"COOKIE_CREDENTIALS": f"{COOKIE_USERNAME}:{COOKIE_PASSWORD}"}
+
+
+def cookie_store(store, server, path="/cookie-protected", **request_kw):
+    store.save("provider", cookie_provider(server))
+    store.save("request", Request(id="cookie.items", provider="cookie", path=path, **request_kw))
+    return store
+
+
+def test_cookie_session_login_then_authenticated_read(cookie_server, store):
+    cookie_store(store, cookie_server)
+    f = make(store, reference_send(cookie_secrets())).fetch("cookie.items")
+    assert f.ok and f.status_code == 200 and f.data == {"ok": True, "items": [1, 2]}
+    assert cookie_server.calls_to(COOKIE_LOGIN_PATH) == 1
+    assert cookie_server.calls_to("/cookie-protected") == 1
+
+
+def test_cookie_session_renews_on_403_exactly_once(cookie_server, store):
+    cookie_store(store, cookie_server)
+    runner = make(store, reference_send(cookie_secrets()))
+    assert runner.fetch("cookie.items").ok
+    assert cookie_server.calls_to(COOKIE_LOGIN_PATH) == 1
+    cookie_server.expire_sessions()  # the server forgets the session; the sender still holds it
+    f = runner.fetch("cookie.items", force=True)
+    assert f.ok and f.status_code == 200
+    assert cookie_server.calls_to(COOKIE_LOGIN_PATH) == 2  # exactly one re-login
+    assert cookie_server.calls_to("/cookie-protected") == 3  # ok, rejected, retried once
+
+
+def test_cookie_session_second_403_fails_without_looping(cookie_server, store):
+    cookie_store(store, cookie_server, path="/cookie-denied")
+    f = make(store, reference_send(cookie_secrets())).fetch("cookie.items")
+    assert not f.ok and f.error_class == "auth_failed" and f.status_code == 403
+    assert cookie_server.calls_to(COOKIE_LOGIN_PATH) == 2  # initial + one re-login, never more
+    assert cookie_server.calls_to("/cookie-denied") == 2
+
+
+def test_cookie_session_keeps_cookie_and_password_out_of_everything(cookie_server, store, tmp_path):
+    cookie_store(store, cookie_server, ttl_s=0)
+    cache = tmp_path / "cache"
+    secrets_map = cookie_secrets()
+    runner = make(store, reference_send(secrets_map), cache_dir=cache, secret_values=list(secrets_map.values()))
+    f = runner.fetch("cookie.items")
+    assert f.ok
+
+    # The login POST carried the credential in its form body ...
+    login_bodies = cookie_server.bodies_to(COOKIE_LOGIN_PATH)
+    assert len(login_bodies) == 1
+    assert COOKIE_USERNAME.encode() in login_bodies[0]
+    assert COOKIE_PASSWORD.encode() in login_bodies[0]
+
+    # ... but the issued session cookie and the password are nowhere the runner kept.
+    cookie = cookie_server.issued_cookie()
+    assert cookie is not None
+    token = cookie.partition("=")[2]
+    surfaces = [f.note, json.dumps(f.as_evidence()), json.dumps(f.data)]
+    for path in cache.rglob("*"):
+        if path.is_file():
+            surfaces.append(path.read_text())
+    assert surfaces  # the cache file is part of the check
+    for surface in surfaces:
+        assert token not in surface
+        assert COOKIE_PASSWORD not in surface
+
+
+def test_cookie_session_model_needs_login_path_and_secret_ref():
+    with pytest.raises(Exception):
+        Auth(type="cookie_session", secret_ref="env:COOKIE_CREDENTIALS")  # no login_path
+    with pytest.raises(Exception):
+        Auth(type="cookie_session", login_path=COOKIE_LOGIN_PATH)  # no secret_ref
+    with pytest.raises(ValueError):
+        Auth(type="header", header_name="Cookie", secret_ref="env:K")  # a cookie is never a request header
+    auth = Auth(type="cookie_session", secret_ref="env:COOKIE_CREDENTIALS", login_path=COOKIE_LOGIN_PATH)
+    assert auth.login_path == COOKIE_LOGIN_PATH and auth.type == "cookie_session"

@@ -11,7 +11,9 @@ for real instead of mocked:
 * a stateful POST that counts (``/actions/ping``, ``/lost``),
 * the whole ``error_class`` surface (``/slow``, ``/boom``, ``/validate``,
   ``/malformed``, ``/redirect``, ``/oversize``, ``/secret``),
-* credential shapes (``/echo-auth``, ``/secret-echo``).
+* credential shapes (``/echo-auth``, ``/secret-echo``),
+* a cookie-session login (``/api/v2/auth/login`` issuing ``Set-Cookie``) and its protected reads
+  (``/cookie-protected``, ``/cookie-denied``).
 
 ``reference_send`` is **test-only**. It is *not* the confinement module and it is
 *not* the production outbound path: it makes no SSRF, DNS, redirect or
@@ -28,6 +30,7 @@ from __future__ import annotations
 
 import base64
 import json
+import secrets
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -91,6 +94,45 @@ class _Handler(BaseHTTPRequestHandler):
         split = urlsplit(self.path)
         self._owner.record(self.command, split.path, dict(self.headers))
         return split.path, split.query
+
+    def _read_body(self) -> bytes:
+        """The request body, when the client declared one. Login forms are the only bodies read."""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return b""
+        return self.rfile.read(length) if length > 0 else b""
+
+    def _cookie_read(self) -> None:
+        """A read that only answers while the request carries a live session cookie."""
+        owner = self._owner
+        token = ""
+        for part in (self.headers.get("Cookie") or "").split(";"):
+            name, _, value = part.strip().partition("=")
+            if name == owner.cookie_name:
+                token = value
+        with owner._lock:
+            live = token in owner.sessions
+        if live:
+            self._json(200, {"ok": True, "items": [1, 2]})
+        else:
+            self._json(403, {"error": "forbidden"})
+
+    def _cookie_login(self, body: bytes) -> None:
+        """Issue a session cookie for good credentials, 403 for bad ones. Never logs the value."""
+        owner = self._owner
+        if owner.username is None or owner.password is None:
+            self._json(404, {"error": "not_found"})
+            return
+        form = dict(parse_qsl(body.decode("utf-8", "replace"), keep_blank_values=True))
+        if form.get("username") != owner.username or form.get("password") != owner.password:
+            self._json(403, {"error": "bad_credentials"})
+            return
+        cookie = f"{owner.cookie_name}={secrets.token_urlsafe(16)}"
+        with owner._lock:
+            owner.sessions.add(cookie.partition("=")[2])
+            owner.issued_cookies.append(cookie)
+        self._json(200, {"status": "ok"}, {"Set-Cookie": f"{cookie}; HttpOnly; Path=/"})
 
     def _json(self, status: int, payload: Any, headers: dict[str, str] | None = None) -> None:
         body = json.dumps(payload).encode()
@@ -183,6 +225,11 @@ class _Handler(BaseHTTPRequestHandler):
                     "x-api-key": self.headers.get("X-Api-Key"),
                 },
             )
+        elif path == "/cookie-protected":
+            self._cookie_read()
+        elif path == "/cookie-denied":
+            # Always refuses, so the caller's one re-login and one retry can be observed.
+            self._json(403, {"error": "forbidden"})
         else:
             self._json(404, {"error": "not_found"})
 
@@ -194,7 +241,11 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib name
         path, _ = self._record()
-        if path == "/actions/ping":
+        if path == "/api/v2/auth/login":
+            body = self._read_body()
+            self._owner.record_body(path, body)
+            self._cookie_login(body)
+        elif path == "/actions/ping":
             key = self.headers.get("Idempotency-Key")
             replay = self._owner.replay(key) if key else None
             if replay is None:
@@ -224,10 +275,25 @@ class ReferenceServer:
     case is provoked).
     """
 
-    def __init__(self, token: str | None = None) -> None:
+    def __init__(
+        self,
+        token: str | None = None,
+        *,
+        username: str | None = None,
+        password: str | None = None,
+        cookie_name: str = "SID",
+    ) -> None:
         self.token = token
+        # When both are set, /api/v2/auth/login accepts them and issues a session cookie.
+        self.username = username
+        self.password = password
+        self.cookie_name = cookie_name
         self.counters: dict[str, int] = {}
         self.calls: list[tuple[str, str, dict[str, str]]] = []
+        # Bodies of POSTs the harness needs to inspect (login form), never sent anywhere else.
+        self.post_bodies: list[tuple[str, bytes]] = []
+        self.sessions: set[str] = set()
+        self.issued_cookies: list[str] = []
         self._idempotent: dict[str, bytes] = {}
         self._lock = threading.Lock()
         self._httpd = _Server(("127.0.0.1", 0), _Handler)
@@ -267,6 +333,25 @@ class ReferenceServer:
         """How many requests reached ``path`` (query string not counted)."""
         return sum(1 for _, seen, _ in self.calls if seen == path)
 
+    def expire_sessions(self) -> None:
+        """Forget every live session, so the next protected read must re-login."""
+        with self._lock:
+            self.sessions.clear()
+
+    def record_body(self, path: str, body: bytes) -> None:
+        with self._lock:
+            self.post_bodies.append((path, body))
+
+    def bodies_to(self, path: str) -> list[bytes]:
+        """The bodies of POSTs that reached ``path`` (test harness only; never a cookie store)."""
+        with self._lock:
+            return [body for seen, body in self.post_bodies if seen == path]
+
+    def issued_cookie(self) -> str | None:
+        """The last ``name=value`` cookie this server issued, or None. Test harness only."""
+        with self._lock:
+            return self.issued_cookies[-1] if self.issued_cookies else None
+
     # -- counters (called from handler threads) ---------------------------
 
     def bump(self, name: str) -> int:
@@ -296,23 +381,38 @@ def _build_url(provider: Provider, request: Request) -> str:
     return f"{base}{prefix}{request.path}"
 
 
+def _secret_name(ref: str | None) -> str:
+    """The NAME after ``env:``/``vault:`` (a validated ref), never a value."""
+    return (ref or "").partition(":")[2]
+
+
+def _cookie_pair(set_cookie: str | None) -> str | None:
+    """The ``name=value`` of a Set-Cookie header; its attributes never travel back."""
+    if not set_cookie:
+        return None
+    pair = set_cookie.split(";", 1)[0].strip()
+    return pair or None
+
+
 def _auth_headers(auth: Any, secrets: dict[str, str]) -> tuple[dict[str, str] | None, str | None]:
     """Headers to add for ``auth``, or ``(None, note)`` when the secret is missing.
 
     The note never contains a secret value -- only the name of what was missing.
+    ``cookie_session`` is handled by the sender's session path; it never becomes a header here.
     """
     if auth.type == "none" or not auth.secret_ref:
         return {}, None
-    _, _, name = auth.secret_ref.partition(":")
-    value = secrets.get(name)
+    value = secrets.get(_secret_name(auth.secret_ref))
     if value is None:
         return None, f"secret not available for {auth.secret_ref}"
     if auth.type == "bearer":
         return {"Authorization": f"Bearer {value}"}, None
     if auth.type == "header":
         return {auth.header_name or "X-Api-Key": value}, None
-    encoded = base64.b64encode(value.encode()).decode()
-    return {"Authorization": f"Basic {encoded}"}, None
+    if auth.type == "basic":
+        encoded = base64.b64encode(value.encode()).decode()
+        return {"Authorization": f"Basic {encoded}"}, None
+    return None, f"unsupported auth type {auth.type}"
 
 
 def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | None = None) -> Sender:
@@ -324,9 +424,18 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
     streaming, maps transport failures onto the C2 ``error_class`` vocabulary,
     and never puts a secret value into a note.
 
+    For ``auth.type cookie_session`` the session cookie lives only in this closure's memory:
+    it is never logged, persisted, cached, noted or returned. A process restart simply
+    logs in again. A ``403`` on a normal request triggers one re-login and one retry of
+    that request; a second failure is reported, never swallowed and never looped.
+
     Returns ``RawResponse`` for any completed exchange -- including 4xx/5xx and
     undecodable bodies: whether a status is a failure is the runner's call.
     """
+
+    #: provider identity -> ``name=value`` session cookie. In memory only, for the life of this closure.
+    sessions: dict[tuple[str, ...], str] = {}
+    session_lock = threading.Lock()
 
     def send(provider: Provider, request: Request, *, effect: Literal["read", "write"]) -> RawResponse | ConfinementError:
         started = time.monotonic()
@@ -346,6 +455,10 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
                 "reference sender only serves kind=reference at 127.0.0.1 on a running reference server's port",
                 duration_ms=elapsed_ms(),
             )
+
+        if provider.auth.type == "cookie_session":
+            return _session_send(provider, request)
+
         headers: dict[str, str] = dict(request.headers)
         auth_headers, missing = _auth_headers(provider.auth, secrets)
         if auth_headers is None:
@@ -366,5 +479,83 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
                            verify=False, limit=provider.max_bytes)
         finally:
             deadline.disarm()
+
+    def _exchange(method: str, url: str, headers: dict[str, str], content: bytes | None,
+                  timeout_s: float, max_bytes: int) -> RawResponse | ConfinementError:
+        """One exchange with its own budget; the cookie never enters a header dict outside the caller."""
+        deadline = Deadline(timeout_s)
+        try:
+            return perform(deadline, method, url, headers=headers, content=content, extensions={},
+                           verify=False, limit=max_bytes)
+        finally:
+            deadline.disarm()
+
+    def _login(provider: Provider, request: Request) -> tuple[str | None, ConfinementError | None]:
+        """POST the credential, return the session cookie pair, or the failure. Flow only."""
+        auth = provider.auth
+        credential = secrets.get(_secret_name(auth.secret_ref))
+        if credential is None:
+            return None, ConfinementError("auth_failed", f"secret not available for {auth.secret_ref}")
+        username, sep, password = credential.partition(":")
+        if not sep:
+            # The pair travels as one secret (like basic); the note names the ref, never the value.
+            return None, ConfinementError(
+                "auth_failed", f"credential for {auth.secret_ref} must be username:password")
+        body = urlencode({auth.username_field: username, auth.password_field: password}).encode()
+        url = f"{provider.base_url.rstrip('/')}{provider.path_prefix.rstrip('/')}{auth.login_path}"
+        headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
+        response = _exchange("POST", url, headers, body,
+                             request.timeout_s or provider.timeout_s, provider.max_bytes)
+        if isinstance(response, ConfinementError):
+            return None, response
+        if response.status_code != 200:
+            # Name the endpoint and status only: never the credential, never a Set-Cookie value.
+            return None, ConfinementError(
+                "auth_failed", f"login at {auth.login_path} answered {response.status_code}",
+                status_code=response.status_code)
+        cookie = _cookie_pair(response.headers.get("set-cookie"))
+        if cookie is None:
+            return None, ConfinementError(
+                "auth_failed", f"login at {auth.login_path} returned no session cookie",
+                status_code=response.status_code)
+        return cookie, None
+
+    def _session_read(provider: Provider, request: Request, cookie: str) -> RawResponse | ConfinementError:
+        headers = dict(request.headers)
+        headers["Cookie"] = cookie  # attached from memory; request.headers never carries a cookie
+        url = _build_url(provider, request)
+        if request.query:
+            url += "?" + urlencode(request.query)
+        content = json.dumps(request.body).encode() if request.body is not None else None
+        if content is not None:
+            headers.setdefault("Content-Type", "application/json")
+        return _exchange(request.method, url, headers, content,
+                         request.timeout_s or provider.timeout_s, provider.max_bytes)
+
+    def _session_send(provider: Provider, request: Request) -> RawResponse | ConfinementError:
+        key = (
+            provider.id, provider.base_url, provider.path_prefix,
+            provider.auth.login_path or "", provider.auth.secret_ref or "",
+        )
+        with session_lock:
+            cookie = sessions.get(key)
+        if cookie is None:
+            cookie, error = _login(provider, request)
+            if error is not None:
+                return error
+            with session_lock:
+                sessions[key] = cookie
+        response = _session_read(provider, request, cookie)
+        if isinstance(response, RawResponse) and response.status_code == 403:
+            # The session was refused: re-login once and retry this ONE request, bounded.
+            with session_lock:
+                sessions.pop(key, None)
+            cookie, error = _login(provider, request)
+            if error is not None:
+                return error  # a failed re-login is a failure, never a swallowed success
+            with session_lock:
+                sessions[key] = cookie
+            response = _session_read(provider, request, cookie)
+        return response
 
     return send
