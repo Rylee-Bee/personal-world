@@ -60,6 +60,21 @@ def check_auth_header_name(name: str) -> str:
     return name
 
 
+def check_auth_path(value: str | None, *, field: str) -> str | None:
+    """A credential endpoint path: relative to the provider, with no scheme, host, query or ``..``.
+
+    Shared by the login/token paths a provider's own auth flow POSTs to. The sender joins the path
+    under ``base_url`` + ``path_prefix``, so it must not be able to escape them — the same rule C1
+    applies to a request path.
+    """
+    if value is None:
+        return value
+    if (not value.startswith("/") or value.startswith("//") or "://" in value or "\\" in value
+            or "?" in value or ".." in value.split("/")):
+        raise ValueError(f"{field} must be a plain path starting with /")
+    return value
+
+
 class Auth(BaseModel):
     """How a provider authenticates. Values are never here: ``secret_ref`` names them.
 
@@ -72,16 +87,28 @@ class Auth(BaseModel):
     the form fields that carry it. A cookie can never be a request header:
     :data:`FORBIDDEN_AUTH_HEADERS` keeps ``cookie``/``set-cookie`` out of ``header_name``, and the
     sender attaches the session internally instead.
+
+    ``password_grant`` describes an OAuth2-style resource-owner-password grant (deliberately not
+    named after the OAuth2 grant name): the sender POSTs the same ``username:password`` secret to
+    ``token_path`` and sends the token the endpoint returns as ``Authorization: Bearer ...``.
+    ``token_path`` is the token endpoint; ``token_field`` names the response key that carries the
+    token (default ``access_token``). The username travels with the password in the one
+    ``secret_ref`` (``username:password``) — the same convention as ``basic`` and
+    ``cookie_session`` — so no literal username is written to config and no second secret is
+    introduced. The token is held in the sender's memory only and never becomes config.
     """
 
     model_config = ConfigDict(extra="forbid")
-    type: Literal["none", "bearer", "header", "basic", "cookie_session"] = "none"
+    type: Literal["none", "bearer", "header", "basic", "cookie_session", "password_grant"] = "none"
     header_name: str | None = None
     secret_ref: str | None = None
     # cookie_session only: the login endpoint and the form fields it reads.
     login_path: str | None = None
     username_field: str = "username"
     password_field: str = "password"
+    # password_grant only: the token endpoint and the response key that carries the token.
+    token_path: str | None = None
+    token_field: str = "access_token"
 
     @field_validator("header_name")
     @classmethod
@@ -91,18 +118,18 @@ class Auth(BaseModel):
     @field_validator("login_path")
     @classmethod
     def _login_path(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if (not v.startswith("/") or v.startswith("//") or "://" in v or "\\" in v
-                or "?" in v or ".." in v.split("/")):
-            raise ValueError("login_path must be a plain path starting with /")
-        return v
+        return check_auth_path(v, field="login_path")
 
-    @field_validator("username_field", "password_field")
+    @field_validator("token_path")
+    @classmethod
+    def _token_path(cls, v: str | None) -> str | None:
+        return check_auth_path(v, field="token_path")
+
+    @field_validator("username_field", "password_field", "token_field")
     @classmethod
     def _form_field(cls, v: str) -> str:
         if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{0,63}", v or ""):
-            raise ValueError("login form field names must be simple names")
+            raise ValueError("auth form field names must be simple names")
         return v
 
     @model_validator(mode="after")
@@ -112,6 +139,8 @@ class Auth(BaseModel):
                 raise ValueError("auth.type none must not have secret_ref")
             if self.login_path:
                 raise ValueError("login_path is only for auth.type cookie_session")
+            if self.token_path:
+                raise ValueError("token_path is only for auth.type password_grant")
             return self
         if not self.secret_ref or not SECRET_REF_RE.match(self.secret_ref):
             raise ValueError("secret_ref must be env:NAME, vault:NAME or file:NAME")
@@ -122,6 +151,11 @@ class Auth(BaseModel):
                 raise ValueError("auth.type cookie_session needs login_path")
         elif self.login_path:
             raise ValueError("login_path is only for auth.type cookie_session")
+        if self.type == "password_grant":
+            if not self.token_path:
+                raise ValueError("auth.type password_grant needs token_path")
+        elif self.token_path:
+            raise ValueError("token_path is only for auth.type password_grant")
         return self
 
 

@@ -13,7 +13,9 @@ for real instead of mocked:
   ``/malformed``, ``/redirect``, ``/oversize``, ``/secret``),
 * credential shapes (``/echo-auth``, ``/secret-echo``),
 * a cookie-session login (``/api/v2/auth/login`` issuing ``Set-Cookie``) and its protected reads
-  (``/cookie-protected``, ``/cookie-denied``).
+  (``/cookie-protected``, ``/cookie-denied``),
+* a password-grant token endpoint (``/api/v2/auth/token`` issuing a bearer token) and its
+  protected reads (``/bearer-protected``, ``/bearer-denied``).
 
 ``reference_send`` is **test-only**. It is *not* the confinement module and it is
 *not* the production outbound path: it makes no SSRF, DNS, redirect or
@@ -134,6 +136,38 @@ class _Handler(BaseHTTPRequestHandler):
             owner.issued_cookies.append(cookie)
         self._json(200, {"status": "ok"}, {"Set-Cookie": f"{cookie}; HttpOnly; Path=/"})
 
+    def _grant_token(self, body: bytes) -> None:
+        """Issue a bearer token for good credentials, 403 for bad ones. Never logs the value."""
+        owner = self._owner
+        if owner.username is None or owner.password is None:
+            self._json(404, {"error": "not_found"})
+            return
+        form = dict(parse_qsl(body.decode("utf-8", "replace"), keep_blank_values=True))
+        if form.get("username") != owner.username or form.get("password") != owner.password:
+            self._json(403, {"error": "bad_credentials"})
+            return
+        token = secrets.token_urlsafe(24)
+        with owner._lock:
+            owner.valid_tokens.add(token)
+            owner.issued_tokens.append(token)
+        self._json(200, {"access_token": token, "token_type": "Bearer"})
+
+    def _bearer_read(self) -> None:
+        """A read that only answers while the request carries a bearer token this server issued."""
+        if self._bearer_authorized():
+            self._json(200, {"ok": True, "items": [1, 2]})
+        else:
+            self._json(401, {"error": "unauthorized"})
+
+    def _bearer_authorized(self) -> bool:
+        """True only for ``Authorization: Bearer <a token this server issued>`` (memory only)."""
+        header = self.headers.get("Authorization") or ""
+        if not header.startswith("Bearer "):
+            return False
+        token = header[len("Bearer "):]
+        with self._owner._lock:
+            return bool(token) and token in self._owner.valid_tokens
+
     def _json(self, status: int, payload: Any, headers: dict[str, str] | None = None) -> None:
         body = json.dumps(payload).encode()
         self._respond(status, body, "application/json", headers)
@@ -230,6 +264,11 @@ class _Handler(BaseHTTPRequestHandler):
         elif path == "/cookie-denied":
             # Always refuses, so the caller's one re-login and one retry can be observed.
             self._json(403, {"error": "forbidden"})
+        elif path == "/bearer-protected":
+            self._bearer_read()
+        elif path == "/bearer-denied":
+            # Always refuses, so the caller's one re-token and one retry can be observed.
+            self._json(401, {"error": "unauthorized"})
         else:
             self._json(404, {"error": "not_found"})
 
@@ -245,6 +284,10 @@ class _Handler(BaseHTTPRequestHandler):
             body = self._read_body()
             self._owner.record_body(path, body)
             self._cookie_login(body)
+        elif path == "/api/v2/auth/token":
+            body = self._read_body()
+            self._owner.record_body(path, body)
+            self._grant_token(body)
         elif path == "/actions/ping":
             key = self.headers.get("Idempotency-Key")
             replay = self._owner.replay(key) if key else None
@@ -294,6 +337,9 @@ class ReferenceServer:
         self.post_bodies: list[tuple[str, bytes]] = []
         self.sessions: set[str] = set()
         self.issued_cookies: list[str] = []
+        # Bearer tokens issued by /api/v2/auth/token. Memory only, for the life of the server.
+        self.valid_tokens: set[str] = set()
+        self.issued_tokens: list[str] = []
         self._idempotent: dict[str, bytes] = {}
         self._lock = threading.Lock()
         self._httpd = _Server(("127.0.0.1", 0), _Handler)
@@ -338,12 +384,17 @@ class ReferenceServer:
         with self._lock:
             self.sessions.clear()
 
+    def rotate_tokens(self) -> None:
+        """Forget every issued bearer token, so the next protected read must re-token."""
+        with self._lock:
+            self.valid_tokens.clear()
+
     def record_body(self, path: str, body: bytes) -> None:
         with self._lock:
             self.post_bodies.append((path, body))
 
     def bodies_to(self, path: str) -> list[bytes]:
-        """The bodies of POSTs that reached ``path`` (test harness only; never a cookie store)."""
+        """The bodies of POSTs that reached ``path`` (test harness only; never a credential store)."""
         with self._lock:
             return [body for seen, body in self.post_bodies if seen == path]
 
@@ -351,6 +402,11 @@ class ReferenceServer:
         """The last ``name=value`` cookie this server issued, or None. Test harness only."""
         with self._lock:
             return self.issued_cookies[-1] if self.issued_cookies else None
+
+    def issued_token(self) -> str | None:
+        """The last bearer token this server issued, or None. Test harness only."""
+        with self._lock:
+            return self.issued_tokens[-1] if self.issued_tokens else None
 
     # -- counters (called from handler threads) ---------------------------
 
@@ -429,6 +485,12 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
     logs in again. A ``403`` on a normal request triggers one re-login and one retry of
     that request; a second failure is reported, never swallowed and never looped.
 
+    For ``auth.type password_grant`` the bearer token lives only in this closure's memory:
+    it is never logged, persisted, cached, noted or returned. The credential is POSTed to
+    ``token_path`` once and the returned token is sent as ``Authorization: Bearer ...``;
+    a ``401`` on a normal request triggers one re-token and one retry of that request; a
+    second ``401`` is ``auth_failed``, never a loop and never a swallowed success.
+
     Returns ``RawResponse`` for any completed exchange -- including 4xx/5xx and
     undecodable bodies: whether a status is a failure is the runner's call.
     """
@@ -436,6 +498,9 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
     #: provider identity -> ``name=value`` session cookie. In memory only, for the life of this closure.
     sessions: dict[tuple[str, ...], str] = {}
     session_lock = threading.Lock()
+    #: provider identity -> bearer token. In memory only, for the life of this closure.
+    tokens: dict[tuple[str, ...], str] = {}
+    token_lock = threading.Lock()
 
     def send(provider: Provider, request: Request, *, effect: Literal["read", "write"]) -> RawResponse | ConfinementError:
         started = time.monotonic()
@@ -458,6 +523,8 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
 
         if provider.auth.type == "cookie_session":
             return _session_send(provider, request)
+        if provider.auth.type == "password_grant":
+            return _grant_send(provider, request)
 
         headers: dict[str, str] = dict(request.headers)
         auth_headers, missing = _auth_headers(provider.auth, secrets)
@@ -556,6 +623,83 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
             with session_lock:
                 sessions[key] = cookie
             response = _session_read(provider, request, cookie)
+        return response
+
+    def _fetch_token(provider: Provider, request: Request) -> tuple[str | None, ConfinementError | None]:
+        """POST the credential, return the bearer token, or the failure. Flow only."""
+        auth = provider.auth
+        credential = secrets.get(_secret_name(auth.secret_ref))
+        if credential is None:
+            return None, ConfinementError("auth_failed", f"secret not available for {auth.secret_ref}")
+        username, sep, password = credential.partition(":")
+        if not sep:
+            # The pair travels as one secret (like basic/cookie_session); the note names the ref, never the value.
+            return None, ConfinementError(
+                "auth_failed", f"credential for {auth.secret_ref} must be username:password")
+        body = urlencode({auth.username_field: username, auth.password_field: password}).encode()
+        url = f"{provider.base_url.rstrip('/')}{provider.path_prefix.rstrip('/')}{auth.token_path}"
+        headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
+        response = _exchange("POST", url, headers, body,
+                             request.timeout_s or provider.timeout_s, provider.max_bytes)
+        if isinstance(response, ConfinementError):
+            return None, response
+        if response.status_code != 200:
+            # Name the endpoint and status only: never the credential, never the token.
+            return None, ConfinementError(
+                "auth_failed", f"token at {auth.token_path} answered {response.status_code}",
+                status_code=response.status_code)
+        try:
+            payload = json.loads(bytes(response.body or b"").decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            payload = None
+        token = payload.get(auth.token_field) if isinstance(payload, dict) else None
+        if not isinstance(token, str) or not token:
+            # The body is not echoed: it may carry the token itself.
+            return None, ConfinementError(
+                "auth_failed", f"token at {auth.token_path} returned no {auth.token_field}",
+                status_code=response.status_code)
+        return token, None
+
+    def _grant_read(provider: Provider, request: Request, token: str) -> RawResponse | ConfinementError:
+        headers = dict(request.headers)
+        headers["Authorization"] = f"Bearer {token}"  # attached from memory; request.headers never carries it
+        url = _build_url(provider, request)
+        if request.query:
+            url += "?" + urlencode(request.query)
+        content = json.dumps(request.body).encode() if request.body is not None else None
+        if content is not None:
+            headers.setdefault("Content-Type", "application/json")
+        return _exchange(request.method, url, headers, content,
+                         request.timeout_s or provider.timeout_s, provider.max_bytes)
+
+    def _grant_send(provider: Provider, request: Request) -> RawResponse | ConfinementError:
+        key = (
+            provider.id, provider.base_url, provider.path_prefix,
+            provider.auth.token_path or "", provider.auth.secret_ref or "",
+        )
+        with token_lock:
+            token = tokens.get(key)
+        if token is None:
+            token, error = _fetch_token(provider, request)
+            if error is not None:
+                return error
+            with token_lock:
+                tokens[key] = token
+        response = _grant_read(provider, request, token)
+        if isinstance(response, RawResponse) and response.status_code == 401:
+            # The token was refused: fetch a new one once and retry this ONE request, bounded.
+            with token_lock:
+                tokens.pop(key, None)
+            token, error = _fetch_token(provider, request)
+            if error is not None:
+                return error  # a failed re-token is a failure, never a swallowed success
+            with token_lock:
+                tokens[key] = token
+            response = _grant_read(provider, request, token)
+            if isinstance(response, RawResponse) and response.status_code == 401:
+                return ConfinementError(
+                    "auth_failed", f"token at {provider.auth.token_path} was refused",
+                    status_code=response.status_code)
         return response
 
     return send
