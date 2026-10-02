@@ -35,7 +35,7 @@ test.describe("axe and overflow", () => {
       await page.getByRole("group", { name: group }).getByLabel(option).check();
       await page.getByRole("link", { name: "Home" }).first().click();
       await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-      await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+      await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
       expect(await axe(page), `${group} ${option}`).toEqual([]);
       await noHorizontalOverflow(page);
       await shot(page, `home-${option.toLowerCase()}`, info);
@@ -110,7 +110,7 @@ test("Station invariance: same nav, headings, controls and row order on all four
     await page.getByRole("main").waitFor();
     if (hash === "#home") {
       await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-      await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+      await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
     }
     const off = await snap();
     await page.goto("/#settings");
@@ -119,7 +119,7 @@ test("Station invariance: same nav, headings, controls and row order on all four
     await page.getByRole("main").waitFor();
     if (hash === "#home") {
       await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-      await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+      await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
     }
     const on = await snap();
     expect(on, hash).toEqual(off);
@@ -152,7 +152,7 @@ test("Text size Larger: no overflow, axe clean", async ({ page }, info) => {
   await page.getByRole("group", { name: "Text size" }).getByLabel("Larger").check();
   await page.getByRole("link", { name: "Home" }).first().click();
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+  await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe("20.8px");
   expect(await axe(page)).toEqual([]);
   await noHorizontalOverflow(page);
@@ -196,7 +196,7 @@ for (const size of ["Large", "Larger"]) {
     await page.getByRole("group", { name: "Text size" }).getByLabel(size, { exact: true }).check();
     await page.getByRole("link", { name: "Home" }).first().click();
     await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-    await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+    await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
     const spills = await page.getByRole("group", { name: "Whole world" }).locator("button, a").evaluateAll((tiles) =>
       tiles.flatMap((tile) => {
         const box = tile.getBoundingClientRect();

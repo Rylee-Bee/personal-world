@@ -10,7 +10,7 @@ async function badDay(page: Page, prefs = { density: "calm", words: "minimal", t
   await mockApi(page);
   await page.goto("/#home");
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+  await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
 }
 
 test("bad-day setup: Needs you first, a condensed strip, axe clean, no overflow", async ({ page }, info) => {

@@ -6,7 +6,7 @@ const SHOTS = process.env.PW_FD_SHOTS;
 test("Home against the real reference provider", async ({ page }, info) => {
   await page.goto("/#home");
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+  await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
 
   // unavailable, degraded, locked all land in Needs a look, worst first
   const look = page.getByRole("heading", { name: "Needs a look" }).locator("xpath=ancestor::section");
@@ -18,7 +18,7 @@ test("Home against the real reference provider", async ({ page }, info) => {
   // healthy rows are quiet; the empty list is healthy, not unavailable
   const quiet = page.getByRole("heading", { name: "Quietly working" }).locator("xpath=ancestor::section");
   await expect(quiet).toContainText("Reference empty");
-  await expect(quiet).toContainText("none");
+  await expect(quiet).toContainText("No names");
   await expect(quiet).toContainText("Healthy");
 
   // a missing value is a dash, never 0
@@ -42,7 +42,7 @@ test("Edit Home saves to the real board file and survives a reload", async ({ pa
   test.skip(info.project.name !== "live-desktop-1280", "one writer");
   await page.goto("/#home");
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+  await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
   // Quietly working keeps board order (Needs a look is sorted worst-first), so a move shows there.
   const titles = () => page.locator("section:has(> h2:text('Quietly working')) li.fd-row .fd-row-title").allTextContents();
   const before = await titles();
@@ -53,7 +53,7 @@ test("Edit Home saves to the real board file and survives a reload", async ({ pa
   expect((await put).status()).toBe(200);
   await page.reload();
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+  await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
   expect((await titles()).indexOf(second)).toBeLessThan(before.indexOf(second));
   // put it back: Undo is only for this session, so move it later again
   await page.getByRole("button", { name: "Edit Home" }).click();

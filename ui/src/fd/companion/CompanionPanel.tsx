@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } f
 import { safeHref } from "../safe-href";
 import { formatClock } from "../time";
 import { companionApi } from "./api";
-import { useCompanion } from "./CompanionProvider";
+import { useCompanion } from "./companion-core";
 import { poseFor } from "./presentation";
 import type { CompanionFailure, ContextItem, ContextView, GrantView, HealthView, Result } from "./types";
 import "../fd.css";
@@ -44,7 +44,7 @@ function Unknown({ failure }: { failure: CompanionFailure }) {
       <span aria-hidden="true">○ </span>
       <span className="fd-companion-unknown-word">Unknown</span>
       {" · "}
-      {failure.text}
+      <span>{failure.text}</span>
     </p>
   );
 }

@@ -1,4 +1,4 @@
-import { useCompanion } from "./CompanionProvider";
+import { useCompanion } from "./companion-core";
 import { poseFor } from "./presentation";
 import "../fd.css";
 
