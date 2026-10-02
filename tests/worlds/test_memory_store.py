@@ -1,5 +1,6 @@
 """Acceptance tests for personal_world.worlds.memory_store (C4): Kept, Later, Records, History, Find."""
 import json
+import os
 import sqlite3
 import stat
 import threading
@@ -617,3 +618,39 @@ def test_backup_files_stay_private_for_their_whole_lifetime(ms, tmp_path):
         os.umask(before)
     for p in (tmp_path / "bk2").iterdir():
         assert not stat.S_IMODE(p.stat().st_mode) & 0o077, p.name
+
+
+def test_db_file_is_0600(tmp_path):
+    """The database is 0600 even when the caller's umask would make a new file looser."""
+    before = os.umask(0o022)
+    try:
+        db = Database.in_dir(tmp_path / "d")
+        conn = db.conn()
+        conn.execute("CREATE TABLE IF NOT EXISTS probe(x)")     # force the WAL/-shm files to exist
+        conn.execute("INSERT INTO probe VALUES (1)")
+        mode = stat.S_IMODE((tmp_path / "d" / "worlds.db").stat().st_mode)
+        assert mode == 0o600
+        assert not mode & 0o077
+        for suffix in ("-wal", "-shm"):
+            sibling = tmp_path / "d" / f"worlds.db{suffix}"
+            if sibling.exists():
+                assert not stat.S_IMODE(sibling.stat().st_mode) & 0o077, sibling.name
+    finally:
+        os.umask(before)
+
+
+def test_backup_file_is_0600(ms, tmp_path):
+    """A backup is 0600 even when the caller's umask would make a new file looser."""
+    ms.add("kept", title="x", actor="owner")
+    before = os.umask(0o022)
+    try:
+        path = ms.backup(tmp_path / "b")
+        mode = stat.S_IMODE(path.stat().st_mode)
+        assert mode == 0o600
+        assert not mode & 0o077
+        for suffix in ("-wal", "-shm"):
+            sibling = path.with_name(path.name + suffix)
+            if sibling.exists():
+                assert not stat.S_IMODE(sibling.stat().st_mode) & 0o077, sibling.name
+    finally:
+        os.umask(before)

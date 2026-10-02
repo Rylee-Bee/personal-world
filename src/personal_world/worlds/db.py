@@ -25,6 +25,22 @@ def register_migrations(owner: str, migrations: list[tuple[int, str]]) -> None:
     _extra[owner] = migrations
 
 
+def _create_private_file(path: os.PathLike[str]) -> bool:
+    """Create ``path`` mode 0600 if it is absent; return whether this call created it.
+
+    SQLite creates a new database with the process umask, which every thread shares: flipping
+    it around the connect would silently change what other threads create. Creating the file
+    first, privately, means it is never born group/other-readable and no global state moves.
+    """
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        return False
+    with os.fdopen(fd, "wb") as fh:
+        os.fchmod(fh.fileno(), 0o600)   # the requested mode is still masked by the caller's umask
+    return True
+
+
 class Database:
     def __init__(self, path: str | os.PathLike[str]):
         self.path = Path(path)
@@ -49,11 +65,13 @@ class Database:
     def conn(self) -> sqlite3.Connection:
         c = getattr(self._local, "conn", None)
         if c is None:
-            old_umask = os.umask(0o077)  # new db/-wal/-shm files are born private
+            created = _create_private_file(self.path)   # the db is born private, without touching the process umask
             try:
                 c = sqlite3.connect(self.path, isolation_level=None, timeout=10, check_same_thread=False)
-            finally:
-                os.umask(old_umask)
+            except BaseException:
+                if created:
+                    self.path.unlink(missing_ok=True)   # no half-created file left behind
+                raise
             c.row_factory = sqlite3.Row
             c.execute("PRAGMA journal_mode=WAL")
             c.execute("PRAGMA synchronous=FULL")

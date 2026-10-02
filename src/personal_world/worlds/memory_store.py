@@ -411,21 +411,24 @@ class MemoryStore:
         while path.exists():                      # never overwrite an earlier backup
             attempt += 1
             path = dest / f"worlds-{stamp}-{attempt}.db"
-        old_umask = os.umask(0o077)   # held for the whole backup: the copy, its journal and the checks stay private
+        # The copy is created 0600 up front, so no process umask flip is needed (that would be global):
+        # it is never born group/other-readable, and its journal and the integrity check stay private.
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
-            target = sqlite3.connect(path)
             try:
-                self.db.conn().backup(target)
-                if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-                    raise MemoryError_("the backup copy did not pass its integrity check")
+                target = sqlite3.connect(path)
+                try:
+                    self.db.conn().backup(target)
+                    if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                        raise MemoryError_("the backup copy did not pass its integrity check")
+                finally:
+                    target.close()
             except BaseException:
-                target.close()
-                path.unlink(missing_ok=True)
+                path.unlink(missing_ok=True)   # no half-written backup is left behind
                 raise
-            target.close()
-            os.chmod(path, 0o600)
+            os.fchmod(fd, 0o600)   # assert on the open descriptor, never a later chmod by path
         finally:
-            os.umask(old_umask)
+            os.close(fd)
         self._log("backup", None, None, {"file": path.name}, actor=_actor(actor))
         return path
 
