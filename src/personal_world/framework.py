@@ -1,30 +1,49 @@
-"""Framework conformance validator.
+"""Framework conformance validator for the front door (ADR-0008 decision 3).
 
-Encodes the architectural invariants from docs/NATIVE-BASELINE-AND-
-ENRICHMENT.md as executable checks so they cannot silently regress:
+After ADR-0008 retired ADR-0001's capability registry for front-door providers,
+this module validates the *new* product instead of the old world model. The gate
+it drives (``personal-world framework validate``) checks:
 
-- capabilities are core-owned; providers implement or enrich them
-- every connection references a declared capability
-- provider IDs are unique per capability
-- provider modes are from the closed vocabulary
-- required providers are explicit, justified, and rare
-- no inline secret material in connection config (env indirection only)
-- core compose has no provider boot dependencies
-- shareable exports carry capability intent and replaceable provider
-  choice, never secret-bearing provider fields
+- every config object loads through the real
+  :class:`~personal_world.worlds.config_store.ConfigStore` (schema, ids,
+  cross-references, ``extra=forbid``), read-only, with a plain violation per
+  invalid object and the last-valid-config semantics untouched;
+- no inline secret material anywhere in config: only a symbolic ``secret_ref``
+  (``env:`` / ``vault:`` / ``file:``); a defence-in-depth key/value scan backs up
+  the C1 models;
+- every shipped recipe under ``config/recipes/`` loads through the recipe loader,
+  declares ``verified`` and ``status``, uses only synthetic hosts, and carries no
+  secret value;
+- the zero-provider baseline: the app boots with an EMPTY config dir and answers
+  ``/healthz`` and ``GET /api/boards/home`` (200, ``first_run`` true) with no
+  provider and no model;
+- the core compose file has no provider boot dependency;
+- shareable Memory exports (``/api/memory/export/{table}``) carry no secret-bearing
+  key/value.
 
-The registry already fails closed at runtime; this module catches the
-architecture-level violations that runtime cannot see.
+It also keeps the Play-Nice participant-pack gate, which ADR-0008 does not touch.
+
+It imports only ``personal_world.worlds.*`` modules (plus the standard library and
+``yaml``). The old ``personal_world.{app,model,world,init,journal,providers,api,
+auth,identity,chat,vault}`` modules are never imported here, so this gate survives
+their deletion. The old-rule mapping lives in ``docs/rebuild/FRAMEWORK-GATE.md``.
 """
+
+from __future__ import annotations
 
 import json
 import re
+import tempfile
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Callable, Iterable
 
 import yaml
 
-from .model import ProviderMode
+from .worlds.config_store import ConfigInvalid, ConfigStore
+from .worlds.models import SECRET_REF_RE
+from .worlds.recipes import RecipeError, _is_placeholder, load_recipe, recipes_dir
 
 SECRET_KEY_RE = re.compile(
     r"(?i)(password|passwd|secret|token|api[_-]?key|credential|private[_-]?key)$"
@@ -35,12 +54,6 @@ ALLOWED_REF_KEYS = {
 # Compose dependency keys that, when pointing at a provider service,
 # would make that provider a core boot dependency.
 COMPOSE_DEP_KEYS = ("depends_on", "links", "volumes_from", "network_mode")
-
-STANDARD_CAPABILITIES = (
-    "source_control", "deployment", "secrets", "calendar", "discovery",
-    "settings_validation", "service_validation", "update_discovery",
-    "memory", "journal", "reasoning", "notifications", "scheduler",
-)
 
 
 @dataclass
@@ -61,19 +74,38 @@ class ValidationResult:
         self.ok = False
         self.violations.append(Violation(rule=rule, detail=detail))
 
+    def extend(self, other: "ValidationResult") -> None:
+        if not other.ok:
+            self.ok = False
+        self.violations.extend(other.violations)
 
-def _scan_secretish(value, path: str, out: ValidationResult) -> None:
-    """Recursively reject inline secret material and non-symbolic
-    secret references in provider config."""
+
+def _scan_secretish(value: Any, path: str, out: ValidationResult) -> None:
+    """Recursively reject inline secret material and non-symbolic secret refs.
+
+    A key that looks like secret material is refused unless it is one of the
+    allowed symbolic reference keys; a ``secret_ref`` value must itself be an
+    ``env:`` / ``vault:`` / ``file:`` reference. This is a defence in depth on
+    top of the C1 models (which use ``extra=forbid``), because a model may still
+    allow a free-form mapping such as a request's ``query``.
+    """
     if isinstance(value, dict):
         for k, v in value.items():
             key_path = f"{path}.{k}"
-            if SECRET_KEY_RE.search(str(k)) and k not in ALLOWED_REF_KEYS:
+            key = str(k)
+            if key in ALLOWED_REF_KEYS:
+                if key == "secret_ref" and v is not None and not _is_secret_ref(v):
+                    out.add(
+                        "secret-rule",
+                        f"'{key_path}' must be a symbolic reference "
+                        "(env:NAME, vault:NAME or file:NAME)",
+                    )
+                continue
+            if SECRET_KEY_RE.search(key):
                 out.add(
                     "secret-rule",
-                    f"connection field '{key_path}' looks like inline "
-                    "secret material; use env indirection "
-                    "(e.g. token_env: GITHUB_TOKEN) or secret_ref",
+                    f"field '{key_path}' looks like inline secret material; use "
+                    "a symbolic reference (env:NAME, vault:NAME or file:NAME)",
                 )
                 continue
             _scan_secretish(v, key_path, out)
@@ -82,71 +114,230 @@ def _scan_secretish(value, path: str, out: ValidationResult) -> None:
             _scan_secretish(v, f"{path}[{i}]", out)
 
 
-def validate_connections(
-    connections: dict, known_capabilities: set[str]
-) -> ValidationResult:
-    """Validate a parsed connections.json payload."""
+def _is_secret_ref(value: Any) -> bool:
+    return isinstance(value, str) and bool(SECRET_REF_RE.match(value))
+
+
+# ---------------------------------------------------------------------------
+# 1 + 2. config: real ConfigStore load, cross-references, no inline secrets
+# ---------------------------------------------------------------------------
+
+
+def validate_config(store: ConfigStore) -> ValidationResult:
+    """Validate an already-loaded C1 config store, read-only.
+
+    ``ConfigStore`` validates each file's schema, id and ``extra=forbid`` on
+    load; files that fail are reported through ``store.errors()`` and keep the
+    last valid object active (the store's own semantics, untouched here).
+    Cross-references (request.provider, card requests, board cards,
+    action.request and the action/request policy) are validated through the
+    store's authoritative reference check, which a read-only load does not run
+    by itself. The returned result never writes to the config dir.
+    """
     out = ValidationResult()
-    conns = connections.get("connections", [])
-    if not isinstance(conns, list):
-        out.add("provider-registry", "connections must be a list")
-        return out
-    seen: dict[str, int] = {}
-    for idx, conn in enumerate(conns):
-        if not isinstance(conn, dict):
-            out.add("provider-registry", f"connection #{idx} is not an object")
-            continue
-        ptype = conn.get("type")
-        name = conn.get("name")
-        capability = conn.get("capability")
-        label = name or f"#{idx}"
-        if not all([ptype, name, capability]):
-            out.add(
-                "provider-registry",
-                f"connection '{label}' missing type/name/capability",
-            )
-            continue
-        if capability not in known_capabilities:
-            out.add(
-                "capability-ownership",
-                f"provider '{name}' claims capability '{capability}' "
-                "which is not a declared capability",
-            )
-        seen[name] = seen.get(name, 0) + 1
-        mode = conn.get("mode", ProviderMode.ENRICHMENT.value)
-        if mode not in {m.value for m in ProviderMode}:
-            out.add(
-                "provider-mode",
-                f"provider '{name}' has unsupported mode '{mode}'",
-            )
-        required = conn.get("required", False)
-        if required and not conn.get("required_reason"):
-            out.add(
-                "optional-default",
-                f"provider '{name}' is marked required without a "
-                "required_reason; required is an explicit exception",
-            )
-        _scan_secretish(conn, f"connections[{label}]", out)
-    for name, count in seen.items():
-        if count > 1:
-            out.add(
-                "provider-registry",
-                f"duplicate provider id '{name}' ({count} connections)",
-            )
+    for err in store.errors():
+        where = err.get("path") or err.get("id") or "config"
+        out.add("config-invalid", f"{where}: {err.get('message', 'invalid config')}")
+    for kind, obj in store.iter_all():
+        try:
+            store._check_references(kind, obj)  # the store's own reference rules
+        except ConfigInvalid as exc:
+            out.add("config-reference", str(exc))
+        _scan_secretish(obj.model_dump(mode="json"), f"{kind}[{obj.id}]", out)
     return out
 
 
+def validate_config_dir(config_dir: str | Path) -> ValidationResult:
+    """Load ``config_dir`` through the real ``ConfigStore`` and validate it."""
+    return validate_config(ConfigStore(config_dir))
+
+
+# ---------------------------------------------------------------------------
+# 3. shipped recipes
+# ---------------------------------------------------------------------------
+
+#: The literal secret-shaped strings the existing room-recipe test rejects.
+_ROOM_SECRET_MARKERS = ("Bearer ", "password", "api_key")
+
+
+def _check_room_recipe(directory: Path, recipe: Any, out: ValidationResult) -> None:
+    """The existing ``test_room_recipes`` oracle, reused for room recipes."""
+    provider = recipe.provider
+    ref = provider.auth.secret_ref or ""
+    if not ref.startswith("env:"):
+        out.add(
+            "recipe-room-secret-ref",
+            f"room recipe '{directory.name}' auth.secret_ref must be an env: name",
+        )
+    if provider.principal_id != "your-person-id":
+        out.add(
+            "recipe-room-principal",
+            f"room recipe '{directory.name}' must keep the your-person-id placeholder",
+        )
+    if ref.startswith("env:") and recipe.info.env != [ref.split(":", 1)[1]]:
+        out.add(
+            "recipe-room-env",
+            f"room recipe '{directory.name}' info.env must list only its secret name",
+        )
+    text = ""
+    for name in ("provider.yaml", "recipe.yaml"):
+        path = directory / name
+        if path.is_file():
+            text += path.read_text(encoding="utf-8")
+    for marker in _ROOM_SECRET_MARKERS:
+        if marker in text:
+            out.add(
+                "recipe-room-secret",
+                f"room recipe '{directory.name}' contains secret-shaped text {marker!r}",
+            )
+
+
+def validate_recipes(root: str | Path | None = None) -> ValidationResult:
+    """Validate every shipped recipe under ``root`` (default ``config/recipes``)."""
+    out = ValidationResult()
+    base = Path(root) if root is not None else recipes_dir()
+    if not base.is_dir():
+        out.add("recipe-discovery", f"recipes directory '{base}' does not exist")
+        return out
+
+    found = False
+    for directory in sorted(p for p in base.iterdir() if p.is_dir()):
+        if not (directory / "recipe.yaml").is_file():
+            continue
+        found = True
+        try:
+            raw = yaml.safe_load((directory / "recipe.yaml").read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            out.add("recipe-invalid", f"{directory.name}/recipe.yaml is unreadable")
+            continue
+        if not isinstance(raw, dict):
+            out.add(
+                "recipe-invalid",
+                f"{directory.name}/recipe.yaml top level must be a mapping",
+            )
+            continue
+        for key in ("verified", "status"):
+            if key not in raw:
+                out.add(
+                    f"recipe-{key}",
+                    f"recipe '{directory.name}' does not declare '{key}'",
+                )
+        try:
+            recipe = load_recipe(directory.name, base)
+        except RecipeError as exc:
+            out.add("recipe-invalid", str(exc))
+            continue
+        provider = recipe.provider
+        if provider is None:
+            out.add("recipe-invalid", f"recipe '{directory.name}' has no provider.yaml")
+        else:
+            if not _is_placeholder(provider.base_url):
+                out.add(
+                    "recipe-placeholder",
+                    f"recipe '{directory.name}' base_url is not a synthetic host",
+                )
+            if provider.public_url and not _is_placeholder(provider.public_url):
+                out.add(
+                    "recipe-placeholder",
+                    f"recipe '{directory.name}' public_url is not a synthetic host",
+                )
+            if recipe.info.status == "room":
+                _check_room_recipe(directory, recipe, out)
+            _scan_secretish(
+                provider.model_dump(mode="json"),
+                f"recipe:{directory.name}:provider",
+                out,
+            )
+        _scan_secretish(
+            recipe.info.model_dump(mode="json"), f"recipe:{directory.name}", out
+        )
+        for bucket, label in (
+            (recipe.requests, "request"),
+            (recipe.cards, "card"),
+            (recipe.actions, "action"),
+        ):
+            for obj in bucket:
+                _scan_secretish(
+                    obj.model_dump(mode="json"),
+                    f"recipe:{directory.name}:{label}:{obj.id}",
+                    out,
+                )
+    if not found:
+        out.add("recipe-discovery", f"no recipes found under '{base}'")
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 4. zero-provider / zero-model baseline boot
+# ---------------------------------------------------------------------------
+
+
+def _build_empty_app(config_dir: str | Path) -> Any:
+    """The smallest front-door app: a fixed principal, an empty config dir."""
+    from .worlds.server import build_app
+
+    return build_app(config_dir, principal_dependency=lambda: "owner")
+
+
+def validate_zero_provider_boot(
+    *, app_factory: Callable[[str | Path], Any] | None = None
+) -> ValidationResult:
+    """Boot with an EMPTY config dir and prove the baseline answers.
+
+    ``/healthz`` must be 200/ok and ``GET /api/boards/home`` must be 200 with
+    ``first_run`` true: the front door works with zero providers and no model
+    (ADR-0008 decision 2). ``app_factory`` is injectable so the failing fixture
+    can supply a broken app without touching the real one.
+    """
+    out = ValidationResult()
+    build = app_factory or _build_empty_app
+    with tempfile.TemporaryDirectory(prefix="pw-framework-boot-") as directory:
+        app = build(directory)
+        with warnings.catch_warnings():
+            # fastapi.testclient/starlette emit a deprecation notice on httpx;
+            # the gate's stdout stays clean.
+            warnings.simplefilter("ignore")
+            from fastapi.testclient import TestClient
+
+            client = TestClient(app)
+            health = client.get("/healthz")
+            if health.status_code != 200 or not health.json().get("ok"):
+                out.add(
+                    "boot-baseline",
+                    f"/healthz answered {health.status_code} with an empty config dir",
+                )
+            home = client.get("/api/boards/home")
+            if home.status_code != 200:
+                out.add(
+                    "boot-baseline",
+                    f"GET /api/boards/home answered {home.status_code} with an empty config dir",
+                )
+            elif home.json().get("first_run") is not True:
+                out.add(
+                    "boot-baseline",
+                    "GET /api/boards/home did not report first_run true with an empty config dir",
+                )
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 5. compose: no provider boot dependency (unchanged meaning)
+# ---------------------------------------------------------------------------
+
+
 def validate_compose_file(path: Path, provider_service_names: set[str]) -> ValidationResult:
-    """Reject core compose boot dependencies on provider services
-    (framework Rule 6: providers cannot silently become required)."""
+    """Reject core compose boot dependencies on provider services.
+
+    A service listed in ``provider_service_names`` is an optional provider; no
+    other core service may depend on it. Provider-side services may depend on
+    each other or the core; the constraint under test is the core's freedom.
+    """
     out = ValidationResult()
     if not path.exists():
         return out
     compose = yaml.safe_load(path.read_text()) or {}
     for svc_name, svc in compose.get("services", {}).items():
         if svc_name in provider_service_names:
-            # Provider-side services may depend on each other or the
-            # core; the constraint under test is the core's freedom.
             continue
         for dep_key in COMPOSE_DEP_KEYS:
             deps = svc.get(dep_key)
@@ -164,22 +355,44 @@ def validate_compose_file(path: Path, provider_service_names: set[str]) -> Valid
     return out
 
 
-def validate_settings_export(export: dict) -> ValidationResult:
-    """The shareable blueprint must express capability intent plus
-    replaceable provider choice (framework export rule)."""
+def _default_compose_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "compose.yaml"
+
+
+# ---------------------------------------------------------------------------
+# 6. shareable Memory exports carry no secret-bearing key/value
+# ---------------------------------------------------------------------------
+
+
+def validate_export_rows(rows: Iterable[Any]) -> ValidationResult:
+    """Scan export rows (dicts) for secret-looking keys/values."""
     out = ValidationResult()
-    for cap in export.get("capabilities", []):
-        for p in cap.get("providers", []):
-            for forbidden in ("config", "requires_secrets"):
-                if forbidden in p:
-                    out.add(
-                        "export-portability",
-                        f"settings-export provider entry for "
-                        f"'{cap.get('key')}' includes forbidden field "
-                        f"'{forbidden}'",
-                    )
+    for i, row in enumerate(rows):
+        _scan_secretish(row, f"export[{i}]", out)
     return out
 
+
+def validate_memory_exports() -> ValidationResult:
+    """Run the real C4 export path over a throwaway store and scan every row."""
+    from .worlds.db import Database
+    from .worlds.memory_store import MemoryStore
+
+    out = ValidationResult()
+    with tempfile.TemporaryDirectory(prefix="pw-framework-export-") as directory:
+        db = Database.in_dir(directory)
+        try:
+            store = MemoryStore(db)
+            for table in ("kept", "later", "records", "history"):
+                rows = [json.loads(line) for line in store.export_ndjson(table, actor="owner")]
+                out.extend(validate_export_rows(rows))
+        finally:
+            db.close()
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 6b. participant packs (Play-Nice gate; ADR-0008 does not touch it)
+# ---------------------------------------------------------------------------
 
 PACK_REQUIRED_TOP_KEYS = (
     "schema",
@@ -238,9 +451,7 @@ def validate_participant_packs(
         out.add("pack-discovery", f"participants path '{root}' is not a directory")
         return out
 
-    yaml_files = sorted(
-        p for p in root.rglob("participant.yaml") if p.is_file()
-    )
+    yaml_files = sorted(p for p in root.rglob("participant.yaml") if p.is_file())
     if not yaml_files:
         out.add(
             "pack-discovery",
@@ -295,4 +506,32 @@ def validate_participant_packs(
                 )
             else:
                 seen_ids[pack_id] = path
+    return out
+
+
+# ---------------------------------------------------------------------------
+# the whole gate
+# ---------------------------------------------------------------------------
+
+
+def validate_framework(
+    config_dir: str | Path,
+    *,
+    recipes_root: str | Path | None = None,
+    compose_path: str | Path | None = None,
+) -> ValidationResult:
+    """Run every retained framework rule for the front door.
+
+    Read-only with respect to ``config_dir``; the only writes are to private
+    temporary directories used by the boot and export probes.
+    """
+    out = ValidationResult()
+    store = ConfigStore(config_dir)
+    out.extend(validate_config(store))
+    out.extend(validate_recipes(recipes_root))
+    provider_names = {obj.id for kind, obj in store.iter_all() if kind == "provider"}
+    path = Path(compose_path) if compose_path is not None else _default_compose_path()
+    out.extend(validate_compose_file(path, provider_names))
+    out.extend(validate_zero_provider_boot())
+    out.extend(validate_memory_exports())
     return out

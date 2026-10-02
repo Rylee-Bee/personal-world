@@ -4,6 +4,8 @@
 
 **In short:** Worlds must stay usable with zero optional integrations; external systems may enrich a capability but never define or gate it. This page is the normative framework contract — its invariants are enforced by `personal-world framework validate` and `tests/test_framework.py`.
 
+> **Superseded by [ADR-0008](adr/0008-front-door.md) for front-door providers:** the capability registry and provider-mode rules below are retired; the gate now validates C1 config, secret references, recipes, the zero-provider baseline, compose additivity and Memory exports. See [`docs/rebuild/FRAMEWORK-GATE.md`](rebuild/FRAMEWORK-GATE.md) for the old-rule mapping.
+
 ## 1. The principle
 
 > **Native baseline. Optional enrichment. No mandatory ecosystem
