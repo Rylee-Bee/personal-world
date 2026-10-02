@@ -20,7 +20,7 @@ import logging
 import re
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from typing import Any, Callable
 from urllib.parse import quote
@@ -186,13 +186,23 @@ class RoomSnapshot:
 
 
 class Room0Client:
-    """Reads a room through the confinement seam, with a short cache and last-good fallback."""
+    """Reads a room through the confinement seam, with a short cache, failure back-off and last-good fallback.
+
+    Home must stay fast on a bad day: a failing room is not retried for 30 s (doubling to 5 min), a request
+    never waits long behind another request's in-flight fetch, and a room always answers with SOMETHING
+    (its last-known cards stale, or an explicit unavailable status), never silence.
+    """
+
+    FAIL_BACKOFF_S = 30.0
+    FAIL_BACKOFF_MAX_S = 300.0
+    LOCK_WAIT_S = 0.25
 
     def __init__(self, store: Any, send: Callable[..., Any] = confined_request, *, clock: Callable[[], float] = time.time,
                  ttl_s: float = 15.0):
         self._store, self._send, self._clock, self._ttl = store, send, clock, ttl_s
         self._cache: dict[str, RoomSnapshot] = {}
         self._good: dict[str, RoomSnapshot] = {}
+        self._fails: dict[str, tuple[int, float]] = {}    # provider -> (consecutive failures, next attempt at)
         self._locks: dict[str, threading.Lock] = {}
         self._guard = threading.Lock()
 
@@ -204,17 +214,35 @@ class Room0Client:
         provider = self.provider(provider_id)
         if provider is None:
             return None
+        now = self._clock()
+        cached = self._cache.get(provider_id)
+        if not force and cached is not None:
+            if cached.error_class is None and now - cached.fetched_at < self._ttl:
+                return cached
+            if cached.error_class is not None and now < self._fails.get(provider_id, (0, 0.0))[1]:
+                return cached                                  # a failing room is left alone until its back-off ends
         with self._guard:
             lock = self._locks.setdefault(provider_id, threading.Lock())
-        with lock:  # single flight per room
-            cached = self._cache.get(provider_id)
-            if cached and not force and self._clock() - cached.fetched_at < self._ttl and cached.error_class is None:
-                return cached
+        if not lock.acquire(timeout=self.LOCK_WAIT_S):         # someone is already fetching: do not queue behind them
+            return self._cache.get(provider_id) or self._unavailable(provider, "still being fetched")
+        try:
             snap = self._fetch(provider)
             self._cache[provider_id] = snap
             if snap.error_class is None:
                 self._good[provider_id] = snap
+                self._fails.pop(provider_id, None)
+            else:
+                count = self._fails.get(provider_id, (0, 0.0))[0] + 1
+                delay = min(self.FAIL_BACKOFF_S * 2 ** min(count - 1, 8), self.FAIL_BACKOFF_MAX_S)
+                self._fails[provider_id] = (count, self._clock() + delay)
             return snap
+        finally:
+            lock.release()
+
+    def _unavailable(self, provider: Provider, note: str) -> RoomSnapshot:
+        """An explicit unavailable answer (never a missing room): last-known content, stale, if there is any."""
+        snap = RoomSnapshot(provider.id, name=provider.name, fetched_at=self._clock())
+        return self._failed(snap, ConfinementError("timeout", note))
 
     # ---- internals
 
@@ -330,22 +358,30 @@ def card_defs(provider: Provider, snap: RoomSnapshot, card: RoomCard | None) -> 
 class RoomService:
     def __init__(self, store: Any, client: Room0Client, *, clock: Callable[[], float] = time.time):
         self._store, self._client, self._clock = store, client, clock
-        self._pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="worlds-rooms")
+        self._pool = ThreadPoolExecutor(max_workers=16, thread_name_prefix="worlds-rooms")
 
     def providers(self) -> list[Provider]:
         return sorted((o for k, o in self._store.iter_all() if k == "provider" and o.kind == "room0"), key=lambda p: p.id)
 
-    def _snapshots(self) -> list[tuple[Provider, RoomSnapshot]]:
-        providers = self.providers()
+    SNAPSHOT_BUDGET_S = 2.0
+
+    def _snapshots(self, only: list[Provider] | None = None) -> list[tuple[Provider, RoomSnapshot]]:
+        """One snapshot per room, always: a room that has not answered within the budget is shown as
+        unavailable (its fetch carries on in the background and fills the cache), never dropped."""
+        providers = only if only is not None else self.providers()
         futures = [(p, self._pool.submit(self._client.snapshot, p.id)) for p in providers]
+        done, _ = wait([f for _, f in futures], timeout=self.SNAPSHOT_BUDGET_S)
         out = []
         for p, f in futures:
-            try:
-                snap = f.result(timeout=p.timeout_s * 4 + 1)
-            except Exception:
-                snap = None
-            if snap is not None:
-                out.append((p, snap))
+            snap = None
+            if f in done:
+                try:
+                    snap = f.result()
+                except Exception:
+                    snap = None
+            if snap is None:
+                snap = self._client._cache.get(p.id) or self._client._unavailable(p, "no answer in time")
+            out.append((p, snap))
         return out
 
     def home_items(self) -> list[dict[str, Any]]:
@@ -358,10 +394,12 @@ class RoomService:
         return items
 
     def card(self, card_id: str) -> dict[str, Any] | None:
+        """The envelope for one room card: only the room(s) whose id prefix matches are asked."""
         if not isinstance(card_id, str) or not card_id.startswith("r-"):
             return None
         now = self._clock()
-        for provider, snap in self._snapshots():
+        mine = [p for p in self.providers() if card_id.startswith(f"r-{p.id[:20].strip('-')}-")]
+        for provider, snap in self._snapshots(mine):
             if card_id == status_card_id(provider.id) and (snap.error_class or not snap.cards):
                 return card_envelope(provider, snap, None, now=now)
             for c in snap.cards:
@@ -390,8 +428,9 @@ class RoomService:
 
     @staticmethod
     def _ids(provider_id: str, room_action_id: str) -> tuple[str, str]:
-        s = slug(room_action_id, 40)
-        return f"{provider_id}.act-{s}"[:127], f"{provider_id[:20].strip('-')}-{s}"[:63].rstrip("-")
+        s = slug(room_action_id, 30)
+        h = hashlib.sha256(room_action_id.encode()).hexdigest()[:6]     # a.b / a:b / a-b must not collide
+        return f"{provider_id}.act-{s}-{h}"[:127], f"{provider_id[:20].strip('-')}-{s}-{h}"[:63].rstrip("-")
 
     def candidates(self, provider_id: str) -> list[dict[str, Any]] | None:
         snap = self._client.snapshot(provider_id)
@@ -406,7 +445,10 @@ class RoomService:
 
     def adopt(self, provider_id: str, room_action_id: str) -> Action | None:
         """Owner adoption: a callable C1 action (never exposed, always approval, treated as a write,
-        idempotency key required). Nothing is sent. Returns None when the room has no such action."""
+        idempotency key required). Nothing is sent. Returns None when the room has no such action; raises
+        ValueError (a plain message) for an id no room action could have."""
+        if not isinstance(room_action_id, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", room_action_id) or ".." in room_action_id:
+            raise ValueError("that is not a valid room action id")
         provider = self._client.provider(provider_id)
         snap = self._client.snapshot(provider_id)
         if provider is None or snap is None:
@@ -417,8 +459,9 @@ class RoomService:
         request_id, action_id = self._ids(provider_id, found.room_id)
         if self._store.get("action", action_id) is not None:
             return self._store.get("action", action_id)
-        self._store.save("request", Request(id=request_id, provider=provider_id, method="POST",
-                                            path=f"/room/actions/{quote(found.room_id, safe='')}", ttl_s=0), etag="")
+        if self._store.get("request", request_id) is None:           # a request left behind by a half-finished adoption is reused
+            self._store.save("request", Request(id=request_id, provider=provider_id, method="POST",
+                                                path=f"/room/actions/{quote(found.room_id, safe='')}", ttl_s=0), etag="")
         action = Action(id=action_id, request=request_id, name=found.label, access="write", approval="always",
                         scope=f"room.{provider_id}.{slug(found.room_id, 40)}", idempotency="required", exposed=False)
         self._store.save("action", action, etag="")

@@ -311,13 +311,16 @@ def test_401_is_needs_attention_and_5xx_unavailable_and_garbage_degraded(env, ro
     for status, state, cls in [(401, "needs_attention", "auth_failed"), (403, "needs_attention", "auth_failed"),
                                (500, "unavailable", "http_5xx"), (404, "degraded", "http_4xx")]:
         room.status = {"/room/cards": status}
+        clock["t"] += 400                                                 # past any failure back-off
         e = svc.card(status_card_id("demo"))
         assert (e["source_state"], e["evidence"]["error_class"]) == (state, cls), status
     room.status = {}
     room.cards = {"not": "a list"}
+    clock["t"] += 400
     assert svc.card(status_card_id("demo"))["source_state"] == "degraded"
     room.cards = [good_card()]
     room.descriptor = {"contract": "room/9", "name": "X", "status": "healthy"}
+    clock["t"] += 400
     e = svc.card(status_card_id("demo"))
     assert e["source_state"] == "degraded" and e["evidence"]["error_class"] == "malformed"
 
@@ -518,7 +521,7 @@ def test_room_routes_are_owner_only_and_adoption_needs_csrf(room, tmp_path, monk
     assert ok.status_code == 200 and ok.json()["exposed"] is False and ok.json()["approval"] == "always"
     assert c.post("/api/rooms/demo/actions/nope/adopt", headers=h).status_code == 404
     assert c.get("/api/rooms/missing/actions").status_code == 404
-    assert "refresh" in {a["id"].split("-", 1)[1] for a in c.get("/api/actions").json()}
+    assert any(a["id"].startswith("demo-refresh-") for a in c.get("/api/actions").json())
 
 
 def test_an_unreachable_room_does_not_blank_home_in_production(room, tmp_path, monkeypatch):
@@ -530,3 +533,151 @@ def test_an_unreachable_room_does_not_blank_home_in_production(room, tmp_path, m
     assert len(items) == 1
     e = c.get(f"/api/cards/{items[0]['card']}").json()
     assert e["freshness"] == "stale" and e["source_state"] == "unavailable"
+
+
+# ----------------------------------------------- Home stays fast on a bad day (review #242)
+
+def _blackhole():
+    """Accepts connections and never answers."""
+    import socket
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(16)
+    conns = []
+
+    def run():
+        while True:
+            try:
+                conns.append(srv.accept()[0])
+            except OSError:
+                return
+
+    threading.Thread(target=run, daemon=True).start()
+    return srv
+
+
+def test_one_blackholed_room_and_three_live_ones_every_room_present_and_home_stays_fast(tmp_path, monkeypatch):
+    monkeypatch.setenv("DEMO_ROOM_TOKEN", "room-token-value-0123456789")
+    live = [FakeRoom() for _ in range(3)]
+    hole = _blackhole()
+    try:
+        store = ConfigStore(tmp_path / "cfg")
+        for i, r in enumerate(live):
+            r.cards = [good_card(id=f"c{i}", title=f"Live {i}")]
+            store.save("provider", make_provider(r, id=f"live{i}", name=f"Live {i}", principal_id=None, timeout_s=5))
+        store.save("provider", Provider(id="hole", name="Hole", kind="room0", base_url=f"http://127.0.0.1:{hole.getsockname()[1]}",
+                                        network={"lan": True}, governance="worlds", timeout_s=5,
+                                        auth={"type": "bearer", "secret_ref": "env:DEMO_ROOM_TOKEN"}))
+        svc = RoomService(store, Room0Client(store))
+        t0 = time.monotonic()
+        first = svc.home_items()
+        assert time.monotonic() - t0 < 3.0                                       # not the 5 s provider timeout
+        titles = {i["title"] for i in first}
+        assert {"Live 0", "Live 1", "Live 2"} <= titles and len(first) == 4      # the blackholed room is PRESENT, as unavailable
+        time.sleep(5.5)                                                          # let the background fetch finish and fail
+        t1 = time.monotonic()
+        again = svc.home_items()
+        needs = svc.needs()
+        assert time.monotonic() - t1 < 1.0 and len(again) == 4 and isinstance(needs, list)   # failures are cached: no new 5 s wait
+        ids = {i["card"] for i in again}
+        assert status_card_id("hole") in ids
+        assert svc.card(status_card_id("hole"))["source_state"] == "unavailable"
+        assert all(r["id"] for r in svc.rooms()) and len(svc.rooms()) == 4
+    finally:
+        hole.close()
+        [r.stop() for r in live]
+
+
+def test_failures_are_cached_with_a_doubling_back_off_and_recover(env, room):
+    store, client, svc, clock, _ = env
+    client._ttl = 15
+    room.stop()
+    first = client.snapshot("demo")
+    assert first.error_class == "connection"
+    seen = len(room.seen)
+    clock["t"] += 10
+    assert client.snapshot("demo") is first                                       # inside the 30 s back-off: no new attempt
+    clock["t"] += 25
+    second = client.snapshot("demo")
+    assert second is not first                                                    # back-off over: tried again, failed again
+    assert client._fails["demo"][0] == 2
+    assert client._fails["demo"][1] - clock["t"] > 55                              # now ~60 s
+    for _ in range(12):
+        clock["t"] += 400
+        client.snapshot("demo")
+    assert client._fails["demo"][1] - clock["t"] <= client.FAIL_BACKOFF_MAX_S + 1  # capped at 5 minutes
+
+
+def test_a_room_that_comes_back_clears_its_back_off(env, room):
+    store, client, svc, clock, _ = env
+    room.status = {"/room": 500}
+    client.snapshot("demo")
+    assert "demo" in client._fails
+    room.status = {}
+    clock["t"] += 400
+    assert client.snapshot("demo").error_class is None and "demo" not in client._fails
+
+
+def test_a_card_request_asks_only_its_own_room(tmp_path, monkeypatch):
+    monkeypatch.setenv("DEMO_ROOM_TOKEN", "room-token-value-0123456789")
+    a, b = FakeRoom(), FakeRoom()
+    try:
+        store = ConfigStore(tmp_path / "cfg")
+        store.save("provider", make_provider(a, id="alpha", name="Alpha"))
+        store.save("provider", make_provider(b, id="beta", name="Beta"))
+        svc = RoomService(store, Room0Client(store))
+        assert svc.card(room_card_id("alpha", "finds"))["values"]["body"]["text"] == "New finds: 3"
+        assert b.seen == []                                                       # the other room was never contacted
+        assert svc.card("r-nobody-finds-000000") is None and b.seen == []
+    finally:
+        a.stop(); b.stop()
+
+
+def test_a_request_does_not_queue_behind_a_slow_fetch(env, room, monkeypatch):
+    store, client, svc, clock, _ = env
+    client.snapshot("demo")                                                        # known state exists
+    gate = threading.Event()
+    real = client._fetch
+    monkeypatch.setattr(client, "_fetch", lambda provider: (gate.wait(3), real(provider))[1])
+    t = threading.Thread(target=lambda: client.snapshot("demo", force=True))
+    t.start()
+    time.sleep(0.1)
+    t0 = time.monotonic()
+    snap = client.snapshot("demo", force=True)                                     # the lock is held: serve what we know
+    assert time.monotonic() - t0 < 1.0 and snap is not None
+    gate.set()
+    t.join()
+
+
+def test_a_room_with_no_history_that_is_still_loading_is_explicitly_unavailable(env, monkeypatch):
+    store, client, svc, clock, _ = env
+    svc.SNAPSHOT_BUDGET_S = 0.2
+    release = threading.Event()
+    monkeypatch.setattr(client, "_fetch", lambda provider: (release.wait(2), client._unavailable(provider, "slow"))[1])
+    items = svc.home_items()
+    release.set()
+    assert [i["card"] for i in items] == [status_card_id("demo")]
+
+
+def test_adopted_ids_cannot_collide_for_lookalike_room_action_ids(env, room):
+    room.actions = [{"id": "a.b", "label": "One"}, {"id": "a:b", "label": "Two"}, {"id": "a-b", "label": "Three"}, {"id": "a_b", "label": "Four"}]
+    store, client, svc, clock, _ = env
+    ids = {svc.adopt("demo", x).id for x in ("a.b", "a:b", "a-b", "a_b")}
+    assert len(ids) == 4 and all(re.fullmatch(r"^[a-z0-9][a-z0-9-]{0,62}$", i) for i in ids)
+
+
+def test_adopt_with_an_invalid_id_is_a_plain_400_and_a_leftover_request_is_reused(room, tmp_path, monkeypatch):
+    room.actions = ACTIONS
+    app, c, h = prod(room, tmp_path, monkeypatch)
+    for bad in ("..", "a b", "a%00b", "x" * 200):
+        r = c.post(f"/api/rooms/demo/actions/{bad}/adopt", headers=h)
+        assert r.status_code in (400, 404) and "Traceback" not in r.text, bad
+    r = c.post("/api/rooms/demo/actions/..%2F..%2Fx/adopt", headers=h)
+    assert r.status_code in (400, 404)
+    # a half-finished earlier adoption left the request behind: adopting again completes it
+    svc = app.state.rooms
+    rid, aid = svc._ids("demo", "refresh")
+    from personal_world.worlds.models import Request as Req
+    app.state.store.save("request", Req(id=rid, provider="demo", method="POST", path="/room/actions/refresh", ttl_s=0))
+    ok = c.post("/api/rooms/demo/actions/refresh/adopt", headers=h)
+    assert ok.status_code == 200 and app.state.store.get("action", aid) is not None
