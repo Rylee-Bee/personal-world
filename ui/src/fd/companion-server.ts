@@ -11,6 +11,16 @@ export function createCompanionServer() {
   const replies = new Map<string, string>();
   const grants = new Map<string, { state: string; expires_at: string | null }>();
   const calls: { method: string; path: string; body: unknown }[] = [];
+  // Fake stored threads for the "Earlier conversations" feature
+  const storedThreads = new Map<string, { ts: string; visibility_tier: "ordinary" | "stepped"; user_text: string; assistant_text: string; client_msg_id: string }[]>([
+    ["t-old-1", [
+      { ts: "2026-09-15T10:30:00Z", visibility_tier: "ordinary", user_text: "What's the weather?", assistant_text: "I don't have real-time data.", client_msg_id: "m1" },
+      { ts: "2026-09-15T10:31:00Z", visibility_tier: "ordinary", user_text: "Thanks anyway", assistant_text: "You're welcome.", client_msg_id: "m2" },
+    ]],
+    ["t-old-2", [
+      { ts: "2026-09-20T14:00:00Z", visibility_tier: "ordinary", user_text: "Help me plan", assistant_text: "Sure, what for?", client_msg_id: "m3" },
+    ]],
+  ]);
 
   const down = (): Reply => ({ status: 502, body: { state: "unknown", text: "Companion isn't answering.", reason: "unreachable" } });
 
@@ -57,7 +67,17 @@ export function createCompanionServer() {
       const g = path.match(/^\/api\/companion\/grants\/([A-Za-z0-9_-]+)$/);
       if (g && method === "GET") return { status: 200, body: { grant_id: g[1], ...(grants.get(g[1]) ?? { state: "unknown", expires_at: null }) } };
       if (g && method === "DELETE") { grants.set(g[1], { state: "revoked", expires_at: null }); return { status: 200, body: { grant_id: g[1], state: "revoked", expires_at: null } }; }
-      if (method === "GET" && path === "/api/companion/threads") return { status: 200, body: { threads: ["t-1"] } };
+      if (method === "GET" && path === "/api/companion/threads") return { status: 200, body: { threads: ["t-old-1", "t-old-2", "t-1"] } };
+      // Individual thread: /api/companion/threads/{id}?after=n
+      const threadMatch = path.match(/^\/api\/companion\/threads\/([A-Za-z0-9_-]+)$/);
+      if (threadMatch && method === "GET") {
+        const id = threadMatch[1];
+        const url = new URL(`http://x${path.includes("?") ? path.slice(path.indexOf("?")) : ""}`);
+        const after = Number(url.searchParams.get("after") ?? "0");
+        const turns = storedThreads.get(id) ?? [];
+        const filtered = turns.slice(after);
+        return { status: 200, body: { thread_id: id, turns: filtered } };
+      }
       return { status: 404, body: { detail: "not found" } };
     },
   };

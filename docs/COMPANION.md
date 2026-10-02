@@ -37,6 +37,8 @@ network:
 
 ## The panel
 
-A quiet "Companion" button in the header opens a native modal dialog: a side panel on a desktop, a full-height sheet on a phone. It is not a fifth landmark. It shows the thread and a composer (sends `client_msg_id`; "thinking" is shown locally while a turn is in flight), each reply's withheld lines ("Some things were withheld: …") and level, "What Companion sees" (section counts, items, UNKNOWN lines), and deeper access (state, "Approve it in Project Home" link, check, stop).
+A quiet "Companion" button in the header opens a native modal dialog: a side panel on a desktop, a full-height sheet on a phone. It is not a fifth landmark. It shows the thread and a composer (sends `client_msg_id`; "thinking" is shown locally while a turn is in flight), each reply's withheld lines ("Some things were withheld: …") and level, "What Companion sees" (section counts, items, UNKNOWN lines), deeper access (state, "Approve it in Project Home" link, check, stop), and "Earlier conversations" (a list of old threads, newest last, shown read-only when opened).
 
 `presentation/1` is mapped to a static pose word and an aria-hidden mark only (`ui/src/fd/companion/presentation.ts`); unknown values fall back to the defaults. Nothing animates.
+
+**Earlier conversations:** The disclosure loads thread ids lazily on open (once per panel open). Each thread is shown as "Conversation N" with no invented titles. Choosing one shows that thread read-only in the same turn components; there is no composer for old threads. A "Back to the current conversation" button restores the live view and focus. Honest states: loading, empty ("No earlier conversations"), Companion down (Unknown + Try again), not configured. Nothing is stored in the browser or Worlds.
