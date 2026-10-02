@@ -1,0 +1,8 @@
+schema_version: 1
+name: bindery
+title: Bindery
+summary: How many books are still wanted or downloading.
+status: ready
+note: Endpoint shapes assumed from the Readarr-style API; not yet checked against a live instance.
+env:
+  - BINDERY_API_KEY

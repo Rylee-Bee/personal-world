@@ -1,0 +1,7 @@
+schema_version: 1
+name: grimmory
+title: Grimmory
+summary: Reading library status.
+status: planned
+note: Needs a password-grant bearer token (planned).
+env: []

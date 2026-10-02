@@ -1,0 +1,8 @@
+schema_version: 1
+name: prowlarr
+title: Prowlarr
+summary: Shows whether the indexers are reporting any problems.
+status: ready
+note: ""
+env:
+  - PROWLARR_API_KEY

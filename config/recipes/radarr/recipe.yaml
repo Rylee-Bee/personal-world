@@ -1,0 +1,8 @@
+schema_version: 1
+name: radarr
+title: Radarr
+summary: Shows the films coming up and how many are still wanted.
+status: ready
+note: ""
+env:
+  - RADARR_API_KEY
