@@ -16,10 +16,12 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import json
 import logging
 import re
 import threading
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable
@@ -39,6 +41,9 @@ TONES = ("good_news", "update", "when_ready")
 AUTONOMIES = ("auto", "check_in", "ask_first")
 _ICON = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 _MAX_CARDS, _MAX_NEEDS, _MAX_ACTIONS = 100, 50, 100
+# Typed action input is bounded at the boundary (untrusted room JSON): at most 20 offered choices,
+# each value/label trimmed to 120 characters, duplicates collapsed. State the numbers here, once.
+_MAX_CHOICES, _MAX_CHOICE_VALUE, _MAX_CHOICE_LABEL = 20, 120, 120
 
 
 # ----------------------------------------------------------------------- pure parsing
@@ -86,6 +91,40 @@ def parse_time(value: Any) -> float | None:
 
 def _text(value: Any, limit: int) -> str | None:
     return value[:limit] if isinstance(value, str) else None
+
+
+CHANGED_PATH = "/changed"
+
+
+@dataclass(frozen=True)
+class ChangedPing:
+    """A room's out-of-band change signal: the room said something changed."""
+
+    provider_room_id: str | None
+    changed: bool
+    at: float | None
+
+
+def parse_changed(doc: Any) -> ChangedPing | None:
+    """Parse a room's ``/changed`` ping defensively; None for anything unrecognised.
+
+    Only a JSON object that says ``contract: room/0`` and ``changed: true`` (the literal boolean) is a
+    ping. A malformed body, a non-JSON body, a missing/other contract, ``changed: false`` or any other
+    value is ignored — never an invalidation, never a raise. An optional ``provider_room_id`` is bounded
+    to 200 characters and dropped rather than trusted when it is not a sane string; ``at`` is an optional
+    ISO-8601 timestamp. Parsing never fetches: it only decides whether a cache invalidation is warranted.
+    """
+    if isinstance(doc, (bytes, bytearray)):
+        try:
+            doc = json.loads(bytes(doc).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return None
+    if not isinstance(doc, dict) or doc.get("contract") != "room/0" or doc.get("changed") is not True:
+        return None
+    room_id = doc.get("provider_room_id")
+    if not isinstance(room_id, str) or not 1 <= len(room_id) <= 200:
+        room_id = None
+    return ChangedPing(room_id, True, parse_time(doc.get("at")))
 
 
 @dataclass(frozen=True)
@@ -150,12 +189,53 @@ def parse_need(doc: Any) -> RoomNeed | None:
 
 
 @dataclass(frozen=True)
+class RoomChoice:
+    """One offered option for a room action's input: a required value and an optional display label."""
+
+    value: str
+    label: str | None = None
+
+
+@dataclass(frozen=True)
 class RoomAction:
     room_id: str
     label: str
     input_schema: dict
     default_autonomy: str
     writes: bool
+    choices: tuple[RoomChoice, ...] = ()
+    allow_text: bool = False
+
+
+def parse_choices(value: Any) -> tuple[RoomChoice, ...]:
+    """Defensive parse of an action's ``choices``: junk is dropped, duplicates collapse (first wins).
+
+    A choice may be an object with ``value`` (and an optional ``label``) or a bare string. Values are
+    trimmed and cut to 120 characters; an empty value is not a choice. At most 20 survive. A malformed
+    entry degrades to no choice, never to an exception.
+    """
+    if not isinstance(value, list):
+        return ()
+    out: list[RoomChoice] = []
+    seen: set[str] = set()
+    for item in value:
+        if len(out) >= _MAX_CHOICES:
+            break
+        if isinstance(item, str):
+            raw_value, raw_label = item, None
+        elif isinstance(item, dict):
+            raw_value, raw_label = item.get("value"), item.get("label")
+        else:
+            continue
+        if not isinstance(raw_value, str):
+            continue
+        choice_value = raw_value.strip()[:_MAX_CHOICE_VALUE].strip()
+        if not choice_value or choice_value in seen:
+            continue
+        label = raw_label.strip()[:_MAX_CHOICE_LABEL].strip() if isinstance(raw_label, str) else ""
+        seen.add(choice_value)
+        out.append(RoomChoice(choice_value, label or None))
+    return tuple(out)
 
 
 def parse_action(doc: Any) -> RoomAction | None:
@@ -168,7 +248,9 @@ def parse_action(doc: Any) -> RoomAction | None:
     schema = doc.get("input_schema") if isinstance(doc.get("input_schema"), dict) else {}
     autonomy = doc.get("default_autonomy")
     return RoomAction(doc["id"], label.strip(), schema, autonomy if autonomy in AUTONOMIES else "ask_first",   # unknown: strictest
-                      doc.get("writes") is not False)                                                               # unknown: a write
+                      doc.get("writes") is not False,                                                          # unknown: a write
+                      parse_choices(doc.get("choices")),
+                      doc.get("allow_text") is True)                                                           # only literal True enables text
 
 
 # ----------------------------------------------------------------------------- client
@@ -246,6 +328,23 @@ class Room0Client:
         finally:
             lock.release()
 
+    def invalidate(self, provider_id: str) -> bool:
+        """Owner/room said this room changed: drop its cached snapshot so the next read refetches.
+
+        Removes the cached snapshot, the last-good fallback and the failure back-off, and sends NOTHING
+        to the room: invalidation never fetches and never fabricates data. Returns ``False`` when the id
+        is not a room0 provider (nothing to invalidate). The last-good mechanism itself is unchanged: the
+        next successful read repopulates it, so a later fetch failure can still show those last-known
+        cards stale.
+        """
+        if self.provider(provider_id) is None:
+            return False
+        with self._guard:
+            self._cache.pop(provider_id, None)
+            self._good.pop(provider_id, None)
+            self._fails.pop(provider_id, None)
+        return True
+
     def _unavailable(self, provider: Provider, note: str) -> RoomSnapshot:
         """An explicit unavailable answer (never a missing room): last-known content, stale, if there is any."""
         snap = RoomSnapshot(provider.id, name=provider.name, fetched_at=self._clock())
@@ -269,8 +368,6 @@ class Room0Client:
         if code >= 500 or code < 200 or code >= 300:
             return None, ConfinementError("http_5xx", f"room answered {code}", status_code=code, duration_ms=result.duration_ms), result
         try:
-            import json
-
             return json.loads(result.body.decode("utf-8")), None, result
         except (ValueError, UnicodeDecodeError):
             return None, ConfinementError("malformed", "room sent something that is not JSON", status_code=code,
@@ -433,6 +530,10 @@ class RoomService:
                  "error_class": snap.error_class, "last_seen_at": snap.last_good_at, "contract_ok": snap.contract_ok,
                  "governance": "project_home" if p.governed_by_project_home() else "worlds"} for p, snap in self._snapshots()]
 
+    def invalidate(self, provider_id: str) -> bool:
+        """A room signalled a change (its ``/changed`` ping): drop its snapshot; sends nothing to the room."""
+        return self._client.invalidate(provider_id)
+
     # ---- action candidates (C1 actions the owner may adopt)
 
     @staticmethod
@@ -440,6 +541,12 @@ class RoomService:
         s = slug(room_action_id, 30)
         h = hashlib.sha256(room_action_id.encode()).hexdigest()[:6]     # a.b / a:b / a-b must not collide
         return f"{provider_id}.act-{s}-{h}"[:127], f"{provider_id[:20].strip('-')}-{s}-{h}"[:63].rstrip("-")
+
+    @staticmethod
+    def _check_room_action_id(room_action_id: str) -> None:
+        if (not isinstance(room_action_id, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", room_action_id)
+                or ".." in room_action_id or re.fullmatch(r"[.:-]+", room_action_id)):
+            raise ValueError("that is not a valid room action id")
 
     def candidates(self, provider_id: str) -> list[dict[str, Any]] | None:
         snap = self._client.snapshot(provider_id)
@@ -449,16 +556,56 @@ class RoomService:
         for a in snap.actions:
             _, action_id = self._ids(provider_id, a.room_id)
             out.append({"room_action_id": a.room_id, "label": a.label, "writes": a.writes, "default_autonomy": a.default_autonomy,
-                        "adopted": self._store.get("action", action_id) is not None, "action_id": action_id})
+                        "adopted": self._store.get("action", action_id) is not None, "action_id": action_id,
+                        "choices": [{"value": c.value, "label": c.label} for c in a.choices], "allow_text": a.allow_text})
         return out
+
+    def adopted(self, provider_id: str, room_action_id: str) -> Action | None:
+        """The already-adopted C1 action for a room action, or None. Never adopts, never sends a write.
+
+        The room must still offer it: an adopted action the room no longer lists has nothing honest to
+        answer, so it is refused too. Raises ValueError for an id no room action could have.
+        """
+        self._check_room_action_id(room_action_id)
+        if self._client.provider(provider_id) is None:
+            return None
+        snap = self._client.snapshot(provider_id)
+        if snap is None or snap.error_class is not None or not any(a.room_id == room_action_id for a in snap.actions):
+            return None
+        _, action_id = self._ids(provider_id, room_action_id)
+        action = self._store.get("action", action_id)
+        return action if isinstance(action, Action) else None
+
+    def answer(self, provider_id: str, room_action_id: str, params: dict[str, Any] | None, principal: Any,
+               dispatcher: Any, *, idempotency_key: str | None = None,
+               project_home_approval_id: str | None = None) -> dict[str, Any] | None:
+        """Answer a room need by running an ALREADY-ADOPTED room action through the C3 dispatcher.
+
+        This does not shortcut the authority: ``request_authorization -> approve -> consume -> dispatch``
+        is the same lifecycle every write takes, so nothing is sent without a consumed authorization and
+        there is at most one network attempt. The adopted request carries no body, so the answer payload
+        (``params``) becomes the body through the dispatcher's existing mechanism. A Project Home-governed
+        room is approved there and only recorded here (``project_home_approval_id``); without it the
+        dispatcher refuses. Returns the receipt, or None when the action is not callable.
+        """
+        action = self.adopted(provider_id, room_action_id)
+        if action is None:
+            return None
+        if not idempotency_key:
+            idempotency_key = uuid.uuid4().hex                 # a room action always requires one (C8)
+        authorization = dispatcher.request_authorization(principal, action.id, params, idempotency_key)
+        provider = self._client.provider(provider_id)
+        if provider is not None and provider.governed_by_project_home() and project_home_approval_id:
+            dispatcher.record_project_home_approval(authorization["id"], project_home_approval_id)
+        else:
+            dispatcher.approve(principal, authorization["id"])
+        return dispatcher.execute(principal, authorization["id"])
 
     def adopt(self, provider_id: str, room_action_id: str) -> Action | None:
         """Owner adoption: a callable C1 action (never exposed, always approval, treated as a write,
         idempotency key required). Nothing is sent. Returns None when the room has no such action; raises
         ValueError (a plain message) for an id no room action could have."""
-        if (not isinstance(room_action_id, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", room_action_id)
-                or ".." in room_action_id or re.fullmatch(r"[.:-]+", room_action_id)):
-            raise ValueError("that is not a valid room action id")
+        self._check_room_action_id(room_action_id)
         provider = self._client.provider(provider_id)
         snap = self._client.snapshot(provider_id)
         if provider is None or snap is None:
