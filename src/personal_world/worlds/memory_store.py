@@ -98,6 +98,8 @@ _MAX_HISTORY_EVENT = 200
 _WORDS = re.compile(r"[^\W_]+", re.UNICODE)
 #: FTS5 snippet marker, only used to see which column the match landed in.
 _MARK = "«"
+#: SQLite's PRIMARY KEY / UNIQUE refusal names the table and the ``id`` column; that is a duplicate id.
+_DUPLICATE_ID = re.compile(r"UNIQUE constraint failed: \w+\.id\b")
 
 
 class MemoryError_(Exception):
@@ -500,8 +502,17 @@ class MemoryStore:
 
     def _insert(self, tx: sqlite3.Connection, table: str, values: dict) -> None:
         columns = ", ".join(values)
-        tx.execute(f"INSERT INTO {table} ({columns}) VALUES ({', '.join('?' * len(values))})",
-                   [self._encode(name, value) for name, value in values.items()])
+        try:
+            tx.execute(f"INSERT INTO {table} ({columns}) VALUES ({', '.join('?' * len(values))})",
+                       [self._encode(name, value) for name, value in values.items()])
+        except sqlite3.IntegrityError as exc:
+            # The row is inserted inside the caller's write transaction, so raising here rolls the
+            # row, its find entry and its history entry back together. A duplicate id is the one such
+            # error a caller can cause; it is named as a duplicate, and any other constraint is
+            # reported truthfully, but no raw sqlite3 error ever escapes the store.
+            if _DUPLICATE_ID.search(str(exc)):
+                raise MemoryError_(f"{table} already has a row with this id (duplicate id)") from None
+            raise MemoryError_(f"{table} refused this row: {exc}") from exc
 
     def _index(self, tx: sqlite3.Connection, table: str, row_id: str, title: str, body: str,
                sensitivity: str) -> None:

@@ -409,6 +409,22 @@ def test_failed_write_rolls_back_rows_index_and_history_together(ms, monkeypatch
     assert ms.db.conn().execute("select count(*) from history").fetchone()[0] == before
 
 
+def test_duplicate_id_raises_memory_error(ms):
+    k = ms.add("kept", title="Original", body="body", tags=["t"], actor="owner")
+    counts = {t: ms.db.conn().execute(f"select count(*) from {t}").fetchone()[0]
+              for t in ("kept", "later", "records", "find_index", "history")}
+    dupe = {"id": k["id"], "title": "Duplicate", "body": "", "tags": [],
+            "provenance": "owner", "source_ref": None, "created_at": NOW, "updated_at": NOW}
+    with pytest.raises(MemoryError_) as caught:
+        with ms.db.write_tx() as tx:
+            ms._insert(tx, "kept", dupe)                      # the one insert path both add() and restore use
+    assert not isinstance(caught.value, sqlite3.IntegrityError)   # the raw sqlite3 error never escapes
+    assert "kept" in str(caught.value) and "duplicate" in str(caught.value)   # named as a duplicate id
+    for table, before in counts.items():                      # the refused insert rolled everything back together
+        assert ms.db.conn().execute(f"select count(*) from {table}").fetchone()[0] == before, table
+    assert ms.get("kept", k["id"])["title"] == "Original"
+
+
 # ----------------------------------------------------------- review hardening
 
 def test_step_up_must_be_exactly_true(ms):
