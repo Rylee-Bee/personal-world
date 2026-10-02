@@ -324,3 +324,11 @@ uv run personal-world framework validate --json
 
 These are local checks. Verify authentication, health, provider behavior and
 backup recovery in the actual deployment before treating an update as accepted.
+
+## Rebuild: sign-in behind a reverse proxy (2026-10-01)
+
+Run the rebuilt app with `uvicorn personal_world.worlds.production:app_from_env --factory` and set `PW_CONFIG_DIR` and `PW_DATA_DIR`.
+Set `PW_TRUSTED_PROXIES` to the address of your reverse proxy (an IP or CIDR; comma-separated for several) so the sign-in rate limit
+sees the real client. Without it every client behind the proxy shares one limit and Worlds logs a warning. Give uvicorn the same
+address with `--forwarded-allow-ips` so it does not trust `X-Forwarded-*` from anywhere else. The bootstrap secret must be at least 32 hex or 22 base64url characters
+(`python -c "import secrets;print(secrets.token_urlsafe(32))"`); a weaker one stops startup. The OIDC flow key and CSRF key live in `PW_DATA_DIR` (mode 0600), so several workers share them. Details: `docs/rebuild/CONTRACTS.md` C7.

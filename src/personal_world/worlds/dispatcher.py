@@ -22,12 +22,14 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+import socket
 import sqlite3
 import threading
 import time
 import uuid
 from dataclasses import dataclass
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Iterable, Literal
 
 from .authn import Principal
 from .confinement import ConfinementError, RawResponse, confined_request
@@ -58,9 +60,28 @@ CREATE TABLE executions (
 CREATE INDEX idx_auth_state ON authorizations(state, expires_at)"""),
     (2, """ALTER TABLE executions ADD COLUMN owner_id TEXT;
 CREATE TABLE leases (instance_id TEXT PRIMARY KEY, heartbeat REAL NOT NULL)"""),
+    (3, """ALTER TABLE leases ADD COLUMN pid INTEGER;
+ALTER TABLE leases ADD COLUMN boot_id TEXT;
+ALTER TABLE leases ADD COLUMN started TEXT"""),
+    (4, "ALTER TABLE leases ADD COLUMN host TEXT"),
 ])
 
 LEASE_TTL_S = 30.0
+LEASE_RENEW_S = LEASE_TTL_S / 3   # how often a live process renews; a lease older than this has missed a beat
+
+
+def process_identity() -> tuple[str, int, str, str]:
+    """(boot id, pid, process start time, host name). The host name is the container id in Docker, so two
+    containers sharing a volume (both pid 1, same kernel boot id) are told apart."""
+    try:
+        boot = open("/proc/sys/kernel/random/boot_id").read().strip()
+    except OSError:
+        boot = "unknown"
+    try:
+        started = open("/proc/self/stat").read().rsplit(")", 1)[1].split()[19]
+    except (OSError, IndexError):
+        started = "0"
+    return boot, os.getpid(), started, socket.gethostname()
 
 
 class DispatchError(Exception):
@@ -105,8 +126,8 @@ def classify_outcome(result: Any) -> tuple[Literal["SUCCEEDED", "FAILED", "UNKNO
             return "FAILED", code, "http_4xx"
         return "UNKNOWN", code, "http_5xx" if code >= 500 else "http_4xx" if code >= 400 else "redirect_refused"
     if isinstance(result, ConfinementError):
-        if result.error_class in ("confinement_denied", "auth_failed"):
-            return "FAILED", result.status_code, result.error_class  # refused before anything was sent
+        if result.pre_send or result.error_class in ("confinement_denied", "auth_failed"):
+            return "FAILED", result.status_code, result.error_class  # nothing was sent: it provably did not run
         return "UNKNOWN", result.status_code, result.error_class
     return "UNKNOWN", None, "malformed"
 
@@ -119,19 +140,21 @@ class Dispatcher:
         *,
         send: Send | None = None,
         clock: Callable[[], float] = time.time,
-        secret_values: tuple[str, ...] = (),
+        secret_values: Iterable[str] = (),
         governed_by_project_home: Callable[[Provider], bool] | None = None,
         project_home_verifier: PHVerifier | None = None,
         ttl_s: int = DEFAULT_TTL_S,
+        identity: tuple[str, int, str, str] | None = None,
     ):
         self._db, self._store = db, store
         self._send = send if send is not None else confined_request
-        self._clock, self._secrets = clock, tuple(secret_values)
+        self._clock, self._secret_source = clock, secret_values   # iterated at redaction time (may be live)
         # Fail closed: by default a provider marked (or, for room0, defaulting to) Project Home governance
         # can only be approved there.
         self._ph_governs = governed_by_project_home or (lambda provider: provider.governed_by_project_home())
         self._ph_verify = project_home_verifier
         self._ttl = ttl_s
+        self.identity = identity or process_identity()
         self.instance_id = uuid.uuid4().hex   # this process's identity; its rows are protected by a live lease
         self.heartbeat()
         self._unsubscribe = store.on_change(self._on_actions_changed)
@@ -142,8 +165,9 @@ class Dispatcher:
         """Renew this process's lease. Call it regularly (production runs a timer); it is also
         renewed on every execute, so a busy process is never mistaken for a dead one."""
         with self._db.write_tx() as tx:
-            tx.execute("INSERT INTO leases(instance_id, heartbeat) VALUES (?,?) "
-                       "ON CONFLICT(instance_id) DO UPDATE SET heartbeat=excluded.heartbeat", (self.instance_id, self._clock()))
+            tx.execute("INSERT INTO leases(instance_id, heartbeat, pid, boot_id, started, host) VALUES (?,?,?,?,?,?) "
+                       "ON CONFLICT(instance_id) DO UPDATE SET heartbeat=excluded.heartbeat",
+                       (self.instance_id, self._clock(), self.identity[1], self.identity[0], self.identity[2], self.identity[3]))
 
     # ------------------------------------------------------------ helpers
 
@@ -321,8 +345,11 @@ class Dispatcher:
         row, execution_id, action, request, provider = self._consume(principal, authorization_id)
         self.heartbeat()
         with self._db.write_tx() as tx:
-            tx.execute("UPDATE executions SET state='DISPATCHING', dispatch_started_at=? WHERE id=? AND state='INTENT'",
-                       (self._clock(), execution_id))
+            moved = tx.execute("UPDATE executions SET state='DISPATCHING', dispatch_started_at=? WHERE id=? AND state='INTENT'",
+                               (self._clock(), execution_id))
+        if moved.rowcount != 1:
+            # Recovery settled the row (UNKNOWN) between consume and dispatch: do NOT send.
+            raise DispatchError("this execution was settled before it was sent; request a new authorization")
         sent = request
         updates: dict[str, Any] = {}
         params = json.loads(row["params_json"])
@@ -340,7 +367,7 @@ class Dispatcher:
         except Exception as exc:  # BaseException (a crash) deliberately propagates: row stays DISPATCHING
             result = ConfinementError("connection", f"sender error: {type(exc).__name__}")
         state, status, error_class = classify_outcome(result)
-        note = redact(getattr(result, "note", "") or "", self._secrets)[:300] if isinstance(result, ConfinementError) else ""
+        note = redact(getattr(result, "note", "") or "", tuple(self._secret_source))[:300] if isinstance(result, ConfinementError) else ""
         evidence = {"method": request.method, "path": request.path, "status_code": status, "error_class": error_class,
                     "duration_ms": getattr(result, "duration_ms", None)}
         if note:
@@ -357,18 +384,38 @@ class Dispatcher:
     def recover(self) -> int:
         """INTENT/DISPATCHING rows whose owning process is gone become UNKNOWN. Never re-sent.
 
-        A row is "gone" when it has no owner or its owner's lease has not been renewed within
-        LEASE_TTL_S. This process's own rows and any live process's rows are never touched.
+        An owner is gone when its lease lapsed (LEASE_TTL_S), or when its lease shows a previous boot
+        of this host, or the same pid with a different start time (this process is its restart): those
+        are settled at once, so a fast restart does not wait out the lease. This process's own rows
+        and any live process's rows are never touched.
         """
         now = self._clock()
+        boot, pid, started, host = self.identity
+        alive = {self.instance_id}
+        for lease in self._db.conn().execute(
+                "SELECT instance_id, heartbeat, pid, boot_id, started, host FROM leases").fetchall():
+            if lease["instance_id"] == self.instance_id:
+                continue
+            expired = lease["heartbeat"] <= now - LEASE_TTL_S
+            same_host = lease["host"] is not None and lease["host"] == host
+            # Identity can only settle a lease EARLY when it is provably this host's own past: the host
+            # rebooted, or this process is the restart of that pid (same boot, same pid, new start time)
+            # and the old one has missed a heartbeat. Anything else (another container or machine sharing
+            # the volume) is alive until its lease actually expires.
+            rebooted = same_host and lease["boot_id"] is not None and lease["boot_id"] != boot
+            restarted = (same_host and lease["boot_id"] == boot and lease["pid"] == pid and lease["started"] != started
+                         and lease["heartbeat"] <= now - LEASE_RENEW_S)
+            if not (expired or rebooted or restarted):
+                alive.add(lease["instance_id"])
         evidence = json.dumps({"error_class": None, "note": "interrupted before a result was recorded"})
+        marks = ",".join("?" for _ in alive)
         with self._db.write_tx() as tx:
             cur = tx.execute(
-                "UPDATE executions SET state='UNKNOWN', finished_at=?, evidence_redacted=? "
-                "WHERE state IN ('INTENT','DISPATCHING') AND (owner_id IS NULL OR (owner_id != ? AND owner_id NOT IN "
-                "(SELECT instance_id FROM leases WHERE heartbeat > ?)))",
-                (now, evidence, self.instance_id, now - LEASE_TTL_S))
-            tx.execute("DELETE FROM leases WHERE heartbeat <= ? AND instance_id != ?", (now - 10 * LEASE_TTL_S, self.instance_id))
+                f"UPDATE executions SET state='UNKNOWN', finished_at=?, evidence_redacted=? "
+                f"WHERE state IN ('INTENT','DISPATCHING') AND (owner_id IS NULL OR owner_id NOT IN ({marks}))",
+                (now, evidence, *alive))
+            tx.execute("DELETE FROM leases WHERE instance_id != ? AND instance_id NOT IN (%s) AND heartbeat <= ?" % marks,
+                       (self.instance_id, *alive, now - 10 * LEASE_TTL_S))
         return cur.rowcount
 
     def request_retry(self, principal: Principal, execution_id: str) -> dict:

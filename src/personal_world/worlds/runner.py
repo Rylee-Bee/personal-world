@@ -137,7 +137,7 @@ class Runner:
         self._send = send
         self._clock = clock
         self._cache_dir = Path(cache_dir) if cache_dir is not None else None
-        self._secrets = tuple(secret_values or ())
+        self._secret_source = secret_values if secret_values is not None else ()   # read lazily at redaction time
         self._guard = threading.RLock()
         self._inflight: dict[str, _InFlight] = {}
         self._cache: dict[str, Fetch] = {}
@@ -263,7 +263,7 @@ class Runner:
         )
 
     def _redact(self, text: Any) -> str:
-        return redact(text, self._secrets)
+        return redact(text, tuple(self._secret_source))
 
     def _send_once(self, request_id: str, provider: Any, request: Any) -> Fetch:
         now = self._clock()
