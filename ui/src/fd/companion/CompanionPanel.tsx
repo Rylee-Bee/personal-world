@@ -4,7 +4,7 @@ import { formatClock } from "../time";
 import { companionApi } from "./api";
 import { useCompanion } from "./companion-core";
 import { poseFor } from "./presentation";
-import type { CompanionFailure, ContextItem, ContextView, GrantView, HealthView, Result } from "./types";
+import type { CompanionFailure, ContextItem, ContextView, GrantView, HealthView, Result, StoredTurn } from "./types";
 import "../fd.css";
 
 const SECTIONS: { key: "reviewed" | "working" | "recall" | "live"; label: string }[] = [
@@ -173,6 +173,119 @@ function Grants() {
   );
 }
 
+/** Read-only view of an old thread: same turn components, no composer. */
+function OldThreadView({ threadId, onBack, backRef }: { threadId: string; onBack: () => void; backRef: React.RefObject<HTMLButtonElement | null> }) {
+  const [turns, setTurns] = useState<StoredTurn[] | null>(null);
+  const [failure, setFailure] = useState<CompanionFailure | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    void companionApi.thread(threadId).then((r) => {
+      if (!live) return;
+      setLoading(false);
+      if (r.ok) {
+        setTurns(r.data.turns);
+        setFailure(null);
+      } else {
+        setTurns(null);
+        setFailure(r.failure);
+      }
+    });
+    return () => { live = false; };
+  }, [threadId]);
+
+  return (
+    <section className="fd-companion-readonly" aria-label="Earlier conversation">
+      <div className="fd-companion-readonly-head">
+        <button type="button" className="fd-btn fd-btn--quiet" ref={backRef} onClick={onBack}>
+          ← Back to the current conversation
+        </button>
+      </div>
+      {loading && <p className="fd-companion-readonly-status">Loading conversation…</p>}
+      {failure && <Unknown failure={failure} />}
+      {turns && turns.length === 0 && <p className="fd-companion-readonly-status">This conversation has no turns.</p>}
+      {turns && turns.length > 0 && (
+        <ol className="fd-companion-thread" aria-label="Earlier conversation">
+          {turns.map((t, i) => (
+            <li key={i} className="fd-companion-turn">
+              <p className="fd-companion-you"><span className="fd-companion-who">You</span> {t.user_text}</p>
+              <div className="fd-companion-reply">
+                <p><span className="fd-companion-who">Companion</span> {t.assistant_text}</p>
+                {t.visibility_tier && <p className="fd-companion-tier">Level: {t.visibility_tier}</p>}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+/**
+ * "Earlier conversations": a native <details> that loads thread ids on open (lazily, once).
+ * Shows a plain label for each thread and, when opened, the date of its first turn if available.
+ * Choosing one shows that thread read-only in the same turn components.
+ */
+function EarlierConversations({ onViewThread, viewingOldThread }: { onViewThread: (id: string) => void; viewingOldThread: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [threads, setThreads] = useState<string[] | null>(null);
+  const [failure, setFailure] = useState<CompanionFailure | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!open || loaded) return;
+    let live = true;
+    setLoading(true);
+    void companionApi.threads().then((r) => {
+      if (!live) return;
+      setLoading(false);
+      setLoaded(true);
+      if (r.ok) {
+        // Filter out the current thread (t-1 is the live one in our test server)
+        const oldThreads = r.data.threads.filter((id) => id !== "t-1");
+        setThreads(oldThreads);
+        setFailure(null);
+      } else {
+        setThreads(null);
+        setFailure(r.failure);
+      }
+    });
+    return () => { live = false; };
+  }, [open, loaded]);
+
+  if (viewingOldThread) return null;
+
+  return (
+    <details className="fd-companion-earlier" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
+      <summary>Earlier conversations</summary>
+      {loading && !threads && <p className="fd-companion-earlier-status">Loading…</p>}
+      {failure && (
+        <div className="fd-companion-earlier-problem">
+          <Unknown failure={failure} />
+          <button type="button" className="fd-btn fd-btn--quiet" onClick={() => { setLoaded(false); setFailure(null); }}>
+            Try again
+          </button>
+        </div>
+      )}
+      {threads && threads.length === 0 && <p className="fd-companion-earlier-status">No earlier conversations.</p>}
+      {threads && threads.length > 0 && (
+        <ul className="fd-companion-earlier-list">
+          {threads.map((id, i) => (
+            <li key={id}>
+              <button type="button" className="fd-companion-earlier-item" onClick={() => onViewThread(id)}>
+                <span className="fd-companion-earlier-label">Conversation {i + 1}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </details>
+  );
+}
+
 /**
  * The Companion panel: a native modal dialog (the page behind it is inert, focus is trapped and returned by the browser,
  * Escape closes it). A side panel on a desktop, a full-height sheet on a phone. It is not a landmark.
@@ -184,6 +297,8 @@ export function CompanionPanel() {
   const titleId = useId();
   const fieldId = useId();
   const listRef = useRef<HTMLOListElement>(null);
+  const [oldThreadId, setOldThreadId] = useState<string | null>(null);
+  const backBtnRef = useRef<HTMLButtonElement>(null);
 
   // Layout effect: close before React removes the node, so focus goes back to the button that opened it.
   useLayoutEffect(() => {
@@ -196,6 +311,18 @@ export function CompanionPanel() {
   useEffect(() => {
     listRef.current?.lastElementChild?.scrollIntoView?.({ block: "nearest" });
   }, [turns.length]);
+
+  // Focus the back button when switching to an old thread
+  useEffect(() => {
+    if (oldThreadId && backBtnRef.current) {
+      backBtnRef.current.focus();
+    }
+  }, [oldThreadId]);
+
+  // Reset old thread view when closing the panel
+  useEffect(() => {
+    if (!open) setOldThreadId(null);
+  }, [open]);
 
   const pose = poseFor(presentation);
   const submit = async (e: FormEvent) => {
@@ -217,61 +344,69 @@ export function CompanionPanel() {
             Close
           </button>
         </header>
-        <p className="fd-companion-pose">
-          <span className="fd-companion-mark" aria-hidden="true">
-            {pose.mark}
-          </span>
-          <span>{pose.word}</span>
-        </p>
-        <Health open={open} />
 
-        <ol ref={listRef} className="fd-companion-thread" aria-label="Conversation">
-          {turns.length === 0 && <li className="fd-companion-empty">Say hello. Nothing is kept here: the conversation lives with Companion.</li>}
-          {turns.map((t) => (
-            <li key={t.key} className="fd-companion-turn">
-              <p className="fd-companion-you"><span className="fd-companion-who">You</span> {t.user}</p>
-              {t.reply !== null && (
-                <div className="fd-companion-reply">
-                  <p><span className="fd-companion-who">Companion</span> {t.reply}</p>
-                  {t.unknown.length > 0 && <p className="fd-companion-withheld">Some things were withheld: {t.unknown.join("; ")}</p>}
-                  {t.tier && <p className="fd-companion-tier">Level: {t.tier}</p>}
-                </div>
-              )}
-            </li>
-          ))}
-        </ol>
+        {oldThreadId ? (
+          <OldThreadView threadId={oldThreadId} onBack={() => setOldThreadId(null)} backRef={backBtnRef} />
+        ) : (
+          <>
+            <p className="fd-companion-pose">
+              <span className="fd-companion-mark" aria-hidden="true">
+                {pose.mark}
+              </span>
+              <span>{pose.word}</span>
+            </p>
+            <Health open={open} />
 
-        <p className="fd-sr" role="status">{thinking ? "Companion is thinking…" : ""}</p>
-        {thinking && <p className="fd-companion-thinking" aria-hidden="true">Thinking…</p>}
-        {failure && failure.kind !== "invalid" && (
-          <div className="fd-companion-problem">
-            <Unknown failure={failure} />
-            {pending && (
-              <button type="button" className="fd-btn" onClick={() => void retry()}>
-                Try again
-              </button>
+            <ol ref={listRef} className="fd-companion-thread" aria-label="Conversation">
+              {turns.length === 0 && <li className="fd-companion-empty">Say hello. Nothing is kept here: the conversation lives with Companion.</li>}
+              {turns.map((t) => (
+                <li key={t.key} className="fd-companion-turn">
+                  <p className="fd-companion-you"><span className="fd-companion-who">You</span> {t.user}</p>
+                  {t.reply !== null && (
+                    <div className="fd-companion-reply">
+                      <p><span className="fd-companion-who">Companion</span> {t.reply}</p>
+                      {t.unknown.length > 0 && <p className="fd-companion-withheld">Some things were withheld: {t.unknown.join("; ")}</p>}
+                      {t.tier && <p className="fd-companion-tier">Level: {t.tier}</p>}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
+
+            <p className="fd-sr" role="status">{thinking ? "Companion is thinking…" : ""}</p>
+            {thinking && <p className="fd-companion-thinking" aria-hidden="true">Thinking…</p>}
+            {failure && failure.kind !== "invalid" && (
+              <div className="fd-companion-problem">
+                <Unknown failure={failure} />
+                {pending && (
+                  <button type="button" className="fd-btn" onClick={() => void retry()}>
+                    Try again
+                  </button>
+                )}
+              </div>
             )}
-          </div>
+            {failure?.kind === "invalid" && <p className="fd-companion-problem" role="alert">{failure.text}</p>}
+
+            <form onSubmit={submit} className="fd-companion-composer">
+              <label htmlFor={fieldId} className="fd-label">
+                Message to Companion
+              </label>
+              <textarea id={fieldId} className="fd-input fd-companion-field" rows={3} value={draft} maxLength={8000} onChange={(e) => setDraft(e.target.value)} />
+              <div className="fd-companion-row">
+                <button type="submit" className="fd-btn fd-btn--primary" disabled={thinking || !draft.trim()}>
+                  Send
+                </button>
+                <button type="button" className="fd-btn fd-btn--quiet" onClick={newConversation} disabled={thinking || turns.length === 0}>
+                  New conversation
+                </button>
+              </div>
+            </form>
+
+            <Sees />
+            <Grants />
+            <EarlierConversations onViewThread={setOldThreadId} viewingOldThread={!!oldThreadId} />
+          </>
         )}
-        {failure?.kind === "invalid" && <p className="fd-companion-problem" role="alert">{failure.text}</p>}
-
-        <form onSubmit={submit} className="fd-companion-composer">
-          <label htmlFor={fieldId} className="fd-label">
-            Message to Companion
-          </label>
-          <textarea id={fieldId} className="fd-input fd-companion-field" rows={3} value={draft} maxLength={8000} onChange={(e) => setDraft(e.target.value)} />
-          <div className="fd-companion-row">
-            <button type="submit" className="fd-btn fd-btn--primary" disabled={thinking || !draft.trim()}>
-              Send
-            </button>
-            <button type="button" className="fd-btn fd-btn--quiet" onClick={newConversation} disabled={thinking || turns.length === 0}>
-              New conversation
-            </button>
-          </div>
-        </form>
-
-        <Sees />
-        <Grants />
       </div>
     </dialog>
   );

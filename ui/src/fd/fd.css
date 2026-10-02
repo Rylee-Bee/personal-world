@@ -674,7 +674,19 @@ html[data-pack="station"] .fd-home-section-title, html[data-pack="station"] .fd-
 .fd-companion-src { color: var(--muted); font-size: 0.8125rem; }
 .fd-companion-none, .fd-companion-note, .fd-companion-grant-state { margin: 0; color: var(--text-2); }
 .fd-companion-grants { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
-@media (forced-colors: active) { .fd-companion, .fd-companion-you, .fd-companion-reply, .fd-companion-sees, .fd-companion-btn { border: 1px solid CanvasText; } }
+.fd-companion-earlier { border: 1px solid var(--line); border-radius: var(--r); padding: 4px 12px; }
+.fd-companion-earlier summary { cursor: pointer; min-height: var(--target-min); display: flex; align-items: center; font-weight: 700; color: var(--text-2); }
+.fd-companion-earlier-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.fd-companion-earlier-item { display: flex; flex-direction: column; gap: 2px; width: 100%; min-height: var(--target-min); padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.fd-companion-earlier-item:hover { background: var(--panel); border-color: var(--line-strong); }
+.fd-companion-earlier-label { font-size: 1rem; font-weight: 600; }
+.fd-companion-earlier-date { font-size: 0.8125rem; color: var(--muted); }
+.fd-companion-earlier-status { margin: 0; color: var(--text-2); }
+.fd-companion-earlier-problem { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 8px 0; }
+.fd-companion-readonly { display: flex; flex-direction: column; gap: 12px; }
+.fd-companion-readonly-head { display: flex; align-items: center; }
+.fd-companion-readonly-status { margin: 0; color: var(--text-2); }
+@media (forced-colors: active) { .fd-companion, .fd-companion-you, .fd-companion-reply, .fd-companion-sees, .fd-companion-btn, .fd-companion-earlier-item { border: 1px solid CanvasText; } }
 
 .fd-row-meaning--plain { font-family: var(--font-body); font-weight: 400; color: var(--text-2); font-size: 0.9375rem; }
 /* Home: "Home" is the h1 (a clear landmark for screen readers); the greeting leads visually */
