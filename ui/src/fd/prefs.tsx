@@ -5,7 +5,11 @@ const KEY = "worlds.prefs.v2";
 function load(): Prefs {
   try {
     const raw = window.localStorage.getItem(KEY);
-    return raw ? { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<Prefs>) } : DEFAULT_PREFS;
+    if (!raw) return DEFAULT_PREFS;
+    const stored = JSON.parse(raw) as Partial<Prefs> & { theme?: string };
+    // The Plain theme was removed (it matched Starfield); anything unknown falls back to the default.
+    const theme = stored.theme === "daylight" ? "daylight" : "starfield";
+    return { ...DEFAULT_PREFS, ...stored, theme };
   } catch {
     return DEFAULT_PREFS;
   }

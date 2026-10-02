@@ -29,3 +29,18 @@ if (typeof window !== "undefined" && !window.matchMedia) {
     dispatchEvent: () => false,
   });
 }
+
+// jsdom has no modal <dialog>. A small stand-in: showModal opens it, focuses its autofocus control (as a browser
+// would), and close() hands focus back to whatever had it, like the real element.
+if (typeof HTMLDialogElement !== "undefined" && typeof HTMLDialogElement.prototype.showModal !== "function") {
+  const opener = new WeakMap<HTMLDialogElement, Element | null>();
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+    opener.set(this, document.activeElement);
+    this.setAttribute("open", "");
+    (this.querySelector<HTMLElement>("[autofocus]") ?? this.querySelector<HTMLElement>("button, [href], input"))?.focus();
+  };
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+    this.removeAttribute("open");
+    (opener.get(this) as HTMLElement | null)?.focus?.();
+  };
+}

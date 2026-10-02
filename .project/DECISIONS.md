@@ -762,3 +762,14 @@ Owner approved PR #231 (head dbc1218) with refinements in `HANDOFF-FRONT-DOOR-AP
 ## 2026-10-01 — Rebuild: start fresh, private notes in SOPS, stack kept
 
 Owner answers after S0: **old Worlds data is not imported.** The old journal, `world.json`, stickers and search index stay in the private backups and the old data dir until retirement; no migration code is built. Private reconstruction notes get a SOPS-encrypted permanent home in the owner's private operator docs (location being established; plaintext is never committed). The orchestrator kept the stack (Python/FastAPI/uv, React/Vite/TypeScript/react-query) and set the five rebuild contracts in `docs/rebuild/CONTRACTS.md`; obsolete modules are deleted on `rebuild/front-door`, not adapted.
+
+## 2026-10-02 — Home order for Calm and phones: the bad-day layout (owner approved)
+
+Rylee approved two changes to the Home order in the approval handoff (§8), after an accessibility and "bad day" audit of the merged front door. They amend that order for Calm density and for phones; Standard and Detailed on a wide screen keep the original order.
+
+- **D1.** Calm is the bad-day layout: greeting and briefing, then **Needs you first**, then a condensed strip, Needs a look, Your life, and Quietly working folded to one line.
+- **D2.** Condensed strip, in Calm at every width and on phones (under 760px) in every density: only the sources that need a look, plus one tile "● N quiet" that opens the full strip in place (`aria-expanded`, focus stays on it). Healthy and not-configured sources fold into that tile. No wall of green.
+
+Why: a tired person should meet what needs them before nine tiles. How to apply: keep Needs you directly after the briefing in Calm; never make the condensed strip the only way to reach a source (the quiet tile always opens the rest).
+
+Also decided in the same pass (owner may veto): the Plain theme is removed (it matched Starfield); a state has one word everywhere (badges, strip, briefing, accessible names); no control that does nothing is shown (the disabled Approve and the Memory Records and search placeholders are gone until they work).

@@ -13,7 +13,7 @@ test.describe("axe and overflow", () => {
   ] as const) {
     test(name, async ({ page }, info) => {
       await open(page, hash, scenario === "board-error" ? "board-error" : scenario);
-      if (scenario === "board-error") await page.getByText("Home could not load. Try again.").waitFor();
+      if (scenario === "board-error") await page.getByText("Home could not load.").waitFor();
       expect(await axe(page)).toEqual([]);
       await noHorizontalOverflow(page);
       await shot(page, name, info);
@@ -32,10 +32,10 @@ test.describe("axe and overflow", () => {
   test("Words minimal and full, density detailed, Station on", async ({ page }, info) => {
     for (const [group, option] of [["Words", "Minimal"], ["Words", "Full"], ["Density", "Detailed"], ["Experience pack", "Station"]]) {
       await open(page, "#settings");
-      await page.getByRole("radiogroup", { name: group }).getByLabel(option).check();
+      await page.getByRole("group", { name: group }).getByLabel(option).check();
       await page.getByRole("link", { name: "Home" }).first().click();
       await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-      await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+      await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
       expect(await axe(page), `${group} ${option}`).toEqual([]);
       await noHorizontalOverflow(page);
       await shot(page, `home-${option.toLowerCase()}`, info);
@@ -105,21 +105,21 @@ test("Station invariance: same nav, headings, controls and row order on all four
   }));
   for (const hash of ["#home", "#connect", "#memory", "#settings"]) {
     await open(page, "#settings");
-    await page.getByRole("radiogroup", { name: "Experience pack" }).getByLabel("None").check();
+    await page.getByRole("group", { name: "Experience pack" }).getByLabel("None").check();
     await page.goto(`/${hash}`);
     await page.getByRole("main").waitFor();
     if (hash === "#home") {
       await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-      await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+      await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
     }
     const off = await snap();
     await page.goto("/#settings");
-    await page.getByRole("radiogroup", { name: "Experience pack" }).getByLabel("Station").check();
+    await page.getByRole("group", { name: "Experience pack" }).getByLabel("Station").check();
     await page.goto(`/${hash}`);
     await page.getByRole("main").waitFor();
     if (hash === "#home") {
       await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-      await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+      await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
     }
     const on = await snap();
     expect(on, hash).toEqual(off);
@@ -130,7 +130,7 @@ test("Edit Home: keyboard-operable, axe clean, 44px controls, no overflow", asyn
   await open(page);
   await page.getByRole("button", { name: "Edit Home" }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("button", { name: "Edit Home" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
   const reading = page.getByRole("button", { name: "Move Reading earlier" });
   await reading.focus();
   await page.keyboard.press("Enter");
@@ -149,10 +149,10 @@ test("Edit Home: keyboard-operable, axe clean, 44px controls, no overflow", asyn
 
 test("Text size Larger: no overflow, axe clean", async ({ page }, info) => {
   await open(page, "#settings");
-  await page.getByRole("radiogroup", { name: "Text size" }).getByLabel("Larger").check();
+  await page.getByRole("group", { name: "Text size" }).getByLabel("Larger").check();
   await page.getByRole("link", { name: "Home" }).first().click();
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-  await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe("20.8px");
   expect(await axe(page)).toEqual([]);
   await noHorizontalOverflow(page);
@@ -193,10 +193,10 @@ for (const size of ["Large", "Larger"]) {
   test(`Text size ${size}: nothing in a strip tile spills past its border`, async ({ page }, info) => {
     test.skip(info.project.name !== "phone-390", "phone layout only");
     await open(page, "#settings");
-    await page.getByRole("radiogroup", { name: "Text size" }).getByLabel(size, { exact: true }).check();
+    await page.getByRole("group", { name: "Text size" }).getByLabel(size, { exact: true }).check();
     await page.getByRole("link", { name: "Home" }).first().click();
     await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-    await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+    await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
     const spills = await page.getByRole("group", { name: "Whole world" }).locator("button, a").evaluateAll((tiles) =>
       tiles.flatMap((tile) => {
         const box = tile.getBoundingClientRect();
