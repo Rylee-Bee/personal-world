@@ -12,6 +12,13 @@ disagree, the canonical file wins.
 
 The owner approved the front-door direction ([`PROPOSAL-FRONT-DOOR-2026-10-01.md`](PROPOSAL-FRONT-DOOR-2026-10-01.md)) with refinements ([`HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md`](HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md); [ADR-0008](../docs/adr/0008-front-door.md)). Slice S0 (approval and preservation) is in review: tag `archive/pre-front-door` is at 61397e0, which is also the commit production runs (read from `/healthz` and the image revision label); the private reconstruction capture is done and kept outside this repo. The rebuild lands on `rebuild/front-door`. Production is unchanged. The sections below describe the pre-rebuild app and are superseded where ADR-0008 says so.
 
+| Ref | Role | Commit | Evidence (2026-10-02) |
+|---|---|---|---|
+| `main` | default branch; pre-rebuild app | `5d4c096` | `origin/main` (2026-10-01) |
+| `rebuild/front-door` | front-door rebuild integration branch | `384ff35` | `origin/rebuild/front-door` (2026-10-02) |
+| production image | `ghcr.io/rylee-bee/personal-world` built from `main`; running container `61397e0` (= tag `archive/pre-front-door`) | `61397e0` | `/healthz` + image revision label (2026-10-01) |
+| `ui/` preview | local Vite preview (`npm run preview`), not a deployed branch | n/a | `README.md` "Branches and deployments" |
+
 ## 2026-09-26 — pre-rebuild baseline (verified against code and production)
 
 **Plain words:** [`docs/WHERE-WE-ARE.md`](../docs/WHERE-WE-ARE.md). **Direction:**
