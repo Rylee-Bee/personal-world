@@ -257,3 +257,49 @@ def test_status_empty_defaults_to_unknown(store, send):
     add_card(store, status={"path": "$.problems[*].level", "healthy": ["ok"], "needs_attention": ["error"], "mode": "any"})
     send.responses["/items"] = ok({"problems": []})
     assert svc(store, send).build("c1")["source_state"] == "unknown"
+
+
+# ---- C1.3: status.above (thresholds) ----------------------------------------------------------------------------
+
+def _above_card(store, send, body, above=None, **status):
+    add_request(store, ttl_s=0)
+    add_card(store, status={"path": "$.errors", "healthy": [0], "needs_attention": [], "above": above or {"value": 0, "state": "needs_attention"}, **status})
+    send.responses["/items"] = ok(body)
+    return svc(store, send).build("c1")["source_state"]
+
+
+def test_above_decides_before_the_lists(store, send):
+    assert _above_card(store, send, {"errors": 0}) == "healthy"            # not above: the lists decide
+    assert _above_card(store, send, {"errors": 2}) == "needs_attention"    # above the threshold
+    assert _above_card(store, send, {"errors": 0.5}) == "needs_attention"  # numbers, not just integers
+
+
+def test_above_can_name_degraded_and_has_a_real_threshold(store, send):
+    assert _above_card(store, send, {"errors": 3}, above={"value": 5, "state": "degraded"}) == "unknown"   # 3 is not above 5, and 3 is in no list
+    assert _above_card(store, send, {"errors": 6}, above={"value": 5, "state": "degraded"}) == "degraded"
+
+
+def test_above_never_treats_text_or_a_bool_as_a_number(store, send):
+    assert _above_card(store, send, {"errors": "9"}) == "unknown"
+    assert _above_card(store, send, {"errors": True}) == "unknown"
+    assert _above_card(store, send, {"nope": 1}) == "unknown"             # missing path stays unknown
+
+
+def test_above_uses_the_first_value_only(store, send):
+    add_request(store, ttl_s=0)
+    add_card(store, status={"path": "$.rows[*].n", "healthy": [0], "above": {"value": 0, "state": "needs_attention"}})
+    send.responses["/items"] = ok({"rows": [{"n": 0}, {"n": 9}]})
+    assert svc(store, send).build("c1")["source_state"] == "healthy"
+
+
+def test_above_is_validated_at_save_time():
+    import pytest as _pytest
+
+    from personal_world.worlds.models import StatusMap
+
+    with _pytest.raises(ValueError):
+        StatusMap(path="$.n", above={"value": float("nan"), "state": "needs_attention"})
+    with _pytest.raises(ValueError):
+        StatusMap(path="$.n", above={"value": 1, "state": "healthy"})
+    with _pytest.raises(ValueError):
+        StatusMap(path="$.n", above={"value": 1, "state": "degraded", "extra": 1})

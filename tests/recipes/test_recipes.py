@@ -82,6 +82,13 @@ def test_recipe_installs_and_is_read_only(tmp_path, name):
         assert a.access == "write"
 
 
+@pytest.mark.parametrize("name", ALL_NAMES)
+def test_every_recipe_says_whether_it_is_verified(name):
+    text = (RECIPES / name / "recipe.yaml").read_text()
+    assert re.search(r"^verified: (true|false)$", text, re.M), f"{name}: recipe.yaml must state verified: true|false (false until checked against a live service)"
+    assert load_recipe(name, RECIPES).info.verified is False, f"{name}: only a live read-only check may set verified: true"
+
+
 @pytest.mark.parametrize("name", READY)
 def test_provider_is_a_sanitized_lan_template(name):
     recipe = load_recipe(name, RECIPES)

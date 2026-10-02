@@ -128,4 +128,5 @@ Orchestrator decisions, 2026-10-01. Small and closed; everything else in C1 is u
   - `all`: `needs_attention` if any value is in `needs_attention`; else `healthy` only if every value is in `healthy`; else `unknown` (an unrecognised value makes it unknown).
   - `any`: `needs_attention` if any value is in `needs_attention`; else `healthy` if at least one value is in `healthy` (unrecognised values are tolerated, for redundant endpoints); else `unknown`.
   - An empty match is `unknown` in every mode, never healthy. **Addition from L-recipes:** `status.empty: healthy` (default `unknown`) makes an EXISTING empty list read `healthy`, for health lists where empty means no problems. A missing path is still `unknown`.
+  - **Threshold (orchestrator, 2026-10-02):** `status.above: {value: <number>, state: needs_attention|degraded}` applies when the first extracted value is a number greater than `value` (a bool or text never counts), and is checked before the `healthy` / `needs_attention` lists.
 - **Last element:** `[-1]` is allowed in a path. No other negative index, no slices.

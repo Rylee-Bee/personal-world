@@ -4,4 +4,5 @@ title: Grimmory
 summary: Reading library status.
 status: planned
 note: Needs a password-grant bearer token (planned).
+verified: false
 env: []

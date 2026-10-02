@@ -4,5 +4,6 @@ title: Sonarr
 summary: Shows the episodes airing this week and what is downloading.
 status: ready
 note: "The command names RefreshSeries and MissingEpisodeSearch were taken from the Sonarr API docs and not run against a live instance."
+verified: false
 env:
   - SONARR_API_KEY

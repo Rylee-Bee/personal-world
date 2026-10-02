@@ -4,4 +4,5 @@ title: Sign-in
 summary: Whether the sign-in service is healthy.
 status: ready
 note: ""
+verified: false
 env: []

@@ -229,6 +229,23 @@ class Meaning(BaseModel):
     full: str = ""
 
 
+class Above(BaseModel):
+    """A threshold (C1.3): when the first extracted value is a number above ``value``, the card is in ``state``."""
+
+    model_config = ConfigDict(extra="forbid")
+    value: float
+    state: Literal["needs_attention", "degraded"]
+
+    @field_validator("value")
+    @classmethod
+    def _finite(cls, v: float) -> float:
+        import math
+
+        if isinstance(v, bool) or not math.isfinite(v):
+            raise ValueError("above.value must be a finite number")
+        return v
+
+
 class StatusMap(BaseModel):
     model_config = ConfigDict(extra="forbid")
     path: str
@@ -244,6 +261,8 @@ class StatusMap(BaseModel):
     mode: Literal["first", "all", "any"] = "first"
     # What an EXISTING but empty list means (e.g. a health list with no problems). A missing path is always unknown.
     empty: Literal["unknown", "healthy"] = "unknown"
+    # A numeric threshold, checked before the healthy / needs_attention lists.
+    above: Above | None = None
 
 
 _KEY_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")

@@ -62,7 +62,8 @@ Not recipes: a dashboard that Worlds replaces, and DNS (it is file-based, not HT
 - Recipes read documented endpoints and shapes. Where a shape is assumed, the recipe's `note` says so; none has been run against a live service in CI (CI uses recorded, sanitized sample responses in `tests/recipes/samples/`).
 - Cookie-login and password-grant services wait for new auth types in C1.
 - Worlds reads JSON only. An endpoint that answers in plain text (a bare ping) reads as an unreadable answer, so recipes use the service's JSON API instead.
-- A status can name exact values (`healthy: [0]`) but not "greater than zero", so a count above zero shows as Unknown rather than Needs attention.
+- A status can name exact values (`healthy: [0]`) and a numeric threshold (`above: {value: 0, state: needs_attention}`, checked first). Only Traefik's error count uses a threshold today; the other services' counts are not mapped because their shapes are not known.
+- **Every recipe is `verified: false`** until a read-only check against the real service flips it. `recipes list` shows "unverified" and install says so. "Reachable means healthy" cards (Cleanuparr, Houndarr) map nothing but whether the service answers.
 
 ## Writing or changing a recipe
 

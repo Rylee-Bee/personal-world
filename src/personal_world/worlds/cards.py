@@ -216,6 +216,11 @@ class CardService:
             return "healthy" if res.found and status.empty == "healthy" else "unknown"
         healthy = status.healthy or []
         attention = status.needs_attention or []
+        if status.above is not None:
+            first = found[0]
+            # A real number above the threshold decides before the lists (a bool or text never counts as a number).
+            if isinstance(first, (int, float)) and not isinstance(first, bool) and first > status.above.value:
+                return status.above.state
         if status.mode == "first":
             value = found[0]
             if value in healthy:

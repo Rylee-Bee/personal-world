@@ -4,5 +4,6 @@ title: Bazarr
 summary: How many subtitles are still waiting to be fetched.
 status: ready
 note: Response shapes taken from the Bazarr docs, not checked against a live instance.
+verified: false
 env:
   - BAZARR_API_KEY

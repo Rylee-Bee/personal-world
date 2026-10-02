@@ -4,5 +4,6 @@ title: Radarr
 summary: Shows the films coming up and how many are still wanted.
 status: ready
 note: ""
+verified: false
 env:
   - RADARR_API_KEY

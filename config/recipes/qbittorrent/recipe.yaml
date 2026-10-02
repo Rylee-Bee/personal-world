@@ -4,4 +4,5 @@ title: Downloads
 summary: Active downloads and speed from qBittorrent.
 status: planned
 note: Needs login-session auth (planned).
+verified: false
 env: []

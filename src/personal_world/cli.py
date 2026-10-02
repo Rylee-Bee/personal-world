@@ -722,7 +722,8 @@ def cmd_recipes(world, registry, journal, args) -> int:
                 print(json.dumps([i.model_dump(mode="json") for i in infos], indent=2))
             else:
                 for i in infos:
-                    print(f"{i.name:<14} {i.status:<8} {i.title}" + (f"  ({i.note})" if i.note else ""))
+                    tag = "planned" if i.status == "planned" else ("verified" if i.verified else "unverified")
+                    print(f"{i.name:<14} {tag:<10} {i.title}" + (f"  ({i.note})" if i.note else ""))
             return 0
         recipe = rc.load_recipe(args.name, root)
         if args.recipes_cmd == "show":
@@ -742,6 +743,8 @@ def cmd_recipes(world, registry, journal, args) -> int:
             print(json.dumps({"written": written}))
         else:
             print(f"installed {recipe.info.name}: {len(written)} object(s) written under {config_dir / 'worlds'}" if written else f"{recipe.info.name}: already installed (use --overwrite to replace)")
+            if written and not recipe.info.verified:
+                print("  note: unverified. The response shapes come from public docs and have not been checked against a live service yet.")
             for w in written:
                 print(f"  {w}")
         return 0

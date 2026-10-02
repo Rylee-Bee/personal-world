@@ -44,6 +44,8 @@ class RecipeInfo(BaseModel):
     #: ready = installable; planned = listed, cannot be installed yet (``note`` says why).
     status: str = Field(default="ready", pattern="^(ready|planned)$")
     note: str = ""
+    #: True only once a foreman has checked the shapes read-only against a real service. Recipes start unverified.
+    verified: bool = False
     #: The secret NAMES the provider reads (never values).
     env: list[str] = Field(default_factory=list)
 
