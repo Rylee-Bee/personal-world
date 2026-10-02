@@ -1,4 +1,7 @@
-"""Strict secret-reference resolution for the front door: ``env:NAME`` and ``vault:NAME`` only.
+"""Strict secret-reference resolution for the front door: ``env:NAME``, ``vault:NAME`` and ``file:NAME`` only.
+
+``file:NAME`` is for mounted secret files: the environment variable NAME holds the PATH of a file whose content
+is the secret (the value itself is never in the environment).
 
 No bare-name guessing and no ``${NAME}`` form (the old implicit rules are gone). A value is
 returned only to the caller that must send it; it is never logged here.
@@ -10,7 +13,8 @@ import os
 import re
 from typing import Any
 
-_REF = re.compile(r"^(env|vault):([A-Za-z_][A-Za-z0-9_.-]*)$")
+_REF = re.compile(r"^(env|vault|file):([A-Za-z_][A-Za-z0-9_.-]*)$")
+_MAX_SECRET_FILE = 4096
 _vault: Any = None
 
 
@@ -30,6 +34,18 @@ def resolve_secret_ref(ref: str | None) -> str | None:
     kind, name = m.groups()
     if kind == "env":
         return os.environ.get(name) or None
+    if kind == "file":
+        path = os.environ.get(name)
+        if not path:
+            return None
+        try:
+            with open(path, "rb") as handle:
+                raw = handle.read(_MAX_SECRET_FILE + 1)
+        except OSError:
+            return None
+        if len(raw) > _MAX_SECRET_FILE:
+            return None  # a secret file is a token, not a document
+        return raw.decode("utf-8", "replace").strip() or None
     if _vault is None or not getattr(_vault, "is_unlocked", False):
         return None
     try:

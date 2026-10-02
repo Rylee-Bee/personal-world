@@ -47,10 +47,10 @@ interface CardsResult {
 export interface HomeData {
   board: Board | undefined;
   boardStatus: Status;
-  refetchBoard: () => void;
+  refetchBoard: () => Promise<unknown>;
   needsYou: NeedsYouEntry[];
   needsYouStatus: Status;
-  refetchNeedsYou: () => void;
+  refetchNeedsYou: () => Promise<unknown>;
   /** Cards that loaded. After a failed refetch the old data stays, marked stale with the previous fetch time. */
   cards: Record<string, CardEnvelope>;
   /** Cards that never loaded, with the real failure class. */
@@ -98,10 +98,10 @@ export function useHomeData(timeoutMs: number = DEFAULT_TIMEOUT_MS): HomeData {
   return {
     board: boardQ.data,
     boardStatus: boardQ.isError ? "error" : boardQ.data ? "ok" : "loading",
-    refetchBoard: () => void boardQ.refetch(),
+    refetchBoard: () => boardQ.refetch(),
     needsYou: nyQ.data ?? NO_ENTRIES,
     needsYouStatus: nyQ.isError && !nyQ.data ? "error" : nyQ.data ? "ok" : "loading",
-    refetchNeedsYou: () => void nyQ.refetch(),
+    refetchNeedsYou: () => nyQ.refetch(),
     ...cardsQ,
   };
 }

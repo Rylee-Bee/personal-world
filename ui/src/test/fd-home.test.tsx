@@ -25,14 +25,16 @@ function renderHome(opts: { timeoutMs?: number; prefs?: Partial<Prefs> } = {}) {
   return { client, ...utils };
 }
 /** Everything loaded: no "Checking" or "Loading" status line left. */
-const settled = () => waitFor(() => expect(screen.getByText("Up to date")).toBeInTheDocument(), { timeout: 3000 });
+const settled = () => waitFor(() => expect(document.querySelector(".fd-home")).toHaveAttribute("data-ready", "true"), { timeout: 3000 });
 const section = (name: string) => screen.getByRole("heading", { name }).closest("section")!;
 
 describe("Home", () => {
   it("greets, then orders: briefing, strip, Edit Home, sections (Pick up omitted when empty)", async () => {
     renderHome({ prefs: { name: "Rylee" } });
     await settled();
-    expect(screen.getAllByRole("heading").map((h) => h.textContent)).toEqual(["Good evening, Rylee", "Needs you", "Needs a look", "Your life", "Quietly working"]);
+    expect(screen.getAllByRole("heading").map((h) => h.textContent)).toEqual(["Home", "Needs you", "Needs a look", "Your life", "Quietly working"]);
+    expect(screen.getByText("Good evening, Rylee")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Home");
     expect(screen.getByText("2 for you · Downloads unavailable · Backup stale · 1 more to look at · rest quiet")).toBeInTheDocument();
     const strip = screen.getByRole("group", { name: "Whole world" });
     const edit = screen.getByRole("button", { name: "Edit Home" });
@@ -40,9 +42,10 @@ describe("Home", () => {
     expect(strip.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(edit.compareDocumentPosition(needs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
-  it("greets without a name when there is none", async () => {
+  it("greets without a name when there is none; the greeting is not a heading", async () => {
     renderHome();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Good (morning|afternoon|evening)$/);
+    expect(screen.getByText(/^Good (morning|afternoon|evening)$/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Home");
   });
   it("strip: one button per source named 'Name: State. Show details'; not configured is a link", async () => {
     renderHome();
@@ -468,12 +471,27 @@ describe("Bad-day layout (Calm, and phones)", () => {
     await settled();
     expect(screen.getByText("2 for you · Downloads unavailable · Backup stale · 1 more to look at · rest quiet")).toBeInTheDocument();
   });
-  it("one polite line for the whole page: Checking sources…, then Up to date", async () => {
+  it("the polite line is silent on a normal load; it speaks when asked (Try again) or when something changed", async () => {
     renderHome();
-    const status = screen.getAllByRole("status").find((s) => /Checking sources|Up to date/.test(s.textContent ?? ""))!;
-    expect(status).toHaveTextContent("Checking sources…");
     await settled();
-    expect(status).toHaveTextContent("Up to date");
-    expect(screen.getAllByRole("status").filter((s) => /Checking/.test(s.textContent ?? ""))).toHaveLength(0);
+    const line = () => screen.getAllByRole("status").find((s) => s.classList.contains("fd-sr") && !s.classList.contains("fd-secret-saved"))!;
+    expect(line()).toHaveTextContent("");
+    expect(screen.queryByText("Up to date")).not.toBeInTheDocument();
+    expect(screen.queryByText("Checking sources…")).not.toBeInTheDocument();
+  });
+  it("Try again announces Checking sources… then Up to date", async () => {
+    server.use(http.get("/api/needs-you", () => HttpResponse.json({}, { status: 500 })));
+    renderHome();
+    await settled();
+    server.use(http.get("/api/needs-you", () => HttpResponse.json([])));
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Up to date")).toBeInTheDocument();
+  });
+  it("a source that changes state is announced", async () => {
+    const { client } = renderHome();
+    await settled();
+    server.use(http.get("/api/cards/disk", () => HttpResponse.json({ ...cards.disk, source_state: "unavailable", freshness: "stale" })));
+    await client.refetchQueries({ queryKey: ["fd", "card", "disk"] });
+    expect(await screen.findByText("Disk unavailable")).toBeInTheDocument();
   });
 });

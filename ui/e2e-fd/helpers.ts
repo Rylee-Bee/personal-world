@@ -1,17 +1,23 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
 import { createBoardServer } from "../src/fd/board-server";
+import { createCompanionServer, type CompanionServer } from "../src/fd/companion-server";
 import { cards, needsYou } from "../src/fd/fixtures";
 import type { CardEnvelope } from "../src/fd/types";
 
 export type Scenario = "mixed" | "healthy" | "board-error";
 
-export async function mockApi(page: Page, scenario: Scenario = "mixed") {
+export async function mockApi(page: Page, scenario: Scenario = "mixed", companion: CompanionServer = createCompanionServer()) {
   const healthy = (c: CardEnvelope): CardEnvelope => ({ ...c, source_state: c.source_state === "not_configured" ? c.source_state : "healthy", freshness: "current", evidence: { ...c.evidence, error_class: undefined, status_code: 200 }, ...(c.card_id === "malformed" ? { values: { count: { text: "3", raw: 3 } } } : {}) });
   const board = createBoardServer();
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (url.pathname.startsWith("/api/companion/")) {
+      const raw = route.request().method() === "GET" || route.request().method() === "DELETE" ? null : route.request().postDataJSON();
+      const r = companion.handle(route.request().method(), url.pathname, raw);
+      return json(r.body, r.status);
+    }
     if (scenario === "board-error" && url.pathname === "/api/boards/home") return json({ detail: "down" }, 500);
     if (url.pathname === "/api/boards/home") return json(board.display());
     if (url.pathname === "/api/config/board/home") {
@@ -29,13 +35,13 @@ export async function mockApi(page: Page, scenario: Scenario = "mixed") {
   });
 }
 
-export async function open(page: Page, hash = "#home", scenario: Scenario = "mixed") {
-  await mockApi(page, scenario);
+export async function open(page: Page, hash = "#home", scenario: Scenario = "mixed", companion?: CompanionServer) {
+  await mockApi(page, scenario, companion);
   await page.goto(`/${hash}`);
   await expect(page.getByRole("main")).toBeVisible();
   if (hash === "#home" && scenario !== "board-error") {
     await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-    await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
+    await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
   }
 }
 

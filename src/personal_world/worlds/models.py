@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 ID_RE = r"^[a-z0-9][a-z0-9-]{0,62}$"
 REQUEST_ID_RE = r"^[a-z0-9][a-z0-9-]{0,62}\.[a-z0-9][a-z0-9-]{0,62}$"
-SECRET_REF_RE = re.compile(r"^(env|vault):[A-Za-z_][A-Za-z0-9_.-]*$")
+SECRET_REF_RE = re.compile(r"^(env|vault|file):[A-Za-z_][A-Za-z0-9_.-]*$")
 # Request headers are an ALLOW-list (C1). Credentials come only from the provider's auth block.
 ALLOWED_HEADERS = {
     "accept", "accept-language", "content-type", "user-agent", "if-none-match", "if-modified-since",
@@ -78,7 +78,7 @@ class Auth(BaseModel):
                 raise ValueError("auth.type none must not have secret_ref")
             return self
         if not self.secret_ref or not SECRET_REF_RE.match(self.secret_ref):
-            raise ValueError("secret_ref must be env:NAME or vault:NAME")
+            raise ValueError("secret_ref must be env:NAME, vault:NAME or file:NAME")
         if self.type == "header" and not self.header_name:
             raise ValueError("auth.type header needs header_name")
         return self

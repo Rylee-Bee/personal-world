@@ -7,6 +7,9 @@ import { hashFor, LANDMARKS, parseHash, type Landmark } from "./route";
 import { Settings } from "./Settings";
 import { Shell } from "./Shell";
 import { StationDecor } from "./StationDecor";
+import { CompanionButton } from "./companion/CompanionButton";
+import { CompanionPanel } from "./companion/CompanionPanel";
+import { CompanionProvider } from "./companion/CompanionProvider";
 
 /** Personal boards are not served yet (C6 has only the home board). */
 const BOARDS: { id: string; title: string }[] = [];
@@ -55,9 +58,12 @@ export function FdApp() {
 
   const Screen = SCREENS[current];
   return (
-    <Shell current={current} onNavigate={navigate} boards={BOARDS}>
-      <StationDecor />
-      <Screen />
-    </Shell>
+    <CompanionProvider>
+      <Shell current={current} onNavigate={navigate} boards={BOARDS} headerExtra={<CompanionButton />}>
+        <StationDecor />
+        <Screen />
+      </Shell>
+      <CompanionPanel />
+    </CompanionProvider>
   );
 }

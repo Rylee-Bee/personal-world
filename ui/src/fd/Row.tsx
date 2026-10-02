@@ -88,6 +88,12 @@ function evidenceRows(card: CardEnvelope): { label: string; value: string | numb
  */
 export function Row({ item, card, words, density, timeZone, expanded, onToggle, tier = 2, controls }: RowProps) {
   const { text: valueText, present, unit } = readPrimary(item, card);
+  // An existing empty list is not a number: say so in plain words in the meaning line, not as a big "none".
+  const rawEntry = item.fields[0] ? card.values[item.fields[0].key] : undefined;
+  const rawValue: unknown = rawEntry?.raw;
+  const isEmptyList = Array.isArray(rawValue) && rawValue.length === 0;
+  const emptyLabel = item.fields[0]?.label.toLowerCase() ?? "";
+  const emptyText = isEmptyList ? (/(ed|^kept|^sent|^left|^built|^set|^read)$/.test(emptyLabel) ? `Nothing ${emptyLabel}` : `No ${emptyLabel}`) : null;
   const state = STATE_SHAPE[card.source_state];
   const frozen = card.freshness === "stale" || card.source_state === "unavailable" || card.source_state === "stale";
   // Quietly working rows carry no meter unless the owner chose Detailed.
@@ -121,7 +127,7 @@ export function Row({ item, card, words, density, timeZone, expanded, onToggle, 
       </span>
       <button type="button" className="fd-row-name" aria-expanded={expanded} onClick={onToggle}>
         <span className="fd-row-title">{item.title}</span>
-        <Meaning words={words} card={card} title={item.title} />
+        {emptyText ? <span className="fd-row-meaning fd-row-meaning--plain">{emptyText}</span> : <Meaning words={words} card={card} title={item.title} />}
       </button>
       {showMeter && (
         <span className="fd-row-meter">
@@ -130,16 +136,17 @@ export function Row({ item, card, words, density, timeZone, expanded, onToggle, 
       )}
       <span className="fd-row-val">
         <span className="fd-row-value">
-          {present ? (
+          {isEmptyList ? null : present ? (
             valueText
           ) : (
             <>
               <span aria-hidden="true">{valueText}</span>
-              <span className="fd-sr">unknown</span>
+              {/* A card that is already Unknown says so once, in its state word; the dash needs no second "unknown". */}
+              {card.source_state !== "unknown" && <span className="fd-sr">unknown</span>}
             </>
           )}
         </span>
-        {present && unit && <span className="fd-row-unit">{unit}</span>}
+        {present && unit && !isEmptyList && <span className="fd-row-unit">{unit}</span>}
       </span>
       <span className="fd-row-status">
         <span className="fd-row-state">

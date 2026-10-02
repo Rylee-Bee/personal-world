@@ -18,6 +18,7 @@ from fastapi import FastAPI
 
 from ..oidc import OIDCService
 from .actions_routes import register_action_routes
+from .companion_routes import register_companion_routes
 from .auth_routes import register_auth_routes
 from .auth_routes import parse_trusted_proxies
 from .authn import Auth, load_csrf_key, load_key, principal_dependency
@@ -133,6 +134,7 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
                             audit=lambda event, detail, actor: memory.record_event(event, detail, actor=actor),
                             secret_values=lambda: list(live))
     register_room_routes(app, holder["rooms"], owner=owner_dep)
+    register_companion_routes(app, app.state.store, owner=owner_dep)   # owner session only; confined; whitelisted
     return app
 
 

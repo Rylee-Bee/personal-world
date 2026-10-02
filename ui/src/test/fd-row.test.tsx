@@ -84,12 +84,15 @@ describe("Row anatomy", () => {
     row("malformed");
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.queryByText("0")).not.toBeInTheDocument();
-    expect(screen.getByText("unknown")).toHaveClass("fd-sr");
+    expect(screen.queryByText("unknown")).not.toBeInTheDocument();   // the card is Unknown: its state word says so once
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
-  it("an empty list is healthy and shows 'none'", () => {
+  it("an empty list is healthy and says so in plain words, not as a big value", () => {
     row("later");
-    expect(screen.getByText("none")).toBeInTheDocument();
+    expect(screen.getByText("Nothing kept")).toBeInTheDocument();
+    expect(screen.getByText("Nothing kept")).toHaveClass("fd-row-meaning--plain");
+    expect(screen.queryByText("none")).not.toBeInTheDocument();
+    expect(document.querySelector(".fd-row-value")).toBeEmptyDOMElement();
     expect(screen.getByText("Healthy")).toBeInTheDocument();
   });
   it("Words: Minimal drops meaning; Full shows the long meaning and freshness", () => {
@@ -105,6 +108,16 @@ describe("Row anatomy", () => {
     row("malformed");
     expect(screen.getByText("Never answered")).toBeInTheDocument();
     expect(screen.queryByText(/Last good/)).not.toBeInTheDocument();
+  });
+  it("a card that is already Unknown does not also say a hidden 'unknown' for its dash", () => {
+    row("malformed");
+    expect(screen.queryByText("unknown")).not.toBeInTheDocument();
+    expect(screen.getByText("Unknown")).toBeInTheDocument();
+  });
+  it("a healthy card with a missing value keeps the hidden unknown", () => {
+    const card = { ...cards.disk, values: { used: { text: "unknown" } } };
+    render(<Row item={item("disk")} card={card} words="short" density="standard" timeZone="UTC" expanded={false} onToggle={() => undefined} />);
+    expect(screen.getByText("unknown")).toHaveClass("fd-sr");
   });
   it("does not repeat the name as its meaning", () => {
     row("malformed");

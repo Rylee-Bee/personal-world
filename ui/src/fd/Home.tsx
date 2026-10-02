@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from "react";
 import { DEFAULT_TIMEOUT_MS, useHomeData, type CardFailure } from "./api";
 import { usePrefs } from "./prefs-core";
@@ -7,7 +8,7 @@ import { useBoardEdit } from "./use-board-edit";
 import { Row } from "./Row";
 import { safeHref } from "./safe-href";
 import { Strip, type StripEntry } from "./Strip";
-import type { Board, BoardItem, CardEnvelope, NeedsYouEntry, Size } from "./types";
+import { STATE_SHAPE, type Board, type BoardItem, type CardEnvelope, type NeedsYouEntry, type Size } from "./types";
 import "./fd.css";
 
 export interface HomeProps {
@@ -170,6 +171,29 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   const [addOpen, setAddOpen] = useState(false);
   const [opening, setOpening] = useState(false);
   const edit = useBoardEdit(board);
+  // The polite line stays empty on a normal load. It speaks when the person asked (Try again) or when a source changed state.
+  const [announce, setAnnounce] = useState("");
+  const qc = useQueryClient();
+  const lastState = useRef(new Map<string, string>());
+  const titles = useRef(new Map<string, string>());
+  useEffect(() => {
+    titles.current = new Map((board?.items ?? []).map((i) => [i.card, i.title]));
+  }, [board]);
+  useEffect(
+    () =>
+      qc.getQueryCache().subscribe((e) => {
+        if (e.type !== "updated" || e.action.type !== "success") return;
+        const key = e.query.queryKey;
+        if (key[0] !== "fd" || key[1] !== "card") return;
+        const data = e.query.state.data as CardEnvelope | undefined;
+        if (!data) return;
+        const id = String(key[2]);
+        const before = lastState.current.get(id);
+        lastState.current.set(id, data.source_state);
+        if (before !== undefined && before !== data.source_state) setAnnounce(`${titles.current.get(id) ?? id} ${STATE_SHAPE[data.source_state].word.toLowerCase()}`);
+      }),
+    [qc],
+  );
   const { edits, arranged, note } = edit;
   const focusRef = useRef<string | null>(null);
   const [focusTick, setFocusTick] = useState(0);
@@ -304,8 +328,6 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   const hiddenItems = arranged?.items.filter((i) => i.hidden) ?? [];
 
   const checking = boardStatus === "loading" || pending.length > 0 || needsYouStatus === "loading";
-  // One polite line for the whole page, announced when it changes: not once per source.
-  const sourcesStatus = boardStatus === "error" ? "" : checking ? "Checking sources…" : "Up to date";
 
   const needsYouNode = (
     <Section title={SECTION_TITLE.needs_you} className="fd-needs-band">
@@ -314,7 +336,7 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
           <p className="fd-home-error" role="alert">
             Couldn't check what needs you.
           </p>
-          <button type="button" className="fd-btn fd-home-retry" onClick={data.refetchNeedsYou}>
+          <button type="button" className="fd-btn fd-home-retry" onClick={async () => { setAnnounce("Checking sources…"); await data.refetchNeedsYou(); setAnnounce("Up to date"); }}>
             Try again
           </button>
         </div>
@@ -458,12 +480,13 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   );
 
   return (
-    <div className="fd-home" ref={rootRef} data-saving={edit.saving ? "true" : "false"} data-condensed={condensed ? "true" : "false"} onFocus={onFocus} onBlur={onBlur} onKeyDown={onKeyDown}>
+    <div className="fd-home" ref={rootRef} data-ready={checking ? "false" : "true"} data-saving={edit.saving ? "true" : "false"} data-condensed={condensed ? "true" : "false"} onFocus={onFocus} onBlur={onBlur} onKeyDown={onKeyDown}>
       <p role="status" className="fd-sr">
-        {sourcesStatus}
+        {announce}
       </p>
       <header className="fd-home-head">
-        <h1 className="fd-home-title">{greeting(now ?? new Date(), prefs.name)}</h1>
+        <h1 className="fd-home-eyebrow">Home</h1>
+        <p className="fd-home-greeting">{greeting(now ?? new Date(), prefs.name)}</p>
         {ledeText && <p className="fd-home-briefing">{ledeText}</p>}
       </header>
 
@@ -472,7 +495,7 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
           <p className="fd-home-error" role="alert">
             Home could not load.
           </p>
-          <button type="button" className="fd-btn fd-home-retry" onClick={data.refetchBoard}>
+          <button type="button" className="fd-btn fd-home-retry" onClick={async () => { setAnnounce("Checking sources…"); await data.refetchBoard(); setAnnounce("Up to date"); }}>
             Try again
           </button>
         </div>
