@@ -10,12 +10,12 @@
 personal-world --config-dir "$PW_CONFIG_DIR" recipes list
 personal-world --config-dir "$PW_CONFIG_DIR" recipes show sonarr
 personal-world --config-dir "$PW_CONFIG_DIR" recipes install sonarr \
-  --base-url http://<your-sonarr-address>:8989 \
+  --base-url "$SONARR_URL" \
   --secret-ref env:SONARR_API_KEY
 ```
 
 - It writes `providers/`, `requests/<provider>/`, `cards/` and `actions/` under `$PW_CONFIG_DIR/worlds/`, through the same store the API uses (same validation, atomic writes, etags).
-- `--base-url` is required: the recipe only has a placeholder, and the install refuses it. The real address stays in your config directory.
+- `--base-url` is required (here `$SONARR_URL` is the address you set in your own shell, for example the service's LAN address and port): the recipe only has a placeholder, and the install refuses it. The real address stays in your config directory.
 - `--secret-ref` is optional. Without it the recipe's own name is used (for example `env:SONARR_API_KEY`). It is always a name: `env:NAME` or `vault:NAME`. Put the key itself in that environment variable on the host, never in a file in this repo.
 - Objects that already exist are kept. Add `--overwrite` to replace them.
 - Then add the new cards to a board (Home, Edit Home, "+ Add to Home").
