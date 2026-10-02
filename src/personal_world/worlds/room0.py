@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import json
 import logging
 import re
 import threading
@@ -90,6 +91,40 @@ def parse_time(value: Any) -> float | None:
 
 def _text(value: Any, limit: int) -> str | None:
     return value[:limit] if isinstance(value, str) else None
+
+
+CHANGED_PATH = "/changed"
+
+
+@dataclass(frozen=True)
+class ChangedPing:
+    """A room's out-of-band change signal: the room said something changed."""
+
+    provider_room_id: str | None
+    changed: bool
+    at: float | None
+
+
+def parse_changed(doc: Any) -> ChangedPing | None:
+    """Parse a room's ``/changed`` ping defensively; None for anything unrecognised.
+
+    Only a JSON object that says ``contract: room/0`` and ``changed: true`` (the literal boolean) is a
+    ping. A malformed body, a non-JSON body, a missing/other contract, ``changed: false`` or any other
+    value is ignored — never an invalidation, never a raise. An optional ``provider_room_id`` is bounded
+    to 200 characters and dropped rather than trusted when it is not a sane string; ``at`` is an optional
+    ISO-8601 timestamp. Parsing never fetches: it only decides whether a cache invalidation is warranted.
+    """
+    if isinstance(doc, (bytes, bytearray)):
+        try:
+            doc = json.loads(bytes(doc).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return None
+    if not isinstance(doc, dict) or doc.get("contract") != "room/0" or doc.get("changed") is not True:
+        return None
+    room_id = doc.get("provider_room_id")
+    if not isinstance(room_id, str) or not 1 <= len(room_id) <= 200:
+        room_id = None
+    return ChangedPing(room_id, True, parse_time(doc.get("at")))
 
 
 @dataclass(frozen=True)
@@ -293,6 +328,23 @@ class Room0Client:
         finally:
             lock.release()
 
+    def invalidate(self, provider_id: str) -> bool:
+        """Owner/room said this room changed: drop its cached snapshot so the next read refetches.
+
+        Removes the cached snapshot, the last-good fallback and the failure back-off, and sends NOTHING
+        to the room: invalidation never fetches and never fabricates data. Returns ``False`` when the id
+        is not a room0 provider (nothing to invalidate). The last-good mechanism itself is unchanged: the
+        next successful read repopulates it, so a later fetch failure can still show those last-known
+        cards stale.
+        """
+        if self.provider(provider_id) is None:
+            return False
+        with self._guard:
+            self._cache.pop(provider_id, None)
+            self._good.pop(provider_id, None)
+            self._fails.pop(provider_id, None)
+        return True
+
     def _unavailable(self, provider: Provider, note: str) -> RoomSnapshot:
         """An explicit unavailable answer (never a missing room): last-known content, stale, if there is any."""
         snap = RoomSnapshot(provider.id, name=provider.name, fetched_at=self._clock())
@@ -316,8 +368,6 @@ class Room0Client:
         if code >= 500 or code < 200 or code >= 300:
             return None, ConfinementError("http_5xx", f"room answered {code}", status_code=code, duration_ms=result.duration_ms), result
         try:
-            import json
-
             return json.loads(result.body.decode("utf-8")), None, result
         except (ValueError, UnicodeDecodeError):
             return None, ConfinementError("malformed", "room sent something that is not JSON", status_code=code,
@@ -479,6 +529,10 @@ class RoomService:
         return [{"id": p.id, "name": snap.name or p.name, "status": snap.status, "reachable": snap.error_class is None,
                  "error_class": snap.error_class, "last_seen_at": snap.last_good_at, "contract_ok": snap.contract_ok,
                  "governance": "project_home" if p.governed_by_project_home() else "worlds"} for p, snap in self._snapshots()]
+
+    def invalidate(self, provider_id: str) -> bool:
+        """A room signalled a change (its ``/changed`` ping): drop its snapshot; sends nothing to the room."""
+        return self._client.invalidate(provider_id)
 
     # ---- action candidates (C1 actions the owner may adopt)
 

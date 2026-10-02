@@ -18,6 +18,17 @@ def register_room_routes(app: FastAPI, rooms: RoomService, *, owner: Callable[..
     def list_rooms(p: Principal = Depends(owner)) -> list[dict]:
         return rooms.rooms()
 
+    @app.post("/api/rooms/{provider_id}/changed")
+    def room_changed(provider_id: str, p: Principal = Depends(owner)) -> dict:
+        """The room signalled a change (its ``/changed`` ping): invalidate its cached snapshot.
+
+        Sends nothing to the room and dispatches nothing — the next read refetches. A provider that is
+        not a room0 room is a 404.
+        """
+        if not rooms.invalidate(provider_id):
+            raise HTTPException(status_code=404, detail="no such room")
+        return {"id": provider_id, "invalidated": True}
+
     @app.get("/api/rooms/{provider_id}/actions")
     def action_candidates(provider_id: str, p: Principal = Depends(owner)) -> list[dict]:
         found = rooms.candidates(provider_id)

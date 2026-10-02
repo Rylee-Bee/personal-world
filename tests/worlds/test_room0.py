@@ -17,8 +17,8 @@ from personal_world.worlds.db import Database
 from personal_world.worlds.dispatcher import Dispatcher, NotPermitted
 from personal_world.worlds.models import Provider
 from personal_world.worlds.production import create_app
-from personal_world.worlds.room0 import (Room0Client, RoomService, card_defs, card_envelope, parse_action, parse_card, parse_need,
-                                         room_card_id, status_card_id, valid_link)
+from personal_world.worlds.room0 import (Room0Client, RoomService, card_defs, card_envelope, parse_action, parse_card, parse_changed,
+                                         parse_need, room_card_id, status_card_id, valid_link)
 
 ORIGIN = "https://worlds.example.test"
 BOOT = "open-sesame-correct-horse-1"  # pw-safety: synthetic
@@ -833,3 +833,55 @@ def test_the_answer_route_runs_the_adopted_action_once(room, tmp_path, monkeypat
     assert c.post("/api/rooms/demo/actions/mark-seen/answer", json={}, headers=h).status_code == 404
     assert c.post("/api/rooms/demo/actions/nope/answer", json={}, headers=h).status_code == 404
     assert len(room.posts) == sent
+
+
+# ----------------------------------------------------------- the /changed ping (ROOM rule 15)
+
+def test_room_changed_ping_invalidates_cache(env, room):
+    store, client, svc, clock, _ = env
+    client._ttl = 15
+    first = client.snapshot("demo")
+    hits = len(room.seen)
+    assert first is not None and hits > 0
+    assert client.snapshot("demo") is first and len(room.seen) == hits        # cache warm: no second read
+    room.cards = [good_card(title="Changed", body="Changed body")]
+    assert client.invalidate("demo") is True                                 # the ping: invalidate only
+    assert len(room.seen) == hits                                            # the ping sent NOTHING to the room
+    assert client._cache.get("demo") is None and client._good.get("demo") is None and "demo" not in client._fails
+    fresh = client.snapshot("demo")                                          # the next read refetches
+    assert fresh is not first and len(room.seen) > hits
+    assert [c.title for c in fresh.cards] == ["Changed"]
+
+
+def test_a_valid_changed_ping_is_recognised():
+    p = parse_changed({"contract": "room/0", "changed": True, "provider_room_id": "demo", "at": iso(NOW)})
+    assert p is not None and p.changed is True and p.provider_room_id == "demo" and p.at == NOW
+    assert parse_changed(b'{"contract": "room/0", "changed": true}') is not None
+
+
+@pytest.mark.parametrize("body", [None, 7, [], "not json", b"", b"{oops", b"not-json-at-all",
+                                  {"contract": "room/0"}, {"contract": "room/9", "changed": True}, {"changed": True},
+                                  {"contract": "room/0", "changed": False}, {"contract": "room/0", "changed": "true"},
+                                  {"contract": "room/0", "changed": 1}])
+def test_a_malformed_changed_ping_is_ignored(body):
+    assert parse_changed(body) is None
+
+
+def test_a_changed_ping_with_an_unbounded_id_is_a_ping_but_keeps_no_id():
+    p = parse_changed({"contract": "room/0", "changed": True, "provider_room_id": "x" * 500})
+    assert p is not None and p.provider_room_id is None
+
+
+def test_the_changed_route_invalidates_and_sends_nothing_to_the_room(room, tmp_path, monkeypatch):
+    app, c, h = prod(room, tmp_path, monkeypatch)
+    client = app.state.rooms._client
+    client._ttl = 15
+    client.snapshot("demo")
+    hits = len(room.seen)
+    r = c.post("/api/rooms/demo/changed", headers=h)
+    assert r.status_code == 200 and r.json() == {"id": "demo", "invalidated": True}
+    assert len(room.seen) == hits                                            # the route sent NOTHING to the room
+    assert c.post("/api/rooms/missing/changed", headers=h).status_code == 404
+    anon = TestClient(app, base_url=ORIGIN)
+    assert anon.post("/api/rooms/demo/changed").status_code == 401
+    assert c.post("/api/rooms/demo/changed").status_code == 403              # session, no CSRF
