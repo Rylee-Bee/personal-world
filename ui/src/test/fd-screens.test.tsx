@@ -1,26 +1,40 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { Connect } from "../fd/Connect";
+import { handlers as fdHandlers } from "../fd/msw";
 import { Memory } from "../fd/Memory";
 import { PrefsProvider } from "../fd/prefs";
 import { usePrefs } from "../fd/prefs-core";
 import { Settings } from "../fd/Settings";
 
+const server = setupServer(...fdHandlers);
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => { cleanup(); server.resetHandlers(); });
+afterAll(() => server.close());
+
 afterEach(cleanup);
 
 const tabNames = () => screen.getAllByRole("tab").map((t) => t.textContent);
 
+const renderConnect = () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}><Connect /></QueryClientProvider>);
+};
+
 describe("Connect", () => {
-  it("has the five tabs and one panel", async () => {
-    render(<Connect />);
-    expect(tabNames()).toEqual(["Requests", "Providers", "Recipes", "Actions", "Advanced"]);
+  it("has the six tabs and one panel", async () => {
+    renderConnect();
+    expect(tabNames()).toEqual(["Requests", "Providers", "Cards", "Recipes", "Actions", "Advanced"]);
     expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
     await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
     expect(screen.getByRole("tab", { name: "Actions" })).toHaveAttribute("aria-selected", "true");
   });
   it("each empty tab has its own sentence", async () => {
-    render(<Connect />);
+    renderConnect();
     const texts = new Set<string>();
     for (const name of ["Requests", "Providers", "Recipes"]) {
       await userEvent.click(screen.getByRole("tab", { name }));
@@ -29,7 +43,7 @@ describe("Connect", () => {
     expect(texts.size).toBe(3);
   });
   it("Actions: a write asks first in a modal dialog, safe choice first and focused, then shows a receipt", async () => {
-    render(<Connect />);
+    renderConnect();
     await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
     const panel = screen.getByRole("tabpanel");
     expect(within(panel).getByText("Read Sonarr queue")).toBeInTheDocument();
@@ -53,40 +67,43 @@ describe("Connect", () => {
     expect(screen.getByText("Sample data")).toBeInTheDocument();
   });
   it("an unconfirmed result is never shown bare", async () => {
-    render(<Connect />);
+    renderConnect();
     await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
     await userEvent.click(screen.getByRole("button", { name: "Run: Start a backup" }));
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Start a backup" }));
     expect(screen.getByRole("status")).toHaveTextContent("Unknown: the result was not confirmed");
   });
-  it("Advanced: secret names with set or not set, write-only replace, never a value", async () => {
-    render(<Connect />);
+  it("Advanced: diagnostics list config kinds and errors, with no password input and no Replace control", async () => {
+    server.use(
+      http.get("/api/config/provider", () => HttpResponse.json({ items: [], errors: [{ file: "providers.yaml", reason: "bad yaml" }] })),
+      http.get("/api/config/request", () => HttpResponse.json({ items: [{ id: "weather.now", etag: '"v1"', object: { id: "weather.now", provider: "weather", method: "GET", path: "/", effect: "auto" } }], errors: [] })),
+      http.get("/api/config/card", () => HttpResponse.json({ items: [], errors: [] })),
+    );
+    renderConnect();
     await userEvent.click(screen.getByRole("tab", { name: "Advanced" }));
     const panel = screen.getByRole("tabpanel");
-    expect(within(panel).getByText("PW_SONARR_TOKEN")).toBeInTheDocument();
-    expect(within(panel).getAllByText("Set")).toHaveLength(1);
-    expect(within(panel).getAllByText("Not set")).toHaveLength(1);
-    await userEvent.click(within(panel).getByRole("button", { name: "Replace PW_SONARR_TOKEN" }));
-    const input = within(panel).getByLabelText("New value for PW_SONARR_TOKEN");
-    expect(input).toHaveAttribute("type", "password");
-    expect(input).toHaveValue("");
-    expect(input).toHaveAttribute("autocomplete", "off");
+    expect(within(panel).getByText("Providers")).toBeInTheDocument();
+    expect(within(panel).getAllByText("0 objects").length).toBeGreaterThanOrEqual(1);
+    expect(within(panel).getByText("Requests")).toBeInTheDocument();
+    expect(within(panel).getByText("1 object")).toBeInTheDocument();
+    expect(within(panel).getByText("providers.yaml")).toBeInTheDocument();
+    expect(within(panel).getByText("bad yaml")).toBeInTheDocument();
+    expect(within(panel).getByText(/Worlds stores a reference to a secret/)).toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: /Replace/ })).not.toBeInTheDocument();
+    expect(within(panel).queryByLabelText(/value/i)).not.toBeInTheDocument();
+    expect(panel.querySelector("input[type='password']")).not.toBeInTheDocument();
   });
-  it("Replace focuses the field; Save says Saved and returns focus; Cancel returns focus", async () => {
-    render(<Connect />);
+  it("Advanced: with no errors, says every config file loaded cleanly", async () => {
+    server.use(
+      http.get("/api/config/provider", () => HttpResponse.json({ items: [], errors: [] })),
+      http.get("/api/config/request", () => HttpResponse.json({ items: [], errors: [] })),
+      http.get("/api/config/card", () => HttpResponse.json({ items: [], errors: [] })),
+    );
+    renderConnect();
     await userEvent.click(screen.getByRole("tab", { name: "Advanced" }));
-    const replace = () => screen.getByRole("button", { name: "Replace PW_SONARR_TOKEN" });
-    await userEvent.click(replace());
-    expect(screen.getByLabelText("New value for PW_SONARR_TOKEN")).toHaveFocus();
-    await userEvent.type(screen.getByLabelText("New value for PW_SONARR_TOKEN"), "hunter2");
-    await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(replace()).toHaveFocus();
-    expect(screen.getAllByRole("status").map((s) => s.textContent)).toContain("Saved");
-    expect(document.body).not.toHaveTextContent("hunter2");
-    await userEvent.click(replace());
-    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(replace()).toHaveFocus();
-    expect(screen.getAllByRole("status").map((s) => s.textContent)).not.toContain("Saved");
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByText("None. Every config file loaded cleanly.")).toBeInTheDocument();
+    expect(panel.querySelector("input[type='password']")).not.toBeInTheDocument();
   });
 });
 
