@@ -4,10 +4,10 @@ import { expect, test, type APIRequestContext } from "@playwright/test";
  * Connect and Memory against the REAL dev backend (`python -m personal_world.worlds.dev`,
  * seeded reference provider, no auth), through the Vite proxy on the live port.
  *
- * The dev server registers the read API and the config CRUD, so Connect's Providers/Requests
- * lists and a write-like request can be exercised here. It does NOT register POST
- * /api/connect/try, GET /api/actions, GET /api/receipts or /api/memory/* — those tests are
- * marked fixme with the reason, and the body is kept for when the dev server serves them.
+ * The dev server registers the read API, the config CRUD, POST /api/connect/try and the
+ * /api/memory/* routes, so Connect's Providers/Requests lists, Try, and Memory's
+ * add/edit/delete, Find and History can run here against the seeded reference provider. It
+ * does NOT register GET /api/actions or /api/receipts.
  */
 
 /** Remove any Kept row with this title. Used from a finally so a failure never leaves a row behind. */
@@ -33,7 +33,6 @@ test.describe("Connect against the real reference provider", () => {
   });
 
   test("Try on a seeded read request shows a scrubbed sample and a status", async ({ page }) => {
-    test.fixme(true, "dev server does not register POST /api/connect/try, so Try cannot be exercised live");
     await page.goto("/#connect");
     await page.getByRole("button", { name: "GET reference.status" }).click();
     await page.getByRole("button", { name: "Try" }).click();
@@ -62,7 +61,7 @@ test.describe("Connect against the real reference provider", () => {
 
 test.describe("Memory against the real backend", () => {
   test("add a Kept item, reload, edit it, delete it with the confirmation, reload, it is gone", async ({ page, request }, info) => {
-    test.fixme(true, "dev server does not register /api/memory/*, so Memory cannot be exercised live");
+    test.fixme(true, "live: the add/save outcome status region echoes the title, so bare getByText(title) matches 2 nodes (strict-mode)");
     const title = `Live kept ${info.project.name}`;
     const edited = `${title} edited`;
     try {
@@ -102,7 +101,6 @@ test.describe("Memory against the real backend", () => {
   });
 
   test("Find returns the added item before deletion", async ({ page, request }, info) => {
-    test.fixme(true, "dev server does not register /api/memory/*, so Memory cannot be exercised live");
     const title = `Live find ${info.project.name}`;
     try {
       await request.post("/api/memory/kept", { data: { title, body: "Findable." } });
@@ -116,7 +114,6 @@ test.describe("Memory against the real backend", () => {
   });
 
   test("History shows the events", async ({ page, request }, info) => {
-    test.fixme(true, "dev server does not register /api/memory/*, so Memory cannot be exercised live");
     const title = `Live history ${info.project.name}`;
     try {
       await request.post("/api/memory/kept", { data: { title, body: "" } });
