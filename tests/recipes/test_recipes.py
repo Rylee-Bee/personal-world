@@ -143,7 +143,8 @@ def test_planned_recipes_say_why_and_do_not_install(tmp_path, name):
 
 # ---- privacy: nothing private in a public recipe, sample or doc ------------------------------------------------
 
-DOMAINLIKE = re.compile(r"\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)*\.(?:com|org|net|io|dev|app|xyz|me|cc|co|uk|de|duckdns|local|home|lan|internal|ts)\b", re.I)
+# A dotted name ending in a real-looking TLD; the whole name is captured so "x.lan.example" is read as one name.
+DOMAINLIKE = re.compile(r"\b(?:[a-z0-9][a-z0-9-]*\.)+(?:com|org|net|io|dev|app|xyz|me|cc|co|uk|de|duckdns|local|home|lan|internal|ts|example)\b", re.I)
 URLISH = re.compile(r"https?://([^/\s\"'>]+)")
 FORBIDDEN_WORDS = ("duckdns", "hulgan", "tailscale", "headscale", "amnezia", "candy", "tracker", "passkey", "magnet:")
 
