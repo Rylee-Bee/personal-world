@@ -42,36 +42,39 @@ describe("Connect", () => {
     }
     expect(texts.size).toBe(3);
   });
-  it("Actions: a write asks first in a modal dialog, safe choice first and focused, then shows a receipt", async () => {
+  it("Actions: lists the real API actions, read and write as words, and holds no Run control", async () => {
+    server.use(
+      http.get("/api/actions", () => HttpResponse.json([
+        { id: "example.read", name: "Read the example queue", access: "read", scope: "example", exposed: false },
+        { id: "example.restart", name: "Restart the example service", access: "write", scope: "example", exposed: true },
+      ])),
+      http.get("/api/receipts", () => HttpResponse.json([])),
+    );
     renderConnect();
     await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
     const panel = screen.getByRole("tabpanel");
-    expect(within(panel).getByText("Read Sonarr queue")).toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: /Run: Read Sonarr queue/ })).not.toBeInTheDocument();
-    const run = within(panel).getByRole("button", { name: "Run: Restart Sonarr" });
-    await userEvent.click(run);
-    const dlg = screen.getByRole("dialog", { name: "Restart Sonarr?" });
-    expect(within(dlg).getByText("Sonarr stops for a moment and TV will show as unavailable until it is back.")).toBeInTheDocument();
-    expect(within(dlg).getByText("Sample, nothing was sent.")).toBeInTheDocument();
-    const buttons = within(dlg).getAllByRole("button").map((b) => b.textContent);
-    expect(buttons).toEqual(["Don't restart", "Restart Sonarr"]);                  // the safe choice is first
-    expect(within(dlg).getByRole("button", { name: "Don't restart" })).toHaveFocus();
-    expect(screen.getByRole("status")).toHaveTextContent("");                     // nothing happened yet
-    await userEvent.click(within(dlg).getByRole("button", { name: "Don't restart" }));
+    expect(within(panel).getByText("Read the example queue")).toBeInTheDocument();
+    expect(within(panel).getByText("Read")).toBeInTheDocument();
+    expect(within(panel).getByText("Restart the example service")).toBeInTheDocument();
+    expect(within(panel).getByText("Write")).toBeInTheDocument();
+    expect(within(panel).getByText("needs an approved action")).toBeInTheDocument();
+    expect(within(panel).getAllByText("scope: example")).toHaveLength(2);
+    // Nothing in Connect dispatches an action, so there is no Run control and no confirmation dialog to test.
+    expect(within(panel).queryByRole("button", { name: /Run|Execute|Approve/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(run).toHaveFocus();
-    await userEvent.click(run);
-    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restart Sonarr" }));
-    expect(screen.getByRole("status")).toHaveTextContent("Restart Sonarr: Succeeded. Sample, nothing was sent.");
-    expect(run).toHaveFocus();
-    expect(screen.getByText("Sample data")).toBeInTheDocument();
   });
   it("an unconfirmed result is never shown bare", async () => {
+    server.use(
+      http.get("/api/actions", () => HttpResponse.json([])),
+      http.get("/api/receipts", () => HttpResponse.json([
+        { id: "rcpt-2", action: "example.backup", dispatch_state: "dispatched", outcome: "UNKNOWN", started_at: "2026-10-01T08:12:00Z" },
+      ])),
+    );
     renderConnect();
     await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
-    await userEvent.click(screen.getByRole("button", { name: "Run: Start a backup" }));
-    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Start a backup" }));
-    expect(screen.getByRole("status")).toHaveTextContent("Unknown: the result was not confirmed");
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByText("Unknown: the result was not confirmed")).toBeInTheDocument();
+    expect(panel.textContent).not.toContain("UNKNOWN");
   });
   it("Advanced: diagnostics list config kinds and errors, with no password input and no Replace control", async () => {
     server.use(

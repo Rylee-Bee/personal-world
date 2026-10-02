@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -10,7 +10,6 @@ import {
   tryConnect,
   useConnectData,
 } from "./api";
-import { sampleBindings } from "./fixtures";
 import { Tabs, type TabDef } from "./Tabs";
 import type {
   CardConfig,
@@ -57,105 +56,63 @@ function stateText(state: string): string {
   return table[state] ?? "Unknown";
 }
 
-type Binding = (typeof sampleBindings)[number];
-type WriteBinding = Extract<Binding, { access: "write" }>;
-
 /**
- * A native modal dialog for a write binding: the browser makes the page behind it inert, traps focus and
- * returns it on close. The safe choice comes first and has initial focus. The buttons are named for the act.
- */
-function RunDialog({ binding, onConfirm, onCancel }: { binding: WriteBinding; onConfirm: () => void; onCancel: () => void }) {
-  const titleId = useId();
-  const ref = useRef<HTMLDialogElement>(null);
-
-  useLayoutEffect(() => {
-    const d = ref.current;
-    if (d && !d.open) d.showModal();
-    return () => {
-      if (d?.open) d.close();
-    };
-  }, []);
-
-  return (
-    <dialog
-      ref={ref}
-      aria-labelledby={titleId}
-      className="fd-dialog"
-      onCancel={(event) => {
-        event.preventDefault();
-        onCancel();
-      }}
-    >
-      <h2 id={titleId} className="fd-dialog-title">
-        {binding.act}?
-      </h2>
-      <p className="fd-dialog-consequence">{binding.consequence}</p>
-      <p className="fd-dialog-sample">Sample, nothing was sent.</p>
-      <div className="fd-dialog-actions">
-        <button type="button" className="fd-btn fd-btn--primary" autoFocus onClick={onCancel}>
-          {binding.safe}
-        </button>
-        <button type="button" className="fd-btn" onClick={onConfirm}>
-          {binding.act}
-        </button>
-      </div>
-    </dialog>
-  );
-}
-
-/**
- * Actions tab: kept as the sample panel so the legacy fd-screens assertions keep passing.
- * The real actions list lives in the Advanced diagnostics for now; a later task moves it here.
+ * Actions tab: the real GET /api/actions list and GET /api/receipts activity, both read-only.
+ * Nothing here dispatches: a write action is named and marked, never offered a Run control.
  */
 function ActionsPanel() {
-  const [running, setRunning] = useState<WriteBinding | null>(null);
-  const [receipt, setReceipt] = useState<string | null>(null);
-  const runRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const refocus = useRef<string | null>(null);
-  useEffect(() => {
-    if (running === null && refocus.current) {
-      runRefs.current[refocus.current]?.focus();
-      refocus.current = null;
-    }
-  }, [running]);
-  const cancel = () => {
-    refocus.current = running?.id ?? null;
-    setRunning(null);
-  };
-  const confirm = () => {
-    if (!running) return;
-    refocus.current = running.id;
-    setReceipt(`${running.name}: ${outcomeText(running.outcome)}. Sample, nothing was sent.`);
-    setRunning(null);
-  };
+  const data = useConnectData();
 
   return (
     <div className="fd-actions">
-      <p className="fd-sample">Sample data</p>
-      <ul className="fd-bindings">
-        {sampleBindings.map((binding) => (
-          <li key={binding.id} className="fd-binding">
-            <span className="fd-binding-name">{binding.name}</span>
-            {binding.access === "read" ? (
-              <span className="fd-binding-access">Read</span>
-            ) : (
-              <button
-                type="button"
-                ref={(el) => { runRefs.current[binding.id] = el; }}
-                className="fd-btn"
-                aria-label={`Run: ${binding.name}`}
-                onClick={() => setRunning(binding)}
-              >
-                Run
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-      <p role="status" className="fd-receipt">
-        {receipt ?? ""}
-      </p>
-      {running && <RunDialog binding={running} onConfirm={confirm} onCancel={cancel} />}
+      <h2 className="fd-settings-section-title">Actions</h2>
+      {data.actionsStatus === "loading" ? (
+        <p className="fd-sentence">Loading actions…</p>
+      ) : data.actionsStatus === "error" ? (
+        <div className="fd-connect-status">
+          <p className="fd-sentence">Couldn't load actions.</p>
+          <button type="button" className="fd-btn" onClick={data.refetchActions}>Retry</button>
+        </div>
+      ) : data.actions.length === 0 ? (
+        <p className="fd-sentence">Nothing connected yet.</p>
+      ) : (
+        <ul className="fd-bindings">
+          {data.actions.map((action) => (
+            <li key={action.id} className="fd-binding">
+              <span className="fd-binding-name">{action.name}</span>
+              <span className="fd-binding-access">{action.access === "read" ? "Read" : "Write"}</span>
+              {action.scope !== undefined && <span className="fd-binding-access">scope: {action.scope}</span>}
+              {action.exposed !== undefined && <span className="fd-binding-access">{action.exposed ? "Exposed" : "Not exposed"}</span>}
+              {action.access === "write" && <span className="fd-connect-disabled-reason">needs an approved action</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 className="fd-settings-section-title">Recent activity</h2>
+      {data.receiptsStatus === "loading" ? (
+        <p className="fd-sentence">Loading recent activity…</p>
+      ) : data.receiptsStatus === "error" ? (
+        <div className="fd-connect-status">
+          <p className="fd-sentence">Couldn't load recent activity.</p>
+          <button type="button" className="fd-btn" onClick={data.refetchReceipts}>Retry</button>
+        </div>
+      ) : data.receipts.length === 0 ? (
+        <p className="fd-sentence">No activity yet. Nothing has run.</p>
+      ) : (
+        <ul className="fd-bindings">
+          {data.receipts.map((receipt) => (
+            <li key={receipt.id} className="fd-binding">
+              <span className="fd-binding-name">{receipt.action}</span>
+              <span className="fd-binding-access">{receipt.dispatch_state}</span>
+              <span className="fd-binding-access">{outcomeText(receipt.outcome)}</span>
+              {receipt.started_at && <span className="fd-binding-access">started {receipt.started_at}</span>}
+              {receipt.finished_at && <span className="fd-binding-access">finished {receipt.finished_at}</span>}
+              {receipt.redacted && <span className="fd-binding-access">Redacted</span>}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

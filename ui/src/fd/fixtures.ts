@@ -1,4 +1,4 @@
-import type { Board, BoardItem, CardEnvelope, Format, MemoryHistoryRow, MemoryKeptRow, MemoryLaterRow, MemoryLockedRow, MemoryRecordsRow, NeedsYouEntry } from "./types";
+import type { ActionSummary, Board, BoardItem, CardEnvelope, Format, MemoryHistoryRow, MemoryKeptRow, MemoryLaterRow, MemoryLockedRow, MemoryRecordsRow, NeedsYouEntry, Receipt } from "./types";
 
 const T = "2026-10-01T09:30:00Z";
 const EARLIER = "2026-10-01T08:12:00Z";
@@ -95,21 +95,17 @@ export const needsYou: NeedsYouEntry[] = [
   { id: "ny-2", text: "Review the new reading list", source: "Memory", created_at: T, action: { kind: "open", href: "#memory" } },
 ];
 
-/** Sample Connect data. Replaced by the real API when the Connect routes land. */
-export const sampleBindings = [
-  { id: "sonarr-queue", name: "Read Sonarr queue", access: "read" as const, scope: "sonarr" },
-  {
-    id: "sonarr-restart", name: "Restart Sonarr", access: "write" as const, scope: "sonarr", outcome: "SUCCEEDED" as const,
-    act: "Restart Sonarr", safe: "Don't restart", consequence: "Sonarr stops for a moment and TV will show as unavailable until it is back.",
-  },
-  {
-    id: "backup-now", name: "Start a backup", access: "write" as const, scope: "restic", outcome: "UNKNOWN" as const,
-    act: "Start a backup", safe: "Don't start it", consequence: "A backup runs now and may slow the machine for a few minutes.",
-  },
+/**
+ * Connect Actions/receipts fixtures. Obviously fake — example.test scopes, invented actions,
+ * no real host, token, secret value or personal data.
+ */
+export const actionRows: ActionSummary[] = [
+  { id: "example.read", name: "Read the example queue", access: "read", scope: "example", exposed: false },
+  { id: "example.restart", name: "Restart the example service", access: "write", scope: "example", exposed: true },
 ];
-export const sampleSecrets = [
-  { name: "PW_SONARR_TOKEN", set: true },
-  { name: "PW_WEATHER_KEY", set: false },
+export const receiptRows: Receipt[] = [
+  { id: "rcpt-1", action: "example.restart", dispatch_state: "succeeded", outcome: "SUCCEEDED", started_at: T, finished_at: T },
+  { id: "rcpt-2", action: "example.backup", dispatch_state: "dispatched", outcome: "UNKNOWN", started_at: EARLIER },
 ];
 
 /**

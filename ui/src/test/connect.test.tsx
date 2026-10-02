@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Connect } from "../fd/Connect";
+import { actionRows, receiptRows } from "../fd/fixtures";
 import { connectStore, handlers as fdHandlers } from "../fd/msw";
 import type { CardConfig, Provider, Request as ConnRequest } from "../fd/types";
 
@@ -297,5 +298,69 @@ describe("Connect: Advanced panel assertions (real content)", () => {
     expect(within(panel).getByText("Cards")).toBeInTheDocument();
     expect(within(panel).getByText("Config errors")).toBeInTheDocument();
     expect(within(panel).getByText(/Worlds stores a reference to a secret/)).toBeInTheDocument();
+  });
+});
+
+describe("Connect: actions and receipts", () => {
+  it("lists the real actions with read/write words, scope and exposure, and no Run control", async () => {
+    connectStore.actions = actionRows;
+    renderConnect();
+    await waitForSettled();
+    await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByText("Read the example queue")).toBeInTheDocument();
+    expect(within(panel).getByText("Read")).toBeInTheDocument();
+    expect(within(panel).getByText("Restart the example service")).toBeInTheDocument();
+    expect(within(panel).getByText("Write")).toBeInTheDocument();
+    expect(within(panel).getByText("needs an approved action")).toBeInTheDocument();
+    expect(within(panel).getAllByText("scope: example")).toHaveLength(2);
+    expect(within(panel).getByText("Exposed")).toBeInTheDocument();
+    expect(within(panel).getByText("Not exposed")).toBeInTheDocument();
+    // Nothing in Connect dispatches an action: no Run control, no dialog.
+    expect(within(panel).queryByRole("button", { name: /Run|Execute|Approve/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows recent activity read-only: action, dispatch state, outcome and timestamps", async () => {
+    connectStore.receipts = receiptRows;
+    renderConnect();
+    await waitForSettled();
+    await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByText("example.restart")).toBeInTheDocument();
+    expect(within(panel).getByText("succeeded")).toBeInTheDocument();
+    expect(within(panel).getByText("Succeeded")).toBeInTheDocument();
+    expect(within(panel).getByText("started 2026-10-01T09:30:00Z")).toBeInTheDocument();
+    expect(within(panel).getByText("finished 2026-10-01T09:30:00Z")).toBeInTheDocument();
+  });
+
+  it("an unconfirmed outcome is never shown bare", async () => {
+    connectStore.receipts = receiptRows;
+    renderConnect();
+    await waitForSettled();
+    await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByText("Unknown: the result was not confirmed")).toBeInTheDocument();
+    expect(panel.textContent).not.toContain("UNKNOWN");
+  });
+
+  it("empty actions and receipts each have their own plain sentence", async () => {
+    renderConnect();
+    await waitForSettled();
+    await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByText("Nothing connected yet.")).toBeInTheDocument();
+    expect(within(panel).getByText("No activity yet. Nothing has run.")).toBeInTheDocument();
+  });
+
+  it("an actions error shows plain words and a Retry that refetches", async () => {
+    server.use(http.get("/api/actions", () => HttpResponse.json({}, { status: 500 })));
+    renderConnect();
+    await userEvent.click(screen.getByRole("tab", { name: "Actions" }));
+    const panel = screen.getByRole("tabpanel");
+    expect(await within(panel).findByText("Couldn't load actions.")).toBeInTheDocument();
+    server.use(http.get("/api/actions", () => HttpResponse.json(actionRows)));
+    await userEvent.click(within(panel).getByRole("button", { name: "Retry" }));
+    expect(await within(panel).findByText("Read the example queue")).toBeInTheDocument();
   });
 });

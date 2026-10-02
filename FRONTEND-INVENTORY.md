@@ -1,6 +1,6 @@
 # Worlds — Frontend Inventory
 
-> **Status:** Current · **Verified:** 2026-10-01 · **Canonical for:** what the browser interface is and where each piece lives · **Read this if:** you are about to work on the UI and want the map before the code
+> **Status:** Current · **Verified:** 2026-10-02 · **Canonical for:** what the browser interface is and where each piece lives · **Read this if:** you are about to work on the UI and want the map before the code
 
 **In short:** The interface is the front door, a small React app in `ui/src/fd/` (ADR-0008): four landmarks (Home · Connect · Memory · Settings), served same-origin at `/` by the backend and mounted by `ui/src/main.tsx`. The old screens, components and mock API were deleted; git history is the archive. Anything that names `src/screens`, `src/components` or `ui/e2e/` is describing the old interface.
 
@@ -29,14 +29,14 @@
 | `home-model.ts` | grouping rules (C6), briefing, greeting |
 | `api.ts`, `safe-href.ts` | read hooks with per-request timeouts; link allow-list |
 | `use-board-edit.ts`, `edit-model.ts` | Edit Home as C1 board writes (`PUT /api/config/board/{id}` with `If-Match`, 409 / 422 handling, Undo is another write) |
-| `Connect.tsx`, `Memory.tsx`, `Settings.tsx`, `Tabs.tsx` | the other three landmarks (Connect and Memory are skeletons; their actions are labelled sample data) |
+| `Connect.tsx`, `Memory.tsx`, `Settings.tsx`, `Tabs.tsx` | the other three landmarks and the shared tabs: Connect reads and writes providers, requests and cards, and lists actions and receipts read-only; Memory reads and writes kept, later and records; Settings holds preferences |
 | `prefs.tsx`, `prefs-core.ts` | Words (Minimal / Short / Full), Density (Calm / Standard / Detailed), Station pack, theme, text size |
 | `types.ts` | C1 / C2 / C6 types |
-| `fixtures.ts`, `board-server.ts`, `msw.ts` | typed fixtures, an in-memory board server with the real rules, MSW handlers. **Tests only.** |
+| `fixtures.ts`, `board-server.ts`, `msw.ts` | typed test fixtures (Home board and cards, Memory rows, Connect actions and receipts), an in-memory board server with the real rules, MSW handlers. **Tests only.** |
 
 ## API the UI uses
 
-`GET /api/boards/home`, `GET /api/needs-you`, `GET /api/cards/{id}`, `GET` and `PUT /api/config/board/{id}`. Shapes are in `docs/rebuild/CONTRACTS.md` (C2 envelope, C6 read API). `/api/pickup` is reserved; Pick up is omitted until it exists.
+Home: `GET /api/boards/home`, `GET /api/needs-you`, `GET /api/cards/{id}`, `GET` and `PUT /api/config/board/{id}`. Connect: `GET /api/config/{kind}`, `GET` and `PUT /api/config/{kind}/{id}`, `POST /api/connect/try`, `POST /api/connect/preview`, `GET /api/actions`, `GET /api/receipts`. Memory: `GET` and `POST /api/memory/{table}`, `GET`, `PATCH` and `DELETE /api/memory/{table}/{id}`, `GET /api/memory/find`, `GET /api/memory/history`, `GET /api/memory/export/{table}`, `POST /api/memory/backup`. Shapes are in `docs/rebuild/CONTRACTS.md` (C2 envelope, C6 read API). `/api/pickup` is reserved; Pick up is omitted until it exists.
 
 ## Tests and commands (from `ui/`)
 
