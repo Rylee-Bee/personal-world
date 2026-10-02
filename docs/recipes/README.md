@@ -68,6 +68,19 @@ Not recipes: a dashboard that Worlds replaces, and DNS (it is file-based, not HT
 - A status can name exact values (`healthy: [0]`) and a numeric threshold (`above: {value: 0, state: needs_attention}`, checked first). Only Traefik's error count uses a threshold today; the other services' counts are not mapped because their shapes are not known.
 - **Every recipe is `verified: false`** until a read-only check against the real service flips it. `recipes list` shows "unverified" and install says so. "Reachable means healthy" cards (Cleanuparr, Houndarr) map nothing but whether the service answers.
 
+## Importing an OpenAPI document
+
+`from_openapi(doc)` in `src/personal_world/worlds/recipes.py` turns an already-parsed OpenAPI 3.x document (a dict, from JSON or YAML) into a **skeleton**: a C1 provider and GET/HEAD-only request objects you review before saving. It is deliberately not a one-click import and it is read-only:
+
+- Only GET and HEAD operations become requests. POST/PUT/PATCH/DELETE are never imported as requests; they are listed in the result's `skipped` list as write-like, because an effect is never guessed.
+- The result is a skeleton you review, never trusted output. Every id, path and parameter name is checked against the C1 patterns and dropped (with a reason in `skipped`) when it does not fit; a path template such as `/pets/{petId}` is documented in `notes`, never substituted with a value.
+- `servers[]` is ignored: the provider carries a synthetic `example.invalid` placeholder address, because the address is yours to supply at install time, not the document's to choose.
+- Only local `#/` references are followed. A remote reference is skipped and reported, and the function is pure — it reads no file, network or environment.
+- Auth maps only to C1's bearer/header/basic with a placeholder `env:NAME` secret **name**. A scheme C1 does not understand (oauth2, openIdConnect, a cookie or query apiKey) becomes a TODO note and the result says `needs_auth: unknown`; `none` is never chosen silently. No secret value is ever emitted.
+- The document is bounded (size, nesting, node count, at most 200 operations), so a hostile file cannot hang the loader or exhaust memory; an oversize document is refused with a plain error.
+
+The output's `provider` and `requests` are in the same shapes the loader installs, so they validate as C1 and can be saved through `ConfigStore`. Nothing is saved automatically.
+
 ## Writing or changing a recipe
 
 Keep it sanitized: placeholder host of the shape `sonarr.lan.example` with the service port, secret names only. `tests/recipes/test_recipes.py` checks that every ready recipe installs, is read-only, has plain card names, maps its sample responses, and contains no real-looking host, domain or private word. Add a sample for the healthy case, the empty case and the service-down case.
