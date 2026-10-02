@@ -375,6 +375,42 @@ def test_restore_round_trip_and_refusals(ms, tmp_path):
     assert not (tmp_path / "other" / "worlds.db").exists()
 
 
+def test_restore_creates_private_database(ms, tmp_path, monkeypatch):
+    """Restore makes a 0600 database without moving the process umask, on success and on failure."""
+    ms.add("kept", title="Lentil soup", body="cumin", actor="owner")
+    backup = ms.backup(tmp_path / "bk")
+    before = os.umask(0o022)                                     # deliberately loose: restore must not rely on it
+    real_umask, flipped = os.umask, []                           # record any process-global flip, not just a restored one
+    monkeypatch.setattr(os, "umask", lambda mask: flipped.append(mask) or real_umask(mask))
+    try:
+        fresh = tmp_path / "restored"
+        restore_backup(backup, fresh)
+        assert flipped == []                                     # restore never touched the process-global umask
+        assert real_umask(0o022) == 0o022                        # and it is still where we left it
+        mode = stat.S_IMODE((fresh / "worlds.db").stat().st_mode)
+        assert mode == 0o600 and not mode & 0o077
+        for suffix in ("-wal", "-shm", "-journal"):
+            sibling = fresh / f"worlds.db{suffix}"
+            if sibling.exists():
+                assert not stat.S_IMODE(sibling.stat().st_mode) & 0o077, sibling.name
+
+        # A failure after the fresh database exists also leaves the umask alone and nothing half-restored.
+        c = sqlite3.connect(backup)
+        c.execute("update kept set id='not-hex'")
+        c.commit()
+        c.close()
+        failed = tmp_path / "failed"
+        with pytest.raises(MemoryError_):
+            restore_backup(backup, failed)
+        assert flipped == []
+        assert real_umask(0o022) == 0o022
+        db = Database.in_dir(failed)
+        assert db.conn().execute("select count(*) from kept").fetchone()[0] == 0   # no partial restore
+        db.close()
+    finally:
+        real_umask(before)
+
+
 def test_data_survives_a_restart(ms, tmp_path):
     k = ms.add("kept", title="durable", body="persisted", actor="owner")
     ms.db.close()

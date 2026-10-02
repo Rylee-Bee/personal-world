@@ -83,3 +83,31 @@ test("Station on: the panel and the landmarks are identical", async ({ page }) =
   await page.getByRole("group", { name: "Experience pack" }).getByLabel("None").check();
   expect(await snap()).toEqual(on);
 });
+
+test("Earlier conversations: axe clean, no overflow, keyboard path, read-only thread view", async ({ page }) => {
+  await open(page);
+  await page.getByRole("button", { name: /^Companion/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Companion" });
+  const summary = dialog.getByText("Earlier conversations");
+  // Open the disclosure
+  await summary.click();
+  await expect(dialog.getByRole("button", { name: "Conversation 1" })).toBeVisible();
+  // Keyboard: Tab through the list
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("button", { name: "Conversation 1" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  // Read-only view
+  await expect(dialog.getByRole("button", { name: /Back to the current conversation/ })).toBeVisible();
+  await expect(dialog.getByText("What's the weather?")).toBeVisible();
+  await expect(dialog.getByText("I don't have real-time data.")).toBeVisible();
+  // No composer
+  await expect(dialog.getByLabel("Message to Companion")).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Send" })).toHaveCount(0);
+  expect(await axe(page)).toEqual([]);
+  await noHorizontalOverflow(page);
+  // Back: focus returns to the summary (the control the person used to get there).
+  await dialog.getByRole("button", { name: /Back to the current conversation/ }).click();
+  await expect(dialog.getByLabel("Message to Companion")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Send" })).toBeVisible();
+  await expect(summary).toBeFocused();
+});

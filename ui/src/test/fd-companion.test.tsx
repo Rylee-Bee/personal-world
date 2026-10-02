@@ -227,3 +227,135 @@ describe("the Companion panel", () => {
     expect(within(dlg).getByText("Resting")).toBeInTheDocument();
   });
 });
+
+describe("Earlier conversations", () => {
+  it("loads lazily only when the disclosure is opened", async () => {
+    mount();
+    const dlg = await openPanel();
+    // The disclosure is present but not open
+    const disclosure = within(dlg).getByText("Earlier conversations").closest("details");
+    expect(disclosure).not.toHaveAttribute("open");
+    // No threads request yet
+    expect(companionServer.calls.filter((c) => c.path === "/api/companion/threads")).toHaveLength(0);
+    // Open it
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
+    // Now the request was made
+    expect(companionServer.calls.filter((c) => c.path === "/api/companion/threads")).toHaveLength(1);
+  });
+
+  it("shows an empty state when there are no old threads", async () => {
+    // Override to return only the current thread
+    server.use(http.get("/api/companion/threads", () => HttpResponse.json({ threads: ["t-1"] })));
+    mount();
+    const dlg = await openPanel();
+    // Send a turn so the response's thread_id ("t-1") becomes the live thread
+    await say(dlg, "hello");
+    await within(dlg).findByText(/short answer/);
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    expect(await within(dlg).findByText("No earlier conversations.")).toBeInTheDocument();
+  });
+
+  it("shows Unknown when Companion is down, with a Try again button", async () => {
+    companionServer.setMode("down");
+    mount();
+    const dlg = await openPanel();
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    await waitFor(() => expect(within(dlg).getAllByText("Companion isn't answering.").length).toBeGreaterThanOrEqual(2));
+    expect(within(dlg).getByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+
+  it("Try again re-requests the list", async () => {
+    companionServer.setMode("down");
+    mount();
+    const dlg = await openPanel();
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    await waitFor(() => expect(within(dlg).getAllByText("Companion isn't answering.").length).toBeGreaterThanOrEqual(2));
+    companionServer.setMode("ok");
+    await userEvent.click(within(dlg).getByRole("button", { name: "Try again" }));
+    expect(await within(dlg).findByText("Conversation 1")).toBeInTheDocument();
+  });
+
+  it("shows not configured when Companion is not set up", async () => {
+    companionServer.setMode("not_configured");
+    mount();
+    const dlg = await openPanel();
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    await waitFor(() => expect(within(dlg).getAllByText(/Companion isn't set up/).length).toBeGreaterThanOrEqual(2));
+  });
+
+  it("opens an old thread read-only with no composer", async () => {
+    mount();
+    const dlg = await openPanel();
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
+    await userEvent.click(within(dlg).getByText("Conversation 1"));
+    // The old thread view is shown
+    expect(await within(dlg).findByText(/Back to the current conversation/)).toBeInTheDocument();
+    expect(within(dlg).getByText("What's the weather?")).toBeInTheDocument();
+    expect(within(dlg).getByText("I don't have real-time data.")).toBeInTheDocument();
+    // No composer
+    expect(within(dlg).queryByLabelText("Message to Companion")).not.toBeInTheDocument();
+    expect(within(dlg).queryByRole("button", { name: "Send" })).not.toBeInTheDocument();
+  });
+
+  it("Back restores the live view and returns focus to the Earlier conversations summary", async () => {
+    mount();
+    const dlg = await openPanel();
+    const summary = within(dlg).getByText("Earlier conversations");
+    await userEvent.click(summary);
+    await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
+    await userEvent.click(within(dlg).getByText("Conversation 1"));
+    await within(dlg).findByText(/Back to the current conversation/);
+    const backBtn = within(dlg).getByRole("button", { name: /Back to the current conversation/ });
+    expect(backBtn).toHaveFocus();
+    await userEvent.click(backBtn);
+    // Live view is restored
+    expect(within(dlg).getByLabelText("Message to Companion")).toBeInTheDocument();
+    expect(within(dlg).getByRole("button", { name: "Send" })).toBeInTheDocument();
+    expect(within(dlg).queryByText(/What's the weather/)).not.toBeInTheDocument();
+    // Focus lands on the summary (the control the person used to get there).
+    await waitFor(() => expect(within(dlg).getByText("Earlier conversations")).toHaveFocus());
+  });
+
+  it("before any turn, every thread from the server is listed", async () => {
+    mount();
+    const dlg = await openPanel();
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    // Server returns ["t-old-1", "t-old-2", "t-1"]; with no live thread yet, none is excluded.
+    await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
+    expect(within(dlg).getByText("Conversation 2")).toBeInTheDocument();
+    expect(within(dlg).getByText("Conversation 3")).toBeInTheDocument();
+  });
+
+  it("after a reply, the reply's thread_id is excluded from the Earlier list and the others remain", async () => {
+    mount();
+    const dlg = await openPanel();
+    // Default server reply carries thread_id "t-1".
+    await say(dlg, "hello");
+    await within(dlg).findByText(/short answer/);
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
+    expect(within(dlg).getByText("Conversation 2")).toBeInTheDocument();
+    // The live thread "t-1" is excluded, so only the two old threads remain.
+    expect(within(dlg).queryByText("Conversation 3")).not.toBeInTheDocument();
+  });
+
+  it("a thread literally named 't-1' is listed when it is not the live thread", async () => {
+    // Give the live thread a different id so the literal "t-1" from the list isn't the live one.
+    server.use(http.post("/api/companion/turn", () => HttpResponse.json({
+      thread_id: "t-live-other", reply: "ok", connection: "local", tier_sent: "ordinary",
+      sections: {}, unknown: [], grant: null, audit_id: "a",
+      presentation: { v: "presentation/1", state: "engaged", tone: "neutral", gesture: "none", speaking: true },
+    })));
+    mount();
+    const dlg = await openPanel();
+    await say(dlg, "hi");
+    await within(dlg).findByText("ok");
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    // Server returns ["t-old-1", "t-old-2", "t-1"]; live is "t-live-other" (not in list), so all three are listed.
+    await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
+    expect(within(dlg).getByText("Conversation 2")).toBeInTheDocument();
+    expect(within(dlg).getByText("Conversation 3")).toBeInTheDocument();
+  });
+});

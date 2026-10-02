@@ -21,6 +21,8 @@ export interface Ctx {
   /** The text that did not get through, kept so Try again re-sends exactly it (same idempotency key). */
   pending: string | null;
   grant: GrantView | null;
+  /** The id of the current (live) conversation thread, once the first reply has carried one. Null before any turn, and after "New conversation". */
+  liveThreadId: string | null;
   send: (message: string) => Promise<void>;
   retry: () => Promise<void>;
   newConversation: () => void;

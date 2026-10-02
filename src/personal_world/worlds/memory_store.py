@@ -594,40 +594,38 @@ def restore_backup(backup_path: str | os.PathLike[str], data_dir: str | os.PathL
     if not source.is_file():
         raise MemoryError_(f"{source} is not a file")
     rows: dict[str, list[sqlite3.Row]] = {}
-    old_umask = os.umask(0o077)
     try:
-        try:
-            probe = sqlite3.connect(f"{source.resolve().as_uri()}?mode=ro", uri=True)
-        except sqlite3.Error as exc:
-            raise MemoryError_(f"{source} cannot be read as a database") from exc
-        try:
-            probe.row_factory = sqlite3.Row
-            probe.execute("PRAGMA trusted_schema=OFF")
-            names = {r[0] for r in probe.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            if not set(_RESTORE_COLUMNS) <= names:
-                raise MemoryError_(f"{source} is not a Worlds memory database")
-            if probe.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-                raise MemoryError_(f"{source} does not pass its integrity check")
-            for table, cols in _RESTORE_COLUMNS.items():
-                have = {r[1] for r in probe.execute(f"PRAGMA table_info({table})")}
-                if not set(cols) <= have:
-                    raise MemoryError_(f"{source} has an unexpected {table} table")
-                rows[table] = probe.execute(f"SELECT {', '.join(cols)} FROM {table} ORDER BY rowid").fetchall()
-        except sqlite3.Error as exc:
-            raise MemoryError_(f"{source} cannot be read as a database") from exc
-        finally:
-            probe.close()
-        _private_dir(data)
-        db = Database.in_dir(data)               # freshly migrated: the schema is ours, never the backup's
-        try:
-            store = MemoryStore(db)
-            if any(db.conn().execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in TABLES):
-                raise MemoryError_("this database already holds memory; restore never overwrites it")
-            try:
-                return store._restore_rows(rows)
-            except (ValueError, TypeError, KeyError) as exc:   # a crafted row: refused whole, nothing was written
-                raise MemoryError_(f"the backup holds a row this store would not write ({type(exc).__name__})") from None
-        finally:
-            db.close()
+        probe = sqlite3.connect(f"{source.resolve().as_uri()}?mode=ro", uri=True)
+    except sqlite3.Error as exc:
+        raise MemoryError_(f"{source} cannot be read as a database") from exc
+    try:
+        probe.row_factory = sqlite3.Row
+        probe.execute("PRAGMA trusted_schema=OFF")
+        names = {r[0] for r in probe.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if not set(_RESTORE_COLUMNS) <= names:
+            raise MemoryError_(f"{source} is not a Worlds memory database")
+        if probe.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+            raise MemoryError_(f"{source} does not pass its integrity check")
+        for table, cols in _RESTORE_COLUMNS.items():
+            have = {r[1] for r in probe.execute(f"PRAGMA table_info({table})")}
+            if not set(cols) <= have:
+                raise MemoryError_(f"{source} has an unexpected {table} table")
+            rows[table] = probe.execute(f"SELECT {', '.join(cols)} FROM {table} ORDER BY rowid").fetchall()
+    except sqlite3.Error as exc:
+        raise MemoryError_(f"{source} cannot be read as a database") from exc
     finally:
-        os.umask(old_umask)
+        probe.close()
+    _private_dir(data)
+    # The fresh database is born 0600 by Database itself (see _create_private_file), so restore never
+    # flips the process umask; its -wal/-shm siblings inherit that mode and are tightened too.
+    db = Database.in_dir(data)               # freshly migrated: the schema is ours, never the backup's
+    try:
+        store = MemoryStore(db)
+        if any(db.conn().execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in TABLES):
+            raise MemoryError_("this database already holds memory; restore never overwrites it")
+        try:
+            return store._restore_rows(rows)
+        except (ValueError, TypeError, KeyError) as exc:   # a crafted row: refused whole, nothing was written
+            raise MemoryError_(f"the backup holds a row this store would not write ({type(exc).__name__})") from None
+    finally:
+        db.close()
