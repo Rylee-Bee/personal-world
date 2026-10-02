@@ -9,6 +9,11 @@ import type {
   ConfigKind,
   ConfigList,
   ErrorClass,
+  MemoryBackupResult,
+  MemoryFindRow,
+  MemoryHistoryRow,
+  MemoryRow,
+  MemoryTable,
   NeedsYouEntry,
   PreviewResult,
   Provider,
@@ -338,3 +343,153 @@ export function useConnectData(timeoutMs: number = DEFAULT_TIMEOUT_MS): ConnectD
     allErrors: mergeErrors(),
   };
 }
+
+/**
+ * C4 Memory. Each tab's list loads independently, so a failing History never hides Kept or
+ * Later. Write helpers throw ApiError on any non-2xx, mirroring the Connect wording style.
+ */
+
+export const MEMORY_KEYS = {
+  kept: ["fd", "memory", "kept"] as const,
+  later: ["fd", "memory", "later"] as const,
+  records: ["fd", "memory", "records"] as const,
+  history: ["fd", "memory", "history"] as const,
+};
+
+const TABLE_ORDER: MemoryTable[] = ["kept", "later", "records"];
+
+async function memoryFetch<T>(url: string, init: RequestInit = {}, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<T> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(url, { signal: ctl.signal, ...init });
+  } catch {
+    throw new ApiError(ctl.signal.aborted ? "timeout" : "connection");
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) {
+    const detail = await detailOf(res);
+    if (res.status === 403 && detail === "step_up_required") {
+      throw new ApiError("auth_failed", 403, "step_up_required");
+    }
+    throw new ApiError(res.status >= 500 ? "http_5xx" : "http_4xx", res.status, detail);
+  }
+  return (await res.json()) as T;
+}
+
+export interface MemoryData {
+  kept: MemoryRow[];
+  keptStatus: Status;
+  keptError?: string;
+  refetchKept: () => void;
+  later: MemoryRow[];
+  laterStatus: Status;
+  laterError?: string;
+  refetchLater: () => void;
+  records: MemoryRow[];
+  recordsStatus: Status;
+  recordsError?: string;
+  refetchRecords: () => void;
+  history: MemoryHistoryRow[];
+  historyStatus: Status;
+  historyError?: string;
+  refetchHistory: () => void;
+}
+
+const NO_ROWS: MemoryRow[] = [];
+const NO_HISTORY: MemoryHistoryRow[] = [];
+
+/** Memory's four independent lists. One failing never hides the others. */
+export function useMemoryData(timeoutMs: number = DEFAULT_TIMEOUT_MS): MemoryData {
+  const statusOf = (q: { isError: boolean; data?: unknown }): Status =>
+    q.isError && !q.data ? "error" : q.data ? "ok" : "loading";
+  const errOf = (q: { isError: boolean; error: unknown }): string | undefined => {
+    if (!q.isError) return undefined;
+    const e = q.error instanceof ApiError ? q.error : new ApiError("connection");
+    if (e.status === 403 && e.detail === "step_up_required") return "A locked record needs the owner to step up.";
+    if (e.status === 404) return "That row is gone.";
+    if (e.status === 429) return "Too many requests. Retry.";
+    return "Couldn't load.";
+  };
+  const keptQ = useQuery({ queryKey: MEMORY_KEYS.kept, queryFn: () => memoryFetch<MemoryRow[]>("/api/memory/kept", {}, timeoutMs), retry: 1, retryDelay: 150 });
+  const laterQ = useQuery({ queryKey: MEMORY_KEYS.later, queryFn: () => memoryFetch<MemoryRow[]>("/api/memory/later", {}, timeoutMs), retry: 1, retryDelay: 150 });
+  const recordsQ = useQuery({ queryKey: MEMORY_KEYS.records, queryFn: () => memoryFetch<MemoryRow[]>("/api/memory/records", {}, timeoutMs), retry: 1, retryDelay: 150 });
+  const historyQ = useQuery({ queryKey: MEMORY_KEYS.history, queryFn: () => memoryFetch<MemoryHistoryRow[]>("/api/memory/history", {}, timeoutMs), retry: 1, retryDelay: 150 });
+  return {
+    kept: keptQ.data ?? NO_ROWS, keptStatus: statusOf(keptQ), keptError: errOf(keptQ), refetchKept: () => void keptQ.refetch(),
+    later: laterQ.data ?? NO_ROWS, laterStatus: statusOf(laterQ), laterError: errOf(laterQ), refetchLater: () => void laterQ.refetch(),
+    records: recordsQ.data ?? NO_ROWS, recordsStatus: statusOf(recordsQ), recordsError: errOf(recordsQ), refetchRecords: () => void recordsQ.refetch(),
+    history: historyQ.data ?? NO_HISTORY, historyStatus: statusOf(historyQ), historyError: errOf(historyQ), refetchHistory: () => void historyQ.refetch(),
+  };
+}
+
+/** The settable fields for each table. Anything else is the store's own bookkeeping. */
+export const MEMORY_SETTABLE: Record<MemoryTable, readonly string[]> = {
+  kept: ["title", "body", "tags"],
+  later: ["title", "body", "due_at", "status"],
+  records: ["title", "body", "kind", "sensitivity"],
+};
+/** The fields always sent on create. */
+export const MEMORY_CREATE_ALLOWED: Record<MemoryTable, readonly string[]> = {
+  kept: ["title", "body", "tags", "provenance", "source_ref"],
+  later: ["title", "body", "due_at", "provenance", "source_ref"],
+  records: ["title", "body", "kind", "sensitivity", "provenance", "source_ref"],
+};
+/** Table labels for UI. */
+export const MEMORY_TABLE_LABEL: Record<MemoryTable, string> = { kept: "kept", later: "later", records: "records" };
+
+export function tableLabel(table: MemoryTable): string { return MEMORY_TABLE_LABEL[table]; }
+
+/** POST a new row. Sends only the allowed fields for that table, plus the CSRF header. */
+export async function createMemoryRow(table: MemoryTable, body: Record<string, unknown>, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<MemoryRow> {
+  const allowed = new Set<string>(MEMORY_CREATE_ALLOWED[table]);
+  const clean: Record<string, unknown> = {};
+  for (const k of Object.keys(body)) if (allowed.has(k) && body[k] !== undefined && body[k] !== "") clean[k] = body[k];
+  return memoryFetch<MemoryRow>(`/api/memory/${table}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json", ...csrfHeaders() },
+    body: JSON.stringify(clean),
+  }, timeoutMs);
+}
+
+/** PATCH a row. Sends only the changed fields. */
+export async function patchMemoryRow(table: MemoryTable, id: string, body: Record<string, unknown>, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<MemoryRow> {
+  return memoryFetch<MemoryRow>(`/api/memory/${table}/${id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", accept: "application/json", ...csrfHeaders() },
+    body: JSON.stringify(body),
+  }, timeoutMs);
+}
+
+/** DELETE a row. Confirmed, no undo — the UI must ask first. */
+export async function deleteMemoryRow(table: MemoryTable, id: string, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<{ ok: true }> {
+  return memoryFetch<{ ok: true }>(`/api/memory/${table}/${id}`, {
+    method: "DELETE",
+    headers: { accept: "application/json", ...csrfHeaders() },
+  }, timeoutMs);
+}
+
+/** Run a Find search. Empty q returns []. */
+export async function findMemoryRows(q: string, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<MemoryFindRow[]> {
+  if (!q.trim()) return [];
+  const params = new URLSearchParams({ q, limit: "20" });
+  return memoryFetch<MemoryFindRow[]>(`/api/memory/find?${params.toString()}`, {}, timeoutMs);
+}
+
+/** Start a streaming NDJSON export by opening a download anchor. */
+export function startMemoryExport(table: MemoryTable): { href: string; filename: string } {
+  return { href: `/api/memory/export/${table}`, filename: `worlds-${table}.ndjson` };
+}
+
+/** POST /api/memory/backup with CSRF; returns the file name the server wrote. */
+export async function runMemoryBackup(timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<MemoryBackupResult> {
+  return memoryFetch<MemoryBackupResult>("/api/memory/backup", {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json", ...csrfHeaders() },
+  }, timeoutMs);
+}
+
+/** The names of every Memory list query key, for invalidation after a write. */
+export const MEMORY_ALL_KEYS: readonly (readonly string[])[] = [...TABLE_ORDER.map((t) => MEMORY_KEYS[t] as readonly string[]), MEMORY_KEYS.history as readonly string[]];

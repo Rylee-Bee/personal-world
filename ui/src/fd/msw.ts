@@ -1,10 +1,15 @@
 import { http, HttpResponse } from "msw";
 import { createBoardServer } from "./board-server";
 import { createCompanionServer } from "./companion-server";
-import { cards, needsYou } from "./fixtures";
+import { cards, memoryKeptRows, memoryLaterRows, memoryRecordsRows, memoryHistoryRows, memoryFindRows, needsYou } from "./fixtures";
 import type {
   ActionSummary,
   CardConfig,
+  MemoryHistoryRow,
+  MemoryKeptRow,
+  MemoryLaterRow,
+  MemoryLockedRow,
+  MemoryRecordsRow,
   Provider,
   Receipt,
   Request as ConnRequest,
@@ -203,4 +208,64 @@ export const handlers = [
   http.get("/api/actions", () => HttpResponse.json(connectStore.actions)),
   /** Receipts list. */
   http.get("/api/receipts", () => HttpResponse.json(connectStore.receipts)),
+  /** Memory: list rows in a table, preserving server order and masked locked rows as-is. */
+  http.get("/api/memory/find", ({ request }) => {
+    const q = new URL(request.url).searchParams.get("q") ?? "";
+    if (!q) return HttpResponse.json([]);
+    return HttpResponse.json(memoryFindRows);
+  }),
+  http.get("/api/memory/history", () => HttpResponse.json(memoryHistoryRows as MemoryHistoryRow[])),
+  http.get("/api/memory/export/:table", ({ params }) => {
+    const table = String(params.table);
+    const rows = table === "kept" ? memoryKeptRows : table === "later" ? memoryLaterRows : table === "records" ? memoryRecordsRows : [];
+    const body = rows.map((r) => JSON.stringify(r)).join("\n") + "\n";
+    return new HttpResponse(body, { status: 200, headers: { "content-type": "application/x-ndjson", "content-disposition": `attachment; filename="worlds-${table}.ndjson"` } });
+  }),
+  http.post("/api/memory/backup", () => HttpResponse.json({ file: "worlds-20261002-070000.db" })),
+  http.get("/api/memory/:table", ({ params }) => {
+    const table = String(params.table);
+    if (table === "kept") return HttpResponse.json(memoryKeptRows);
+    if (table === "later") return HttpResponse.json(memoryLaterRows);
+    if (table === "records") return HttpResponse.json(memoryRecordsRows);
+    return HttpResponse.json({ detail: "unknown table" }, { status: 404 });
+  }),
+  http.post("/api/memory/:table", async ({ params, request }) => {
+    const table = String(params.table);
+    const body = (await request.json()) as Record<string, unknown>;
+    if (!body.title || typeof body.title !== "string") {
+      return HttpResponse.json({ detail: "title is required" }, { status: 400 });
+    }
+    const allowed = new Set(["title", "body", "tags", "due_at", "kind", "sensitivity", "provenance", "source_ref"]);
+    const extra = Object.keys(body).filter((k) => !allowed.has(k));
+    if (extra.length) return HttpResponse.json({ detail: `unknown fields: ${extra.sort()}` }, { status: 400 });
+    // a new later row is always open: the server rejects status on create
+    if ("status" in body) return HttpResponse.json({ detail: "unknown fields: [status]" }, { status: 400 });
+    const id = `new-${table}-1`;
+    const row = { id, table, ...body, provenance: body.provenance ?? "owner", source_ref: body.source_ref ?? null, created_at: 1727800000, updated_at: 1727800000 };
+    if (table === "kept") memoryKeptRows.push(row as MemoryKeptRow);
+    else if (table === "later") memoryLaterRows.push({ ...(row as object), status: "open" } as MemoryLaterRow);
+    else if (table === "records") memoryRecordsRows.push(row as MemoryRecordsRow);
+    return HttpResponse.json(row, { status: 200 });
+  }),
+  http.patch("/api/memory/:table/:id", async ({ params, request }) => {
+    const table = String(params.table);
+    const id = String(params.id);
+    const body = (await request.json()) as Record<string, unknown>;
+    if (!Object.keys(body).length) return HttpResponse.json({ detail: "an update needs at least one field" }, { status: 400 });
+    const list: (MemoryKeptRow | MemoryLaterRow | MemoryRecordsRow)[] = table === "kept" ? memoryKeptRows : table === "later" ? memoryLaterRows : table === "records" ? (memoryRecordsRows as (MemoryRecordsRow | MemoryLockedRow)[]).filter((r): r is MemoryRecordsRow => !("locked" in r)) : [];
+    const existing = list.find((r) => r.id === id);
+    if (!existing) return HttpResponse.json({ detail: "not found" }, { status: 404 });
+    const merged = { ...existing, ...body, table, updated_at: 1727850000 };
+    Object.assign(existing, merged);
+    return HttpResponse.json(merged);
+  }),
+  http.delete("/api/memory/:table/:id", ({ params }) => {
+    const table = String(params.table);
+    const id = String(params.id);
+    const list: (MemoryKeptRow | MemoryLaterRow | MemoryRecordsRow | MemoryLockedRow)[] = table === "kept" ? memoryKeptRows : table === "later" ? memoryLaterRows : table === "records" ? memoryRecordsRows : [];
+    const idx = list.findIndex((r) => r.id === id);
+    if (idx === -1) return HttpResponse.json({ detail: "not found" }, { status: 404 });
+    list.splice(idx, 1);
+    return HttpResponse.json({ ok: true });
+  }),
 ];

@@ -1,4 +1,4 @@
-import type { Board, BoardItem, CardEnvelope, Format, NeedsYouEntry } from "./types";
+import type { Board, BoardItem, CardEnvelope, Format, MemoryHistoryRow, MemoryKeptRow, MemoryLaterRow, MemoryLockedRow, MemoryRecordsRow, NeedsYouEntry } from "./types";
 
 const T = "2026-10-01T09:30:00Z";
 const EARLIER = "2026-10-01T08:12:00Z";
@@ -110,4 +110,50 @@ export const sampleBindings = [
 export const sampleSecrets = [
   { name: "PW_SONARR_TOKEN", set: true },
   { name: "PW_WEATHER_KEY", set: false },
+];
+
+/**
+ * C4 Memory test fixtures. Obviously fake — example.test host, invented titles,
+ * no real personal data, no real token or secret anywhere.
+ */
+export const memoryKeptRows: MemoryKeptRow[] = [
+  {
+    id: "kept-1", table: "kept", title: "Fix the shed door", body: "Hinges rusted, needs a new pin.",
+    tags: ["house", "weekend"], provenance: "owner", source_ref: null,
+    created_at: 1727700000, updated_at: 1727700000,
+  },
+  {
+    id: "kept-2", table: "kept", title: "Book: Piranesi", body: "A house of endless rooms.",
+    tags: ["reading"], provenance: "external_ref", source_ref: "https://example.test/piranesi",
+    created_at: 1727600000, updated_at: 1727600000,
+  },
+];
+export const memoryLaterRows: MemoryLaterRow[] = [
+  {
+    id: "later-1", table: "later", title: "Call the dentist", body: "",
+    due_at: 1727900000, status: "open", provenance: "owner", source_ref: null,
+    created_at: 1727500000, updated_at: 1727500000,
+  },
+  {
+    id: "later-2", table: "later", title: "Review the receipts", body: "Last month's queue.",
+    due_at: null, status: "done", provenance: "owner", source_ref: null,
+    created_at: 1727400000, updated_at: 1727450000,
+  },
+];
+export const memoryRecordsRows: (MemoryRecordsRow | MemoryLockedRow)[] = [
+  {
+    id: "rec-1", table: "records", title: "Annual checkup notes", body: "Blood work came back fine.",
+    kind: "health", sensitivity: "normal", provenance: "owner", source_ref: null,
+    created_at: 1727300000, updated_at: 1727300000,
+  },
+  // A masked locked row as the server hands it back — no title, no body.
+  { id: "rec-2", table: "records", sensitivity: "locked", locked: true, created_at: 1727250000 },
+];
+export const memoryHistoryRows: MemoryHistoryRow[] = [
+  { id: 2, at: 1727700000, actor: "owner", event: "created", table: "kept", row_id: "kept-1", detail: null },
+  { id: 1, at: 1727600000, actor: "owner", event: "created", table: "kept", row_id: "kept-2", detail: null },
+];
+export const memoryFindRows = [
+  { table: "kept" as const, id: "kept-1", title: "Fix the shed door", snippet: "…the «shed» door…", sensitivity: "normal" as const },
+  { table: "later" as const, id: "later-1", title: "Call the dentist", snippet: "…call the «dentist»…", sensitivity: "normal" as const },
 ];

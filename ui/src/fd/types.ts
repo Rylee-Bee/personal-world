@@ -195,3 +195,82 @@ export interface Receipt {
   finished_at?: string;
   redacted?: boolean;
 }
+
+/**
+ * C4 Memory. A row in kept, later or records: the stored columns plus `table`.
+ * Provenance, source_ref, created_at and updated_at are the store's own bookkeeping —
+ * readable, never settable. A locked records row is returned masked with only the fields
+ * below plus `locked: true`, so title and body never reach the DOM.
+ */
+export type MemoryTable = "kept" | "later" | "records";
+export type MemoryProvenance = "owner" | "external_ref" | "suggestion";
+export type LaterStatus = "open" | "done" | "dropped";
+export type Sensitivity = "normal" | "locked";
+
+export interface MemoryKeptRow {
+  id: string;
+  table: "kept";
+  title: string;
+  body: string;
+  tags: string[];
+  provenance: MemoryProvenance;
+  source_ref: string | null;
+  created_at: number;
+  updated_at: number;
+}
+export interface MemoryLaterRow {
+  id: string;
+  table: "later";
+  title: string;
+  body: string;
+  due_at: number | null;
+  status: LaterStatus;
+  provenance: MemoryProvenance;
+  source_ref: string | null;
+  created_at: number;
+  updated_at: number;
+}
+export interface MemoryRecordsRow {
+  id: string;
+  table: "records";
+  title: string;
+  body: string;
+  kind: string | null;
+  sensitivity: Sensitivity;
+  provenance: MemoryProvenance;
+  source_ref: string | null;
+  created_at: number;
+  updated_at: number;
+}
+/** A locked records row as the server hands it back — masked, no title or body. */
+export interface MemoryLockedRow {
+  id: string;
+  table: "records";
+  sensitivity: "locked";
+  locked: true;
+  created_at: number;
+}
+export type MemoryRow = MemoryKeptRow | MemoryLaterRow | MemoryRecordsRow | MemoryLockedRow;
+
+/** GET /api/memory/find response item. */
+export interface MemoryFindRow {
+  table: MemoryTable;
+  id: string;
+  title: string;
+  snippet: string;
+  sensitivity: Sensitivity;
+}
+/** GET /api/memory/history response item. Never holds a title or body. */
+export interface MemoryHistoryRow {
+  id: number;
+  at: number;
+  actor: string;
+  event: string;
+  table: MemoryTable | null;
+  row_id: string | null;
+  detail: Record<string, unknown> | null;
+}
+/** POST /api/memory/backup response. */
+export interface MemoryBackupResult {
+  file: string;
+}

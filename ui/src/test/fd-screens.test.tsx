@@ -108,19 +108,20 @@ describe("Connect", () => {
 });
 
 describe("Memory", () => {
-  it("has the five tabs and no control that does nothing", async () => {
-    render(<Memory />);
+  const renderMemory = () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(<QueryClientProvider client={client}><Memory /></QueryClientProvider>);
+  };
+  it("has the five tabs and one visible panel with a landmark heading", async () => {
+    renderMemory();
     expect(tabNames()).toEqual(["Kept", "Later", "Records", "History", "Find"]);
-    for (const name of ["Kept", "Later", "Records", "History", "Find"]) {
-      await userEvent.click(screen.getByRole("tab", { name }));
-      const panel = screen.getByRole("tabpanel");
-      expect(within(panel).queryAllByRole("button")).toHaveLength(0);
-      expect(within(panel).queryAllByRole("searchbox")).toHaveLength(0);
-      expect(panel.textContent?.trim().length).toBeGreaterThan(10);
-    }
+    expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1, name: "Memory" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Records" }));
+    expect(screen.getByRole("tab", { name: "Records" })).toHaveAttribute("aria-selected", "true");
   });
-  it("Records says it is locked; each tab has its own sentence", async () => {
-    render(<Memory />);
+  it("Records shows a locked placeholder for masked rows; each tab has its own sentence", async () => {
+    renderMemory();
     const texts = new Set<string>();
     for (const name of ["Kept", "Later", "Records", "History", "Find"]) {
       await userEvent.click(screen.getByRole("tab", { name }));
@@ -128,10 +129,10 @@ describe("Memory", () => {
     }
     expect(texts.size).toBe(5);
     await userEvent.click(screen.getByRole("tab", { name: "Records" }));
-    expect(screen.getByRole("tabpanel")).toHaveTextContent(/locked/);
+    expect(screen.getByRole("tabpanel")).toHaveTextContent(/locked/i);
   });
   it("arrow keys move between tabs", async () => {
-    render(<Memory />);
+    renderMemory();
     screen.getByRole("tab", { name: "Kept" }).focus();
     await userEvent.keyboard("{ArrowRight}");
     expect(screen.getByRole("tab", { name: "Later" })).toHaveFocus();
