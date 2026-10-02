@@ -13,7 +13,7 @@ for real instead of mocked:
   ``/malformed``, ``/redirect``, ``/oversize``, ``/secret``),
 * credential shapes (``/echo-auth``, ``/secret-echo``),
 * a cookie-session login (``/api/v2/auth/login`` issuing ``Set-Cookie``) and its protected reads
-  (``/cookie-protected``, ``/cookie-denied``),
+  (``/cookie-protected``, ``/cookie-denied``, ``/actions/cookie-denied``),
 * a password-grant token endpoint (``/api/v2/auth/token`` issuing a bearer token) and its
   protected reads (``/bearer-protected``, ``/bearer-denied``).
 
@@ -296,6 +296,14 @@ class _Handler(BaseHTTPRequestHandler):
                 if key:
                     self._owner.remember(key, replay)
             self._respond(200, replay)
+        elif path == "/actions/cookie-denied":
+            # Always refuses, so the sender's "a write is never replayed" rule can be observed.
+            self._owner.bump("cookie-denied")
+            self._json(403, {"error": "forbidden"})
+        elif path == "/actions/bearer-denied":
+            # Always refuses, likewise for a token.
+            self._owner.bump("bearer-denied")
+            self._json(401, {"error": "unauthorized"})
         elif path == "/validate":
             self._json(422, {"error": "validation_failed"})
         elif path == "/lost":
@@ -482,14 +490,11 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
 
     For ``auth.type cookie_session`` the session cookie lives only in this closure's memory:
     it is never logged, persisted, cached, noted or returned. A process restart simply
-    logs in again. A ``403`` on a normal request triggers one re-login and one retry of
-    that request; a second failure is reported, never swallowed and never looped.
-
-    For ``auth.type password_grant`` the bearer token lives only in this closure's memory:
-    it is never logged, persisted, cached, noted or returned. The credential is POSTed to
-    ``token_path`` once and the returned token is sent as ``Authorization: Bearer ...``;
-    a ``401`` on a normal request triggers one re-token and one retry of that request; a
-    second ``401`` is ``auth_failed``, never a loop and never a swallowed success.
+    logs in again. A ``403`` on a READ triggers one re-login and one replay of that request; a
+    WRITE is never replayed (it is returned as the refusal it is, and the stale session is dropped
+    so the next call logs in fresh). A second refusal of a read is reported, never swallowed and
+    never looped. Same rule for ``auth.type password_grant`` and its bearer token: a ``401`` on a
+    read re-tokens once and replays once, on a write it does not.
 
     Returns ``RawResponse`` for any completed exchange -- including 4xx/5xx and
     undecodable bodies: whether a status is a failure is the runner's call.
@@ -522,9 +527,9 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
             )
 
         if provider.auth.type == "cookie_session":
-            return _session_send(provider, request)
+            return _session_send(provider, request, effect)
         if provider.auth.type == "password_grant":
-            return _grant_send(provider, request)
+            return _grant_send(provider, request, effect)
 
         headers: dict[str, str] = dict(request.headers)
         auth_headers, missing = _auth_headers(provider.auth, secrets)
@@ -599,7 +604,7 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
         return _exchange(request.method, url, headers, content,
                          request.timeout_s or provider.timeout_s, provider.max_bytes)
 
-    def _session_send(provider: Provider, request: Request) -> RawResponse | ConfinementError:
+    def _session_send(provider: Provider, request: Request, effect: str) -> RawResponse | ConfinementError:
         key = (
             provider.id, provider.base_url, provider.path_prefix,
             provider.auth.login_path or "", provider.auth.secret_ref or "",
@@ -614,15 +619,22 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
                 sessions[key] = cookie
         response = _session_read(provider, request, cookie)
         if isinstance(response, RawResponse) and response.status_code == 403:
-            # The session was refused: re-login once and retry this ONE request, bounded.
+            # The session was refused. It is stale either way, so it goes; a WRITE is never
+            # replayed (ADR-0008: no automatic side-effect retries), a read gets one re-login.
             with session_lock:
                 sessions.pop(key, None)
+            if effect != "read":
+                return response
             cookie, error = _login(provider, request)
             if error is not None:
                 return error  # a failed re-login is a failure, never a swallowed success
             with session_lock:
                 sessions[key] = cookie
             response = _session_read(provider, request, cookie)
+            if isinstance(response, RawResponse) and response.status_code == 403:
+                return ConfinementError(
+                    "auth_failed", f"session refused at {provider.auth.login_path}",
+                    status_code=response.status_code, duration_ms=response.duration_ms)
         return response
 
     def _fetch_token(provider: Provider, request: Request) -> tuple[str | None, ConfinementError | None]:
@@ -672,7 +684,7 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
         return _exchange(request.method, url, headers, content,
                          request.timeout_s or provider.timeout_s, provider.max_bytes)
 
-    def _grant_send(provider: Provider, request: Request) -> RawResponse | ConfinementError:
+    def _grant_send(provider: Provider, request: Request, effect: str) -> RawResponse | ConfinementError:
         key = (
             provider.id, provider.base_url, provider.path_prefix,
             provider.auth.token_path or "", provider.auth.secret_ref or "",
@@ -687,9 +699,12 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
                 tokens[key] = token
         response = _grant_read(provider, request, token)
         if isinstance(response, RawResponse) and response.status_code == 401:
-            # The token was refused: fetch a new one once and retry this ONE request, bounded.
+            # The token was refused. It is stale either way, so it goes; a WRITE is never replayed
+            # (ADR-0008: no automatic side-effect retries), a read gets one re-token and one replay.
             with token_lock:
                 tokens.pop(key, None)
+            if effect != "read":
+                return response
             token, error = _fetch_token(provider, request)
             if error is not None:
                 return error  # a failed re-token is a failure, never a swallowed success
@@ -699,7 +714,7 @@ def reference_send(secrets: dict[str, str], *, allowed_ports: Iterable[int] | No
             if isinstance(response, RawResponse) and response.status_code == 401:
                 return ConfinementError(
                     "auth_failed", f"token at {provider.auth.token_path} was refused",
-                    status_code=response.status_code)
+                    status_code=response.status_code, duration_ms=response.duration_ms)
         return response
 
     return send

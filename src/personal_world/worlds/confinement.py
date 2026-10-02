@@ -17,6 +17,12 @@ socket. What this module guarantees for each call:
   from the request (only injected from the provider's secret reference).
 * A read effect may not carry a mutating method.
 
+``cookie_session`` and ``password_grant`` add one exchange, not a weaker path: the login/token POST
+is joined and re-checked like any request path, dials the same pinned address, and spends the SAME
+single deadline. The issued cookie/token lives only in this process's memory, keyed by the whole
+provider identity, and is attached to that provider's requests only. A refused read re-logs-in once
+and replays once; a refused write is never replayed (ADR-0008: no automatic side-effect retries).
+
 Secret values are injected here and never put into errors, notes or logs.
 """
 
@@ -88,6 +94,9 @@ _FORBIDDEN_HEADERS = {
     "expect",
 }
 _MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
+#: Auth kinds that hold a live credential in this process's memory (C1). Every other kind is a header
+#: injected straight from the provider's secret reference and never needs a login exchange.
+_SESSION_AUTH = ("cookie_session", "password_grant")
 
 Resolver = Callable[[str, int], list[str]]
 
@@ -244,6 +253,118 @@ def _auth_headers(provider: Any) -> dict[str, str] | ConfinementError:
     return ConfinementError("auth_failed", "unknown auth type")
 
 
+# ---------------------------------------------------------------------------------------------
+# cookie_session / password_grant: a live credential that only ever exists in this process's memory.
+# ---------------------------------------------------------------------------------------------
+
+#: provider identity -> the ``name=value`` session cookie or the bearer token. Bounded: a process
+#: that talks to many providers keeps at most this many live credentials and drops the oldest.
+_SESSION_MAX = 256
+_SESSIONS: dict[tuple[str, ...], str] = {}
+_SESSION_LOCK = threading.Lock()
+
+
+def _session_key(provider: Any) -> tuple[str, ...]:
+    """Everything a held credential belongs to.
+
+    The key carries the destination AND the credential identity, so editing a provider's
+    ``base_url``, ``path_prefix``, ``secret_ref`` or login/token path makes a NEW key: a session
+    obtained under the old config can never be sent to a new destination or under a new secret.
+    """
+    auth = provider.auth
+    return (
+        str(getattr(provider, "id", "")),
+        str(getattr(provider, "base_url", "")),
+        str(getattr(provider, "path_prefix", "")),
+        str(getattr(auth, "type", "")),
+        str(getattr(auth, "secret_ref", "")),
+        str(getattr(auth, "login_path", "") or ""),
+        str(getattr(auth, "token_path", "") or ""),
+    )
+
+
+def _session_take(key: tuple[str, ...]) -> str | None:
+    with _SESSION_LOCK:
+        return _SESSIONS.get(key)
+
+
+def _session_keep(key: tuple[str, ...], credential: str) -> None:
+    with _SESSION_LOCK:
+        if key not in _SESSIONS and len(_SESSIONS) >= _SESSION_MAX:
+            _SESSIONS.pop(next(iter(_SESSIONS)), None)  # bounded: the oldest entry goes
+        _SESSIONS[key] = credential
+
+
+def _session_forget(key: tuple[str, ...]) -> None:
+    with _SESSION_LOCK:
+        _SESSIONS.pop(key, None)
+
+
+def _auth_pair(auth: Any) -> tuple[str, str] | ConfinementError:
+    """``(username, password)`` from the ONE secret that carries both, or the failure.
+
+    The value is never echoed: a note names the secret REF, and the same ASCII/control-character
+    rules ``_auth_headers`` applies to a header credential apply before the pair is ever encoded.
+    """
+    ref = getattr(auth, "secret_ref", None) or "(unset)"
+    value = resolve_secret_ref(getattr(auth, "secret_ref", None))
+    if not value:
+        return ConfinementError("auth_failed", f"credential for {ref} is not available", pre_send=True)
+    try:
+        value.encode("ascii")  # a form body is no safer than a header value
+    except UnicodeEncodeError:
+        return ConfinementError("auth_failed", f"credential for {ref} contains characters that cannot be sent",
+                                pre_send=True)
+    if any(ord(c) < 32 or ord(c) == 127 for c in value):
+        return ConfinementError("auth_failed", f"credential for {ref} contains control characters", pre_send=True)
+    username, sep, password = value.partition(":")
+    if not sep or not username or not password:
+        return ConfinementError("auth_failed", f"credential for {ref} must be username:password", pre_send=True)
+    return username, password
+
+
+def _cookie_pair(set_cookie: str | None) -> str | None:
+    """The ``name=value`` of a Set-Cookie header. Its attributes (Path, HttpOnly, ...) never travel."""
+    if not set_cookie:
+        return None
+    pair = set_cookie.split(";", 1)[0].strip()
+    return _holdable(pair)
+
+
+def _holdable(value: str) -> str | None:
+    """Refuse an issued credential we could not put in a header verbatim. Nothing is stored."""
+    if not value or len(value) > 4096 or any(ord(c) < 32 or ord(c) == 127 for c in value):
+        return None
+    return value
+
+
+class _AuthEndpoint:
+    """A bare path probe: ``build_url`` vets it exactly like a request path, so the login/token
+    endpoint is joined under the same base_url + path_prefix and re-checked against the same
+    scheme, host and port. It carries no query, no headers and no body the caller supplied."""
+
+    __slots__ = ("path", "query")
+
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self.query: dict[str, str] = {}
+
+
+class _Ready:
+    """A request that passed every guard, pinned to one vetted address, ready to be written."""
+
+    __slots__ = ("scheme", "host", "port", "pinned", "target", "headers")
+
+    def __init__(self, scheme: str, host: str, port: int, pinned: str, target: str,
+                 headers: dict[str, str]) -> None:
+        self.scheme = scheme
+        self.host = host
+        self.port = port
+        self.pinned = pinned
+        self.target = target
+        self.headers = headers
+
+
 class Deadline:
     """ONE wall-clock budget for a whole call: DNS, connect, TLS, headers and body.
 
@@ -298,6 +419,22 @@ class Deadline:
             self._done = True
             self._fds.clear()
         self._timer.cancel()
+
+    def rearm(self) -> None:
+        """Restart the watchdog for the NEXT exchange of the same call.
+
+        ``perform`` disarms the deadline when its exchange ends, so a call that needs a second
+        exchange (the login POST, then the request it serves; then a re-login and one replay) must
+        say so explicitly. The start time and the total budget are untouched: every exchange in a
+        call still shares ONE wall-clock deadline, and no fds from a closed exchange are re-armed.
+        """
+        with self._lock:
+            if not self._done:
+                return
+            self._done = False
+            self._timer = threading.Timer(max(self.remaining(), 0.0), self._fire)
+            self._timer.daemon = True
+            self._timer.start()
 
     close = disarm
 
@@ -420,6 +557,19 @@ def confined_request(
 
 
 def _send(provider: Any, request: Any, effect: str, resolver: Resolver, deadline: Deadline):
+    ready = _prepare(provider, request, effect, resolver, deadline)
+    if isinstance(ready, ConfinementError):
+        return ready
+    if getattr(provider.auth, "type", "none") in _SESSION_AUTH:
+        return _session_send(provider, request, ready, effect, deadline)
+    auth = _auth_headers(provider)
+    if isinstance(auth, ConfinementError):
+        return auth
+    return _exchange(ready, provider, request, deadline, auth)
+
+
+def _prepare(provider: Any, request: Any, effect: str, resolver: Resolver, deadline: Deadline):
+    """Every guard that must pass before a single byte goes out; returns the pinned request or why not."""
     started = deadline.started
     method = request.method.upper()
     if effect not in ("read", "write"):
@@ -450,10 +600,6 @@ def _send(provider: Any, request: Any, effect: str, resolver: Resolver, deadline
             return _deny(reason, started)
     pinned = addresses[0]
 
-    auth = _auth_headers(provider)
-    if isinstance(auth, ConfinementError):
-        return auth
-    headers.update(auth)
     principal = getattr(provider, "principal_id", None)
     if provider.kind == "room0" and principal:
         # Worlds speaks for one named person, from the provider's validated setting: never a request header.
@@ -461,20 +607,157 @@ def _send(provider: Any, request: Any, effect: str, resolver: Resolver, deadline
             return _deny("principal_id is not valid", started)
         headers["X-Worlds-Principal"] = principal
 
+    headers["Host"] = _host_header(scheme, host, port)
+    headers["Connection"] = "close"
+    headers.setdefault("Accept", "application/json")
+    return _Ready(scheme, host, port, pinned, target, headers)
+
+
+def _host_header(scheme: str, host: str, port: int) -> str:
+    host_text = f"[{host}]" if ":" in host else host
+    return f"{host_text}:{port}" if _nondefault(scheme, port) else host_text
+
+
+def _exchange(ready: _Ready, provider: Any, request: Any, deadline: Deadline,
+              credential: dict[str, str] | None) -> RawResponse | ConfinementError:
+    """Write one prepared request, carrying ``credential`` (a cookie or a bearer token) from memory.
+
+    The credential is added here, after the caller's own headers were vetted, so it is never part of
+    ``request.headers`` and never reaches a note, a log line or a returned response.
+    """
+    if deadline.expired.is_set() or deadline.remaining() <= 0:
+        return ConfinementError("timeout", "total time budget exceeded", duration_ms=_ms(deadline.started))
+    headers = dict(ready.headers)
+    if credential:
+        headers.update(credential)
     body = None
+    method = request.method.upper()
     if request.body is not None and method not in ("GET", "HEAD"):
         body = json.dumps(request.body).encode()
         headers.setdefault("Content-Type", "application/json")
-    host_text = f"[{host}]" if ":" in host else host
-    headers["Host"] = f"{host_text}:{port}" if _nondefault(scheme, port) else host_text
-    headers["Connection"] = "close"
-    headers.setdefault("Accept", "application/json")
+    return _write(ready, provider, deadline, method, ready.target, headers, body)
 
-    literal = f"[{pinned}]" if ":" in pinned else pinned
-    url = f"{scheme}://{literal}:{port}{target}"
-    extensions = {"sni_hostname": host} if scheme == "https" else {}
+
+def _write(ready: _Ready, provider: Any, deadline: Deadline, method: str, target: str,
+           headers: dict[str, str], body: bytes | None) -> RawResponse | ConfinementError:
+    """One exchange to the pinned address under the call's deadline and caps (no redirects, no retry)."""
+    if deadline.expired.is_set() or deadline.remaining() <= 0:
+        return ConfinementError("timeout", "total time budget exceeded", duration_ms=_ms(deadline.started))
+    deadline.rearm()  # perform() disarms when an exchange ends; the next one shares the same deadline
+    literal = f"[{ready.pinned}]" if ":" in ready.pinned else ready.pinned
+    url = f"{ready.scheme}://{literal}:{ready.port}{target}"
+    extensions = {"sni_hostname": ready.host} if ready.scheme == "https" else {}
     return perform(deadline, method, url, headers=headers, content=body, extensions=extensions,
                    verify=bool(provider.tls_verify), limit=int(provider.max_bytes))
+
+
+def _session_send(provider: Any, request: Any, ready: _Ready, effect: str, deadline: Deadline):
+    """A ``cookie_session`` or ``password_grant`` call: log in (once), send, refresh at most once.
+
+    A refusal (403 for a session, 401 for a token) drops the stale credential. It is re-obtained and
+    the SAME request is replayed ONLY when the effect is a read; a write-like request is returned as
+    the refusal it is, because a side effect is never retried automatically (ADR-0008, handoff §7).
+    """
+    auth = provider.auth
+    cookie = auth.type == "cookie_session"
+    refusal = 403 if cookie else 401
+    path = auth.login_path if cookie else auth.token_path
+    key = _session_key(provider)
+
+    held = _session_take(key)
+    if held is None:
+        held, error = _authenticate(provider, ready, deadline, cookie)
+        if error is not None:
+            return error
+        _session_keep(key, held)
+    response = _exchange(ready, provider, request, deadline, _credential_header(auth, held, cookie))
+    if not (isinstance(response, RawResponse) and response.status_code == refusal):
+        return response
+
+    _session_forget(key)  # stale either way: the next call logs in fresh
+    if effect != "read":
+        return response
+    held, error = _authenticate(provider, ready, deadline, cookie)
+    if error is not None:
+        return error  # a failed re-login is a failure, never a swallowed success
+    _session_keep(key, held)
+    response = _exchange(ready, provider, request, deadline, _credential_header(auth, held, cookie))
+    if isinstance(response, RawResponse) and response.status_code == refusal:
+        return ConfinementError("auth_failed", f"{'session' if cookie else 'token'} refused at {path}",
+                                status_code=response.status_code, duration_ms=response.duration_ms)
+    return response
+
+
+def _credential_header(auth: Any, credential: str, cookie: bool) -> dict[str, str]:
+    return {"Cookie": credential} if cookie else {"Authorization": f"Bearer {credential}"}
+
+
+def _authenticate(provider: Any, ready: _Ready, deadline: Deadline,
+                  cookie: bool) -> tuple[str | None, ConfinementError | None]:
+    """Run the login/token exchange and return the credential to hold, or the failure.
+
+    The exchange is built from the Auth block alone -- no caller header, query or body travels in
+    it -- and it is written like any other request: same joined-and-rechecked destination, same
+    pinned address, same deadline, same ``max_bytes``, no redirect followed.
+    """
+    auth = provider.auth
+    path = auth.login_path if cookie else auth.token_path
+    label = "login" if cookie else "token"
+    pair = _auth_pair(auth)
+    if isinstance(pair, ConfinementError):
+        return None, pair
+    if deadline.expired.is_set() or deadline.remaining() <= 0:
+        return None, ConfinementError("timeout", "total time budget exceeded", duration_ms=_ms(deadline.started))
+    if not isinstance(path, str) or not path:
+        return None, ConfinementError("auth_failed", f"{label} path is not configured", pre_send=True)
+
+    built = build_url(provider, _AuthEndpoint(path))
+    if isinstance(built, str):
+        return None, _deny(built, deadline.started)
+    scheme, host, port, target = built
+    if (scheme, host, port) != (ready.scheme, ready.host, ready.port):
+        # build_url already re-checks the joined destination; this is the second lock on the one the
+        # request itself was pinned to, so the credential can only ever go where the request would.
+        return None, _deny(f"{label} path is not on the provider's destination", deadline.started)
+
+    body = urlencode({auth.username_field: pair[0], auth.password_field: pair[1]}).encode()
+    # Built from the Auth block alone: nothing the caller's request carried (header, query, body,
+    # principal) rides along on the credential exchange.
+    headers = {
+        "Host": _host_header(ready.scheme, ready.host, ready.port),
+        "Connection": "close",
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    response = _write(ready, provider, deadline, "POST", target, headers, body)
+    if isinstance(response, ConfinementError):
+        return None, response
+    if response.status_code != 200:
+        # Name the endpoint and the status only: never the credential, never the issued secret.
+        return None, ConfinementError("auth_failed", f"{label} at {path} answered {response.status_code}",
+                                      status_code=response.status_code, duration_ms=response.duration_ms)
+    if cookie:
+        issued = _cookie_pair(response.headers.get("set-cookie"))
+        if issued is None:
+            return None, ConfinementError("auth_failed", f"login at {path} returned no session cookie",
+                                          status_code=response.status_code, duration_ms=response.duration_ms)
+        return issued, None
+    issued = _token_value(response.body, auth.token_field)
+    if issued is None:
+        # The body is not echoed: it carries the token itself.
+        return None, ConfinementError("auth_failed", f"token at {path} returned no {auth.token_field}",
+                                      status_code=response.status_code, duration_ms=response.duration_ms)
+    return issued, None
+
+
+def _token_value(body: bytes, field: str) -> str | None:
+    """The token out of a token endpoint's JSON answer, or None. The body itself is never kept."""
+    try:
+        payload = json.loads(bytes(body or b"").decode("utf-8"))
+    except (ValueError, UnicodeDecodeError, AttributeError):
+        return None
+    token = payload.get(field) if isinstance(payload, dict) else None
+    return _holdable(token) if isinstance(token, str) else None
 
 
 def perform(deadline: Deadline, method: str, url: str, *, headers: dict[str, str], content: bytes | None,
