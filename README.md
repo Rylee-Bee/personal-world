@@ -8,6 +8,22 @@
 your projects in one place: what changed, what needs you, and what can wait.
 It runs on your own hardware and never acts without your approval.
 
+### Branches and deployments (evidence 2026-10-02)
+
+This page describes **`main`**, the pre-front-door app, until the rebuild cutover. Do not read
+a `rebuild/*` branch's behavior into it.
+
+| Ref | Role | Commit | Evidence |
+|---|---|---|---|
+| `main` | default branch; the app this README describes | `5d4c096` | 2026-10-01, `origin/main` |
+| `rebuild/front-door` | front-door rebuild integration branch (the clean rebuild lands here) | `384ff35` | 2026-10-02, `origin/rebuild/front-door` |
+| production image | `ghcr.io/rylee-bee/personal-world` built from `main`; running container is commit `61397e0` (also tag `archive/pre-front-door`) | `61397e0` | 2026-10-01, `/healthz` + image revision label (`.project/CURRENT.md`) |
+| `ui/` preview | local Vite preview (`cd ui && npm run preview`) — **not** a deployed branch | n/a | [docs/README.md](docs/README.md) |
+
+Direction: [`docs/adr/0008-front-door.md`](docs/adr/0008-front-door.md),
+[`.project/HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md`](.project/HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md).
+Current state and the same table: [`.project/CURRENT.md`](.project/CURRENT.md).
+
 ## What it is
 
 Worlds is one home screen, **the Bridge**, plus a small set of screens
