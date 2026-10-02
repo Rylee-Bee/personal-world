@@ -135,3 +135,113 @@ def test_error_notes_never_contain_the_secret(server):
              secrets={"REF_TOKEN": "s3cret-value"})
     assert r.status_code == 200  # server echoes the header back in the body (to test redaction downstream)
     assert b"s3cret-value" in r.body  # raw sender returns what the server said; redaction is the runner's job
+
+
+# ---- password_grant auth (T10): the token lives only in the sender's memory ----------------------------------
+
+GRANT_USERNAME = "reader"
+GRANT_PASSWORD = "pw-s3cret-grant-7d2a"
+GRANT_TOKEN_PATH = "/api/v2/auth/token"
+
+
+@pytest.fixture
+def grant_server():
+    with ReferenceServer(username=GRANT_USERNAME, password=GRANT_PASSWORD) as srv:
+        yield srv
+
+
+def grant_auth():
+    return Auth(type="password_grant", token_path=GRANT_TOKEN_PATH, secret_ref="env:GRANT_CREDENTIALS")
+
+
+def grant_secrets():
+    return {"GRANT_CREDENTIALS": f"{GRANT_USERNAME}:{GRANT_PASSWORD}"}
+
+
+def test_password_grant_sender_token_then_read(grant_server):
+    r = send(grant_server, "/bearer-protected", provider_kw={"auth": grant_auth()}, secrets=grant_secrets())
+    assert isinstance(r, RawResponse) and r.status_code == 200
+    assert json.loads(r.body) == {"ok": True, "items": [1, 2]}
+    assert grant_server.calls_to(GRANT_TOKEN_PATH) == 1
+    assert grant_server.calls_to("/bearer-protected") == 1
+
+
+def test_password_grant_sender_renews_on_401_once(grant_server):
+    sender = reference_send(grant_secrets())
+    p = prov(grant_server, auth=grant_auth())
+    assert sender(p, req("/bearer-protected"), effect="read").status_code == 200
+    grant_server.rotate_tokens()  # the server forgets the token; the sender still holds it
+    assert sender(p, req("/bearer-protected"), effect="read").status_code == 200
+    assert grant_server.calls_to(GRANT_TOKEN_PATH) == 2
+    assert grant_server.calls_to("/bearer-protected") == 3
+
+
+def test_password_grant_sender_second_401_is_auth_failed(grant_server):
+    out = send(grant_server, "/bearer-denied", provider_kw={"auth": grant_auth()}, secrets=grant_secrets())
+    assert isinstance(out, ConfinementError) and out.error_class == "auth_failed"
+    assert grant_server.calls_to(GRANT_TOKEN_PATH) == 2  # initial + one re-token, never more
+    assert grant_server.calls_to("/bearer-denied") == 2
+
+
+# ---- the retry rule: a refused READ re-logs-in once, a refused WRITE is never replayed ----------
+
+COOKIE_USERNAME = "admin"
+COOKIE_PASSWORD = "pw-s3cret-cookie-9c1f"
+
+
+@pytest.fixture
+def cookie_server():
+    with ReferenceServer(username=COOKIE_USERNAME, password=COOKIE_PASSWORD) as srv:
+        yield srv
+
+
+def cookie_auth():
+    return Auth(type="cookie_session", login_path="/api/v2/auth/login", secret_ref="env:COOKIE_CREDENTIALS")
+
+
+def cookie_secrets():
+    return {"COOKIE_CREDENTIALS": f"{COOKIE_USERNAME}:{COOKIE_PASSWORD}"}
+
+
+def test_cookie_session_sender_refused_read_is_replayed_once(cookie_server):
+    sender = reference_send(cookie_secrets())
+    p = prov(cookie_server, auth=cookie_auth())
+    assert sender(p, req("/cookie-protected"), effect="read").status_code == 200
+    cookie_server.expire_sessions()
+    assert sender(p, req("/cookie-protected"), effect="read").status_code == 200
+    assert cookie_server.calls_to("/api/v2/auth/login") == 2
+    assert cookie_server.calls_to("/cookie-protected") == 3  # ok, refused, replayed once
+
+
+def test_cookie_session_sender_refused_write_is_never_replayed(cookie_server):
+    sender = reference_send(cookie_secrets())
+    p = prov(cookie_server, auth=cookie_auth())
+    r = req("/actions/cookie-denied", "POST", effect="write")
+    first = sender(p, r, effect="write")
+    second = sender(p, r, effect="write")
+    assert isinstance(first, RawResponse) and first.status_code == 403  # the refusal, as the result
+    assert isinstance(second, RawResponse) and second.status_code == 403
+    assert cookie_server.calls_to("/actions/cookie-denied") == 2  # one per call: never replayed
+    assert cookie_server.calls_to("/api/v2/auth/login") == 2  # the stale session was dropped
+
+
+def test_password_grant_sender_refused_write_is_never_replayed(grant_server):
+    sender = reference_send(grant_secrets())
+    p = prov(grant_server, auth=grant_auth())
+    r = req("/actions/bearer-denied", "POST", effect="write")
+    first = sender(p, r, effect="write")
+    second = sender(p, r, effect="write")
+    assert isinstance(first, RawResponse) and first.status_code == 401
+    assert isinstance(second, RawResponse) and second.status_code == 401
+    assert grant_server.calls_to("/actions/bearer-denied") == 2  # one per call: never replayed
+    assert grant_server.calls_to(GRANT_TOKEN_PATH) == 2  # the stale token was dropped
+
+
+def test_password_grant_sender_refused_read_is_replayed_once(grant_server):
+    sender = reference_send(grant_secrets())
+    p = prov(grant_server, auth=grant_auth())
+    assert sender(p, req("/bearer-protected"), effect="read").status_code == 200
+    grant_server.rotate_tokens()
+    assert sender(p, req("/bearer-protected"), effect="read").status_code == 200
+    assert grant_server.calls_to(GRANT_TOKEN_PATH) == 2
+    assert grant_server.calls_to("/bearer-protected") == 3
