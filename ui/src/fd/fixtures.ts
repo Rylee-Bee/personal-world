@@ -1,4 +1,4 @@
-import type { Board, BoardItem, CardEnvelope, Format, NeedsYouEntry } from "./types";
+import type { ActionSummary, Board, BoardItem, CardEnvelope, Format, MemoryHistoryRow, MemoryKeptRow, MemoryLaterRow, MemoryLockedRow, MemoryRecordsRow, NeedsYouEntry, Receipt } from "./types";
 
 const T = "2026-10-01T09:30:00Z";
 const EARLIER = "2026-10-01T08:12:00Z";
@@ -95,19 +95,61 @@ export const needsYou: NeedsYouEntry[] = [
   { id: "ny-2", text: "Review the new reading list", source: "Memory", created_at: T, action: { kind: "open", href: "#memory" } },
 ];
 
-/** Sample Connect data. Replaced by the real API when the Connect routes land. */
-export const sampleBindings = [
-  { id: "sonarr-queue", name: "Read Sonarr queue", access: "read" as const, scope: "sonarr" },
+/**
+ * Connect Actions/receipts fixtures. Obviously fake — example.test scopes, invented actions,
+ * no real host, token, secret value or personal data.
+ */
+export const actionRows: ActionSummary[] = [
+  { id: "example.read", name: "Read the example queue", access: "read", scope: "example", exposed: false },
+  { id: "example.restart", name: "Restart the example service", access: "write", scope: "example", exposed: true },
+];
+export const receiptRows: Receipt[] = [
+  { id: "rcpt-1", action: "example.restart", dispatch_state: "succeeded", outcome: "SUCCEEDED", started_at: T, finished_at: T },
+  { id: "rcpt-2", action: "example.backup", dispatch_state: "dispatched", outcome: "UNKNOWN", started_at: EARLIER },
+];
+
+/**
+ * C4 Memory test fixtures. Obviously fake — example.test host, invented titles,
+ * no real personal data, no real token or secret anywhere.
+ */
+export const memoryKeptRows: MemoryKeptRow[] = [
   {
-    id: "sonarr-restart", name: "Restart Sonarr", access: "write" as const, scope: "sonarr", outcome: "SUCCEEDED" as const,
-    act: "Restart Sonarr", safe: "Don't restart", consequence: "Sonarr stops for a moment and TV will show as unavailable until it is back.",
+    id: "kept-1", table: "kept", title: "Fix the shed door", body: "Hinges rusted, needs a new pin.",
+    tags: ["house", "weekend"], provenance: "owner", source_ref: null,
+    created_at: 1727700000, updated_at: 1727700000,
   },
   {
-    id: "backup-now", name: "Start a backup", access: "write" as const, scope: "restic", outcome: "UNKNOWN" as const,
-    act: "Start a backup", safe: "Don't start it", consequence: "A backup runs now and may slow the machine for a few minutes.",
+    id: "kept-2", table: "kept", title: "Book: Piranesi", body: "A house of endless rooms.",
+    tags: ["reading"], provenance: "external_ref", source_ref: "https://example.test/piranesi",
+    created_at: 1727600000, updated_at: 1727600000,
   },
 ];
-export const sampleSecrets = [
-  { name: "PW_SONARR_TOKEN", set: true },
-  { name: "PW_WEATHER_KEY", set: false },
+export const memoryLaterRows: MemoryLaterRow[] = [
+  {
+    id: "later-1", table: "later", title: "Call the dentist", body: "",
+    due_at: 1727900000, status: "open", provenance: "owner", source_ref: null,
+    created_at: 1727500000, updated_at: 1727500000,
+  },
+  {
+    id: "later-2", table: "later", title: "Review the receipts", body: "Last month's queue.",
+    due_at: null, status: "done", provenance: "owner", source_ref: null,
+    created_at: 1727400000, updated_at: 1727450000,
+  },
+];
+export const memoryRecordsRows: (MemoryRecordsRow | MemoryLockedRow)[] = [
+  {
+    id: "rec-1", table: "records", title: "Annual checkup notes", body: "Blood work came back fine.",
+    kind: "health", sensitivity: "normal", provenance: "owner", source_ref: null,
+    created_at: 1727300000, updated_at: 1727300000,
+  },
+  // A masked locked row as the server hands it back — no title, no body.
+  { id: "rec-2", table: "records", sensitivity: "locked", locked: true, created_at: 1727250000 },
+];
+export const memoryHistoryRows: MemoryHistoryRow[] = [
+  { id: 2, at: 1727700000, actor: "owner", event: "created", table: "kept", row_id: "kept-1", detail: null },
+  { id: 1, at: 1727600000, actor: "owner", event: "created", table: "kept", row_id: "kept-2", detail: null },
+];
+export const memoryFindRows = [
+  { table: "kept" as const, id: "kept-1", title: "Fix the shed door", snippet: "…the «shed» door…", sensitivity: "normal" as const },
+  { table: "later" as const, id: "later-1", title: "Call the dentist", snippet: "…call the «dentist»…", sensitivity: "normal" as const },
 ];

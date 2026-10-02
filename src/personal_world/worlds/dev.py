@@ -29,14 +29,22 @@ import argparse
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Sequence
 
+from fastapi import FastAPI
+
+from .authn import Principal
+from .connect_routes import register_connect_routes
+from .db import Database
+from .memory_routes import register_memory_routes
+from .memory_store import MemoryStore
 from .reference_provider import ReferenceServer, reference_send
 from .seed import SECRET_REF, seed_reference_config
 from .server import build_app
 
-__all__ = ["assert_loopback", "main", "DEV_TOKEN", "DEV_PRINCIPAL"]
+__all__ = ["assert_loopback", "build_dev_app", "main", "DEV_TOKEN", "DEV_PRINCIPAL"]
 
 #: Demo secret for the reference provider. It is a literal on purpose: this
 #: server has no secret store and no authentication, so a real secret here
@@ -73,12 +81,64 @@ def dev_principal() -> str:
     return DEV_PRINCIPAL
 
 
+def _dev_owner() -> Principal:
+    """The Memory and Connect routes want a :class:`Principal`, not its name.
+
+    There is no session and no CSRF on this server, so the dev principal is handed back as the
+    owner directly. It deliberately carries no step-up: a locked record stays locked even here.
+    """
+    return Principal("owner", DEV_PRINCIPAL, via="session")
+
+
 def _config_dir(argument: str | None) -> Path:
     """``--config-dir``, then ``$PW_DEV_DIR``, then a fresh temporary directory."""
     chosen = argument or os.environ.get("PW_DEV_DIR")
     if chosen:
         return Path(chosen).expanduser()
     return Path(tempfile.mkdtemp(prefix="pw-worlds-dev-"))
+
+
+def build_dev_app(config_dir: str | os.PathLike[str], reference: ReferenceServer) -> tuple[FastAPI, list[str]]:
+    """Build the dev app, seed the reference config, then add Memory and Connect.
+
+    This is the whole dev assembly without uvicorn, so tests can drive it in-process. It keeps every
+    dev guarantee: loopback-only is enforced by :func:`main` before this is called (``assert_loopback``),
+    the read API uses the fake principal, and outbound Connect tries go through
+    :func:`~personal_world.worlds.reference_provider.reference_send` at *this* reference server, never
+    the real network. The Memory store and its backups live under ``config_dir``; nothing is written
+    outside it.
+
+    Returns the app and the ids :func:`seed_reference_config` created.
+    """
+    config_dir = Path(config_dir)
+    sender = reference_send({"REF_TOKEN": DEV_TOKEN}, allowed_ports={reference.port})
+    app = build_app(
+        config_dir,
+        principal_dependency=dev_principal,
+        send_override=sender,
+        allowed_hosts=["127.0.0.1", "::1", "localhost"],
+        secret_values=(DEV_TOKEN,),
+    )
+    created = seed_reference_config(app.state.store, reference.base_url)
+
+    # Memory and Connect are registered the way production.py does, but with the dev principal as both
+    # the owner and the agent caller. Everything lives under the temp config dir, so nothing is
+    # persisted outside it and no real credentials are involved.
+    data_dir = config_dir / "data"
+    memory = MemoryStore(Database.in_dir(data_dir))
+    app.state.memory = memory
+    register_memory_routes(app, memory, data_dir / "backups", anyone=_dev_owner, owner=_dev_owner, clock=time.time)
+    register_connect_routes(
+        app,
+        app.state.store,
+        app.state.cards,
+        owner=_dev_owner,
+        send=sender,
+        clock=time.time,
+        audit=lambda event, detail, actor: memory.record_event(event, detail, actor=actor),
+        secret_values=lambda: [DEV_TOKEN],
+    )
+    return app, created
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -104,6 +164,8 @@ def _banner(app: Any, host: str, port: int, config_dir: Path, reference: Referen
             "  ----------------------------------",
             f"  api         http://{host}:{port}/api/boards/home",
             f"  health      http://{host}:{port}/healthz",
+            f"  memory      http://{host}:{port}/api/memory/kept  (owner-only; no auth)",
+            f"  connect     http://{host}:{port}/api/connect/try  (owner-only; no auth)",
             f"  config dir  {config_dir}",
             f"  reference   {reference.base_url}  (demo secret: {SECRET_REF} = {DEV_TOKEN})",
             f"  principal   {DEV_PRINCIPAL} for every route - there is no authentication",
@@ -123,14 +185,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     reference = ReferenceServer(token=DEV_TOKEN).start()
     config_dir = _config_dir(args.config_dir)
     try:
-        app = build_app(
-            config_dir,
-            principal_dependency=dev_principal,
-            send_override=reference_send({"REF_TOKEN": DEV_TOKEN}, allowed_ports={reference.port}),
-            allowed_hosts=["127.0.0.1", "::1", "localhost"],
-            secret_values=(DEV_TOKEN,),
-        )
-        created = seed_reference_config(app.state.store, reference.base_url)
+        app, created = build_dev_app(config_dir, reference)
         print(_banner(app, args.host, args.port, config_dir, reference), file=sys.stderr)
         if created:
             print(f"  seeded {len(created)} config objects (already-present ones were left alone)\n", file=sys.stderr)

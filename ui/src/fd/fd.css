@@ -324,6 +324,30 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--teal); }
   gap: var(--sp-xs);
 }
 
+/* connect: list + forms (additive; never restyles fd-bindings/fd-binding used elsewhere) */
+.fd-connect-list { display: flex; flex-direction: column; gap: var(--sp-md); }
+.fd-connect-form { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.fd-connect-actions { display: flex; flex-wrap: wrap; gap: var(--sp-sm); align-items: center; }
+.fd-connect-status { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.fd-connect-err { margin: 0; color: var(--bad); font-size: 0.875rem; }
+.fd-connect-note { margin: 0; color: var(--text-2); font-size: 0.875rem; }
+.fd-connect-disabled-reason { color: var(--muted); font-size: 0.875rem; font-style: italic; }
+.fd-field { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.fd-textarea { min-height: 6rem; resize: vertical; font-family: var(--font-mono); font-size: 0.875rem; }
+.fd-try-outcome, .fd-preview-result { display: flex; flex-direction: column; gap: var(--sp-sm); padding-top: var(--sp-md); border-top: 1px solid var(--line); }
+.fd-try-sample { box-sizing: border-box; max-width: 100%; max-height: 16rem; overflow: auto; padding: var(--sp-sm); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--raised); color: var(--text); font-family: var(--font-mono); font-size: 0.8125rem; white-space: pre; overflow-wrap: anywhere; }
+.fd-try-suggested ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-xs); font-size: 0.875rem; }
+.fd-preview-panel { display: flex; flex-direction: column; gap: var(--sp-sm); padding-top: var(--sp-md); border-top: 1px dashed var(--line); }
+.fd-preview-controls { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.fd-preview-values { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px var(--sp-sm); margin: 0; font-size: 0.875rem; }
+.fd-preview-values dt { color: var(--muted); }
+.fd-preview-values dd { margin: 0; overflow-wrap: anywhere; }
+.fd-preview-evidence { border-top: 1px solid var(--line); padding-top: var(--sp-xs); }
+.fd-preview-evidence summary { cursor: pointer; min-height: var(--target-min); display: flex; align-items: center; font-weight: 700; color: var(--text-2); }
+.fd-preview-evidence ul { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 2px; font-size: 0.875rem; font-family: var(--font-mono); overflow-wrap: anywhere; }
+.fd-btn--link { background: transparent; border: 0; padding: 0; color: var(--text); font: inherit; cursor: pointer; text-align: left; min-height: var(--target-min); display: inline-flex; align-items: center; }
+.fd-btn--link:hover { color: var(--accent); }
+
 /* memory */
 
 .fd-records,
@@ -657,3 +681,53 @@ html[data-pack="station"] .fd-home-section-title, html[data-pack="station"] .fd-
 .fd-home-eyebrow { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .fd-home-greeting { margin: 0; font-family: var(--font-display); font-size: 1.75rem; line-height: 1.2; color: var(--text); text-wrap: balance; }
 @media (max-width: 759px) { .fd-home-greeting { font-size: 1.5rem; } }
+
+/* memory: additive classes for Kept / Later / Records / History / Find. Never restyles the shared
+   fd-btn, fd-dialog, fd-input, fd-sentence or fd-tab classes. */
+.fd-memory-list,
+.fd-memory-history,
+.fd-memory-form { display: flex; flex-direction: column; gap: var(--sp-md); }
+.fd-memory-rows,
+.fd-memory-events,
+.fd-memory-find-results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-sm); }
+.fd-memory-row,
+.fd-memory-event,
+.fd-memory-find-row {
+  display: flex; flex-direction: column; gap: var(--sp-xs);
+  padding: var(--sp-md); border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--elevated);
+}
+.fd-memory-row--locked { border-style: dashed; background: var(--panel); }
+.fd-memory-row-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-sm); }
+.fd-memory-title { font-weight: 700; color: var(--text); }
+.fd-memory-body { margin: 0; color: var(--text-2); font-size: 0.9375rem; }
+.fd-memory-meta-row { display: flex; flex-wrap: wrap; gap: var(--sp-xs) var(--sp-md); color: var(--muted); font-size: 0.8125rem; align-items: center; }
+.fd-memory-meta { margin: 0; color: var(--muted); font-size: 0.8125rem; }
+.fd-memory-tags { display: inline-flex; flex-wrap: wrap; gap: var(--sp-xs); }
+.fd-memory-tag {
+  display: inline-block; padding: 2px 8px; border-radius: var(--r-full);
+  border: 1px solid var(--line); color: var(--text-2); font-size: 0.8125rem;
+}
+.fd-memory-sensitivity { font-size: 0.8125rem; font-weight: 700; padding: 2px 8px; border-radius: var(--r-full); border: 1px solid var(--line); }
+.fd-memory-sensitivity--normal { color: var(--text-2); }
+.fd-memory-sensitivity--locked { color: var(--warn); border-color: var(--warn); }
+.fd-memory-shape { font-size: 1rem; }
+.fd-memory-status { color: var(--text-2); font-size: 0.8125rem; }
+.fd-memory-status strong { color: var(--text); }
+.fd-memory-provenance { color: var(--accent); font-size: 0.8125rem; font-style: italic; }
+.fd-memory-actions { display: flex; flex-wrap: wrap; gap: var(--sp-sm); align-items: center; margin-top: var(--sp-xs); }
+.fd-memory-status-picker { display: inline-flex; align-items: center; gap: var(--sp-xs); }
+.fd-memory-status-select { min-height: var(--target-min); padding: 2px 6px; font-size: 0.875rem; }
+.fd-memory-outcome { margin: 0; min-height: 1.2em; color: var(--text); font-weight: 600; }
+.fd-memory-outcome:empty { display: none; }
+.fd-memory-export-row,
+.fd-memory-backup-row { display: flex; flex-wrap: wrap; gap: var(--sp-sm); }
+.fd-memory-event { gap: var(--sp-xs) var(--sp-md); flex-direction: row; flex-wrap: wrap; align-items: center; }
+.fd-memory-event-name { color: var(--text); font-weight: 700; }
+.fd-memory-event-table { color: var(--text-2); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.fd-memory-event-actor { color: var(--muted); font-size: 0.8125rem; }
+.fd-memory-event-detail { color: var(--muted); font-size: 0.8125rem; font-family: var(--font-mono); overflow-wrap: anywhere; }
+.fd-memory-find-row { gap: var(--sp-xs); }
+.fd-memory-find-table { color: var(--muted); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.fd-memory-find-title { color: var(--text); font-weight: 700; }
+.fd-memory-find-snippet { color: var(--text-2); font-size: 0.9375rem; overflow-wrap: anywhere; }

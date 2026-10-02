@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 import { axe, mockApi, noHorizontalOverflow, open } from "./helpers";
 
 const SHOTS = process.env.PW_FD_SHOTS;
@@ -11,6 +11,28 @@ async function badDay(page: Page, prefs = { density: "calm", words: "minimal", t
   await page.goto("/#home");
   await page.getByRole("heading", { name: "Needs a look" }).waitFor();
   await expect(page.locator(".fd-home")).toHaveAttribute("data-ready", "true");
+}
+
+/**
+ * The Memory screen reads /api/memory/*, which helpers.mockApi does not serve. Add just the one Kept
+ * row this file needs (registered after mockApi, so its handler runs first).
+ */
+async function openMemoryWithRow(page: Page) {
+  const json = (route: Route, body: unknown) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+  await mockApi(page);
+  await page.route("**/api/memory/**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/memory/kept") {
+      return json(route, [{
+        id: "kept-1", table: "kept", title: "Fix the shed door", body: "Hinges rusted, needs a new pin.",
+        tags: ["house"], provenance: "owner", source_ref: null, created_at: 1727700000, updated_at: 1727700000,
+      }]);
+    }
+    return json(route, []);
+  });
+  await page.goto("/#memory");
+  await expect(page.getByRole("main")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
 }
 
 test("bad-day setup: Needs you first, a condensed strip, axe clean, no overflow", async ({ page }, info) => {
@@ -81,13 +103,14 @@ test("forced colours: tiles, rows and buttons keep their borders and the shapes 
   await expect(page.locator(".fd-row-shape").first()).toBeVisible();
 });
 
-test("the Run dialog is modal: the page behind it cannot take focus", async ({ page }) => {
-  await open(page, "#connect");
-  await page.getByRole("tab", { name: "Actions" }).click();
-  await page.getByRole("button", { name: "Run: Restart Sonarr" }).click();
-  const dialog = page.getByRole("dialog", { name: "Restart Sonarr?" });
+test("the Memory delete dialog is modal: the page behind it cannot take focus", async ({ page }) => {
+  await openMemoryWithRow(page);
+  const remove = page.getByRole("button", { name: "Delete" }).first();
+  await remove.click();
+  const dialog = page.getByRole("dialog", { name: "Remove Fix the shed door?" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Don't restart" })).toBeFocused();
+  // the safe choice has initial focus
+  await expect(dialog.getByRole("button", { name: "Keep it" })).toBeFocused();
   for (let i = 0; i < 2; i++) {
     await page.keyboard.press("Tab");
     // inside the dialog, or on the browser itself (body): never on a control of the page behind it
@@ -95,7 +118,8 @@ test("the Run dialog is modal: the page behind it cannot take focus", async ({ p
   }
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Run: Restart Sonarr" })).toBeFocused();
+  // Escape takes the safe choice: focus returns to the control that opened the dialog
+  await expect(remove).toBeFocused();
 });
 
 test("Station adds no space: the page is the same height with it on and off", async ({ page }) => {
