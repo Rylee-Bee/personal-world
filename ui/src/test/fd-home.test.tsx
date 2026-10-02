@@ -25,7 +25,7 @@ function renderHome(opts: { timeoutMs?: number; prefs?: Partial<Prefs> } = {}) {
   return { client, ...utils };
 }
 /** Everything loaded: no "Checking" or "Loading" status line left. */
-const settled = () => waitFor(() => expect(screen.queryAllByRole("status").filter((e) => e.textContent?.trim())).toHaveLength(0), { timeout: 3000 });
+const settled = () => waitFor(() => expect(screen.getByText("Up to date")).toBeInTheDocument(), { timeout: 3000 });
 const section = (name: string) => screen.getByRole("heading", { name }).closest("section")!;
 
 describe("Home", () => {
@@ -33,7 +33,7 @@ describe("Home", () => {
     renderHome({ prefs: { name: "Rylee" } });
     await settled();
     expect(screen.getAllByRole("heading").map((h) => h.textContent)).toEqual(["Good evening, Rylee", "Needs you", "Needs a look", "Your life", "Quietly working"]);
-    expect(screen.getByText("2 for you · Downloads down · Backup stale · 1 more to look at · rest quiet")).toBeInTheDocument();
+    expect(screen.getByText("2 for you · Downloads unavailable · Backup stale · 1 more to look at · rest quiet")).toBeInTheDocument();
     const strip = screen.getByRole("group", { name: "Whole world" });
     const edit = screen.getByRole("button", { name: "Edit Home" });
     const needs = screen.getByRole("heading", { name: "Needs you" });
@@ -49,8 +49,8 @@ describe("Home", () => {
     await settled();
     const strip = screen.getByRole("group", { name: "Whole world" });
     expect(within(strip).getAllByRole("button")).toHaveLength(8);
-    expect(within(strip).getByRole("button", { name: "Downloads: Unavailable. Show details" })).toBeInTheDocument();
-    expect(within(strip).getByRole("link", { name: "Music: Not configured. Set up in Connect" })).toHaveAttribute("href", "#connect");
+    expect(within(strip).getByRole("button", { name: "Downloads Unavailable. Show details" })).toBeInTheDocument();
+    expect(within(strip).getByRole("link", { name: "Music Not configured. Set up in Connect" })).toHaveAttribute("href", "#connect");
   });
   it("sections hold the right rows; Needs you is finite; not_configured is never a row", async () => {
     renderHome();
@@ -76,19 +76,21 @@ describe("Home", () => {
   it("B8: a strip tap opens the row and moves focus to it; a second tap does not close it", async () => {
     renderHome();
     await settled();
-    const tile = screen.getByRole("button", { name: "Disk: Healthy. Show details" });
+    const tile = screen.getByRole("button", { name: "Disk Healthy. Show details" });
     await userEvent.click(tile);
     expect(screen.getByRole("region", { name: "Disk details" })).toBeInTheDocument();
     await waitFor(() => expect(within(document.getElementById("fd-row-disk")!).getByRole("button", { name: /Disk/ })).toHaveFocus());
     await userEvent.click(tile);
     expect(screen.getByRole("region", { name: "Disk details" })).toBeInTheDocument();
   });
-  it("B8: in Calm density a strip tap unfolds Quietly working first", async () => {
+  it("B8: in Calm a strip tap on a quiet source unfolds Quietly working and opens the row", async () => {
     renderHome({ prefs: { density: "calm" } });
     await settled();
     expect(screen.queryByRole("region", { name: "Disk details" })).not.toBeInTheDocument();
     expect(screen.getByText(/2 quiet: Disk, Checks/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Disk: Healthy. Show details" }));
+    // the quiet sources are folded into one tile; open it, then tap Disk
+    await userEvent.click(screen.getByRole("button", { name: "6 quiet. Show all" }));
+    await userEvent.click(screen.getByRole("button", { name: "Disk Healthy. Show details" }));
     expect(screen.getByRole("region", { name: "Disk details" })).toBeInTheDocument();
     expect(screen.queryByText(/2 quiet:/)).not.toBeInTheDocument();
   });
@@ -96,12 +98,12 @@ describe("Home", () => {
     server.use(http.get("/api/cards/disk", () => HttpResponse.json({}, { status: 500 })));
     renderHome();
     await settled();
-    expect(screen.getByRole("button", { name: "Disk: Unknown. Show details" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Disk Unknown. Show details" })).toBeInTheDocument();
     await userEvent.click(within(section("Needs a look")).getByRole("button", { name: /Disk/ }));
     const ev = screen.getByRole("region", { name: "Disk details" }).querySelector("details")!;
-    expect(ev).toHaveTextContent("error_class: http_5xx");
-    expect(ev).toHaveTextContent("status_code: 500");
-    expect(ev).not.toHaveTextContent("request_id");
+    expect(ev).toHaveTextContent("Error: Server error");
+    expect(ev).toHaveTextContent("Status code: 500");
+    expect(ev).not.toHaveTextContent("Request:");
   });
 });
 
@@ -109,13 +111,13 @@ describe("B1 Home does not wait on every card", () => {
   it("renders the board and the other rows while one card hangs, then fails it as a timeout", async () => {
     server.use(http.get("/api/cards/downloads", async () => { await delay("infinite"); return HttpResponse.json(cards.downloads); }));
     renderHome({ timeoutMs: 300 });
-    await screen.findByRole("button", { name: "Disk: Healthy. Show details" });
-    expect(screen.getByRole("button", { name: "Downloads: Loading" })).toBeDisabled();
+    await screen.findByRole("button", { name: "Disk Healthy. Show details" });
+    expect(screen.getByRole("button", { name: "Downloads Loading" })).toBeDisabled();
     expect(screen.getByText(/Checking 1 source/)).toBeInTheDocument();
     expect(within(section("Needs a look")).queryByText("Downloads")).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Downloads: Unknown. Show details" }, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Downloads Unknown. Show details" }, { timeout: 3000 })).toBeInTheDocument();
     await userEvent.click(within(section("Needs a look")).getByRole("button", { name: /Downloads/ }));
-    expect(screen.getByRole("region", { name: "Downloads details" })).toHaveTextContent("error_class: timeout");
+    expect(screen.getByRole("region", { name: "Downloads details" })).toHaveTextContent("Error: Timed out");
   });
 });
 
@@ -128,13 +130,14 @@ describe("needs you is independent and honest", () => {
     expect(screen.queryByText("Nothing for you right now.")).not.toBeInTheDocument();
     expect(screen.getByText(/^Couldn't check what needs you · /)).toBeInTheDocument();
     server.use(http.get("/api/needs-you", () => HttpResponse.json(needsYou)));
-    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("Approve Hive Works plan")).toBeInTheDocument();
   });
   it("B3: a board failure does not hide Needs you", async () => {
     server.use(http.get("/api/boards/home", () => HttpResponse.json({}, { status: 500 })));
     renderHome();
-    expect(await screen.findByText("Home could not load. Try again.")).toBeInTheDocument();
+    expect(await screen.findByText("Home could not load.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
     expect(await screen.findByText("Approve Hive Works plan")).toBeInTheDocument();
   });
   it("an empty list says so", async () => {
@@ -150,11 +153,20 @@ describe("needs you is independent and honest", () => {
     const links = within(section("Needs you")).queryAllByRole("link").map((a) => a.getAttribute("href"));
     expect(links).toEqual(["/memory", "https://example.org/x"]);
   });
-  it("B5: Approve is never a silent dead button", async () => {
+  it("no dead Approve: the item says where to approve, and no control does nothing", async () => {
     renderHome();
     await screen.findByText("Approve Hive Works plan");
-    expect(screen.getByRole("button", { name: "Approve: Approve Hive Works plan" })).toBeDisabled();
-    expect(screen.getByText("Approving from here is not ready yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Approve/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Approve in Hive Works")).toBeInTheDocument();
+    // nothing in Needs you is a disabled control
+    expect(within(section("Needs you")).queryAllByRole("button", { hidden: true }).filter((b) => (b as HTMLButtonElement).disabled)).toHaveLength(0);
+    // an approval that carries a safe link gets an Open link; an unsafe one gets none
+    const approve = (id: string, href: string) => ({ id, text: `Approve ${id}`, source: "Hive Works", created_at: "2026-10-01T09:00:00Z", action: { kind: "approve" as const, authorization_id: id, href } });
+    server.use(http.get("/api/needs-you", () => HttpResponse.json([approve("a", "https://example.org/approve/a"), approve("b", "javascript:alert(1)")])));
+    cleanup();
+    renderHome();
+    await screen.findByText("Approve a");
+    expect(within(section("Needs you")).getAllByRole("link").map((l) => l.getAttribute("href"))).toEqual(["https://example.org/approve/a"]);
   });
 });
 
@@ -167,7 +179,7 @@ describe("B11 a failed refetch keeps the data, marked stale", () => {
     await client.refetchQueries({ queryKey: ["fd", "card", "disk"] });
     await waitFor(() => expect(within(section("Needs a look")).getByText("Disk")).toBeInTheDocument());
     expect(within(section("Needs a look")).getByRole("button", { name: /Disk/ }).closest("li")).toHaveTextContent("Last good 09:30");
-    expect(screen.getByRole("button", { name: /^Disk: .*Show details$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Disk .*Show details$/ })).toBeInTheDocument();
   });
 });
 
@@ -180,7 +192,7 @@ describe("Edit Home", () => {
     expect(screen.queryByRole("button", { name: /^Move .* earlier$/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
     await screen.findByRole("button", { name: "Move Reading earlier" });
-    expect(screen.getByRole("button", { name: "Edit Home" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Done" })).not.toHaveAttribute("aria-pressed");
     expect(screen.getByRole("button", { name: "+ Add to Home" })).toBeInTheDocument();
   });
   it("it says Saving… until the server confirms, then announces the result", async () => {
@@ -202,12 +214,12 @@ describe("Edit Home", () => {
   it("a change made elsewhere before the first edit is shown first and never overwritten", async () => {
     renderHome();
     await settled();
-    expect(screen.getByRole("button", { name: "Checks: Healthy. Show details" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Checks Healthy. Show details" })).toBeInTheDocument();
     // another editor hides Checks after this page loaded
     boardServer.external(boardServer.items().map((i) => (i.card === "checks" ? { ...i, hidden: true } : i)));
     await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
     await screen.findByRole("button", { name: "Move Reading earlier" });
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Checks: Healthy. Show details" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Checks Healthy. Show details" })).not.toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: "Move Reading earlier" }));
     await waitFor(() => expect(boardServer.puts).toHaveLength(1));
     expect(boardServer.puts[0].body.items.find((i) => i.card === "checks")!.hidden).toBe(true);
@@ -218,7 +230,7 @@ describe("Edit Home", () => {
     await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
     await userEvent.click(await screen.findByRole("button", { name: "Move Reading earlier" }));
     expect(await screen.findByText("Moved Reading earlier")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
     expect(screen.queryByText("Moved Reading earlier")).not.toBeInTheDocument();
   });
   it("Edit mode unfolds Calm's Quietly working", async () => {
@@ -245,7 +257,7 @@ describe("Edit Home", () => {
     await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
     await userEvent.click(screen.getByRole("button", { name: "Hide Later" }));
     expect(order("Your life")).toEqual(["Weather", "Reading"]);
-    expect(screen.queryByRole("button", { name: "Later: Healthy. Show details" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Later Healthy. Show details" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "+ Add to Home" }));
     expect(screen.getByRole("button", { name: "Add Later to Home" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
@@ -321,7 +333,7 @@ describe("Edit Home", () => {
     expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Reload" }));
     await waitFor(() => expect(screen.queryByText("Home changed somewhere else, your edit wasn't saved.")).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Edit Home" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Done" })).toHaveFocus();
     await userEvent.click(screen.getByRole("button", { name: "Move Later earlier" }));
     await waitFor(() => expect(order("Your life")).toEqual(["Reading", "Later", "Weather"]));
   });
@@ -367,5 +379,101 @@ describe("Quietly working is slim", () => {
     renderHome({ prefs: { density: "detailed" } });
     await settled();
     expect(within(section("Quietly working")).getAllByRole("img").length).toBeGreaterThan(0);
+  });
+});
+
+describe("Bad-day layout (Calm, and phones)", () => {
+  const phone = (matches: boolean) => {
+    window.matchMedia = ((query: string) => ({ matches: matches && query.includes("max-width: 759px"), media: query, onchange: null, addListener: () => undefined, removeListener: () => undefined, addEventListener: () => undefined, removeEventListener: () => undefined, dispatchEvent: () => false })) as typeof window.matchMedia;
+  };
+  afterEach(() => phone(false));
+
+  it("Calm puts Needs you right after the briefing, before the strip", async () => {
+    renderHome({ prefs: { density: "calm" } });
+    await settled();
+    const needs = screen.getByRole("heading", { name: "Needs you" });
+    const strip = screen.getByRole("group", { name: "Whole world" });
+    expect(needs.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it("Standard keeps the strip first on a wide screen, with every source", async () => {
+    renderHome();
+    await settled();
+    const strip = screen.getByRole("group", { name: "Whole world" });
+    expect(strip.compareDocumentPosition(screen.getByRole("heading", { name: "Needs you" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(strip).getAllByRole("button")).toHaveLength(8);
+    expect(within(strip).queryByRole("button", { name: /quiet/ })).not.toBeInTheDocument();
+  });
+  it("the condensed strip shows only what needs a look plus one quiet tile that opens the rest in place", async () => {
+    renderHome({ prefs: { density: "calm" } });
+    await settled();
+    const strip = screen.getByRole("group", { name: "Whole world" });
+    const names = () => within(strip).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
+    expect(names()).toEqual(["Downloads Unavailable. Show details", "Backup Stale. Show details", "Calendar Unknown. Show details", "6 quiet. Show all"]);
+    expect(within(strip).queryByRole("link")).not.toBeInTheDocument();           // not configured folds into the quiet tile
+    const quiet = within(strip).getByRole("button", { name: "6 quiet. Show all" });
+    expect(quiet).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(quiet);
+    expect(quiet).toHaveAttribute("aria-expanded", "true");
+    expect(within(strip).getByRole("button", { name: "Show fewer sources" })).toBe(quiet);   // same element
+    expect(within(strip).getAllByRole("button")).toHaveLength(9);
+    expect(within(strip).getByRole("link", { name: "Music Not configured. Set up in Connect" })).toBeInTheDocument();
+  });
+  it("any density on a phone is condensed too", async () => {
+    phone(true);
+    renderHome({ prefs: { density: "standard" } });
+    await settled();
+    expect(within(screen.getByRole("group", { name: "Whole world" })).getByRole("button", { name: "6 quiet. Show all" })).toBeInTheDocument();
+  });
+  it("the visible text of a strip tile is contained in its accessible name", async () => {
+    renderHome();
+    await settled();
+    for (const tile of within(screen.getByRole("group", { name: "Whole world" })).getAllByRole("button")) {
+      const visible = Array.from(tile.querySelectorAll(".fd-strip-name, .fd-strip-word")).map((e) => e.textContent?.trim()).filter(Boolean).join(" ");
+      expect(tile.getAttribute("aria-label")).toContain(visible);
+    }
+  });
+  it("Calm's Show moves focus to the first revealed row and becomes Show less, which folds and refocuses the toggle", async () => {
+    renderHome({ prefs: { density: "calm" } });
+    await settled();
+    await userEvent.click(screen.getByRole("button", { name: "Show" }));
+    const less = screen.getByRole("button", { name: "Show less" });
+    expect(less).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => expect(within(section("Quietly working")).getAllByRole("button", { name: /Disk/ })[0]).toHaveFocus());
+    await userEvent.click(less);
+    expect(screen.getByRole("button", { name: "Show" })).toHaveFocus();
+    expect(screen.getByText(/2 quiet: Disk, Checks/)).toBeInTheDocument();
+  });
+  it("Escape closes an open drill-in and returns focus to its row; a second Escape leaves Edit mode", async () => {
+    renderHome();
+    await settled();
+    const row = within(section("Needs a look")).getByRole("button", { name: /Downloads/ });
+    await userEvent.click(row);
+    expect(screen.getByRole("region", { name: "Downloads details" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("region", { name: "Downloads details" })).not.toBeInTheDocument();
+    expect(row).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    await screen.findByRole("button", { name: "Done" });
+    screen.getByRole("button", { name: "Move Reading earlier" }).focus();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: "Edit Home" })).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Move Reading earlier" })).not.toBeInTheDocument();
+  });
+  it("Words Full writes the briefing in whole sentences; Minimal keeps the terse line", async () => {
+    renderHome({ prefs: { words: "full" }, });
+    await settled();
+    expect(screen.getByText(/^Two things need you\. Downloads isn't answering; it last worked at 08:12\./)).toBeInTheDocument();
+    cleanup();
+    renderHome({ prefs: { words: "minimal" } });
+    await settled();
+    expect(screen.getByText("2 for you · Downloads unavailable · Backup stale · 1 more to look at · rest quiet")).toBeInTheDocument();
+  });
+  it("one polite line for the whole page: Checking sources…, then Up to date", async () => {
+    renderHome();
+    const status = screen.getAllByRole("status").find((s) => /Checking sources|Up to date/.test(s.textContent ?? ""))!;
+    expect(status).toHaveTextContent("Checking sources…");
+    await settled();
+    expect(status).toHaveTextContent("Up to date");
+    expect(screen.getAllByRole("status").filter((s) => /Checking/.test(s.textContent ?? ""))).toHaveLength(0);
   });
 });

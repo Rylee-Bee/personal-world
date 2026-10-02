@@ -35,7 +35,7 @@ export async function open(page: Page, hash = "#home", scenario: Scenario = "mix
   await expect(page.getByRole("main")).toBeVisible();
   if (hash === "#home" && scenario !== "board-error") {
     await page.getByRole("heading", { name: "Needs a look" }).waitFor();
-    await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+    await expect(page.getByRole("status").filter({ hasText: "Up to date" })).toHaveCount(1);
   }
 }
 

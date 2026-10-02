@@ -174,3 +174,132 @@ def test_home_board_defs_are_display_only(store, send):
 
 def test_no_home_board_returns_none(store):
     assert home_board_defs(store) is None
+
+
+# ---- C1.3: format count, status modes ------------------------------------------------------------------------
+
+def test_count_format(store, send):
+    add_request(store, ttl_s=0)
+    add_card(store, fields=[
+        {"path": "$.records", "label": "Waiting", "format": "count"},
+        {"path": "$.records[*]", "label": "Wild", "format": "count"},
+        {"path": "$.empty", "label": "Empty", "format": "count"},
+        {"path": "$.nope", "label": "Missing", "format": "count"},
+        {"path": "$.total", "label": "Not a list", "format": "count"},
+        {"path": "$.records", "label": "With unit", "format": "count", "unit": "episodes"},
+    ])
+    send.responses["/items"] = ok({"records": [1, 2, 3], "empty": [], "total": 9})
+    v = svc(store, send).build("c1")["values"]
+    assert v["waiting"] == {"text": "3", "raw": 3}
+    assert v["wild"] == {"text": "3", "raw": 3}
+    assert v["empty"] == {"text": "0", "raw": 0}            # an existing empty list is a real 0
+    assert v["missing"] == {"text": "unknown"}              # missing is not 0
+    assert v["not-a-list"] == {"text": "unknown"}
+    assert v["with-unit"]["text"] == "3 episodes"
+
+
+def _status_card(store, send, mode, body, **status):
+    add_request(store, ttl_s=0)
+    add_card(store, status={"path": "$.rows[*].s", "healthy": ["up"], "needs_attention": ["down"], "mode": mode, **status})
+    send.responses["/items"] = ok(body)
+    return svc(store, send).build("c1")["source_state"]
+
+
+def _rows(*s):
+    return {"rows": [{"s": x} for x in s]}
+
+
+@pytest.mark.parametrize("mode", ["all", "any"])
+def test_status_modes_share_the_safe_edges(store, send, mode):
+    assert _status_card(store, send, mode, _rows("up", "up")) == "healthy"
+    assert _status_card(store, send, mode, _rows("up", "down", "up")) == "needs_attention"   # one bad value wins in both
+    assert _status_card(store, send, mode, _rows()) == "unknown"                              # empty match is never healthy
+    assert _status_card(store, send, mode, {"other": 1}) == "unknown"
+    assert _status_card(store, send, mode, _rows("weird", "other")) == "unknown"              # nothing recognised
+
+
+def test_all_and_any_differ_on_an_unrecognised_value(store, send):
+    mixed = _rows("up", "weird")
+    assert _status_card(store, send, "all", mixed) == "unknown"     # every value must be healthy
+    assert _status_card(store, send, "any", mixed) == "healthy"     # at least one healthy, the rest tolerated
+
+
+def test_status_mode_first_is_the_default(store, send):
+    rows = {"rows": [{"s": "up"}, {"s": "down"}]}
+    assert _status_card(store, send, "first", rows) == "healthy"       # only the first value decides
+    add_request(store, "again", "/again", ttl_s=0)
+    add_card(store, "c2", request="ref.again", status={"path": "$.rows[*].s", "healthy": ["up"], "needs_attention": ["down"]})
+    send.responses["/again"] = ok(rows)
+    assert svc(store, send).build("c2")["source_state"] == "healthy"
+
+
+def test_last_index_in_a_card_field(store, send):
+    add_request(store, ttl_s=0)
+    add_card(store, fields=[{"path": "$.results[-1].ok", "label": "Latest", "format": "text"}])
+    send.responses["/items"] = ok({"results": [{"ok": False}, {"ok": True}]})
+    assert svc(store, send).build("c1")["values"]["latest"]["raw"] is True
+
+
+def test_status_empty_healthy_only_for_an_existing_empty_list(store, send):
+    add_request(store, ttl_s=0)
+    add_card(store, status={"path": "$.problems[*].level", "healthy": ["ok"], "needs_attention": ["error"], "mode": "any", "empty": "healthy"})
+    s = svc(store, send)
+    send.responses["/items"] = ok({"problems": []})
+    assert s.build("c1")["source_state"] == "healthy"            # an existing empty list: no problems
+    send.responses["/items"] = ok({"other": []})
+    assert s.build("c1")["source_state"] == "unknown"            # a missing path is never healthy
+    send.responses["/items"] = ok({"problems": [{"level": "error"}]})
+    assert s.build("c1")["source_state"] == "needs_attention"
+
+
+def test_status_empty_defaults_to_unknown(store, send):
+    add_request(store, ttl_s=0)
+    add_card(store, status={"path": "$.problems[*].level", "healthy": ["ok"], "needs_attention": ["error"], "mode": "any"})
+    send.responses["/items"] = ok({"problems": []})
+    assert svc(store, send).build("c1")["source_state"] == "unknown"
+
+
+# ---- C1.3: status.above (thresholds) ----------------------------------------------------------------------------
+
+def _above_card(store, send, body, above=None, **status):
+    add_request(store, ttl_s=0)
+    add_card(store, status={"path": "$.errors", "healthy": [0], "needs_attention": [], "above": above or {"value": 0, "state": "needs_attention"}, **status})
+    send.responses["/items"] = ok(body)
+    return svc(store, send).build("c1")["source_state"]
+
+
+def test_above_decides_before_the_lists(store, send):
+    assert _above_card(store, send, {"errors": 0}) == "healthy"            # not above: the lists decide
+    assert _above_card(store, send, {"errors": 2}) == "needs_attention"    # above the threshold
+    assert _above_card(store, send, {"errors": 0.5}) == "needs_attention"  # numbers, not just integers
+
+
+def test_above_can_name_degraded_and_has_a_real_threshold(store, send):
+    assert _above_card(store, send, {"errors": 3}, above={"value": 5, "state": "degraded"}) == "unknown"   # 3 is not above 5, and 3 is in no list
+    assert _above_card(store, send, {"errors": 6}, above={"value": 5, "state": "degraded"}) == "degraded"
+
+
+def test_above_never_treats_text_or_a_bool_as_a_number(store, send):
+    assert _above_card(store, send, {"errors": "9"}) == "unknown"
+    assert _above_card(store, send, {"errors": True}) == "unknown"
+    assert _above_card(store, send, {"nope": 1}) == "unknown"             # missing path stays unknown
+
+
+def test_above_uses_the_first_value_only(store, send):
+    add_request(store, ttl_s=0)
+    add_card(store, status={"path": "$.rows[*].n", "healthy": [0], "above": {"value": 0, "state": "needs_attention"}})
+    send.responses["/items"] = ok({"rows": [{"n": 0}, {"n": 9}]})
+    assert svc(store, send).build("c1")["source_state"] == "healthy"
+
+
+def test_above_is_validated_at_save_time():
+    import pytest as _pytest
+
+    from personal_world.worlds.models import StatusMap
+
+    with _pytest.raises(ValueError):
+        StatusMap(path="$.n", above={"value": float("nan"), "state": "needs_attention"})
+    with _pytest.raises(ValueError):
+        StatusMap(path="$.n", above={"value": 1, "state": "healthy"})
+    with _pytest.raises(ValueError):
+        StatusMap(path="$.n", above={"value": 1, "state": "degraded", "extra": 1})

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type FocusEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from "react";
 import { DEFAULT_TIMEOUT_MS, useHomeData, type CardFailure } from "./api";
 import { usePrefs } from "./prefs-core";
-import { briefing, buildSections, greeting, SECTION_TITLE, type Row as HomeRow, type Sections } from "./home-model";
+import { briefing, briefingFull, buildSections, greeting, SECTION_TITLE, type Row as HomeRow, type Sections } from "./home-model";
 import { move, setSize, setVisible } from "./edit-model";
 import { useBoardEdit } from "./use-board-edit";
 import { Row } from "./Row";
@@ -76,24 +76,16 @@ function NeedsYouList({ entries }: { entries: NeedsYouEntry[] }) {
   return (
     <ul className="fd-home-needs-you">
       {entries.map((entry) => {
-        const href = entry.action.kind === "open" ? safeHref(entry.action.href) : null;
+        // An approval is done in its source until the approve flow lands here: the item names where, and links there if it can.
+        const href = safeHref(entry.action.href);
         return (
           <li key={entry.id} className="fd-home-needs-you-item">
             <span className="fd-home-needs-you-text">{entry.text}</span>
-            <span className="fd-home-needs-you-source">{entry.source}</span>
-            {entry.action.kind === "open" ? (
-              href && (
-                <a className="fd-btn fd-btn--primary fd-home-action" href={href} aria-label={`Open: ${entry.text}`}>
-                  Open
-                </a>
-              )
-            ) : (
-              <>
-                <button type="button" className="fd-btn fd-home-action" disabled aria-label={`Approve: ${entry.text}`}>
-                  Approve
-                </button>
-                <span className="fd-home-note">Approving from here is not ready yet.</span>
-              </>
+            <span className="fd-home-needs-you-source">{entry.action.kind === "approve" ? `Approve in ${entry.source}` : entry.source}</span>
+            {href && (
+              <a className="fd-btn fd-btn--primary fd-home-action" href={href} aria-label={`Open: ${entry.text}`}>
+                Open
+              </a>
             )}
           </li>
         );
@@ -138,6 +130,20 @@ function EditControls({ item, index, count, disabled, onAction }: { item: BoardI
   );
 }
 
+/** True on a phone-sized window (under 760px). Re-reads when the window changes. */
+function usePhone(): boolean {
+  const query = "(max-width: 759px)";
+  const [phone, setPhone] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(query).matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia(query);
+    const on = () => setPhone(mq.matches);
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  return phone;
+}
+
 /**
  * The front door. Greeting and briefing first, the whole-world strip, then the finite Needs you and
  * the row sections. The board, the needs-you list and every card load independently. Pick up is omitted
@@ -149,6 +155,10 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   const { prefs } = usePrefs();
   const [openId, setOpenId] = useState<string | null>(null);
   const [quietOpen, setQuietOpen] = useState(false);
+  const [stripOpen, setStripOpen] = useState(false);
+  const quietFocus = useRef<"first" | "toggle" | null>(null);
+  const [quietTick, setQuietTick] = useState(0);
+  const phone = usePhone();
   const [revealTick, setRevealTick] = useState(0);
   const revealRef = useRef<string | null>(null);
   // While focus is inside Home, served data holds the snapshot taken when focus arrived, so nothing moves
@@ -203,6 +213,16 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
     target?.focus();
   }, [focusTick]);
 
+  // Calm's Show moves focus to the first revealed row; Show less puts it back on the toggle.
+  useEffect(() => {
+    const want = quietFocus.current;
+    if (!want) return;
+    quietFocus.current = null;
+    const root = rootRef.current;
+    if (want === "toggle") root?.querySelector<HTMLElement>("[data-quiet-toggle]")?.focus();
+    else root?.querySelector<HTMLElement>(".fd-home-quiet-rows li.fd-row button.fd-row-name")?.focus();
+  }, [quietTick]);
+
   const change = (next: typeof edits, message: string, focusKey: string) => {
     edit.apply(next, message);
     focusRef.current = focusKey;
@@ -216,7 +236,26 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
 
   const sections = snap.sections;
   const { words, density } = prefs;
-  const calmQuiet = density === "calm" && !quietOpen && !editing;
+  const calm = density === "calm";
+  const calmQuiet = calm && !quietOpen && !editing;
+  // Bad-day layout: Calm at every width, and any density on a phone, shows only what needs a look plus one quiet tile.
+  const condensed = calm || phone;
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || e.defaultPrevented) return;
+    if (openId) {
+      const id = openId;
+      setOpenId(null);
+      document.getElementById(`fd-row-${id}`)?.querySelector<HTMLElement>("button.fd-row-name")?.focus();
+      e.preventDefault();
+    } else if (editing) {
+      setEditing(false);
+      setAddOpen(false);
+      edit.clearNote();
+      rootRef.current?.querySelector<HTMLElement>(".fd-home-edit")?.focus();
+      e.preventDefault();
+    }
+  };
 
   const reveal = (cardId: string) => {
     setOpenId(cardId);
@@ -227,12 +266,15 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   const toggle = (cardId: string) => setOpenId((cur) => (cur === cardId ? null : cardId));
 
   const failedCheck = needsYouStatus === "error";
-  const base = sections
-    ? briefing({ ...sections, needs_you: failedCheck ? [] : needsYou })
+  const forBriefing = sections ? { ...sections, needs_you: failedCheck ? [] : needsYou } : null;
+  const base = forBriefing
+    ? words === "full"
+      ? briefingFull(forBriefing, timeZone)
+      : briefing(forBriefing)
     : needsYou.length > 0
       ? `${needsYou.length} for you`
       : "";
-  const ledeText = failedCheck ? ["Couldn't check what needs you", base].filter(Boolean).join(" · ") : base;
+  const ledeText = failedCheck ? [words === "full" ? "Couldn't check what needs you." : "Couldn't check what needs you", base].filter(Boolean).join(words === "full" ? " " : " · ") : base;
 
   const act = (row: HomeRow, list: HomeRow[], a: EditAction) => {
     if (!arranged) return;
@@ -261,8 +303,165 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
   );
   const hiddenItems = arranged?.items.filter((i) => i.hidden) ?? [];
 
+  const checking = boardStatus === "loading" || pending.length > 0 || needsYouStatus === "loading";
+  // One polite line for the whole page, announced when it changes: not once per source.
+  const sourcesStatus = boardStatus === "error" ? "" : checking ? "Checking sources…" : "Up to date";
+
+  const needsYouNode = (
+    <Section title={SECTION_TITLE.needs_you} className="fd-needs-band">
+      {needsYouStatus === "error" ? (
+        <div className="fd-home-problem">
+          <p className="fd-home-error" role="alert">
+            Couldn't check what needs you.
+          </p>
+          <button type="button" className="fd-btn fd-home-retry" onClick={data.refetchNeedsYou}>
+            Try again
+          </button>
+        </div>
+      ) : needsYouStatus === "loading" ? (
+        <p className="fd-home-loading">Checking what needs you</p>
+      ) : needsYou.length === 0 ? (
+        <p className="fd-home-empty">Nothing for you right now.</p>
+      ) : (
+        <NeedsYouList entries={needsYou} />
+      )}
+    </Section>
+  );
+
+  const stripNode = sections && (
+    <>
+      <Strip entries={snap.entries} onSelect={reveal} condensed={condensed} expanded={stripOpen} onToggleQuiet={() => setStripOpen((o) => !o)} />
+      {pending.length > 0 && <p className="fd-home-checking">{`Checking ${pending.length} ${pending.length === 1 ? "source" : "sources"}`}</p>}
+      <div className="fd-home-editrow">
+        <button
+          type="button"
+          className="fd-btn fd-btn--quiet fd-home-edit"
+          aria-busy={opening}
+          onClick={async () => {
+            if (editing) {
+              setEditing(false);
+              setAddOpen(false);
+              edit.clearNote();
+            } else if (!opening) {
+              // Read the board file first: what you edit is what is saved, never an older copy.
+              setOpening(true);
+              const ok = await edit.begin();
+              setOpening(false);
+              if (ok) setEditing(true);
+            }
+          }}
+        >
+          {editing ? "Done" : "Edit Home"}
+        </button>
+        {editing && (
+          <>
+            <button type="button" className="fd-btn fd-btn--quiet" data-edit-add="" disabled={!!edit.error} aria-expanded={addOpen} onClick={() => setAddOpen((o) => !o)}>
+              + Add to Home
+            </button>
+            <button type="button" className="fd-btn fd-btn--quiet" data-edit="undo" disabled={!edit.canUndo || !!edit.error} onClick={undo}>
+              Undo
+            </button>
+          </>
+        )}
+      </div>
+      {editing && addOpen && (
+        <div className="fd-home-add" role="group" aria-label="Add to Home">
+          {hiddenItems.length === 0 ? (
+            <p className="fd-home-empty">Everything is on Home.</p>
+          ) : (
+            <ul className="fd-home-add-list">
+              {hiddenItems.map((i) => (
+                <li key={i.card}>
+                  <button type="button" className="fd-btn" onClick={() => change(setVisible(edits, i.card, true), `Added ${i.title} to Home`, `${i.card}:size-${i.size}`)}>
+                    {`Add ${i.title} to Home`}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {edit.error && (
+        <div className="fd-home-problem">
+          <div>
+            <p className="fd-home-error" role="alert">
+              {edit.error.text}
+            </p>
+            {edit.error.detail && (
+              <details className="fd-home-detail">
+                <summary>Details</summary>
+                <p>{edit.error.detail}</p>
+              </details>
+            )}
+            <p className="fd-home-note">Editing is paused until you reload.</p>
+          </div>
+          <button
+            type="button"
+            className="fd-btn fd-home-retry"
+            onClick={async () => {
+              await edit.reload();
+              rootRef.current?.querySelector<HTMLElement>(".fd-home-edit")?.focus();
+            }}
+          >
+            Reload
+          </button>
+        </div>
+      )}
+      <p className="fd-home-editnote" role="status">{note}</p>
+    </>
+  );
+
+  const restNode = sections && (
+    <>
+      <Section title={SECTION_TITLE.needs_look}>
+        {sections.needs_look.length === 0 ? (
+          <p className="fd-home-empty">Nothing needs a look. Everything is answering.</p>
+        ) : (
+          <ul className="fd-home-rows">{sections.needs_look.map(renderRow(1, sections.needs_look))}</ul>
+        )}
+      </Section>
+
+      {sections.your_life.length > 0 && (
+        <Section title={SECTION_TITLE.your_life}>
+          <ul className="fd-home-rows">{sections.your_life.map(renderRow(2, sections.your_life))}</ul>
+        </Section>
+      )}
+
+      {sections.quietly_working.length > 0 && (
+        <Section title={SECTION_TITLE.quietly_working}>
+          {calm && !editing ? (
+            <>
+              <p className="fd-home-quiet">
+                <span className="fd-home-quiet-line">{calmQuiet ? `${sections.quietly_working.length} quiet: ${sections.quietly_working.map((row) => row.item.title).join(", ")}` : `${sections.quietly_working.length} quiet`}</span>{" "}
+                <button
+                  type="button"
+                  className="fd-btn fd-btn--quiet fd-home-quiet-toggle"
+                  data-quiet-toggle=""
+                  aria-expanded={!calmQuiet}
+                  onClick={() => {
+                    quietFocus.current = calmQuiet ? "first" : "toggle";
+                    setQuietOpen(calmQuiet);
+                    setQuietTick((n) => n + 1);
+                  }}
+                >
+                  {calmQuiet ? "Show" : "Show less"}
+                </button>
+              </p>
+              {!calmQuiet && <ul className="fd-home-rows fd-home-quiet-rows">{sections.quietly_working.map(renderRow(3, sections.quietly_working))}</ul>}
+            </>
+          ) : (
+            <ul className="fd-home-rows">{sections.quietly_working.map(renderRow(3, sections.quietly_working))}</ul>
+          )}
+        </Section>
+      )}
+    </>
+  );
+
   return (
-    <div className="fd-home" ref={rootRef} data-saving={edit.saving ? "true" : "false"} onFocus={onFocus} onBlur={onBlur}>
+    <div className="fd-home" ref={rootRef} data-saving={edit.saving ? "true" : "false"} data-condensed={condensed ? "true" : "false"} onFocus={onFocus} onBlur={onBlur} onKeyDown={onKeyDown}>
+      <p role="status" className="fd-sr">
+        {sourcesStatus}
+      </p>
       <header className="fd-home-head">
         <h1 className="fd-home-title">{greeting(now ?? new Date(), prefs.name)}</h1>
         {ledeText && <p className="fd-home-briefing">{ledeText}</p>}
@@ -271,163 +470,28 @@ export function Home({ timeZone, timeoutMs = DEFAULT_TIMEOUT_MS, now }: HomeProp
       {boardStatus === "error" && (
         <div className="fd-home-problem">
           <p className="fd-home-error" role="alert">
-            Home could not load. Try again.
+            Home could not load.
           </p>
           <button type="button" className="fd-btn fd-home-retry" onClick={data.refetchBoard}>
             Try again
           </button>
         </div>
       )}
-      {boardStatus === "loading" && (
-        <p className="fd-home-loading" role="status">
-          Loading Home
-        </p>
-      )}
+      {boardStatus === "loading" && <p className="fd-home-loading">Loading Home</p>}
 
-      {sections && (
+      {/* Bad-day order (Calm): what needs you comes first, then the condensed strip. Otherwise the strip leads. */}
+      {calm ? (
         <>
-          <Strip entries={snap.entries} onSelect={reveal} />
-          {pending.length > 0 && (
-            <p className="fd-home-checking" role="status">
-              {`Checking ${pending.length} ${pending.length === 1 ? "source" : "sources"}`}
-            </p>
-          )}
-          <div className="fd-home-editrow">
-            <button
-              type="button"
-              className="fd-btn fd-btn--quiet fd-home-edit"
-              aria-pressed={editing}
-              aria-busy={opening}
-              onClick={async () => {
-                if (editing) {
-                  setEditing(false);
-                  setAddOpen(false);
-                  edit.clearNote();
-                } else if (!opening) {
-                  // Read the board file first: what you edit is what is saved, never an older copy.
-                  setOpening(true);
-                  const ok = await edit.begin();
-                  setOpening(false);
-                  if (ok) setEditing(true);
-                }
-              }}
-            >
-              Edit Home
-            </button>
-            {editing && (
-              <>
-                <button type="button" className="fd-btn fd-btn--quiet" data-edit-add="" disabled={!!edit.error} aria-expanded={addOpen} onClick={() => setAddOpen((o) => !o)}>
-                  + Add to Home
-                </button>
-                <button type="button" className="fd-btn fd-btn--quiet" data-edit="undo" disabled={!edit.canUndo || !!edit.error} onClick={undo}>
-                  Undo
-                </button>
-              </>
-            )}
-          </div>
-          {editing && addOpen && (
-            <div className="fd-home-add" role="group" aria-label="Add to Home">
-              {hiddenItems.length === 0 ? (
-                <p className="fd-home-empty">Everything is on Home.</p>
-              ) : (
-                <ul className="fd-home-add-list">
-                  {hiddenItems.map((i) => (
-                    <li key={i.card}>
-                      <button type="button" className="fd-btn" onClick={() => change(setVisible(edits, i.card, true), `Added ${i.title} to Home`, `${i.card}:size-${i.size}`)}>
-                        {`Add ${i.title} to Home`}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-          {edit.error && (
-            <div className="fd-home-problem">
-              <div>
-                <p className="fd-home-error" role="alert">
-                  {edit.error.text}
-                </p>
-                {edit.error.detail && (
-                  <details className="fd-home-detail">
-                    <summary>Details</summary>
-                    <p>{edit.error.detail}</p>
-                  </details>
-                )}
-                <p className="fd-home-note">Editing is paused until you reload.</p>
-              </div>
-              <button
-                type="button"
-                className="fd-btn fd-home-retry"
-                onClick={async () => {
-                  await edit.reload();
-                  rootRef.current?.querySelector<HTMLElement>(".fd-home-edit")?.focus();
-                }}
-              >
-                Reload
-              </button>
-            </div>
-          )}
-          <p className="fd-home-editnote" role="status">{note}</p>
+          {needsYouNode}
+          {stripNode}
+        </>
+      ) : (
+        <>
+          {stripNode}
+          <div className="fd-home-body">{needsYouNode}</div>
         </>
       )}
-
-      <div className="fd-home-body">
-        <Section title={SECTION_TITLE.needs_you} className="fd-needs-band">
-          {needsYouStatus === "error" ? (
-            <div className="fd-home-problem">
-              <p className="fd-home-error" role="alert">
-                Couldn't check what needs you.
-              </p>
-              <button type="button" className="fd-btn fd-home-retry" onClick={data.refetchNeedsYou}>
-                Retry
-              </button>
-            </div>
-          ) : needsYouStatus === "loading" ? (
-            <p className="fd-home-loading" role="status">
-              Checking what needs you
-            </p>
-          ) : needsYou.length === 0 ? (
-            <p className="fd-home-empty">Nothing for you right now.</p>
-          ) : (
-            <NeedsYouList entries={needsYou} />
-          )}
-        </Section>
-
-        {sections && (
-          <>
-            <Section title={SECTION_TITLE.needs_look}>
-              {sections.needs_look.length === 0 ? (
-                <p className="fd-home-empty">Nothing needs a look. Everything is answering.</p>
-              ) : (
-                <ul className="fd-home-rows">{sections.needs_look.map(renderRow(1, sections.needs_look))}</ul>
-              )}
-            </Section>
-
-            {sections.your_life.length > 0 && (
-              <Section title={SECTION_TITLE.your_life}>
-                <ul className="fd-home-rows">{sections.your_life.map(renderRow(2, sections.your_life))}</ul>
-              </Section>
-            )}
-
-            {sections.quietly_working.length > 0 && (
-              <Section title={SECTION_TITLE.quietly_working}>
-                {calmQuiet ? (
-                  <p className="fd-home-quiet">
-                    <span className="fd-home-quiet-line">{`${sections.quietly_working.length} quiet: ${sections.quietly_working.map((row) => row.item.title).join(", ")}`}</span>{" "}
-                    <button type="button" className="fd-btn fd-btn--quiet fd-home-quiet-toggle" onClick={() => setQuietOpen(true)}>
-                      Show
-                    </button>
-                  </p>
-                ) : (
-                  <ul className="fd-home-rows">{sections.quietly_working.map(renderRow(3, sections.quietly_working))}</ul>
-                )}
-              </Section>
-            )}
-          </>
-        )}
-      </div>
+      <div className="fd-home-body">{restNode}</div>
     </div>
   );
 }
-

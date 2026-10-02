@@ -40,6 +40,7 @@ import httpcore
 import httpx
 
 from .secrets import resolve_secret_ref
+from .templates import render_query
 
 ErrorClass = Literal[
     "timeout",
@@ -170,8 +171,12 @@ def _ms(started: float | None) -> int | None:
     return None if started is None else int((time.monotonic() - started) * 1000)
 
 
-def build_url(provider: Any, request: Any) -> tuple[str, str, int, str] | str:
-    """Return (scheme, host, port, path_and_query) or a refusal reason (str)."""
+def build_url(provider: Any, request: Any, now: Any = None) -> tuple[str, str, int, str] | str:
+    """Return (scheme, host, port, path_and_query) or a refusal reason (str).
+
+    Query values may carry the closed set of C1.3 templates ({today}, {today+Nd}, {today-Nd}, {now}); they are
+    rendered here, in UTC, and nowhere else.
+    """
     base = urlsplit(provider.base_url)
     if base.scheme not in ("http", "https") or not base.hostname:
         return "provider base_url must be http(s) with a host"
@@ -203,7 +208,7 @@ def build_url(provider: Any, request: Any) -> tuple[str, str, int, str] | str:
         return "provider path_prefix is not safe"
     base_path = base.path.rstrip("/")
     full_path = f"{base_path}{prefix}{path}"
-    query = urlencode(request.query, quote_via=quote) if request.query else ""
+    query = urlencode(render_query(request.query, now), quote_via=quote) if request.query else ""
     joined = f"{base.scheme}://{base.netloc}{full_path}" + (f"?{query}" if query else "")
     check = urlsplit(joined)
     if (check.scheme, check.hostname, check.port or port) != (base.scheme, base.hostname, port):

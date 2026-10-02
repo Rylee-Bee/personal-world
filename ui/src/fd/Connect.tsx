@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { sampleBindings, sampleSecrets } from "./fixtures";
 import { Tabs, type TabDef } from "./Tabs";
 import "./fd.css";
@@ -6,66 +6,56 @@ import "./fd.css";
 /** One binding as the sample fixtures describe it (read is name + word only). */
 type Binding = (typeof sampleBindings)[number];
 
-/** UNKNOWN is never shown bare: it always says the result was not confirmed. */
+/** One plain word per outcome. UNKNOWN is never shown bare: it always says the result was not confirmed. */
 function outcomeText(outcome: string): string {
-  return outcome === "UNKNOWN" ? "UNKNOWN: the result was not confirmed" : outcome;
+  if (outcome === "UNKNOWN") return "Unknown: the result was not confirmed";
+  return outcome.charAt(0) + outcome.slice(1).toLowerCase();
 }
 
-/**
- * A confirmation dialog for a write binding: focus moves in, Escape cancels,
- * and the receipt only lands once Confirm is pressed. There is no value to
- * show, so the dialog holds the question and the two actions only.
- */
-function RunDialog({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
-  const titleId = useId();
-  const ref = useRef<HTMLDivElement>(null);
+type WriteBinding = Extract<Binding, { access: "write" }>;
 
-  useEffect(() => {
-    ref.current?.focus();
+/**
+ * A native modal dialog for a write binding: the browser makes the page behind it inert, traps focus and
+ * returns it on close. The safe choice comes first and has initial focus. The buttons are named for the act.
+ */
+function RunDialog({ binding, onConfirm, onCancel }: { binding: WriteBinding; onConfirm: () => void; onCancel: () => void }) {
+  const titleId = useId();
+  const ref = useRef<HTMLDialogElement>(null);
+
+  // Layout effects, so the dialog is closed (and focus handed back) before React removes it.
+  useLayoutEffect(() => {
+    const d = ref.current;
+    if (d && !d.open) d.showModal();
+    return () => {
+      if (d?.open) d.close();
+    };
   }, []);
 
   return (
-    <div
+    <dialog
       ref={ref}
-      role="dialog"
-      aria-modal="true"
       aria-labelledby={titleId}
-      tabIndex={-1}
       className="fd-dialog"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          onCancel();
-        } else if (event.key === "Tab") {
-          // Trap focus: Tab and Shift+Tab cycle inside the dialog.
-          const items = Array.from(ref.current?.querySelectorAll<HTMLElement>("button, [href], input, [tabindex]:not([tabindex='-1'])") ?? []);
-          if (items.length === 0) return;
-          const first = items[0];
-          const last = items[items.length - 1];
-          const at = document.activeElement;
-          if (event.shiftKey && (at === first || at === ref.current)) {
-            event.preventDefault();
-            last.focus();
-          } else if (!event.shiftKey && at === last) {
-            event.preventDefault();
-            first.focus();
-          }
-        }
+      onCancel={(event) => {
+        // Escape: the safe choice.
+        event.preventDefault();
+        onCancel();
       }}
     >
       <h2 id={titleId} className="fd-dialog-title">
-        Run {name}?
+        {binding.act}?
       </h2>
+      <p className="fd-dialog-consequence">{binding.consequence}</p>
       <p className="fd-dialog-sample">Sample, nothing was sent.</p>
       <div className="fd-dialog-actions">
-        <button type="button" className="fd-btn" onClick={onConfirm}>
-          Confirm
+        <button type="button" className="fd-btn fd-btn--primary" autoFocus onClick={onCancel}>
+          {binding.safe}
         </button>
-        <button type="button" className="fd-btn" onClick={onCancel}>
-          Cancel
+        <button type="button" className="fd-btn" onClick={onConfirm}>
+          {binding.act}
         </button>
       </div>
-    </div>
+    </dialog>
   );
 }
 
@@ -74,22 +64,29 @@ function RunDialog({ name, onConfirm, onCancel }: { name: string; onConfirm: () 
  * word "Read"; a write binding asks first and then reports the outcome.
  */
 function ActionsPanel() {
-  const [running, setRunning] = useState<Binding | null>(null);
+  const [running, setRunning] = useState<WriteBinding | null>(null);
   const [receipt, setReceipt] = useState<string | null>(null);
   const runRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
+  // Focus goes back to the Run button once the dialog has closed (a modal's page is inert until then).
+  const refocus = useRef<string | null>(null);
+  useEffect(() => {
+    if (running === null && refocus.current) {
+      runRefs.current[refocus.current]?.focus();
+      refocus.current = null;
+    }
+  }, [running]);
+
   const cancel = () => {
-    const id = running?.id;
+    refocus.current = running?.id ?? null;
     setRunning(null);
-    if (id) runRefs.current[id]?.focus();
   };
 
   const confirm = () => {
-    if (!running || running.access !== "write") return;
-    const id = running.id;
+    if (!running) return;
+    refocus.current = running.id;
     setReceipt(`${running.name}: ${outcomeText(running.outcome)}. Sample, nothing was sent.`);
     setRunning(null);
-    runRefs.current[id]?.focus();
   };
 
   return (
@@ -117,14 +114,10 @@ function ActionsPanel() {
           </li>
         ))}
       </ul>
-      {receipt && (
-        <p role="status" className="fd-receipt">
-          {receipt}
-        </p>
-      )}
-      {running && running.access === "write" && (
-        <RunDialog name={running.name} onConfirm={confirm} onCancel={cancel} />
-      )}
+      <p role="status" className="fd-receipt">
+        {receipt ?? ""}
+      </p>
+      {running && <RunDialog binding={running} onConfirm={confirm} onCancel={cancel} />}
     </div>
   );
 }
@@ -132,11 +125,25 @@ function ActionsPanel() {
 /** Advanced: secret names and whether each is set. Values are never shown. */
 function SecretRow({ name, isSet }: { name: string; isSet: boolean }) {
   const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLButtonElement>(null);
+  const backToReplace = useRef(false);
 
-  const save = () => {
+  // Replace puts focus in the field; Save and Cancel put it back on Replace.
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+    else if (backToReplace.current) {
+      backToReplace.current = false;
+      replaceRef.current?.focus();
+    }
+  }, [editing]);
+
+  const close = (didSave: boolean) => {
     if (inputRef.current) inputRef.current.value = "";
+    backToReplace.current = true;
+    setSaved(didSave);
     setEditing(false);
   };
 
@@ -151,19 +158,22 @@ function SecretRow({ name, isSet }: { name: string; isSet: boolean }) {
           </label>
           <input id={inputId} ref={inputRef} type="password" autoComplete="off" className="fd-input" />
           <div className="fd-secret-actions">
-            <button type="button" className="fd-btn" onClick={save}>
+            <button type="button" className="fd-btn" onClick={() => close(true)}>
               Save
             </button>
-            <button type="button" className="fd-btn" onClick={() => setEditing(false)}>
+            <button type="button" className="fd-btn" onClick={() => close(false)}>
               Cancel
             </button>
           </div>
         </div>
       ) : (
-        <button type="button" className="fd-btn" onClick={() => setEditing(true)}>
+        <button type="button" ref={replaceRef} className="fd-btn" onClick={() => { setSaved(false); setEditing(true); }}>
           Replace {name}
         </button>
       )}
+      <p role="status" className="fd-secret-saved">
+        {saved ? "Saved" : ""}
+      </p>
     </div>
   );
 }
@@ -171,6 +181,7 @@ function SecretRow({ name, isSet }: { name: string; isSet: boolean }) {
 function AdvancedPanel() {
   return (
     <div className="fd-advanced">
+      <p className="fd-sample">Sample data. Nothing is stored.</p>
       {sampleSecrets.map((secret) => (
         <SecretRow key={secret.name} name={secret.name} isSet={secret.set} />
       ))}
@@ -178,14 +189,13 @@ function AdvancedPanel() {
   );
 }
 
-const ARRIVES = "Saved requests will run here.";
 
 /** Connect: the five front-door tabs. Only Actions and Advanced have content yet. */
 export function Connect() {
   const tabs: TabDef[] = [
-    { id: "requests", label: "Requests", panel: <p className="fd-sentence">{ARRIVES}</p> },
-    { id: "providers", label: "Providers", panel: <p className="fd-sentence">{ARRIVES}</p> },
-    { id: "recipes", label: "Recipes", panel: <p className="fd-sentence">{ARRIVES}</p> },
+    { id: "requests", label: "Requests", panel: <p className="fd-sentence">No saved requests yet. They will run here once Connect is wired up.</p> },
+    { id: "providers", label: "Providers", panel: <p className="fd-sentence">No providers yet. A provider is a service Worlds can read.</p> },
+    { id: "recipes", label: "Recipes", panel: <p className="fd-sentence">No recipes installed yet. A recipe sets up one service in a single step.</p> },
     { id: "actions", label: "Actions", panel: <ActionsPanel /> },
     { id: "advanced", label: "Advanced", panel: <AdvancedPanel /> },
   ];

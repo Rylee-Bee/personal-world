@@ -7,6 +7,11 @@ export interface StripProps {
   /** Every source in board order. A source still loading is a tile that says so. */
   entries: StripEntry[];
   onSelect: (cardId: string) => void;
+  /** Bad-day mode: show only the sources that need a look, plus one "quiet" tile that opens the rest in place. */
+  condensed?: boolean;
+  /** Whether the quiet tile has opened the full strip. */
+  expanded?: boolean;
+  onToggleQuiet?: () => void;
 }
 
 export type StripEntry = { row: HomeRow } | { pending: { card: string; title: string; icon: string } };
@@ -42,9 +47,8 @@ function StripItem({ row, onSelect }: { row: HomeRow; onSelect: (cardId: string)
   const { item, card } = row;
   const state = STATE_SHAPE[card.source_state];
   const notConfigured = card.source_state === "not_configured";
-  const label = notConfigured
-    ? `${item.title}: ${state.word}. Set up in Connect`
-    : `${item.title}: ${state.word}. Show details`;
+  // The accessible name starts with the visible text ("Downloads Unavailable") so voice control can say what it sees.
+  const label = notConfigured ? `${item.title} ${state.word}. Set up in Connect` : `${item.title} ${state.word}. Show details`;
   const cls = `fd-strip-item ${TILE[card.source_state] ?? "s-unk"}`;
 
   const body = (
@@ -59,7 +63,7 @@ function StripItem({ row, onSelect }: { row: HomeRow; onSelect: (cardId: string)
         <span className="fd-strip-shape" aria-hidden="true">
           {state.shape}
         </span>
-        <span className="fd-strip-word">{notConfigured ? "Not set up" : state.word}</span>
+        <span className="fd-strip-word">{state.word}</span>
       </span>
     </>
   );
@@ -80,7 +84,7 @@ function StripItem({ row, onSelect }: { row: HomeRow; onSelect: (cardId: string)
 
 function PendingItem({ item }: { item: { title: string; icon: string } }) {
   return (
-    <button type="button" className="fd-strip-item s-unk" disabled aria-label={`${item.title}: Loading`}>
+    <button type="button" className="fd-strip-item s-unk" disabled aria-label={`${item.title} Loading`}>
       <span className="fd-strip-top">
         <span className="fd-strip-icon" aria-hidden="true">
           {glyph(item.icon)}
@@ -94,12 +98,26 @@ function PendingItem({ item }: { item: { title: string; icon: string } }) {
   );
 }
 
+const isQuiet = (e: StripEntry) => "row" in e && (e.row.card.source_state === "healthy" || e.row.card.source_state === "not_configured") && e.row.card.freshness !== "stale";
+
 /** The whole world at a glance, in board order, as one control per source. */
-export function Strip({ entries, onSelect }: StripProps) {
+export function Strip({ entries, onSelect, condensed = false, expanded = false, onToggleQuiet }: StripProps) {
+  const quiet = entries.filter(isQuiet);
+  const showing = condensed && !expanded ? entries.filter((e) => !isQuiet(e)) : entries;
   return (
     <div className="fd-strip" role="group" aria-label="Whole world">
-      {entries.map((e) =>
+      {showing.map((e) =>
         "row" in e ? <StripItem key={e.row.item.card} row={e.row} onSelect={onSelect} /> : <PendingItem key={e.pending.card} item={e.pending} />,
+      )}
+      {condensed && quiet.length > 0 && (
+        <button type="button" className="fd-strip-item s-ok fd-strip-quiet" aria-expanded={expanded} onClick={onToggleQuiet} aria-label={expanded ? "Show fewer sources" : `${quiet.length} quiet. Show all`}>
+          <span className="fd-strip-state">
+            <span className="fd-strip-shape" aria-hidden="true">
+              ●
+            </span>
+            <span className="fd-strip-word">{expanded ? "Show fewer" : `${quiet.length} quiet`}</span>
+          </span>
+        </button>
       )}
     </div>
   );

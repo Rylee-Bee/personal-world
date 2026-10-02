@@ -222,18 +222,36 @@ class CardService:
         if status is None:
             return "healthy"
         try:
-            found = mapping.extract(document, status.path)
+            res = mapping.resolve(document, status.path)
         except mapping.MappingError:
             logger.warning("card %s has an unparseable status path %r", card.id, status.path)
             return "unknown"
+        found = res.values
         if not found:
+            # Nothing matched is never healthy, unless the card says an existing empty list means "no problems".
+            return "healthy" if res.found and status.empty == "healthy" else "unknown"
+        healthy = status.healthy or []
+        attention = status.needs_attention or []
+        if status.above is not None:
+            first = found[0]
+            # A real number above the threshold decides before the lists (a bool or text never counts as a number).
+            if isinstance(first, (int, float)) and not isinstance(first, bool) and first > status.above.value:
+                return status.above.state
+        if status.mode == "first":
+            value = found[0]
+            if value in healthy:
+                return "healthy"
+            if value in attention:
+                return "needs_attention"
             return "unknown"
-        value = found[0]
-        if value in (status.healthy or []):
-            return "healthy"
-        if value in (status.needs_attention or []):
+        # all / any (C1.3): every extracted value counts. Any value in needs_attention wins in both modes.
+        # all: healthy only when EVERY value is healthy (an unrecognised value makes it unknown).
+        # any: healthy when AT LEAST ONE value is healthy (unrecognised values are tolerated, e.g. redundant endpoints).
+        if any(v in attention for v in found):
             return "needs_attention"
-        return "unknown"
+        if status.mode == "all":
+            return "healthy" if all(v in healthy for v in found) else "unknown"
+        return "healthy" if any(v in healthy for v in found) else "unknown"
 
     def _values(self, card: Card, document: Any) -> dict[str, dict[str, Any]]:
         """Field key -> ``{"text", "raw"?}``. No match means unknown, never 0."""
@@ -254,6 +272,11 @@ class CardService:
         found = res.values
         if not res.found:
             return dict(_NO_MATCH)  # the path does not exist: unknown, never none or 0
+        if field.format == "count":
+            n = mapping.count_of(res, field.path)
+            if n is None:
+                return dict(_NO_MATCH)  # not a list: unknown, never 0
+            return {"text": mapping.format_value(n, "number", field.unit, now=now), "raw": n}
         if _is_wildcard(field.path):
             # A wildcard over a list that exists but is empty is a real value:
             # it reads as "none", not "unknown".

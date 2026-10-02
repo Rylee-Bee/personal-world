@@ -1,3 +1,4 @@
+import { formatClock } from "./time";
 import type { Board, BoardItem, CardEnvelope, NeedsYouEntry } from "./types";
 
 export type SectionKey = "needs_you" | "needs_look" | "pick_up" | "your_life" | "quietly_working";
@@ -47,20 +48,56 @@ export function buildSections(board: Board, cards: Record<string, CardEnvelope>,
   return out;
 }
 
-/** Terse briefing, e.g. "2 for you · Downloads down · rest quiet". */
+const STATE_WORD: Record<string, string> = { unavailable: "unavailable", degraded: "degraded", needs_attention: "needs attention", stale: "stale", unknown: "unknown" };
+const stateWord = (r: Row) => STATE_WORD[r.card.source_state] ?? "stale";
+
+/** Terse briefing, in the same words as the badges: "2 for you · Downloads unavailable · rest quiet". */
 export function briefing(sections: Sections): string {
   const parts: string[] = [];
   const n = sections.needs_you.length;
   if (n > 0) parts.push(`${n} for you`);
   const look = sections.needs_look;
-  for (const r of look.slice(0, 2)) {
-    const s = r.card.source_state;
-    const w = s === "unavailable" ? "down" : s === "degraded" ? "slow" : s === "needs_attention" ? "needs a look" : s === "unknown" ? "unclear" : "stale";
-    parts.push(`${r.item.title} ${w}`);
-  }
+  for (const r of look.slice(0, 2)) parts.push(`${r.item.title} ${stateWord(r)}`);
   if (look.length > 2) parts.push(`${look.length - 2} more to look at`);
   parts.push(parts.length === 0 ? "all quiet" : "rest quiet");
   return parts.join(" · ");
+}
+
+const NUMBER_WORDS = ["Nothing", "One thing needs you", "Two things need you", "Three things need you", "Four things need you", "Five things need you", "Six things need you", "Seven things need you", "Eight things need you", "Nine things need you"];
+
+/** Words: Full. Whole sentences, same facts: "Two things need you. Downloads isn't answering; it last worked at 03:12. Everything else is quiet." */
+export function briefingFull(sections: Sections, timeZone?: string): string {
+  const out: string[] = [];
+  const n = sections.needs_you.length;
+  if (n > 0) out.push(`${n < NUMBER_WORDS.length ? NUMBER_WORDS[n] : `${n} things need you`}.`);
+  const look = sections.needs_look;
+  for (const r of look.slice(0, 2)) {
+    const t = r.item.title;
+    const at = r.card.last_good_at ?? r.card.observed_at;
+    const clock = at ? formatClock(at, timeZone) : null;
+    switch (r.card.source_state) {
+      case "unavailable":
+        out.push(clock ? `${t} isn't answering; it last worked at ${clock}.` : `${t} isn't answering, and it hasn't answered yet.`);
+        break;
+      case "degraded":
+        out.push(`${t} is having trouble${clock ? `; it last worked at ${clock}` : ""}.`);
+        break;
+      case "needs_attention":
+        out.push(`${t} needs attention.`);
+        break;
+      case "unknown":
+        out.push(`${t} is unknown: it hasn't answered yet.`);
+        break;
+      default:
+        out.push(`${t} is out of date${clock ? `; it last updated at ${clock}` : ""}.`);
+    }
+  }
+  if (look.length > 2) {
+    const more = look.length - 2;
+    out.push(`${more} more ${more === 1 ? "needs" : "need"} a look.`);
+  }
+  out.push(out.length === 0 ? "All quiet." : "Everything else is quiet.");
+  return out.join(" ");
 }
 
 export function greeting(now: Date, name?: string): string {
