@@ -749,3 +749,87 @@ def test_a_leftover_request_is_reused_only_if_it_is_exactly_this_actions_own(env
     store.delete("request", rid)
     store.save("request", Req(id=rid, provider="demo", method="POST", path="/room/actions/refresh", ttl_s=0))
     assert svc.adopt("demo", "refresh").id == aid                         # exactly ours: reused
+
+
+# ------------------------------------------------- typed choices + answering a need (C8)
+
+CHOICE_ACTION = {"id": "pick", "label": "Pick a match", "input_schema": {"type": "object"},
+                 "default_autonomy": "ask_first", "writes": True, "allow_text": True,
+                 "choices": [{"value": "a1", "label": "Match A"}, {"value": "b2", "label": "Match B"}]}
+
+
+def test_action_with_choices_prefills_request(env, room, tmp_path):
+    room.actions = [CHOICE_ACTION]
+    store, client, svc, clock, _ = env
+    cands = svc.candidates("demo")
+    assert len(cands) == 1
+    assert cands[0]["allow_text"] is True
+    assert cands[0]["choices"] == [{"value": "a1", "label": "Match A"}, {"value": "b2", "label": "Match B"}]
+    svc.adopt("demo", "pick")
+    d, o = run(store, tmp_path)
+    receipt = svc.answer("demo", "pick", {"choice": "a1"}, o, d)
+    assert receipt["state"] == "SUCCEEDED" and receipt["authority"] == "worlds_owner"
+    assert len(room.posts) == 1                                            # at most one network attempt
+    path, headers, body = room.posts[0]
+    assert path == "/room/actions/pick"
+    assert json.loads(body) == {"choice": "a1"}                           # the chosen value reached the adopted request
+
+
+def test_action_choices_are_sanitised_at_the_boundary():
+    doc = {"id": "pick", "label": "Pick", "allow_text": "yes", "choices": [
+        {"value": "  keep  ", "label": "  Keep me  "}, "plain", 7, {"value": ""}, {"value": "   "},
+        {"label": "no value"}, {"value": "keep"}, {"value": "v" * 500}, "plain", None, ["nested"],
+        {"value": "ok", "label": 9}]}
+    a = parse_action(doc)
+    assert [c.value for c in a.choices] == ["keep", "plain", "v" * 120, "ok"]   # trimmed, cut, deduped, junk dropped
+    assert a.choices[0].label == "Keep me" and a.choices[1].label is None
+    assert a.choices[3].label is None                                      # a non-string label is not a label
+    assert a.allow_text is False                                           # 'yes' is not literal True: fail closed
+    assert parse_action({"id": "p", "label": "P", "allow_text": True}).allow_text is True
+    assert parse_action({"id": "p", "label": "P", "allow_text": 1}).allow_text is False
+    for junk in ("nope", None, {"a": 1}, 7):
+        assert parse_action({"id": "p", "label": "P", "choices": junk}).choices == ()
+    many = parse_action({"id": "p", "label": "P", "choices": [{"value": f"v{i}"} for i in range(50)]})
+    assert len(many.choices) == 20 and [c.value for c in many.choices] == [f"v{i}" for i in range(20)]
+    plain = parse_action({"id": "p", "label": "P"})
+    assert plain.choices == () and plain.allow_text is False               # missing means none, fail closed
+
+
+def test_an_unadopted_room_action_cannot_be_answered(env, room, tmp_path):
+    room.actions = ACTIONS
+    store, client, svc, clock, _ = env
+    d, o = run(store, tmp_path)
+    assert svc.answer("demo", "refresh", None, o, d) is None                # the room offers it, but it is not adopted
+    assert svc.answer("demo", "nope", None, o, d) is None                   # the room has no such action
+    assert d.list_receipts() == [] and room.posts == []                    # refused, nothing authorised, nothing sent
+    with pytest.raises(ValueError):
+        svc.answer("demo", "../x", None, o, d)
+
+
+def test_answering_a_need_approves_consumes_and_dispatches_once(env, room, tmp_path):
+    from personal_world.worlds.dispatcher import NotConsumable
+    room.actions = ACTIONS
+    store, client, svc, clock, _ = env
+    assert svc.adopt("demo", "refresh").id
+    d, o = run(store, tmp_path)
+    receipt = svc.answer("demo", "refresh", None, o, d)
+    assert receipt["state"] == "SUCCEEDED" and receipt["authority"] == "worlds_owner"
+    assert d.get_authorization(receipt["authorization_id"])["state"] == "consumed"
+    assert len(room.posts) == 1
+    with pytest.raises(NotConsumable):                                      # one authorization, one dispatch, never a re-send
+        d.execute(o, receipt["authorization_id"])
+    assert len(room.posts) == 1
+
+
+def test_the_answer_route_runs_the_adopted_action_once(room, tmp_path, monkeypatch):
+    room.actions = ACTIONS
+    app, c, h = prod(room, tmp_path, monkeypatch)
+    assert c.post("/api/rooms/demo/actions/refresh/adopt", headers=h).status_code == 200
+    assert c.post("/api/auth/step-up", json={"token": BOOT}, headers=h).status_code == 200
+    r = c.post("/api/rooms/demo/actions/refresh/answer", json={"params": {"n": 3}}, headers=h)
+    assert r.status_code == 200 and r.json()["state"] == "SUCCEEDED"
+    assert len(room.posts) == 1 and json.loads(room.posts[0][2]) == {"n": 3}
+    sent = len(room.posts)
+    assert c.post("/api/rooms/demo/actions/mark-seen/answer", json={}, headers=h).status_code == 404
+    assert c.post("/api/rooms/demo/actions/nope/answer", json={}, headers=h).status_code == 404
+    assert len(room.posts) == sent
