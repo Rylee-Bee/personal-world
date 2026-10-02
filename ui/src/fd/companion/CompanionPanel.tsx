@@ -225,10 +225,20 @@ function OldThreadView({ threadId, onBack, backRef }: { threadId: string; onBack
 
 /**
  * "Earlier conversations": a native <details> that loads thread ids on open (lazily, once).
- * Shows a plain label for each thread and, when opened, the date of its first turn if available.
- * Choosing one shows that thread read-only in the same turn components.
+ * Shows a plain label for each thread ("Conversation N"). Choosing one shows that thread
+ * read-only in the same turn components. The live thread is excluded from the list using
+ * the id the turn response carried; before any turn, nothing is excluded.
  */
-function EarlierConversations({ onViewThread, viewingOldThread }: { onViewThread: (id: string) => void; viewingOldThread: boolean }) {
+function EarlierConversations({
+  onViewThread,
+  viewingOldThread,
+  summaryRef,
+}: {
+  onViewThread: (id: string) => void;
+  viewingOldThread: boolean;
+  summaryRef: React.RefObject<HTMLElement | null>;
+}) {
+  const { liveThreadId } = useCompanion();
   const [open, setOpen] = useState(false);
   const [threads, setThreads] = useState<string[] | null>(null);
   const [failure, setFailure] = useState<CompanionFailure | null>(null);
@@ -244,8 +254,9 @@ function EarlierConversations({ onViewThread, viewingOldThread }: { onViewThread
       setLoading(false);
       setLoaded(true);
       if (r.ok) {
-        // Filter out the current thread (t-1 is the live one in our test server)
-        const oldThreads = r.data.threads.filter((id) => id !== "t-1");
+        // Exclude only the live conversation's id (carried by the turn response).
+        // Before any turn, liveThreadId is null so nothing is excluded.
+        const oldThreads = liveThreadId ? r.data.threads.filter((id) => id !== liveThreadId) : r.data.threads;
         setThreads(oldThreads);
         setFailure(null);
       } else {
@@ -254,13 +265,32 @@ function EarlierConversations({ onViewThread, viewingOldThread }: { onViewThread
       }
     });
     return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, loaded]);
+
+  // If the live id changes AFTER we loaded (a new turn landed, or New conversation),
+  // refresh the list so the filter stays honest. The first-run ref keeps us from
+  // re-fetching on the initial transition into the loaded state.
+  const firstRunRef = useRef(true);
+  useEffect(() => {
+    if (firstRunRef.current) {
+      firstRunRef.current = false;
+      return;
+    }
+    if (!loaded || threads === null) return;
+    void companionApi.threads().then((r) => {
+      if (!r.ok) return;
+      const oldThreads = liveThreadId ? r.data.threads.filter((id) => id !== liveThreadId) : r.data.threads;
+      setThreads(oldThreads);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveThreadId]);
 
   if (viewingOldThread) return null;
 
   return (
     <details className="fd-companion-earlier" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
-      <summary>Earlier conversations</summary>
+      <summary ref={summaryRef as React.RefObject<HTMLElement>}>Earlier conversations</summary>
       {loading && !threads && <p className="fd-companion-earlier-status">Loading…</p>}
       {failure && (
         <div className="fd-companion-earlier-problem">
@@ -299,6 +329,8 @@ export function CompanionPanel() {
   const listRef = useRef<HTMLOListElement>(null);
   const [oldThreadId, setOldThreadId] = useState<string | null>(null);
   const backBtnRef = useRef<HTMLButtonElement>(null);
+  const earlierSummaryRef = useRef<HTMLElement>(null);
+  const wasViewingOldRef = useRef(false);
 
   // Layout effect: close before React removes the node, so focus goes back to the button that opened it.
   useLayoutEffect(() => {
@@ -312,16 +344,29 @@ export function CompanionPanel() {
     listRef.current?.lastElementChild?.scrollIntoView?.({ block: "nearest" });
   }, [turns.length]);
 
-  // Focus the back button when switching to an old thread
+  // Focus the back button when switching to an old thread; focus the Earlier
+  // conversations summary when coming back (the summary is the control the
+  // person used to get there; the <details> may have re-closed, that's fine).
   useEffect(() => {
-    if (oldThreadId && backBtnRef.current) {
-      backBtnRef.current.focus();
+    if (oldThreadId) {
+      wasViewingOldRef.current = true;
+      backBtnRef.current?.focus();
+    } else if (wasViewingOldRef.current) {
+      wasViewingOldRef.current = false;
+      // Wait a tick so the summary is in the DOM after EarlierConversations re-renders.
+      const id = setTimeout(() => {
+        earlierSummaryRef.current?.focus();
+      }, 0);
+      return () => clearTimeout(id);
     }
   }, [oldThreadId]);
 
   // Reset old thread view when closing the panel
   useEffect(() => {
-    if (!open) setOldThreadId(null);
+    if (!open) {
+      setOldThreadId(null);
+      wasViewingOldRef.current = false;
+    }
   }, [open]);
 
   const pose = poseFor(presentation);
@@ -404,7 +449,7 @@ export function CompanionPanel() {
 
             <Sees />
             <Grants />
-            <EarlierConversations onViewThread={setOldThreadId} viewingOldThread={!!oldThreadId} />
+            <EarlierConversations onViewThread={setOldThreadId} viewingOldThread={!!oldThreadId} summaryRef={earlierSummaryRef} />
           </>
         )}
       </div>

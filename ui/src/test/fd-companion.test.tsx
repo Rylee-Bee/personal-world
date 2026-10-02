@@ -249,6 +249,9 @@ describe("Earlier conversations", () => {
     server.use(http.get("/api/companion/threads", () => HttpResponse.json({ threads: ["t-1"] })));
     mount();
     const dlg = await openPanel();
+    // Send a turn so the response's thread_id ("t-1") becomes the live thread
+    await say(dlg, "hello");
+    await within(dlg).findByText(/short answer/);
     await userEvent.click(within(dlg).getByText("Earlier conversations"));
     expect(await within(dlg).findByText("No earlier conversations.")).toBeInTheDocument();
   });
@@ -296,10 +299,11 @@ describe("Earlier conversations", () => {
     expect(within(dlg).queryByRole("button", { name: "Send" })).not.toBeInTheDocument();
   });
 
-  it("Back restores the live view and focus", async () => {
+  it("Back restores the live view and returns focus to the Earlier conversations summary", async () => {
     mount();
     const dlg = await openPanel();
-    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    const summary = within(dlg).getByText("Earlier conversations");
+    await userEvent.click(summary);
     await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
     await userEvent.click(within(dlg).getByText("Conversation 1"));
     await within(dlg).findByText(/Back to the current conversation/);
@@ -310,5 +314,48 @@ describe("Earlier conversations", () => {
     expect(within(dlg).getByLabelText("Message to Companion")).toBeInTheDocument();
     expect(within(dlg).getByRole("button", { name: "Send" })).toBeInTheDocument();
     expect(within(dlg).queryByText(/What's the weather/)).not.toBeInTheDocument();
+    // Focus lands on the summary (the control the person used to get there).
+    await waitFor(() => expect(within(dlg).getByText("Earlier conversations")).toHaveFocus());
+  });
+
+  it("before any turn, every thread from the server is listed", async () => {
+    mount();
+    const dlg = await openPanel();
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    // Server returns ["t-old-1", "t-old-2", "t-1"]; with no live thread yet, none is excluded.
+    await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
+    expect(within(dlg).getByText("Conversation 2")).toBeInTheDocument();
+    expect(within(dlg).getByText("Conversation 3")).toBeInTheDocument();
+  });
+
+  it("after a reply, the reply's thread_id is excluded from the Earlier list and the others remain", async () => {
+    mount();
+    const dlg = await openPanel();
+    // Default server reply carries thread_id "t-1".
+    await say(dlg, "hello");
+    await within(dlg).findByText(/short answer/);
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
+    expect(within(dlg).getByText("Conversation 2")).toBeInTheDocument();
+    // The live thread "t-1" is excluded, so only the two old threads remain.
+    expect(within(dlg).queryByText("Conversation 3")).not.toBeInTheDocument();
+  });
+
+  it("a thread literally named 't-1' is listed when it is not the live thread", async () => {
+    // Give the live thread a different id so the literal "t-1" from the list isn't the live one.
+    server.use(http.post("/api/companion/turn", () => HttpResponse.json({
+      thread_id: "t-live-other", reply: "ok", connection: "local", tier_sent: "ordinary",
+      sections: {}, unknown: [], grant: null, audit_id: "a",
+      presentation: { v: "presentation/1", state: "engaged", tone: "neutral", gesture: "none", speaking: true },
+    })));
+    mount();
+    const dlg = await openPanel();
+    await say(dlg, "hi");
+    await within(dlg).findByText("ok");
+    await userEvent.click(within(dlg).getByText("Earlier conversations"));
+    // Server returns ["t-old-1", "t-old-2", "t-1"]; live is "t-live-other" (not in list), so all three are listed.
+    await waitFor(() => expect(within(dlg).getByText("Conversation 1")).toBeInTheDocument());
+    expect(within(dlg).getByText("Conversation 2")).toBeInTheDocument();
+    expect(within(dlg).getByText("Conversation 3")).toBeInTheDocument();
   });
 });

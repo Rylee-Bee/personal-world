@@ -13,6 +13,7 @@ export function CompanionProvider({ children }: { children: ReactNode }) {
   const [failure, setFailure] = useState<CompanionFailure | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [grant, setGrant] = useState<GrantView | null>(null);
+  const [liveThreadId, setLiveThreadId] = useState<string | null>(null);
   const threadId = useRef<string | null>(null);
   const msgId = useRef<string | null>(null);
   const inFlight = useRef(false);
@@ -33,7 +34,9 @@ export function CompanionProvider({ children }: { children: ReactNode }) {
       return;
     }
     const r: TurnResponse = res.data;
-    threadId.current = r.thread_id ?? threadId.current;
+    const nextId = r.thread_id ?? threadId.current;
+    threadId.current = nextId;
+    setLiveThreadId(nextId);
     msgId.current = null;
     setPending(null);
     setTurns((t) => [...t.filter((x) => x.key !== id), { key: id, user: message, reply: r.reply, unknown: r.unknown, tier: r.tier_sent }]);
@@ -56,6 +59,7 @@ export function CompanionProvider({ children }: { children: ReactNode }) {
   const newConversation = useCallback(() => {
     threadId.current = null;
     msgId.current = null;
+    setLiveThreadId(null);
     setTurns([]);
     setPending(null);
     setFailure(null);
@@ -63,8 +67,8 @@ export function CompanionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Ctx>(
-    () => ({ open, setOpen, presentation: thinking ? { ...presentation, state: "thinking" } : presentation, thinking, turns, failure, pending, grant, send, retry, newConversation, setGrant }),
-    [open, presentation, thinking, turns, failure, pending, grant, send, retry, newConversation],
+    () => ({ open, setOpen, presentation: thinking ? { ...presentation, state: "thinking" } : presentation, thinking, turns, failure, pending, grant, liveThreadId, send, retry, newConversation, setGrant }),
+    [open, presentation, thinking, turns, failure, pending, grant, liveThreadId, send, retry, newConversation],
   );
   return <CompanionCtx.Provider value={value}>{children}</CompanionCtx.Provider>;
 }

@@ -88,8 +88,9 @@ test("Earlier conversations: axe clean, no overflow, keyboard path, read-only th
   await open(page);
   await page.getByRole("button", { name: /^Companion/ }).click();
   const dialog = page.getByRole("dialog", { name: "Companion" });
+  const summary = dialog.getByText("Earlier conversations");
   // Open the disclosure
-  await dialog.getByText("Earlier conversations").click();
+  await summary.click();
   await expect(dialog.getByRole("button", { name: "Conversation 1" })).toBeVisible();
   // Keyboard: Tab through the list
   await page.keyboard.press("Tab");
@@ -104,8 +105,9 @@ test("Earlier conversations: axe clean, no overflow, keyboard path, read-only th
   await expect(dialog.getByRole("button", { name: "Send" })).toHaveCount(0);
   expect(await axe(page)).toEqual([]);
   await noHorizontalOverflow(page);
-  // Back
+  // Back: focus returns to the summary (the control the person used to get there).
   await dialog.getByRole("button", { name: /Back to the current conversation/ }).click();
   await expect(dialog.getByLabel("Message to Companion")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Send" })).toBeVisible();
+  await expect(summary).toBeFocused();
 });
