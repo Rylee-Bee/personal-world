@@ -690,3 +690,71 @@ def test_backup_file_is_0600(ms, tmp_path):
                 assert not stat.S_IMODE(sibling.stat().st_mode) & 0o077, sibling.name
     finally:
         os.umask(before)
+
+
+# ------------------------------------------------------------- CLI (P4)
+
+def _cli_main(argv):
+    from personal_world.cli import main
+
+    return main(argv)
+
+
+class TestMemoryCli:
+    """The trimmed CLI keeps exactly ``memory backup`` and ``memory restore``.
+
+    ``memory backup`` mirrors ``POST /api/memory/backup`` (same
+    ``MemoryStore.backup`` call, same dated private copy); ``memory restore``
+    wraps ``restore_backup`` and inherits its never-overwrite refusal.
+    """
+
+    def _seed(self, tmp_path):
+        data = tmp_path / "data"
+        db = Database.in_dir(data)
+        store = MemoryStore(db, clock=Clock())
+        kept = store.add("kept", title="Lentil soup", body="cumin", actor="owner")
+        store.add("records", title="Passport", body="heron", sensitivity="locked", actor="owner")
+        return data, db, store, kept
+
+    def test_memory_backup_mirrors_the_route(self, tmp_path, capsys):
+        data, db, store, _ = self._seed(tmp_path)
+        try:
+            rc = _cli_main(["--data-dir", str(data), "memory", "backup", "--json"])
+            payload = json.loads(capsys.readouterr().out)
+            # The backup is the route's own code path, so it logs the same event.
+            assert store.history(limit=1)[0]["event"] == "backup"
+        finally:
+            db.close()
+        assert rc == 0 and payload["ok"] is True and payload["changed"] is True
+        path = data / "backups" / payload["data"]["file"]
+        assert path.is_file() and path.name.startswith("worlds-") and path.suffix == ".db"
+        assert not stat.S_IMODE(path.stat().st_mode) & 0o077
+
+    def test_memory_restore_round_trips_into_a_fresh_dir(self, tmp_path, capsys):
+        data, db, store, kept = self._seed(tmp_path)
+        backup = store.backup(data / "backups")
+        db.close()
+
+        fresh = tmp_path / "fresh"
+        rc = _cli_main(
+            ["--data-dir", str(fresh), "memory", "restore", str(backup), "--json"]
+        )
+        payload = json.loads(capsys.readouterr().out)
+        assert rc == 0 and payload["ok"] is True
+        assert payload["data"]["restored"]["kept"] == 1
+        restored = MemoryStore(Database.in_dir(fresh), clock=Clock())
+        assert restored.get("kept", kept["id"])["title"] == "Lentil soup"
+        assert [r["table"] for r in restored.find("heron", step_up=True)] == ["records"]
+
+    def test_memory_restore_refuses_an_existing_database(self, tmp_path, capsys):
+        data, db, store, _ = self._seed(tmp_path)
+        backup = store.backup(data / "backups")
+        db.close()
+
+        rc = _cli_main(
+            ["--data-dir", str(data), "memory", "restore", str(backup), "--json"]
+        )
+        payload = json.loads(capsys.readouterr().out)
+        assert rc != 0 and payload["ok"] is False
+        assert payload["status"] == "rejected"
+        assert payload["warnings"]

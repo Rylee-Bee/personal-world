@@ -247,12 +247,12 @@ uv run personal-world --config-dir config.local init
 uv run personal-world --config-dir config.local daily
 ```
 
-Then serve the hub with a token:
+Then serve the hub (set `PW_CONFIG_DIR` and `PW_DATA_DIR`):
 
 ```bash
-PW_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))") \
 PW_CONFIG_DIR=config.local \
-uv run uvicorn personal_world.api:create_app --factory --app-dir src --port 8000
+PW_DATA_DIR=data \
+uv run uvicorn personal_world.worlds.production:app_from_env --factory --app-dir src --port 8000
 ```
 
 `data/` and `config.local/` are ignored runtime directories. See

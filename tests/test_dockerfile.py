@@ -52,8 +52,11 @@ class TestDockerfile:
         text = _dockerfile_text()
         assert "FROM python:3.12-slim-bookworm" in text
         assert "HEALTHCHECK" in text
-        assert "uvicorn personal_world.api:create_app --factory" in text
-        assert "FATAL: PW_API_TOKEN is empty or unset" in text
+        # Production auth is owner.yaml bootstrap (worlds/production.py:app_from_env);
+        # the old token-gated create_app and its PW_API_TOKEN fail-fast are gone.
+        assert "uvicorn personal_world.worlds.production:app_from_env --factory" in text
+        assert "personal_world.api:create_app" not in text
+        assert "FATAL: PW_API_TOKEN is empty or unset" not in text
         froms = [l for l in text.splitlines() if l.startswith("FROM ")]
         assert len(froms) == 2
         assert all("@sha256:" in l for l in froms), froms

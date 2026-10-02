@@ -77,9 +77,9 @@ services:
   #
   # The main application: API server + frontend.
   #
-  # Healthcheck verifies:
-  #   - server is responding
-  #   - PW_API_TOKEN is configured (auth_configured: true)
+  # Healthcheck verifies the server is responding: GET /healthz -> 200.
+  # Worlds production auth is the owner.yaml bootstrap, not a token; the
+  # route returns only {ok, commit} (worlds/server.py).
   #
   # Volumes:
   #   world-data — persistent storage for your world state
@@ -106,6 +106,13 @@ services:
       # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 
+      # ── Optional: reverse-proxy trust ────────────────────────
+      # Comma-separated IPs/CIDRs of the proxy (or proxies) allowed
+      # to set X-Forwarded-*; this also keys the sign-in rate limit
+      # per client. The server refuses to boot if the value is
+      # malformed. Leave unset when Worlds is not behind a proxy.
+      # PW_TRUSTED_PROXIES: 192.0.2.10,198.51.100.0/24
+
       # ── Optional: OIDC / SSO ─────────────────────────────────
       # Only needed if using an OIDC provider (e.g. Authelia).
       # The setup wizard writes SSO details to the config-data
@@ -125,10 +132,9 @@ services:
       - config-data:/config
     healthcheck:
       test: ["CMD", "python", "-c",
-             "import urllib.request,sys,json; \
+             "import urllib.request,sys; \
               r=urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=4); \
-              d=json.load(r); \
-              sys.exit(0 if r.status==200 and d.get('auth_configured') is True else 1)"]
+              sys.exit(0 if r.status==200 else 1)"]
       interval: 30s
       timeout: 5s
       retries: 3
