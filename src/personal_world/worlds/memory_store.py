@@ -90,11 +90,16 @@ _MAX_KIND_LEN = 64
 _MAX_SOURCE_REF = 512
 _MAX_TERMS = 12
 _MAX_TERM_LEN = 64
+#: A restored history row's text is only ever displayed: it is bounded like any other stored text.
+_MAX_HISTORY_ACTOR = 200
+_MAX_HISTORY_EVENT = 200
 
 #: find tokenises on letters and digits of any script; everything else is dropped.
 _WORDS = re.compile(r"[^\W_]+", re.UNICODE)
 #: FTS5 snippet marker, only used to see which column the match landed in.
 _MARK = "«"
+#: SQLite's PRIMARY KEY / UNIQUE refusal names the table and the ``id`` column; that is a duplicate id.
+_DUPLICATE_ID = re.compile(r"UNIQUE constraint failed: \w+\.id\b")
 
 
 class MemoryError_(Exception):
@@ -200,6 +205,17 @@ def _actor(actor: Any) -> str:
     if not isinstance(actor, str) or not actor.strip():
         raise MemoryError_("an actor is required")
     return actor
+
+
+def _history_text(value: Any, field: str, max_len: int) -> str:
+    """A restored history field is opaque display text: non-empty, bounded, never parsed.
+
+    It is not an identity, a scope or a grant, so no actor list is consulted and no permission is
+    derived from it; :meth:`MemoryStore.history` is the only thing that reads it back.
+    """
+    if not isinstance(value, str) or not value.strip():
+        raise MemoryError_(f"history {field} must be a non-empty string")
+    return _text(value, f"history {field}", max_len)
 
 
 def _scope_ok(needed: str, granted: Any) -> bool:
@@ -395,21 +411,24 @@ class MemoryStore:
         while path.exists():                      # never overwrite an earlier backup
             attempt += 1
             path = dest / f"worlds-{stamp}-{attempt}.db"
-        old_umask = os.umask(0o077)   # held for the whole backup: the copy, its journal and the checks stay private
+        # The copy is created 0600 up front, so no process umask flip is needed (that would be global):
+        # it is never born group/other-readable, and its journal and the integrity check stay private.
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
-            target = sqlite3.connect(path)
             try:
-                self.db.conn().backup(target)
-                if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-                    raise MemoryError_("the backup copy did not pass its integrity check")
+                target = sqlite3.connect(path)
+                try:
+                    self.db.conn().backup(target)
+                    if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                        raise MemoryError_("the backup copy did not pass its integrity check")
+                finally:
+                    target.close()
             except BaseException:
-                target.close()
-                path.unlink(missing_ok=True)
+                path.unlink(missing_ok=True)   # no half-written backup is left behind
                 raise
-            target.close()
-            os.chmod(path, 0o600)
+            os.fchmod(fd, 0o600)   # assert on the open descriptor, never a later chmod by path
         finally:
-            os.umask(old_umask)
+            os.close(fd)
         self._log("backup", None, None, {"file": path.name}, actor=_actor(actor))
         return path
 
@@ -448,10 +467,16 @@ class MemoryStore:
                     self._index(tx, table, values["id"], values["title"], values["body"], values.get("sensitivity", "normal"))
                 counts[table] = len(rows[table])
             for row in rows["history"]:
+                # actor and event are untrusted display text: bounded, kept opaque, never parsed or trusted.
+                actor = _history_text(row["actor"], "actor", _MAX_HISTORY_ACTOR)
+                event = _history_text(row["event"], "event", _MAX_HISTORY_EVENT)
+                for field in ("table_name", "row_id"):
+                    if row[field] is not None and not isinstance(row[field], str):
+                        raise MemoryError_(f"history {field} must be a string or None")
                 if row["detail"] is not None:
                     json.loads(row["detail"])   # must be valid JSON
                 tx.execute("INSERT INTO history(at, actor, event, table_name, row_id, detail) VALUES (?,?,?,?,?,?)",
-                           (float(row["at"]), str(row["actor"]), str(row["event"]), row["table_name"], row["row_id"], row["detail"]))
+                           (float(row["at"]), actor, event, row["table_name"], row["row_id"], row["detail"]))
             counts["history"] = len(rows["history"])
             self._record_history(tx, "restored", None, None, {t: counts[t] for t in TABLES}, actor="owner")
         return counts
@@ -480,8 +505,17 @@ class MemoryStore:
 
     def _insert(self, tx: sqlite3.Connection, table: str, values: dict) -> None:
         columns = ", ".join(values)
-        tx.execute(f"INSERT INTO {table} ({columns}) VALUES ({', '.join('?' * len(values))})",
-                   [self._encode(name, value) for name, value in values.items()])
+        try:
+            tx.execute(f"INSERT INTO {table} ({columns}) VALUES ({', '.join('?' * len(values))})",
+                       [self._encode(name, value) for name, value in values.items()])
+        except sqlite3.IntegrityError as exc:
+            # The row is inserted inside the caller's write transaction, so raising here rolls the
+            # row, its find entry and its history entry back together. A duplicate id is the one such
+            # error a caller can cause; it is named as a duplicate, and any other constraint is
+            # reported truthfully, but no raw sqlite3 error ever escapes the store.
+            if _DUPLICATE_ID.search(str(exc)):
+                raise MemoryError_(f"{table} already has a row with this id (duplicate id)") from None
+            raise MemoryError_(f"{table} refused this row: {exc}") from exc
 
     def _index(self, tx: sqlite3.Connection, table: str, row_id: str, title: str, body: str,
                sensitivity: str) -> None:
@@ -549,7 +583,10 @@ def restore_backup(backup_path: str | os.PathLike[str], data_dir: str | os.PathL
     The backup is untrusted input. It is opened read-only with ``trusted_schema=OFF`` (no trigger or view in
     it can run), checked for integrity, and then ONLY the rows of kept, later, records and history are copied
     into a freshly migrated database in ONE transaction; every row is validated as if it were new, and the
-    find index is rebuilt from the rows. Sessions, agent tokens, authorizations, executions, leases and every
+    find index is rebuilt from the rows. A restored history row's ``actor`` and ``event`` are untrusted
+    display text only: they must be non-empty strings within a sane bound, are kept opaque, and are never
+    parsed, matched against a known-actor list, or used to derive trust, authority, provenance, a principal
+    or any permission decision. Sessions, agent tokens, authorizations, executions, leases and every
     schema object in the backup (triggers, views, extra tables) are never imported. A target that already
     holds memory rows is refused: restore never overwrites.
     """

@@ -2,6 +2,7 @@
 import json
 import stat
 import time
+import uuid
 
 import pytest
 import yaml
@@ -100,6 +101,29 @@ def test_validation_is_400_not_500_and_never_a_traceback(env):
     assert c.get("/api/memory/find?q=a&limit=1000").status_code == 400
     assert c.patch("/api/memory/kept/zzz", json={"title": "x"}, headers=h).status_code == 404
     assert c.patch("/api/memory/kept/zzz", json={}, headers=h).status_code == 400
+
+
+def test_duplicate_id_is_400_not_500(env, monkeypatch):
+    app, c, _ = env
+    h = login(app, c)
+
+    class _FixedUUID:                                          # every add now mints the same id
+        class _Uuid:
+            hex = "0" * 32
+
+        @staticmethod
+        def uuid4():
+            return _FixedUUID._Uuid()
+
+    monkeypatch.setattr("personal_world.worlds.memory_store.uuid", _FixedUUID)
+    assert c.post("/api/memory/kept", json={"title": "first"}, headers=h).status_code == 200
+    before = {t: app.state.db.conn().execute(f"select count(*) from {t}").fetchone()[0]
+              for t in ("kept", "find_index", "history")}
+    r = c.post("/api/memory/kept", json={"title": "duplicate"}, headers=h)
+    assert r.status_code == 400 and "Traceback" not in r.text   # a duplicate id is a 400, never a 500
+    assert isinstance(r.json().get("detail"), str) and "kept" in r.json()["detail"] and "duplicate" in r.json()["detail"]
+    for table, n in before.items():                             # the refused insert left nothing behind
+        assert app.state.db.conn().execute(f"select count(*) from {table}").fetchone()[0] == n, table
 
 
 def test_locked_records_need_session_step_up_on_every_route(env):

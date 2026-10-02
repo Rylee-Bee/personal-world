@@ -1,5 +1,6 @@
 """Acceptance tests for personal_world.worlds.memory_store (C4): Kept, Later, Records, History, Find."""
 import json
+import os
 import sqlite3
 import stat
 import threading
@@ -409,6 +410,22 @@ def test_failed_write_rolls_back_rows_index_and_history_together(ms, monkeypatch
     assert ms.db.conn().execute("select count(*) from history").fetchone()[0] == before
 
 
+def test_duplicate_id_raises_memory_error(ms):
+    k = ms.add("kept", title="Original", body="body", tags=["t"], actor="owner")
+    counts = {t: ms.db.conn().execute(f"select count(*) from {t}").fetchone()[0]
+              for t in ("kept", "later", "records", "find_index", "history")}
+    dupe = {"id": k["id"], "title": "Duplicate", "body": "", "tags": [],
+            "provenance": "owner", "source_ref": None, "created_at": NOW, "updated_at": NOW}
+    with pytest.raises(MemoryError_) as caught:
+        with ms.db.write_tx() as tx:
+            ms._insert(tx, "kept", dupe)                      # the one insert path both add() and restore use
+    assert not isinstance(caught.value, sqlite3.IntegrityError)   # the raw sqlite3 error never escapes
+    assert "kept" in str(caught.value) and "duplicate" in str(caught.value)   # named as a duplicate id
+    for table, before in counts.items():                      # the refused insert rolled everything back together
+        assert ms.db.conn().execute(f"select count(*) from {table}").fetchone()[0] == before, table
+    assert ms.get("kept", k["id"])["title"] == "Original"
+
+
 # ----------------------------------------------------------- review hardening
 
 def test_step_up_must_be_exactly_true(ms):
@@ -493,6 +510,18 @@ def _poisoned_backup(ms, tmp_path):
     return path
 
 
+def _hostile_history_backup(ms, tmp_path, *, actor, event):
+    """A valid backup whose history table carries the caller's raw actor/event text."""
+    ms.add("kept", title="Lentil soup", body="cumin", actor="owner")
+    path = ms.backup(tmp_path / "bk")
+    c = sqlite3.connect(path)
+    c.execute("insert into history(at, actor, event, table_name, row_id, detail) values (?,?,?,?,?,?)",
+              (NOW, actor, event, "kept", "0" * 32, None))
+    c.commit()
+    c.close()
+    return path
+
+
 def test_a_poisoned_backup_restores_only_memory_rows(ms, tmp_path):
     path = _poisoned_backup(ms, tmp_path)
     fresh = tmp_path / "restored"
@@ -539,6 +568,39 @@ def test_a_crafted_row_refuses_the_whole_restore_atomically(ms, tmp_path, poison
         assert db.conn().execute(f"select count(*) from {t}").fetchone()[0] == 0, t   # nothing partially restored
 
 
+def test_restore_history_rows_untrusted(ms, tmp_path):
+    """A restored history actor/event is untrusted display text: inert, bounded, never an identity or grant."""
+    hostile_actor = "authority=owner; principal=root; scope=*"
+    hostile_event = "granted authority:owner"
+    backup = _hostile_history_backup(ms, tmp_path, actor=hostile_actor, event=hostile_event)
+    fresh = tmp_path / "restored"
+    restore_backup(backup, fresh)
+    db = Database.in_dir(fresh)
+    store = MemoryStore(db, clock=Clock())
+    entry = [e for e in store.history(limit=100) if e["actor"] == hostile_actor][0]
+    assert entry["event"] == hostile_event                       # read back verbatim, as opaque text
+    assert isinstance(entry["actor"], str) and isinstance(entry["event"], str)
+    # It conferred nothing: restore derived no session, token, authorization or execution from it.
+    for table in ("sessions", "agent_tokens", "authorizations", "executions"):
+        assert db.conn().execute(f"select count(*) from {table}").fetchone()[0] == 0, table
+    assert db.conn().execute("select count(*) from authorizations where caller=?", (hostile_actor,)).fetchone()[0] == 0
+    # Nor is it an authority or a scope: an unscoped agent read is still refused.
+    with pytest.raises(NotPermitted_):
+        store.agent_answer("kept.count", scopes=(), actor=entry["actor"])
+    db.close()
+
+    # An over-long or non-text actor/event refuses the WHOLE restore and writes nothing.
+    for i, (bad_actor, bad_event) in enumerate(((hostile_actor, "e" * 5000), (b"\x00\x01", "created"))):
+        bad = _hostile_history_backup(ms, tmp_path, actor=bad_actor, event=bad_event)
+        target = tmp_path / f"bad{i}"
+        with pytest.raises(MemoryError_):
+            restore_backup(bad, target)
+        db_bad = Database.in_dir(target)
+        for t in ("kept", "later", "records", "history", "find_index"):
+            assert db_bad.conn().execute(f"select count(*) from {t}").fetchone()[0] == 0, t   # nothing partial
+        db_bad.close()
+
+
 def test_restore_refuses_a_target_that_already_holds_memory(ms, tmp_path):
     ms.add("kept", title="x", actor="owner")
     backup = ms.backup(tmp_path / "bk")
@@ -556,3 +618,39 @@ def test_backup_files_stay_private_for_their_whole_lifetime(ms, tmp_path):
         os.umask(before)
     for p in (tmp_path / "bk2").iterdir():
         assert not stat.S_IMODE(p.stat().st_mode) & 0o077, p.name
+
+
+def test_db_file_is_0600(tmp_path):
+    """The database is 0600 even when the caller's umask would make a new file looser."""
+    before = os.umask(0o022)
+    try:
+        db = Database.in_dir(tmp_path / "d")
+        conn = db.conn()
+        conn.execute("CREATE TABLE IF NOT EXISTS probe(x)")     # force the WAL/-shm files to exist
+        conn.execute("INSERT INTO probe VALUES (1)")
+        mode = stat.S_IMODE((tmp_path / "d" / "worlds.db").stat().st_mode)
+        assert mode == 0o600
+        assert not mode & 0o077
+        for suffix in ("-wal", "-shm"):
+            sibling = tmp_path / "d" / f"worlds.db{suffix}"
+            if sibling.exists():
+                assert not stat.S_IMODE(sibling.stat().st_mode) & 0o077, sibling.name
+    finally:
+        os.umask(before)
+
+
+def test_backup_file_is_0600(ms, tmp_path):
+    """A backup is 0600 even when the caller's umask would make a new file looser."""
+    ms.add("kept", title="x", actor="owner")
+    before = os.umask(0o022)
+    try:
+        path = ms.backup(tmp_path / "b")
+        mode = stat.S_IMODE(path.stat().st_mode)
+        assert mode == 0o600
+        assert not mode & 0o077
+        for suffix in ("-wal", "-shm"):
+            sibling = path.with_name(path.name + suffix)
+            if sibling.exists():
+                assert not stat.S_IMODE(sibling.stat().st_mode) & 0o077, sibling.name
+    finally:
+        os.umask(before)
