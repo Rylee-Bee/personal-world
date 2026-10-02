@@ -4,6 +4,8 @@
 
 **In short:** Companion is a separate private service that owns the conversation. Worlds only proxies to it and shows the answers. Worlds is public, so nothing here names Companion's address, persona, threads or people.
 
+**Conversation identity is independent of model/session identity.** A conversation must remain resumable when the underlying model, harness, or inference session is replaced, restarted, or rotated. Model/session identifiers are implementation details and must not become user-facing conversation identity or canonical storage keys.
+
 ## Setup (in your own config, never in git)
 
 1. Mount Companion's client token for Worlds as a file, and give Worlds its path: `PW_COMPANION_TOKEN_FILE=/run/secrets/<file>`. The token is never in an environment value and never reaches the browser.
