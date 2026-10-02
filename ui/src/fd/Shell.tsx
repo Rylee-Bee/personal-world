@@ -6,10 +6,12 @@ export interface ShellProps {
   current: Landmark;
   onNavigate: (l: Landmark) => void;
   boards: { id: string; title: string }[];
+  /** A quiet control in the header/rail (e.g. the Companion button). Not a landmark. */
+  headerExtra?: ReactNode;
   children: ReactNode;
 }
 
-export function Shell({ current, onNavigate, boards, children }: ShellProps) {
+export function Shell({ current, onNavigate, boards, headerExtra, children }: ShellProps) {
   const handleLandmarkClick =
     (landmark: Landmark) => (event: MouseEvent<HTMLAnchorElement>) => {
       // Only a plain left click is intercepted; modified clicks keep
@@ -28,6 +30,7 @@ export function Shell({ current, onNavigate, boards, children }: ShellProps) {
       </a>
       <header className="fd-header">
         <span className="fd-header-brand">Worlds</span>
+        {headerExtra}
       </header>
       <nav className="fd-nav" aria-label="Main">
         <ul className="fd-nav-landmarks">
