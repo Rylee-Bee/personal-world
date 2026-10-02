@@ -98,8 +98,14 @@ export const needsYou: NeedsYouEntry[] = [
 /** Sample Connect data. Replaced by the real API when the Connect routes land. */
 export const sampleBindings = [
   { id: "sonarr-queue", name: "Read Sonarr queue", access: "read" as const, scope: "sonarr" },
-  { id: "sonarr-restart", name: "Restart Sonarr", access: "write" as const, scope: "sonarr", outcome: "SUCCEEDED" as const },
-  { id: "backup-now", name: "Start a backup", access: "write" as const, scope: "restic", outcome: "UNKNOWN" as const },
+  {
+    id: "sonarr-restart", name: "Restart Sonarr", access: "write" as const, scope: "sonarr", outcome: "SUCCEEDED" as const,
+    act: "Restart Sonarr", safe: "Don't restart", consequence: "Sonarr stops for a moment and TV will show as unavailable until it is back.",
+  },
+  {
+    id: "backup-now", name: "Start a backup", access: "write" as const, scope: "restic", outcome: "UNKNOWN" as const,
+    act: "Start a backup", safe: "Don't start it", consequence: "A backup runs now and may slow the machine for a few minutes.",
+  },
 ];
 export const sampleSecrets = [
   { name: "PW_SONARR_TOKEN", set: true },
