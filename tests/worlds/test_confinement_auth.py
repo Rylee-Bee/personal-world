@@ -274,6 +274,14 @@ def auth_failed(out) -> ConfinementError:
     return out
 
 
+def resolver_cap_refusal(out) -> ConfinementError:
+    """The pre-existing, deliberate per-provider DNS cap refusing a lookup. Not an auth or sender bug."""
+    assert isinstance(out, ConfinementError), out
+    assert out.error_class == "timeout" and out.pre_send is True, out
+    assert "name lookups in flight" in out.note, out
+    return out
+
+
 @pytest.fixture(autouse=True)
 def credentials(monkeypatch):
     monkeypatch.setenv("AUTH_CREDENTIALS", f"{COOKIE_USER}:{COOKIE_PASSWORD}")
@@ -610,6 +618,37 @@ def test_a_read_effect_may_not_use_a_session_to_reach_a_mutating_method(server):
     assert server.hits == []  # refused before the login, which is also a mutating exchange
 
 
+def test_concurrent_first_calls_never_corrupt_the_token_session(server):
+    """The password_grant mirror of the cookie test: eight racing first calls must each be a live 200
+    or the pre-existing resolver-cap refusal, and the token store must survive intact."""
+    p = prov(server, grant_auth())
+    out: list = []
+    barrier = threading.Barrier(8)
+
+    def call() -> None:
+        barrier.wait()
+        out.append(go(p, req("/bearer")))
+
+    threads = [threading.Thread(target=call) for _ in range(8)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+
+    assert len(out) == 8
+    successes = [r for r in out if isinstance(r, RawResponse)]
+    for r in out:
+        if isinstance(r, RawResponse):
+            assert r.status_code == 200, r
+        else:
+            resolver_cap_refusal(r)
+    assert successes, out
+    assert 1 <= server.hits_to(TOKEN_PATH) <= len(successes)
+
+    ok(go(p, req("/bearer")))
+    tokens = server.hits_to(TOKEN_PATH)
+    ok(go(p, req("/bearer")))
+    assert server.hits_to(TOKEN_PATH) == tokens  # the held token was reused, no re-token
+
+
 # ---- the in-memory store itself -------------------------------------------------------------
 
 
@@ -639,11 +678,59 @@ def test_the_session_key_covers_the_whole_provider_identity():
             assert confinement._session_key(changed) != base
 
 
-def test_concurrent_first_calls_all_succeed(server):
+def test_concurrent_first_calls_never_corrupt_the_session(server):
+    """Eight first calls race for ONE provider. The only acceptable outcome per call is a live 200 or
+    the pre-existing resolver-cap refusal (a deliberate guard, not an auth failure). Whatever the
+    interleaving, the session store ends intact and the next calls reuse it without a second login.
+    """
     p = prov(server, cookie_auth())
     out: list = []
-    threads = [threading.Thread(target=lambda: out.append(go(p, req("/protected")))) for _ in range(8)]
+    barrier = threading.Barrier(8)
+
+    def call() -> None:
+        barrier.wait()
+        out.append(go(p, req("/protected")))
+
+    threads = [threading.Thread(target=call) for _ in range(8)]
     [t.start() for t in threads]
     [t.join() for t in threads]
-    assert all(isinstance(r, RawResponse) and r.status_code == 200 for r in out)
-    assert 1 <= server.hits_to(LOGIN_PATH) <= 8  # whoever raced, every call got a live session
+
+    assert len(out) == 8
+    successes = [r for r in out if isinstance(r, RawResponse)]
+    for r in out:
+        if isinstance(r, RawResponse):
+            assert r.status_code == 200, r  # never a 4xx/5xx
+        else:
+            resolver_cap_refusal(r)  # never auth_failed, never any other error
+    assert successes, out  # at least one call got past DNS
+    # the login is hit at least once, and at most once for each call that got past DNS
+    assert 1 <= server.hits_to(LOGIN_PATH) <= len(successes)
+
+    ok(go(p, req()))
+    logins = server.hits_to(LOGIN_PATH)
+    ok(go(p, req()))
+    assert server.hits_to(LOGIN_PATH) == logins  # the held session was reused, no re-login
+
+
+def test_two_concurrent_first_calls_both_succeed(server):
+    """Two is exactly the per-provider lookup cap, so both calls always get a slot: deterministic,
+    and both must reach the provider."""
+    p = prov(server, cookie_auth())
+    out: list = []
+    barrier = threading.Barrier(2)
+
+    def call() -> None:
+        barrier.wait()
+        out.append(go(p, req("/protected")))
+
+    threads = [threading.Thread(target=call) for _ in range(2)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+
+    for r in out:
+        if isinstance(r, RawResponse):
+            assert r.status_code == 200, r
+        else:
+            resolver_cap_refusal(r)
+    assert len([r for r in out if isinstance(r, RawResponse)]) == 2, out
+    assert server.hits_to(LOGIN_PATH) >= 1
