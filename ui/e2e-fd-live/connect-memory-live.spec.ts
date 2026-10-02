@@ -61,9 +61,12 @@ test.describe("Connect against the real reference provider", () => {
 
 test.describe("Memory against the real backend", () => {
   test("add a Kept item, reload, edit it, delete it with the confirmation, reload, it is gone", async ({ page, request }, info) => {
-    test.fixme(true, "live: the add/save outcome status region echoes the title, so bare getByText(title) matches 2 nodes (strict-mode)");
     const title = `Live kept ${info.project.name}`;
     const edited = `${title} edited`;
+    // The screen announces outcomes in an aria-live status region (".fd-memory-outcome"),
+    // so a bare getByText(title) matches both the row and the announcement. Scope every
+    // title check to the row, and cover the announcement separately.
+    const row = (text: string) => page.locator("li.fd-memory-row", { hasText: text });
     try {
       await page.goto("/#memory");
       await expect(page.getByRole("tabpanel")).toBeVisible();
@@ -72,28 +75,30 @@ test.describe("Memory against the real backend", () => {
       await page.getByRole("button", { name: "Add" }).click();
       await page.getByLabel("Title").fill(title);
       await page.getByRole("button", { name: "Add" }).click();
-      await expect(page.getByText(title)).toBeVisible();
+      await expect(page.getByRole("status")).toContainText(`Added ${title}.`);
+      await expect(row(title)).toBeVisible();
 
       // survives a reload
       await page.reload();
-      await expect(page.getByText(title)).toBeVisible();
+      await expect(row(title)).toBeVisible();
 
       // edit
-      await page.locator("li.fd-memory-row", { hasText: title }).getByRole("button", { name: "Edit" }).click();
+      await row(title).getByRole("button", { name: "Edit" }).click();
       await page.getByLabel("Title").fill(edited);
       await page.getByRole("button", { name: "Save" }).click();
-      await expect(page.getByText(edited)).toBeVisible();
+      await expect(page.getByRole("status")).toContainText(`Saved ${edited}.`);
+      await expect(row(edited)).toBeVisible();
 
       // delete through the confirmation dialog
-      await page.locator("li.fd-memory-row", { hasText: edited }).getByRole("button", { name: "Delete" }).click();
+      await row(edited).getByRole("button", { name: "Delete" }).click();
       const dialog = page.getByRole("dialog", { name: `Remove ${edited}?` });
       await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: "Remove" }).click();
-      await expect(page.getByText(edited)).toHaveCount(0);
+      await expect(row(edited)).toHaveCount(0);
 
       // gone after a reload too
       await page.reload();
-      await expect(page.getByText(edited)).toHaveCount(0);
+      await expect(row(edited)).toHaveCount(0);
     } finally {
       await removeKeptByTitle(request, title);
       await removeKeptByTitle(request, edited);
