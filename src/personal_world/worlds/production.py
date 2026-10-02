@@ -23,6 +23,7 @@ from .auth_routes import parse_trusted_proxies
 from .authn import Auth, load_csrf_key, load_key, principal_dependency
 from .db import Database
 from .dispatcher import LEASE_TTL_S, Dispatcher
+from .connect_routes import register_connect_routes
 from .memory_routes import register_memory_routes
 from .memory_store import MemoryStore
 from .room0 import Room0Client, RoomService
@@ -128,6 +129,9 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
     memory = MemoryStore(db)
     app.state.memory = memory
     register_memory_routes(app, memory, data_dir / "backups", anyone=anyone_dep, owner=owner_dep, clock=auth.clock)
+    register_connect_routes(app, app.state.store, app.state.cards, owner=owner_dep, clock=auth.clock,
+                            audit=lambda event, detail, actor: memory.record_event(event, detail, actor=actor),
+                            secret_values=lambda: list(live))
     register_room_routes(app, holder["rooms"], owner=owner_dep)
     return app
 
