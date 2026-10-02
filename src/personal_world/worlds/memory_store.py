@@ -395,21 +395,21 @@ class MemoryStore:
         while path.exists():                      # never overwrite an earlier backup
             attempt += 1
             path = dest / f"worlds-{stamp}-{attempt}.db"
-        old_umask = os.umask(0o077)
+        old_umask = os.umask(0o077)   # held for the whole backup: the copy, its journal and the checks stay private
         try:
             target = sqlite3.connect(path)
+            try:
+                self.db.conn().backup(target)
+                if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                    raise MemoryError_("the backup copy did not pass its integrity check")
+            except BaseException:
+                target.close()
+                path.unlink(missing_ok=True)
+                raise
+            target.close()
+            os.chmod(path, 0o600)
         finally:
             os.umask(old_umask)
-        try:
-            self.db.conn().backup(target)
-            if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-                raise MemoryError_("the backup copy did not pass its integrity check")
-        except BaseException:
-            target.close()
-            path.unlink(missing_ok=True)
-            raise
-        target.close()
-        os.chmod(path, 0o600)
         self._log("backup", None, None, {"file": path.name}, actor=_actor(actor))
         return path
 
@@ -433,6 +433,42 @@ class MemoryStore:
     def _snippet(in_title: str, in_body: str) -> str:
         """The window around the match: the body column if it matched, else the title."""
         return in_body if _MARK in in_body else in_title
+
+    def _restore_rows(self, rows: dict[str, list[sqlite3.Row]]) -> dict:
+        """Insert validated rows (and rebuild their find entries) in ONE transaction; any bad row rolls all back."""
+        counts: dict[str, int] = {}
+        with self.db.write_tx() as tx:
+            for table in TABLES:
+                for row in rows[table]:
+                    values = {c: row[c] for c in _RESTORE_COLUMNS[table]}
+                    self._validate_restored(table, values)
+                    if table == "kept":
+                        values["tags"] = json.loads(values["tags"])
+                    self._insert(tx, table, values)
+                    self._index(tx, table, values["id"], values["title"], values["body"], values.get("sensitivity", "normal"))
+                counts[table] = len(rows[table])
+            for row in rows["history"]:
+                if row["detail"] is not None:
+                    json.loads(row["detail"])   # must be valid JSON
+                tx.execute("INSERT INTO history(at, actor, event, table_name, row_id, detail) VALUES (?,?,?,?,?,?)",
+                           (float(row["at"]), str(row["actor"]), str(row["event"]), row["table_name"], row["row_id"], row["detail"]))
+            counts["history"] = len(rows["history"])
+            self._record_history(tx, "restored", None, None, {t: counts[t] for t in TABLES}, actor="owner")
+        return counts
+
+    def _validate_restored(self, table: str, values: dict) -> None:
+        """A restored row must be one this store would have written (a crafted backup is refused whole)."""
+        if not isinstance(values.get("id"), str) or not re.fullmatch(r"[0-9a-f]{32}", values["id"]):
+            raise MemoryError_("restored row has a bad id")
+        for field in _FIELDS[table]:
+            raw = values[field]
+            if field == "tags":
+                raw = json.loads(raw)
+            _field_value(table, field, raw)
+        _provenance(values["provenance"], values["source_ref"])
+        for stamp in ("created_at", "updated_at"):
+            if isinstance(values[stamp], bool) or not isinstance(values[stamp], (int, float)):
+                raise MemoryError_("restored row has a bad timestamp")
 
     def _fetch(self, table: str, row_id: Any, conn: sqlite3.Connection | None = None) -> sqlite3.Row:
         if not isinstance(row_id, str):
@@ -490,38 +526,62 @@ def _private_dir(path: Path) -> None:
         pass
 
 
-def restore_backup(backup_path: str | os.PathLike[str], data_dir: str | os.PathLike[str]) -> dict:
-    """Put a backup back as ``data_dir/worlds.db`` and say what is in it.
+_RESTORE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "kept": ("id", "title", "body", "tags", "provenance", "source_ref", "created_at", "updated_at"),
+    "later": ("id", "title", "body", "due_at", "status", "provenance", "source_ref", "created_at", "updated_at"),
+    "records": ("id", "title", "body", "kind", "sensitivity", "provenance", "source_ref", "created_at", "updated_at"),
+    "history": ("at", "actor", "event", "table_name", "row_id", "detail"),
+}
 
-    It never overwrites a live database, and it refuses a file that is not a Worlds memory
-    database or does not pass its integrity check: restoring half a file is worse than not
-    restoring at all.
+
+def restore_backup(backup_path: str | os.PathLike[str], data_dir: str | os.PathLike[str]) -> dict:
+    """Restore the MEMORY rows of a backup into ``data_dir``'s current database, and nothing else.
+
+    The backup is untrusted input. It is opened read-only with ``trusted_schema=OFF`` (no trigger or view in
+    it can run), checked for integrity, and then ONLY the rows of kept, later, records and history are copied
+    into a freshly migrated database in ONE transaction; every row is validated as if it were new, and the
+    find index is rebuilt from the rows. Sessions, agent tokens, authorizations, executions, leases and every
+    schema object in the backup (triggers, views, extra tables) are never imported. A target that already
+    holds memory rows is refused: restore never overwrites.
     """
-    source = Path(backup_path)
-    data = Path(data_dir)
-    target = data / DB_NAME
+    source, data = Path(backup_path), Path(data_dir)
     if not source.is_file():
         raise MemoryError_(f"{source} is not a file")
-    if target.exists():
-        raise MemoryError_(f"{target} already exists; refusing to overwrite it")
-    counts: dict[str, int] = {}
+    rows: dict[str, list[sqlite3.Row]] = {}
+    old_umask = os.umask(0o077)
     try:
-        probe = sqlite3.connect(f"{source.resolve().as_uri()}?mode=ro", uri=True)
-    except sqlite3.Error as exc:
-        raise MemoryError_(f"{source} cannot be read as a database") from exc
-    try:
-        names = {r[0] for r in probe.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        if not set(TABLES) | {"history"} <= names:
-            raise MemoryError_(f"{source} is not a Worlds memory database")
-        if probe.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-            raise MemoryError_(f"{source} does not pass its integrity check")
-        for name in TABLES + ("history",):
-            counts[name] = int(probe.execute(f"SELECT count(*) FROM {name}").fetchone()[0])
-    except sqlite3.Error as exc:
-        raise MemoryError_(f"{source} cannot be read as a database") from exc
+        try:
+            probe = sqlite3.connect(f"{source.resolve().as_uri()}?mode=ro", uri=True)
+        except sqlite3.Error as exc:
+            raise MemoryError_(f"{source} cannot be read as a database") from exc
+        try:
+            probe.row_factory = sqlite3.Row
+            probe.execute("PRAGMA trusted_schema=OFF")
+            names = {r[0] for r in probe.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if not set(_RESTORE_COLUMNS) <= names:
+                raise MemoryError_(f"{source} is not a Worlds memory database")
+            if probe.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                raise MemoryError_(f"{source} does not pass its integrity check")
+            for table, cols in _RESTORE_COLUMNS.items():
+                have = {r[1] for r in probe.execute(f"PRAGMA table_info({table})")}
+                if not set(cols) <= have:
+                    raise MemoryError_(f"{source} has an unexpected {table} table")
+                rows[table] = probe.execute(f"SELECT {', '.join(cols)} FROM {table} ORDER BY rowid").fetchall()
+        except sqlite3.Error as exc:
+            raise MemoryError_(f"{source} cannot be read as a database") from exc
+        finally:
+            probe.close()
+        _private_dir(data)
+        db = Database.in_dir(data)               # freshly migrated: the schema is ours, never the backup's
+        try:
+            store = MemoryStore(db)
+            if any(db.conn().execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in TABLES):
+                raise MemoryError_("this database already holds memory; restore never overwrites it")
+            try:
+                return store._restore_rows(rows)
+            except (ValueError, TypeError, KeyError) as exc:   # a crafted row: refused whole, nothing was written
+                raise MemoryError_(f"the backup holds a row this store would not write ({type(exc).__name__})") from None
+        finally:
+            db.close()
     finally:
-        probe.close()
-    _private_dir(data)
-    shutil.copyfile(source, target)
-    os.chmod(target, 0o600)
-    return counts
+        os.umask(old_umask)

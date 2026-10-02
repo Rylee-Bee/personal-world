@@ -468,3 +468,91 @@ def test_a_refused_export_is_refused_at_call_time_and_not_logged(ms):
 def test_foreign_schema_cannot_run_functions(tmp_path):
     db = Database.in_dir(tmp_path / "d")
     assert db.conn().execute("pragma trusted_schema").fetchone()[0] == 0
+
+
+# ------------------------------------------------ restore never imports anything but memory rows
+
+def _poisoned_backup(ms, tmp_path):
+    ms.add("kept", title="Lentil soup", body="cumin", actor="owner")
+    ms.add("records", title="L", body="heron", sensitivity="locked", actor="owner")
+    path = ms.backup(tmp_path / "bk")
+    c = sqlite3.connect(path)
+    c.execute("create table evil (x)")
+    c.execute("create view evil_view as select * from kept")
+    c.execute("create trigger pwn after insert on kept begin insert into history(at,actor,event) values (1,'pwn','pwned'); end")
+    c.execute("drop trigger history_no_update")
+    c.execute("drop trigger history_no_delete")
+    c.execute("insert into sessions(id_hash,principal,method,created_at,last_seen_at,expires_at,binding) values ('h','owner','x',1,1,9e12,'')")
+    c.execute("insert into agent_tokens(id,name,token_hash,scopes,created_at) values ('t','bot','h','[\"*\"]',1)")
+    c.execute("insert into authorizations(id,action_id,action_version,caller,destination,params_hash,params_json,created_at,expires_at,state,"
+              "authority) values ('a','go','v','agent','d','h','{}',1,9e12,'approved','policy:never')")
+    c.execute("insert into leases(instance_id,heartbeat) values ('live',9e12)")
+    c.execute("insert into owner_state(key,value) values ('oidc_login_binding','x')")
+    c.commit()
+    c.close()
+    return path
+
+
+def test_a_poisoned_backup_restores_only_memory_rows(ms, tmp_path):
+    path = _poisoned_backup(ms, tmp_path)
+    fresh = tmp_path / "restored"
+    counts = restore_backup(path, fresh)
+    assert counts["kept"] == 1 and counts["records"] == 1
+    db = Database.in_dir(fresh)
+    for table in ("sessions", "agent_tokens", "authorizations", "executions", "owner_state"):
+        assert db.conn().execute(f"select count(*) from {table}").fetchone()[0] == 0, table
+    assert db.conn().execute("select count(*) from leases where instance_id='live'").fetchone()[0] == 0
+    names = {r[0] for r in db.conn().execute("select name from sqlite_master")}
+    assert "evil" not in names and "evil_view" not in names and "pwn" not in names
+    assert {"history_no_update", "history_no_delete"} <= names                      # our append-only triggers, not the backup's absence
+    with pytest.raises(sqlite3.DatabaseError):
+        with db.write_tx() as tx:
+            tx.execute("update history set actor='x'")
+    m2 = MemoryStore(db, clock=Clock())
+    assert [r["table"] for r in m2.find("lentil")] == ["kept"] and [r["table"] for r in m2.find("heron", step_up=True)] == ["records"]
+    assert m2.find("heron") == []
+    assert not any(e["event"] == "pwned" for e in m2.history(limit=100))
+    assert m2.history(limit=1)[0]["event"] == "restored"
+    m2.add("kept", title="after", actor="owner")                                     # the planted trigger does not fire
+    assert not any(e["actor"] == "pwn" for e in m2.history(limit=100))
+
+
+@pytest.mark.parametrize("poison", [
+    "update kept set provenance='root'", "update kept set id='not-hex'", "update kept set title=''", "update kept set tags='{bad'",
+    "update kept set created_at='soon'", "update records set sensitivity='locked ' ",
+    "update history set detail='{not json'", "update kept set source_ref='x' where 1"])
+def test_a_crafted_row_refuses_the_whole_restore_atomically(ms, tmp_path, poison):
+    path = _poisoned_backup(ms, tmp_path)
+    c = sqlite3.connect(path)
+    c.execute("drop trigger pwn")
+    try:
+        c.execute(poison)
+    except sqlite3.Error:
+        pytest.skip("the backup's own constraints already refuse this row")
+    c.commit()
+    c.close()
+    fresh = tmp_path / "r2"
+    with pytest.raises((MemoryError_, sqlite3.Error)):
+        restore_backup(path, fresh)
+    db = Database.in_dir(fresh)
+    for t in ("kept", "later", "records", "history", "find_index"):
+        assert db.conn().execute(f"select count(*) from {t}").fetchone()[0] == 0, t   # nothing partially restored
+
+
+def test_restore_refuses_a_target_that_already_holds_memory(ms, tmp_path):
+    ms.add("kept", title="x", actor="owner")
+    backup = ms.backup(tmp_path / "bk")
+    with pytest.raises(MemoryError_):
+        restore_backup(backup, ms.dir)                         # the live data dir: never overwritten
+
+
+def test_backup_files_stay_private_for_their_whole_lifetime(ms, tmp_path):
+    import os
+    before = os.umask(0o022)
+    try:
+        path = ms.backup(tmp_path / "bk2")
+        assert os.umask(0o022) == 0o022                        # the process umask is put back
+    finally:
+        os.umask(before)
+    for p in (tmp_path / "bk2").iterdir():
+        assert not stat.S_IMODE(p.stat().st_mode) & 0o077, p.name
