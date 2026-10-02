@@ -100,9 +100,30 @@ class Provider(_Strict):
     # Who approves operations on this provider. None: room0 providers are governed by Project Home
     # (fail closed), everything else by Worlds.
     governance: Literal["worlds", "project_home"] | None = None
+    # room0 providers only: who Worlds speaks for (sent as X-Worlds-Principal, never a free header), the
+    # room's public origin (to build links), and the lane its cards land in.
+    principal_id: str | None = None
+    public_url: str | None = None
+    group: Literal["life", "machine"] = "machine"
     tls_verify: bool = True
     timeout_s: float = Field(default=5, gt=0, le=15)
     max_bytes: int = Field(default=2 * 1024 * 1024, gt=0, le=8 * 1024 * 1024)
+
+    @model_validator(mode="after")
+    def _room_fields(self) -> "Provider":
+        if self.principal_id is not None:
+            if self.kind != "room0":
+                raise ValueError("principal_id is only for room0 providers")
+            if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.principal_id):
+                raise ValueError("principal_id must match [A-Za-z0-9_-]{1,64}")
+        if self.public_url is not None:
+            if self.kind != "room0":
+                raise ValueError("public_url is only for room0 providers")
+            parts = urlsplit(self.public_url)
+            if parts.scheme not in ("http", "https") or not parts.hostname or parts.path not in ("", "/") \
+                    or parts.query or parts.fragment or parts.username is not None:
+                raise ValueError("public_url must be scheme://host[:port] only")
+        return self
 
     def governed_by_project_home(self) -> bool:
         return self.governance == "project_home" or (self.governance is None and self.kind == "room0")

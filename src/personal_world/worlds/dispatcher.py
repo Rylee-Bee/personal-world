@@ -132,6 +132,23 @@ def classify_outcome(result: Any) -> tuple[Literal["SUCCEEDED", "FAILED", "UNKNO
     return "UNKNOWN", None, "malformed"
 
 
+def _room_receipt(result: RawResponse) -> tuple[str, str | None, str | None]:
+    """A room answers 2xx with a receipt {ok, summary, changed, at} (ROOM rule 9). ``ok: false`` is the
+    room's own refusal/failure: FAILED when it says nothing changed, UNKNOWN when it says something did
+    (or says nothing), and an unreadable receipt is UNKNOWN: never a silent success."""
+    try:
+        doc = json.loads(result.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return "UNKNOWN", "malformed", None
+    if not isinstance(doc, dict) or not isinstance(doc.get("ok"), bool):
+        return "UNKNOWN", "malformed", None
+    summary = doc.get("summary") if isinstance(doc.get("summary"), str) else None
+    if doc["ok"]:
+        return "SUCCEEDED", None, summary
+    changed = doc.get("changed")
+    return ("FAILED" if changed in (None, [], {}, "", False) and "changed" in doc else "UNKNOWN"), "http_4xx", summary
+
+
 class Dispatcher:
     def __init__(
         self,
@@ -367,11 +384,16 @@ class Dispatcher:
         except Exception as exc:  # BaseException (a crash) deliberately propagates: row stays DISPATCHING
             result = ConfinementError("connection", f"sender error: {type(exc).__name__}")
         state, status, error_class = classify_outcome(result)
+        room_summary = None
+        if state == "SUCCEEDED" and provider.kind == "room0" and isinstance(result, RawResponse):
+            state, error_class, room_summary = _room_receipt(result)
         note = redact(getattr(result, "note", "") or "", tuple(self._secret_source))[:300] if isinstance(result, ConfinementError) else ""
         evidence = {"method": request.method, "path": request.path, "status_code": status, "error_class": error_class,
                     "duration_ms": getattr(result, "duration_ms", None)}
         if note:
             evidence["note"] = note
+        if room_summary:
+            evidence["summary"] = redact(room_summary, tuple(self._secret_source))[:200]
         with self._db.write_tx() as tx:
             cur = tx.execute("UPDATE executions SET state=?, status_code=?, evidence_redacted=?, finished_at=? "
                              "WHERE id=? AND state='DISPATCHING'",
