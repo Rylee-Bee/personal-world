@@ -78,11 +78,17 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
         sys.exit(0 if r.status==200 else 1)"
 
 # Fail fast at runtime when auth is unconfigured: an empty PW_API_TOKEN
-# must never serve (core already 503s protected routes; this makes the
-# boot itself loud). Compose parses without the token; the container
-# does not.
+# must never serve. This is the boot-time guard, kept deliberately separate
+# from the owner.yaml bootstrap below: app_from_env is the production auth
+# path, but a container that boots with no token at all is a misconfiguration
+# we want to hear about in the log, not serve. Covered by
+# tests/test_safety.py::TestEntrypointTokenGuard.
+# Production auth itself is the owner.yaml bootstrap
+# (worlds/production.py:app_from_env): with no valid owner.yaml nobody can
+# sign in and cookie-authenticated writes are refused. The HEALTHCHECK above
+# is the liveness gate.
 CMD ["sh", "-c", \
      "test -n \"$PW_API_TOKEN\" || { echo 'FATAL: PW_API_TOKEN is empty or unset; refusing to boot (auth is fail-closed).' >&2; exit 1; }; \
-      exec uv run uvicorn personal_world.api:create_app --factory \
+      exec uv run uvicorn personal_world.worlds.production:app_from_env --factory \
        --proxy-headers --forwarded-allow-ips='*' \
        --host 0.0.0.0 --port 8000"]

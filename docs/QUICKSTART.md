@@ -72,23 +72,27 @@ still a bug we want — not your fault.
 ---
 
 ## Where your stuff lives · how to not lose it
-- Everything is stored in one place on your machine (the `world-data` volume).
-- **Back it up encrypted, any time,** from the command line on a compose
-  install:
-  `docker compose exec core personal-world worlds backup ~/my-worlds-backup.pwbackup`
-  You choose a passphrase; it is never stored anywhere. Keep the
-  passphrase somewhere safe. (There is no in-app backup button today;
-  see `docs/RECOVERY-BOUNDARY.md` for what a backup actually restores.)
-- Restore on a fresh machine:
-  `docker compose exec core personal-world worlds restore <file>` — then
-  run the normal first-run setup once (it mints this box's own token;
-  your restored world is left byte-identical around it).
+- Durable state lives in two places on your machine: the config files under
+  `$PW_CONFIG_DIR` and the Memory database `$PW_DATA_DIR/worlds.db` (on a
+  Compose install these are the config and data volumes). The cache is
+  disposable.
+- **Back up Memory any time** through the app's own route:
+  `POST /api/memory/backup` writes a dated `worlds-*.db` copy under
+  `$PW_DATA_DIR/backups/` with SQLite's online backup API. It is not encrypted
+  by the app, so keep the copy as private as the database itself.
+- **Restore** on a fresh machine: stop Worlds, then
+  `python -c "from personal_world.worlds.memory_store import restore_backup; print(restore_backup('<backup file>', '<data dir>'))"`,
+  and start Worlds again. It refuses a directory that already holds Memory, so
+  it never overwrites.
+- The full durability contract — what survives, what to back up, how to
+  restore — is `docs/rebuild/DURABILITY.md`. The measured drill is
+  `scripts/restore-drill.sh`.
 
 ---
 
 ## Getting help
 - Docs: `docs/INDEX.md` (the full map of the documentation) ·
-  `docs/WORLDS-BACKUP.md` and `docs/RECOVERY-BOUNDARY.md` (backup and SOS) ·
+  `docs/rebuild/DURABILITY.md` (what to back up and how to restore) ·
   `.project/CURRENT.md` (where the project actually is) ·
   `docs/accessibility/ACCESSIBILITY_CONTRACT.md` (the minimum accessibility requirements).
 

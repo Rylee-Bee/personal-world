@@ -1,50 +1,26 @@
 """CLI. Every command prints the stable JSON envelope with --json;
-human output otherwise. Reads never mutate; writes require --apply."""
+human output otherwise.
+
+Only two surfaces remain after the front-door rebuild (ADR-0008, Phase 4):
+
+* the framework gate — ``framework validate`` and ``framework validate-packs``;
+* Memory's backup pair — ``memory backup`` mirrors ``POST /api/memory/backup``
+  and ``memory restore`` wraps ``worlds.memory_store.restore_backup``.
+
+The retired ADR-0001 verbs (status, daily, journal, prefs, updates, recipes,
+worlds, …) and their modules are gone; the gate's JSON envelope and exit codes
+are unchanged (docs/rebuild/FRAMEWORK-GATE.md)."""
 
 import argparse
 import json
 import sys
 from pathlib import Path
 
-from . import export, prefs
-from .app import build_registry, load_world, save_world
-from .envelope import EXIT_DENIED, EXIT_DRIFT, EXIT_ERROR, EXIT_OK, Result
+from .envelope import EXIT_ERROR, EXIT_OK, Result
 from .framework import (
     validate_framework,
     validate_participant_packs,
 )
-from .init import init_world
-from .journal import Journal
-from .loop import daily
-from .providers.registry import Registry
-from .updates import (
-    UpdateRefused,
-    UpdateRollbackFailed,
-    build_provider,
-    UpdateManager,
-)
-from .source_control import (
-    discover_repositories,
-    repository_history,
-    repository_status,
-    status_all,
-)
-from .world import MutationDenied, World, status
-
-
-def _search_paths(config_dir: Path) -> list[str]:
-    """Native-baseline repo paths from connections.json
-    (source_control.search_paths). The same helper the registry uses,
-    so CLI, API, and provider observe() read one config shape."""
-    from .source_control import configured_search_paths
-
-    return configured_search_paths(config_dir)
-
-
-def _paths(args) -> tuple[Path, Path]:
-    data_dir = Path(getattr(args, "data_dir", None) or "./data")
-    config_dir = Path(getattr(args, "config_dir", None) or "./config")
-    return data_dir, config_dir
 
 
 def _emit(result: Result, as_json: bool, exit_code: int | None = None) -> int:
@@ -64,281 +40,7 @@ def _emit(result: Result, as_json: bool, exit_code: int | None = None) -> int:
     return EXIT_OK if result.ok else EXIT_ERROR
 
 
-def cmd_status(world, registry, journal, args) -> int:
-    return _emit(status(world), args.json)
-
-
-def cmd_daily(world, registry, journal, args) -> int:
-    result = daily(world, registry, journal)
-    if getattr(args, "apply", False):
-        save_world(world, Path(args.data_dir) / "world.json")
-        result = result.model_copy(update={"changed": True})
-    return _emit(result, args.json)
-
-
-def cmd_journal(world, registry, journal, args) -> int:
-    events = journal.recent(getattr(args, "n", 20))
-    return _emit(
-        Result(
-            ok=True, status="healthy", data=[e.model_dump(mode="json") for e in events]
-        ),
-        args.json,
-    )
-
-
-def cmd_actors(world, registry, journal, args) -> int:
-    return _emit(
-        Result(
-            ok=True,
-            status="healthy",
-            data=[a.model_dump(mode="json") for a in registry.actors()],
-        ),
-        args.json,
-    )
-
-
-def cmd_settings_export(world, registry, journal, args) -> int:
-    return _emit(
-        Result(ok=True, status="healthy", data=export.settings_export(world)),
-        args.json,
-    )
-
-
-def cmd_world_export(world, registry, journal, args) -> int:
-    return _emit(
-        Result(ok=True, status="healthy", data=export.world_export(world)),
-        args.json,
-    )
-
-
-def cmd_story_export(world, registry, journal, args) -> int:
-    return _emit(
-        Result(ok=True, status="healthy", data={"text": export.story_export(journal)}),
-        args.json,
-    )
-
-
-def cmd_backup(world, registry, journal, args) -> int:
-    payload = export.backup_payload(world, journal)
-    out = Path(args.data_dir) / "backup-payload.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    if not getattr(args, "apply", False):
-        return _emit(
-            Result(
-                ok=True,
-                status="dry-run",
-                data={
-                    "would_write": str(out),
-                    "note": "payload is unencrypted; encrypt with your "
-                    "SOPS/age mechanism before storage",
-                },
-            ),
-            args.json,
-        )
-    out.write_text(json.dumps(payload, indent=2, default=str))
-    return _emit(
-        Result(ok=True, status="written", changed=True, data={"path": str(out)}),
-        args.json,
-    )
-
-
-def cmd_prefs(world, registry, journal, args) -> int:
-    data_dir = Path(args.data_dir)
-    world_path = data_dir / "world.json"
-    if args.prefs_cmd == "show":
-        return _emit(
-            Result(ok=True, status="healthy", data=prefs.get_prefs(world)),
-            args.json,
-        )
-    try:
-        data = prefs.set_prefs(
-            world, {args.key: prefs.coerce_value(args.key, args.value)}
-        )
-    except prefs.PrefsValueError as e:
-        return _emit(
-            Result(ok=False, status="rejected", warnings=[str(e)]),
-            args.json,
-            EXIT_ERROR,
-        )
-    save_world(world, world_path)
-    return _emit(
-        Result(ok=True, status="updated", changed=True, data=data),
-        args.json,
-    )
-
-
-def cmd_cement(world, registry, journal, args) -> int:
-    try:
-        world.cement(args.key)
-        save_world(world, Path(args.data_dir) / "world.json")
-    except KeyError:
-        return _emit(
-            Result(
-                ok=False, status="unknown-policy", warnings=[f"no policy '{args.key}'"]
-            ),
-            args.json,
-            EXIT_ERROR,
-        )
-    return _emit(
-        Result(ok=True, status="cemented", changed=True, data={"key": args.key}),
-        args.json,
-    )
-
-
-def cmd_init(world, registry, journal, args) -> int:
-    return _emit(init_world(Path(args.data_dir), Path(args.config_dir)), args.json)
-
-
-def cmd_changes(world, registry, journal, args) -> int:
-    """Native-baseline source control: discovery + per-repo status for
-    every configured path. Zero providers required."""
-    paths = _search_paths(Path(args.config_dir))
-    if not paths:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=[
-                    "no source_control search paths configured "
-                    "(add source_control.search_paths to "
-                    "connections.json)"
-                ],
-            ),
-            args.json,
-        )
-    discovered = discover_repositories(paths)
-    repos = [e for e in discovered if e["is_repository"]]
-    data = {
-        "search_paths": len(paths),
-        "repositories": status_all(paths),
-        "skipped": [e["path"] for e in discovered if not e["is_repository"]],
-    }
-    if not repos:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=["no git repositories found in configured search paths"],
-                data=data,
-            ),
-            args.json,
-        )
-    dirty = sum(1 for r in data["repositories"] if r["dirty"])
-    return _emit(
-        Result(
-            ok=True,
-            status="healthy",
-            data=data,
-            actions=[f"{dirty} dirty of {len(repos)} repositories"],
-        ),
-        args.json,
-    )
-
-
-def cmd_history(world, registry, journal, args) -> int:
-    paths = _search_paths(Path(args.config_dir))
-    if not paths:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=[
-                    "no source_control search paths configured "
-                    "(add source_control.search_paths to "
-                    "connections.json)"
-                ],
-            ),
-            args.json,
-        )
-    repos = [e for e in discover_repositories(paths) if e["is_repository"]]
-    if not repos:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=["no git repositories found in configured search paths"],
-            ),
-            args.json,
-        )
-    if len(repos) == 1:
-        return _emit(
-            Result(
-                ok=True,
-                status="healthy",
-                data={
-                    "repo": repos[0]["name"],
-                    "commits": repository_history(repos[0]["path"], args.limit),
-                },
-            ),
-            args.json,
-        )
-    return _emit(
-        Result(
-            ok=True,
-            status="healthy",
-            data={
-                "history": {
-                    r["name"]: repository_history(r["path"], args.limit) for r in repos
-                }
-            },
-        ),
-        args.json,
-    )
-
-
-def cmd_sync_status(world, registry, journal, args) -> int:
-    """Ahead/behind per repository. ahead/behind/remote are None for a
-    repo with no configured remote -- valid local-only state, never an
-    error."""
-    paths = _search_paths(Path(args.config_dir))
-    if not paths:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=[
-                    "no source_control search paths configured "
-                    "(add source_control.search_paths to "
-                    "connections.json)"
-                ],
-            ),
-            args.json,
-        )
-    repos = [
-        r
-        for r in status_all(paths)
-        if r.get("error") is None or r.get("branch") is not None
-    ]
-    if not repos:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=["no git repositories found in configured search paths"],
-            ),
-            args.json,
-        )
-    sync = [
-        {
-            "name": r["name"],
-            "branch": r["branch"],
-            "ahead": r["ahead"],
-            "behind": r["behind"],
-            "remote": r["remote"],
-        }
-        for r in repos
-    ]
-    return _emit(Result(ok=True, status="healthy", data={"repos": sync}), args.json)
-
-
-def cmd_manifest(world, registry, journal, args) -> int:
-    return _emit(
-        Result(ok=True, status="healthy", data=registry.manifest()),
-        args.json,
-    )
-
-
-def cmd_framework_validate(world, registry, journal, args) -> int:
+def cmd_framework_validate(args) -> int:
     """Validate the front-door framework invariants (ADR-0008 decision 3).
 
     Checks the C1 config store (schema, ids, references, no inline secrets),
@@ -367,7 +69,7 @@ def cmd_framework_validate(world, registry, journal, args) -> int:
     )
 
 
-def cmd_framework_validate_packs(world, registry, journal, args) -> int:
+def cmd_framework_validate_packs(args) -> int:
     """Validate every participant pack under .project/participants/.
 
     Pure deterministic check: parse every *.yaml, fail closed on
@@ -397,344 +99,62 @@ def cmd_framework_validate_packs(world, registry, journal, args) -> int:
     )
 
 
-def _updates_manager(world, registry, journal, args) -> tuple:
-    """Build the updates provider + manager, or None (not configured)."""
-    provider = build_provider(
-        config_dir=Path(args.config_dir),
-        provider=getattr(args, "provider", "compose"),
-        project_dir=getattr(args, "project_dir", None),
-    )
-    if provider is None:
-        return None, None
-    manager = UpdateManager(
-        provider,
-        journal,
-        session_path=Path(args.data_dir) / "updates-session.json",
-    )
-    return provider, manager
+def cmd_memory_backup(args) -> int:
+    """Mirror ``POST /api/memory/backup``: one consistent, private copy of
+    the Memory database under ``<data-dir>/backups/``. The online SQLite
+    backup API keeps the copy consistent while Memory is being written, and
+    an earlier backup is never overwritten."""
+    from .worlds.db import Database
+    from .worlds.memory_store import MemoryError_, MemoryStore
 
-
-def cmd_updates_check(world, registry, journal, args) -> int:
-    provider, mgr = _updates_manager(world, registry, journal, args)
-    if provider is None:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=[
-                    "no update target configured; set "
-                    "PW_UPDATES_PROJECT_DIR or pass --project-dir"
-                ],
-            ),
-            args.json,
-        )
-    result = mgr.check(
-        None if getattr(args, "all", False) else getattr(args, "target", None)
-    )
-    return _emit(Result(ok=True, status="healthy", data=result), args.json)
-
-
-def cmd_updates_preview(world, registry, journal, args) -> int:
-    provider, mgr = _updates_manager(world, registry, journal, args)
-    if provider is None:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=["no update target configured"],
-            ),
-            args.json,
-        )
+    data_dir = Path(args.data_dir)
+    db = Database.in_dir(data_dir)
     try:
-        preview = mgr.preview(args.target)
-    except KeyError:
+        store = MemoryStore(db)
+        path = store.backup(data_dir / "backups", actor="owner")
+    except (MemoryError_, OSError) as exc:
         return _emit(
-            Result(
-                ok=False,
-                status="unknown-target",
-                warnings=[
-                    f"unknown target '{args.target}' for provider '{provider.name}'"
-                ],
-            ),
-            args.json,
-        )
-    return _emit(Result(ok=True, status="healthy", data=preview), args.json)
-
-
-def cmd_updates_apply(world, registry, journal, args) -> int:
-    provider, mgr = _updates_manager(world, registry, journal, args)
-    if provider is None:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=["no update target configured"],
-            ),
-            args.json,
-        )
-    try:
-        result = mgr.apply(args.target, confirm=bool(getattr(args, "yes", False)))
-    except UpdateRefused as e:
-        return _emit(
-            Result(ok=False, status="refused", warnings=[str(e)]),
-            args.json,
-            EXIT_DENIED,
-        )
-    except UpdateRollbackFailed as e:
-        return _emit(
-            Result(
-                ok=False,
-                status="rollback-failed",
-                warnings=[str(e)],
-                data={"applied": True, "verified": False, "rolled_back": False},
-            ),
+            Result(ok=False, status="unhealthy", warnings=[str(exc)]),
             args.json,
             EXIT_ERROR,
         )
-    if not result.verified and result.rolled_back:
-        return _emit(
-            Result(
-                ok=False,
-                status="rolled-back",
-                warnings=[result.error or "verify failed; rolled back"],
-                data=result,
-            ),
-            args.json,
-            EXIT_ERROR,
-        )
+    finally:
+        db.close()
     return _emit(
         Result(
             ok=True,
-            status="verified" if result.verified else "unverified",
-            changed=result.applied,
-            data=result,
+            status="healthy",
+            changed=True,
+            data={"file": path.name},
         ),
         args.json,
     )
 
 
-def cmd_updates_rollback(world, registry, journal, args) -> int:
-    provider, mgr = _updates_manager(world, registry, journal, args)
-    if provider is None:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=["no update target configured"],
-            ),
-            args.json,
-        )
+def cmd_memory_restore(args) -> int:
+    """Wrap ``worlds.memory_store.restore_backup``: copy the Memory rows of
+    one backup into a fresh data directory, validating every row. A target
+    that already holds Memory is refused; restore never overwrites."""
+    from .worlds.memory_store import MemoryError_, restore_backup
+
+    data_dir = Path(args.data_dir)
     try:
-        result = mgr.rollback(args.target)
-    except UpdateRefused as e:
+        counts = restore_backup(Path(args.file), data_dir)
+    except MemoryError_ as exc:
         return _emit(
-            Result(ok=False, status="refused", warnings=[str(e)]),
+            Result(ok=False, status="rejected", warnings=[str(exc)]),
             args.json,
-            EXIT_DENIED,
-        )
-    return _emit(
-        Result(ok=True, status="rolled-back", changed=True, data=result),
-        args.json,
-    )
-
-
-def cmd_updates_status(world, registry, journal, args) -> int:
-    provider, mgr = _updates_manager(world, registry, journal, args)
-    if provider is None:
-        return _emit(
-            Result(
-                ok=False,
-                status="not_configured",
-                warnings=["no update target configured"],
-            ),
-            args.json,
+            EXIT_ERROR,
         )
     return _emit(
         Result(
             ok=True,
             status="healthy",
-            data=mgr.status(live=bool(getattr(args, "live", False))),
+            changed=True,
+            data={"restored": counts, "data_dir": str(data_dir)},
         ),
         args.json,
     )
-
-
-# ── worlds backup/restore (SOS escape hatch) ─────────────────────────
-#
-# The passphrase is read from a terminal prompt or the
-# PW_BACKUP_PASSPHRASE env var — NEVER from argv. Command-line values
-# are visible to every local process (`ps`), land in shell history,
-# and get captured by process accounting; a passphrase in argv would
-# leak the key to the whole world's backup. The env var exists for
-# non-interactive recovery (systemd-run, restore scripts) and should
-# be set per-command, not exported in a profile.
-
-
-def _backup_passphrase(args, confirm: bool) -> str | None:
-    import os
-
-    env = os.environ.get("PW_BACKUP_PASSPHRASE")
-    if env:
-        return env
-    import getpass
-
-    pw = getpass.getpass("Backup passphrase (input hidden): ")
-    if confirm:
-        again = getpass.getpass("Repeat passphrase: ")
-        if pw != again:
-            return None
-    return pw
-
-
-def cmd_worlds_backup(world, registry, journal, args) -> int:
-    from . import worlds_backup
-
-    passphrase = _backup_passphrase(
-        args, confirm=not getattr(args, "no_confirm", False)
-    )
-    if passphrase is None:
-        return _emit(
-            Result(
-                ok=False,
-                status="rejected",
-                warnings=["passphrases did not match; nothing written"],
-            ),
-            args.json,
-            EXIT_ERROR,
-        )
-    result = worlds_backup.backup(
-        Path(args.data_dir),
-        Path(args.target),
-        passphrase,
-        include_vault=bool(getattr(args, "include_vault", False)),
-        config_dir=Path(args.config_dir),
-        home_config_dir=getattr(args, "home_config_dir", None),
-    )
-    return _emit(result, args.json)
-
-
-# ── Web Push (native notifications, docs/NOTIFICATIONS.md) ──────────
-
-
-def cmd_push_keygen(world, registry, journal, args) -> int:
-    """Print a fresh VAPID key pair for the operator.
-
-    The private key belongs in the environment
-    (PW_VAPID_PRIVATE_KEY — the PEM block printed here, or a base64url
-    raw key); the public key is derived at runtime, and is printed only
-    because it is the value a stranger could compute anyway. This
-    command writes nothing and calls nothing: no server, no network."""
-    from . import push as push_mod
-
-    pair = push_mod.generate_keypair()
-    if args.json:
-        print(json.dumps(pair, indent=2))
-        return EXIT_OK
-    print("# VAPID key pair for Web Push — see docs/NOTIFICATIONS.md.")
-    print("# Put the private key below into PW_VAPID_PRIVATE_KEY (an env")
-    print("# file is fine); the app reads it and never writes it down.")
-    print(pair["private_pem"].rstrip())
-    print("# The browser-facing public key (derived at runtime too):")
-    print(pair["public_key"])
-    return EXIT_OK
-
-
-def cmd_notify(world, registry, journal, args) -> int:
-    """Publish one notification through POST /api/notify on a running
-    backend, authenticated with the instance credential (PW_API_TOKEN,
-    or the token in <data-dir>/.env — the same resolution the api
-    command uses). Prints whatever the API decided, including when the
-    notification only entered history (quiet hours, tier off, no
-    devices)."""
-    from .cli_dispatch import Ctx
-
-    ctx = Ctx(args, world, registry, journal)
-    payload: dict = {
-        "tier": args.tier,
-        "source": args.source,
-        "title": args.title,
-        "body": args.body,
-    }
-    if args.link:
-        payload["link"] = args.link
-    if args.to:
-        payload["to"] = args.to
-    if args.dedupe_key:
-        payload["dedupe_key"] = args.dedupe_key
-    result = ctx.http("POST", "/api/notify", payload)
-    return _emit(result, args.json)
-
-
-def cmd_worlds_restore(world, registry, journal, args) -> int:
-    from . import worlds_backup
-
-    passphrase = _backup_passphrase(args, confirm=False)
-    if passphrase is None:
-        return _emit(
-            Result(
-                ok=False,
-                status="rejected",
-                warnings=["no passphrase provided; nothing written"],
-            ),
-            args.json,
-            EXIT_ERROR,
-        )
-    result = worlds_backup.restore(
-        Path(args.data_dir),
-        Path(args.file),
-        passphrase,
-        overwrite=bool(getattr(args, "overwrite", False)),
-        config_dir=Path(args.config_dir),
-        home_config_dir=getattr(args, "home_config_dir", None),
-    )
-    return _emit(result, args.json)
-
-
-def cmd_recipes(world, registry, journal, args) -> int:
-    """List, show or install the sanitized service recipes (config/recipes) into the owner's Worlds config."""
-    from .worlds import recipes as rc
-
-    root = Path(args.recipes_dir) if getattr(args, "recipes_dir", None) else None
-    try:
-        if args.recipes_cmd == "list":
-            infos = rc.list_recipes(root)
-            if args.json:
-                print(json.dumps([i.model_dump(mode="json") for i in infos], indent=2))
-            else:
-                for i in infos:
-                    tag = "planned" if i.status == "planned" else ("verified" if i.verified else "unverified")
-                    print(f"{i.name:<14} {tag:<10} {i.title}" + (f"  ({i.note})" if i.note else ""))
-            return 0
-        recipe = rc.load_recipe(args.name, root)
-        if args.recipes_cmd == "show":
-            print(json.dumps({
-                "recipe": recipe.info.model_dump(mode="json"),
-                "provider": recipe.provider.model_dump(mode="json") if recipe.provider else None,
-                "requests": [r.id for r in recipe.requests],
-                "cards": [c.id for c in recipe.cards],
-                "actions": [a.id for a in recipe.actions],
-            }, indent=2))
-            return 0
-        from .worlds.config_store import ConfigStore
-
-        config_dir = Path(args.config_dir)  # the global --config-dir (PW_CONFIG_DIR)
-        written = rc.install(ConfigStore(config_dir), recipe, base_url=args.base_url, secret_ref=args.secret_ref, overwrite=args.overwrite)
-        if args.json:
-            print(json.dumps({"written": written}))
-        else:
-            print(f"installed {recipe.info.name}: {len(written)} object(s) written under {config_dir / 'worlds'}" if written else f"{recipe.info.name}: already installed (use --overwrite to replace)")
-            if written and not recipe.info.verified:
-                print("  note: unverified. The response shapes come from public docs and have not been checked against a live service yet.")
-            for w in written:
-                print(f"  {w}")
-        return 0
-    except rc.RecipeError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
-    except Exception as exc:  # ConfigInvalid and friends: short, no values
-        print(f"error: {type(exc).__name__}: {str(exc)[:200]}", file=sys.stderr)
-        return 1
-
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -743,71 +163,6 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--config-dir", default="./config")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    def add(name, fn, **kw):
-        sp = sub.add_parser(name, **kw)
-        sp.add_argument("--json", action="store_true")
-        sp.set_defaults(fn=fn)
-        return sp
-
-    add("status", cmd_status, help="world summary (read-only)")
-    add("daily", cmd_daily, help="run the daily loop")
-    d = sub.choices["daily"]
-    d.add_argument(
-        "--apply", action="store_true", help="persist observed facts (default: dry-run)"
-    )
-    add("journal", cmd_journal, help="recent journal events")
-    sub.choices["journal"].add_argument("-n", type=int, default=20)
-    add("actors", cmd_actors, help="staff-directory view of providers")
-    add(
-        "settings-export",
-        cmd_settings_export,
-        help="shareable blueprint (no personal data)",
-    )
-    add(
-        "world-export",
-        cmd_world_export,
-        help="portable personal configuration (no secrets)",
-    )
-    add("story-export", cmd_story_export, help="human-readable journal rendering")
-    b = add("backup", cmd_backup, help="backup payload (encrypt before storing)")
-    b.add_argument("--apply", action="store_true")
-    add("cement", cmd_cement, help="make a policy cemented (explicit user action)")
-    add(
-        "init",
-        cmd_init,
-        help="initialize local world state (idempotent, zero providers)",
-    )
-    add("manifest", cmd_manifest, help="machine-readable capability/provider manifest")
-    prefs_p = add(
-        "prefs",
-        cmd_prefs,
-        help="presentation preferences (minimum accessibility settings enforced)",
-    )
-    prefs_sub = prefs_p.add_subparsers(dest="prefs_cmd", required=True)
-    prefs_show = prefs_sub.add_parser("show", help="effective preferences")
-    prefs_show.add_argument("--json", action="store_true")
-    prefs_show.set_defaults(fn=cmd_prefs)
-    pset = prefs_sub.add_parser("set", help="set one preference value")
-    pset.add_argument("key")
-    pset.add_argument("value")
-    pset.add_argument("--json", action="store_true")
-    pset.set_defaults(fn=cmd_prefs)
-    add(
-        "changes",
-        cmd_changes,
-        help="native git status for configured repositories (read-only)",
-    )
-    h = add(
-        "history",
-        cmd_history,
-        help="native git commit history, newest first (read-only)",
-    )
-    h.add_argument("--limit", type=int, default=20)
-    add(
-        "sync-status",
-        cmd_sync_status,
-        help="native git ahead/behind per repository (read-only)",
-    )
     fw = sub.add_parser("framework", help="framework-level tooling")
     fw_sub = fw.add_subparsers(dest="framework_cmd", required=True)
     fw_v = fw_sub.add_parser(
@@ -823,164 +178,26 @@ def main(argv: list[str] | None = None) -> int:
     fw_vp.add_argument("--json", action="store_true")
     fw_vp.set_defaults(fn=cmd_framework_validate_packs)
 
-    up = sub.add_parser(
-        "updates", help="safe update flow: check/preview/apply/rollback"
-    )
-    up.add_argument(
-        "--provider", default="compose", help="update provider kind (compose|fake)"
-    )
-    up.add_argument(
-        "--project-dir",
-        default=None,
-        help="compose project directory (default: $PW_UPDATES_PROJECT_DIR)",
-    )
-    up_sub = up.add_subparsers(dest="updates_cmd", required=True)
-
-    def up_add(name, fn, help_):
-        sp = up_sub.add_parser(name, help=help_)
-        sp.add_argument("--json", action="store_true")
-        sp.set_defaults(fn=fn)
-        return sp
-
-    up_c = up_add("check", cmd_updates_check, "check for available updates (read-only)")
-    up_c.add_argument("target", nargs="?", default=None)
-    up_c.add_argument("--all", action="store_true", help="check every target")
-    up_add(
-        "preview",
-        cmd_updates_preview,
-        "show exactly what an apply would change (read-only)",
-    ).add_argument("target")
-    up_a = up_add(
-        "apply", cmd_updates_apply, "apply the previewed update (requires --yes)"
-    )
-    up_a.add_argument("target")
-    up_a.add_argument(
-        "--yes", action="store_true", help="explicit confirmation; refused without it"
-    )
-    up_add(
-        "rollback", cmd_updates_rollback, "roll back to the journaled known-good state"
-    ).add_argument("target")
-    up_s = up_add("status", cmd_updates_status, "updates session state")
-    up_s.add_argument(
-        "--live", action="store_true", help="include a read-only check per target"
-    )
-
-    rcp = sub.add_parser("recipes", help="sanitized homelab service recipes (config/recipes): list, show, install")
-    rcp.add_argument("--recipes-dir", default=None, help="recipe templates (default: $PW_RECIPES_DIR or config/recipes)")
-    rcp_sub = rcp.add_subparsers(dest="recipes_cmd", required=True)
-    rl = rcp_sub.add_parser("list", help="list recipes and whether each can be installed")
-    rl.add_argument("--json", action="store_true")
-    rl.set_defaults(fn=cmd_recipes)
-    rs = rcp_sub.add_parser("show", help="what a recipe would write (no secrets, no real hosts)")
-    rs.add_argument("name")
-    rs.add_argument("--json", action="store_true")
-    rs.set_defaults(fn=cmd_recipes)
-    ri = rcp_sub.add_parser("install", help="write a recipe into $PW_CONFIG_DIR/worlds/")
-    ri.add_argument("name")
-    ri.add_argument("--base-url", default=None, help="the real address of the service (stays in your config dir only)")
-    ri.add_argument("--secret-ref", default=None, help="env:NAME or vault:NAME holding the API key (a name, never the key)")
-    ri.add_argument("--overwrite", action="store_true", help="replace objects that already exist (default: keep them)")
-    ri.add_argument("--json", action="store_true")
-    ri.set_defaults(fn=cmd_recipes)
-
-    w = sub.add_parser(
-        "worlds",
-        help="encrypted full-instance backup/restore (SOS escape hatch); "
-        "passphrase via prompt or PW_BACKUP_PASSPHRASE env, never argv",
-    )
-    w.add_argument(
-        "--home-config-dir",
-        default=None,
-        help="per-user config home (default: ~/.config/personal-world)",
-    )
-    w_sub = w.add_subparsers(dest="worlds_cmd", required=True)
-
-    def w_add(name, fn, help_):
-        sp = w_sub.add_parser(name, help=help_)
-        sp.add_argument("--json", action="store_true")
-        sp.set_defaults(fn=fn)
-        return sp
-
-    wb = w_add(
+    mem = sub.add_parser("memory", help="Memory backup and restore")
+    mem_sub = mem.add_subparsers(dest="memory_cmd", required=True)
+    mb = mem_sub.add_parser(
         "backup",
-        cmd_worlds_backup,
-        "write ONE encrypted archive of the full-restore boundary",
+        help="write one consistent, private backup of Memory "
+        "(mirrors POST /api/memory/backup)",
     )
-    wb.add_argument("target", help="archive path to write (e.g. ~/sos/world.pwbackup)")
-    wb.add_argument(
-        "--include-vault",
-        action="store_true",
-        help="also archive vault.enc (already encrypted at rest; excluded by default)",
-    )
-    wb.add_argument(
-        "--no-confirm",
-        action="store_true",
-        help="skip the repeat-passphrase confirmation prompt",
-    )
-    wr = w_add(
+    mb.add_argument("--json", action="store_true")
+    mb.set_defaults(fn=cmd_memory_backup)
+    mr = mem_sub.add_parser(
         "restore",
-        cmd_worlds_restore,
-        "import an encrypted archive (create-if-absent by default)",
+        help="copy the Memory rows of a backup into a fresh data directory "
+        "(never overwrites an existing one)",
     )
-    wr.add_argument("file", help="archive path to restore from")
-    wr.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="replace existing files (default: keep them, report skipped)",
-    )
-
-    # Web Push (native notifications, docs/NOTIFICATIONS.md): one operator
-    # tool that outputs keys, and one publish tool that talks to a running
-    # backend like every other dispatch command does.
-    push_p = sub.add_parser("push", help="Web Push key pair tooling (operator)")
-    push_sub = push_p.add_subparsers(dest="push_cmd", required=True)
-    pk = push_sub.add_parser(
-        "keygen",
-        help="print a fresh VAPID key pair to stdout (writes nothing)",
-    )
-    pk.add_argument("--json", action="store_true")
-    pk.set_defaults(fn=cmd_push_keygen)
-
-    n = add(
-        "notify",
-        cmd_notify,
-        help="publish one notification through POST /api/notify (PW_API_TOKEN)",
-    )
-    n.add_argument(
-        "--tier",
-        required=True,
-        choices=["good_news", "update", "when_ready"],
-        help="how much attention this asks for",
-    )
-    n.add_argument("--source", default="cli", help="who this came from (e.g. cli)")
-    n.add_argument("--title", required=True)
-    n.add_argument("--body", required=True)
-    n.add_argument("--link", default=None, help="path on this site, e.g. /today")
-    n.add_argument("--to", default=None, help="person id (manage_people only)")
-    n.add_argument(
-        "--dedupe-key", dest="dedupe_key", default=None, help="same key = one send"
-    )
-
-    # Decision #19 CLI-parity surface (additive; clobbers nothing cli.py
-    # already owns): `api-manifest`, `api <METHOD> <path>`, and the
-    # `do <noun> <verb>` wrappers. See src/personal_world/cli_dispatch.py.
-    from .cli_dispatch import register_cli_dispatch
-
-    register_cli_dispatch(sub)
+    mr.add_argument("file", help="backup file to restore from")
+    mr.add_argument("--json", action="store_true")
+    mr.set_defaults(fn=cmd_memory_restore)
 
     args = p.parse_args(argv)
-    data_dir = Path(args.data_dir)
-    config_dir = Path(args.config_dir)
-    world = load_world(data_dir / "world.json")
-    registry = build_registry(world, Registry(), config_dir)
-    journal = Journal(data_dir / "journal.ndjson")
-
-    try:
-        return args.fn(world, registry, journal, args)
-    except MutationDenied as e:
-        return _emit(
-            Result(ok=False, status="denied", warnings=[str(e)]), args.json, EXIT_DENIED
-        )
+    return args.fn(args)
 
 
 if __name__ == "__main__":

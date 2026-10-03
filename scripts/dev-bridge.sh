@@ -14,7 +14,7 @@ mkdir -p "$DATA_DIR/data"
 export PW_DEV_AUTH_BYPASS=1
 export PW_API_TOKEN="dev-$(head -c12 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 export PW_DATA_DIR="$DATA_DIR/data" PW_CONFIG_DIR="$DATA_DIR/config"
-uv run uvicorn personal_world.api:create_app --factory --app-dir src \
+uv run uvicorn personal_world.worlds.production:app_from_env --factory --app-dir src \
   --host 127.0.0.1 --port "${PW_DEV_API_PORT:-8010}" &
 API_PID=$!
 trap 'kill $API_PID 2>/dev/null' EXIT

@@ -123,47 +123,51 @@ private operator docs.
 
 ## 3. Backup and restore drill
 
-State is in the docker volume `world-data` (known-good copy ⇒ restore),
-plus the app-level encrypted archive path (`docs/WORLDS-BACKUP.md`).
-`/api/backup` is *not* a full-volume backup — do not treat it as one.
+Durable state is the config volume (`$PW_CONFIG_DIR`: `worlds/…`, `owner.yaml`)
+and the data volume holding `worlds.db`; the cache is disposable. The full
+contract is `docs/rebuild/DURABILITY.md`.
 
-- [ ] **Backup (volume copy).** How:
+- [ ] **Volume copy (config + data).** How:
   ```bash
-  docker run --rm -v "personal-world_world-data":/from -v "$PWD":/to \
-    alpine tar czf /to/world-data-backup.tar.gz -C /from .
+  docker volume ls            # confirm the exact volume names first
+  for v in personal-world_config-data personal-world_world-data; do
+    docker run --rm -v "$v":/from -v "$PWD":/to \
+      alpine tar czf "/to/$v-backup.tar.gz" -C /from .
+  done
   ```
-  (adjust the volume/project prefix to what `docker volume ls` shows for
-  this deployment). Record (private log): archive path *outside both* the
-  machine and this repo, size, date, and the passphrase location if you
-  also ran the encrypted CLI archive.
-- [ ] **`worlds backup` encrypted archive** (optional but recommended).
-  How: `personal-world --data-dir <data> --config-dir <config> worlds
-  backup <private-path>/world.pwbackup` (`--include-vault` for disaster
-  recovery). Pass: header manifests the boundary you expect; passphrase
-  stored separately from the file.
+  (adjust the volume/project prefix to what `docker volume ls` shows for this
+  deployment — config and data are separate volumes). Record (private log):
+  archive paths *outside both* the machine and this repo, size and date.
+- [ ] **Memory backup (in-app route).** How: `POST /api/memory/backup` (owner,
+  CSRF) writes a dated `$PW_DATA_DIR/backups/worlds-*.db` through SQLite's
+  online backup API (file 0600, directory 0700). It contains Memory and History,
+  including locked records; keep it as private as the database itself.
+  Pass: the response names the file and it exists on disk.
 - [ ] **Restore from a copy — the drill.** How (stop → restore → start →
   verify):
   ```bash
   docker compose stop core
-  docker volume ls            # confirm the exact volume name first
+  docker volume ls            # confirm the exact volume names first
+  # restore the config and data volumes from the tar copies (see the copy step)
   docker run --rm -v "personal-world_world-data":/target -v "$PWD":/from \
-    alpine sh -c "tar xzf /from/world-data-backup.tar.gz -C /target \
-    --exclude 'sessions.json' --exclude 'memory.fts5.db*'"
+    alpine sh -c "tar xzf /from/personal-world_world-data-backup.tar.gz -C /target"
   docker compose start core
-  curl -s https://<worlds-host>/healthz          # 200, auth_configured
+  curl -s https://<worlds-host>/healthz          # 200
   ```
-  Then verify data presence: journal shows pre-backup entries, reminder
-  list matches, vault reports its own status, sign-in still works.
-  Record (private log): restore date, what was verified present, and any
-  `refused[]`/`skipped[]` report rows if you used the CLI restore.
-  **Pass:** after a restore from the copied volume, the world state is
-  indistinguishable from the pre-backup deployment and health is reported correctly.
-  Do the drill on the live deployment only if you accept the risk — a
-  scratch deployment on the copied volume satisfies the requirement with
-  zero live risk.
-- [ ] **The encrypted restore knows its passphrase** — an archive whose
-  passphrase is lost is not a backup (`docs/WORLDS-BACKUP.md`: no recovery
-  mechanism exists, deliberately). Pass: you can actually open it.
+  For the app-level route: stop Worlds and run `restore_backup` into an empty
+  data dir; it refuses a target that already holds Memory, so it never
+  overwrites. Then verify data presence: Memory (kept/later/records) and History
+  are present, sign-in still works, and `/healthz` reports healthy.
+  Record (private log): restore date and what was verified present.
+  **Pass:** after a restore from the copied volumes, the Memory state is
+  indistinguishable from the pre-backup deployment and health is reported
+  correctly. Do the drill on the live deployment only if you accept the risk — a
+  scratch deployment on the copied volumes satisfies the requirement with zero
+  live risk.
+- [ ] **The backup copy is kept private.** `worlds.db` and its copies are only as
+  safe as the machine and permissions they sit on (`docs/rebuild/DURABILITY.md`).
+  Pass: the copy is stored outside the repo, mode 0600, and its location is
+  recorded in the private log.
 
 ## 4. Network exposure decision
 
