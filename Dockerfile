@@ -77,12 +77,18 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
         r=urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=4); \
         sys.exit(0 if r.status==200 else 1)"
 
-# Production auth is the owner.yaml bootstrap (worlds/production.py:app_from_env),
-# not a boot-time token: with no valid owner.yaml nobody can sign in and
-# cookie-authenticated writes are refused. app_from_env reads PW_CONFIG_DIR and
-# PW_DATA_DIR (set above) and fails closed on a weak bootstrap secret. The
-# HEALTHCHECK above is the liveness gate.
+# Fail fast at runtime when auth is unconfigured: an empty PW_API_TOKEN
+# must never serve. This is the boot-time guard, kept deliberately separate
+# from the owner.yaml bootstrap below: app_from_env is the production auth
+# path, but a container that boots with no token at all is a misconfiguration
+# we want to hear about in the log, not serve. Covered by
+# tests/test_safety.py::TestEntrypointTokenGuard.
+# Production auth itself is the owner.yaml bootstrap
+# (worlds/production.py:app_from_env): with no valid owner.yaml nobody can
+# sign in and cookie-authenticated writes are refused. The HEALTHCHECK above
+# is the liveness gate.
 CMD ["sh", "-c", \
-     "exec uv run uvicorn personal_world.worlds.production:app_from_env --factory \
+     "test -n \"$PW_API_TOKEN\" || { echo 'FATAL: PW_API_TOKEN is empty or unset; refusing to boot (auth is fail-closed).' >&2; exit 1; }; \
+      exec uv run uvicorn personal_world.worlds.production:app_from_env --factory \
        --proxy-headers --forwarded-allow-ips='*' \
        --host 0.0.0.0 --port 8000"]

@@ -53,10 +53,14 @@ class TestDockerfile:
         assert "FROM python:3.12-slim-bookworm" in text
         assert "HEALTHCHECK" in text
         # Production auth is owner.yaml bootstrap (worlds/production.py:app_from_env);
-        # the old token-gated create_app and its PW_API_TOKEN fail-fast are gone.
+        # the old token-gated create_app is gone.
         assert "uvicorn personal_world.worlds.production:app_from_env --factory" in text
         assert "personal_world.api:create_app" not in text
-        assert "FATAL: PW_API_TOKEN is empty or unset" not in text
+        # The boot-time PW_API_TOKEN guard stays, deliberately separate from the
+        # owner.yaml bootstrap: a container with no token at all is a
+        # misconfiguration we want to hear about at boot, not serve. Asserted
+        # here and behaviourally in test_safety.py::TestEntrypointTokenGuard.
+        assert "FATAL: PW_API_TOKEN is empty or unset" in text
         froms = [l for l in text.splitlines() if l.startswith("FROM ")]
         assert len(froms) == 2
         assert all("@sha256:" in l for l in froms), froms
