@@ -41,7 +41,6 @@ from personal_world.world import World  # noqa: E402
 
 STANDARD_CAPS = {
     "source_control",
-    "deployment",
     "secrets",
     "calendar",
     "settings_validation",
@@ -97,7 +96,6 @@ class TestCoreOnly:
             "calendar",
             "notifications",
             "update_discovery",
-            "deployment",
         }
         for cap, s in result.items():
             if cap in always_native:
@@ -223,11 +221,6 @@ class TestProviderLifecycle:
         sm = reg.status_map()
         # Native providers that always ship may be healthy/not_configured
         assert sm["memory"]["status"] in ("healthy", "not_configured")
-        assert sm["deployment"]["status"] in (
-            "healthy",
-            "not_configured",
-            "unavailable",
-        )
         # gitea unreachable: fail-closed, not a crash
         assert sm["source_control"]["status"] in ("unavailable", "unhealthy")
         # core summary itself is still computable

@@ -1019,7 +1019,7 @@ export const sendTestNotification = () =>
 
 // ===== Endpoints the client does NOT call yet =====
 // /api/projects/status, /api/source-control/*, /api/lab/*,
-// /api/native-lab/*, /api/ingress/rollups, /api/updates,
+// /api/native-lab/*, /api/ingress/rollups,
 // /api/exports/*, /api/reconciler/* exist on the server but are not
 // part of the generated spec snapshot and have no typed wrapper here.
 // Adding them means regenerating src/generated/openapi.json from the

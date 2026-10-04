@@ -44,7 +44,6 @@ from .world import World
 # itself give this capability useful local meaning with zero providers?)
 STANDARD_CAPABILITIES: list[tuple[str, str, bool]] = [
     ("source_control", "Read repositories, issues, pull requests", True),
-    ("deployment", "Deploy or schedule services", False),
     ("secrets", "Broker secret material to consumers", False),
     ("calendar", "Observe calendar events", False),
     ("settings_validation", "Validate settings against intent", True),
@@ -553,21 +552,6 @@ def build_registry(
         "native-updates",
         updates_provider,
         health_check=updates_provider.health,
-        writes="none",
-        mode=ProviderMode.NATIVE,
-        required=False,
-    )
-
-    # native_deployment: deployment domain (compose/systemd)
-    from .providers.native_deployment import NativeDeploymentProvider
-
-    deploy_config = _read_extra_config(config_dir, "deployment")
-    deployment_provider = NativeDeploymentProvider(deploy_config)
-    registry.register(
-        "deployment",
-        "native-deployment",
-        deployment_provider,
-        health_check=deployment_provider.health,
         writes="none",
         mode=ProviderMode.NATIVE,
         required=False,

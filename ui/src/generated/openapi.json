@@ -5216,27 +5216,6 @@
         "summary": "Tools"
       }
     },
-    "/api/updates": {
-      "get": {
-        "description": "Read-only check + status overview. API is check/status only:\napply/rollback are CLI-only, deliberately -- destructive actions\nneed the explicit-confirm CLI path with its visible exit codes.",
-        "operationId": "updates_view_api_updates_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Updates View Api Updates Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Updates View"
-      }
-    },
     "/api/vault/lock": {
       "post": {
         "description": "Lock the vault, clearing secrets from memory.",

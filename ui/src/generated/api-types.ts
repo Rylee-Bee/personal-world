@@ -3761,28 +3761,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/updates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Updates View
-         * @description Read-only check + status overview. API is check/status only:
-         *     apply/rollback are CLI-only, deliberately -- destructive actions
-         *     need the explicit-confirm CLI path with its visible exit codes.
-         */
-        get: operations["updates_view_api_updates_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/vault/lock": {
         parameters: {
             query?: never;
@@ -8873,28 +8851,6 @@ export interface operations {
         };
     };
     tools_api_tools_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    updates_view_api_updates_get: {
         parameters: {
             query?: never;
             header?: never;

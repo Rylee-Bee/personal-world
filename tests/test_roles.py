@@ -48,7 +48,6 @@ EXPECTED_BUNDLE = {
         "manage_people",
         "manage_rooms",
         "estate_secrets",
-        "updates",
     },
     "member": {"own_space", "see_shared"},
     "supervised": {"own_space", "see_shared"},
@@ -72,7 +71,6 @@ class TestPermissionBundles:
             "manage_people",
             "manage_rooms",
             "estate_secrets",
-            "updates",
             "transfer_ownership",
         )
 
@@ -125,7 +123,6 @@ class TestAgentLesserOf:
             "manage_people",
             "manage_rooms",
             "estate_secrets",
-            "updates",
             "transfer_ownership",
         ):
             agent = Principal(id="bot", kind="agent", owner_id="o", scopes=("write", "read"), role="owner")

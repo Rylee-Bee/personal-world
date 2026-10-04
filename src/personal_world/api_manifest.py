@@ -1112,15 +1112,6 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "none",
         note="includes private state; encrypt externally, never share",
     ),
-    _e(
-        "API-029",
-        "GET",
-        "/api/updates",
-        "updates",
-        "read",
-        "none",
-        note="read-only update state; apply/rollback is CLI-only",
-    ),
 )
 
 
