@@ -210,7 +210,7 @@ that walks users or agents (sessions, listings, sign-in) can match one.
   accepts it on the API's bearer path).
 - **Deny list** (`api.VIEWER_DENIED_PREFIXES`, tested): a viewer gets 403 on
   `/api/vault`, `/api/secrets`, `/api/lab/secrets`, `/api/lab/settings`,
-  `/api/native-lab/settings`, `/api/recall`, `/api/journal`, `/api/memory`
+  `/api/recall`, `/api/journal`, `/api/memory`
   (search), `/api/records`, `/api/learning`, `/api/backup`, `/api/worlds`,
   `/api/exports`, `/api/identity/{agents,users,viewers}`,
   `/api/people/invites`, `/api/push/subscriptions` and

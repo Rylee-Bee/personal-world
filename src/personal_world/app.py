@@ -397,57 +397,6 @@ def build_registry(
                     mode=mode,
                     required=required,
                 )
-        elif ptype == "native_lab":
-            # Native Lab provider: generic lab capabilities that ship
-            # with Project Worlds. Users configure their own environment.
-            from .providers.native_lab import (
-                NativeLabInventory,
-                NativeLabHealth,
-                NativeLabSettings,
-                NativeLabResources,
-            )
-
-            inventory = NativeLabInventory()
-            health = NativeLabHealth(inventory)
-            settings = NativeLabSettings()
-            resources = NativeLabResources()
-
-            registry.register(
-                "service_inventory",
-                f"{name}-inventory",
-                inventory,
-                health_check=lambda inventory=inventory: inventory.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
-            registry.register(
-                "service_health",
-                f"{name}-health",
-                health,
-                health_check=lambda health=health: health.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
-            registry.register(
-                "settings_validation",
-                f"{name}-settings",
-                settings,
-                health_check=lambda settings=settings: settings.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
-            registry.register(
-                "resource_monitoring",
-                f"{name}-resources",
-                resources,
-                health_check=lambda resources=resources: resources.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
         # unknown types: skipped, not fatal -- standalone deployments
         # boot with zero providers
 

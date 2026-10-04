@@ -654,10 +654,6 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         note="secret names/metadata only; never resolved values",
     ),
     _e("API-044", "GET", "/api/lab/resources", "lab", "read", "none"),
-    _e("API-045", "GET", "/api/native-lab/inventory", "native_lab", "read", "none"),
-    _e("API-046", "GET", "/api/native-lab/health", "native_lab", "read", "none"),
-    _e("API-047", "GET", "/api/native-lab/settings", "native_lab", "read", "none"),
-    _e("API-048", "GET", "/api/native-lab/resources", "native_lab", "read", "none"),
     _e("API-058", "GET", "/api/reconciler/status", "reconciler", "read", "none"),
     _e(
         "API-059", "GET", "/api/reconciler/diff/{service}", "reconciler", "read", "none"

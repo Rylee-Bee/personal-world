@@ -384,56 +384,6 @@ def build_default_tools(
         )
     )
 
-    # ── Lab ──
-
-    tools.register(
-        Tool(
-            id="inspect_lab_inventory",
-            capability="lab",
-            operation="inventory",
-            description="Inspect native lab service inventory: list services with type and status.",
-            read_write="read",
-            parameters={"type": "object", "properties": {}, "required": []},
-            handler=lambda: _lab_inventory(),
-        )
-    )
-
-    tools.register(
-        Tool(
-            id="inspect_lab_health",
-            capability="lab",
-            operation="health",
-            description="Inspect native lab health: summary of healthy/unhealthy/unknown services.",
-            read_write="read",
-            parameters={"type": "object", "properties": {}, "required": []},
-            handler=lambda: _lab_health(),
-        )
-    )
-
-    tools.register(
-        Tool(
-            id="inspect_lab_resources",
-            capability="lab",
-            operation="resources",
-            description="Inspect system resources: CPU, memory, disk.",
-            read_write="read",
-            parameters={"type": "object", "properties": {}, "required": []},
-            handler=lambda: _lab_resources(),
-        )
-    )
-
-    tools.register(
-        Tool(
-            id="inspect_lab_settings",
-            capability="lab",
-            operation="settings",
-            description="Inspect native lab settings: services with desired state defined.",
-            read_write="read",
-            parameters={"type": "object", "properties": {}, "required": []},
-            handler=lambda: _lab_settings(),
-        )
-    )
-
     # ── Reconciler ──
 
     tools.register(
@@ -1528,51 +1478,6 @@ def _projects_status() -> Result:
         return result
     except Exception as e:
         return fail("unavailable", warnings=[f"projects: {e}"])
-
-
-def _lab_inventory() -> Result:
-    """Get native lab inventory."""
-    try:
-        from .providers.native_lab import NativeLabInventory
-
-        inventory = NativeLabInventory()
-        return inventory.observe()
-    except Exception as e:
-        return fail("unavailable", warnings=[f"lab inventory: {e}"])
-
-
-def _lab_health() -> Result:
-    """Get native lab health."""
-    try:
-        from .providers.native_lab import NativeLabInventory, NativeLabHealth
-
-        inventory = NativeLabInventory()
-        health = NativeLabHealth(inventory)
-        return health.observe()
-    except Exception as e:
-        return fail("unavailable", warnings=[f"lab health: {e}"])
-
-
-def _lab_resources() -> Result:
-    """Get native lab resources."""
-    try:
-        from .providers.native_lab import NativeLabResources
-
-        resources = NativeLabResources()
-        return resources.observe()
-    except Exception as e:
-        return fail("unavailable", warnings=[f"lab resources: {e}"])
-
-
-def _lab_settings() -> Result:
-    """Get native lab settings."""
-    try:
-        from .providers.native_lab import NativeLabSettings
-
-        settings = NativeLabSettings()
-        return settings.observe()
-    except Exception as e:
-        return fail("unavailable", warnings=[f"lab settings: {e}"])
 
 
 def _reconciler_status() -> Result:
