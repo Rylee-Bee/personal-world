@@ -101,15 +101,6 @@ test.describe("Navigation — destinations", () => {
     ).toBeVisible();
   });
 
-  test("Interests opens as a personal section after the landmarks", async ({
-    page,
-  }) => {
-    await gotoArea(page, "Interests");
-    await expect(
-      page.getByRole("heading", { name: "Interests", level: 1 }),
-    ).toBeVisible();
-  });
-
   test("the retired nav words are gone from the bar", async ({ page }) => {
     const nav = page.getByRole("navigation", { name: "World navigation" });
     for (const retired of [

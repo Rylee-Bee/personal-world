@@ -68,7 +68,6 @@ test.describe("landmark stability (C3/Δ3)", () => {
       row("journal", 1, false),
       row("chat", 2, false),
       row("today", 3, false),
-      row("interests", 4, false),
       row("projects", 5, false),
       row("vault", 6, false),
       row("media", 7, false),
@@ -111,7 +110,6 @@ test.describe("landmark stability (C3/Δ3)", () => {
   }) => {
     await mockSections(page, [
       row("settings", 0),
-      row("interests", 1),
       row("chat", 2),
       row("projects", 3),
       row("memory", 4),
@@ -123,12 +121,11 @@ test.describe("landmark stability (C3/Δ3)", () => {
       .toEqual([
         // Fixed skeleton first (names AND order are the client's),
         // then the server-ordered personal sections; the server's
-        // fake labels ("Server interests") never surface.
+        // fake labels never surface.
         "Bridge",
         "Memory",
         "Chat",
         "Settings",
-        "Interests",
         "Projects",
         "Computers",
       ]);
@@ -137,7 +134,7 @@ test.describe("landmark stability (C3/Δ3)", () => {
   test("personal sections reorder while the landmarks hold their places", async ({
     page,
   }) => {
-    await mockSections(page, [row("projects", 0), row("interests", 1)]);
+    await mockSections(page, [row("projects", 0)]);
     await page.goto("/");
     await expect
       .poll(async () => navButtonLabels(page), { timeout: 10_000 })
@@ -147,7 +144,6 @@ test.describe("landmark stability (C3/Δ3)", () => {
         "Chat",
         "Settings",
         "Projects",
-        "Interests",
         "Computers", // never advertised by this server — tail-appended, not lost
       ]);
   });
@@ -172,7 +168,6 @@ test.describe("landmark stability (C3/Δ3)", () => {
         "Memory",
         "Chat",
         "Settings",
-        "Interests",
         "Projects",
         "Computers",
       ]);

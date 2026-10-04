@@ -2,8 +2,8 @@ import { type Page } from "@playwright/test";
 import { test, expect } from "./test";
 
 /**
- * C8 reduced-motion pass on the Track C panels (Settings Room,
- * Interests). The assertion is comparative on purpose: the SAME
+ * C8 reduced-motion pass on the Track C panels (Settings Room).
+ * The assertion is comparative on purpose: the SAME
  * control under the SAME build must compute motionless styles when
  * the OS preference is "reduce" and may keep its colour-only
  * transitions otherwise — a test that asserted "0s" unconditionally
@@ -26,17 +26,6 @@ async function gotoSettings(page: Page) {
     .click();
   await expect(
     page.getByRole("region", { name: "Customize" }),
-  ).toBeVisible();
-}
-
-async function gotoInterests(page: Page) {
-  await page.goto("/");
-  await page
-    .getByRole("navigation", { name: "World navigation" })
-    .getByRole("button", { name: "Interests" })
-    .click();
-  await expect(
-    page.getByRole("region", { name: "Engine finds" }),
   ).toBeVisible();
 }
 
@@ -101,15 +90,6 @@ test.describe("reduced motion (C8) — OS preference reduce", () => {
       expect(m.transitionDuration, sel).toMatch(MOTIONLESS);
       expect(m.animationName, sel).toBe("none");
     }
-  });
-
-  test("Interests controls are motionless under prefers-reduced-motion", async ({
-    page,
-  }) => {
-    await gotoInterests(page);
-    const m = await motionOf(page, "button:has-text('Check sources now')");
-    expect(m.transitionDuration).toMatch(MOTIONLESS);
-    expect(m.animationName).toBe("none");
   });
 });
 
