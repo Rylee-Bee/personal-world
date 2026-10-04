@@ -30,7 +30,6 @@ import { WorldButton } from "../components/WorldButton";
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { Bridge } from "../screens/Bridge/Bridge";
 import { Memory } from "../screens/Memory/Memory";
-import { Interests } from "../screens/Interests/Interests";
 import { Chat, type ChatDraft } from "../screens/Chat/Chat";
 import { AskInChatContext } from "./askInChat";
 import { Settings } from "../screens/Settings/Settings";
@@ -316,11 +315,9 @@ export function App() {
           />
         );
       case "at-home":
-        return <AtHome onBack={() => setActiveArea("interests")} />;
+        return <AtHome onBack={() => setActiveArea("overview")} />;
       case "stickers":
         return <Stickers />;
-      case "interests":
-        return <Interests onOpenAtHome={() => setActiveArea("at-home")} />;
       case "projects":
         return <Projects />;
       case "systems":

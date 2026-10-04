@@ -73,35 +73,30 @@ function cap(
 
 const CAPS_QUIET: CapMap = {
   source_control: cap("healthy"),
-  discovery: cap("healthy"),
   journal: cap("healthy"),
   secrets: cap("healthy"),
 };
 
 const CAPS_WAITING: CapMap = {
   source_control: cap("needs_attention", ["2 pull requests waiting for review"]),
-  discovery: cap("healthy"),
   journal: cap("healthy"),
   secrets: cap("healthy"),
 };
 
 const CAPS_STALE: CapMap = {
   source_control: cap("healthy"),
-  discovery: cap("stale", ["Last checked 3 days ago"]),
   journal: cap("healthy"),
   secrets: cap("healthy"),
 };
 
 const CAPS_UNAVAILABLE: CapMap = {
   source_control: cap("unavailable", ["Cannot reach remote"]),
-  discovery: cap("healthy"),
   journal: cap("healthy"),
   secrets: cap("healthy"),
 };
 
 const CAPS_OFFLINE: CapMap = {
   source_control: cap("disabled", ["Not configured"]),
-  discovery: cap("disabled", ["Not configured"]),
   journal: cap("disabled", ["Not configured"]),
   secrets: cap("not_configured", ["No vault key"]),
 };
@@ -808,14 +803,13 @@ function section(
 
 const SERVER_SECTIONS = [
   section("today", "Today", "navigation--today", 0, { pinned: true }),
-  section("interests", "Interests", "world-content--bookmark", 1),
-  section("media", "Media", "world-content--story", 2),
-  section("projects", "Projects", "navigation--projects", 3),
-  section("lab", "Lab", "system-device--desktop", 4),
-  section("journal", "Journal & Memory", "navigation--journal", 5),
-  section("vault", "Vault", "system-device--lock", 6),
-  section("chat", "Chat", "navigation--chat", 7, { kind: "transitional" }),
-  section("settings", "Settings", "navigation--settings", 8, { pinned: true }),
+  section("media", "Media", "world-content--story", 1),
+  section("projects", "Projects", "navigation--projects", 2),
+  section("lab", "Lab", "system-device--desktop", 3),
+  section("journal", "Journal & Memory", "navigation--journal", 4),
+  section("vault", "Vault", "system-device--lock", 5),
+  section("chat", "Chat", "navigation--chat", 6, { kind: "transitional" }),
+  section("settings", "Settings", "navigation--settings", 7, { pinned: true }),
 ];
 
 // ─── Shared baseline handlers (health + session) ─────────────────────
@@ -940,21 +934,6 @@ function buildWorldHandlers(stateName: keyof typeof WORLD_STATES | string): Requ
         stateName === "empty" ? [] : JOURNAL_EVENTS_POPULATED;
       return HttpResponse.json({ ok: true, data: events.slice(0, n) });
     }),
-    http.get("/api/discovery/status", () =>
-      HttpResponse.json({
-        ok: true,
-        status: "healthy",
-        data: {
-          sources: [],
-          interests: [],
-          items: [],
-          source_count: 0,
-          interest_count: 0,
-          item_count: 0,
-        },
-        warnings: [],
-      }),
-    ),
     http.get("/api/projects/status", () =>
       HttpResponse.json(projectsStatusBody(stateName)),
     ),
@@ -1234,7 +1213,6 @@ function buildSettingsHandlers(): RequestHandler[] {
           packs: 0,
           capabilities: {
             source_control: cap("healthy"),
-            discovery: cap("healthy"),
             journal: cap("healthy"),
             secrets: cap("stale", ["Last backup 7 days ago"]),
           },
@@ -1485,144 +1463,6 @@ function buildUnreachableHandlers(): RequestHandler[] {
   ];
 }
 
-// ─── Discovery / Interests fixtures (Track C) ────────────────────────
-// Shapes mirror providers/native_discovery.py exactly:
-//   observe()  → {sources, interests, items(=in-memory, always empty
-//                on a fresh engine), source_count, interest_count,
-//                item_count}
-//   discover() → {items, count, sources_queried}; engine-backed items
-//   carry provenance {engine, source_type} (see _discover_engine).
-
-interface FixtureSource {
-  id: string;
-  name: string;
-  source_type: string;
-  config: Record<string, unknown>;
-  enabled: boolean;
-}
-
-function discoverySource(
-  id: string,
-  name: string,
-  source_type: string,
-  enabled: boolean,
-  config: Record<string, unknown> = {},
-): FixtureSource {
-  return { id, name, source_type, config, enabled };
-}
-
-function discoveryInterest(id: string, name: string, category: string | null) {
-  return {
-    id,
-    name,
-    category,
-    weight: 1.0,
-    created_at: "2026-09-18T12:00:00+00:00",
-  };
-}
-
-/** Engine find — provenance exactly as _discover_engine writes it. */
-function engineFind(
-  id: string,
-  title: string,
-  sourceName: string,
-  sourceType: string,
-  url: string | null,
-) {
-  return {
-    id,
-    title,
-    source: sourceName,
-    content_type: "update",
-    url,
-    description: null,
-    tags: [],
-    discovered_at: "2026-09-20T08:55:00+00:00",
-    provenance: {
-      engine: "candy-dispenser discovery (vendored)",
-      source_type: sourceType,
-    },
-  };
-}
-
-type DiscoveryVariant = "populated" | "noSources" | "captureOff" | "nothingMatched";
-
-function buildDiscoveryHandlers(variant: DiscoveryVariant): RequestHandler[] {
-  const sources: FixtureSource[] =
-    variant === "populated"
-      ? [
-          discoverySource("pw-releases", "Project Worlds releases", "github_releases", true),
-          discoverySource("lab-feed", "Lab news feed", "rss", false, {
-            url: "https://example.invalid/feed.xml",
-            tags: [],
-          }),
-        ]
-      : variant === "captureOff"
-        ? [
-            discoverySource("pw-releases", "Project Worlds releases", "github_releases", false),
-            discoverySource("music-feed", "Music blog feed", "rss", false, {
-              url: "https://example.invalid/music.xml",
-              tags: [],
-            }),
-          ]
-        : variant === "nothingMatched"
-          ? [discoverySource("pw-releases", "Project Worlds releases", "github_releases", true)]
-          : [];
-
-  const interests =
-    variant === "populated" || variant === "nothingMatched"
-      ? [discoveryInterest("self-hosting", "self-hosting", "software")]
-      : [];
-
-  const finds = variant === "populated" ? [
-    engineFind(
-      "pw-releases:v1.4.0",
-      "Project Worlds v1.4.0 published",
-      "Project Worlds releases",
-      "github_releases",
-      "https://example.invalid/releases/pw-v1.4.0",
-    ),
-    engineFind(
-      "pw-releases:v1.3.2",
-      "Project Worlds v1.3.2 published",
-      "Project Worlds releases",
-      "github_releases",
-      "https://example.invalid/releases/pw-v1.3.2",
-    ),
-  ] : [];
-
-  return [
-    ...baselineHandlers(),
-    ...envelopeHandlers(WORLD_STATES.quiet),
-    http.get("/api/discovery/status", () =>
-      HttpResponse.json({
-        ok: true,
-        status: "healthy",
-        data: {
-          sources,
-          interests,
-          items: [],
-          source_count: sources.length,
-          interest_count: interests.length,
-          item_count: 0,
-        },
-        warnings: [],
-      }),
-    ),
-    http.get("/api/discovery/discover", () =>
-      HttpResponse.json({
-        ok: true,
-        status: "healthy",
-        data: {
-          items: finds,
-          count: finds.length,
-          sources_queried: sources.filter((s) => s.enabled).length,
-        },
-        warnings: [],
-      }),
-    ),
-  ];
-}
 
 // ─── Records fixtures (Memory → Records + Overview Pinned) ─────────
 // Mirrors src/personal_world/records.py + docs/RECORDS-API.md exactly:
@@ -1902,12 +1742,6 @@ const builders = {
 
   // Settings screen states
   settingsDefault: () => buildSettingsHandlers(),
-
-  // Interests screen states (Track C) — engine finds, honest empties
-  interestsPopulated: () => buildDiscoveryHandlers("populated"),
-  interestsNoSources: () => buildDiscoveryHandlers("noSources"),
-  interestsCaptureOff: () => buildDiscoveryHandlers("captureOff"),
-  interestsNothingMatched: () => buildDiscoveryHandlers("nothingMatched"),
 
   // Shell states — /healthz down, everything else fails
   unreachable: () => buildUnreachableHandlers(),

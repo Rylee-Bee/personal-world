@@ -205,7 +205,6 @@ export const CAPABILITY_NAMES: Record<string, string> = {
   deployment: "Deployments",
   secrets: "Secrets",
   calendar: "Calendar",
-  discovery: "Discovery",
   settings_validation: "Settings validation",
   service_validation: "Service checks",
   update_discovery: "Update checks",
@@ -340,7 +339,7 @@ export function plainAttention(text: string): PlainAttention {
 export type SkeletonAreaId = "overview" | "memory" | "chat" | "settings";
 
 /** Destinations the person orders/hides via the /api/sections layout. */
-export type PersonalAreaId = "interests" | "projects" | "systems";
+export type PersonalAreaId = "projects" | "systems";
 
 export type WorldAreaId = SkeletonAreaId | PersonalAreaId;
 
@@ -369,7 +368,6 @@ export const SKELETON_AREAS: readonly WorldArea[] = [
  * "Node"/"Systems" in the UI.
  */
 export const PERSONAL_AREAS: readonly WorldArea[] = [
-  { id: "interests", label: "Interests" },
   { id: "projects", label: "Projects" },
   { id: "systems", label: "Computers" },
 ];

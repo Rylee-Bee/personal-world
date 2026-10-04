@@ -21,8 +21,8 @@ export const GoodNews: Story = {
 export const SmallUpdate: Story = {
   args: {
     level: "update",
-    title: "Discovery",
-    description: "Found 3 new items matching your interests.",
+    title: "Update",
+    description: "A new version is ready to install.",
   },
 };
 

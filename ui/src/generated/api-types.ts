@@ -133,7 +133,7 @@ export interface paths {
          * Auth Oidc Config
          * @description Legacy alias of ``/api/auth/oidc/status``.
          *
-         *     Same honest payload, plus the flat keys the earlier shape used.
+         *     Same payload, plus the flat keys the earlier shape used.
          *     ``/api/auth/oidc/login`` is the canonical entry point for a
          *     browser: the server owns the discovery-derived authorize URL, so
          *     no client needs to construct one (or to know PKCE exists).
@@ -141,6 +141,33 @@ export interface paths {
         get: operations["auth_oidc_config_api_auth_oidc_config_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Auth Oidc Link
+         * @description Start linking a provider sign-in to the signed-in person.
+         *
+         *     Needed in multi mode, where a provider sign-in only works for an
+         *     account it is linked to. The caller must be signed in, have
+         *     confirmed it's them in the last few minutes (step-up), and call
+         *     from this site (the ``Origin`` header must match). The person to
+         *     link is carried in the signed flow cookie; the callback links
+         *     the verified subject only if the same person is still signed in.
+         */
+        post: operations["auth_oidc_link_api_auth_oidc_link_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -190,7 +217,7 @@ export interface paths {
          *     that is unreachable can never leave a signed-in session behind.
          *     We do not retain the id_token, so no ``id_token_hint`` is sent —
          *     some providers then ask the person to confirm, which is the
-         *     honest cost of not storing a credential we do not need.
+         *     cost of not storing a credential we do not need.
          */
         get: operations["auth_oidc_logout_api_auth_oidc_logout_get"];
         put?: never;
@@ -210,7 +237,7 @@ export interface paths {
         };
         /**
          * Auth Oidc Status
-         * @description Honest OIDC state for the login screen and the setup wizard.
+         * @description OIDC state for the login screen and the setup wizard.
          *
          *     Read-only and unauthenticated by necessity (it is consulted
          *     before anyone can sign in), and therefore deliberately bounded:
@@ -228,6 +255,32 @@ export interface paths {
          *     and a boolean saying whether that variable is set.
          */
         get: operations["auth_oidc_status_api_auth_oidc_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/step-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Auth Oidc Step Up
+         * @description "Confirm it's you" by signing in to the provider again.
+         *
+         *     For people with no sign-in key (SSO or passkey only). Sends the
+         *     browser to the provider with ``prompt=login`` and ``max_age=0``;
+         *     the callback grants the usual 5-minute step-up to this session
+         *     only if the same person signed in just now, then returns to
+         *     ``return_to`` (a path on this site).
+         */
+        get: operations["auth_oidc_step_up_api_auth_oidc_step_up_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -280,11 +333,10 @@ export interface paths {
          *     time-bounded and bound to that principal; it is the grant
          *     ``require_step_up`` consumes.
          *
-         *     Unchanged by the OIDC work: an OIDC sign-in proves identity to
-         *     the provider but does not by itself mint a step-up grant. A
-         *     fresh OIDC round-trip as step-up remains unimplemented (see
-         *     docs/ARCHITECTURE.md "Known implementation/documentation
-         *     boundaries").
+         *     An OIDC sign-in proves identity to the provider but does not by
+         *     itself mint a step-up grant. People with no sign-in key use the
+         *     other path, ``GET /api/auth/oidc/step-up``, a fresh provider
+         *     sign-in whose callback grants the same window.
          */
         post: operations["auth_step_up_api_auth_step_up_post"];
         delete?: never;
@@ -395,7 +447,7 @@ export interface paths {
          *     Read-only: the model observes a rendered world snapshot and
          *     returns text. No tool execution, no mutations. With no chat
          *     provider configured the endpoint answers 'not_configured' so
-         *     the dashboard can degrade honestly.
+         *     the dashboard can report a degraded state.
          */
         post: operations["chat_api_chat_post"];
         delete?: never;
@@ -662,8 +714,8 @@ export interface paths {
          * Crew View
          * @description The caller's own crew, starter-seeded on first read.
          *
-         *     Honest roster: every entry is a companion the person has (drawn or
-         *     their own), including hidden ones — the front door decides what to
+         *     roster: every entry is a companion the person has (drawn or
+         *     their own), including hidden ones — the main app decides what to
          *     filter. An emptied roster stays empty.
          */
         get: operations["crew_view_api_crew_get"];
@@ -673,7 +725,7 @@ export interface paths {
          * @description Add a companion of the caller's own (``source: "user"``).
          *
          *     Body: ``{name, blurb?, voice_label?}``. The id is a slug of the
-         *     name made unique against the caller's roster. Same auth posture as
+         *     name made unique against the caller's roster. Same auth setting as
          *     the other POST routes; no step-up — a roster entry mutates nothing
          *     a visit doesn't already imply.
          */
@@ -731,7 +783,7 @@ export interface paths {
          *     ``Cache-Control: private`` and ``X-Content-Type-Options: nosniff``
          *     with the type the *stored bytes* are (never a declared one). No
          *     uploaded portrait, or an unknown companion → 404 — the shipped
-         *     asset path is what the front door uses until someone uploads.
+         *     asset path is what the main app uses until someone uploads.
          */
         get: operations["crew_portrait_get_api_crew__companion_id__portrait_get"];
         put?: never;
@@ -781,94 +833,6 @@ export interface paths {
          *     capability facts, flag drift, save the world.
          */
         post: operations["daily_run_api_daily_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/discovery/discover": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Discovery Discover
-         * @description Discover content from sources.
-         */
-        get: operations["discovery_discover_api_discovery_discover_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/discovery/interests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Discovery Interests
-         * @description List interests.
-         */
-        get: operations["discovery_interests_api_discovery_interests_get"];
-        put?: never;
-        /**
-         * Discovery Add Interest
-         * @description Add an interest.
-         */
-        post: operations["discovery_add_interest_api_discovery_interests_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/discovery/sources": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Discovery Sources
-         * @description List discovery sources.
-         */
-        get: operations["discovery_sources_api_discovery_sources_get"];
-        put?: never;
-        /**
-         * Discovery Add Source
-         * @description Add a discovery source.
-         */
-        post: operations["discovery_add_source_api_discovery_sources_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/discovery/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Discovery Status
-         * @description Native Discovery status.
-         */
-        get: operations["discovery_status_api_discovery_status_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -927,7 +891,7 @@ export interface paths {
         /**
          * World Export
          * @description Portable personal configuration: world-classified state only;
-         *     raw secrets are structurally absent (they live in the secret
+         *     raw secrets are structurally absent (they are in the secret
          *     store, referenced by name at most). Treat the output as personal
          *     data.
          */
@@ -958,7 +922,15 @@ export interface paths {
          * @description Register an agent principal owned by the caller.
          *
          *     Body: {"agent_id", "display_name"?, "scopes"?}. Scopes subset
-         *     of read/write/journal/apps. Returns the token exactly once.
+         *     of read/write/journal/apps/notify/learning/journal_gate. Returns
+         *     the token exactly once. ``notify`` lets the agent publish to its
+         *     owner's notifications (POST /api/notify) — nothing else.
+         *     ``learning`` (alone) confines the token to /api/learning*: the
+         *     owner's learning memory and nothing else. ``journal_gate``
+         *     (alone) confines the token to POST /api/journal/gate only — a
+         *     closed-enum question onto the owner's Journal, never raw entries
+         *     (CONFINING_SCOPES). It does NOT grant /api/journal or
+         *     /api/recall access; those stay person-only regardless of scope.
          */
         post: operations["agents_create_api_identity_agents_post"];
         delete?: never;
@@ -1055,6 +1027,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/identity/viewers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Viewers List
+         * @description The owner's read-only viewer credentials (no hashes, no tokens).
+         */
+        get: operations["viewers_list_api_identity_viewers_get"];
+        put?: never;
+        /**
+         * Viewers Create
+         * @description Mint a read-only viewer credential that acts as the owner for
+         *     reads only. Body: {"viewer_id", "label"?}. Owner only. The token is
+         *     returned exactly once and stored hashed.
+         */
+        post: operations["viewers_create_api_identity_viewers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/identity/viewers/{viewer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Viewers Disable */
+        delete: operations["viewers_disable_api_identity_viewers__viewer_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ingress/rollups": {
         parameters: {
             query?: never;
@@ -1068,11 +1083,39 @@ export interface paths {
          *
          *     Optional provider: absent configuration is a known state, not
          *     a crash — an unconfigured router answers not_configured with
-         *     context, matching the honest-degradation contract.
+         *     context, matching the -degradation contract.
          */
         get: operations["ingress_rollups_api_ingress_rollups_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invites/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Invites Accept
+         * @description Accept an invite. No sign-in: the one-time token is the proof.
+         *
+         *     Body: ``{token}``. The link works once, before it expires, and
+         *     creates a local account with the invite's role (a guest also gets
+         *     the invite's ``guest_until``). The response carries the new
+         *     person's sign-in key ONCE; only its hash is stored. A key, not a
+         *     chosen password: stored credentials are unsalted hashes matched
+         *     across all accounts, so they must be long and random. People who
+         *     use SSO link their provider sign-in afterwards.
+         */
+        post: operations["invites_accept_api_invites_accept_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1159,7 +1202,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Journal Gate Ask */
+        /**
+         * Journal Gate Ask
+         * @description The narrow, closed-enum door onto the private Journal (owner
+         *     design, 2026-09-27). Reachable by ANY authenticated principal,
+         *     including an agent holding only the ``journal_gate`` confining
+         *     scope — that scope reaches nothing else (see
+         *     CONFINING_SCOPES). This does not loosen ``/api/journal`` or
+         *     ``/api/recall``: those still call ``_require_person`` and
+         *     refuse every agent unconditionally, regardless of scope.
+         *
+         *     The response is always exactly the closed Answer schema —
+         *     never raw entries, never free text. See journal_gate.py for
+         *     the validation that enforces this even against a misbehaving
+         *     model.
+         */
         post: operations["journal_gate_ask_api_journal_gate_post"];
         delete?: never;
         options?: never;
@@ -1174,9 +1231,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Journal Gate Denylist Get */
+        /**
+         * Journal Gate Denylist Get
+         * @description Person-only: the owner's own 'never answer about...' list.
+         */
         get: operations["journal_gate_denylist_get_api_journal_gate_denylist_get"];
-        /** Journal Gate Denylist Put */
+        /**
+         * Journal Gate Denylist Put
+         * @description Person-only, step-up: editing what a scoped agent can never
+         *     get an answer about is a security-relevant write, same
+         *     elevation tier as other sensitive config in this file.
+         */
         put: operations["journal_gate_denylist_put_api_journal_gate_denylist_put"];
         post?: never;
         delete?: never;
@@ -1192,7 +1257,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Journal Gate Log */
+        /**
+         * Journal Gate Log
+         * @description Person-only: the gate's own audit trail, structured — 'who
+         *     asked what, when, and what they got back'. Never raw entries.
+         */
         get: operations["journal_gate_log_api_journal_gate_log_get"];
         put?: never;
         post?: never;
@@ -1237,14 +1306,14 @@ export interface paths {
          *     The deep-link contract for the daily home loop's "Resume —
          *     yesterday's thread" beat (TRUE-NORTH): one deterministic answer
          *     with every model off, safe for Overview to link to. Never
-         *     mutates anything. An empty journal is an honest ``entry: null``,
+         *     mutates anything. An empty journal is an ``entry: null``,
          *     not a 404 and not a fabrication. Superseded originals never
          *     surface. The contract is the CALM-VIEW TAIL: the answer always
          *     equals the newest entry GET /api/journal shows (same kinds, same
          *     ordering — a correction ACT appends the correction and then its
          *     APPROVAL audit line, and whichever is newest IS the last entry;
          *     consumers wanting narrative-only may filter by ``kind``).
-         *     Person-only, caller-scoped, the same seam as every other journal
+         *     Person-only, caller-scoped, the same entry point as every other journal
          *     read.
          */
         get: operations["journal_last_api_journal_last_get"];
@@ -1436,6 +1505,224 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/later": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Later List
+         * @description The Later shelf: what's in progress (at most three), then the rest.
+         */
+        get: operations["later_list_api_later_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/later/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Later Move
+         * @description Move an idea: ``{to: "doing" | "done" | "later"}``. A fourth
+         *     in-progress idea is refused in plain words (409), never dropped.
+         */
+        post: operations["later_move_api_later__item_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/learning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Learning View
+         * @description The ideas this person has met: stage, where first met, and the
+         *     teaching mode (build | occasional | plain).
+         */
+        get: operations["learning_view_api_learning_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/learning/encounter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Learning Encounter
+         * @description A project says the person just used an idea: ``{concept, project,
+         *     context}`` (context: a few words about what they made, e.g. "the
+         *     hidden door that needed the lantern"). Answers how to teach it now:
+         *     ``first`` | ``again`` (with where it was first met) | ``familiar`` |
+         *     ``off``. Only a concept id and that short phrase are kept.
+         */
+        post: operations["learning_encounter_api_learning_encounter_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/learning/got-it": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Learning Got It
+         * @description The person tapped "Got it" on an idea.
+         */
+        post: operations["learning_got_it_api_learning_got_it_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/learning/mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Learning Mode
+         * @description How this person likes to be taught: ``build`` (teach me as I build),
+         *     ``occasional`` (at most one tip a day) or ``plain`` (just plain words).
+         */
+        put: operations["learning_mode_api_learning_mode_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Library Home
+         * @description The Library's connected shelves: every room that keeps a library
+         *     (Play-Nice ``library/0``), one row each, ``{room, status, library?,
+         *     error?}``. Worlds' own books are bundled into the app, so they are
+         *     not here. A library that can't be read is a row with plain words,
+         *     never a missing shelf or a 500.
+         */
+        get: operations["library_home_api_library_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lore List
+         * @description The caller's lore, newest-source first, with counts by state and
+         *     how many the source marked accepted but aren't confirmed yet.
+         */
+        get: operations["lore_list_api_lore_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lore/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lore Confirm
+         * @description Confirm lore: ``{"keys": [...]}``, or ``{"accepted": true}`` for
+         *     every suggested item its source marked accepted. A person's explicit
+         *     act, so it needs a step-up ("Confirm it's you"); confirmed lore is
+         *     what Worlds treats as true.
+         */
+        post: operations["lore_confirm_api_lore_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lore/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lore Sync Route
+         * @description Sync lore from a room's read-only ``lore`` view (default: the
+         *     Engine room, which serves rylee_lore). ``{"dry_run": true}`` says
+         *     what would change without changing anything. Everything lands as
+         *     *suggested*; confirmed lore is never touched.
+         */
+        post: operations["lore_sync_route_api_lore_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/manifest": {
         parameters: {
             query?: never;
@@ -1457,6 +1744,137 @@ export interface paths {
          *     not registered.
          */
         get: operations["manifest_api_manifest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Me
+         * @description Who the caller is and what they may do.
+         *
+         *     The one call the interface makes to show or hide affordances:
+         *     ``{id, display_name, role, permissions}``. Permissions are the
+         *     server's answer (``can``), never a client guess. A person also
+         *     gets the People-screens facts (step 2): ``helpers_granted``,
+         *     ``helping``, and — for a supervised person — their ``limits``,
+         *     or ``guest_until`` for a guest. An agent gets the base fields.
+         */
+        get: operations["me_api_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/helped-by": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Helped By
+         * @description What helpers did for the caller, newest first.
+         *
+         *     Each row: ``{at, helper_id, helper_name, action, summary,
+         *     undoable}``. ``undoable`` is false unless a room's own receipt
+         *     says otherwise. ``helper_name`` rides beside the id — read from
+         *     the identity store, ``null`` for a helper who is gone.
+         */
+        get: operations["helped_by_api_me_helped_by_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/helpers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Helpers List
+         * @description Grants the caller issued. Includes revoked ones, so a
+         *     revocation the owner made in an emergency is visible.
+         */
+        get: operations["helpers_list_api_me_helpers_get"];
+        put?: never;
+        /**
+         * Helpers Grant
+         * @description A person grants someone helper access. Step-up.
+         *
+         *     Body: ``{helper_id, can_act?, until?}``. ``until`` is a future
+         *     ISO time within 30 days; the default is 7 days. Any live grant
+         *     lets the helper see this person's room needs; ``can_act`` lets
+         *     them act for this person. The grant belongs to the person, never
+         *     to an admin.
+         */
+        post: operations["helpers_grant_api_me_helpers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/helpers/{grant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Helpers Revoke
+         * @description Revoke a helper grant, any time.
+         *
+         *     The person who granted it, or the owner in an emergency. An
+         *     owner's revocation is journalled and stays visible to the person
+         *     in ``GET /api/me/helpers`` (``revoked_by`` is the owner's id).
+         */
+        delete: operations["helpers_revoke_api_me_helpers__grant_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Limits
+         * @description The caller's own limits and who set them (empty if none).
+         *
+         *     ``set_by_name`` rides beside ``set_by``: the setter's display
+         *     name read from the identity store, ``null`` if that person is
+         *     gone. No name is ever invented for an id.
+         */
+        get: operations["my_limits_api_me_limits_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1651,6 +2069,319 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Notifications List
+         * @description The caller's notification history, newest first.
+         *     Query: unread=1 to see only what has not been read; limit.
+         */
+        get: operations["notifications_list_api_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/prefs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Notifications Prefs Get */
+        get: operations["notifications_prefs_get_api_notifications_prefs_get"];
+        /**
+         * Notifications Prefs Put
+         * @description Replace the caller's notification preferences.
+         *     Body: {tiers: {…on/off}, sources: {<source>: on/off},
+         *     quiet_hours: {on, start, end, tz}}; partial bodies merge over
+         *     the defaults.
+         */
+        put: operations["notifications_prefs_put_api_notifications_prefs_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Notifications Read All */
+        post: operations["notifications_read_all_api_notifications_read_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notifications Test
+         * @description 'Send me a test' — one known-good notification to every one
+         *     of the caller's devices. Step-up is not required: this sends to
+         *     the person's own phone, not to anything of value.
+         */
+        post: operations["notifications_test_api_notifications_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/{note_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Notifications Read */
+        post: operations["notifications_read_api_notifications__note_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notify Publish
+         * @description The publishing door for people, agents and CLI tools.
+         *
+         *     A signed-in person may notify themselves. An agent (service
+         *     token) needs the ``notify`` scope and notifies its OWNER; it may
+         *     name another person with ``to`` only when the owner can manage
+         *     people. Every notification is stored in the recipient's history
+         *     before anything is pushed; the response says what happened
+         *     ({id, delivered, deferred, state}). Publishes are rate-limited
+         *     per caller (30 a minute, plain 429) and idempotent on
+         *     ``dedupe_key`` for a day. docs/NOTIFICATIONS.md has curl and CLI
+         *     examples.
+         */
+        post: operations["notify_publish_api_notify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * People List
+         * @description Everyone in the estate, with roles. ``manage_people`` only.
+         *
+         *     Persons carry their role; agents carry ``role: null`` (an agent is
+         *     a principal, not a role). No content, no secrets, no tokens — an
+         *     allow-list of exactly id/display_name/role/kind/created_at.
+         */
+        get: operations["people_list_api_people_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/people/directory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * People Directory
+         * @description Who is here, by name — the picker list. Signed-in people only.
+         *
+         *     ``[{id, display_name}]`` and nothing else: no roles, no emails,
+         *     no expired guests, no agents, no content. Disabled people are
+         *     out (an account that cannot sign in should not be picked).
+         *
+         *     The gate is ``own_space``: people who live here (owner, admin,
+         *     member, supervised) can list who else does, so they can pick a
+         *     helper. Guests are refused: a visitor should not get a list of
+         *     everyone in the household. Agents are refused too: a directory of
+         *     people is a person's surface.
+         */
+        get: operations["people_directory_api_people_directory_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/people/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invites List
+         * @description Open invite links. ``manage_people`` only; no token material.
+         *
+         *     A list row says the role, who it is for, when the link expires
+         *     and whether it was used — never the token or its hash.
+         */
+        get: operations["invites_list_api_people_invites_get"];
+        put?: never;
+        /**
+         * Invites Create
+         * @description Mint a one-time invite link. ``manage_people`` + step-up.
+         *
+         *     Body: ``{role, display_name, expires_in_hours?, guest_until?}``.
+         *     ``role`` is member/supervised/guest/admin; a guest needs a future
+         *     ``guest_until``. Only the owner may invite an admin, and the owner
+         *     is never invitable. The token is returned exactly once, here; only
+         *     its hash is stored.
+         */
+        post: operations["invites_create_api_people_invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/people/invites/{invite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Invites Delete
+         * @description Cancel an invite link. ``manage_people`` + step-up.
+         */
+        delete: operations["invites_delete_api_people_invites__invite_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/people/transfer-ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * People Transfer Ownership
+         * @description Hand ownership to an existing admin. Owner only + step-up.
+         *
+         *     ``transfer_ownership`` is held by the owner alone. The target must
+         *     already be an admin; the old owner becomes an admin. Journalled so
+         *     the hand-off is visible, never silent.
+         */
+        post: operations["people_transfer_ownership_api_people_transfer_ownership_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/people/{user_id}/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * People Set Limits
+         * @description Set a person's supervised limits. Step-up.
+         *
+         *     Allowed for ``manage_people`` or for a guardian — someone with a
+         *     live ``can_act`` helper grant from this person. Body:
+         *     ``{limits: [{key, value}]}`` with the closed key set
+         *     (chat_quiet_hours, no_outside_sharing, content_boundary). The
+         *     setter and time are stored.
+         */
+        put: operations["people_set_limits_api_people__user_id__limits_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/people/{user_id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * People Set Role
+         * @description Set a person's role. ``manage_people`` + step-up.
+         *
+         *     An admin may set member/supervised/guest/admin but **never
+         *     owner** (ownership moves only through transfer-ownership). An
+         *     admin cannot change their own role, and nobody can change the
+         *     owner's role here. Unknown role → 422.
+         */
+        put: operations["people_set_role_api_people__user_id__role_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/place": {
         parameters: {
             query?: never;
@@ -1660,13 +2391,13 @@ export interface paths {
         };
         /**
          * Place Get
-         * @description The caller's last place, or an honest null.
+         * @description The caller's last place, or a null.
          */
         get: operations["place_get_api_place_get"];
         /**
          * Place Put
          * @description Store the caller's last place. No step-up: continuity mutates
-         *     nothing a visit doesn't already imply (same posture as drafts).
+         *     nothing a visit doesn't already imply (same setting as drafts).
          */
         put: operations["place_put_api_place_put"];
         post?: never;
@@ -1687,7 +2418,7 @@ export interface paths {
         get: operations["prefs_get_api_prefs_get"];
         /**
          * Prefs Put
-         * @description Save preference updates (step-up gated).
+         * @description Save preference updates.
          *
          *     The handler has always applied exactly the keys it was given, so
          *     ``PATCH`` is registered as an alias for clients that name a partial
@@ -1747,7 +2478,7 @@ export interface paths {
          *     `play-nice/repo-status-v1` records. Project Worlds adds no
          *     Git-state computation of its own. Quiet degradation is the
          *     contract: command absent / timeout / malformed output each
-         *     return an honest 'unavailable' envelope — Project Worlds
+         *     return an 'unavailable' envelope — Project Worlds
          *     stays fully useful without the sensor. The observation carries
          *     agent-sync's own `observed_at` so it stays visibly a dated
          *     observation, never timeless truth.
@@ -1872,6 +2603,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/push/public-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Push Public Key
+         * @description The VAPID public key the browser subscribes with, or 409
+         *     not_configured when this server has no push key (everything
+         *     else still works — the UI reads that as 'not configured').
+         */
+        get: operations["push_public_key_api_push_public_key_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Push Subscriptions List
+         * @description This person's devices: labels and times only. Endpoints and
+         *     keys are credentials and never leave the store.
+         */
+        get: operations["push_subscriptions_list_api_push_subscriptions_get"];
+        put?: never;
+        /**
+         * Push Subscribe
+         * @description Register (or refresh) one device. Body: {subscription: <the
+         *     JSON a browser PushSubscription produces>, device_label}.
+         *     Upsert by endpoint, so re-subscribing never stacks devices.
+         */
+        post: operations["push_subscribe_api_push_subscriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/subscriptions/{sub_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Push Subscription Delete */
+        delete: operations["push_subscription_delete_api_push_subscriptions__sub_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recall Route
+         * @description Ask in plain words. Searches the caller's own journal, lore, Later
+         *     shelf and the ideas they've met (no model needed), newest and
+         *     best-matching first; each answer says where it lives.
+         */
+        get: operations["recall_route_api_recall_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reconciler/diff/{service}": {
         parameters: {
             query?: never;
@@ -1941,8 +2760,7 @@ export interface paths {
         };
         /**
          * Records List
-         * @description List records. With a category: a locked category yields an honest
-         *     409 'locked' envelope unless THIS request carries fresh step-up.
+         * @description List records. With a category: a locked category yields a 409 'locked' envelope unless THIS request carries fresh step-up.
          *     Without a category: the unlocked browse view; ``?pinned=true`` narrows
          *     it to the Overview feed. A locked category is never aggregated in.
          *
@@ -1950,7 +2768,7 @@ export interface paths {
          *     model off — records.search_records, no index/provider/embeddings):
          *     case-insensitive AND-substring over title, category name, and field
          *     keys/values. Locked categories contribute to ``q`` results ONLY when
-         *     this request carries a server-verified step-up (fail closed, same seam
+         *     this request carries a server-verified step-up (fail closed, same entry point
          *     as the locked-category read above); the pinned filter still applies.
          */
         get: operations["records_list_api_records_get"];
@@ -1958,7 +2776,7 @@ export interface paths {
         /**
          * Records Write
          * @description Create or update a record. Step-up gated (the human-approval ACT,
-         *     same seam as /api/world/fact and PUT /api/sections). Optional
+         *     same entry point as /api/world/fact and PUT /api/sections). Optional
          *     ``locked`` sets the category's lock in the same authorized write;
          *     records are stored as World Facts on the caller's own world.json.
          */
@@ -2036,6 +2854,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/remember": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remember
+         * @description Keep one thought: ``{text, later?: bool, source?}``. A person's
+         *     thought goes into their own journal (or onto the Later shelf with
+         *     ``later: true``). A tool or bee (agent token) can only put things on
+         *     the Later shelf, labelled with where they came from. The journal
+         *     stays person-only.
+         */
+        post: operations["remember_api_remember_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reminders": {
         parameters: {
             query?: never;
@@ -2096,14 +2938,14 @@ export interface paths {
          * Rooms View
          * @description The estate's rooms (contract: room/0) plus the caller's visit state.
          *
-         *     One honest row per configured room — its descriptor, cards, the
+         *     One row per configured room — its descriptor, cards, the
          *     needs it is charging attention for, whether it is reachable, and
          *     when it was last reached (persisted across restarts). Each row
          *     also carries the CALLER's private, Worlds-owned visit fields:
          *     ``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,
          *     plus ``keeper`` — the companion the caller put on that room, or an
-         *     honest ``null`` — and ``doorway`` — the presentation-only doorway
-         *     id the caller chose, or an honest ``null``. Neither a keeper nor a
+         *     ``null`` — and ``doorway`` — the presentation-only doorway
+         *     id the caller chose, or a ``null``. Neither a keeper nor a
          *     doorway changes the room's status; status still comes only from
          *     the room. ``resume`` and ``summary`` travel
          *     as siblings of ``data`` so the existing list envelope stays
@@ -2113,6 +2955,12 @@ export interface paths {
          *     ``reachable: false`` with its last-seen time, never claimed
          *     healthy.
          *
+         *     A room whose registry entry opts in with ``forward_principal``
+         *     (and that has its own token) also learns WHO is asking, so its
+         *     cards and needs are fetched and cached per caller; another
+         *     caller's forwarded cards/needs can never appear here, while the
+         *     room's status/reachability/last-seen stay estate-wide.
+         *
          *     The room list itself is read at runtime: when a registry is
          *     configured (``PW_ROOMS_REGISTRY_URL``) it is refreshed on the
          *     snapshot cadence, so adding or removing a registry room takes
@@ -2121,10 +2969,128 @@ export interface paths {
          *     registry read was ok, unreachable or not configured — additive:
          *     the existing ``data``/``resume``/``summary`` envelope is
          *     unchanged.
+         *
+         *     With an ``X-Worlds-Helping: <person>`` header and a live grant,
+         *     a helper sees THIS person's needs and their own visit state and
+         *     crew; without a live grant the request is refused 403.
          */
         get: operations["rooms_view_api_rooms_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rooms Events
+         * @description Server-sent events: ``room-changed`` with ``{room, at}`` whenever
+         *     a room pings or an action in Worlds changes it. Room ids only,
+         *     never content. A comment line every 20 s keeps proxies from
+         *     closing the stream; the browser's EventSource reconnects on its
+         *     own.
+         */
+        get: operations["rooms_events_api_rooms_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/actions/{action_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rooms Action
+         * @description Pass one room/0 action through to its room; return its receipt.
+         *
+         *     A write needs the ``approve`` permission (the room's own ``GET
+         *     /room/actions`` list, cached 60 s per room, says whether the
+         *     action exists and whether it writes; 403 otherwise), and an
+         *     unknown action is a 404 — both as a plain-words receipt. A valid
+         *     ``Idempotency-Key`` header is required (400 when missing), the
+         *     body is a JSON object of at most 16 KB (413/400 otherwise), and
+         *     the call is forwarded to the room with the room's own token, the
+         *     caller's ``X-Worlds-Principal``, and that key — never the human
+         *     session or ``PW_API_TOKEN``. The room's answer is allow-listed to
+         *     a receipt and returned with HTTP 200 whatever the room's status;
+         *     a room that cannot answer yields an ``ok: false``
+         *     "nothing changed" receipt, never a 500. A successful action drops
+         *     the cached snapshot so the need disappears on the next
+         *     ``GET /api/rooms``.
+         *
+         *     With an ``X-Worlds-Helping: <person>`` header and a live
+         *     ``can_act`` grant, a helper performs the action as that person
+         *     and the action is recorded in that person's "helped by" log;
+         *     without a live grant the request is refused 403.
+         */
+        post: operations["rooms_action_api_rooms__room_id__actions__action_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/art/{name}.webp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rooms Art
+         * @description A room's picture (e.g. a Hive Works crew face), passed through
+         *     because an image can't carry the room's token. WebP only, checked
+         *     by its header bytes; anything else is a 404.
+         */
+        get: operations["rooms_art_api_rooms__room_id__art__name__webp_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/changed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rooms Changed
+         * @description A room says its data changed (the live half of a two-way room).
+         *
+         *     Worlds forgets what it cached for that room and tells open
+         *     screens (``GET /api/rooms/events``), so they re-read it within
+         *     seconds instead of waiting for the next refresh. Callers: an
+         *     agent token with the ``notify`` scope (a room's own sync job), or
+         *     someone who may ``approve``. The body is ignored: a ping carries
+         *     no content, so it can only cause a re-read. Unknown room → 404;
+         *     pings closer than 2 s fold into one.
+         */
+        post: operations["rooms_changed_api_rooms__room_id__changed_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2208,6 +3174,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rooms/{room_id}/views/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rooms View One
+         * @description A room's own read-only view, e.g. Hive Works' teams, projects,
+         *     one project or crew (``GET /room/views/{name}[/{item}]`` on the
+         *     room). Passed through as the room's JSON under ``data``; an
+         *     unknown room or view is 404 and an unreadable one 502, with
+         *     plain words. Links inside are the room's same-origin paths; the
+         *     UI opens them on the room's own address.
+         */
+        get: operations["rooms_view_one_api_rooms__room_id__views__name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/views/{name}/{item}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rooms View One
+         * @description A room's own read-only view, e.g. Hive Works' teams, projects,
+         *     one project or crew (``GET /room/views/{name}[/{item}]`` on the
+         *     room). Passed through as the room's JSON under ``data``; an
+         *     unknown room or view is 404 and an unreadable one 502, with
+         *     plain words. Links inside are the room's same-origin paths; the
+         *     UI opens them on the room's own address.
+         */
+        get: operations["rooms_view_one_api_rooms__room_id__views__name___item__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rooms/{room_id}/visit": {
         parameters: {
             query?: never;
@@ -2224,7 +3240,7 @@ export interface paths {
          *     Updates the caller's ``last_visited_at`` for the room and the
          *     top-level ``resume``. Idempotent in effect: repeating converges
          *     on one stored visit. No step-up — a visit mutates nothing a
-         *     visit doesn't already imply (same posture as drafts/place). An
+         *     visit doesn't already imply (same setting as drafts/place). An
          *     unconfigured room id is a 404; ``link`` must be a same-origin
          *     path or it is refused 422 rather than stored.
          */
@@ -2491,7 +3507,7 @@ export interface paths {
          *     Local Git stays canonical — this only ADDS remote facts; the
          *     native status shape is unchanged. Quiet degradation is the
          *     contract: gh missing / unauthenticated / offline / non-GitHub
-         *     remote each return their own honest status ('unavailable',
+         *     remote each return their own status ('unavailable',
          *     'not_github', 'not_configured'), never a crash and never a
          *     guessed field. Read-only; no credentials are read, stored, or
          *     logged here — the gh CLI's own session is used as-is.
@@ -2579,6 +3595,73 @@ export interface paths {
         get: operations["status_api_status_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stickers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stickers Album
+         * @description The caller's sticker album: Worlds' page (grouped by ``section``)
+         *     and one page per connected app that offers ``stickers``. Unfound
+         *     secrets are never listed, unfound riddles show only their riddle,
+         *     and ``secrets_remain`` says only whether any are left.
+         */
+        get: operations["stickers_album_api_stickers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stickers/found": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stickers Found
+         * @description ``{app, sticker, context?}``: a sticker was found. An app's sticker
+         *     key may report only its own app; a person may report a Worlds sticker
+         *     the UI saw them earn (a tap on Sol, finding Rough night). Repeats
+         *     are harmless. ``context`` is a few plain words, never content.
+         */
+        post: operations["stickers_found_api_stickers_found_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stickers/place": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stickers Place
+         * @description ``{app, sticker, x, y, r}``: where a found sticker sits on its page
+         *     (x, y in 0..1 of the page; r in degrees, -30..30).
+         */
+        post: operations["stickers_place_api_stickers_place_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3279,6 +4362,26 @@ export interface operations {
             };
         };
     };
+    auth_oidc_link_api_auth_oidc_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     auth_oidc_login_api_auth_oidc_login_get: {
         parameters: {
             query?: never;
@@ -3337,6 +4440,37 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    auth_oidc_step_up_api_auth_oidc_step_up_get: {
+        parameters: {
+            query?: {
+                return_to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4088,149 +5222,6 @@ export interface operations {
             };
         };
     };
-    discovery_discover_api_discovery_discover_get: {
-        parameters: {
-            query?: {
-                source?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    discovery_interests_api_discovery_interests_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    discovery_add_interest_api_discovery_interests_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    discovery_sources_api_discovery_sources_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    discovery_add_source_api_discovery_sources_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    discovery_status_api_discovery_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
     settings_export_api_exports_settings_get: {
         parameters: {
             query?: never;
@@ -4495,7 +5486,106 @@ export interface operations {
             };
         };
     };
+    viewers_list_api_identity_viewers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    viewers_create_api_identity_viewers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    viewers_disable_api_identity_viewers__viewer_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                viewer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     ingress_rollups_api_ingress_rollups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    invites_accept_api_invites_accept_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4521,6 +5611,7 @@ export interface operations {
         parameters: {
             query?: {
                 n?: number;
+                hide?: string;
             };
             header?: never;
             path?: never;
@@ -5056,7 +6147,388 @@ export interface operations {
             };
         };
     };
+    later_list_api_later_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    later_move_api_later__item_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    learning_view_api_learning_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    learning_encounter_api_learning_encounter_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    learning_got_it_api_learning_got_it_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    learning_mode_api_learning_mode_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    library_home_api_library_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    lore_list_api_lore_get: {
+        parameters: {
+            query?: {
+                source?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lore_confirm_api_lore_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    lore_sync_route_api_lore_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     manifest_api_manifest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    me_api_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    helped_by_api_me_helped_by_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    helpers_list_api_me_helpers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    helpers_grant_api_me_helpers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    helpers_revoke_api_me_helpers__grant_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_limits_api_me_limits_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5307,6 +6779,380 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    notifications_list_api_notifications_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    notifications_prefs_get_api_notifications_prefs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    notifications_prefs_put_api_notifications_prefs_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    notifications_read_all_api_notifications_read_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    notifications_test_api_notifications_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    notifications_read_api_notifications__note_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    notify_publish_api_notify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    people_list_api_people_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    people_directory_api_people_directory_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    invites_list_api_people_invites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    invites_create_api_people_invites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    invites_delete_api_people_invites__invite_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    people_transfer_ownership_api_people_transfer_ownership_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    people_set_limits_api_people__user_id__limits_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    people_set_role_api_people__user_id__role_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5630,6 +7476,138 @@ export interface operations {
             };
         };
     };
+    push_public_key_api_push_public_key_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    push_subscriptions_list_api_push_subscriptions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    push_subscribe_api_push_subscriptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    push_subscription_delete_api_push_subscriptions__sub_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sub_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recall_route_api_recall_get: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reconciler_diff_api_reconciler_diff__service__get: {
         parameters: {
             query?: never;
@@ -5863,6 +7841,28 @@ export interface operations {
             };
         };
     };
+    remember_api_remember_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     reminders_list_api_reminders_get: {
         parameters: {
             query?: never;
@@ -5995,6 +7995,123 @@ export interface operations {
             };
         };
     };
+    rooms_events_api_rooms_events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    rooms_action_api_rooms__room_id__actions__action_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rooms_art_api_rooms__room_id__art__name__webp_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rooms_changed_api_rooms__room_id__changed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     rooms_doorway_api_rooms__room_id__doorway_put: {
         parameters: {
             query?: never;
@@ -6082,6 +8199,73 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rooms_view_one_api_rooms__room_id__views__name__get: {
+        parameters: {
+            query?: {
+                item?: string | null;
+            };
+            header?: never;
+            path: {
+                room_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rooms_view_one_api_rooms__room_id__views__name___item__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+                name: string;
+                item: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -6524,6 +8708,72 @@ export interface operations {
         };
     };
     status_api_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    stickers_album_api_stickers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    stickers_found_api_stickers_found_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    stickers_place_api_stickers_place_post: {
         parameters: {
             query?: never;
             header?: never;

@@ -273,7 +273,7 @@
     },
     "/api/auth/oidc/config": {
       "get": {
-        "description": "Legacy alias of ``/api/auth/oidc/status``.\n\nSame honest payload, plus the flat keys the earlier shape used.\n``/api/auth/oidc/login`` is the canonical entry point for a\nbrowser: the server owns the discovery-derived authorize URL, so\nno client needs to construct one (or to know PKCE exists).",
+        "description": "Legacy alias of ``/api/auth/oidc/status``.\n\nSame payload, plus the flat keys the earlier shape used.\n``/api/auth/oidc/login`` is the canonical entry point for a\nbrowser: the server owns the discovery-derived authorize URL, so\nno client needs to construct one (or to know PKCE exists).",
         "operationId": "auth_oidc_config_api_auth_oidc_config_get",
         "responses": {
           "200": {
@@ -290,6 +290,23 @@
           }
         },
         "summary": "Auth Oidc Config"
+      }
+    },
+    "/api/auth/oidc/link": {
+      "post": {
+        "description": "Start linking a provider sign-in to the signed-in person.\n\nNeeded in multi mode, where a provider sign-in only works for an\naccount it is linked to. The caller must be signed in, have\nconfirmed it's them in the last few minutes (step-up), and call\nfrom this site (the ``Origin`` header must match). The person to\nlink is carried in the signed flow cookie; the callback links\nthe verified subject only if the same person is still signed in.",
+        "operationId": "auth_oidc_link_api_auth_oidc_link_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Oidc Link"
       }
     },
     "/api/auth/oidc/login": {
@@ -311,7 +328,7 @@
     },
     "/api/auth/oidc/logout": {
       "get": {
-        "description": "End the local session, then the provider session if it offers\nRP-initiated logout.\n\nThe local session is always invalidated first, so a provider\nthat is unreachable can never leave a signed-in session behind.\nWe do not retain the id_token, so no ``id_token_hint`` is sent —\nsome providers then ask the person to confirm, which is the\nhonest cost of not storing a credential we do not need.",
+        "description": "End the local session, then the provider session if it offers\nRP-initiated logout.\n\nThe local session is always invalidated first, so a provider\nthat is unreachable can never leave a signed-in session behind.\nWe do not retain the id_token, so no ``id_token_hint`` is sent —\nsome providers then ask the person to confirm, which is the\ncost of not storing a credential we do not need.",
         "operationId": "auth_oidc_logout_api_auth_oidc_logout_get",
         "responses": {
           "200": {
@@ -328,7 +345,7 @@
     },
     "/api/auth/oidc/status": {
       "get": {
-        "description": "Honest OIDC state for the login screen and the setup wizard.\n\nRead-only and unauthenticated by necessity (it is consulted\nbefore anyone can sign in), and therefore deliberately bounded:\nit never accepts a target from the caller — the provider comes\nfrom the operator's own ``config/oidc.json`` — and discovery\nresults are cached, success and failure alike, so an anonymous\ncaller cannot turn this into a probe loop against the IdP.\n\n``status`` is one of ``not_configured`` (no OIDC file; local\nauth is the whole story — healthy, not broken), ``configured``\n(usable), ``unreachable`` (provider did not answer), or\n``misconfigured`` (settings or provider metadata unusable).\nPayload carries wiring and discovery metadata; the client secret\nis represented only by the *name* of the env var that holds it\nand a boolean saying whether that variable is set.",
+        "description": "OIDC state for the login screen and the setup wizard.\n\nRead-only and unauthenticated by necessity (it is consulted\nbefore anyone can sign in), and therefore deliberately bounded:\nit never accepts a target from the caller — the provider comes\nfrom the operator's own ``config/oidc.json`` — and discovery\nresults are cached, success and failure alike, so an anonymous\ncaller cannot turn this into a probe loop against the IdP.\n\n``status`` is one of ``not_configured`` (no OIDC file; local\nauth is the whole story — healthy, not broken), ``configured``\n(usable), ``unreachable`` (provider did not answer), or\n``misconfigured`` (settings or provider metadata unusable).\nPayload carries wiring and discovery metadata; the client secret\nis represented only by the *name* of the env var that holds it\nand a boolean saying whether that variable is set.",
         "operationId": "auth_oidc_status_api_auth_oidc_status_get",
         "responses": {
           "200": {
@@ -345,6 +362,45 @@
           }
         },
         "summary": "Auth Oidc Status"
+      }
+    },
+    "/api/auth/oidc/step-up": {
+      "get": {
+        "description": "\"Confirm it's you\" by signing in to the provider again.\n\nFor people with no sign-in key (SSO or passkey only). Sends the\nbrowser to the provider with ``prompt=login`` and ``max_age=0``;\nthe callback grants the usual 5-minute step-up to this session\nonly if the same person signed in just now, then returns to\n``return_to`` (a path on this site).",
+        "operationId": "auth_oidc_step_up_api_auth_oidc_step_up_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "return_to",
+            "required": false,
+            "schema": {
+              "default": "/",
+              "title": "Return To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Auth Oidc Step Up"
       }
     },
     "/api/auth/session": {
@@ -370,7 +426,7 @@
     },
     "/api/auth/step-up": {
       "post": {
-        "description": "Elevate the current session for a bounded window.\n\nStep-up is a credential event, not a bare flag: the caller must\nre-present a credential (the instance token as a bearer header\nor ``{\"token\": ...}`` in the body) that resolves to the same\nprincipal the session belongs to. The resulting elevation is\ntime-bounded and bound to that principal; it is the grant\n``require_step_up`` consumes.\n\nUnchanged by the OIDC work: an OIDC sign-in proves identity to\nthe provider but does not by itself mint a step-up grant. A\nfresh OIDC round-trip as step-up remains unimplemented (see\ndocs/ARCHITECTURE.md \"Known implementation/documentation\nboundaries\").",
+        "description": "Elevate the current session for a bounded window.\n\nStep-up is a credential event, not a bare flag: the caller must\nre-present a credential (the instance token as a bearer header\nor ``{\"token\": ...}`` in the body) that resolves to the same\nprincipal the session belongs to. The resulting elevation is\ntime-bounded and bound to that principal; it is the grant\n``require_step_up`` consumes.\n\nAn OIDC sign-in proves identity to the provider but does not by\nitself mint a step-up grant. People with no sign-in key use the\nother path, ``GET /api/auth/oidc/step-up``, a fresh provider\nsign-in whose callback grants the same window.",
         "operationId": "auth_step_up_api_auth_step_up_post",
         "responses": {
           "200": {
@@ -519,7 +575,7 @@
     },
     "/api/chat": {
       "post": {
-        "description": "Conversational interface to Project Worlds.\n\nRead-only: the model observes a rendered world snapshot and\nreturns text. No tool execution, no mutations. With no chat\nprovider configured the endpoint answers 'not_configured' so\nthe dashboard can degrade honestly.",
+        "description": "Conversational interface to Project Worlds.\n\nRead-only: the model observes a rendered world snapshot and\nreturns text. No tool execution, no mutations. With no chat\nprovider configured the endpoint answers 'not_configured' so\nthe dashboard can report a degraded state.",
         "operationId": "chat_api_chat_post",
         "responses": {
           "200": {
@@ -896,7 +952,7 @@
     },
     "/api/crew": {
       "get": {
-        "description": "The caller's own crew, starter-seeded on first read.\n\nHonest roster: every entry is a companion the person has (drawn or\ntheir own), including hidden ones — the front door decides what to\nfilter. An emptied roster stays empty.",
+        "description": "The caller's own crew, starter-seeded on first read.\n\nroster: every entry is a companion the person has (drawn or\ntheir own), including hidden ones — the main app decides what to\nfilter. An emptied roster stays empty.",
         "operationId": "crew_view_api_crew_get",
         "responses": {
           "200": {
@@ -915,7 +971,7 @@
         "summary": "Crew View"
       },
       "post": {
-        "description": "Add a companion of the caller's own (``source: \"user\"``).\n\nBody: ``{name, blurb?, voice_label?}``. The id is a slug of the\nname made unique against the caller's roster. Same auth posture as\nthe other POST routes; no step-up — a roster entry mutates nothing\na visit doesn't already imply.",
+        "description": "Add a companion of the caller's own (``source: \"user\"``).\n\nBody: ``{name, blurb?, voice_label?}``. The id is a slug of the\nname made unique against the caller's roster. Same auth setting as\nthe other POST routes; no step-up — a roster entry mutates nothing\na visit doesn't already imply.",
         "operationId": "crew_add_api_crew_post",
         "responses": {
           "200": {
@@ -1058,7 +1114,7 @@
         "summary": "Crew Portrait Delete"
       },
       "get": {
-        "description": "Serve an uploaded portrait same-origin, privately.\n\n``Cache-Control: private`` and ``X-Content-Type-Options: nosniff``\nwith the type the *stored bytes* are (never a declared one). No\nuploaded portrait, or an unknown companion → 404 — the shipped\nasset path is what the front door uses until someone uploads.",
+        "description": "Serve an uploaded portrait same-origin, privately.\n\n``Cache-Control: private`` and ``X-Content-Type-Options: nosniff``\nwith the type the *stored bytes* are (never a declared one). No\nuploaded portrait, or an unknown companion → 404 — the shipped\nasset path is what the main app uses until someone uploads.",
         "operationId": "crew_portrait_get_api_crew__companion_id__portrait_get",
         "parameters": [
           {
@@ -1174,156 +1230,6 @@
         "summary": "Daily Run"
       }
     },
-    "/api/discovery/discover": {
-      "get": {
-        "description": "Discover content from sources.",
-        "operationId": "discovery_discover_api_discovery_discover_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "source",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Source"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Discovery Discover Api Discovery Discover Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Discovery Discover"
-      }
-    },
-    "/api/discovery/interests": {
-      "get": {
-        "description": "List interests.",
-        "operationId": "discovery_interests_api_discovery_interests_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Discovery Interests Api Discovery Interests Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Discovery Interests"
-      },
-      "post": {
-        "description": "Add an interest.",
-        "operationId": "discovery_add_interest_api_discovery_interests_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Discovery Add Interest Api Discovery Interests Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Discovery Add Interest"
-      }
-    },
-    "/api/discovery/sources": {
-      "get": {
-        "description": "List discovery sources.",
-        "operationId": "discovery_sources_api_discovery_sources_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Discovery Sources Api Discovery Sources Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Discovery Sources"
-      },
-      "post": {
-        "description": "Add a discovery source.",
-        "operationId": "discovery_add_source_api_discovery_sources_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Discovery Add Source Api Discovery Sources Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Discovery Add Source"
-      }
-    },
-    "/api/discovery/status": {
-      "get": {
-        "description": "Native Discovery status.",
-        "operationId": "discovery_status_api_discovery_status_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Discovery Status Api Discovery Status Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Discovery Status"
-      }
-    },
     "/api/exports/settings": {
       "get": {
         "description": "Shareable settings blueprint: capabilities, provider mappings,\npacks, schedules — the bones of the installation, not the person.",
@@ -1368,7 +1274,7 @@
     },
     "/api/exports/world": {
       "get": {
-        "description": "Portable personal configuration: world-classified state only;\nraw secrets are structurally absent (they live in the secret\nstore, referenced by name at most). Treat the output as personal\ndata.",
+        "description": "Portable personal configuration: world-classified state only;\nraw secrets are structurally absent (they are in the secret\nstore, referenced by name at most). Treat the output as personal\ndata.",
         "operationId": "world_export_api_exports_world_get",
         "responses": {
           "200": {
@@ -1408,7 +1314,7 @@
         "summary": "Agents List"
       },
       "post": {
-        "description": "Register an agent principal owned by the caller.\n\nBody: {\"agent_id\", \"display_name\"?, \"scopes\"?}. Scopes subset\nof read/write/journal/apps. Returns the token exactly once.",
+        "description": "Register an agent principal owned by the caller.\n\nBody: {\"agent_id\", \"display_name\"?, \"scopes\"?}. Scopes subset\nof read/write/journal/apps/notify/learning/journal_gate. Returns\nthe token exactly once. ``notify`` lets the agent publish to its\nowner's notifications (POST /api/notify) — nothing else.\n``learning`` (alone) confines the token to /api/learning*: the\nowner's learning memory and nothing else. ``journal_gate``\n(alone) confines the token to POST /api/journal/gate only — a\nclosed-enum question onto the owner's Journal, never raw entries\n(CONFINING_SCOPES). It does NOT grant /api/journal or\n/api/recall access; those stay person-only regardless of scope.",
         "operationId": "agents_create_api_identity_agents_post",
         "responses": {
           "200": {
@@ -1589,9 +1495,90 @@
         "summary": "Users Disable"
       }
     },
+    "/api/identity/viewers": {
+      "get": {
+        "description": "The owner's read-only viewer credentials (no hashes, no tokens).",
+        "operationId": "viewers_list_api_identity_viewers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Viewers List Api Identity Viewers Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Viewers List"
+      },
+      "post": {
+        "description": "Mint a read-only viewer credential that acts as the owner for\nreads only. Body: {\"viewer_id\", \"label\"?}. Owner only. The token is\nreturned exactly once and stored hashed.",
+        "operationId": "viewers_create_api_identity_viewers_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Viewers Create Api Identity Viewers Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Viewers Create"
+      }
+    },
+    "/api/identity/viewers/{viewer_id}": {
+      "delete": {
+        "operationId": "viewers_disable_api_identity_viewers__viewer_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "viewer_id",
+            "required": true,
+            "schema": {
+              "title": "Viewer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Viewers Disable Api Identity Viewers  Viewer Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Viewers Disable"
+      }
+    },
     "/api/ingress/rollups": {
       "get": {
-        "description": "Traefik ingress route rollups (read-only over LAN).\n\nOptional provider: absent configuration is a known state, not\na crash — an unconfigured router answers not_configured with\ncontext, matching the honest-degradation contract.",
+        "description": "Traefik ingress route rollups (read-only over LAN).\n\nOptional provider: absent configuration is a known state, not\na crash — an unconfigured router answers not_configured with\ncontext, matching the -degradation contract.",
         "operationId": "ingress_rollups_api_ingress_rollups_get",
         "responses": {
           "200": {
@@ -1610,6 +1597,27 @@
         "summary": "Ingress Rollups"
       }
     },
+    "/api/invites/accept": {
+      "post": {
+        "description": "Accept an invite. No sign-in: the one-time token is the proof.\n\nBody: ``{token}``. The link works once, before it expires, and\ncreates a local account with the invite's role (a guest also gets\nthe invite's ``guest_until``). The response carries the new\nperson's sign-in key ONCE; only its hash is stored. A key, not a\nchosen password: stored credentials are unsalted hashes matched\nacross all accounts, so they must be long and random. People who\nuse SSO link their provider sign-in afterwards.",
+        "operationId": "invites_accept_api_invites_accept_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Invites Accept Api Invites Accept Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Invites Accept"
+      }
+    },
     "/api/journal": {
       "get": {
         "operationId": "journal_view_api_journal_get",
@@ -1622,6 +1630,16 @@
               "default": 20,
               "title": "N",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hide",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Hide",
+              "type": "string"
             }
           }
         ],
@@ -1768,6 +1786,7 @@
     },
     "/api/journal/gate": {
       "post": {
+        "description": "The narrow, closed-enum door onto the private Journal (owner\ndesign, 2026-09-27). Reachable by ANY authenticated principal,\nincluding an agent holding only the ``journal_gate`` confining\nscope — that scope reaches nothing else (see\nCONFINING_SCOPES). This does not loosen ``/api/journal`` or\n``/api/recall``: those still call ``_require_person`` and\nrefuse every agent unconditionally, regardless of scope.\n\nThe response is always exactly the closed Answer schema —\nnever raw entries, never free text. See journal_gate.py for\nthe validation that enforces this even against a misbehaving\nmodel.",
         "operationId": "journal_gate_ask_api_journal_gate_post",
         "responses": {
           "200": {
@@ -1788,6 +1807,7 @@
     },
     "/api/journal/gate/denylist": {
       "get": {
+        "description": "Person-only: the owner's own 'never answer about...' list.",
         "operationId": "journal_gate_denylist_get_api_journal_gate_denylist_get",
         "responses": {
           "200": {
@@ -1806,6 +1826,7 @@
         "summary": "Journal Gate Denylist Get"
       },
       "put": {
+        "description": "Person-only, step-up: editing what a scoped agent can never\nget an answer about is a security-relevant write, same\nelevation tier as other sensitive config in this file.",
         "operationId": "journal_gate_denylist_put_api_journal_gate_denylist_put",
         "responses": {
           "200": {
@@ -1826,6 +1847,7 @@
     },
     "/api/journal/gate/log": {
       "get": {
+        "description": "Person-only: the gate's own audit trail, structured — 'who\nasked what, when, and what they got back'. Never raw entries.",
         "operationId": "journal_gate_log_api_journal_gate_log_get",
         "parameters": [
           {
@@ -1910,7 +1932,7 @@
     },
     "/api/journal/last": {
       "get": {
-        "description": "Read-only: the caller's most recent CURRENT journal entry.\n\nThe deep-link contract for the daily home loop's \"Resume —\nyesterday's thread\" beat (TRUE-NORTH): one deterministic answer\nwith every model off, safe for Overview to link to. Never\nmutates anything. An empty journal is an honest ``entry: null``,\nnot a 404 and not a fabrication. Superseded originals never\nsurface. The contract is the CALM-VIEW TAIL: the answer always\nequals the newest entry GET /api/journal shows (same kinds, same\nordering — a correction ACT appends the correction and then its\nAPPROVAL audit line, and whichever is newest IS the last entry;\nconsumers wanting narrative-only may filter by ``kind``).\nPerson-only, caller-scoped, the same seam as every other journal\nread.",
+        "description": "Read-only: the caller's most recent CURRENT journal entry.\n\nThe deep-link contract for the daily home loop's \"Resume —\nyesterday's thread\" beat (TRUE-NORTH): one deterministic answer\nwith every model off, safe for Overview to link to. Never\nmutates anything. An empty journal is an ``entry: null``,\nnot a 404 and not a fabrication. Superseded originals never\nsurface. The contract is the CALM-VIEW TAIL: the answer always\nequals the newest entry GET /api/journal shows (same kinds, same\nordering — a correction ACT appends the correction and then its\nAPPROVAL audit line, and whichever is newest IS the last entry;\nconsumers wanting narrative-only may filter by ``kind``).\nPerson-only, caller-scoped, the same entry point as every other journal\nread.",
         "operationId": "journal_last_api_journal_last_get",
         "responses": {
           "200": {
@@ -2159,6 +2181,257 @@
         "summary": "Lab State"
       }
     },
+    "/api/later": {
+      "get": {
+        "description": "The Later shelf: what's in progress (at most three), then the rest.",
+        "operationId": "later_list_api_later_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Later List Api Later Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Later List"
+      }
+    },
+    "/api/later/{item_id}": {
+      "post": {
+        "description": "Move an idea: ``{to: \"doing\" | \"done\" | \"later\"}``. A fourth\nin-progress idea is refused in plain words (409), never dropped.",
+        "operationId": "later_move_api_later__item_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Later Move"
+      }
+    },
+    "/api/learning": {
+      "get": {
+        "description": "The ideas this person has met: stage, where first met, and the\nteaching mode (build | occasional | plain).",
+        "operationId": "learning_view_api_learning_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Learning View Api Learning Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Learning View"
+      }
+    },
+    "/api/learning/encounter": {
+      "post": {
+        "description": "A project says the person just used an idea: ``{concept, project,\ncontext}`` (context: a few words about what they made, e.g. \"the\nhidden door that needed the lantern\"). Answers how to teach it now:\n``first`` | ``again`` (with where it was first met) | ``familiar`` |\n``off``. Only a concept id and that short phrase are kept.",
+        "operationId": "learning_encounter_api_learning_encounter_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Learning Encounter Api Learning Encounter Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Learning Encounter"
+      }
+    },
+    "/api/learning/got-it": {
+      "post": {
+        "description": "The person tapped \"Got it\" on an idea.",
+        "operationId": "learning_got_it_api_learning_got_it_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Learning Got It Api Learning Got It Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Learning Got It"
+      }
+    },
+    "/api/learning/mode": {
+      "put": {
+        "description": "How this person likes to be taught: ``build`` (teach me as I build),\n``occasional`` (at most one tip a day) or ``plain`` (just plain words).",
+        "operationId": "learning_mode_api_learning_mode_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Learning Mode Api Learning Mode Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Learning Mode"
+      }
+    },
+    "/api/library": {
+      "get": {
+        "description": "The Library's connected shelves: every room that keeps a library\n(Play-Nice ``library/0``), one row each, ``{room, status, library?,\nerror?}``. Worlds' own books are bundled into the app, so they are\nnot here. A library that can't be read is a row with plain words,\nnever a missing shelf or a 500.",
+        "operationId": "library_home_api_library_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Library Home Api Library Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Library Home"
+      }
+    },
+    "/api/lore": {
+      "get": {
+        "description": "The caller's lore, newest-source first, with counts by state and\nhow many the source marked accepted but aren't confirmed yet.",
+        "operationId": "lore_list_api_lore_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lore List Api Lore Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lore List"
+      }
+    },
+    "/api/lore/confirm": {
+      "post": {
+        "description": "Confirm lore: ``{\"keys\": [...]}``, or ``{\"accepted\": true}`` for\nevery suggested item its source marked accepted. A person's explicit\nact, so it needs a step-up (\"Confirm it's you\"); confirmed lore is\nwhat Worlds treats as true.",
+        "operationId": "lore_confirm_api_lore_confirm_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Lore Confirm Api Lore Confirm Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lore Confirm"
+      }
+    },
+    "/api/lore/sync": {
+      "post": {
+        "description": "Sync lore from a room's read-only ``lore`` view (default: the\nEngine room, which serves rylee_lore). ``{\"dry_run\": true}`` says\nwhat would change without changing anything. Everything lands as\n*suggested*; confirmed lore is never touched.",
+        "operationId": "lore_sync_route_api_lore_sync_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lore Sync Route"
+      }
+    },
     "/api/manifest": {
       "get": {
         "description": "Machine-readable capability manifest (framework contract:\nsee docs/NATIVE-BASELINE-AND-ENRICHMENT.md) plus the endpoint\nmanifest (product decision #17: the API is the Lego box, so it\nhas to be discoverable).\n\n``data`` stays exactly the capability/provider manifest its\nexisting consumers expect; ``endpoints`` is additive. It is\ncurated in one place (``api_manifest.py``) and verified against\nthe live route table, so it can never advertise a route that is\nnot registered.",
@@ -2178,6 +2451,151 @@
           }
         },
         "summary": "Manifest"
+      }
+    },
+    "/api/me": {
+      "get": {
+        "description": "Who the caller is and what they may do.\n\nThe one call the interface makes to show or hide affordances:\n``{id, display_name, role, permissions}``. Permissions are the\nserver's answer (``can``), never a client guess. A person also\ngets the People-screens facts (step 2): ``helpers_granted``,\n``helping``, and — for a supervised person — their ``limits``,\nor ``guest_until`` for a guest. An agent gets the base fields.",
+        "operationId": "me_api_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Me Api Me Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Me"
+      }
+    },
+    "/api/me/helped-by": {
+      "get": {
+        "description": "What helpers did for the caller, newest first.\n\nEach row: ``{at, helper_id, helper_name, action, summary,\nundoable}``. ``undoable`` is false unless a room's own receipt\nsays otherwise. ``helper_name`` rides beside the id — read from\nthe identity store, ``null`` for a helper who is gone.",
+        "operationId": "helped_by_api_me_helped_by_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Helped By Api Me Helped By Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Helped By"
+      }
+    },
+    "/api/me/helpers": {
+      "get": {
+        "description": "Grants the caller issued. Includes revoked ones, so a\nrevocation the owner made in an emergency is visible.",
+        "operationId": "helpers_list_api_me_helpers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Helpers List Api Me Helpers Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Helpers List"
+      },
+      "post": {
+        "description": "A person grants someone helper access. Step-up.\n\nBody: ``{helper_id, can_act?, until?}``. ``until`` is a future\nISO time within 30 days; the default is 7 days. Any live grant\nlets the helper see this person's room needs; ``can_act`` lets\nthem act for this person. The grant belongs to the person, never\nto an admin.",
+        "operationId": "helpers_grant_api_me_helpers_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Helpers Grant Api Me Helpers Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Helpers Grant"
+      }
+    },
+    "/api/me/helpers/{grant_id}": {
+      "delete": {
+        "description": "Revoke a helper grant, any time.\n\nThe person who granted it, or the owner in an emergency. An\nowner's revocation is journalled and stays visible to the person\nin ``GET /api/me/helpers`` (``revoked_by`` is the owner's id).",
+        "operationId": "helpers_revoke_api_me_helpers__grant_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grant_id",
+            "required": true,
+            "schema": {
+              "title": "Grant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Helpers Revoke Api Me Helpers  Grant Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Helpers Revoke"
+      }
+    },
+    "/api/me/limits": {
+      "get": {
+        "description": "The caller's own limits and who set them (empty if none).\n\n``set_by_name`` rides beside ``set_by``: the setter's display\nname read from the identity store, ``null`` if that person is\ngone. No name is ever invented for an id.",
+        "operationId": "my_limits_api_me_limits_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response My Limits Api Me Limits Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "My Limits"
       }
     },
     "/api/media/activity": {
@@ -2418,9 +2836,401 @@
         "summary": "Native Lab Settings"
       }
     },
+    "/api/notifications": {
+      "get": {
+        "description": "The caller's notification history, newest first.\nQuery: unread=1 to see only what has not been read; limit.",
+        "operationId": "notifications_list_api_notifications_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Notifications List Api Notifications Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Notifications List"
+      }
+    },
+    "/api/notifications/prefs": {
+      "get": {
+        "operationId": "notifications_prefs_get_api_notifications_prefs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Notifications Prefs Get Api Notifications Prefs Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Notifications Prefs Get"
+      },
+      "put": {
+        "description": "Replace the caller's notification preferences.\nBody: {tiers: {…on/off}, sources: {<source>: on/off},\nquiet_hours: {on, start, end, tz}}; partial bodies merge over\nthe defaults.",
+        "operationId": "notifications_prefs_put_api_notifications_prefs_put",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Notifications Prefs Put Api Notifications Prefs Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Notifications Prefs Put"
+      }
+    },
+    "/api/notifications/read-all": {
+      "post": {
+        "operationId": "notifications_read_all_api_notifications_read_all_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Notifications Read All Api Notifications Read All Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Notifications Read All"
+      }
+    },
+    "/api/notifications/test": {
+      "post": {
+        "description": "'Send me a test' — one known-good notification to every one\nof the caller's devices. Step-up is not required: this sends to\nthe person's own phone, not to anything of value.",
+        "operationId": "notifications_test_api_notifications_test_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Notifications Test Api Notifications Test Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Notifications Test"
+      }
+    },
+    "/api/notifications/{note_id}/read": {
+      "post": {
+        "operationId": "notifications_read_api_notifications__note_id__read_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "title": "Note Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Notifications Read Api Notifications  Note Id  Read Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Notifications Read"
+      }
+    },
+    "/api/notify": {
+      "post": {
+        "description": "The publishing door for people, agents and CLI tools.\n\nA signed-in person may notify themselves. An agent (service\ntoken) needs the ``notify`` scope and notifies its OWNER; it may\nname another person with ``to`` only when the owner can manage\npeople. Every notification is stored in the recipient's history\nbefore anything is pushed; the response says what happened\n({id, delivered, deferred, state}). Publishes are rate-limited\nper caller (30 a minute, plain 429) and idempotent on\n``dedupe_key`` for a day. docs/NOTIFICATIONS.md has curl and CLI\nexamples.",
+        "operationId": "notify_publish_api_notify_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Notify Publish Api Notify Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Notify Publish"
+      }
+    },
+    "/api/people": {
+      "get": {
+        "description": "Everyone in the estate, with roles. ``manage_people`` only.\n\nPersons carry their role; agents carry ``role: null`` (an agent is\na principal, not a role). No content, no secrets, no tokens — an\nallow-list of exactly id/display_name/role/kind/created_at.",
+        "operationId": "people_list_api_people_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response People List Api People Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "People List"
+      }
+    },
+    "/api/people/directory": {
+      "get": {
+        "description": "Who is here, by name — the picker list. Signed-in people only.\n\n``[{id, display_name}]`` and nothing else: no roles, no emails,\nno expired guests, no agents, no content. Disabled people are\nout (an account that cannot sign in should not be picked).\n\nThe gate is ``own_space``: people who live here (owner, admin,\nmember, supervised) can list who else does, so they can pick a\nhelper. Guests are refused: a visitor should not get a list of\neveryone in the household. Agents are refused too: a directory of\npeople is a person's surface.",
+        "operationId": "people_directory_api_people_directory_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response People Directory Api People Directory Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "People Directory"
+      }
+    },
+    "/api/people/invites": {
+      "get": {
+        "description": "Open invite links. ``manage_people`` only; no token material.\n\nA list row says the role, who it is for, when the link expires\nand whether it was used — never the token or its hash.",
+        "operationId": "invites_list_api_people_invites_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Invites List Api People Invites Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Invites List"
+      },
+      "post": {
+        "description": "Mint a one-time invite link. ``manage_people`` + step-up.\n\nBody: ``{role, display_name, expires_in_hours?, guest_until?}``.\n``role`` is member/supervised/guest/admin; a guest needs a future\n``guest_until``. Only the owner may invite an admin, and the owner\nis never invitable. The token is returned exactly once, here; only\nits hash is stored.",
+        "operationId": "invites_create_api_people_invites_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Invites Create Api People Invites Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Invites Create"
+      }
+    },
+    "/api/people/invites/{invite_id}": {
+      "delete": {
+        "description": "Cancel an invite link. ``manage_people`` + step-up.",
+        "operationId": "invites_delete_api_people_invites__invite_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invite_id",
+            "required": true,
+            "schema": {
+              "title": "Invite Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Invites Delete Api People Invites  Invite Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Invites Delete"
+      }
+    },
+    "/api/people/transfer-ownership": {
+      "post": {
+        "description": "Hand ownership to an existing admin. Owner only + step-up.\n\n``transfer_ownership`` is held by the owner alone. The target must\nalready be an admin; the old owner becomes an admin. Journalled so\nthe hand-off is visible, never silent.",
+        "operationId": "people_transfer_ownership_api_people_transfer_ownership_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response People Transfer Ownership Api People Transfer Ownership Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "People Transfer Ownership"
+      }
+    },
+    "/api/people/{user_id}/limits": {
+      "put": {
+        "description": "Set a person's supervised limits. Step-up.\n\nAllowed for ``manage_people`` or for a guardian — someone with a\nlive ``can_act`` helper grant from this person. Body:\n``{limits: [{key, value}]}`` with the closed key set\n(chat_quiet_hours, no_outside_sharing, content_boundary). The\nsetter and time are stored.",
+        "operationId": "people_set_limits_api_people__user_id__limits_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response People Set Limits Api People  User Id  Limits Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "People Set Limits"
+      }
+    },
+    "/api/people/{user_id}/role": {
+      "put": {
+        "description": "Set a person's role. ``manage_people`` + step-up.\n\nAn admin may set member/supervised/guest/admin but **never\nowner** (ownership moves only through transfer-ownership). An\nadmin cannot change their own role, and nobody can change the\nowner's role here. Unknown role → 422.",
+        "operationId": "people_set_role_api_people__user_id__role_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response People Set Role Api People  User Id  Role Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "People Set Role"
+      }
+    },
     "/api/place": {
       "get": {
-        "description": "The caller's last place, or an honest null.",
+        "description": "The caller's last place, or a null.",
         "operationId": "place_get_api_place_get",
         "responses": {
           "200": {
@@ -2439,7 +3249,7 @@
         "summary": "Place Get"
       },
       "put": {
-        "description": "Store the caller's last place. No step-up: continuity mutates\nnothing a visit doesn't already imply (same posture as drafts).",
+        "description": "Store the caller's last place. No step-up: continuity mutates\nnothing a visit doesn't already imply (same setting as drafts).",
         "operationId": "place_put_api_place_put",
         "responses": {
           "200": {
@@ -2497,7 +3307,7 @@
         "summary": "Prefs Patch"
       },
       "put": {
-        "description": "Save preference updates (step-up gated).\n\nThe handler has always applied exactly the keys it was given, so\n``PATCH`` is registered as an alias for clients that name a partial\nupdate: same body, same validation, same gate.",
+        "description": "Save preference updates.\n\nThe handler has always applied exactly the keys it was given, so\n``PATCH`` is registered as an alias for clients that name a partial\nupdate: same body, same validation, same gate.",
         "operationId": "prefs_put_api_prefs_put",
         "responses": {
           "200": {
@@ -2539,7 +3349,7 @@
     },
     "/api/projects/status": {
       "get": {
-        "description": "Project-estate status from the agent-sync sensor (read-only).\n\nagent-sync (the pickle project's adapter layer) is\nAUTHORITATIVE for repository publication state: it invokes\nthis one `agent-sync status --all --format json` observation\nper call and normalizes the documented\n`play-nice/repo-status-v1` records. Project Worlds adds no\nGit-state computation of its own. Quiet degradation is the\ncontract: command absent / timeout / malformed output each\nreturn an honest 'unavailable' envelope — Project Worlds\nstays fully useful without the sensor. The observation carries\nagent-sync's own `observed_at` so it stays visibly a dated\nobservation, never timeless truth.",
+        "description": "Project-estate status from the agent-sync sensor (read-only).\n\nagent-sync (the pickle project's adapter layer) is\nAUTHORITATIVE for repository publication state: it invokes\nthis one `agent-sync status --all --format json` observation\nper call and normalizes the documented\n`play-nice/repo-status-v1` records. Project Worlds adds no\nGit-state computation of its own. Quiet degradation is the\ncontract: command absent / timeout / malformed output each\nreturn an 'unavailable' envelope — Project Worlds\nstays fully useful without the sensor. The observation carries\nagent-sync's own `observed_at` so it stays visibly a dated\nobservation, never timeless truth.",
         "operationId": "projects_status_api_projects_status_get",
         "responses": {
           "200": {
@@ -2775,6 +3585,151 @@
         "summary": "Proposals Reject"
       }
     },
+    "/api/push/public-key": {
+      "get": {
+        "description": "The VAPID public key the browser subscribes with, or 409\nnot_configured when this server has no push key (everything\nelse still works — the UI reads that as 'not configured').",
+        "operationId": "push_public_key_api_push_public_key_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Push Public Key Api Push Public Key Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Push Public Key"
+      }
+    },
+    "/api/push/subscriptions": {
+      "get": {
+        "description": "This person's devices: labels and times only. Endpoints and\nkeys are credentials and never leave the store.",
+        "operationId": "push_subscriptions_list_api_push_subscriptions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Push Subscriptions List Api Push Subscriptions Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Push Subscriptions List"
+      },
+      "post": {
+        "description": "Register (or refresh) one device. Body: {subscription: <the\nJSON a browser PushSubscription produces>, device_label}.\nUpsert by endpoint, so re-subscribing never stacks devices.",
+        "operationId": "push_subscribe_api_push_subscriptions_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Push Subscribe Api Push Subscriptions Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Push Subscribe"
+      }
+    },
+    "/api/push/subscriptions/{sub_id}": {
+      "delete": {
+        "operationId": "push_subscription_delete_api_push_subscriptions__sub_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sub_id",
+            "required": true,
+            "schema": {
+              "title": "Sub Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Push Subscription Delete Api Push Subscriptions  Sub Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Push Subscription Delete"
+      }
+    },
+    "/api/recall": {
+      "get": {
+        "description": "Ask in plain words. Searches the caller's own journal, lore, Later\nshelf and the ideas they've met (no model needed), newest and\nbest-matching first; each answer says where it lives.",
+        "operationId": "recall_route_api_recall_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Recall Route Api Recall Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recall Route"
+      }
+    },
     "/api/reconciler/diff/{service}": {
       "get": {
         "description": "Compute drift between desired and observed state.",
@@ -2901,7 +3856,7 @@
         "summary": "Records Delete"
       },
       "get": {
-        "description": "List records. With a category: a locked category yields an honest\n409 'locked' envelope unless THIS request carries fresh step-up.\nWithout a category: the unlocked browse view; ``?pinned=true`` narrows\nit to the Overview feed. A locked category is never aggregated in.\n\n``?q=`` is the deterministic lexical find (G-memory: works with every\nmodel off — records.search_records, no index/provider/embeddings):\ncase-insensitive AND-substring over title, category name, and field\nkeys/values. Locked categories contribute to ``q`` results ONLY when\nthis request carries a server-verified step-up (fail closed, same seam\nas the locked-category read above); the pinned filter still applies.",
+        "description": "List records. With a category: a locked category yields a 409 'locked' envelope unless THIS request carries fresh step-up.\nWithout a category: the unlocked browse view; ``?pinned=true`` narrows\nit to the Overview feed. A locked category is never aggregated in.\n\n``?q=`` is the deterministic lexical find (G-memory: works with every\nmodel off — records.search_records, no index/provider/embeddings):\ncase-insensitive AND-substring over title, category name, and field\nkeys/values. Locked categories contribute to ``q`` results ONLY when\nthis request carries a server-verified step-up (fail closed, same entry point\nas the locked-category read above); the pinned filter still applies.",
         "operationId": "records_list_api_records_get",
         "parameters": [
           {
@@ -2974,7 +3929,7 @@
         "summary": "Records List"
       },
       "post": {
-        "description": "Create or update a record. Step-up gated (the human-approval ACT,\nsame seam as /api/world/fact and PUT /api/sections). Optional\n``locked`` sets the category's lock in the same authorized write;\nrecords are stored as World Facts on the caller's own world.json.",
+        "description": "Create or update a record. Step-up gated (the human-approval ACT,\nsame entry point as /api/world/fact and PUT /api/sections). Optional\n``locked`` sets the category's lock in the same authorized write;\nrecords are stored as World Facts on the caller's own world.json.",
         "operationId": "records_write_api_records_post",
         "responses": {
           "200": {
@@ -3054,6 +4009,27 @@
           }
         },
         "summary": "Records Unpin"
+      }
+    },
+    "/api/remember": {
+      "post": {
+        "description": "Keep one thought: ``{text, later?: bool, source?}``. A person's\nthought goes into their own journal (or onto the Later shelf with\n``later: true``). A tool or bee (agent token) can only put things on\nthe Later shelf, labelled with where they came from. The journal\nstays person-only.",
+        "operationId": "remember_api_remember_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Remember Api Remember Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Remember"
       }
     },
     "/api/reminders": {
@@ -3180,7 +4156,7 @@
     },
     "/api/rooms": {
       "get": {
-        "description": "The estate's rooms (contract: room/0) plus the caller's visit state.\n\nOne honest row per configured room — its descriptor, cards, the\nneeds it is charging attention for, whether it is reachable, and\nwhen it was last reached (persisted across restarts). Each row\nalso carries the CALLER's private, Worlds-owned visit fields:\n``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,\nplus ``keeper`` — the companion the caller put on that room, or an\nhonest ``null`` — and ``doorway`` — the presentation-only doorway\nid the caller chose, or an honest ``null``. Neither a keeper nor a\ndoorway changes the room's status; status still comes only from\nthe room. ``resume`` and ``summary`` travel\nas siblings of ``data`` so the existing list envelope stays\nbyte-compatible. Fetching is concurrent with a 2 s per-request\ntimeout and the snapshot is cached 15 s. This handler never raises\non a room's behalf: an unreachable room is reported\n``reachable: false`` with its last-seen time, never claimed\nhealthy.\n\nThe room list itself is read at runtime: when a registry is\nconfigured (``PW_ROOMS_REGISTRY_URL``) it is refreshed on the\nsnapshot cadence, so adding or removing a registry room takes\neffect on the next refresh with no restart. A new sibling\n``registry`` states where the list came from and whether the\nregistry read was ok, unreachable or not configured — additive:\nthe existing ``data``/``resume``/``summary`` envelope is\nunchanged.",
+        "description": "The estate's rooms (contract: room/0) plus the caller's visit state.\n\nOne row per configured room — its descriptor, cards, the\nneeds it is charging attention for, whether it is reachable, and\nwhen it was last reached (persisted across restarts). Each row\nalso carries the CALLER's private, Worlds-owned visit fields:\n``last_visited_at``, ``needs_seen`` and ``changed_since_visit``,\nplus ``keeper`` — the companion the caller put on that room, or an\n``null`` — and ``doorway`` — the presentation-only doorway\nid the caller chose, or a ``null``. Neither a keeper nor a\ndoorway changes the room's status; status still comes only from\nthe room. ``resume`` and ``summary`` travel\nas siblings of ``data`` so the existing list envelope stays\nbyte-compatible. Fetching is concurrent with a 2 s per-request\ntimeout and the snapshot is cached 15 s. This handler never raises\non a room's behalf: an unreachable room is reported\n``reachable: false`` with its last-seen time, never claimed\nhealthy.\n\nA room whose registry entry opts in with ``forward_principal``\n(and that has its own token) also learns WHO is asking, so its\ncards and needs are fetched and cached per caller; another\ncaller's forwarded cards/needs can never appear here, while the\nroom's status/reachability/last-seen stay estate-wide.\n\nThe room list itself is read at runtime: when a registry is\nconfigured (``PW_ROOMS_REGISTRY_URL``) it is refreshed on the\nsnapshot cadence, so adding or removing a registry room takes\neffect on the next refresh with no restart. A new sibling\n``registry`` states where the list came from and whether the\nregistry read was ok, unreachable or not configured — additive:\nthe existing ``data``/``resume``/``summary`` envelope is\nunchanged.\n\nWith an ``X-Worlds-Helping: <person>`` header and a live grant,\na helper sees THIS person's needs and their own visit state and\ncrew; without a live grant the request is refused 403.",
         "operationId": "rooms_view_api_rooms_get",
         "responses": {
           "200": {
@@ -3197,6 +4173,159 @@
           }
         },
         "summary": "Rooms View"
+      }
+    },
+    "/api/rooms/events": {
+      "get": {
+        "description": "Server-sent events: ``room-changed`` with ``{room, at}`` whenever\na room pings or an action in Worlds changes it. Room ids only,\nnever content. A comment line every 20 s keeps proxies from\nclosing the stream; the browser's EventSource reconnects on its\nown.",
+        "operationId": "rooms_events_api_rooms_events_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Rooms Events"
+      }
+    },
+    "/api/rooms/{room_id}/actions/{action_id}": {
+      "post": {
+        "description": "Pass one room/0 action through to its room; return its receipt.\n\nA write needs the ``approve`` permission (the room's own ``GET\n/room/actions`` list, cached 60 s per room, says whether the\naction exists and whether it writes; 403 otherwise), and an\nunknown action is a 404 — both as a plain-words receipt. A valid\n``Idempotency-Key`` header is required (400 when missing), the\nbody is a JSON object of at most 16 KB (413/400 otherwise), and\nthe call is forwarded to the room with the room's own token, the\ncaller's ``X-Worlds-Principal``, and that key — never the human\nsession or ``PW_API_TOKEN``. The room's answer is allow-listed to\na receipt and returned with HTTP 200 whatever the room's status;\na room that cannot answer yields an ``ok: false``\n\"nothing changed\" receipt, never a 500. A successful action drops\nthe cached snapshot so the need disappears on the next\n``GET /api/rooms``.\n\nWith an ``X-Worlds-Helping: <person>`` header and a live\n``can_act`` grant, a helper performs the action as that person\nand the action is recorded in that person's \"helped by\" log;\nwithout a live grant the request is refused 403.",
+        "operationId": "rooms_action_api_rooms__room_id__actions__action_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "room_id",
+            "required": true,
+            "schema": {
+              "title": "Room Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rooms Action"
+      }
+    },
+    "/api/rooms/{room_id}/art/{name}.webp": {
+      "get": {
+        "description": "A room's picture (e.g. a Hive Works crew face), passed through\nbecause an image can't carry the room's token. WebP only, checked\nby its header bytes; anything else is a 404.",
+        "operationId": "rooms_art_api_rooms__room_id__art__name__webp_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "room_id",
+            "required": true,
+            "schema": {
+              "title": "Room Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rooms Art"
+      }
+    },
+    "/api/rooms/{room_id}/changed": {
+      "post": {
+        "description": "A room says its data changed (the live half of a two-way room).\n\nWorlds forgets what it cached for that room and tells open\nscreens (``GET /api/rooms/events``), so they re-read it within\nseconds instead of waiting for the next refresh. Callers: an\nagent token with the ``notify`` scope (a room's own sync job), or\nsomeone who may ``approve``. The body is ignored: a ping carries\nno content, so it can only cause a re-read. Unknown room → 404;\npings closer than 2 s fold into one.",
+        "operationId": "rooms_changed_api_rooms__room_id__changed_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "room_id",
+            "required": true,
+            "schema": {
+              "title": "Room Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rooms Changed Api Rooms  Room Id  Changed Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rooms Changed"
       }
     },
     "/api/rooms/{room_id}/doorway": {
@@ -3334,9 +4463,135 @@
         "summary": "Rooms Need Seen"
       }
     },
+    "/api/rooms/{room_id}/views/{name}": {
+      "get": {
+        "description": "A room's own read-only view, e.g. Hive Works' teams, projects,\none project or crew (``GET /room/views/{name}[/{item}]`` on the\nroom). Passed through as the room's JSON under ``data``; an\nunknown room or view is 404 and an unreadable one 502, with\nplain words. Links inside are the room's same-origin paths; the\nUI opens them on the room's own address.",
+        "operationId": "rooms_view_one_api_rooms__room_id__views__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "room_id",
+            "required": true,
+            "schema": {
+              "title": "Room Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "item",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Item"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rooms View One"
+      }
+    },
+    "/api/rooms/{room_id}/views/{name}/{item}": {
+      "get": {
+        "description": "A room's own read-only view, e.g. Hive Works' teams, projects,\none project or crew (``GET /room/views/{name}[/{item}]`` on the\nroom). Passed through as the room's JSON under ``data``; an\nunknown room or view is 404 and an unreadable one 502, with\nplain words. Links inside are the room's same-origin paths; the\nUI opens them on the room's own address.",
+        "operationId": "rooms_view_one_api_rooms__room_id__views__name___item__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "room_id",
+            "required": true,
+            "schema": {
+              "title": "Room Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "item",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Item"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rooms View One"
+      }
+    },
     "/api/rooms/{room_id}/visit": {
       "post": {
-        "description": "Record the caller's visit to a room (Worlds-owned, private).\n\nUpdates the caller's ``last_visited_at`` for the room and the\ntop-level ``resume``. Idempotent in effect: repeating converges\non one stored visit. No step-up — a visit mutates nothing a\nvisit doesn't already imply (same posture as drafts/place). An\nunconfigured room id is a 404; ``link`` must be a same-origin\npath or it is refused 422 rather than stored.",
+        "description": "Record the caller's visit to a room (Worlds-owned, private).\n\nUpdates the caller's ``last_visited_at`` for the room and the\ntop-level ``resume``. Idempotent in effect: repeating converges\non one stored visit. No step-up — a visit mutates nothing a\nvisit doesn't already imply (same setting as drafts/place). An\nunconfigured room id is a 404; ``link`` must be a same-origin\npath or it is refused 422 rather than stored.",
         "operationId": "rooms_visit_api_rooms__room_id__visit_post",
         "parameters": [
           {
@@ -3639,7 +4894,7 @@
     },
     "/api/source-control/enrichment": {
       "get": {
-        "description": "GitHub enrichment for ONE repository (remote-side facts\nlocal Git cannot know: canonical identity, open PRs, open\nissues, default branch, last remote push).\n\nLocal Git stays canonical — this only ADDS remote facts; the\nnative status shape is unchanged. Quiet degradation is the\ncontract: gh missing / unauthenticated / offline / non-GitHub\nremote each return their own honest status ('unavailable',\n'not_github', 'not_configured'), never a crash and never a\nguessed field. Read-only; no credentials are read, stored, or\nlogged here — the gh CLI's own session is used as-is.",
+        "description": "GitHub enrichment for ONE repository (remote-side facts\nlocal Git cannot know: canonical identity, open PRs, open\nissues, default branch, last remote push).\n\nLocal Git stays canonical — this only ADDS remote facts; the\nnative status shape is unchanged. Quiet degradation is the\ncontract: gh missing / unauthenticated / offline / non-GitHub\nremote each return their own status ('unavailable',\n'not_github', 'not_configured'), never a crash and never a\nguessed field. Read-only; no credentials are read, stored, or\nlogged here — the gh CLI's own session is used as-is.",
         "operationId": "source_control_enrichment_api_source_control_enrichment_get",
         "parameters": [
           {
@@ -3791,6 +5046,69 @@
           }
         },
         "summary": "Status"
+      }
+    },
+    "/api/stickers": {
+      "get": {
+        "description": "The caller's sticker album: Worlds' page (grouped by ``section``)\nand one page per connected app that offers ``stickers``. Unfound\nsecrets are never listed, unfound riddles show only their riddle,\nand ``secrets_remain`` says only whether any are left.",
+        "operationId": "stickers_album_api_stickers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Stickers Album Api Stickers Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Stickers Album"
+      }
+    },
+    "/api/stickers/found": {
+      "post": {
+        "description": "``{app, sticker, context?}``: a sticker was found. An app's sticker\nkey may report only its own app; a person may report a Worlds sticker\nthe UI saw them earn (a tap on Sol, finding Rough night). Repeats\nare harmless. ``context`` is a few plain words, never content.",
+        "operationId": "stickers_found_api_stickers_found_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Stickers Found Api Stickers Found Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Stickers Found"
+      }
+    },
+    "/api/stickers/place": {
+      "post": {
+        "description": "``{app, sticker, x, y, r}``: where a found sticker sits on its page\n(x, y in 0..1 of the page; r in degrees, -30..30).",
+        "operationId": "stickers_place_api_stickers_place_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Stickers Place Api Stickers Place Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Stickers Place"
       }
     },
     "/api/templates": {

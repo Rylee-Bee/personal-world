@@ -76,7 +76,6 @@ def _seed_instance(data: Path, config: Path, home: Path) -> None:
 
     # Per-user config home.
     (home / "reconciler" / "desired").mkdir(parents=True, exist_ok=True)
-    (home / "discovery.json").write_text(json.dumps({"interests": ["local-first"]}))
     (home / "lab.json").write_text(json.dumps({"services": {}}))
     (home / "reconciler" / "desired" / "traefik.yml").write_text("service: traefik\n")
     (home / "lab" / "desired").mkdir(parents=True)
@@ -145,7 +144,6 @@ def test_roundtrip_restore_into_fresh_instance(instance, tmp_path):
     assert (data2 / "template-sources" / "tpl1" / "source.md").is_file()
     assert (config2 / "connections.local.json").is_file()
     assert (config2 / "oidc.json").is_file()
-    assert (home2 / "discovery.json").is_file()
     assert (home2 / "lab.json").is_file()
     assert (home2 / "reconciler" / "desired" / "traefik.yml").is_file()
     assert (home2 / "lab" / "desired" / "svc.json").is_file()

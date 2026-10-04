@@ -95,56 +95,6 @@ export function threadWhen(ts: string): string {
   });
 }
 
-// ─── Discover: the brought-to-you sliver ────────────────────────────
-//
-// The mixtape pattern (TRUE-NORTH): small batch, earned cadence, pull
-// by default. Overview ships the SLOT; the honest empty state is a
-// first-class render, not a failure.
-
-export type DiscoverySliverState =
-  /** The station answered, but no source is configured yet. */
-  | { kind: "no-source" }
-  /** Sources configured; nothing picked for you yet. */
-  | { kind: "listening"; sources: number }
-  /** A small batch is waiting in Interests. */
-  | { kind: "waiting"; items: number }
-  /** The capability could not be read — said plainly. */
-  | { kind: "unavailable" };
-
-interface DiscoveryStatusLike {
-  sources?: unknown;
-  items?: unknown;
-  source_count?: unknown;
-  item_count?: unknown;
-}
-
-export function discoverySliverState(
-  envelope: Envelope<DiscoveryStatusLike> | undefined,
-  isError: boolean,
-): DiscoverySliverState {
-  if (isError) return { kind: "unavailable" };
-  if (envelope === undefined) return { kind: "unavailable" };
-  if (envelope.ok !== true || envelope.data === undefined) {
-    return { kind: "unavailable" };
-  }
-  const data = envelope.data;
-  const sources =
-    typeof data.source_count === "number"
-      ? data.source_count
-      : Array.isArray(data.sources)
-        ? data.sources.length
-        : 0;
-  const items =
-    typeof data.item_count === "number"
-      ? data.item_count
-      : Array.isArray(data.items)
-        ? data.items.length
-        : 0;
-  if (sources === 0) return { kind: "no-source" };
-  if (items === 0) return { kind: "listening", sources };
-  return { kind: "waiting", items };
-}
-
 // ─── Projects: deterministic path from source to details ───────────
 //
 // Owner refinement 2 (TRUE-NORTH): Projects stays parked as a full

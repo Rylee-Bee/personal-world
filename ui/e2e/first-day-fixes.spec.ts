@@ -1,7 +1,5 @@
 /**
  * Fixes from the owner's first-day walk-through (2026-09-27):
- * - Interests with nothing followed: a calm empty state with a way in, and
- *   every check says what it found ("Checked just now: …").
  * - A system that isn't set up goes to where it's set up; Newsstand, which
  *   can't be set up yet, says so plainly.
  * - Choosing a companion is one tap, not three levels down.
@@ -12,35 +10,6 @@ import { gotoArea } from "./helpers";
 
 test.beforeEach(async ({ request }) => {
   await request.delete("/api/__test/reset");
-});
-
-test("Interests: nothing followed shows a way in, and a check always answers", async ({ page }) => {
-  const empty = { sources: [], interests: [], items: [], source_count: 0, interest_count: 0, item_count: 0 };
-  let followed: string | null = null;
-  await page.route("**/api/discovery/status", (route) =>
-    route.fulfill({ json: { ok: true, status: "healthy", data: empty, warnings: [] } }),
-  );
-  await page.route("**/api/discovery/discover*", (route) =>
-    route.fulfill({ json: { ok: true, status: "healthy", data: { items: [], count: 0, sources_queried: 0 }, warnings: [] } }),
-  );
-  await page.route("**/api/discovery/interests", (route) => {
-    if (route.request().method() !== "POST") return route.fallback();
-    followed = route.request().postDataJSON().name;
-    return route.fulfill({ json: { ok: true, data: { id: "kilns", name: followed } } });
-  });
-  await gotoArea(page, "Interests");
-  const main = page.getByRole("main", { name: "Interests" });
-  await expect(main.getByText(/Nothing to look through yet\. Add something you’re curious about/)).toBeVisible();
-  await main.getByRole("button", { name: "Check sources now" }).click();
-  await expect(main.getByText("Checked just now: nothing to look through yet.")).toBeVisible();
-  await main.getByLabel("What are you curious about?").fill("Kilns");
-  await main.getByRole("button", { name: "Follow it" }).click();
-  await expect(main.getByText("Following “Kilns”. The next check looks for it.")).toBeVisible();
-  expect(followed).toBe("Kilns");
-  const results = await new AxeBuilder({ page }).analyze();
-  const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  expect(bad.map((v) => `${v.id}: ${v.nodes.length} node(s)`)).toEqual([]);
-  await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
 test("Bridge: Newsstand says plainly it can't be set up yet", async ({ page }) => {

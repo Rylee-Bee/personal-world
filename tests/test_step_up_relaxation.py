@@ -60,14 +60,6 @@ class TestScopedStepUpRelaxation:
         r = client.patch("/api/prefs", json={"text_scale": 1.5}, headers=AUTH)
         assert r.status_code == 200, r.text
 
-    def test_discovery_interests_accepts_plain_auth(self, client):
-        r = client.post(
-            "/api/discovery/interests",
-            json={"id": "i1", "name": "reading"},
-            headers=AUTH,
-        )
-        assert r.status_code == 200, r.text
-
     def test_identity_principal_accepts_plain_auth(self, client):
         r = client.put(
             "/api/identity/principal", json={"display_name": "Ry"}, headers=AUTH
@@ -88,7 +80,6 @@ class TestScopedStepUpRelaxation:
             ("PUT", "/api/prefs"),
             ("PATCH", "/api/prefs"),
             ("PUT", "/api/identity/principal"),
-            ("POST", "/api/discovery/interests"),
         ):
             assert gate.get(key) == "none", key
         assert gate.get(("POST", "/api/lore/confirm")) == "step-up"

@@ -887,7 +887,6 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     "reminders": "reminders.json",
     "proposals": "proposals.json",
     "chat_history": "chat-history.ndjson",
-    "discovery": "discovery.json",
     # lining rescue (D15): journal drafts must survive devices; registered
     # like every other kind so single/multi mode resolve identically.
     "journal_draft": "journal-draft.json",
@@ -930,11 +929,6 @@ SCOPED_PATH_FILENAMES: dict[str, str] = {
     "journal_gate_denylist": "journal-gate-denylist.json",
 }
 
-#: Legacy (single-user default) discovery config location. Matches
-#: NativeDiscovery's own default so a single-mode install keeps reading
-#: the interests file it has always used.
-LEGACY_DISCOVERY_PATH = Path("~/.config/personal-world/discovery.json")
-
 _SAFE_PRINCIPAL_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 
@@ -942,8 +936,6 @@ def legacy_scoped_path(data_dir: Path | str, kind: str) -> Path:
     """The instance-level path a kind has always used (single mode)."""
     if kind not in SCOPED_PATH_FILENAMES:
         raise ValueError(f"unknown scoped path kind: {kind!r}")
-    if kind == "discovery":
-        return LEGACY_DISCOVERY_PATH.expanduser()
     return Path(data_dir) / SCOPED_PATH_FILENAMES[kind]
 
 

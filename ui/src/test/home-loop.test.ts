@@ -9,7 +9,6 @@
 import { describe, it, expect } from "vitest";
 import type { JournalEvent, ProjectsStatusData } from "../data/contract";
 import {
-  discoverySliverState,
   greetForHour,
   keeperStateForHour,
   KEEPER_STATES,
@@ -95,52 +94,6 @@ describe("threadWhen — the human when-line", () => {
 
   it("says unknown for a timestamp it cannot read", () => {
     expect(threadWhen("not-a-date")).toBe("at an unknown time");
-  });
-});
-
-describe("discoverySliverState — the brought-to-you slot", () => {
-  it("is unavailable on error, silence, or a soft failure", () => {
-    expect(discoverySliverState(undefined, false)).toEqual({ kind: "unavailable" });
-    expect(discoverySliverState(undefined, true)).toEqual({ kind: "unavailable" });
-    expect(
-      discoverySliverState({ ok: false, status: "unavailable" }, false),
-    ).toEqual({ kind: "unavailable" });
-  });
-
-  it("names the honest empty state when no source exists", () => {
-    expect(
-      discoverySliverState(
-        { ok: true, data: { source_count: 0, item_count: 0 } },
-        false,
-      ),
-    ).toEqual({ kind: "no-source" });
-  });
-
-  it("promises cadence when sources listen but no batch is due", () => {
-    expect(
-      discoverySliverState(
-        { ok: true, data: { source_count: 2, item_count: 0 } },
-        false,
-      ),
-    ).toEqual({ kind: "listening", sources: 2 });
-  });
-
-  it("counts a waiting batch truthfully", () => {
-    expect(
-      discoverySliverState(
-        { ok: true, data: { source_count: 1, item_count: 3 } },
-        false,
-      ),
-    ).toEqual({ kind: "waiting", items: 3 });
-  });
-
-  it("falls back to row arrays when counts are absent", () => {
-    expect(
-      discoverySliverState(
-        { ok: true, data: { sources: [1, 2], items: [7] } },
-        false,
-      ),
-    ).toEqual({ kind: "waiting", items: 1 });
   });
 });
 
