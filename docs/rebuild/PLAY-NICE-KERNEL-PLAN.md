@@ -1,7 +1,7 @@
 # Play-Nice kernel rebuild plan
 
 **Target:** `rebuild/front-door`  
-**Decision:** [ADR-0009](../adr/0009-play-nice-kernel.md)  
+**Decision:** [ADR-0009](../adr/0009-play-nice-semantic-kernel.md)  
 **Mode:** deletion-first fresh-ground rebuild
 
 ## Outcome
