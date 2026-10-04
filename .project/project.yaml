@@ -1,25 +1,13 @@
 schema: play-nice/project-v1
-
-# id stays the technical/repository identifier (repo slug, package name,
-# CLI command, directory names) — unchanged per the 2026-09-12 identity
-# pass: renaming it is a separate, deliberately deferred migration
-# (breaks remotes, automation, links, package references). `name` is the
-# human-facing product identity, which the same pass DID re-anchor.
 id: personal-world
-name: Project Worlds   # renamed from "Personal World" 2026-09-12 (product
-                        # identity re-anchoring after trunk unification);
-                        # see .project/CURRENT.md for the full classification
-                        # of what changed vs what intentionally didn't.
+name: Worlds
 
 purpose:
-  summary: >
-    A calm, accessible, slightly whimsical personal environment where a
-    person's information, tools, assistant, history, and capabilities come
-    together naturally — and where sophisticated machinery stays out of the
-    way until it's actually needed. Dual acceptance: understandable at a
-    glance when barely able to focus, and fully inspectable down to the
-    technical guts on demand. Capabilities belong to the core; integrations
-    are optional providers.
+  summary: >-
+    A calm, accessible personal front door where information, tools, memory,
+    projects and optional providers come together without requiring the person
+    to hold the machinery in working memory. Worlds owns meaning; providers
+    own replaceable mechanics.
 
 ownership:
   type: human
@@ -28,8 +16,20 @@ ownership:
 contracts:
   manifest: .project/contracts/adoption.yaml
 
+canonical:
+  current_state: .project/CURRENT.md
+  direction: .project/PLAN.md
+  decisions: .project/DECISIONS.md
+  architecture: docs/adr/0008-front-door.md
+  documentation: docs/INDEX.md
+  security: SECURITY.md
+  accessibility: docs/accessibility/ACCESSIBILITY_CONTRACT.md
+  human_reliability: docs/HUMAN_RELIABILITY_CONTRACT.md
+
 participants:
   directory: participants
 
 status:
   vocabulary: play-nice/status-v1
+
+secrets_policy: symbolic-references-only

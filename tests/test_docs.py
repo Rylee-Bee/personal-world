@@ -164,20 +164,25 @@ def test_agents_md_points_at_the_accessibility_contract():
     )
 
 
-def test_status_md_points_at_cross_repo_state():
-    """Root STATUS.md is the current-state entry point (audit PW-P2-01):
-    it must exist and must defer to the homelab CHECKOFF rather than
-    duplicating epoch state."""
+def test_status_md_stays_a_pointer_to_worlds_current_state():
+    """Root STATUS.md is a compatibility pointer, not another status ledger.
+
+    Worlds owns its own current-state router. Cross-repo work is discovered
+    through the owning repositories/issues rather than a maintained Homelab
+    CHECKOFF snapshot.
+    """
     status = REPO_ROOT / "STATUS.md"
     assert status.is_file(), "root STATUS.md missing"
     text = status.read_text()
-    assert "docs/agent/CHECKOFF.md" in text, (
-        "STATUS.md must point at the canonical cross-repo current state "
-        "(homelab docs/agent/CHECKOFF.md)"
+    assert ".project/CURRENT.md" in text, (
+        "STATUS.md must point at Worlds' canonical current-state router"
     )
-    # The point of STATUS.md is to be a pointer, not a second truth: it
-    # must not carry its own epoch/status tables.
+    assert "github.com/Rylee-Bee/personal-world/issues" in text, (
+        "STATUS.md must route durable unfinished work to GitHub Issues"
+    )
+    assert "docs/agent/CHECKOFF.md" not in text, (
+        "STATUS.md must not resurrect the retired Homelab CHECKOFF protocol"
+    )
     assert not re.search(r"^\|\s*(COMPLETE|WORKING|BLOCKED|WAITING)\b", text, re.M), (
-        "STATUS.md must stay a pointer; epoch status rows belong in the "
-        "homelab CHECKOFF, not duplicated here"
+        "STATUS.md must stay a pointer, not duplicate current-state rows"
     )

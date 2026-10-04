@@ -1,328 +1,163 @@
 # Worlds
 
-![The Worlds crew together — Renai, Ratatoskr, Bolt, the Burrito Journalism truck, and Personal World — in matching uniforms beneath the book-leaf world-tree](design/screens/crew-scene-sept17.png)
+> **Branch note:** this README describes the active `rebuild/front-door`
+> application. It is source-ready work in progress, **not the production
+> cutover**. Current routing: [`.project/CURRENT.md`](.project/CURRENT.md).
 
-> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** nothing (the overview; current state is in `.project/CURRENT.md`) · **Read this if:** you are new here, human or agent.
+**Worlds is a calm personal front door.** It gathers useful state, memory and
+outside services without making the person learn every provider underneath.
 
-**In short:** Worlds is a private, self-hosted app that shows your life and
-your projects in one place: what changed, what needs you, and what can wait.
-It runs on your own hardware and never acts without your approval.
+The stable landmarks are:
 
-## What it is
-
-Worlds is one home screen, **the Bridge**, plus a small set of screens
-behind it: **Memory**, **Chat**, **Settings** and **Crew** (and **Interests**,
-which is moving out; see Candy below). A guide (the one Assistant voice, or a
-companion you choose) briefs you on what changed since you last looked.
-
-Worlds also shows your **rooms**. A *room* is a separate service (your project
-workshop, your design studio, your homelab, your discovery feed) that
-implements one small shared contract, `room/0`. Worlds shows every room the
-same way: its status, its cards, and what needs you. A room that is down is
-shown as down, and the other rooms keep working. See
-[docs/ROOMS.md](docs/ROOMS.md).
-
-Worlds also defines the **visual design** the other tools use. Its styles are
-exported as the framework-free **Worlds kit** (`ui/dist-kit/`), which the other
-tools copy in, so they all look the same.
-
-**Your data stays yours; the software around it can change.** Your data stays
-on your own hardware and can be exported. This is a **private technical
-alpha**: some screens use your real data, some keep data on the device by
-design, and unfinished ones are labelled as placeholders and never show fake
-data.
-
-> **New here?** Run `./install.sh` and read
-> **[docs/QUICKSTART.md](docs/QUICKSTART.md)**: one command, no config,
-> written for tired and disabled people first.
-> Where things stand: **[docs/WHERE-WE-ARE.md](docs/WHERE-WE-ARE.md)** (plain
-> words) and [`.project/CURRENT.md`](.project/CURRENT.md) (for agents).
-> Direction: [`.project/PLAN.md`](.project/PLAN.md) (owner-approved
-> 2026-09-25; it wins over [TRUE-NORTH](docs/TRUE-NORTH.md) on scope and
-> sequencing; TRUE-NORTH's principles on accuracy and accessibility still apply).
-
-## What ships by default
-
-A portable appliance: the core process plus Ollama (`qwen3:1.7b`) and a
-one-shot model-bootstrap container, exactly what `compose.yaml` brings up on
-`docker compose up -d`. No other containers are required, and no room is
-required: rooms are optional services Worlds can show when you run them.
-
-**What uses real data today:**
-
-- **Live today.** The Bridge reads your rooms, briefing and journal (latest
-  thread via `GET /api/journal/last`); Memory lists and finds your real journal
-  entries and records; Settings and Crew read and write your real
-  preferences (voice/tone, companion, keepers, doorways). `/login` and
-  `/setup` are server-rendered; **First Light** is the first-run setup.
-- **Device-local by design.** Chat conversations stay on the device; replies
-  come from your configured model; with no model configured, Chat says `not_configured`.
-- **Real, still growing.** Projects (Hive Works teams and tickets) and Systems
-  (the Engine room's view of your machines) are routed screens: unfinished,
-  not missing.
-- **Moving out.** Discovery is moving to **Candy**, a separate room that is
-  intended to be only the backend for Interests (not implemented quite right
-  yet; media, calendars and notifications are not Candy's). The code is still
-  in Worlds today (`src/personal_world/discovery/`, the native providers, the
-  Interests screen); nothing has been removed yet.
-
-**10 native providers** (in-process, no extra containers; `ls src/personal_world/providers/native_*.py`):
-
-| Provider | Purpose |
-|---|---|
-| `native_vault` | Secrets |
-| `native_memory` | SQLite FTS5 search |
-| `native_calendar` | ICS/CalDAV |
-| `native_discovery` | Content discovery |
-| `native_reconciler` | Settings validation |
-| `native_lab` | Service inventory + health |
-| `native_updates` | GitHub releases |
-| `native_notifications` | Webhook/ntfy |
-| `native_media` | Plex/Sonarr/Radarr/Lidarr |
-| `native_deployment` | Docker Compose/systemd |
-
-**Brain Template System:** prompt templates under `config/prompts/` (core,
-personas, surfaces, tasks, formats), private overrides via
-`config/prompts.local/`, provenance tracking (`ls -R config/prompts`).
-
-**Connections & Providers:** provider wiring is schema-driven and
-managed in `config/connections.json`; the in-process natives above
-need no configuration at all.
-
-**Brain tools** cover read-only world inspection, media, and
-proposal-based writes — every write path needs your approval.
-
-**Auth/SSO:** Native/local auth (`PW_API_TOKEN`), session-cookie support,
-OIDC sign-in with any provider (`config/oidc.json`; point it at your own
-IdP), step-up auth (300s window), break-glass (`PW_API_TOKEN`
-fallback). Which provider a deployment uses is recorded in private
-operator documentation, not here.
-
-**Execution Viewer:** Bounded execution evidence with actor, target,
-command, timestamps, and exit codes.
-
-**Scheduler:** Background reminder runner, persistent across restarts.
-
-## Architecture
-
-```
-Worlds core process
-├── native_vault
-├── native_memory
-├── native_calendar
-├── native_discovery
-├── native_reconciler
-├── native_lab
-├── native_updates
-├── native_notifications
-├── native_media
-├── native_deployment
-├── journal
-├── scheduler
-├── tool registry
-├── Brain Template System
-├── proposal/approval system
-└── Execution Viewer
-
-Ollama
-└── qwen3:1.7b default bundled brain
+```text
+Home · Connect · Memory · Settings
 ```
 
-**One core process with small built-in capabilities, and adapters for outside
-services. An external service is added only when it's actually needed.**
+## What owns what
 
-Around the core, optional **rooms** run as their own services and are listed
-at runtime by a **room registry** (served by Project Home; `PW_ROOMS_REGISTRY_URL`).
-Worlds checks each room's contract before showing it, and for per-person
-rooms tells the room who is asking (`X-Worlds-Principal`) alongside the room's
-own token. Details: [docs/ROOMS.md](docs/ROOMS.md).
+**Worlds owns meaning. Providers own mechanics.**
 
-## A Play-Nice product
+- **Home** composes useful cards and attention.
+- **Connect** describes providers, mappings and requests in files.
+- **Memory** keeps durable personal state, deterministic local search,
+  history, export and restore.
+- **Settings** holds configuration and comfort.
+- **Companion** is presentation/conversation around the product, not a second
+  authority path.
+- External `room/0` systems continue as a provider kind. Worlds calls them
+  services and does not absorb their implementation.
 
-This project adopts [Play-Nice Contracts](.project/contracts/adoption.yaml)
-(`Rylee-Bee/play-nice-contracts`) as its shared cooperation and
-engineering constitution.
+Provider API shapes do not become Worlds concepts.
 
-Play-Nice governs how the four sides of Worlds cooperate:
-**Rylee** (the owner), **Worlds** (the app), the **agents and models** that
-help her, and the **providers, APIs, automation and interfaces** around them.
-The rules include: back claims with evidence, make state explicit, ask instead
-of guessing, record why consequential decisions were made, make mistakes
-recoverable, meet minimum accessibility requirements, keep work bounded, and
-cooperate in good faith. These rules govern how the work is done; they are not
-product features.
+## Authority
 
-Worlds **accepts and implements** the **full** Play-Nice library (8 layers)
-through one manifest:
-[`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml),
-pinned to a verified library revision (v0.10.0 as of 2026-09-26, which
-includes ROOM 1.1.1). Applicable contracts are resolved per task
-from that manifest's `always` and `triggers` lists; no contract text is
-copied into this repository. The explicit acknowledgement — target
-revision, implemented contracts, and evidence — is in
-[`ACKNOWLEDGEMENT.md`](ACKNOWLEDGEMENT.md).
+Consequential actions use one governed path:
 
-The canonical adoption is at
-[`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml);
-canonical current state at [`.project/CURRENT.md`](.project/CURRENT.md);
-durable decisions at [`.project/DECISIONS.md`](.project/DECISIONS.md).
-
-## The interface
-
-The product UI is the **React rebuild** (`ui/`), served same-origin at
-`/` by the backend. The container image builds it itself (node stage →
-`src/personal_world/static/app/`); for a source checkout run
-`bash scripts/build-app.sh`. `/login` and `/setup` are server-rendered.
-The retired vanilla Station is no longer served or packaged; `/station`
-and `/vnext` only redirect to `/`.
-
-Sign-in is **provider-neutral OIDC** — point it at your own IdP
-([docs/oidc.md](docs/oidc.md)). With an IdP configured the login page is
-**passkey-first**: one "Sign in with …" button, and the access code folds
-away as a fallback. The superseded React frontend was removed on
-2026-09-16 (single-branch cutover).
-
-### Screenshots
-
-<p align="center">
-  <a href="docs/gallery/shots/bridge/starfield-1440.png"><img src="docs/gallery/showcase/hero.png" alt="The Worlds Bridge on a desktop window and a phone, side by side on a starry background, with the Assistant waving and Sol smiling." width="100%"></a>
-  <br><sub><b>The Bridge</b>: what changed, what needs you, and each room as a doorway. On a phone it's the same page, stacked.</sub>
-</p>
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="docs/gallery/shots/room-drawer-studio/starfield-1440.png"><img src="docs/gallery/showcase/room-drawer.png" alt="A room's drawer open beside the Bridge, with a need and tone-labelled cards; the Assistant peeks in from the corner." width="100%"></a>
-      <br><b>Look inside a room</b>
-      <br><sub>Status in words, what changed, and what needs you. Links open on the room's own site.</sub>
-    </td>
-    <td width="50%" valign="top">
-      <a href="docs/gallery/shots/secrets-waiting/starfield-1440.png"><img src="docs/gallery/showcase/secrets.png" alt="The Workshop drawer's Secrets section with a request waiting for you; Sol peeks in, curious." width="100%"></a>
-      <br><b>Secrets, by name only</b>
-      <br><sub>An agent asked for a key. Nothing is shared until you type it on Project Home's page.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="docs/gallery/shots/ask-in-chat/starfield-1440.png"><img src="docs/gallery/showcase/ask-in-chat.png" alt="Chat with a question about Studio written in the message box; the Assistant waves from the corner." width="100%"></a>
-      <br><b>Ask about a room</b>
-      <br><sub>Chat opens with the question already written. You choose whether to send it.</sub>
-    </td>
-    <td width="50%" valign="top">
-      <a href="docs/gallery/shots/crew/starfield-1440.png"><img src="docs/gallery/showcase/crew.png" alt="The Crew page with companion cards; Renai waves beside it." width="100%"></a>
-      <br><b>Your crew</b>
-      <br><sub>Pick a companion, add your own, and choose who keeps each room.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="docs/gallery/shots/find-a-room/starfield-1440.png"><img src="docs/gallery/showcase/find-a-room.png" alt="The Rooms section with a Find a room box and its match count; Sol cheers from the corner." width="100%"></a>
-      <br><b>Find a room</b>
-      <br><sub>With 12 or more rooms, a search box says how many match.</sub>
-    </td>
-    <td width="50%" valign="top">
-      <a href="docs/gallery/shots/first-light-companion/starfield-1440.png"><img src="docs/gallery/showcase/first-light.png" alt="The First Light step for picking a companion, with the Assistant chosen; Sol rests in the corner." width="100%"></a>
-      <br><b>First Light</b>
-      <br><sub>A six-step first-run setup: sign-in, comfort, and a companion, or none.</sub>
-    </td>
-  </tr>
-</table>
-
-<p align="center">
-  <a href="docs/gallery/shots/bridge/"><img src="docs/gallery/showcase/themes.png" alt="The Bridge on six phones, one per theme: starfield, doorways, station, moss, ocean and plain." width="100%"></a>
-  <br><sub><b>Six themes</b>: starfield (the default), doorways, station, moss, ocean and plain. Every one keeps 16px body text and 44px targets.</sub>
-</p>
-
-<p align="center"><b><a href="docs/gallery/README.md">See every screen in the gallery →</a></b><br><sub>Phone and desktop, sign-in and first-run included. All pictures use made-up demo data.</sub></p>
-
-## Quick start
-
-Requires Python 3.12 or newer and [uv](https://docs.astral.sh/uv/getting-started/installation/).
-
-```bash
-git clone https://github.com/Rylee-Bee/personal-world.git
-cd personal-world
-uv sync --frozen --extra test
-uv run personal-world --config-dir config.local init
-uv run personal-world --config-dir config.local daily
+```text
+request
+→ approve
+→ durably consume authorization
+→ dispatch at most once
+→ SUCCEEDED | FAILED | UNKNOWN
 ```
 
-Then serve the hub (set `PW_CONFIG_DIR` and `PW_DATA_DIR`):
+A retry is a new action.
 
-```bash
-PW_CONFIG_DIR=config.local \
-PW_DATA_DIR=data \
-uv run uvicorn personal_world.worlds.production:app_from_env --factory --app-dir src --port 8000
-```
+Project Home stays canonical for operations it governs. Other provider actions
+remain explicitly owner-authorized through Worlds' own boundary.
 
-`data/` and `config.local/` are ignored runtime directories. See
-[Operations](docs/OPERATIONS.md) for container setup, tokens, and
-network scope.
+## Configuration
 
-## Container deployment
+Configuration is files.
 
-```bash
-export PW_API_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
-docker compose pull
-docker compose up -d
-```
+UI-created configuration must round-trip through the documented YAML without
+loss. Secret material is referenced symbolically and supplied at runtime.
 
-The portable base image (`compose.yaml`) carries no host paths; it
-boots with only the images, a `world-data` volume and an `ollama-data`
-model volume, and the token: the core, Ollama, and the one-shot model
-bootstrap. Images are published to `ghcr.io/rylee-bee/personal-world` by the
-`publish-image` workflow on every push to `main`. See
-[Operations](docs/OPERATIONS.md#containers) for deployment, updates and
-rollback.
+The public repository never contains real credentials, personal memory,
+private provider payloads or private deployment topology. See
+[`SECURITY.md`](SECURITY.md).
 
-## How the assistant works
+## Memory
 
-The brain receives a trimmed text snapshot of your world (capability
-statuses, actors, intents, policies, world-classified lore, recent
-journal events, source-repository summaries) plus the last six chat
-turns. Private-class lore and secret material are never included.
+The rebuild treats Memory as durable product state from day one.
 
-- Read tools execute directly (inspect world status, search journal,
-  check lab health, etc.)
-- Write requests create bounded proposals (journal entries, world
-  facts/intents, reminders)
-- Chat is a real conversation when a model is configured — read-only:
-  replies observe your world; no tool execution, no mutations without
-  approval. With no model configured, Chat answers `not_configured`.
-- Approval is required for all writes
-- Step-up auth for consequential actions (300s window)
-- Execution evidence is recorded in the Execution Viewer
-- The brain does not receive arbitrary shell access
+It supports the baseline:
 
-## Deeper documentation
+- Kept
+- Later
+- Records
+- History
+- Find
 
-| Interest | Entry point |
-|---|---|
-| Where things stand (plain words) | [WHERE-WE-ARE.md](docs/WHERE-WE-ARE.md) |
-| Architecture | [ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Rooms | [ROOMS.md](docs/ROOMS.md) |
-| Screenshots | [gallery](docs/gallery/README.md) |
-| Native baseline | [NATIVE-BASELINE-AND-ENRICHMENT.md](docs/NATIVE-BASELINE-AND-ENRICHMENT.md) |
-| Operations | [OPERATIONS.md](docs/OPERATIONS.md) |
-| Providers | [PROVIDERS.md](docs/PROVIDERS.md) |
-| Direction | [`.project/PLAN.md`](.project/PLAN.md), then [TRUE-NORTH.md](docs/TRUE-NORTH.md) |
-| Finish line detail | [PERSONAL-WORLD-FINISH-LINE.md](docs/PERSONAL-WORLD-FINISH-LINE.md) |
-| Design | [Workshop v3 design authority](.project/design/CURRENT.md) |
-| Accessibility | [ACCESSIBILITY_CONTRACT.md](docs/accessibility/ACCESSIBILITY_CONTRACT.md) |
-| Full docs index | [INDEX.md](docs/INDEX.md) |
-| Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| Security | [SECURITY.md](SECURITY.md) |
+Local deterministic search works with providers and models off. Backup/restore
+is a current front-door path, not the retired old-app bundle format.
+
+See [`docs/rebuild/DURABILITY.md`](docs/rebuild/DURABILITY.md).
+
+## Companion and presentation
+
+Conversation identity is durable product state.
+
+Model, harness and inference sessions are replaceable machinery and must not
+become the identity of a conversation.
+
+Themes, Station and character packs may change look, voice and moments. They
+may not change the structural landmarks, hide state, or lower the accessibility
+floor.
+
+## Current state
+
+The rebuild branch contains the foundation, authority, provider/recipe model,
+Home/Connect/Memory experience, room integration, Memory durability work and
+the Phase 4 re-anchoring completed through PR #257 plus the Companion
+conversation-identity clarification in #258.
+
+Remaining durable work:
+
+- [#262](https://github.com/Rylee-Bee/personal-world/issues/262) — finish
+  Phase 4 retirement and cutover readiness.
+- [#263](https://github.com/Rylee-Bee/personal-world/issues/263) — reconcile
+  applicable `main` maintenance into the rebuild before cutover.
+
+The rebuild is not production until the owner explicitly approves cutover and
+the running revision is verified afterward.
+
+## Quick start and operations
+
+Use the branch's current guides rather than old CLI examples:
+
+- [Quick start](docs/QUICKSTART.md)
+- [Operations](docs/OPERATIONS.md)
+- [Front-door contracts](docs/rebuild/CONTRACTS.md)
+- [Durability](docs/rebuild/DURABILITY.md)
+- [ADR-0008](docs/adr/0008-front-door.md)
+
+## Play-Nice
+
+Worlds adopts Play-Nice through
+[`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml).
+
+That manifest owns the current pin and applicable contract set. Contract
+versions/SHAs are deliberately not duplicated in this README.
+
+Worlds-specific floors remain authoritative in their owning sources:
+
+- [Accessibility](docs/accessibility/ACCESSIBILITY_CONTRACT.md)
+- [Human Reliability](docs/HUMAN_RELIABILITY_CONTRACT.md)
+- [Security/public boundary](SECURITY.md)
+- [Agent policy](AGENT_POLICY.md)
 
 ## Validation
 
-```bash
-uv run --extra test --extra crypto pytest --timeout=60 -o addopts="" -q
+The checked-in GitHub workflows are the authority for the complete gate set.
+Common local checks:
+
+```sh
+uv sync --frozen --extra test --extra crypto
+uv run pytest --timeout=30
 uv run personal-world framework validate --json
-cd ui && npx tsc -b && npx vitest run && npm run kit:check
+
+cd ui
+npm ci
+npx tsc -b
+npm run lint
+npx vitest run
+npm run build
+npx playwright test
 ```
 
-Licensed under [Apache-2.0](LICENSE). The project is experimental; see
-the [security policy](SECURITY.md) for the current support and
-deployment boundary.
+A green source check is not deployment evidence.
 
-![Worlds companion artwork: Mermaid, Personal World, Little Helper robot, world-tree squirrel and the taco news truck, gathered under the world-tree](design/screens/worlds.png)
+## Deeper map
+
+| Need | Source |
+| --- | --- |
+| current state | [`.project/CURRENT.md`](.project/CURRENT.md) |
+| direction | [`.project/PLAN.md`](.project/PLAN.md) |
+| architecture | [ADR-0008](docs/adr/0008-front-door.md) |
+| docs index | [`docs/INDEX.md`](docs/INDEX.md) |
+| decisions | [`.project/DECISIONS.md`](.project/DECISIONS.md) + [ADRs](docs/adr/) |
+| security | [`SECURITY.md`](SECURITY.md) |
+| contribution | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+
+Licensed under [Apache-2.0](LICENSE).
