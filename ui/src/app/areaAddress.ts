@@ -6,7 +6,7 @@
  * screens. The Bridge is `#bridge`; Computers is `#computers`.
  */
 export type AreaKey =
-  | "overview" | "memory" | "chat" | "settings" | "interests" | "projects" | "systems"
+  | "overview" | "memory" | "chat" | "settings" | "projects" | "systems"
   | "crew" | "people" | "helpers" | "rough-night" | "library" | "lore" | "at-home" | "stickers";
 
 const SLUG: Record<AreaKey, string> = {
@@ -14,7 +14,6 @@ const SLUG: Record<AreaKey, string> = {
   memory: "memory",
   chat: "chat",
   settings: "settings",
-  interests: "interests",
   projects: "projects",
   systems: "computers",
   crew: "crew",

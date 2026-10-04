@@ -36,7 +36,7 @@ export const Active: Story = {
 
 export const PersonalSection: Story = {
   args: {
-    area: { id: "interests", label: "Interests" },
+    area: { id: "projects", label: "Projects" },
     onClick: fn(),
   },
 };

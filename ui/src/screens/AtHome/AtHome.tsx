@@ -184,7 +184,7 @@ function Shelf({ kind, summary }: { kind: Kind; summary: KindCount | undefined }
   );
 }
 
-export function AtHome({ onBack, backLabel = "Back to Interests" }: { onBack: () => void; backLabel?: string }) {
+export function AtHome({ onBack, backLabel = "Back" }: { onBack: () => void; backLabel?: string }) {
   useEffect(() => {
     void reportSticker("homebody");
   }, []);

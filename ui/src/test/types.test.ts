@@ -100,7 +100,7 @@ describe("types constants", () => {
   describe("PERSONAL_AREAS", () => {
     it("holds the person-shapable destinations and none of the landmarks", () => {
       const ids = PERSONAL_AREAS.map((a) => a.id);
-      expect(ids).toEqual(["interests", "projects", "systems"]);
+      expect(ids).toEqual(["projects", "systems"]);
       for (const id of SKELETON_AREA_IDS) {
         expect(ids).not.toContain(id);
       }
@@ -128,12 +128,10 @@ describe("types constants", () => {
 
     it("falls back to the registry order when the server has said nothing", () => {
       expect(derivePersonalAreas(undefined).map((a) => a.id)).toEqual([
-        "interests",
         "projects",
         "systems",
       ]);
       expect(derivePersonalAreas([]).map((a) => a.id)).toEqual([
-        "interests",
         "projects",
         "systems",
       ]);
@@ -142,17 +140,16 @@ describe("types constants", () => {
     it("orders personal sections by the server layout", () => {
       const areas = derivePersonalAreas([
         row("projects", 0),
-        row("interests", 1),
       ]);
-      expect(areas.map((a) => a.id)).toEqual(["projects", "interests", "systems"]);
+      expect(areas.map((a) => a.id)).toEqual(["projects", "systems"]);
     });
 
     it("hides a personal section the server says is hidden", () => {
       const areas = derivePersonalAreas([
-        row("interests", 0, true),
-        row("projects", 1, false),
+        row("projects", 0, true),
+        row("systems", 1, false),
       ]);
-      expect(areas.map((a) => a.id)).toEqual(["interests", "systems"]);
+      expect(areas.map((a) => a.id)).toEqual(["projects"]);
     });
 
     it("a server that hides and scrambles EVERYTHING still yields the untouched landmark set", () => {
@@ -165,7 +162,6 @@ describe("types constants", () => {
         row("journal", 1, false),
         row("chat", 2, false),
         row("today", 3, false),
-        row("interests", 4, false),
         row("projects", 5, false),
         row("systems", 6, false),
       ];
@@ -190,22 +186,21 @@ describe("types constants", () => {
       expect(ids).not.toContain("today");
       expect(ids).not.toContain("journal");
       // …and no known destination is ever silently lost:
-      expect(ids).toEqual(["interests", "projects", "systems"]);
+      expect(ids).toEqual(["projects", "systems"]);
     });
 
     it("skips server ids the UI has no destination for without dropping known ones", () => {
       const areas = derivePersonalAreas([
         row("media", 0),
-        row("interests", 1),
         row("lab", 2),
         row("vault", 3),
       ]);
-      expect(areas.map((a) => a.id)).toEqual(["interests", "projects", "systems"]);
+      expect(areas.map((a) => a.id)).toEqual(["projects", "systems"]);
     });
 
     it("deduplicates repeated server rows", () => {
-      const areas = derivePersonalAreas([row("interests", 0), row("interests", 1)]);
-      expect(areas.filter((a) => a.id === "interests")).toHaveLength(1);
+      const areas = derivePersonalAreas([row("projects", 0), row("projects", 1)]);
+      expect(areas.filter((a) => a.id === "projects")).toHaveLength(1);
     });
   });
 

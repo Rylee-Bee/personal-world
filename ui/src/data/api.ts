@@ -30,7 +30,6 @@ import type {
   ConnectionSaveRequest,
   ConnectionTestRequest,
   DailyResponse,
-  DiscoveryStatusData,
   Envelope,
   HealthzResponse,
   JournalAuditData,
@@ -942,28 +941,6 @@ export const revokeAgent = (agentId: string) =>
       params: { path: { agent_id: agentId } },
     }),
   );
-
-// ===== Discovery =====
-export const getDiscoveryStatus = () =>
-  unwrap<Envelope<DiscoveryStatusData>>(api.GET("/api/discovery/status", {}));
-
-export const listDiscoverySources = () =>
-  unwrap<Envelope<unknown[]>>(api.GET("/api/discovery/sources", {}));
-
-export const listDiscoveryInterests = () =>
-  unwrap<Envelope<unknown[]>>(api.GET("/api/discovery/interests", {}));
-
-/** Follow something new (a signed-in person's own write; no step-up): an id from the name, and the name. */
-export const addDiscoveryInterest = (name: string) =>
-  unwrap<Envelope>(
-    sendBody("POST", "/api/discovery/interests", {
-      id: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "interest",
-      name: name.trim(),
-    }),
-  );
-
-export const triggerDiscovery = () =>
-  unwrap<Envelope>(api.GET("/api/discovery/discover", {}));
 
 // ===== Media =====
 export const getMediaStatus = () => unwrap<Envelope>(api.GET("/api/media/status", {}));

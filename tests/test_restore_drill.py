@@ -120,10 +120,9 @@ def _seed_instance_a(tmp_path: Path, monkeypatch):
     tpl.mkdir(parents=True)
     (tpl / "source.md").write_text("source")
 
-    # Home config state: discovery/reconciler state is seeded directly
+    # Home config state: reconciler state is seeded directly
     # because the app APIs resolve that store to the REAL default
     # ~/.config/personal-world, which tests must never touch.
-    (home / "discovery.json").write_text('{"interests":["drill"]}')
     (home / "reconciler" / "desired").mkdir(parents=True)
     (home / "reconciler" / "desired" / "drill.yml").write_text("service: drill\n")
 
@@ -168,7 +167,6 @@ def test_restore_drill_roundtrip(tmp_path, monkeypatch):
         "data/users.json",
         "data/theme-packs/drizzle/manifest.json",
         "data/template-sources/tpl/source.md",
-        "home/discovery.json",
         "home/reconciler/desired/drill.yml",
         "config/connections.local.json",
         "config/oidc.json",
@@ -216,9 +214,6 @@ def test_restore_drill_roundtrip(tmp_path, monkeypatch):
     assert not (b_data / "sessions.json").exists()
     assert not (b_data / "media" / "photo.bin").exists()
     assert (b_data / "theme-packs" / "drizzle" / "manifest.json").is_file()
-    assert (b_home / "discovery.json").read_bytes() == (
-        a_home / "discovery.json"
-    ).read_bytes()
 
     # OBSERVED BOUNDARY (pinned): the setup-complete marker and the
     # instance token do NOT travel. The operator must complete a

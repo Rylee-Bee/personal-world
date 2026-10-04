@@ -47,7 +47,6 @@ STANDARD_CAPABILITIES: list[tuple[str, str, bool]] = [
     ("deployment", "Deploy or schedule services", False),
     ("secrets", "Broker secret material to consumers", False),
     ("calendar", "Observe calendar events", False),
-    ("discovery", "Discover content matching interests", False),
     ("settings_validation", "Validate settings against intent", True),
     ("service_validation", "Validate service health", False),
     ("update_discovery", "Discover available updates", False),
@@ -446,21 +445,6 @@ def build_registry(
                 f"{name}-resources",
                 resources,
                 health_check=lambda resources=resources: resources.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
-        elif ptype == "native_discovery":
-            # Native Discovery provider: generic content discovery that
-            # ships with Project Worlds. Users configure their own sources.
-            from .providers.native_discovery import NativeDiscovery
-
-            discovery = NativeDiscovery()
-            registry.register(
-                "discovery",
-                f"{name}-discovery",
-                discovery,
-                health_check=lambda discovery=discovery: discovery.observe().ok,
                 writes="none",
                 mode=ProviderMode.NATIVE,
                 required=False,

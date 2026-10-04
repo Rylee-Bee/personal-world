@@ -98,7 +98,6 @@ def _brief(**overrides):
     kwargs = dict(
         project_home=_ph(),
         lab=_lab(),
-        discovery=_disc(),
         journal=FakeJournal(),
         place=None,
         now=NOW,
@@ -143,7 +142,6 @@ class TestSourceHonesty:
         brief = _brief(
             project_home=FakeSource(ProjectHomeResult(status="not_configured")),
             lab=FakeSource(fail("not_configured")),
-            discovery=_disc(sources=[]),
             journal=FakeJournal(),
         )
         assert _system(brief, "agents")["status"] == "not_configured"
@@ -1061,12 +1059,12 @@ def test_keeper_never_greets_the_placeholder_owner_label():
     from personal_world.briefing import build_briefing
 
     data = build_briefing(
-        project_home=None, lab=None, discovery=None, journal=None, place=None,
+        project_home=None, lab=None, journal=None, place=None,
         name_hint="Primary person",
     )
     assert data["data"]["keeper"]["name"] is None
     named = build_briefing(
-        project_home=None, lab=None, discovery=None, journal=None, place=None,
+        project_home=None, lab=None, journal=None, place=None,
         name_hint="Rylee",
     )
     assert named["data"]["keeper"]["name"] == "Rylee"

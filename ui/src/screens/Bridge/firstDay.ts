@@ -71,7 +71,7 @@ export const SYSTEM_ABOUT: Record<string, string> = {
   agents: "Your projects and the agents working on them, from Project Home.",
   estate: "The machines and services your World runs on, from Lab.",
   records: "Your journal and records.",
-  interests: "Things you’ve said you’re curious about, from Discovery.",
+  interests: "Things you’re curious about, from the Candy room.",
   news: "News and stories you follow, from Media.",
   threads: "Where you left off, and the threads you’re following.",
 };
@@ -81,7 +81,6 @@ export const SYSTEM_ABOUT: Record<string, string> = {
  *  page that sets it up; a system with no area can't be set up from Worlds
  *  yet, says so, and doesn't count against the first day. */
 export const SETUP_FOR: Record<string, { area: WorldAreaId | null; label: string; how: string }> = {
-  interests: { area: "interests", label: "Open Interests", how: "Add something you’re curious about in Interests." },
   agents: { area: "projects", label: "Open Projects", how: "Projects fill in when Hive Works or Project Home is connected as a room." },
   estate: { area: "systems", label: "Open Computers", how: "Your machines come from the Engine room; Computers shows what it sees." },
   records: { area: "memory", label: "Open Memory", how: "Write your first note or add a record in Memory." },

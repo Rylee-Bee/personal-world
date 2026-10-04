@@ -148,7 +148,6 @@ def build_default_tools(
     scheduler: Any = None,
     memory_provider: Any = None,
     proposal_store: Any = None,
-    discovery_config_path: Any = None,
 ) -> ToolRegistry:
     """Build the default tool set from existing domain objects.
 
@@ -158,9 +157,9 @@ def build_default_tools(
     write tools answer that persistence is not wired.
     ``connection_manager`` (origin/main) routes media engine
     construction through merged config.
-    ``proposal_store`` / ``discovery_config_path`` scope proposals and
-    interests to the CALLING principal's own tree (multi-user decision
-    #13); omitted, they stay on the instance-global store/config.
+    ``proposal_store`` scopes proposals to the CALLING principal's own
+    tree (multi-user decision #13); omitted, they stay on the
+    instance-global store.
     """
     tools = ToolRegistry()
 
@@ -467,67 +466,6 @@ def build_default_tools(
                 "required": ["service"],
             },
             handler=lambda service: _reconciler_diff(service),
-        )
-    )
-
-    # ── Discovery ──
-
-    tools.register(
-        Tool(
-            id="inspect_discovery_status",
-            capability="discovery",
-            operation="status",
-            description="Inspect discovery engine: sources, interests, discovered items count.",
-            read_write="read",
-            parameters={"type": "object", "properties": {}, "required": []},
-            handler=lambda: _discovery_status(discovery_config_path),
-        )
-    )
-
-    tools.register(
-        Tool(
-            id="list_discovery_sources",
-            capability="discovery",
-            operation="sources",
-            description="List configured discovery sources (RSS feeds, APIs).",
-            read_write="read",
-            parameters={"type": "object", "properties": {}, "required": []},
-            handler=lambda: _discovery_sources(discovery_config_path),
-        )
-    )
-
-    tools.register(
-        Tool(
-            id="list_interests",
-            capability="discovery",
-            operation="interests",
-            description="List configured interests.",
-            read_write="read",
-            parameters={"type": "object", "properties": {}, "required": []},
-            handler=lambda: _discovery_interests(discovery_config_path),
-        )
-    )
-
-    tools.register(
-        Tool(
-            id="run_discovery",
-            capability="discovery",
-            operation="discover",
-            description="Run discovery: fetch new content from configured sources.",
-            read_write="read",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "source": {
-                        "type": "string",
-                        "description": "Optional source ID to discover from (default: all)",
-                    }
-                },
-                "required": [],
-            },
-            handler=lambda source=None: _discovery_discover(
-                source, discovery_config_path
-            ),
         )
     )
 
@@ -1674,57 +1612,6 @@ def _reconciler_diff(service: str) -> Result:
         )
     except Exception as e:
         return fail("unavailable", warnings=[f"reconciler diff: {e}"])
-
-
-def _discovery_status(config_path: Any = None) -> Result:
-    """Get discovery status. ``config_path`` scopes interests/sources to
-    the calling principal's own tree (None = the legacy shared config)."""
-    try:
-        from .providers.native_discovery import NativeDiscovery
-
-        discovery = NativeDiscovery(config_path)
-        return discovery.observe()
-    except Exception as e:
-        return fail("unavailable", warnings=[f"discovery: {e}"])
-
-
-def _discovery_sources(config_path: Any = None) -> Result:
-    """List discovery sources."""
-    try:
-        from .providers.native_discovery import NativeDiscovery
-
-        discovery = NativeDiscovery(config_path)
-        r = discovery.observe()
-        if r.ok:
-            return ok("healthy", data={"sources": r.data.get("sources", [])})
-        return r
-    except Exception as e:
-        return fail("unavailable", warnings=[f"discovery sources: {e}"])
-
-
-def _discovery_interests(config_path: Any = None) -> Result:
-    """List interests."""
-    try:
-        from .providers.native_discovery import NativeDiscovery
-
-        discovery = NativeDiscovery(config_path)
-        r = discovery.observe()
-        if r.ok:
-            return ok("healthy", data={"interests": r.data.get("interests", [])})
-        return r
-    except Exception as e:
-        return fail("unavailable", warnings=[f"discovery interests: {e}"])
-
-
-def _discovery_discover(source: str | None = None, config_path: Any = None) -> Result:
-    """Run discovery."""
-    try:
-        from .providers.native_discovery import NativeDiscovery
-
-        discovery = NativeDiscovery(config_path)
-        return discovery.discover(source)
-    except Exception as e:
-        return fail("unavailable", warnings=[f"discovery: {e}"])
 
 
 def _vault_status(vault: Any) -> Result:

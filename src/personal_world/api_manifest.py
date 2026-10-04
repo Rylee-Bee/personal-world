@@ -671,31 +671,6 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "none",
         note="propose only; never applies",
     ),
-    # Discovery / media.
-    _e("API-049", "GET", "/api/discovery/status", "discovery", "read", "none"),
-    _e("API-050-get", "GET", "/api/discovery/sources", "discovery", "read", "none"),
-    _e(
-        "API-050-add", "POST", "/api/discovery/sources", "discovery", "write", "step-up"
-    ),
-    _e("API-051-get", "GET", "/api/discovery/interests", "discovery", "read", "none"),
-    _e(
-        "API-051-add",
-        "POST",
-        "/api/discovery/interests",
-        "discovery",
-        "write",
-        "none",
-        note="own-account write: signed-in person only, no step-up",
-    ),
-    _e(
-        "API-052",
-        "GET",
-        "/api/discovery/discover",
-        "discovery",
-        "read",
-        "none",
-        note="fetches sources and may persist discovery feedback",
-    ),
     _e("API-053", "GET", "/api/media/status", "media", "read", "none"),
     _e("API-054", "GET", "/api/media/library", "media", "read", "none"),
     _e("API-055", "GET", "/api/media/recent", "media", "read", "none"),

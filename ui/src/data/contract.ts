@@ -270,19 +270,6 @@ export interface ProjectsStatusData {
   projects: ProjectStatusRow[];
 }
 
-// ─── Discovery (GET /api/discovery/status — native_discovery.observe) ─
-// Counts and rows as the provider reports them; Overview's sliver and
-// the Interests screen both read this envelope.
-
-export interface DiscoveryStatusData {
-  sources?: unknown[];
-  interests?: unknown[];
-  items?: unknown[];
-  source_count?: number;
-  interest_count?: number;
-  item_count?: number;
-}
-
 // ─── Chat (api.py chat/chat_providers/chat_history,
 //     chat_history.py NDJSON entries) ─────────────────────
 

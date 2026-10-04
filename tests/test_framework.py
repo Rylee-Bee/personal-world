@@ -44,7 +44,6 @@ STANDARD_CAPS = {
     "deployment",
     "secrets",
     "calendar",
-    "discovery",
     "settings_validation",
     "service_validation",
     "update_discovery",
@@ -869,13 +868,13 @@ class TestProviderHealthCheckBinding:
                 {
                     "type": "candy",
                     "name": "candy-a",
-                    "capability": "discovery",
+                    "capability": "calendar",
                     "base_url": "http://example.invalid/a",
                 },
                 {
                     "type": "candy",
                     "name": "candy-b",
-                    "capability": "discovery",
+                    "capability": "calendar",
                     "base_url": "http://example.invalid/b",
                 },
             ]

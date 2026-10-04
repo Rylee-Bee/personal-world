@@ -89,9 +89,6 @@ import {
   journalGateLog,
   getJournalGateDenylist,
   putJournalGateDenylist,
-  getDiscoveryStatus,
-  listDiscoverySources,
-  listDiscoveryInterests,
   getMediaStatus,
   getMediaLibrary,
   getMediaRecent,
@@ -1172,28 +1169,6 @@ export function useAgents() {
   return useQuery({
     queryKey: ["identity", "agents"],
     queryFn: listAgents,
-  });
-}
-
-// ===== Discovery =====
-export function useDiscoveryStatus() {
-  return useQuery({
-    queryKey: ["discovery", "status"],
-    queryFn: getDiscoveryStatus,
-  });
-}
-
-export function useDiscoverySources() {
-  return useQuery({
-    queryKey: ["discovery", "sources"],
-    queryFn: listDiscoverySources,
-  });
-}
-
-export function useDiscoveryInterests() {
-  return useQuery({
-    queryKey: ["discovery", "interests"],
-    queryFn: listDiscoveryInterests,
   });
 }
 

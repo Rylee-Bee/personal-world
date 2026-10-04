@@ -101,7 +101,7 @@ DATA_BOUNDARY_TREES = ("users", "theme-packs", "template-sources")
 # Files under the app config dir (private runtime config).
 CONFIG_BOUNDARY_FILES = ("connections.local.json", "oidc.json")
 # Files/dirs under the per-user config home (~/.config/personal-world).
-HOME_BOUNDARY_FILES = ("discovery.json", "lab.json")
+HOME_BOUNDARY_FILES = ("lab.json",)
 HOME_BOUNDARY_TREES = ("reconciler/desired", "lab/desired")
 
 # Ephemeral / regenerable — NEVER archived, never restored, even if an

@@ -37,7 +37,7 @@ ALLOWED_REF_KEYS = {
 COMPOSE_DEP_KEYS = ("depends_on", "links", "volumes_from", "network_mode")
 
 STANDARD_CAPABILITIES = (
-    "source_control", "deployment", "secrets", "calendar", "discovery",
+    "source_control", "deployment", "secrets", "calendar",
     "settings_validation", "service_validation", "update_discovery",
     "memory", "journal", "reasoning", "notifications", "scheduler",
 )
