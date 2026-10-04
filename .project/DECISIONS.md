@@ -787,3 +787,20 @@ Deployment is now read through Homelab only: the `homelab_deploy` capability +
 `native_updates.py` (version/update *discovery*, `update_discovery` capability)
 stays — it is not part of this cut. Recorded per estate decision
 `docs/decisions/estate-consolidation-decisions-2026-10-04.md` (rylee-bee-workspace).
+
+## 2026-10-04 — Native Lab provider retired (full cut)
+
+Owner-approved (Wave 4, stage 3 of the estate consolidation): retire Worlds'
+own infra inventory in favor of Homelab's `lab` CLI, which already exists.
+`providers/native_lab.py` (`NativeLabInventory`/`NativeLabHealth`/
+`NativeLabSettings`/`NativeLabResources`) is removed with its consumers: the
+`native_lab` connection type, the runtime-only `service_inventory`/
+`service_health`/`resource_monitoring` capabilities, the four
+`GET /api/native-lab/{inventory,health,settings,resources}` routes, the four
+`inspect_lab_*` agent tools, and `/api/native-lab/settings` from the viewer
+deny list.
+
+Infra state is now read through Homelab only: the `homelab_settings/health/
+deploy/secrets/resources` capabilities (the `lab_api` connection type) and the
+`GET /api/lab/*` routes. Recorded per estate decision
+`docs/decisions/estate-consolidation-decisions-2026-10-04.md` (rylee-bee-workspace).

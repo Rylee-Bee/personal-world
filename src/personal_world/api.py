@@ -418,7 +418,6 @@ VIEWER_DENIED_PREFIXES: tuple[str, ...] = (
     "/api/secrets",
     "/api/lab/secrets",
     "/api/lab/settings",
-    "/api/native-lab/settings",
     "/api/recall",
     "/api/journal",
     "/api/memory",
@@ -2819,45 +2818,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
         provider = LabState(lab_path=os.environ.get("PW_LAB_CLI", DEFAULT_LAB))
         resources = LabResources(lab_path=provider.lab_path)
-        r = resources.observe()
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
-    # --- Native Lab endpoints (generic, no homelab dependency) ---
-
-    @app.get("/api/native-lab/inventory", dependencies=[Depends(require_auth)])
-    async def native_lab_inventory() -> dict:
-        """Native Lab service inventory."""
-        from .providers.native_lab import NativeLabInventory
-
-        inventory = NativeLabInventory()
-        r = inventory.observe()
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
-    @app.get("/api/native-lab/health", dependencies=[Depends(require_auth)])
-    async def native_lab_health() -> dict:
-        """Native Lab health monitoring."""
-        from .providers.native_lab import NativeLabInventory, NativeLabHealth
-
-        inventory = NativeLabInventory()
-        health = NativeLabHealth(inventory)
-        r = health.observe()
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
-    @app.get("/api/native-lab/settings", dependencies=[Depends(require_auth)])
-    async def native_lab_settings() -> dict:
-        """Native Lab settings inspection."""
-        from .providers.native_lab import NativeLabSettings
-
-        settings = NativeLabSettings()
-        r = settings.observe()
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
-    @app.get("/api/native-lab/resources", dependencies=[Depends(require_auth)])
-    async def native_lab_resources() -> dict:
-        """Native Lab resource monitoring."""
-        from .providers.native_lab import NativeLabResources
-
-        resources = NativeLabResources()
         r = resources.observe()
         return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
 
