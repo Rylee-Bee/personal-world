@@ -2137,14 +2137,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 )
                 has_ui_config = bool(media_cfg.get("_adapter"))
                 configured = has_conn_entries or has_ui_config
-            elif cap in ("calendar", "notifications", "deployment", "updates"):
+            elif cap in ("calendar", "notifications", "updates"):
                 raw_cfg = config.get(cap, {})
                 resolved = resolve_native_config(raw_cfg, cap)
                 # Check the resolved wrapper key
                 spec_map = {
                     "calendar": "sources",
                     "notifications": "targets",
-                    "deployment": "targets",
                     "updates": "sources",
                 }
                 wrapper = spec_map.get(cap, "")
@@ -2474,39 +2473,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         is never shareable raw, and the API does not encrypt it."""
         world, _, uj = _state_for(request)
         return {"ok": True, "data": export.backup_payload(world, _journal_at(uj))}
-
-    @app.get("/api/updates", dependencies=[Depends(require_auth)])
-    async def updates_view() -> dict:
-        """Read-only check + status overview. API is check/status only:
-        apply/rollback are CLI-only, deliberately -- destructive actions
-        need the explicit-confirm CLI path with its visible exit codes."""
-        from .updates import UpdateManager, build_provider
-
-        provider = build_provider(
-            config_dir=config_dir,
-            project_dir=os.environ.get("PW_UPDATES_PROJECT_DIR") or None,
-        )
-        if provider is None:
-            return {
-                "ok": False,
-                "status": "not_configured",
-                "warnings": ["no update target configured"],
-            }
-        manager = UpdateManager(
-            provider,
-            journal,
-            session_path=data_dir / "updates-session.json",
-        )
-        checks = manager.check()
-        return {
-            "ok": True,
-            "status": "healthy",
-            "data": {
-                "provider": provider.name,
-                "checks": {t: c.model_dump(mode="json") for t, c in checks.items()},
-                "session": manager.status(live=False),
-            },
-        }
 
     @app.get("/api/prefs", dependencies=[Depends(require_auth)])
     async def prefs_get(request: Request) -> dict:

@@ -770,3 +770,20 @@ Interests screen are removed. Briefing's `_interests` now reports
 has no sources yet, so the Observatory is empty until sources migrate and
 the room token is enabled (owner steps). Recorded per estate decision
 `docs/decisions/estate-consolidation-decisions-2026-10-04.md` (rylee-bee-workspace).
+
+## 2026-10-04 — Native deployment + updates state machine retired (full cut)
+
+Owner-approved (Wave 4, stage 2 of the estate consolidation): retire Worlds'
+own deployment/update mechanics in favor of the Homelab deploy path that
+already exists. `providers/native_deployment.py` (compose/systemd adapters) and
+`updates.py` (the check → preview → apply → verify → rollback state machine,
+plus `ComposeUpdateProvider`/`FakeUpdateProvider`/`build_provider`) are removed
+with their consumers: the `deployment` capability, the `GET /api/updates` route,
+the CLI `updates check/preview/apply/rollback/status` subcommand, the orphaned
+`updates` role permission, and the `updates-session.json` backup boundary.
+
+Deployment is now read through Homelab only: the `homelab_deploy` capability +
+`GET /api/lab/deploy` (LabDeploy) and Project Home's ask-first deploy gate.
+`native_updates.py` (version/update *discovery*, `update_discovery` capability)
+stays — it is not part of this cut. Recorded per estate decision
+`docs/decisions/estate-consolidation-decisions-2026-10-04.md` (rylee-bee-workspace).

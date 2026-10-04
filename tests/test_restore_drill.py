@@ -14,7 +14,7 @@ aspiration:
   config and sanitized OIDC config all travel;
 * vault.enc does NOT travel by default (decision #4) — the restored
   instance must report the vault honestly as locked and unencrypted;
-* ephemeral state (sessions.json, memory.fts5.db, updates-session.json)
+* ephemeral state (sessions.json, memory.fts5.db)
   and anything outside the boundary (e.g. a media/ tree) never travel;
 * the setup-complete marker is NOT part of the bundle: a restored
   instance needs a first-run init/setup pass before it will boot the
@@ -110,7 +110,6 @@ def _seed_instance_a(tmp_path: Path, monkeypatch):
     # appear in the archive, user-owned trees that must.
     (data / "sessions.json").write_text('{"session":"ephemeral"}')
     (data / "memory.fts5.db").write_bytes(b"\x00fts")
-    (data / "updates-session.json").write_text('{"op":"session"}')
     (data / "media").mkdir()
     (data / "media" / "photo.bin").write_text("not-archived")
     pack = data / "theme-packs" / "drizzle"
@@ -174,7 +173,7 @@ def test_restore_drill_roundtrip(tmp_path, monkeypatch):
     # Never-included stays never-included, and the non-boundary media
     # tree is invisibly outside the boundary (documented gap).
     for banned in ("vault.enc", "sessions.json", "memory.fts5.db",
-                   "updates-session.json", "config/connections.json"):
+                   "config/connections.json"):
         assert not any(n.endswith(banned) for n in included), banned
     assert not any("/media/" in n for n in included)
     # Secret stripping is reported, not silent.

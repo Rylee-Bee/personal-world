@@ -45,7 +45,6 @@ def _seed_instance(data: Path, config: Path, home: Path) -> None:
     (data / "sessions.json").write_text(json.dumps({"never": "archived"}))
     (data / "memory.fts5.db").write_bytes(b"\x00fts")
     (data / "memory.fts5.db-wal").write_bytes(b"\x00wal")
-    (data / "updates-session.json").write_text(json.dumps({"op": "session"}))
     (data / "vault.enc").write_text(json.dumps({"salt": "cc", "data": "dd"}))
 
     # User-owned trees.
@@ -151,7 +150,6 @@ def test_roundtrip_restore_into_fresh_instance(instance, tmp_path):
     # Ephemeral / regenerable files were NOT resurrected.
     assert not (data2 / "sessions.json").exists()
     assert not (data2 / "memory.fts5.db").exists()
-    assert not (data2 / "updates-session.json").exists()
     assert not (data2 / "users" / "rylee" / "sessions.json").exists()
     assert not (data2 / "users" / "rylee" / "memory.fts5.db").exists()
     # Vault excluded by default.
@@ -269,7 +267,7 @@ def test_vault_excluded_by_default_included_with_flag(instance, tmp_path):
 def test_sessions_and_fts_never_included_even_with_vault_flag(instance, tmp_path):
     result, target = _backup(instance, tmp_path, include_vault=True)
     names = set(result.data["included"])
-    for banned in ("sessions.json", "memory.fts5.db", "updates-session.json"):
+    for banned in ("sessions.json", "memory.fts5.db"):
         assert not any(n.endswith(banned) for n in names)
     members = _tar_members(target)
     for member_name, content in members.items():

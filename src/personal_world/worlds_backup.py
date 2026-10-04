@@ -25,7 +25,7 @@ Owner fears this module is built to honor:
   byte is written to the live data tree.
 
 Never included (ephemeral/regenerable, per the restore boundary):
-``sessions.json``, ``memory.fts5.db*``, ``updates-session.json``.
+``sessions.json``, ``memory.fts5.db*``.
 ``vault.enc`` (instance and per-user) is included ONLY with the
 explicit ``include_vault=True`` — it is already encrypted at rest, and
 decision #4 in docs/history/PRODUCT-VISION-HANDOFF.md allows it in a
@@ -106,7 +106,7 @@ HOME_BOUNDARY_TREES = ("reconciler/desired", "lab/desired")
 
 # Ephemeral / regenerable — NEVER archived, never restored, even if an
 # archive from some other tool somehow contains them.
-NEVER_NAMES = frozenset({"sessions.json", "updates-session.json"})
+NEVER_NAMES = frozenset({"sessions.json"})
 NEVER_PREFIXES = ("memory.fts5.db",)
 
 # Operational instance files that are always present and intentionally
@@ -234,7 +234,6 @@ def _collect_members(
     excluded: list[str] = [
         "sessions.json (ephemeral; never archived)",
         "memory.fts5.db (regenerable from journal; never archived)",
-        "updates-session.json (operational session; regenerable)",
     ]
     if not include_vault:
         excluded.append(

@@ -202,7 +202,6 @@ const LEGACY_COMPANION_IDS: Record<string, string | null> = {
  */
 export const CAPABILITY_NAMES: Record<string, string> = {
   source_control: "Source control",
-  deployment: "Deployments",
   secrets: "Secrets",
   calendar: "Calendar",
   settings_validation: "Settings validation",
@@ -231,7 +230,6 @@ export function capabilityDisplayName(id: string): string {
  *  with them ("Notifications are unavailable", never "Notifications
  *  is"). Unknown ids default to singular grammar. */
 const PLURAL_CAPABILITIES = new Set([
-  "deployment",
   "secrets",
   "service_validation",
   "update_discovery",

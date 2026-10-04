@@ -106,7 +106,6 @@ The full-restore boundary from
 - `sessions.json` — ephemeral; you re-authenticate on the new box.
 - `memory.fts5.db*` — regenerable; the search index rebuilds from the
   journal.
-- `updates-session.json` — operational session state.
 - tracked repo config (`config/connections.json`) — it ships with the
   build, it is not your data.
 
