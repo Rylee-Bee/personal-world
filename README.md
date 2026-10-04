@@ -2,27 +2,23 @@
 
 ![The Worlds crew together — Renai, Ratatoskr, Bolt, the Burrito Journalism truck, and Personal World — in matching uniforms beneath the book-leaf world-tree](design/screens/crew-scene-sept17.png)
 
-> **Status:** Current · **Verified:** 2026-09-26 · **Canonical for:** nothing (the overview; current state is in `.project/CURRENT.md`) · **Read this if:** you are new here, human or agent.
+> **Status:** Current overview · **Canonical for:** nothing · **Current state:** [`.project/CURRENT.md`](.project/CURRENT.md)
 
 **In short:** Worlds is a private, self-hosted app that shows your life and
 your projects in one place: what changed, what needs you, and what can wait.
 It runs on your own hardware and never acts without your approval.
 
-### Branches and deployments (evidence 2026-10-02)
+### Branches and deployments
 
-This page describes **`main`**, the pre-front-door app, until the rebuild cutover. Do not read
-a `rebuild/*` branch's behavior into it.
+This README describes **`main`**, the pre-front-door/default application.
 
-| Ref | Role | Commit | Evidence |
-|---|---|---|---|
-| `main` | default branch; the app this README describes | `5d4c096` | 2026-10-01, `origin/main` |
-| `rebuild/front-door` | front-door rebuild integration branch (the clean rebuild lands here) | `384ff35` | 2026-10-02, `origin/rebuild/front-door` |
-| production image | `ghcr.io/rylee-bee/personal-world` built from `main`; running container is commit `61397e0` (also tag `archive/pre-front-door`) | `61397e0` | 2026-10-01, `/healthz` + image revision label (`.project/CURRENT.md`) |
-| `ui/` preview | local Vite preview (`cd ui && npm run preview`) — **not** a deployed branch | n/a | [docs/README.md](docs/README.md) |
+The active clean rebuild lives on **`rebuild/front-door`** and follows
+[ADR-0008](docs/adr/0008-front-door.md). It is not production until an
+explicit cutover.
 
-Direction: [`docs/adr/0008-front-door.md`](docs/adr/0008-front-door.md),
-[`.project/HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md`](.project/HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md).
-Current state and the same table: [`.project/CURRENT.md`](.project/CURRENT.md).
+Do not copy commit IDs into this overview. Derive branch state from Git/GitHub,
+and derive the running revision from the live instance. The router is
+[`.project/CURRENT.md`](.project/CURRENT.md).
 
 ## What it is
 
@@ -53,9 +49,9 @@ data.
 > written for tired and disabled people first.
 > Where things stand: **[docs/WHERE-WE-ARE.md](docs/WHERE-WE-ARE.md)** (plain
 > words) and [`.project/CURRENT.md`](.project/CURRENT.md) (for agents).
-> Direction: [`.project/PLAN.md`](.project/PLAN.md) (owner-approved
-> 2026-09-25; it wins over [TRUE-NORTH](docs/TRUE-NORTH.md) on scope and
-> sequencing; TRUE-NORTH's principles on accuracy and accessibility still apply).
+> Direction: [`.project/PLAN.md`](.project/PLAN.md); front-door architecture:
+> [ADR-0008](docs/adr/0008-front-door.md). Older TRUE-NORTH/roadmap material is
+> history or an idea source unless the current plan/ADR preserves it.
 
 ## What ships by default
 
@@ -168,13 +164,12 @@ recoverable, meet minimum accessibility requirements, keep work bounded, and
 cooperate in good faith. These rules govern how the work is done; they are not
 product features.
 
-Worlds **accepts and implements** the **full** Play-Nice library (8 layers)
-through one manifest:
-[`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml),
-pinned to a verified library revision (v0.10.0 as of 2026-09-26, which
-includes ROOM 1.1.1). Applicable contracts are resolved per task
-from that manifest's `always` and `triggers` lists; no contract text is
-copied into this repository. The explicit acknowledgement — target
+Worlds adopts the Play-Nice library through one manifest:
+[`.project/contracts/adoption.yaml`](.project/contracts/adoption.yaml).
+That manifest owns the current pin and applicable contract set; do not copy its
+version/SHA into prose that will drift. Applicable contracts are resolved per
+task from its `always` and `triggers` lists; no contract text is copied into
+this repository. The explicit acknowledgement — target
 revision, implemented contracts, and evidence — is in
 [`ACKNOWLEDGEMENT.md`](ACKNOWLEDGEMENT.md).
 
