@@ -2,7 +2,12 @@
 
 This file owns **product direction**, not task state.
 
-Current architecture: [ADR-0008 — the front door](../docs/adr/0008-front-door.md).
+Current product architecture: [ADR-0008 — the front door](../docs/adr/0008-front-door.md).
+
+Fresh-ground machine-model proposal:
+[ADR-0009 — Play-Nice semantic kernel](../docs/adr/0009-play-nice-semantic-kernel.md)
+and [its executable plan](../docs/rebuild/PLAY-NICE-KERNEL-PLAN.md).
+
 Current work: GitHub Issues. Current code/runtime state:
 [`CURRENT.md`](CURRENT.md).
 
@@ -29,13 +34,14 @@ Home · Connect · Memory · Settings
 ```
 
 - **Home** gathers useful cards and calm attention.
-- **Connect** describes outside systems as replaceable providers and recipes.
+- **Connect** describes outside capabilities in shared language; native/provider mechanics stay at adapters.
 - **Memory** keeps durable personal state with deterministic local search and
   understandable export/restore.
 - **Settings** owns configuration and comfort without lowering the
   accessibility floor.
 
-Worlds owns meaning. Providers own mechanics.
+Worlds owns product meaning. Play-Nice owns shared cooperation language.
+Native systems keep their own language behind adapters.
 
 A provider's API shape must not become the product's vocabulary.
 
@@ -61,14 +67,14 @@ authorized by ADR-0008.
 
 It is not production merely because it is ahead of `main`.
 
-The remaining bounded work is tracked in:
+The existing cutover work remains tracked in #262 and #263.
 
-- #262 — finish Phase 4 retirement + cutover readiness.
-- #263 — reconcile applicable `main` maintenance into the rebuild.
+Before cutover, ADR-0009 proposes a fresh-ground semantic-kernel experiment:
+keep the earned safety/durability constraints, but delete compatibility-only
+models and rebuild the smallest machine model on Play-Nice vocabulary.
 
-Anything else discovered during that work either belongs inside those
-acceptance boundaries or gets its own issue. Do not grow this file into a
-hidden backlog.
+That implementation must live in bounded GitHub issues. Do not grow this file
+into a hidden backlog.
 
 ## Preserve
 
