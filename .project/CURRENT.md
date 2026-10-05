@@ -1,5 +1,7 @@
 # Current State — Worlds
 
+> **Live state** (last commit, CI on main, open PRs, recent merges, missions): `lab enter` at session start, or `now-block --print .` from this repo. This file keeps only what a command cannot tell you.
+
 This file is the **current-state router**. It should stay short.
 
 Do not turn it into a session diary, a test transcript, a deployment ledger,
