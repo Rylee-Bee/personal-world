@@ -418,7 +418,6 @@ VIEWER_DENIED_PREFIXES: tuple[str, ...] = (
     "/api/secrets",
     "/api/lab/secrets",
     "/api/lab/settings",
-    "/api/native-lab/settings",
     "/api/recall",
     "/api/journal",
     "/api/memory",
@@ -1790,7 +1789,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             scheduler=_scheduler_for(principal),
             memory_provider=_memory_impl,
             proposal_store=_proposal_store(request),
-            discovery_config_path=_scoped_path(principal, "discovery"),
         )
         tool_schemas = tool_reg.list_ollama_schemas()
         messages = build_chat_messages(
@@ -1961,7 +1959,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             scheduler=_scheduler_for(principal),
             memory_provider=_memory_impl,
             proposal_store=_proposal_store(request),
-            discovery_config_path=_scoped_path(principal, "discovery"),
         )
         return {
             "ok": True,
@@ -2139,14 +2136,13 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 )
                 has_ui_config = bool(media_cfg.get("_adapter"))
                 configured = has_conn_entries or has_ui_config
-            elif cap in ("calendar", "notifications", "deployment", "updates"):
+            elif cap in ("calendar", "notifications", "updates"):
                 raw_cfg = config.get(cap, {})
                 resolved = resolve_native_config(raw_cfg, cap)
                 # Check the resolved wrapper key
                 spec_map = {
                     "calendar": "sources",
                     "notifications": "targets",
-                    "deployment": "targets",
                     "updates": "sources",
                 }
                 wrapper = spec_map.get(cap, "")
@@ -2476,39 +2472,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         is never shareable raw, and the API does not encrypt it."""
         world, _, uj = _state_for(request)
         return {"ok": True, "data": export.backup_payload(world, _journal_at(uj))}
-
-    @app.get("/api/updates", dependencies=[Depends(require_auth)])
-    async def updates_view() -> dict:
-        """Read-only check + status overview. API is check/status only:
-        apply/rollback are CLI-only, deliberately -- destructive actions
-        need the explicit-confirm CLI path with its visible exit codes."""
-        from .updates import UpdateManager, build_provider
-
-        provider = build_provider(
-            config_dir=config_dir,
-            project_dir=os.environ.get("PW_UPDATES_PROJECT_DIR") or None,
-        )
-        if provider is None:
-            return {
-                "ok": False,
-                "status": "not_configured",
-                "warnings": ["no update target configured"],
-            }
-        manager = UpdateManager(
-            provider,
-            journal,
-            session_path=data_dir / "updates-session.json",
-        )
-        checks = manager.check()
-        return {
-            "ok": True,
-            "status": "healthy",
-            "data": {
-                "provider": provider.name,
-                "checks": {t: c.model_dump(mode="json") for t, c in checks.items()},
-                "session": manager.status(live=False),
-            },
-        }
 
     @app.get("/api/prefs", dependencies=[Depends(require_auth)])
     async def prefs_get(request: Request) -> dict:
@@ -2858,132 +2821,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         r = resources.observe()
         return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
 
-    # --- Native Lab endpoints (generic, no homelab dependency) ---
-
-    @app.get("/api/native-lab/inventory", dependencies=[Depends(require_auth)])
-    async def native_lab_inventory() -> dict:
-        """Native Lab service inventory."""
-        from .providers.native_lab import NativeLabInventory
-
-        inventory = NativeLabInventory()
-        r = inventory.observe()
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
-    @app.get("/api/native-lab/health", dependencies=[Depends(require_auth)])
-    async def native_lab_health() -> dict:
-        """Native Lab health monitoring."""
-        from .providers.native_lab import NativeLabInventory, NativeLabHealth
-
-        inventory = NativeLabInventory()
-        health = NativeLabHealth(inventory)
-        r = health.observe()
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
-    @app.get("/api/native-lab/settings", dependencies=[Depends(require_auth)])
-    async def native_lab_settings() -> dict:
-        """Native Lab settings inspection."""
-        from .providers.native_lab import NativeLabSettings
-
-        settings = NativeLabSettings()
-        r = settings.observe()
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
-    @app.get("/api/native-lab/resources", dependencies=[Depends(require_auth)])
-    async def native_lab_resources() -> dict:
-        """Native Lab resource monitoring."""
-        from .providers.native_lab import NativeLabResources
-
-        resources = NativeLabResources()
-        r = resources.observe()
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
-    # --- Native Discovery endpoints ---
-
-    def _discovery_for(request: Request):
-        """NativeDiscovery bound to the CALLER's own interests/sources
-        file (decision #13). Single mode keeps the legacy shared config
-        (~/.config/personal-world/discovery.json) byte-identical."""
-        from .providers.native_discovery import NativeDiscovery
-
-        return NativeDiscovery(
-            config_path=_scoped_path(_principal(request), "discovery")
-        )
-
-    @app.get("/api/discovery/status", dependencies=[Depends(require_auth)])
-    async def discovery_status(request: Request) -> dict:
-        """Native Discovery status."""
-        discovery = _discovery_for(request)
-        r = discovery.observe()
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
-    @app.get("/api/discovery/sources", dependencies=[Depends(require_auth)])
-    async def discovery_sources(request: Request) -> dict:
-        """List discovery sources."""
-        discovery = _discovery_for(request)
-        r = discovery.observe()
-        if r.ok:
-            sources = r.data.get("sources", [])
-            return {"ok": True, "data": {"sources": sources}}
-        return {"ok": False, "status": r.status, "warnings": r.warnings}
-
-    @app.post("/api/discovery/sources", dependencies=[Depends(require_step_up)])
-    async def discovery_add_source(request: Request) -> dict:
-        """Add a discovery source."""
-        from .providers.native_discovery import RSSDiscoverySource
-
-        discovery = _discovery_for(request)
-        data = await request.json()
-        source = RSSDiscoverySource(
-            id=data.get("id", ""),
-            name=data.get("name", ""),
-            url=data.get("url", ""),
-            tags=data.get("tags", []),
-        )
-        discovery.add_source(source)
-        return {"ok": True, "data": source.to_dict()}
-
-    @app.get("/api/discovery/interests", dependencies=[Depends(require_auth)])
-    async def discovery_interests(request: Request) -> dict:
-        """List interests."""
-        discovery = _discovery_for(request)
-        r = discovery.observe()
-        if r.ok:
-            interests = r.data.get("interests", [])
-            return {"ok": True, "data": {"interests": interests}}
-        return {"ok": False, "status": r.status, "warnings": r.warnings}
-
-    @app.post("/api/discovery/interests", dependencies=[Depends(require_auth)])
-    async def discovery_add_interest(request: Request) -> dict:
-        """Add an interest. Person-only, like the person's other own-data writes."""
-        from .providers.native_discovery import Interest
-
-        _require_person(getattr(request.state, "principal", None))
-        discovery = _discovery_for(request)
-        data = await request.json()
-        if (
-            not isinstance(data, dict)
-            or not isinstance(data.get("id"), str)
-            or not data["id"].strip()
-            or not isinstance(data.get("name"), str)
-            or not data["name"].strip()
-        ):
-            raise HTTPException(status_code=422, detail="id and name are required")
-        interest = Interest(
-            id=data.get("id", ""),
-            name=data.get("name", ""),
-            category=data.get("category"),
-            weight=data.get("weight", 1.0),
-        )
-        discovery.add_interest(interest)
-        return {"ok": True, "data": interest.to_dict()}
-
-    @app.get("/api/discovery/discover", dependencies=[Depends(require_auth)])
-    async def discovery_discover(request: Request, source: str | None = None) -> dict:
-        """Discover content from sources."""
-        discovery = _discovery_for(request)
-        r = discovery.discover(source)
-        return {"ok": r.ok, "status": r.status, "data": r.data, "warnings": r.warnings}
-
     # ── Worlds briefing + place continuity (contract: worlds-briefing/1) ──
     # The briefing is what the world knows; place is where the person last
     # was, so a later visit can say "arrived while you were away". Both are
@@ -3057,7 +2894,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             return build_briefing(
                 project_home=ProjectHomeSource.from_env(),
                 lab=LabState(lab_path=os.environ.get("PW_LAB_CLI", DEFAULT_LAB)),
-                discovery=_discovery_for(request),
                 journal=journal_target,
                 place=place,
                 rooms=rooms,

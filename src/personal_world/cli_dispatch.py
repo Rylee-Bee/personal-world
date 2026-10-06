@@ -476,11 +476,6 @@ class Ctx:
 
         return proposal_store_for(self.path("proposals"), journal=self.journal)
 
-    def discovery(self):
-        from .providers.native_discovery import NativeDiscovery
-
-        return NativeDiscovery(config_path=self.path("discovery"))
-
     # -- gates --------------------------------------------------------
     def person_gate(self, action: Action) -> Result | None:
         """Mirror ``api._require_person``: agents are refused, fail closed."""
@@ -1044,30 +1039,6 @@ def _prefs_schema(ctx: Ctx) -> Result:
     )
 
 
-def _interests_list(ctx: Ctx) -> Result:
-    r = ctx.discovery().observe()
-    if not r.ok:
-        return r
-    return ok(r.status, data={"interests": (r.data or {}).get("interests", [])})
-
-
-def _discovery_status(ctx: Ctx) -> Result:
-    return ctx.discovery().observe()
-
-
-def _discovery_sources(ctx: Ctx) -> Result:
-    r = ctx.discovery().observe()
-    if not r.ok:
-        return r
-    return ok(r.status, data={"sources": (r.data or {}).get("sources", [])})
-
-
-def _discovery_run(ctx: Ctx) -> Result:
-    """Mirrors GET /api/discovery/discover (a read per the manifest: it
-    fetches sources and may persist discovery feedback)."""
-    return ctx.discovery().discover(getattr(ctx.args, "source", None))
-
-
 def _projects_status(ctx: Ctx) -> Result:
     """Mirrors GET /api/projects/status (the agent-sync estate sensor)."""
     from .providers.agent_sync import AgentSyncProjectSensor
@@ -1412,25 +1383,6 @@ def _act_reminder_add(ctx: Ctx, p: dict[str, Any]) -> Result:
     )
 
 
-def _act_interest_add(ctx: Ctx, p: dict[str, Any]) -> Result:
-    from .providers.native_discovery import Interest
-
-    args = p.get("args") or {}
-    name = str(args.get("name") or "")
-    interest = Interest(
-        id=str(args.get("id") or _slug(name)),
-        name=name,
-        category=args.get("category"),
-        weight=float(args.get("weight", 1.0)),
-    )
-    discovery = ctx.discovery()
-    discovery.add_interest(interest)
-    return ok(
-        "healthy",
-        data={**interest.to_dict(), "persisted": str(discovery.config_path)},
-    )
-
-
 def _act_source_refresh(ctx: Ctx, p: dict[str, Any]) -> Result:
     """The act step of the Projects propose → approve → act workflow."""
     from .model import JournalKind
@@ -1494,7 +1446,6 @@ CLI_ACTORS: dict[str, Callable[[Ctx, dict[str, Any]], Result]] = {
     "cli.prefs_set": _act_prefs_set,
     "cli.world_write": _act_world_write,
     "cli.reminder_add": _act_reminder_add,
-    "cli.interest_add": _act_interest_add,
     "cli.source_refresh": _act_source_refresh,
 }
 
@@ -1592,28 +1543,6 @@ def _prefs_set(ctx: Ctx) -> Result:
         "cli.prefs_set",
         {"key": key, "value": raw},
         f"Set preference {key}={raw}",
-    )
-
-
-def _interests_add(ctx: Ctx) -> Result:
-    name = str(getattr(ctx.args, "name", "") or "").strip()
-    if not name:
-        return fail("invalid_args", warnings=["--name is required"])
-    try:
-        weight = float(getattr(ctx.args, "weight", 1.0))
-    except (TypeError, ValueError):
-        return fail("invalid_args", warnings=["--weight must be a number"])
-    record = {
-        "id": str(getattr(ctx.args, "id", "") or "").strip() or _slug(name),
-        "name": name,
-        "category": getattr(ctx.args, "category", None),
-        "weight": weight,
-    }
-    return ctx.write(
-        _ACTION_BY_KEY["interests add"],
-        "cli.interest_add",
-        record,
-        f"Add interest '{name}'",
     )
 
 
@@ -1923,56 +1852,6 @@ ACTIONS: tuple[Action, ...] = (
             A("key", help="preference key (see `do prefs schema`)"),
             A("value", help="new value"),
         ),
-    ),
-    # -- interests / discovery ----------------------------------------
-    Action(
-        noun="interests",
-        verb="list",
-        ids=("API-051-get",),
-        help="list discovery interests (read-only)",
-        run=_interests_list,
-    ),
-    Action(
-        noun="interests",
-        verb="add",
-        ids=("API-051-add",),
-        help="file a new interest (propose by default)",
-        run=_interests_add,
-        args=(
-            A("--name", required=True, help="interest name"),
-            A("--id", help="interest id (default: slug of the name)"),
-            A("--category", help="optional category"),
-            A(
-                "--weight",
-                type=float,
-                default=1.0,
-                help="optional weight (default 1.0)",
-            ),
-        ),
-    ),
-    Action(
-        noun="discovery",
-        verb="status",
-        ids=("API-049",),
-        help="discovery engine status (read-only)",
-        run=_discovery_status,
-    ),
-    Action(
-        noun="discovery",
-        verb="sources",
-        ids=("API-050-get",),
-        help="list discovery sources (read-only)",
-        run=_discovery_sources,
-    ),
-    Action(
-        noun="discovery",
-        verb="run",
-        ids=("API-052",),
-        help="fetch from sources now (a read per the manifest; may persist discovery feedback)",
-        run=_discovery_run,
-        args=(A("--source", help="only this source id"),),
-        note="Curated kind=read in api_manifest.py: it changes no world "
-        "state, though it spends network calls and may record feedback.",
     ),
     # -- projects -----------------------------------------------------
     Action(

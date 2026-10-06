@@ -37,8 +37,6 @@ class TestPrincipalScopedPath:
     def test_single_mode_maps_every_kind_to_legacy(self, tmp_path):
         p = Principal(id="primary")
         for kind, filename in SCOPED_PATH_FILENAMES.items():
-            if kind == "discovery":
-                continue  # legacy home is ~/.config — tested below
             assert principal_scoped_path(tmp_path, p, kind) == tmp_path / filename
             assert (
                 principal_scoped_path(tmp_path, p, kind, mode="single")
@@ -64,27 +62,15 @@ class TestPrincipalScopedPath:
     def test_multi_mode_scopes_every_kind_per_person(self, tmp_path):
         p = Principal(id="beta")
         for kind, filename in SCOPED_PATH_FILENAMES.items():
-            if kind == "discovery":
-                continue  # legacy home is ~/.config — tested below
             assert principal_scoped_path(tmp_path, p, kind, mode="multi") == (
                 tmp_path / "users" / "beta" / filename
             )
-        assert principal_scoped_path(tmp_path, p, "discovery", mode="multi") == (
-            tmp_path / "users" / "beta" / "discovery.json"
-        )
 
     def test_multi_mode_agent_scopes_to_owner_tree(self, tmp_path):
         a = Principal(id="loreling", kind="agent", owner_id="beta")
         assert (
             principal_scoped_path(tmp_path, a, "proposals", mode="multi")
             == tmp_path / "users" / "beta" / "proposals.json"
-        )
-
-    def test_discovery_legacy_is_the_shared_config(self, tmp_path):
-        expected = Path("~/.config/personal-world/discovery.json").expanduser()
-        assert (
-            principal_scoped_path(tmp_path, Principal(id="primary"), "discovery")
-            == expected
         )
 
     def test_unknown_kind_fails_closed(self, tmp_path):
@@ -273,27 +259,6 @@ def test_chat_history_isolated_between_principals(tmp_path, monkeypatch):
     assert r_a.status_code == 200 and r_a.json()["data"]["entries"] == []
     contents = [e["content"] for e in r_b.json()["data"]["entries"]]
     assert "beta secret chat" in contents
-
-
-def test_interests_isolated_between_principals(tmp_path, monkeypatch):
-    c = _mk(tmp_path, monkeypatch)
-    tok_b = _provision(c)
-    r = c.post(
-        "/api/discovery/interests",
-        json={"id": "i1", "name": "alpha interest"},
-        headers=_h("instancetoken"),
-    )
-    assert r.status_code == 200, r.text
-    a = c.get("/api/discovery/interests", headers=_auth("instancetoken")).json()[
-        "data"
-    ]["interests"]
-    b = c.get("/api/discovery/interests", headers=_auth(tok_b)).json()["data"][
-        "interests"
-    ]
-    assert [i["id"] for i in a] == ["i1"]
-    assert b == []
-    assert (tmp_path / "users" / "primary" / "discovery.json").exists()
-    assert not (tmp_path / "users" / "beta" / "discovery.json").exists()
 
 
 # ── single-user default: legacy data keeps working ─────────────────────

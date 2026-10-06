@@ -28,7 +28,7 @@ MANIFEST = REPO / "design" / "assets" / "icons" / "manifest.json"
 
 AUTH = {"Authorization": "Bearer instancetoken"}
 STEP = {**AUTH, "X-PW-StepUp": "1"}
-DEFAULT_ORDER = ["today", "interests", "media", "projects", "lab",
+DEFAULT_ORDER = ["today", "media", "projects", "lab",
                  "journal", "vault", "chat", "settings"]
 
 
@@ -69,7 +69,7 @@ def test_default_get_returns_registry_in_default_order(env):
     c, _ = env
     items = _sections(c)
     assert [s["id"] for s in items] == DEFAULT_ORDER
-    assert [s["order"] for s in items] == list(range(9))
+    assert [s["order"] for s in items] == list(range(8))
     by = _by_id(items)
     assert by["settings"]["pinned"] is True
     assert all(s["pinned"] is False for s in items if s["id"] != "settings")
@@ -96,13 +96,10 @@ def test_media_zero_provider_is_not_configured_but_present(env):
 
 def test_resolve_status_configured_matrix():
     fake = {
-        "discovery": {"status": "unavailable"},
         "media": {"status": "disabled"},
         "source_control": {"status": "healthy"},
     }
     by = _by_id(sections.resolve_sections(None, fake))
-    assert by["interests"]["status"] == "unavailable"
-    assert by["interests"]["configured"] is True
     assert by["media"]["status"] == "disabled"
     assert by["media"]["configured"] is False
     assert by["projects"]["status"] == "healthy"
@@ -289,7 +286,7 @@ def test_registry_shape_and_icons_exist_in_manifest():
     for spec in sections.SECTIONS:
         assert spec.icon in ids, f"{spec.id}: {spec.icon} not in manifest"
     assert [s.id for s in sections.SECTIONS] == DEFAULT_ORDER
-    assert [s.default_order for s in sections.SECTIONS] == list(range(9))
+    assert [s.default_order for s in sections.SECTIONS] == list(range(8))
     assert {s.id for s in sections.SECTIONS if s.pinned} == {"settings"}
     assert all(s.default_visible for s in sections.SECTIONS)
     # substitutions are recorded and are what the registry actually uses
@@ -373,4 +370,4 @@ def test_resolve_drops_unknown_and_pinned_hidden_from_stored_layout():
     by = _by_id(items)
     assert by["settings"]["visible"] is True
     assert by["lab"]["visible"] is False
-    assert [s["order"] for s in items] == list(range(9))
+    assert [s["order"] for s in items] == list(range(8))

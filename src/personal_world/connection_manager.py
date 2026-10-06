@@ -36,14 +36,6 @@ _NATIVE_CONFIG_MAP: dict[str, dict[str, Any]] = {
         "field_map": {"name": "name", "url": "url", "topic": "topic",
                       "server": "server", "token": "token"},
     },
-    "deployment": {
-        "wrapper_key": "targets",
-        "adapter_to_type": {"compose": "compose", "systemd": "systemd",
-                            "lab_cli": "lab_cli"},
-        "field_map": {"name": "name", "compose_path": "compose_path",
-                      "project_name": "project_name",
-                      "service_name": "service"},
-    },
     "updates": {
         "wrapper_key": "sources",
         "adapter_to_type": {"github_release": "github",

@@ -641,40 +641,10 @@ def _estate(source, now: datetime, since: datetime | None = None) -> _System:
     )
 
 
-def _interests(source, now: datetime) -> _System:
-    result = _observe(source)
-    if result is _FAILED or result is None:
-        return _empty("interests", Status.UNAVAILABLE.value)
-    status = str(_get(result, "status") or "")
-    data = _get(result, "data")
-    if not isinstance(data, dict):
-        data = {}
-    sources = data.get("sources")
-    if status == Status.UNAVAILABLE.value:
-        return _empty("interests", Status.UNAVAILABLE.value)
-    # Zero configured sources is a "nothing connected", not health.
-    if not sources:
-        return _empty("interests", Status.NOT_CONFIGURED.value)
-
-    items = []
-    for i, entry in enumerate(data.get("items") or []):
-        if not isinstance(entry, dict):
-            continue
-        items.append(_mk_item(
-            system="interests",
-            sid=str(entry.get("id") or f"item-{i}"),
-            kind="interest",
-            title=entry.get("title") or "Item",
-            detail=entry.get("description"),
-            at=entry.get("discovered_at"),
-        ))
-    resolved = status if status in _OK_STATUSES else Status.HEALTHY.value
-    return _System(
-        spec=_spec("interests"),
-        status=resolved,
-        source={"name": "Discovery", "observed_at": None, "freshness": "unknown"},
-        items=_newest(items)[:8],
-    )
+def _interests() -> _System:
+    # Discovery moved to the Candy room (2026-10-04). Until a room names
+    # "interests", the Observatory is simply not configured.
+    return _empty("interests", Status.NOT_CONFIGURED.value)
 
 
 def _news(now: datetime) -> _System:
@@ -844,7 +814,6 @@ def build_briefing(
     *,
     project_home=None,
     lab=None,
-    discovery=None,
     journal=None,
     place=None,
     rooms: list[dict] | None = None,
@@ -882,7 +851,7 @@ def build_briefing(
     systems = [
         _agents(project_home, now, since_dt),
         _estate(lab, now, since_dt),
-        _interests(discovery, now),
+        _interests(),
         _news(now),
     ]
     records, thread = _records(journal, now)

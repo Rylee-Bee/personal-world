@@ -60,7 +60,6 @@ PERMISSIONS: tuple[str, ...] = (
     "manage_people",
     "manage_rooms",
     "estate_secrets",
-    "updates",
     "transfer_ownership",
 )
 
@@ -81,7 +80,6 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
             "manage_people",
             "manage_rooms",
             "estate_secrets",
-            "updates",
         }
     ),
     # supervised == member for now (limits are step 2).
@@ -94,7 +92,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
 #: Which token scopes may ever carry a permission for an agent. A
 #: permission absent from this map can never belong to an agent (fail
 #: closed) — notably ``approve``/``manage_*``/``estate_secrets``/
-#: ``updates``/``transfer_ownership``, which stay human actions.
+#: ``transfer_ownership``, which stay human actions.
 AGENT_SCOPE_PERMISSIONS: dict[str, frozenset[str]] = {
     "own_space": frozenset({"write", "journal"}),
     "see_shared": frozenset({"read"}),

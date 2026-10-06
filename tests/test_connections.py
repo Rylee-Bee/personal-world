@@ -110,12 +110,11 @@ class TestConnectionManager:
 class TestProviderSchemas:
     def test_all_capabilities_have_schemas(self) -> None:
         schemas = get_capability_schemas()
-        assert len(schemas) >= 7
+        assert len(schemas) >= 6
         caps = {s["capability"] for s in schemas}
         assert "media" in caps
         assert "calendar" in caps
         assert "notifications" in caps
-        assert "deployment" in caps
         assert "update_discovery" in caps
         assert "auth" in caps
         assert "reasoning" in caps
