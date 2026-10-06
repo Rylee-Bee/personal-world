@@ -28,12 +28,15 @@ any API-parity endpoints.
 | CLI-016 framework validate | DOMAIN-003 | Read config/compose/exports | YES |
 | CLI-017 framework validate-packs | DOMAIN-003 | Read .project/participants/ | YES |
 | CLI-018 updates check/preview/apply/rollback/status | PROV-027/PROV-028, STORE-008 (parity: API-029 read-only) | Read compose; Write compose image tags + STORE-008 + journal | YES (apply/rollback deliberately CLI-only) |
-| CLI-019 worlds backup [--include-vault] | worlds_backup.py (parity: POST /api/worlds/backup, step-up) | Read full-restore boundary; Write one encrypted archive file | Partial (CLI writes a file; API returns a one-time download token) |
-| CLI-020 worlds restore [--overwrite] | worlds_backup.py (parity: POST /api/worlds/restore, step-up) | Read archive; Write world/journal/users/… in place | Partial (both exist; API takes `archive_b64` in the body) |
+
+> **Retired by ADR-0008:** the old CLI-019/CLI-020 backup/restore rows and the
+> old `worlds_backup` module are gone with the old app. Memory backup/restore is
+> **not** a CLI verb — it is the API route `POST /api/memory/backup` plus
+> `personal_world.worlds.memory_store.restore_backup`. See
+> [`docs/rebuild/DURABILITY.md`](../rebuild/DURABILITY.md).
 
 Unique-to-CLI surfaces: cement (CLI-009), init (CLI-010), framework
-validation (CLI-016/017), update apply/rollback (CLI-018), and the SOS
-backup/restore file form (CLI-019/020).
+validation (CLI-016/017), and update apply/rollback (CLI-018).
 
 Unique-to-API surfaces (no CLI): chat, connections management, vault,
 identity admin, apps, sections, memory search, reminders, discovery

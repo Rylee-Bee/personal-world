@@ -1,5 +1,7 @@
 # Operations guide (0.1)
 
+> **Superseded in part by [ADR-0008](adr/0008-front-door.md) (2026-10-01):** the front-door rebuild replaced the old app. Sections below that use bearer tokens, the setup wizard, or the retired backend entrypoint describe the old install; the current app runs `uvicorn personal_world.worlds.production:app_from_env --factory` (see "Rebuild: sign-in behind a reverse proxy" at the end) and signs in through `owner.yaml` ([docs/rebuild/CONTRACTS.md](rebuild/CONTRACTS.md) C7). Backup and restore now follow [docs/rebuild/DURABILITY.md](rebuild/DURABILITY.md).
+
 > **Status:** Reference · **Verified:** 2026-09-29 · **Canonical for:** running, deploying, updating and backing up Worlds · **Read this if:** you are operating an instance — local CLI, containers, production deploy, backups, or chat providers.
 
 **In short:** how to run Worlds locally and in containers, sign in with your own SSO, deploy and roll back, and keep data safe. Keep private hostnames, credentials and access procedures in your own private operator docs — this repo carries the portable pattern only.
@@ -30,19 +32,18 @@ The tracked `config/connections.json` is separate from this local configuration.
 
 ## Local web API
 
-Generate a unique token into your shell environment, without printing it:
+Export the config and data directories the app reads, then run the production entrypoint:
 
 ```bash
-export PW_API_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
 export PW_CONFIG_DIR="$PWD/config.local"
 export PW_DATA_DIR="$PWD/data"
-uv run uvicorn personal_world.api:create_app --factory --host 127.0.0.1 --port 8000
+uv run uvicorn personal_world.worlds.production:app_from_env --factory --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/`. Protected API requests need the bearer token.
-Do not publish tokens in URLs, screenshots, shell transcripts or public issues.
-The core rejects protected requests with no configured token and compares supplied
-tokens in constant time. Forwarded identity headers do not bypass this check.
+Open `http://127.0.0.1:8000/`. Sign-in is through `$PW_CONFIG_DIR/owner.yaml` —
+OIDC, or the bootstrap secret while `bootstrap.enabled` is true — never a pasted
+bearer token ([docs/rebuild/CONTRACTS.md](rebuild/CONTRACTS.md) C7). Never put
+secrets in URLs, screenshots, shell transcripts or public issues.
 
 The browser also has `/setup` and `/login` entry points.
 First-run setup (`POST /api/setup`) is unauthenticated only until the
@@ -257,11 +258,13 @@ usable. Missing providers are `not_configured`, not falsely healthy. The daily
 loop is on request. A separate reminder scheduler now runs with the API process;
 it does not turn the daily loop into a scheduled job.
 
-Back up the data volume securely before deployment changes. It contains world
-state, journal, Vault, identities, Apps registry, reminders, and optional per-user
-state; deleting it can lose user-authored state and history. `/api/backup` exports
-world/journal data only, not a full data-volume backup.
-Do not put backups, journal exports or diagnostic dumps in this public repo.
+Back up the config and data volumes securely before deployment changes. Durable
+state is the config files and the Memory database `$PW_DATA_DIR/worlds.db`; the
+cache is disposable. The in-app Memory backup is `POST /api/memory/backup` (a
+dated `worlds-*.db` copy under `$PW_DATA_DIR/backups/`). See
+[docs/rebuild/DURABILITY.md](rebuild/DURABILITY.md) for what to back up and how
+to restore it. Do not put backups, journal exports or diagnostic dumps in this
+public repo.
 
 ## Chat (optional local AI)
 
@@ -324,3 +327,11 @@ uv run personal-world framework validate --json
 
 These are local checks. Verify authentication, health, provider behavior and
 backup recovery in the actual deployment before treating an update as accepted.
+
+## Rebuild: sign-in behind a reverse proxy (2026-10-01)
+
+Run the rebuilt app with `uvicorn personal_world.worlds.production:app_from_env --factory` and set `PW_CONFIG_DIR` and `PW_DATA_DIR`.
+Set `PW_TRUSTED_PROXIES` to the address of your reverse proxy (an IP or CIDR; comma-separated for several) so the sign-in rate limit
+sees the real client. Without it every client behind the proxy shares one limit and Worlds logs a warning. Give uvicorn the same
+address with `--forwarded-allow-ips` so it does not trust `X-Forwarded-*` from anywhere else. The bootstrap secret must be at least 32 hex or 22 base64url characters
+(`python -c "import secrets;print(secrets.token_urlsafe(32))"`); a weaker one stops startup. The OIDC flow key and CSRF key live in `PW_DATA_DIR` (mode 0600), so several workers share them. Details: `docs/rebuild/CONTRACTS.md` C7.

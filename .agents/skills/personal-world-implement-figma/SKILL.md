@@ -3,6 +3,8 @@ name: personal-world-implement-figma
 description: Implement or refine Project Worlds (Personal World) UI from an approved Figma frame using the repository's React interface (ui/), canonical tokens and artwork, accessibility contracts, and region-by-region browser comparison. Use for Figma-to-code work, not editing the Figma design system itself.
 ---
 
+> **Superseded in part by [ADR-0008](../../../docs/adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../../FRONTEND-INVENTORY.md).
+
 # Personal World: implement Figma
 
 ## Invoke and scope

@@ -138,14 +138,13 @@ CLI-008 backup [--apply] / API-028 GET /api/backup (AUTH-001)
    per-user trees, STORE-015 connections.local.json, STORE-013/018/019
 → external encryption expected (SOPS/age), not provided by the app
 
-full-instance SOS (encrypted, pw-worlds-backup/1) — docs/WORLDS-BACKUP.md
-CLI `personal-world worlds backup` / `personal-world worlds restore`
-   (passphrase via prompt or PW_BACKUP_PASSPHRASE, never argv)
-→ worlds_backup.backup/restore: scrypt + AES-256-GCM over a gzipped tar
-→ covers world+journal, per-user trees, users/reminders/apps/proposals, oidc config (secret stripped),
-   discovery, reconciler/lab desired state, theme packs; vault.enc only with --include-vault
-→ HTTP: POST /api/worlds/backup, GET /api/worlds/backup/download/{token}, POST /api/worlds/restore (step-up gated)
-restore path: a fresh box still needs first-run setup to mint PW_API_TOKEN + setup-complete
+full-instance Memory backup (durable; not encrypted at rest) — docs/rebuild/DURABILITY.md
+POST /api/memory/backup (owner, CSRF)
+→ memory_store.backup (SQLite online backup API) → $PW_DATA_DIR/backups/worlds-YYYYMMDD-HHMMSS.db (0600)
+→ covers Memory (kept/later/records/history), including locked rows and session/token hashes
+restore: stop Worlds → memory_store.restore_backup(<file>, <data dir>)
+→ copies ONLY Memory rows into a freshly migrated worlds.db, validates row by row, rebuilds the find index,
+   refuses a non-empty target; sessions/tokens/authorizations are never imported
 ```
 
 ## Vault value read (exceptional workflow)

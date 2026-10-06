@@ -1,85 +1,38 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig } from "@playwright/test";
 
 /**
- * Playwright config for ui/e2e/*.spec.ts.
+ * Playwright config for the front-door UI (the default: `npx playwright test`).
  *
- * The specs run against the production PREVIEW build (`vite preview`,
- * port 4173), so `dist/` must exist first:
- *   npm run build && npm run test:e2e
+ *  - e2e-fd/       mocked API (page.route from src/fd/fixtures.ts), Vite dev server on 4180. No backend.
+ *  - e2e-fd-live/  the REAL read API (`python -m personal_world.worlds.dev`, seeded reference provider)
+ *                  through the Vite proxy on 4181. Use 127.0.0.1, never localhost: TrustedHost is strict.
  *
- * The preview bundle has no MSW (mocks are Storybook-only) and the
- * live backend on :8000 is auth-gated (401 on every data endpoint;
- * e2e must never carry a token). So Playwright boots the deterministic
- * mock API from scripts/e2e-api.mjs on 127.0.0.1:4174 and points the
- * preview proxy at it via VITE_API_PROXY_TARGET. The mock speaks the
- * REAL server contract ({ok, status, data} envelopes, JournalEvent as
- * {ts, kind, summary, provenance, …}) — it replaces the old comment
- * that declared success-state specs "expected-red"; screens must be
- * proven against their success path, not just their failure path.
- *
- * Order matters only for startup checks — both servers are health
- * probed before tests run.
+ * Phone (390) and desktop (1280) are both first-class. A hung test fails fast: 30s per test, 8 minutes total.
+ * Screenshots: PW_FD_SHOTS=<dir>.
  */
-// The UI port is overridable (PW_E2E_UI_PORT) so a sibling project's dev
-// server on 4173 can't silently answer for this suite (reuseExistingServer
-// would otherwise test the wrong app). CI keeps 4173. The fixture API
-// stays on 4174: specs call it directly.
-const UI_PORT = Number(process.env.PW_E2E_UI_PORT ?? 4173);
-const API_PORT = 4174;
+const MOCK_PORT = Number(process.env.PW_FD_PORT ?? 4180);
+const LIVE_PORT = Number(process.env.PW_FD_LIVE_PORT ?? 4181);
+const API_PORT = 8765;
+const phone = { viewport: { width: 390, height: 844 }, hasTouch: true };
+const desktop = { viewport: { width: 1280, height: 800 } };
 
 export default defineConfig({
-  testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
-  use: {
-    baseURL: `http://localhost:${UI_PORT}`,
-    trace: "on-first-retry",
-  },
+  timeout: 30_000,
+  expect: { timeout: 7_000 },
+  globalTimeout: 8 * 60_000,
   projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-      // The safe-area contract is a phone-emulation story; it owns the
-      // mobile project below and never needs to run twice.
-      testIgnore: /safe-area\.spec\.ts/,
-    },
-    {
-      // §2.7 mobile safe areas: chromium on a phone-sized viewport with
-      // isMobile emulation. Headless Chromium reports env(safe-area-inset-*)
-      // as 0, so the spec pins the insets through the deterministic
-      // data-pw-safe-area-pin hook in world.css and asserts geometry
-      // computed from the pinned value — no flaky device geometry.
-      name: "chromium-mobile",
-      use: {
-        ...devices["Desktop Chrome"],
-        viewport: { width: 390, height: 844 },
-        isMobile: true,
-        hasTouch: true,
-        deviceScaleFactor: 2,
-      },
-      testMatch: /safe-area\.spec\.ts/,
-    },
+    { name: "phone-390", testDir: "./e2e-fd", use: { ...phone, baseURL: `http://127.0.0.1:${MOCK_PORT}` } },
+    { name: "desktop-1280", testDir: "./e2e-fd", use: { ...desktop, baseURL: `http://127.0.0.1:${MOCK_PORT}` } },
+    { name: "live-phone-390", testDir: "./e2e-fd-live", use: { ...phone, baseURL: `http://127.0.0.1:${LIVE_PORT}` } },
+    { name: "live-desktop-1280", testDir: "./e2e-fd-live", use: { ...desktop, baseURL: `http://127.0.0.1:${LIVE_PORT}` } },
   ],
   webServer: [
-    {
-      command: "node scripts/e2e-api.mjs",
-      url: `http://127.0.0.1:${API_PORT}/healthz`,
-      reuseExistingServer: !process.env.CI,
-      timeout: 30_000,
-    },
-    {
-      command: `npm run preview -- --port ${UI_PORT} --strictPort`,
-      url: `http://localhost:${UI_PORT}`,
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-      env: {
-        // vite.config.ts reads this for the /api + /healthz proxy
-        // target in preview mode (playwright's webServer env is
-        // merged into the child process, not the browser).
-        VITE_API_PROXY_TARGET: `http://127.0.0.1:${API_PORT}`,
-      },
-    },
+    { command: `npx vite --port ${MOCK_PORT} --strictPort --host 127.0.0.1`, url: `http://127.0.0.1:${MOCK_PORT}`, reuseExistingServer: !process.env.CI, timeout: 60_000 },
+    { command: "cd .. && uv run python -m personal_world.worlds.dev", url: `http://127.0.0.1:${API_PORT}/api/boards/home`, reuseExistingServer: !process.env.CI, timeout: 90_000 },
+    { command: `npx vite --port ${LIVE_PORT} --strictPort --host 127.0.0.1`, url: `http://127.0.0.1:${LIVE_PORT}`, env: { VITE_API_PROXY_TARGET: `http://127.0.0.1:${API_PORT}` }, reuseExistingServer: !process.env.CI, timeout: 60_000 },
   ],
 });

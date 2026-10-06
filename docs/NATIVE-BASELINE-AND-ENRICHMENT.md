@@ -4,6 +4,8 @@
 
 **In short:** Worlds must stay usable with zero optional integrations; external systems may enrich a capability but never define or gate it. This page is the normative framework contract — its invariants are enforced by `personal-world framework validate` and `tests/test_framework.py`.
 
+> **Superseded by [ADR-0008](adr/0008-front-door.md) for front-door providers:** the capability registry and provider-mode rules below are retired; the gate now validates C1 config, secret references, recipes, the zero-provider baseline, compose additivity and Memory exports. See [`docs/rebuild/FRAMEWORK-GATE.md`](rebuild/FRAMEWORK-GATE.md) for the old-rule mapping.
+
 ## 1. The principle
 
 > **Native baseline. Optional enrichment. No mandatory ecosystem
@@ -162,6 +164,8 @@ service (`validate_compose_file`). Removing a provider from compose
 must never require rebuilding the core architecture.
 
 ## 9. Initialization contract
+
+> **Superseded for the front door by [ADR-0008](adr/0008-front-door.md) (2026-10-01):** the front-door rebuild initializes the C1 config files under `$PW_CONFIG_DIR/worlds/…` and `owner.yaml`, with durable state in `$PW_DATA_DIR/worlds.db`. See [`docs/rebuild/CONTRACTS.md`](rebuild/CONTRACTS.md) C1/C7 and [`docs/rebuild/DURABILITY.md`](rebuild/DURABILITY.md). The table below describes the retired app.
 
 `personal-world init` creates, idempotently and secret-free:
 

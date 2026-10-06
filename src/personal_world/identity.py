@@ -240,10 +240,18 @@ class IdentityStore:
     def attach_hashed_token(self, user_id: str, plain_token: str) -> None:
         """Attach a credential by hash only — no prefix is kept.
 
-        Used for an invite-accepted password: a person's own password is
-        a credential, and storing any part of it in the clear (the
-        ``token_prefixes`` a generated token keeps for display) would be a
-        leak. Only the hash is written.
+        Used for the sign-in key issued when a person accepts an invite.
+        That key is *generated*, not chosen by a human: the one caller
+        (``api.py``, invite accept) passes ``secrets.token_urlsafe(32)``,
+        a 256-bit CSPRNG value. So a single unsalted SHA-256 is the
+        right fingerprint for it — a slow KDF would cost matching time
+        without adding resistance, because the input is not guessable.
+        (This docstring used to claim a human password arrived here; it
+        did not. A real password needs ``pbkdf2_hmac``, as ``vault.py``
+        does for vault secrets, and must never reach this function.)
+
+        Only the hash is written — deliberately not the ``token_prefixes``
+        display hint that ``_attach_token`` records.
         """
         payload = self._load()
         for u in payload["users"]:

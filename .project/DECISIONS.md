@@ -759,48 +759,17 @@ dark ink at the same strengths, so rank is still encoded by contrast alone.
 
 Owner approved PR #231 (head dbc1218) with refinements in `HANDOFF-FRONT-DOOR-APPROVAL-2026-10-01.md`: clean rebuild authorized; authority and durable single dispatch before any side effect (including Connect test/run); Worlds asks the owner directly for actions on services Project Home does not govern and keeps bindings and receipts; Memory durable from day one; Chat optional; landmarks `Home · Connect · Memory · Settings`. Recorded as `docs/adr/0008-front-door.md` (accepted, amends ADR-0001), with dated supersession notes on S1–S10 sources. Archive tag `archive/pre-front-door` preserves the last pre-rebuild source (61397e0, which is also the commit production runs).
 
-## 2026-10-04 — Discovery engine removed (full cut)
+## 2026-10-01 — Rebuild: start fresh, private notes in SOPS, stack kept
 
-Owner-approved: retire Worlds' native discovery engine in one PR and
-re-wire the briefing's Observatory to read the Candy room. The discovery
-package, `native_discovery` provider, `/api/discovery/*` routes, and the
-Interests screen are removed. Briefing's `_interests` now reports
-`not_configured` until a room names `interests` (Candy); the room override
-(`rooms` in `build_briefing`) already replaces the direct provider. Candy
-has no sources yet, so the Observatory is empty until sources migrate and
-the room token is enabled (owner steps). Recorded per estate decision
-`docs/decisions/estate-consolidation-decisions-2026-10-04.md` (rylee-bee-workspace).
+Owner answers after S0: **old Worlds data is not imported.** The old journal, `world.json`, stickers and search index stay in the private backups and the old data dir until retirement; no migration code is built. Private reconstruction notes get a SOPS-encrypted permanent home in the owner's private operator docs (location being established; plaintext is never committed). The orchestrator kept the stack (Python/FastAPI/uv, React/Vite/TypeScript/react-query) and set the five rebuild contracts in `docs/rebuild/CONTRACTS.md`; obsolete modules are deleted on `rebuild/front-door`, not adapted.
 
-## 2026-10-04 — Native deployment + updates state machine retired (full cut)
+## 2026-10-02 — Home order for Calm and phones: the bad-day layout (owner approved)
 
-Owner-approved (Wave 4, stage 2 of the estate consolidation): retire Worlds'
-own deployment/update mechanics in favor of the Homelab deploy path that
-already exists. `providers/native_deployment.py` (compose/systemd adapters) and
-`updates.py` (the check → preview → apply → verify → rollback state machine,
-plus `ComposeUpdateProvider`/`FakeUpdateProvider`/`build_provider`) are removed
-with their consumers: the `deployment` capability, the `GET /api/updates` route,
-the CLI `updates check/preview/apply/rollback/status` subcommand, the orphaned
-`updates` role permission, and the `updates-session.json` backup boundary.
+Rylee approved two changes to the Home order in the approval handoff (§8), after an accessibility and "bad day" audit of the merged front door. They amend that order for Calm density and for phones; Standard and Detailed on a wide screen keep the original order.
 
-Deployment is now read through Homelab only: the `homelab_deploy` capability +
-`GET /api/lab/deploy` (LabDeploy) and Project Home's ask-first deploy gate.
-`native_updates.py` (version/update *discovery*, `update_discovery` capability)
-stays — it is not part of this cut. Recorded per estate decision
-`docs/decisions/estate-consolidation-decisions-2026-10-04.md` (rylee-bee-workspace).
+- **D1.** Calm is the bad-day layout: greeting and briefing, then **Needs you first**, then a condensed strip, Needs a look, Your life, and Quietly working folded to one line.
+- **D2.** Condensed strip, in Calm at every width and on phones (under 760px) in every density: only the sources that need a look, plus one tile "● N quiet" that opens the full strip in place (`aria-expanded`, focus stays on it). Healthy and not-configured sources fold into that tile. No wall of green.
 
-## 2026-10-04 — Native Lab provider retired (full cut)
+Why: a tired person should meet what needs them before nine tiles. How to apply: keep Needs you directly after the briefing in Calm; never make the condensed strip the only way to reach a source (the quiet tile always opens the rest).
 
-Owner-approved (Wave 4, stage 3 of the estate consolidation): retire Worlds'
-own infra inventory in favor of Homelab's `lab` CLI, which already exists.
-`providers/native_lab.py` (`NativeLabInventory`/`NativeLabHealth`/
-`NativeLabSettings`/`NativeLabResources`) is removed with its consumers: the
-`native_lab` connection type, the runtime-only `service_inventory`/
-`service_health`/`resource_monitoring` capabilities, the four
-`GET /api/native-lab/{inventory,health,settings,resources}` routes, the four
-`inspect_lab_*` agent tools, and `/api/native-lab/settings` from the viewer
-deny list.
-
-Infra state is now read through Homelab only: the `homelab_settings/health/
-deploy/secrets/resources` capabilities (the `lab_api` connection type) and the
-`GET /api/lab/*` routes. Recorded per estate decision
-`docs/decisions/estate-consolidation-decisions-2026-10-04.md` (rylee-bee-workspace).
+Also decided in the same pass (owner may veto): the Plain theme is removed (it matched Starfield); a state has one word everywhere (badges, strip, briefing, accessible names); no control that does nothing is shown (the disabled Approve and the Memory Records and search placeholders are gone until they work).

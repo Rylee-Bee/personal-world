@@ -1,41 +1,18 @@
 # Current State — Worlds
 
-> **Live state** (last commit, CI on main, open PRs, recent merges, missions): `lab enter` at session start, or `now-block --print .` from this repo. This file keeps only what a command cannot tell you.
+This file is the **current-state router** for the front-door rebuild.
 
-This file is the **current-state router**. It should stay short.
+Do not turn it into a session diary, test transcript or merge ledger. Git,
+GitHub, the running app, ADRs and focused docs own those facts.
 
-Do not turn it into a session diary, a test transcript, a deployment ledger,
-or a second roadmap. Git, GitHub, the running app, ADRs, and focused docs own
-those facts.
+## This branch
 
-## The two active code lines
+`rebuild/front-door` is the active clean rebuild authorized by
+[ADR-0008](../docs/adr/0008-front-door.md).
 
-Worlds currently has two legitimate code states:
+It is **not production**.
 
-| Ref | Job | Authority |
-| --- | --- | --- |
-| `main` | current public/default branch and pre-front-door application | truth for what `main` actually contains |
-| `rebuild/front-door` | active clean rebuild authorized by ADR-0008 | truth for the next front-door application until cutover |
-
-Do not silently read behavior from one branch into the other.
-
-Derive the relationship instead of copying SHAs here:
-
-```sh
-git fetch origin
-git rev-list --left-right --count origin/main...origin/rebuild/front-door
-```
-
-At the 2026-10-04 repository reconcile, the rebuild was 145 commits ahead and
-3 commits behind `main`. That observation is preserved in GitHub issue #263;
-the live command above is the current answer.
-
-## Direction
-
-The current architecture decision is
-[`docs/adr/0008-front-door.md`](../docs/adr/0008-front-door.md).
-
-The stable front-door landmarks are:
+The stable landmarks are:
 
 ```text
 Home · Connect · Memory · Settings
@@ -44,74 +21,95 @@ Home · Connect · Memory · Settings
 Worlds owns meaning. Providers own mechanics. Configuration is files. Memory
 is durable. Consequential actions use one explicit authority path.
 
-The owner-approved product intent and experience rules are routed through
-[`.project/PLAN.md`](PLAN.md). Older plans, handoffs and design epochs remain
-evidence, not current direction.
+## Rebuild progress
 
-## What is deployed
+The rebuild has landed the main foundation and experience lanes, including:
 
-A merge or published image is **not** proof of the running instance.
+- front-door contracts and application foundation,
+- owner/agent authority + confined dispatch,
+- Home, Connect and Memory paths,
+- provider/recipe model,
+- room/0 service integration,
+- Memory backup/restore and deterministic search,
+- production-app assembly,
+- framework validation re-anchored onto the new app,
+- restore drill + generated OpenAPI/route inventory on the new app,
+- trimmed CLI and front-door container entrypoint,
+- durable Companion conversation identity.
 
-The last runtime evidence recorded in this repository before this reconcile
-named the preserved pre-front-door build. That is dated evidence only.
-
-For a current runtime claim, inspect the running instance's `/healthz`
-commit/revision through the private operator path. If that evidence is not
-available, runtime state is **UNKNOWN**.
-
-Production cutover of the front-door rebuild still requires explicit owner
-approval.
+Those statements describe source progress, not a production cutover.
 
 ## Current work
 
-GitHub Issues is the durable work queue.
+GitHub Issues is the durable queue:
 
 - **#262** — finish Phase 4 retirement and cutover readiness.
-- **#263** — reconcile applicable `main` maintenance into
-  `rebuild/front-door` before cutover.
+- **#263** — reconcile applicable `main` maintenance into this branch before
+  cutover.
 
-Do not bury unfinished work in a handoff, PLAN paragraph, or "Next:" section
-when it needs to survive the session.
+There are no routine session handoffs to resume.
+
+## Relationship to main
+
+`main` remains the default/pre-front-door application and maintenance line.
+
+Derive the relationship:
+
+```sh
+git fetch origin
+git rev-list --left-right --count origin/main...origin/rebuild/front-door
+```
+
+At the 2026-10-04 reconcile, this branch was 145 commits ahead and 3 commits
+behind `main`. Issue #263 preserves that dated observation and owns the
+meaningful reconciliation.
+
+Do not blindly merge old-app prose or compatibility into this clean rebuild.
+
+## What is deployed
+
+The front-door rebuild has not been cut over.
+
+A merge, CI run or published image is not proof of the running instance.
+Current runtime revision must come from the running application's `/healthz`
+evidence through the private operator path.
+
+If that evidence has not been checked, runtime state is **UNKNOWN**.
+
+Production cutover requires explicit owner approval.
 
 ## Canonical routes
 
 | Need | Source |
 | --- | --- |
-| current branch/code truth | Git + GitHub |
-| live runtime revision | running `/healthz` evidence, not prose |
-| front-door architecture | `docs/adr/0008-front-door.md` |
+| rebuild code truth | Git + GitHub on `rebuild/front-door` |
+| live runtime revision | running `/healthz`, not prose |
+| architecture | `docs/adr/0008-front-door.md` |
+| rebuild contracts | `docs/rebuild/CONTRACTS.md` |
+| durability | `docs/rebuild/DURABILITY.md` |
 | product direction | `.project/PLAN.md` |
 | durable decisions | `.project/DECISIONS.md` + `docs/adr/` |
 | current work | GitHub Issues |
-| public/security boundary | `SECURITY.md` |
-| agent policy | `AGENT_POLICY.md` + `AGENT_CONTRACTS.md` |
+| security/public boundary | `SECURITY.md` |
 | accessibility | `docs/accessibility/ACCESSIBILITY_CONTRACT.md` |
-| human reliability | `docs/HUMAN_RELIABILITY_CONTRACT.md` |
-| operations | `docs/OPERATIONS.md` |
-| document map | `docs/INDEX.md` |
+| agent rules | `AGENT_POLICY.md` + `AGENT_CONTRACTS.md` + `AGENTS.md` |
 
-## Handoffs and dated records
+## Historical records
 
-Files named `HANDOFF-*`, dated receipts, old CURRENT sections, and historical
-plans are provenance.
+Dated `HANDOFF-*` files and pre-ADR-0008 plans are provenance.
 
-They may explain **how we got here**. They do not determine **what is true
-now**.
-
-Routine work should leave truth in code, a PR, an issue, an ADR/decision when
-needed, and this router only when a stable pointer changes. Do not create a
-handoff merely to relay session state.
+They answer "how did we get here?", not "what should I do now?"
 
 ## Resume
 
 ```sh
 git fetch origin
 git status --short
-git log --oneline --decorate -12 origin/main
+git log --oneline --decorate -12 origin/rebuild/front-door
 git rev-list --left-right --count origin/main...origin/rebuild/front-door
 gh issue list --repo Rylee-Bee/personal-world --state open
 ```
 
-Then inspect the branch you are actually changing.
+Then inspect #262 / #263 and the current branch code.
 
 If evidence is missing, say **UNKNOWN**.

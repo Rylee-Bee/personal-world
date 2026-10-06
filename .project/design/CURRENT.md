@@ -1,5 +1,7 @@
 # Project Worlds — Design Context: CURRENT
 
+> **Superseded in part by [ADR-0008](../../docs/adr/0008-front-door.md) (2026-10-01):** the Worlds interface was replaced by the front door (`ui/src/fd`: Home · Connect · Memory · Settings). Screen, component, route and test names in this document describe the old interface; read them as history. The current map is [FRONTEND-INVENTORY.md](../../FRONTEND-INVENTORY.md).
+
 *(Renamed from "Personal World" 2026-09-12 — product identity only; the
 design file, frame IDs, and companion character names below are
 unaffected. See `.project/CURRENT.md` "Identity pass" for the full

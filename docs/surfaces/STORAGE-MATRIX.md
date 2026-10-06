@@ -41,11 +41,11 @@ Notes:
   theme packs, discovery.json, and reconciler desired state are NOT in
   any automated backup; recovery plans must cover them separately
   (matches ARCHITECTURE.md export contract).
-- The **full-instance SOS archive** (`personal-world worlds backup`, format
-  `pw-worlds-backup/1`) is the wider path: it covers world+journal, per-user
-  trees, users/reminders/apps/proposals, oidc config (secret stripped),
-  discovery, reconciler/lab desired state and theme packs, and `vault.enc` with
-  `--include-vault`. See `docs/WORLDS-BACKUP.md`.
+- The **full-instance SOS archive** of the retired app is gone (ADR-0008).
+  Backup is now the config volume plus the Memory database: `POST
+  /api/memory/backup` writes a dated `worlds.db` copy under
+  `$PW_DATA_DIR/backups/`, and `restore_backup` imports Memory rows into an
+  empty data dir. See [`docs/rebuild/DURABILITY.md`](../rebuild/DURABILITY.md).
 - All four export contracts (settings/world/story/backup) are
   serialization views, never the storage of record.
 - `config/connections.json` is tracked and must stay secret-free;
