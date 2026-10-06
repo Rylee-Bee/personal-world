@@ -654,10 +654,6 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         note="secret names/metadata only; never resolved values",
     ),
     _e("API-044", "GET", "/api/lab/resources", "lab", "read", "none"),
-    _e("API-045", "GET", "/api/native-lab/inventory", "native_lab", "read", "none"),
-    _e("API-046", "GET", "/api/native-lab/health", "native_lab", "read", "none"),
-    _e("API-047", "GET", "/api/native-lab/settings", "native_lab", "read", "none"),
-    _e("API-048", "GET", "/api/native-lab/resources", "native_lab", "read", "none"),
     _e("API-058", "GET", "/api/reconciler/status", "reconciler", "read", "none"),
     _e(
         "API-059", "GET", "/api/reconciler/diff/{service}", "reconciler", "read", "none"
@@ -670,31 +666,6 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "read",
         "none",
         note="propose only; never applies",
-    ),
-    # Discovery / media.
-    _e("API-049", "GET", "/api/discovery/status", "discovery", "read", "none"),
-    _e("API-050-get", "GET", "/api/discovery/sources", "discovery", "read", "none"),
-    _e(
-        "API-050-add", "POST", "/api/discovery/sources", "discovery", "write", "step-up"
-    ),
-    _e("API-051-get", "GET", "/api/discovery/interests", "discovery", "read", "none"),
-    _e(
-        "API-051-add",
-        "POST",
-        "/api/discovery/interests",
-        "discovery",
-        "write",
-        "none",
-        note="own-account write: signed-in person only, no step-up",
-    ),
-    _e(
-        "API-052",
-        "GET",
-        "/api/discovery/discover",
-        "discovery",
-        "read",
-        "none",
-        note="fetches sources and may persist discovery feedback",
     ),
     _e("API-053", "GET", "/api/media/status", "media", "read", "none"),
     _e("API-054", "GET", "/api/media/library", "media", "read", "none"),
@@ -1136,15 +1107,6 @@ ENDPOINTS: tuple[Endpoint, ...] = (
         "read",
         "none",
         note="includes private state; encrypt externally, never share",
-    ),
-    _e(
-        "API-029",
-        "GET",
-        "/api/updates",
-        "updates",
-        "read",
-        "none",
-        note="read-only update state; apply/rollback is CLI-only",
     ),
 )
 

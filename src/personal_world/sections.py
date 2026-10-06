@@ -39,7 +39,6 @@ class SectionSpec:
 # navigation--vault). P1 adds no artwork; the closest existing glyph
 # stands in. Keyed by section id -> substituted manifest icon id.
 ICON_SUBSTITUTIONS: dict[str, str] = {
-    "interests": "world-content--bookmark",   # spec: navigation--discover
     "media": "world-content--story",          # spec: navigation--media
     "lab": "system-device--desktop",          # spec: navigation--lab
     "vault": "system-device--lock",           # spec: navigation--vault
@@ -47,15 +46,14 @@ ICON_SUBSTITUTIONS: dict[str, str] = {
 
 SECTIONS: tuple[SectionSpec, ...] = (
     SectionSpec("today",     "Today",            "navigation--today",        0),
-    SectionSpec("interests", "Interests",        "world-content--bookmark",  1, capabilities=("discovery",)),
-    SectionSpec("media",     "Media",            "world-content--story",     2, capabilities=("media",)),
-    SectionSpec("projects",  "Projects",         "navigation--projects",     3, capabilities=("source_control",)),
-    SectionSpec("lab",       "Lab",              "system-device--desktop",   4, capabilities=("homelab_health",)),
-    SectionSpec("journal",   "Journal & Memory", "navigation--journal",      5, capabilities=("journal",)),
-    SectionSpec("vault",     "Vault",            "system-device--lock",      6, capabilities=("secrets",)),
-    SectionSpec("chat",      "Chat",             "navigation--chat",         7, kind="transitional",
+    SectionSpec("media",     "Media",            "world-content--story",     1, capabilities=("media",)),
+    SectionSpec("projects",  "Projects",         "navigation--projects",     2, capabilities=("source_control",)),
+    SectionSpec("lab",       "Lab",              "system-device--desktop",   3, capabilities=("homelab_health",)),
+    SectionSpec("journal",   "Journal & Memory", "navigation--journal",      4, capabilities=("journal",)),
+    SectionSpec("vault",     "Vault",            "system-device--lock",      5, capabilities=("secrets",)),
+    SectionSpec("chat",      "Chat",             "navigation--chat",         6, kind="transitional",
                                                                                 capabilities=("reasoning",)),
-    SectionSpec("settings",  "Settings",         "navigation--settings",     8, pinned=True),
+    SectionSpec("settings",  "Settings",         "navigation--settings",     7, pinned=True),
 )
 
 BY_ID: dict[str, SectionSpec] = {s.id: s for s in SECTIONS}

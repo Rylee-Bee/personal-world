@@ -44,10 +44,8 @@ from .world import World
 # itself give this capability useful local meaning with zero providers?)
 STANDARD_CAPABILITIES: list[tuple[str, str, bool]] = [
     ("source_control", "Read repositories, issues, pull requests", True),
-    ("deployment", "Deploy or schedule services", False),
     ("secrets", "Broker secret material to consumers", False),
     ("calendar", "Observe calendar events", False),
-    ("discovery", "Discover content matching interests", False),
     ("settings_validation", "Validate settings against intent", True),
     ("service_validation", "Validate service health", False),
     ("update_discovery", "Discover available updates", False),
@@ -399,72 +397,6 @@ def build_registry(
                     mode=mode,
                     required=required,
                 )
-        elif ptype == "native_lab":
-            # Native Lab provider: generic lab capabilities that ship
-            # with Project Worlds. Users configure their own environment.
-            from .providers.native_lab import (
-                NativeLabInventory,
-                NativeLabHealth,
-                NativeLabSettings,
-                NativeLabResources,
-            )
-
-            inventory = NativeLabInventory()
-            health = NativeLabHealth(inventory)
-            settings = NativeLabSettings()
-            resources = NativeLabResources()
-
-            registry.register(
-                "service_inventory",
-                f"{name}-inventory",
-                inventory,
-                health_check=lambda inventory=inventory: inventory.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
-            registry.register(
-                "service_health",
-                f"{name}-health",
-                health,
-                health_check=lambda health=health: health.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
-            registry.register(
-                "settings_validation",
-                f"{name}-settings",
-                settings,
-                health_check=lambda settings=settings: settings.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
-            registry.register(
-                "resource_monitoring",
-                f"{name}-resources",
-                resources,
-                health_check=lambda resources=resources: resources.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
-        elif ptype == "native_discovery":
-            # Native Discovery provider: generic content discovery that
-            # ships with Project Worlds. Users configure their own sources.
-            from .providers.native_discovery import NativeDiscovery
-
-            discovery = NativeDiscovery()
-            registry.register(
-                "discovery",
-                f"{name}-discovery",
-                discovery,
-                health_check=lambda discovery=discovery: discovery.observe().ok,
-                writes="none",
-                mode=ProviderMode.NATIVE,
-                required=False,
-            )
         # unknown types: skipped, not fatal -- standalone deployments
         # boot with zero providers
 
@@ -569,21 +501,6 @@ def build_registry(
         "native-updates",
         updates_provider,
         health_check=updates_provider.health,
-        writes="none",
-        mode=ProviderMode.NATIVE,
-        required=False,
-    )
-
-    # native_deployment: deployment domain (compose/systemd)
-    from .providers.native_deployment import NativeDeploymentProvider
-
-    deploy_config = _read_extra_config(config_dir, "deployment")
-    deployment_provider = NativeDeploymentProvider(deploy_config)
-    registry.register(
-        "deployment",
-        "native-deployment",
-        deployment_provider,
-        health_check=deployment_provider.health,
         writes="none",
         mode=ProviderMode.NATIVE,
         required=False,

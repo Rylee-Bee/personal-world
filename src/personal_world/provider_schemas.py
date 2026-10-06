@@ -220,55 +220,6 @@ def _notifications_providers() -> list[ProviderSchema]:
     ]
 
 
-def _deployment_providers() -> list[ProviderSchema]:
-    return [
-        ProviderSchema(
-            id="compose",
-            display_name="Docker Compose",
-            capability="deployment",
-            description="Manage Docker Compose projects",
-            adapter_type="compose",
-            config_fields=[
-                ConfigField("name", "Name", "text", required=True,
-                            placeholder="Worlds"),
-                ConfigField("compose_path", "Compose file path", "text",
-                            required=True, placeholder="/opt/worlds/compose.yaml"),
-                ConfigField("project_name", "Project name", "text",
-                            placeholder="worlds"),
-            ],
-            can_test=True,
-        ),
-        ProviderSchema(
-            id="systemd",
-            display_name="systemd",
-            capability="deployment",
-            description="Manage systemd services",
-            adapter_type="systemd",
-            config_fields=[
-                ConfigField("name", "Name", "text", required=True,
-                            placeholder="worlds-core"),
-                ConfigField("service_name", "Service name", "text",
-                            required=True, placeholder="worlds.service"),
-            ],
-            can_test=True,
-        ),
-        ProviderSchema(
-            id="lab_cli",
-            display_name="Lab CLI",
-            capability="deployment",
-            description="Homelab Lab CLI deployments",
-            adapter_type="lab_cli",
-            config_fields=[
-                ConfigField("name", "Name", "text", required=True,
-                            placeholder="Homelab"),
-                ConfigField("lab_path", "Lab scripts path", "text",
-                            placeholder="/opt/scripts/lab"),
-            ],
-            can_test=False,
-        ),
-    ]
-
-
 def _updates_providers() -> list[ProviderSchema]:
     return [
         ProviderSchema(
@@ -423,15 +374,6 @@ CAPABILITY_SCHEMAS: dict[str, CapabilitySchema] = {
         providers=_notifications_providers(),
         needs_setup=True,
         help_text="Add a notification destination to receive alerts.",
-    ),
-    "deployment": CapabilitySchema(
-        capability="deployment",
-        display_name="Deployment",
-        description="Service deployment management",
-        icon="icon-system-action-settings",
-        providers=_deployment_providers(),
-        needs_setup=True,
-        help_text="Add a deployment target to manage services.",
     ),
     "update_discovery": CapabilitySchema(
         capability="update_discovery",
