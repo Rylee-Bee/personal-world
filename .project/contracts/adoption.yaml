@@ -8,7 +8,7 @@ schema: play-nice/adoption-v1
 project: personal-world
 source:
   repository: Rylee-Bee/play-nice-contracts   # renamed from burgeswe/play-nice-contracts (account rename, 2026-09-12); old URL redirects
-  revision: d0bb0b29cb8c250b5448c3f560e862b68ac4a653   # owner-approved 2026-10-06 (C-17): every estate pin was orphaned by an upstream
+  revision: b43b729f9799de33daa5513bbce46dd352127398   # owner-approved 2026-10-06 (C-17): every estate pin was orphaned by an upstream
   # force-push on 2026-10-06T21:14Z — 1190e6a is DIVERGED from main, not merely behind.
   # Library is now VERSION 2.0.0 (v2 reorganisation: contracts/ split into
   # access/ everyone/ integration/ people/ sites/ surfaces/ work/). Delta verified with
