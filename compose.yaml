@@ -111,7 +111,17 @@ services:
       # to set X-Forwarded-*; this also keys the sign-in rate limit
       # per client. The server refuses to boot if the value is
       # malformed. Leave unset when Worlds is not behind a proxy.
-      # PW_TRUSTED_PROXIES: 192.0.2.10,198.51.100.0/24
+      PW_TRUSTED_PROXIES: ${PW_TRUSTED_PROXIES:-}
+
+      # ── Optional: owner sign-in before OIDC works ────────────
+      # owner.yaml's bootstrap.secret_ref names this variable
+      # (env:PW_BOOTSTRAP_TOKEN); at least 22 base64url characters.
+      PW_BOOTSTRAP_TOKEN: ${PW_BOOTSTRAP_TOKEN:-}
+
+      # ── Optional: Web Push (docs/NOTIFICATIONS.md) ──────────
+      # Unset = push reads "not configured"; history still works.
+      PW_VAPID_PRIVATE_KEY: ${PW_VAPID_PRIVATE_KEY:-}
+      PW_VAPID_SUBJECT: ${PW_VAPID_SUBJECT:-}
 
       # ── Optional: OIDC / SSO ─────────────────────────────────
       # Only needed if using an OIDC provider (e.g. Authelia).

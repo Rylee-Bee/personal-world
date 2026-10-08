@@ -188,12 +188,24 @@ edit the production Compose file.
 
 ### Production deployment (the transcode host)
 
-Production Worlds currently runs the existing application. The front-door
-rebuild is a separate, not-yet-cut-over code line. The front-door production
-entrypoint uses `$PW_CONFIG_DIR/owner.yaml` for owner sign-in policy; its
-static shell is served from `src/personal_world/static/app` (or `PW_STATIC_DIR`).
-Keep the instance gated at the network layer during build and test work. This
-documentation does not authorize production cutover or deployment.
+Production Worlds runs on the **transcode host** (a LAN machine) as a docker compose stack at
+`/opt/personal-world`, serving the owner's Worlds hostname through homelab Traefik (the `world` router: the `secure`
+headers middleware, no Authelia forward-auth). The name is LAN/VPN only, never port-forwarded: that network layer
+is the gate while the front door is built (Rylee, 2026-10-08).
+
+Since the front-door rebuild (#277) the image runs the front-door app (`worlds.production:app_from_env`). It needs:
+
+- **`/config/owner.yaml`** in the `config-data` volume: `public_origin` (the Worlds URL) plus `oidc` (issuer and
+  the owner's subject) and/or `bootstrap` (`enabled: true`, `secret_ref: env:PW_BOOTSTRAP_TOKEN`). Without a valid
+  file nobody can sign in, and every route answers `400 invalid host`.
+- **`.env`** (mode 600), names only here:
+  - `PW_API_TOKEN`: the image's boot guard still refuses an empty one.
+  - `PW_BOOTSTRAP_TOKEN`: when bootstrap sign-in is on.
+  - `PW_VAPID_PRIVATE_KEY` and `PW_VAPID_SUBJECT`: Web Push.
+  - `PW_TRUSTED_PROXIES`: Traefik's address.
+  - `PW_PORT`.
+  - `PW_IMAGE`, pinned to `ghcr.io/rylee-bee/personal-world:sha-<full sha>`. The compose default is `:latest`
+    with `pull_policy: always`, so an unpinned `docker compose up -d` moves production to whatever `main` is.
 
 Images are built by the GitHub Actions `publish-image` workflow on `main`
 and pushed to `ghcr.io/rylee-bee/personal-world`; production pulls them:
@@ -210,11 +222,9 @@ app's deploy command — which backs up data, tags the old image
 `personal-world:pre-<stamp>` for rollback, pulls, restarts, and waits for
 healthy.
 
-Secrets and env live only in private runtime configuration. For the front-door
-app, configure its valid `owner.yaml`, and set `PW_VAPID_PRIVATE_KEY` plus
-`PW_VAPID_SUBJECT` in the runtime environment to enable Web Push. The private
-key is never stored in the repository or returned by an API. This repo records
-names only, never values.
+Secrets and env live only in `/opt/personal-world/.env` (mode 600) and the `config-data` volume. The VAPID
+private key and every token are never stored in this repository or returned by an API. This repo records names
+only, never values.
 
 ### Optional homelab enrichment
 
