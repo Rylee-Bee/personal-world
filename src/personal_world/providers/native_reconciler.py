@@ -19,7 +19,8 @@ from typing import Any
 
 from ..envelope import Result, fail, ok
 from ..status import Status
-from .registry import Contract, StatusContract
+from ..url_safety import http_urlopen
+from .registry import StatusContract
 
 
 class DesiredState:
@@ -109,13 +110,13 @@ class NativeSettingsReconciler(StatusContract):
                     import yaml
                     config = yaml.safe_load(f.read_text())
                     self._desired[f.stem] = DesiredState(f.stem, config, f)
-                except Exception:
+                except Exception:  # nosec B110  # one unparseable file must not hide the rest
                     pass
             for f in self.desired_path.glob("*.json"):
                 try:
                     config = json.loads(f.read_text())
                     self._desired[f.stem] = DesiredState(f.stem, config, f)
-                except Exception:
+                except Exception:  # nosec B110  # one unparseable file must not hide the rest
                     pass
 
     def desired_state(self, service: str) -> dict | None:
@@ -225,12 +226,10 @@ class GenericServiceAdapter(ServiceAdapter):
 
     def observe(self) -> Result:
         """Observe actual state via HTTP."""
-        import urllib.request
-        import urllib.error
 
         try:
             url = f"{self.base_url}{self.health_endpoint}"
-            with urllib.request.urlopen(url, timeout=10) as resp:
+            with http_urlopen(url, timeout=10) as resp:
                 data = json.loads(resp.read().decode())
                 return ok(
                     Status.HEALTHY.value,

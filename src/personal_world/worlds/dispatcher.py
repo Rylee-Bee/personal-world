@@ -25,15 +25,13 @@ import logging
 import os
 import socket
 import sqlite3
-import threading
 import time
 import uuid
-from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Literal
 
 from .authn import Principal
-from .confinement import ConfinementError, RawResponse, confined_request
 from .config_store import ConfigStore
+from .confinement import ConfinementError, RawResponse, confined_request
 from .db import Database, register_migrations
 from .models import Action, Provider, Request, canonical_json
 from .runner import redact
@@ -434,9 +432,9 @@ class Dispatcher:
         with self._db.write_tx() as tx:
             cur = tx.execute(
                 f"UPDATE executions SET state='UNKNOWN', finished_at=?, evidence_redacted=? "
-                f"WHERE state IN ('INTENT','DISPATCHING') AND (owner_id IS NULL OR owner_id NOT IN ({marks}))",
+                f"WHERE state IN ('INTENT','DISPATCHING') AND (owner_id IS NULL OR owner_id NOT IN ({marks}))",  # nosec B608  # {marks} is only generated "?" placeholders, never data
                 (now, evidence, *alive))
-            tx.execute("DELETE FROM leases WHERE instance_id != ? AND instance_id NOT IN (%s) AND heartbeat <= ?" % marks,
+            tx.execute("DELETE FROM leases WHERE instance_id != ? AND instance_id NOT IN (%s) AND heartbeat <= ?" % marks,  # nosec B608  # %s is only generated "?" placeholders, never data
                        (self.instance_id, *alive, now - 10 * LEASE_TTL_S))
         return cur.rowcount
 

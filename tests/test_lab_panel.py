@@ -15,8 +15,6 @@ import json
 import subprocess
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
 from personal_world.providers.lab_state import (
     DEFAULT_LAB,
     FRESHNESS,
@@ -158,8 +156,9 @@ def test_no_credentials_in_payload_path(monkeypatch, tmp_path):
 def test_api_route_maps_provider_status(monkeypatch):
     """The route exists, requires the shared auth, and maps the
     provider's status without re-deriving anything."""
-    from personal_world.api import create_app
     from fastapi.testclient import TestClient
+
+    from personal_world.api import create_app
 
     _fake_lab(monkeypatch, _packet())
     monkeypatch.setenv("PW_API_TOKEN", "test-token")

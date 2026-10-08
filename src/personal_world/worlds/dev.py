@@ -49,7 +49,7 @@ __all__ = ["assert_loopback", "build_dev_app", "main", "DEV_TOKEN", "DEV_PRINCIP
 #: Demo secret for the reference provider. It is a literal on purpose: this
 #: server has no secret store and no authentication, so a real secret here
 #: would be theatre.
-DEV_TOKEN = "dev-ref-token"
+DEV_TOKEN = "dev-ref-token"  # nosec B105  # a published demo value for the loopback-only, unauthenticated dev server; a real secret here would be theatre
 
 #: The principal every ``/api`` route sees on this server.
 DEV_PRINCIPAL = "dev-owner"

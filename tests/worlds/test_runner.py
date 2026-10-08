@@ -5,6 +5,7 @@ import threading
 import time
 
 import pytest
+from pydantic import ValidationError
 
 from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.models import Assertion, Auth, Provider, Request
@@ -54,7 +55,8 @@ def test_ttl_zero_never_caches(store, send):
     add_request(store, ttl_s=0)
     send.responses["/items"] = ok({})
     r = make(store, send)
-    r.fetch("ref.items"); r.fetch("ref.items")
+    r.fetch("ref.items")
+    r.fetch("ref.items")
     assert send.count() == 2
 
 
@@ -172,7 +174,8 @@ def test_single_flight_for_concurrent_fetches(store, send):
     r = make(store, send)
     out = []
     ts = [threading.Thread(target=lambda: out.append(r.fetch("ref.items"))) for _ in range(5)]
-    [t.start() for t in ts]; [t.join() for t in ts]
+    [t.start() for t in ts]
+    [t.join() for t in ts]
     assert send.count() == 1 and len(out) == 5 and all(o.ok for o in out)
 
 
@@ -273,9 +276,9 @@ def test_cookie_session_keeps_cookie_and_password_out_of_everything(cookie_serve
 
 
 def test_cookie_session_model_needs_login_path_and_secret_ref():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Auth(type="cookie_session", secret_ref="env:COOKIE_CREDENTIALS")  # no login_path
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Auth(type="cookie_session", login_path=COOKIE_LOGIN_PATH)  # no secret_ref
     with pytest.raises(ValueError):
         Auth(type="header", header_name="Cookie", secret_ref="env:K")  # a cookie is never a request header
@@ -379,9 +382,9 @@ def test_password_grant_keeps_token_and_password_out_of_everything(grant_server,
 
 
 def test_password_grant_model_needs_token_path_and_secret_ref():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Auth(type="password_grant", secret_ref="env:GRANT_CREDENTIALS")  # no token_path
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Auth(type="password_grant", token_path=GRANT_TOKEN_PATH)  # no secret_ref
     with pytest.raises(ValueError):
         Auth(type="password_grant", secret_ref="env:G", token_path="https://elsewhere.example/token")

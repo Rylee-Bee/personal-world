@@ -2,9 +2,9 @@ import json
 
 import pytest
 
-from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.config_store import ConfigStore
-from personal_world.worlds.models import Board, Card, Provider, Request
+from personal_world.worlds.confinement import ConfinementError, RawResponse
+from personal_world.worlds.models import Card, Provider, Request
 
 
 class FakeSend:

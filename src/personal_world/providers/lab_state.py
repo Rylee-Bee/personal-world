@@ -15,7 +15,7 @@ lookup, so no secret material can enter via this path.
 """
 
 import json
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own `lab` CLI, argument-list form only
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -102,7 +102,7 @@ class LabState(StatusContract):
 
     def _fetch(self) -> dict | None:
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603  # argument list, no shell; lab_path is an operator-configured absolute path
                 (self.lab_path, "lowbw", "--cached", "--json"),
                 capture_output=True, text=True, timeout=60, check=False,
             )

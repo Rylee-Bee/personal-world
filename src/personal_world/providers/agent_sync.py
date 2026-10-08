@@ -41,7 +41,7 @@ an observation, never timeless truth.
 
 import json
 import shutil
-import subprocess
+import subprocess  # nosec B404  # reads project state through the operator's own `agent-sync` binary
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -181,7 +181,7 @@ class AgentSyncProjectSensor(StatusContract):
         if binary is None:
             return None
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603  # argument list, no shell; `binary` was resolved with shutil.which
                 [binary, "status", "--all", "--format", "json"],
                 capture_output=True, text=True, timeout=self.timeout,
                 check=False,

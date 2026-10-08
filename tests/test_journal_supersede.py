@@ -10,8 +10,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from personal_world.journal import Journal, JournalEvent  # noqa: E402
-from personal_world.model import JournalKind, Provenance  # noqa: E402
+from personal_world.journal import Journal  # noqa: E402
+from personal_world.model import JournalKind  # noqa: E402
 
 
 @pytest.fixture
@@ -28,7 +28,7 @@ class TestJournalCore:
         assert current.supersede_reason == "typo"
         # Original row is untouched and still in the log.
         raw = (journal.path).read_text().splitlines()
-        assert sum(1 for l in raw if "original text" in l) == 1
+        assert sum(1 for line in raw if "original text" in line) == 1
         # Calm view shows only the corrected entry.
         view = journal.current_events(20)
         assert [e.summary for e in view if e.kind == JournalKind.OBSERVATION] == [

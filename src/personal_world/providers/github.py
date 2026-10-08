@@ -24,7 +24,7 @@ structured Result, never an exception and never a guessed field.
 
 import json
 import shutil
-import subprocess
+import subprocess  # nosec B404  # reads PRs/issues through the operator's own `gh` binary
 from typing import Any
 from urllib.parse import quote as _quote
 
@@ -55,7 +55,7 @@ class GitHubEnrichment(StatusContract):
         if binary is None:
             return None
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603  # argument list, no shell; `binary` was resolved with shutil.which
                 [binary, "api", path],
                 capture_output=True, text=True, timeout=self.timeout,
                 check=False,
@@ -129,10 +129,10 @@ class GitHubEnrichment(StatusContract):
         # counts, never a guessed number.
         open_prs: int | None = None
         open_issues: int | None = None
-        prs = self._search_total(f"type:pr state:open", slug)
+        prs = self._search_total("type:pr state:open", slug)
         if prs is not None:
             open_prs = prs
-        issues = self._search_total(f"type:issue state:open", slug)
+        issues = self._search_total("type:issue state:open", slug)
         if issues is not None:
             open_issues = issues
         return ok("healthy", data={

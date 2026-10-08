@@ -9,7 +9,7 @@ import datetime as dt
 import re
 from typing import Any, Iterable
 
-from .mapping import parse_path, MappingError, resolve
+from .mapping import MappingError, parse_path, resolve
 
 REDACTED = "[redacted]"
 SAMPLE_BYTES = 16 * 1024

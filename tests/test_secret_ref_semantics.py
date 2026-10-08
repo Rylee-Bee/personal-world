@@ -9,9 +9,7 @@ Proves:
   when explicitly configured with token_env/api_key_env.
 """
 
-import os
-import pytest
-from personal_world.providers.native_media import build_adapter, _is_secret_ref
+from personal_world.providers.native_media import _is_secret_ref, build_adapter
 
 
 class TestSecretRefDetection:

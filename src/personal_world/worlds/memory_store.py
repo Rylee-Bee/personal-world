@@ -28,14 +28,13 @@ import datetime as dt
 import json
 import os
 import re
-import shutil
 import sqlite3
 import time
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Iterator
 
-from .db import DB_NAME, Database, register_migrations
+from .db import Database, register_migrations
 
 __all__ = ["MemoryStore", "MemoryError_", "NotFound", "Locked", "NotPermitted_", "restore_backup"]
 
@@ -281,7 +280,7 @@ class MemoryStore:
             if "sensitivity" in clean and clean["sensitivity"] != current.get("sensitivity") and not step_up:
                 raise Locked("changing sensitivity needs step-up")
             merged = {**current, **clean, "updated_at": now}
-            tx.execute(f"UPDATE {table} SET {', '.join(f'{n}=?' for n in [*clean])}, updated_at=? WHERE id=?",
+            tx.execute(f"UPDATE {table} SET {', '.join(f'{n}=?' for n in [*clean])}, updated_at=? WHERE id=?",  # nosec B608  # {table} is allowlisted by _require_table and every column name by _field_value
                        [self._encode(n, v) for n, v in clean.items()] + [now, id])
             tx.execute("DELETE FROM find_index WHERE row_id=?", (id,))
             self._index(tx, table, id, merged["title"], merged["body"], merged.get("sensitivity", "normal"))
@@ -299,7 +298,7 @@ class MemoryStore:
         actor = _actor(actor)
         with self.db.write_tx() as tx:
             self._gate_locked(self._out(table, self._fetch(table, id, tx)), step_up)
-            tx.execute(f"DELETE FROM {table} WHERE id=?", (id,))
+            tx.execute(f"DELETE FROM {table} WHERE id=?", (id,))  # nosec B608  # {table} is allowlisted by _require_table
             tx.execute("DELETE FROM find_index WHERE row_id=?", (id,))
             self._record_history(tx, "deleted", table, id, None, actor=actor)
 
@@ -325,7 +324,7 @@ class MemoryStore:
         order = "(due_at IS NULL), due_at, created_at DESC, rowid DESC" if table == "later" \
             else "created_at DESC, rowid DESC"
         rows = self.db.conn().execute(
-            f"SELECT * FROM {table}{where} ORDER BY {order} LIMIT ? OFFSET ?",
+            f"SELECT * FROM {table}{where} ORDER BY {order} LIMIT ? OFFSET ?",  # nosec B608  # {table} is allowlisted by _require_table; {where}/{order} are literals
             ((status,) if status is not None else ()) + (limit, offset),
         ).fetchall()
         out = []
@@ -360,7 +359,7 @@ class MemoryStore:
         limit = _page(limit, _MAX_HISTORY)
         where = " WHERE id < ?" if before_id is not None else ""
         rows = self.db.conn().execute(
-            f"SELECT * FROM history{where} ORDER BY id DESC LIMIT ?",
+            f"SELECT * FROM history{where} ORDER BY id DESC LIMIT ?",  # nosec B608  # {where} is one of two literals
             ((before_id,) if before_id is not None else ()) + (limit,),
         ).fetchall()
         return [self._history_out(r) for r in rows]
@@ -387,7 +386,7 @@ class MemoryStore:
         actor = _actor(actor)
         include_locked = table == "records" and step_up is True
         self._log("exported", table, None, {"locked_included": include_locked} if table == "records" else None, actor=actor)
-        sql = f"SELECT * FROM {table}"
+        sql = f"SELECT * FROM {table}"  # nosec B608  # {table} is allowlisted by _require_table
         if table == "records" and not include_locked:
             sql += " WHERE sensitivity != 'locked'"
         rows = self.db.conn().execute(sql + " ORDER BY rowid").fetchall()
@@ -498,7 +497,7 @@ class MemoryStore:
     def _fetch(self, table: str, row_id: Any, conn: sqlite3.Connection | None = None) -> sqlite3.Row:
         if not isinstance(row_id, str):
             raise NotFound("no such row")
-        row = (conn or self.db.conn()).execute(f"SELECT * FROM {table} WHERE id=?", (row_id,)).fetchone()
+        row = (conn or self.db.conn()).execute(f"SELECT * FROM {table} WHERE id=?", (row_id,)).fetchone()  # nosec B608  # {table} is allowlisted by _require_table
         if row is None:
             raise NotFound("no such row")
         return row
@@ -506,7 +505,7 @@ class MemoryStore:
     def _insert(self, tx: sqlite3.Connection, table: str, values: dict) -> None:
         columns = ", ".join(values)
         try:
-            tx.execute(f"INSERT INTO {table} ({columns}) VALUES ({', '.join('?' * len(values))})",
+            tx.execute(f"INSERT INTO {table} ({columns}) VALUES ({', '.join('?' * len(values))})",  # nosec B608  # {table}/{columns} come from the TABLES and _FIELDS constants
                        [self._encode(name, value) for name, value in values.items()])
         except sqlite3.IntegrityError as exc:
             # The row is inserted inside the caller's write transaction, so raising here rolls the
@@ -610,7 +609,7 @@ def restore_backup(backup_path: str | os.PathLike[str], data_dir: str | os.PathL
             have = {r[1] for r in probe.execute(f"PRAGMA table_info({table})")}
             if not set(cols) <= have:
                 raise MemoryError_(f"{source} has an unexpected {table} table")
-            rows[table] = probe.execute(f"SELECT {', '.join(cols)} FROM {table} ORDER BY rowid").fetchall()
+            rows[table] = probe.execute(f"SELECT {', '.join(cols)} FROM {table} ORDER BY rowid").fetchall()  # nosec B608  # {cols} is checked against this table's own PRAGMA columns above
     except sqlite3.Error as exc:
         raise MemoryError_(f"{source} cannot be read as a database") from exc
     finally:
@@ -621,7 +620,7 @@ def restore_backup(backup_path: str | os.PathLike[str], data_dir: str | os.PathL
     db = Database.in_dir(data)               # freshly migrated: the schema is ours, never the backup's
     try:
         store = MemoryStore(db)
-        if any(db.conn().execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in TABLES):
+        if any(db.conn().execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in TABLES):  # nosec B608  # {t} iterates the TABLES constant
             raise MemoryError_("this database already holds memory; restore never overwrites it")
         try:
             return store._restore_rows(rows)

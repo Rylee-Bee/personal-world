@@ -47,3 +47,28 @@ filterwarnings = [
     "ignore::FutureWarning",
     "ignore::UserWarning",
 ]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.9.4",
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# B008 warns about a function call in an argument default. In FastAPI route
+# signatures that call IS the dependency-injection declaration — `Depends(x)`
+# and `Body(...)` are the framework's own contract, evaluated once at import
+# on purpose — so the mutable-default bug the rule hunts for cannot occur.
+# Scoped to the route modules (and the one test that builds a route app) so
+# the rule stays live everywhere else; inline noqa on every route parameter
+# would bury it at the places where it does apply.
+"src/personal_world/worlds/*_routes.py" = ["B008"]
+"src/personal_world/worlds/server.py" = ["B008"]
+"tests/worlds/test_authn.py" = ["B008"]

@@ -40,6 +40,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .classification import Classification
 from .journal import Journal
 from .model import JournalEvent, JournalKind
+from .url_safety import http_urlopen
 
 
 class Ask(BaseModel):
@@ -189,7 +190,7 @@ def real_model(
         method="POST",
     )
     try:
-        with _urlreq.urlopen(req, timeout=timeout) as resp:
+        with http_urlopen(req, timeout=timeout) as resp:
             body = _json.loads(resp.read().decode("utf-8"))
         text = body["choices"][0]["message"]["content"]
         start, end = text.find("{"), text.rfind("}")

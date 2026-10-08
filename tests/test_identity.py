@@ -17,7 +17,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from personal_world.identity import (  # noqa: E402
     IdentityStore,
     NoPrincipalError,
-    Principal,
     resolve_principal,
 )
 from personal_world.user import User, UserManager  # noqa: E402
@@ -174,7 +173,7 @@ class TestUserLayout:
     def test_user_manager_create_persists(self, tmp_path, monkeypatch):
         monkeypatch.setenv("PW_DATA_DIR", str(tmp_path))
         mgr = UserManager(tmp_path / "users-record")
-        u = mgr.create(User(id="fred", name="Fred", display_name="F"))
+        mgr.create(User(id="fred", name="Fred", display_name="F"))
         # both the record and the state dir should exist
         assert (tmp_path / "users-record" / "fred.json").exists()
         # per-user state dir forms under PW_DATA_DIR/users/fred
@@ -195,6 +194,7 @@ class TestPerUserPrefs:
     @pytest.fixture
     def app(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
+
         from personal_world.api import create_app
 
         monkeypatch.setenv("PW_API_TOKEN", "tok-aaaa-bbbb")

@@ -59,6 +59,14 @@ def _manifest(client):
 
 def _live_gates(app) -> dict[tuple[str, str], set[str]]:
     """(method, path) → declared auth dependency names, read from code."""
+
+    def walk(dep, into: set[str]) -> None:
+        call = getattr(dep, "call", None)
+        if call is not None:
+            into.add(getattr(call, "__name__", ""))
+        for sub in getattr(dep, "dependencies", []) or ():
+            walk(sub, into)
+
     index: dict[tuple[str, str], set[str]] = {}
     for route in app.routes:
         methods = getattr(route, "methods", None)
@@ -67,14 +75,7 @@ def _live_gates(app) -> dict[tuple[str, str], set[str]]:
             continue
         names: set[str] = set()
 
-        def walk(dep) -> None:
-            call = getattr(dep, "call", None)
-            if call is not None:
-                names.add(getattr(call, "__name__", ""))
-            for sub in getattr(dep, "dependencies", []) or ():
-                walk(sub)
-
-        walk(dependant)
+        walk(dependant, names)
         for method in methods:
             index[(method.upper(), route.path)] = names
     return index

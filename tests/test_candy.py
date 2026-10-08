@@ -2,9 +2,6 @@ import json
 import sys
 import urllib.error
 from pathlib import Path
-from unittest.mock import MagicMock
-
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 

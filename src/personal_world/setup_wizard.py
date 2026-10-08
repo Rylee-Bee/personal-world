@@ -42,11 +42,13 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
+from .url_safety import http_urlopen
+
 _logger = logging.getLogger("personal_world.setup_wizard")
 
 SETUP_MARKER = "setup-complete"
 CHOICES_FILE = "setup-choices.json"
-SECRET_ENV_DEFAULT = "PW_OIDC_CLIENT_SECRET"
+SECRET_ENV_DEFAULT = "PW_OIDC_CLIENT_SECRET"  # nosec B105  # the NAME of the env var holding the secret
 
 _ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 
@@ -130,12 +132,12 @@ def provision(data_dir: Path, config_dir: Path, journal=None) -> dict:
 
     # 1. Access token: file wins (matches boot reconciliation in
     #    api.py), then the live environment, then generate.
-    token_state = "already-present"
+    token_state = "already-present"  # nosec B105  # a state label, not a credential
     token = _read_env_token(env_file)
     if token is None:
         token = os.environ.get("PW_API_TOKEN") or None
         if token is not None:
-            token_state = "environment"
+            token_state = "environment"  # nosec B105  # a state label, not a credential
     if token is None:
         token = secrets.token_urlsafe(32)
         try:
@@ -173,7 +175,7 @@ def provision(data_dir: Path, config_dir: Path, journal=None) -> dict:
         )
 
     return {
-        "token_ready": True,
+        "token_ready": True,  # nosec B105  # a boolean readiness flag, not a credential
         "token_state": token_state,
         "stores_created": changed,
         "stores_already_present": skipped,
@@ -208,7 +210,7 @@ def test_oidc_discovery(issuer_url: str) -> dict:
     discovery = f"{url}/.well-known/openid-configuration"
     try:
         req = urllib.request.Request(discovery, headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with http_urlopen(req, timeout=10) as resp:
             body = resp.read()
     except urllib.error.HTTPError as exc:
         return {
@@ -636,8 +638,8 @@ def register_setup_wizard(
         _require_first_run()
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         issuer = (body or {}).get("issuer_url", "")
         result = await run_in_threadpool(test_oidc_discovery, issuer)
         return {"ok": result["status"] == "reachable", "data": result}
@@ -648,8 +650,8 @@ def register_setup_wizard(
         _require_first_run()
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
         try:
@@ -672,8 +674,8 @@ def register_setup_wizard(
         _require_first_run()
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             body = {}
         try:
@@ -705,8 +707,8 @@ def register_setup_wizard(
         _require_first_run()
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
         try:

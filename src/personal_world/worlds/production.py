@@ -18,18 +18,17 @@ from fastapi import FastAPI
 
 from ..oidc import OIDCService
 from .actions_routes import register_action_routes
-from .companion_routes import register_companion_routes
-from .auth_routes import register_auth_routes
-from .auth_routes import parse_trusted_proxies
+from .auth_routes import parse_trusted_proxies, register_auth_routes
 from .authn import Auth, load_csrf_key, load_key, principal_dependency
+from .companion_routes import register_companion_routes
+from .connect_routes import register_connect_routes
 from .db import Database
 from .dispatcher import LEASE_TTL_S, Dispatcher
-from .connect_routes import register_connect_routes
 from .memory_routes import register_memory_routes
 from .memory_store import MemoryStore
+from .owner import load_owner_policy, strong_secret
 from .room0 import Room0Client, RoomService
 from .room_routes import register_room_routes
-from .owner import load_owner_policy, strong_secret
 from .secrets import resolve_secret_ref
 from .server import build_app
 
@@ -105,7 +104,7 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
                 dispatcher.heartbeat()
                 dispatcher.recover()
                 dispatcher.expire_due()
-            except Exception:  # never let housekeeping kill the process
+            except Exception:  # nosec B110  # never let housekeeping kill the process
                 pass
 
     threading.Thread(target=maintain, name="worlds-maintenance", daemon=True).start()

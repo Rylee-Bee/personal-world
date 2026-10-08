@@ -17,13 +17,12 @@ import os
 import re
 import urllib.request
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import Any
 
 from ..envelope import Result, fail, ok
 from ..status import Status
+from ..url_safety import http_urlopen
 from .registry import Contract
-
 
 # ---------------------------------------------------------------------------
 # Domain models
@@ -125,7 +124,7 @@ class MediaAdapter(Contract):
         if headers:
             for k, v in headers.items():
                 req.add_header(k, v)
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with http_urlopen(req, timeout=15) as resp:
             return json.loads(resp.read().decode())
 
     def libraries(self) -> Result:
@@ -226,7 +225,7 @@ class PlexAdapter(MediaAdapter):
                 )
             return ok(
                 Status.HEALTHY.value,
-                data={"libraries": [l.to_dict() for l in libs], "count": len(libs)},
+                data={"libraries": [lib.to_dict() for lib in libs], "count": len(libs)},
             )
         except Exception as e:
             return Result(
@@ -371,7 +370,7 @@ class SonarrAdapter(MediaAdapter):
             return ok(
                 Status.HEALTHY.value,
                 data={
-                    "libraries": [l.to_dict() for l in libs_map.values()],
+                    "libraries": [lib.to_dict() for lib in libs_map.values()],
                     "count": len(libs_map),
                 },
             )
@@ -598,7 +597,7 @@ class RadarrAdapter(MediaAdapter):
             return ok(
                 Status.HEALTHY.value,
                 data={
-                    "libraries": [l.to_dict() for l in libs_map.values()],
+                    "libraries": [lib.to_dict() for lib in libs_map.values()],
                     "count": len(libs_map),
                 },
             )
@@ -812,7 +811,7 @@ class LidarrAdapter(MediaAdapter):
             return ok(
                 Status.HEALTHY.value,
                 data={
-                    "libraries": [l.to_dict() for l in libs],
+                    "libraries": [lib.to_dict() for lib in libs],
                     "count": len(libs),
                     "artist_count": len(artists),
                     "album_count": album_count,
@@ -1126,7 +1125,7 @@ class NativeMediaEngine(Contract):
     """Orchestrator that aggregates media providers into a unified view.
 
     Takes a list of configured provider connections, normalizes all data
-    into MediaItem/MediaLibrary/MediaActivity, and provides 
+    into MediaItem/MediaLibrary/MediaActivity, and provides
     degradation when providers are absent or unreachable.
     """
 
@@ -1195,7 +1194,7 @@ class NativeMediaEngine(Contract):
         all_libs: list[dict[str, Any]] = []
         warnings: list[str] = []
 
-        for name, adapter in self._adapters.items():
+        for adapter in self._adapters.values():
             r = adapter.libraries()
             if r.ok and r.data:
                 all_libs.extend(r.data.get("libraries", []))
@@ -1215,7 +1214,7 @@ class NativeMediaEngine(Contract):
         all_items: list[dict[str, Any]] = []
         warnings: list[str] = []
 
-        for name, adapter in self._adapters.items():
+        for adapter in self._adapters.values():
             r = adapter.recent(limit=limit)
             if r.ok and r.data:
                 all_items.extend(r.data.get("items", []))
@@ -1234,7 +1233,7 @@ class NativeMediaEngine(Contract):
         all_activities: list[dict[str, Any]] = []
         warnings: list[str] = []
 
-        for name, adapter in self._adapters.items():
+        for adapter in self._adapters.values():
             r = adapter.activity()
             if r.ok and r.data:
                 all_activities.extend(r.data.get("activities", []))
@@ -1252,7 +1251,7 @@ class NativeMediaEngine(Contract):
         all_items: list[dict[str, Any]] = []
         warnings: list[str] = []
 
-        for name, adapter in self._adapters.items():
+        for adapter in self._adapters.values():
             r = adapter.search(query)
             if r.ok and r.data:
                 all_items.extend(r.data.get("items", []))
@@ -1267,7 +1266,7 @@ class NativeMediaEngine(Contract):
 
     def item(self, item_id: str) -> Result:
         """Fetch a single item by id from the appropriate provider."""
-        for name, adapter in self._adapters.items():
+        for adapter in self._adapters.values():
             if item_id.startswith(f"{adapter.provider_name}:"):
                 return adapter.item(item_id)
 

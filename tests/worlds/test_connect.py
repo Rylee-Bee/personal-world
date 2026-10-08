@@ -229,7 +229,7 @@ def test_suggestions_are_capped_and_depth_limited():
 
 def test_tries_are_rate_limited_per_minute(env):
     app, c, h, ref = env
-    for i in range(10):
+    for _ in range(10):
         assert try_(c, h, "svc", {"path": "/status"}).status_code == 200
     r = try_(c, h, "svc", {"path": "/status"})
     assert r.status_code == 429 and 1 <= int(r.headers["retry-after"]) <= 60

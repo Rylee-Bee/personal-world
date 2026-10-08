@@ -5,9 +5,9 @@ implementation. The index is rebuildable and disposable. No Qdrant,
 Chroma, Postgres, vector database, or embedding server required.
 """
 
-import json
 import sqlite3
 from pathlib import Path
+
 from ..envelope import Result, fail, ok
 from ..status import Status
 from .registry import Contract

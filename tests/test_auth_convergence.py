@@ -25,8 +25,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from personal_world.identity import (  # noqa: E402
-    IdentityStore, NoPrincipalError, Principal,
-    resolve_oidc_principal, resolve_session_principal,
+    IdentityStore,
+    NoPrincipalError,
+    resolve_oidc_principal,
+    resolve_session_principal,
 )
 
 

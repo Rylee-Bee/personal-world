@@ -5,25 +5,24 @@ in store.py; this module holds the model container and the mutation gates
 that enforce the security rules regardless of caller).
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, timedelta
 from typing import Any
 
 from . import model
-from .classification import Classification
 from .envelope import Result, ok
 from .model import (
+    PROMOTION_PATH,
     Fact,
     Intent,
     Lore,
     LoreState,
     Mutability,
-    now,
     Override,
     Pack,
     Policy,
     PolicyEffect,
-    PROMOTION_PATH,
     Provenance,
+    now,
 )
 
 
@@ -194,7 +193,7 @@ class World:
                 if p.mutability == Mutability.CEMENTED
             ),
             "lore": {
-                s.value: sum(1 for l in self.lore.values() if l.state == s)
+                s.value: sum(1 for entry in self.lore.values() if entry.state == s)
                 for s in LoreState
             },
             # The world's own declared capabilities (a count). Distinct from

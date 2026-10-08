@@ -108,7 +108,6 @@ KNOWN LIMITS (stated, not hidden — see ``docs/CLI-REFERENCE.md``):
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import re
@@ -122,6 +121,7 @@ from typing import Any, Callable
 
 from .api_manifest import ENDPOINTS, GATES, KINDS, endpoint_manifest
 from .envelope import EXIT_ERROR, EXIT_OK, Result, fail, ok
+from .url_safety import http_urlopen
 
 # ── Exit codes ───────────────────────────────────────────────────────
 #: bad arguments (argparse uses 2 for a usage error; we agree with it)
@@ -160,9 +160,9 @@ DISPATCH_GROUP = "do"
 MANIFEST_COMMAND = "api-manifest"
 API_COMMAND = "api"
 
-TOKEN_ENV = "PW_API_TOKEN"
+TOKEN_ENV = "PW_API_TOKEN"  # nosec B105  # the NAME of the env var holding the token
 #: A different credential to act as (multi mode: an agent-scoped token).
-CLI_TOKEN_ENV = "PW_CLI_TOKEN"
+CLI_TOKEN_ENV = "PW_CLI_TOKEN"  # nosec B105  # the NAME of the env var holding the token
 #: The step-up credential. Never a flag: an explicit env credential that
 #: must resolve to the calling principal, mirroring POST /api/auth/step-up.
 STEP_UP_ENV = "PW_STEP_UP_TOKEN"
@@ -773,7 +773,7 @@ class Ctx:
                 if not result.ok:
                     entry["execution_warnings"] = list(result.warnings)
                 self.store._persist_locked()
-        except Exception:
+        except Exception:  # nosec B110  # see below: a persist failure must not change the answer
             # Persistence failure must never fake a successful execution:
             # the action already happened and its own result is returned.
             pass
@@ -819,7 +819,7 @@ class Ctx:
         )
         where = {"method": method.upper(), "path": path, "base": self.base_url}
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as resp:
+            with http_urlopen(request, timeout=self.timeout) as resp:
                 code = int(getattr(resp, "status", 200) or 200)
                 raw = resp.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as exc:

@@ -2,7 +2,6 @@
 import json
 import stat
 import time
-import uuid
 
 import pytest
 import yaml
@@ -52,7 +51,7 @@ def test_everything_needs_a_session_and_writes_need_csrf(env):
     for m, u in [("post", "/api/memory/kept"), ("patch", "/api/memory/kept/x"), ("delete", "/api/memory/kept/x"),
                  ("post", "/api/memory/backup")]:
         assert c.request(m.upper(), u, json={}).status_code == 401, u
-    h = login(app, c)
+    login(app, c)
     for m, u in [("post", "/api/memory/kept"), ("patch", "/api/memory/kept/x"), ("delete", "/api/memory/kept/x"),
                  ("post", "/api/memory/backup")]:
         assert c.request(m.upper(), u, json={"title": "t"}).status_code == 403, u               # session but no Origin/CSRF
@@ -153,7 +152,7 @@ def test_step_up_expires_and_a_token_never_has_it(env):
     rid = c.post("/api/memory/records", json={"title": "L", "sensitivity": "locked"}, headers=h).json()["id"]
     step_up(c, h)
     assert c.get(f"/api/memory/records/{rid}").status_code == 200
-    sid = c.cookies.get(SESSION_COOKIE)
+    c.cookies.get(SESSION_COOKIE)
     with app.state.db.write_tx() as tx:                                    # five minutes and a bit later
         tx.execute("update sessions set step_up_at = step_up_at - 400")
     assert c.get(f"/api/memory/records/{rid}").status_code == 403

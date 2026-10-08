@@ -18,7 +18,6 @@ from typing import Any
 from pydantic import BaseModel
 
 from .classification import Classification, field_meta
-from .model import JournalKind
 from .journal import StoryRenderer
 from .world import World
 
@@ -126,12 +125,12 @@ def world_export(world: World) -> dict[str, Any]:
         },
         "lore": {
             k: {
-                "key": l.key,
-                "value": l.value,
-                "state": l.state.value,
+                "key": entry.key,
+                "value": entry.value,
+                "state": entry.state.value,
             }
-            for k, l in world.lore.items()
-            if l.classification == Classification.WORLD
+            for k, entry in world.lore.items()
+            if entry.classification == Classification.WORLD
         },
         "packs": [pack.key for pack in world.packs.values()],
         "accessibility": dict(world.accessibility),
@@ -153,7 +152,7 @@ def backup_payload(world: World, journal) -> dict[str, Any]:
             "facts": {k: f.model_dump() for k, f in world.facts.items()},
             "intents": {k: i.model_dump() for k, i in world.intents.items()},
             "policies": {k: p.model_dump() for k, p in world.policies.items()},
-            "lore": {k: l.model_dump() for k, l in world.lore.items()},
+            "lore": {k: entry.model_dump() for k, entry in world.lore.items()},
             "capabilities": {k: c.model_dump() for k, c in world.capabilities.items()},
             "providers": {k: [p.model_dump() for p in v] for k, v in world.providers.items()},
             "packs": {k: p.model_dump() for k, p in world.packs.items()},

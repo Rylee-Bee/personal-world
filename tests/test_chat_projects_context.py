@@ -18,11 +18,7 @@ Contract under test:
   presents)
 """
 
-import json
-import subprocess
 from datetime import datetime, timedelta, timezone
-
-import pytest
 
 from personal_world.chat_context import build_world_context
 from personal_world.envelope import ok

@@ -13,12 +13,13 @@
 import json
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own `sops` CLI, argument-list form only
 import urllib.request
 from pathlib import Path
 
 from ..envelope import Result, fail, ok
 from ..status import Status
+from ..url_safety import http_urlopen
 from .registry import MemoryContract, SourceControlContract, StatusContract
 
 
@@ -33,7 +34,7 @@ class HttpStatus(StatusContract):
     def probe(self) -> Result:
         try:
             req = urllib.request.Request(self.url, method="GET")
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with http_urlopen(req, timeout=5) as resp:
                 code = resp.status
         except Exception as e:
             return Result(
@@ -62,7 +63,7 @@ class Gitea(SourceControlContract):
     env indirection (token_env); if absent, only unauthenticated
     endpoints are used. Never writes."""
 
-    def __init__(self, base_url: str, token_env: str = "") -> None:
+    def __init__(self, base_url: str, token_env: str = "") -> None:  # nosec B107  # the default is an empty env var NAME, never a credential
         self.base_url = base_url.rstrip("/")
         self.token_env = token_env
 
@@ -72,7 +73,7 @@ class Gitea(SourceControlContract):
         token = os.environ.get(self.token_env)
         if token:
             req.add_header("Authorization", f"token {token}")
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with http_urlopen(req, timeout=5) as resp:
             return json.loads(resp.read().decode())
 
     def observe(self) -> Result:
@@ -125,7 +126,7 @@ class LangGraphMemory(MemoryContract):
 
     def health(self) -> bool:
         try:
-            with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as resp:
+            with http_urlopen(f"{self.base_url}/health", timeout=5) as resp:
                 return resp.status == 200
         except Exception:
             return False
@@ -148,7 +149,7 @@ class LangGraphMemory(MemoryContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with http_urlopen(req, timeout=15) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -177,7 +178,7 @@ class CandyDispenser(StatusContract):
 
     def health(self) -> Result:
         try:
-            with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as resp:
+            with http_urlopen(f"{self.base_url}/health", timeout=5) as resp:
                 if resp.status != 200:
                     return fail(
                         Status.NEEDS_ATTENTION.value,
@@ -198,7 +199,7 @@ class CandyDispenser(StatusContract):
 
     def observe(self) -> Result:
         try:
-            with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as resp:
+            with http_urlopen(f"{self.base_url}/health", timeout=5) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception:
             return fail(
@@ -241,7 +242,7 @@ class SopsBroker:
         if not self.available():
             return []
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `sops` is checked with shutil.which before this
                 ["sops", "-d", "--output-type", "json", str(self.bundle_path)],
                 capture_output=True,
                 text=True,
@@ -268,8 +269,8 @@ class SopsBroker:
                 warnings=["sops or bundle missing"],
             )
         try:
-            proc = subprocess.Popen(consumer, stdin=subprocess.PIPE)
-            subprocess.run(
+            proc = subprocess.Popen(consumer, stdin=subprocess.PIPE)  # nosec B603  # argument list, no shell; `consumer` is the caller's own command, never user input
+            subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `sops` is checked with shutil.which before this
                 ["sops", "-d", str(self.bundle_path)],
                 stdout=proc.stdin,
                 timeout=timeout,

@@ -11,6 +11,7 @@
 """
 import json
 import sys
+from dataclasses import FrozenInstanceError
 from pathlib import Path
 
 import pytest
@@ -225,7 +226,7 @@ def test_put_journals_settings_change(env):
     c, tmp = env
     c.put("/api/sections", json={"order": ["chat"]}, headers=STEP)
     lines = (tmp / "journal.ndjson").read_text().splitlines()
-    events = [json.loads(l) for l in lines if l.strip()]
+    events = [json.loads(line) for line in lines if line.strip()]
     hits = [e for e in events
             if e["kind"] == "settings_change"
             and e["summary"] == "sections layout updated"]
@@ -293,7 +294,7 @@ def test_registry_shape_and_icons_exist_in_manifest():
     for sid, icon in sections.ICON_SUBSTITUTIONS.items():
         assert sections.BY_ID[sid].icon == icon
         assert icon in ids
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         sections.SECTIONS[0].icon = "x"  # frozen
 
 

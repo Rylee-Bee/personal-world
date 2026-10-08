@@ -12,7 +12,9 @@ Consumer: ``ui/scripts/generate-api-types.mjs`` (run by ``npm run api:generate``
 which is part of ``npm run build``) reads this file and writes
 ``ui/src/generated/api-types.ts``.
 """
-import json, sys, tempfile
+import json
+import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent

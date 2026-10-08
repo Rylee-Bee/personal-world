@@ -11,11 +11,13 @@ No notification server required. Sends via outbound HTTP/SMTP.
 """
 
 import json
-import urllib.request
-import urllib.error
 import os
+import urllib.error
+import urllib.request
+
 from ..envelope import Result, fail, ok
 from ..status import Status
+from ..url_safety import http_urlopen
 from .registry import StatusContract
 
 
@@ -31,7 +33,7 @@ class WebhookAdapter:
             data = json.dumps({"title": title, "body": body, "urgency": urgency}).encode()
             headers = {"Content-Type": "application/json", **self.headers}
             req = urllib.request.Request(self.url, data=data, headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with http_urlopen(req, timeout=15) as resp:
                 return resp.status in (200, 201, 202, 204)
         except Exception:
             return False
@@ -53,7 +55,7 @@ class NtfyAdapter:
             if self.token:
                 headers["Authorization"] = f"Bearer {self.token}"
             req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with http_urlopen(req, timeout=15) as resp:
                 return resp.status in (200, 201, 202)
         except Exception:
             return False

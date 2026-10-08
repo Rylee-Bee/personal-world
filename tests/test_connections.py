@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from personal_world.connection_manager import ConnectionManager
 from personal_world.provider_schemas import (
     CAPABILITY_SCHEMAS,

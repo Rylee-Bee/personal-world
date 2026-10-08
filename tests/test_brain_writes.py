@@ -26,21 +26,21 @@ from pathlib import Path  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from personal_world.app import load_world, save_world  # noqa: E402
+from personal_world.app import load_world  # noqa: E402
 from personal_world.journal import Journal  # noqa: E402
 from personal_world.providers.native_memory import (  # noqa: E402
     NativeMemoryProvider,
 )
 from personal_world.scheduler import Scheduler  # noqa: E402
 from personal_world.tool_registry import (  # noqa: E402
-    _proposals,
-    approve_proposal,
     _execute_approved_write,
-    _propose_world_intent,
-    _propose_world_fact,
-    _propose_reminder,
+    _proposals,
     _propose_reconciler_apply,
+    _propose_reminder,
+    _propose_world_fact,
+    _propose_world_intent,
     _search_journal,
+    approve_proposal,
 )
 
 

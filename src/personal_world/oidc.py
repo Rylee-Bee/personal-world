@@ -44,6 +44,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable
 
+from .url_safety import http_urlopen
+
 _logger = logging.getLogger("personal_world.oidc")
 
 # Optional extra, same convention as vault.py: present in the shipped
@@ -256,7 +258,7 @@ def _decode_json_body(body: bytes, *, what: str) -> Any:
     try:
         return json.loads(body.decode("utf-8"))
     except Exception as exc:
-        raise OIDCUnreachable(f"{what} returned a body that is not valid JSON ({exc})")
+        raise OIDCUnreachable(f"{what} returned a body that is not valid JSON ({exc})") from exc
 
 
 # --- configuration ------------------------------------------------------
@@ -283,7 +285,7 @@ class OIDCSettings:
         """The secret value, read from the named env var on every call.
 
         Never cached on the object, never logged, never serialised. An
-        unset variable yields ``""`` so callers can report the 
+        unset variable yields ``""`` so callers can report the
         'secret not set' state instead of crashing mid-login.
         """
         if not self.client_secret_env:
@@ -397,7 +399,7 @@ def load_settings(config_dir: Path | str) -> OIDCSettings:
     except OIDCError:
         raise
     except Exception as exc:
-        raise OIDCMisconfigured(f"{CONFIG_FILENAME} is not valid JSON: {exc}")
+        raise OIDCMisconfigured(f"{CONFIG_FILENAME} is not valid JSON: {exc}") from exc
     return settings_from_dict(data)
 
 
@@ -578,7 +580,7 @@ def default_transport(
         url, data=data, headers=request_headers, method="POST" if data else "GET"
     )
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with http_urlopen(request, timeout=timeout) as response:
             return response.status, response.read()
     except urllib.error.HTTPError as exc:  # a real HTTP answer
         try:
@@ -586,7 +588,7 @@ def default_transport(
         except Exception:
             return exc.code, b""
     except Exception as exc:
-        raise OIDCUnreachable(f"could not reach {url}: {type(exc).__name__}: {exc}")
+        raise OIDCUnreachable(f"could not reach {url}: {type(exc).__name__}: {exc}") from exc
 
 
 # --- PKCE ---------------------------------------------------------------
@@ -687,12 +689,12 @@ class FlowCodec:
                 ),
                 return_to=(str(data["return_to"]) if data.get("return_to") else None),
             )
-        except Exception:
+        except Exception as _err:
             raise OIDCLoginError(
                 "the sign-in attempt cookie is unreadable; start again "
                 "from the login page",
                 error_code="oidc_state_invalid",
-            )
+            ) from _err
         if self._clock() - pending.issued_at > self._max_age:
             raise OIDCLoginError(
                 "that sign-in attempt expired; start again from the login page",
@@ -839,7 +841,7 @@ def _public_key_from_jwk(jwk: dict, alg: str) -> Any:
         raise OIDCLoginError(
             f"provider JWKS key could not be loaded ({type(exc).__name__})",
             error_code="oidc_key_unsupported",
-        )
+        ) from exc
     raise OIDCLoginError(
         f"unsupported JWKS key type '{kty}'", error_code="oidc_key_unsupported"
     )
@@ -922,11 +924,11 @@ def _split_jwt(token: str) -> tuple[dict, dict, bytes, bytes]:
         header = json.loads(_b64u_decode(parts[0]).decode("utf-8"))
         claims = json.loads(_b64u_decode(parts[1]).decode("utf-8"))
         signature = _b64u_decode(parts[2])
-    except Exception:
+    except Exception as _err:
         raise OIDCLoginError(
             "id_token segments are not valid base64url JSON",
             error_code="oidc_id_token_malformed",
-        )
+        ) from _err
     if not isinstance(header, dict) or not isinstance(claims, dict):
         raise OIDCLoginError(
             "id_token header/claims are not JSON objects",
@@ -1307,12 +1309,12 @@ class OIDCClient:
             # Key rotation: refresh once, then fail.
             try:
                 jwk = _select_jwk(self.jwks(force=True), header, alg)
-            except _KeyNotFound:
+            except _KeyNotFound as _err:
                 raise OIDCLoginError(
                     "no key in the provider JWKS matches this id_token "
                     f"(kid={header.get('kid')!r}, alg={alg})",
                     error_code="oidc_key_not_found",
-                )
+                ) from _err
         if not verify_signature(alg, jwk, signing_input, signature):
             raise OIDCLoginError(
                 "id_token signature is invalid", error_code="oidc_bad_signature"

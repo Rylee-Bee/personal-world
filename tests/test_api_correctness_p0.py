@@ -5,7 +5,6 @@
 - GET /api/daily mutated and saved the world on every page view
 - reminder writes needed only plain auth, not the write-path gate
 """
-import json
 import sys
 from pathlib import Path
 

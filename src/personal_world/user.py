@@ -79,7 +79,7 @@ class UserManager:
                     data = json.loads(path.read_text())
                     user = User.model_validate(data)
                     self._users[user.id] = user
-                except Exception:
+                except Exception:  # nosec B112  # skip this user file, load the rest
                     continue
         self._loaded = True
 

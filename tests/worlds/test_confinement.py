@@ -208,7 +208,10 @@ def test_total_time_budget_applies_to_slow_drips(srv):
 
 
 def test_connection_refused_is_connection_error():
-    s = socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.close()
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
     p = Provider(id="p", name="P", kind="http", base_url=f"http://127.0.0.1:{port}", network={"lan": True})
     assert go(p, req()).error_class == "connection"
 
@@ -323,7 +326,9 @@ def test_internal_errors_fail_closed_without_raising(srv):
 
 
 def _tls_server(tmp_path):
-    import datetime, ssl
+    import datetime
+    import ssl
+
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import ec
@@ -353,7 +358,8 @@ def test_https_pins_ip_but_verifies_by_hostname(tmp_path):
     s = _tls_server(tmp_path)
     try:
         port = s.server_address[1]
-        resolver = lambda h, p: ["127.0.0.1"]
+        def resolver(h, p):
+            return ["127.0.0.1"]
         p = Provider(id="p", name="P", kind="http", base_url=f"https://app.example.test:{port}",
                      network={"lan": True}, tls_verify=False)
         out = go(p, req("/tls"), resolver=resolver)

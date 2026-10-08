@@ -2,14 +2,10 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from personal_world.app import build_registry, load_world, save_world  # noqa: E402
-from personal_world.cli import main as cli_main  # noqa: E402
+from personal_world.app import load_world, save_world  # noqa: E402
 from personal_world.model import (  # noqa: E402
-    Fact,
     Policy,
     PolicyEffect,
     Provenance,
@@ -112,6 +108,7 @@ class TestIntegrationLeakage:
     def test_candy_observation_minimal_fields(self, monkeypatch):
         import io
         import urllib.request
+
         from personal_world.providers.adapters import CandyDispenser
         fake_health = {
             "status": "ok", "notifications_sent": 3, "errors": 0,

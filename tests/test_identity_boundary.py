@@ -29,7 +29,6 @@ from personal_world.identity import (  # noqa: E402
     principal_scoped_path,
 )
 
-
 # ── unit: the single path-resolution seam ──────────────────────────────
 
 

@@ -688,7 +688,6 @@ def test_registry_owner_token_env_must_name_a_room_owner_token():
 def test_owner_token_env_survives_last_known_good(tmp_path):
     """The owner token env var NAME (never a value) persists through
     last-known-good, the same as the ordinary token_env."""
-    from personal_world import rooms
     from personal_world.rooms import RoomsService
 
     registry_path = tmp_path / "rooms-registry.json"

@@ -33,9 +33,9 @@ Errors are answers, not tracebacks: a refused config is a one-line ``detail``.
 from __future__ import annotations
 
 import os
-from urllib.parse import urlsplit
 from pathlib import Path
 from typing import Any, Callable, Iterable
+from urllib.parse import urlsplit
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, PlainTextResponse
@@ -93,7 +93,7 @@ def parse_host(value: str | None) -> str | None:
     try:
         parts = urlsplit("//" + value)
         hostname = parts.hostname
-        parts.port  # raises ValueError on a bad port
+        _ = parts.port  # raises ValueError on a bad port
     except ValueError:
         return None
     return hostname.lower() if hostname else None

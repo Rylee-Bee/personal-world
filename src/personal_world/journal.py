@@ -4,7 +4,6 @@ V0 persistence: newline-delimited JSON in a volume-backed file. The file
 is append-only; renderers (audit log, daily digest, story export) read it.
 """
 
-import json
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -84,7 +83,6 @@ class Journal:
         when the target is already superseded (branching corrections
         are not supported — correct the current entry instead).
         """
-        from datetime import datetime, timezone
 
         old = self.by_ts(target_ts)
         if old is None:

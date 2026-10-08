@@ -10,7 +10,6 @@ throwaway git repo with pytest disabled via PW_SAFE_COMMIT_SKIP_TESTS.
 import os
 import stat
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest

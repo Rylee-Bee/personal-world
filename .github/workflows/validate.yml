@@ -39,6 +39,9 @@ jobs:
     with:
       sync-args: "--extra test --extra crypto"
       pytest-args: "--timeout=30"
+      enable-ruff: true
+      enable-bandit: true
+      bandit-args: "-q -r . -x ./tests,./.venv,./node_modules -s B101"
 
   compose:
     runs-on: ubuntu-latest
@@ -69,12 +72,18 @@ jobs:
     with:
       sync-args: "--extra test"
       pytest-args: '--timeout=30 tests/test_core.py -k "SettingsExportSafety or CementedPolicy or TestJournal or WorldExport" -v'
+      enable-ruff: true
+      enable-bandit: true
+      bandit-args: "-q -r . -x ./tests,./.venv,./node_modules -s B101"
 
   framework-gates:
     uses: Rylee-Bee/ci-harness/.github/workflows/reusable-python.yml@561b1daa2314f5e902c5b1e4e2a24802a9ecdfaf  # ci-harness main, pinned 2026-09-29
     with:
       sync-args: "--extra test"
       pytest-args: "--timeout=30 tests/test_framework.py -v"
+      enable-ruff: true
+      enable-bandit: true
+      bandit-args: "-q -r . -x ./tests,./.venv,./node_modules -s B101"
       post-test-commands: "uv run personal-world framework validate --json"
 
   # The heart, kept honest automatically: Play-Nice contract currency —

@@ -1113,6 +1113,14 @@ ENDPOINTS: tuple[Endpoint, ...] = (
 
 def _route_index(routes: Iterable[Any]) -> dict[tuple[str, str], set[str]]:
     """(METHOD, path) → the auth dependency names the code declares."""
+
+    def walk(dependant: Any, into: set[str]) -> None:
+        call = getattr(dependant, "call", None)
+        if call is not None:
+            into.add(getattr(call, "__name__", ""))
+        for sub in getattr(dependant, "dependencies", []) or ():
+            walk(sub, into)
+
     index: dict[tuple[str, str], set[str]] = {}
     for route in routes:
         methods = getattr(route, "methods", None)
@@ -1121,18 +1129,11 @@ def _route_index(routes: Iterable[Any]) -> dict[tuple[str, str], set[str]]:
             continue
         names: set[str] = set()
 
-        def walk(dependant: Any) -> None:
-            call = getattr(dependant, "call", None)
-            if call is not None:
-                names.add(getattr(call, "__name__", ""))
-            for sub in getattr(dependant, "dependencies", []) or ():
-                walk(sub)
-
         dependant = getattr(route, "dependant", None)
         if dependant is not None:
             try:
-                walk(dependant)
-            except Exception:  # introspection must never break the manifest
+                walk(dependant, names)
+            except Exception:  # nosec B110  # introspection must never break the manifest
                 pass
         for method in methods:
             index.setdefault((method.upper(), path), set()).update(names)

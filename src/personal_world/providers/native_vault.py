@@ -25,7 +25,7 @@ class NativeVaultProvider(StatusContract):
             if is_unlocked and hasattr(self._vault, 'list_names'):
                 try:
                     names = self._vault.list_names()
-                except Exception:
+                except Exception:  # nosec B110  # an unreadable vault still reports its own status
                     pass
             return ok(Status.HEALTHY.value, data={
                 "locked": not is_unlocked,

@@ -15,14 +15,13 @@ Invariants protected:
 """
 
 import sys
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from personal_world.classification import Classification  # noqa: E402
 from personal_world.envelope import Result  # noqa: E402
 from personal_world.model import (  # noqa: E402
     Capability,
@@ -35,7 +34,6 @@ from personal_world.providers.registry import (  # noqa: E402
 )
 from personal_world.status import Status, worst  # noqa: E402
 from personal_world.world import World  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # Hand-rolled fakes (no unittest.mock)

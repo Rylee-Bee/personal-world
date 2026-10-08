@@ -26,8 +26,6 @@ the world but never mutates privileged state.
 import json
 from typing import Any
 
-from .envelope import Result, fail, ok
-
 # ONE set of live provider classes (ORPH-03 de-duplication): the
 # provider implementations, the builder, and the lenient small-model
 # tool-call parser all are in ``chat_registry``. This module keeps the
@@ -43,6 +41,7 @@ from .chat_registry import (  # noqa: F401
     build_chat_provider,
     lenient_tool_calls,
 )
+from .envelope import Result, fail, ok
 
 MAX_CONTEXT_CHARS = 8000
 """Upper bound on the injected world-context block so a bloated world

@@ -3,7 +3,7 @@ import pytest
 from pydantic import ValidationError
 
 from personal_world.worlds.cards import CardService
-from personal_world.worlds.models import Card, Meter
+from personal_world.worlds.models import Meter
 from personal_world.worlds.runner import Runner
 
 from .conftest import add_card, add_request, ok
@@ -95,8 +95,8 @@ def test_meter_config_validated(meter):
 
 
 def test_seeded_reference_status_has_a_real_progress_meter(store, send):
-    from personal_world.worlds.seed import seed_reference_config
     from personal_world.worlds.reference_provider import ReferenceServer, reference_send
+    from personal_world.worlds.seed import seed_reference_config
     with ReferenceServer() as srv:
         seed_reference_config(store, srv.base_url)
         m = CardService(store, Runner(store, reference_send({"REF_TOKEN": "x"}))).build("reference-status")["meter"]

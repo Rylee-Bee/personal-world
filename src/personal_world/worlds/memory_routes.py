@@ -11,8 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable
 
-from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import Body, Depends, FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from .authn import Principal
 from .memory_store import Locked, MemoryError_, MemoryStore, NotFound, NotPermitted_

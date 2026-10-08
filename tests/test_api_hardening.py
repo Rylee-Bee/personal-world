@@ -61,8 +61,8 @@ class TestJournalClamp:
 
 class TestSetupStatusForce:
     def test_force_setup_reports_needed(self, tmp_path, monkeypatch):
-        from personal_world.init import init_world
         from personal_world.api import create_app
+        from personal_world.init import init_world
 
         init_world(tmp_path, tmp_path)
         monkeypatch.setenv("FORCE_SETUP", "1")

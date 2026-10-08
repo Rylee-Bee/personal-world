@@ -40,7 +40,7 @@ __all__ = ["seed_reference_config"]
 
 #: The secret name the seed's bearer provider refers to. The value is supplied
 #: by whatever runs the sender; it is never written to disk here.
-SECRET_REF = "env:REF_TOKEN"
+SECRET_REF = "env:REF_TOKEN"  # nosec B105  # an env-indirection reference; the value itself is never in this file
 
 
 def seed_reference_config(store: ConfigStore, base_url: str) -> list[str]:

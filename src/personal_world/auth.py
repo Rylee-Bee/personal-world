@@ -10,9 +10,9 @@ import logging
 import os
 import secrets
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-from dataclasses import dataclass, field
 
 _logger = logging.getLogger("personal_world.auth")
 
@@ -198,7 +198,7 @@ class AuthManager:
             try:
                 data = json.loads(oidc_path.read_text())
                 self._oidc_config = OIDCConfig(**data)
-            except Exception:
+            except Exception:  # nosec B110  # unreadable OIDC config means OIDC is simply off
                 pass
         self._bootstrap_token = os.environ.get("PW_API_TOKEN")
 
@@ -217,7 +217,7 @@ class AuthManager:
         the same Principal as a bearer request (in multi mode this is
         the user that owns the token, not a fixed string).
         """
-        from .identity import resolve_principal, NoPrincipalError
+        from .identity import NoPrincipalError, resolve_principal
 
         if self._identity is not None:
             store, mode, instance_token = self._seam()
@@ -334,7 +334,7 @@ class AuthManager:
         """
         if not token:
             return False
-        from .identity import resolve_principal, NoPrincipalError
+        from .identity import NoPrincipalError, resolve_principal
 
         if self._identity is not None:
             store, mode, instance_token = self._seam()

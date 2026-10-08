@@ -273,7 +273,7 @@ def test_recovery_has_already_run_before_the_first_request(tmp_path, monkeypatch
     first.state.db.close()
     second = create_app(cfg, data, maintenance_interval=3600)
     c = TestClient(second, base_url=ORIGIN, follow_redirects=False)
-    h = login(second, c)
+    login(second, c)
     assert c.get("/api/receipts").json()[0]["state"] == "UNKNOWN"      # already settled when the first request lands
 
 
@@ -294,7 +294,8 @@ def test_a_live_process_is_not_recovered_out_from_under_itself(tmp_path, monkeyp
 
 
 def test_new_app_does_not_use_the_old_auth_stack():
-    import subprocess, sys
+    import subprocess
+    import sys
     out = subprocess.run([sys.executable, "-c",
                           "import sys, personal_world.worlds.production as p; "
                           "print([m for m in ('personal_world.api','personal_world.auth','personal_world.auth_routes','personal_world.identity') if m in sys.modules])"],

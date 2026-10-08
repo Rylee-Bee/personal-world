@@ -734,7 +734,7 @@ class ProposalStore:
             return
         try:
             target.record(kind, summary, source="brain-proposal")
-        except Exception:
+        except Exception:  # nosec B110  # a journal hiccup must not lose the proposal itself
             pass
 
     def propose(
@@ -1424,8 +1424,9 @@ def _list_content_repos(content_provider: Any) -> Result:
 def _source_control_status(source_control: Any, config_dir: Any = None) -> Result:
     """Get source control status."""
     try:
-        from .source_control import configured_search_paths, status_all
         from pathlib import Path
+
+        from .source_control import configured_search_paths, status_all
 
         if config_dir is None:
             return fail("not_configured", warnings=["no config directory"])
@@ -1445,8 +1446,9 @@ def _source_control_history(
 ) -> Result:
     """Get commit history for a repository name or path."""
     try:
-        from .source_control import discover_repositories, repository_history
         from pathlib import Path
+
+        from .source_control import discover_repositories, repository_history
 
         path: str | None = repo
         if config_dir is not None:
@@ -1570,18 +1572,18 @@ def _build_media_engine(connection_manager: Any = None, config_dir: Any = None):
     - connections[] entries (tracked config, provider shape)
     - flat UI config (connections.local.json, schema-driven shape)
     """
+    from .connection_manager import resolve_media_connections
     from .providers.native_media import (
         MEDIA_CONNECTION_TYPES,
         build_media_engine_from_connections,
     )
-    from .connection_manager import resolve_media_connections
 
     if connection_manager is not None:
         config = connection_manager.get_all_config()
     else:
         import json as _json
-        from pathlib import Path
         import os
+        from pathlib import Path
 
         cfg_dir = Path(config_dir or os.environ.get("PW_CONFIG_DIR", "./config"))
         connections_path = cfg_dir / "connections.json"

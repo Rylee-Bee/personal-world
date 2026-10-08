@@ -12,7 +12,7 @@ import sqlite3
 import threading
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Iterator
+from typing import Iterator
 
 DB_NAME = "worlds.db"
 

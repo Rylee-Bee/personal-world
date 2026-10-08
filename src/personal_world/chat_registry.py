@@ -15,11 +15,12 @@ API. Preferences persist per-user.
 import json
 import os
 import re
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own `opencode` CLI, argument-list form only
 import urllib.request
 from typing import Any
 
 from .envelope import Result, fail, ok
+from .url_safety import http_urlopen
 
 CHAT_TIMEOUT_SECONDS = 120
 
@@ -118,7 +119,7 @@ def _lenient_json_loads(raw: Any) -> Any:
             parsed = json.loads(candidate)
             if isinstance(parsed, dict):
                 return parsed
-        except Exception:
+        except Exception:  # nosec B112  # one more parse strategy; none parsed, so try the next
             continue
     # Last resort: python-ish literals (single quotes, True/None). ast is
     # safe here — it evaluates literals only, never expressions.
@@ -128,7 +129,7 @@ def _lenient_json_loads(raw: Any) -> Any:
         parsed = ast.literal_eval(_balance_json(text))
         if isinstance(parsed, dict):
             return parsed
-    except Exception:
+    except Exception:  # nosec B110  # a parse that did not yield an object is simply not JSON
         pass
     return None
 
@@ -376,7 +377,7 @@ class OllamaChat(ChatContract):
 
     def observe(self) -> Result:
         try:
-            with urllib.request.urlopen(f"{self.base_url}/api/tags", timeout=5) as resp:
+            with http_urlopen(f"{self.base_url}/api/tags", timeout=5) as resp:
                 payload = json.loads(resp.read().decode())
             models = [m.get("name", "") for m in payload.get("models", [])]
             present = any(
@@ -406,7 +407,7 @@ class OllamaChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -456,7 +457,7 @@ class OllamaChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -502,7 +503,7 @@ class OpenAICompatChat(ChatContract):
             else:
                 url = f"{base}/v1/models"
             req = urllib.request.Request(url, headers=self._headers())
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with http_urlopen(req, timeout=5) as resp:
                 payload = json.loads(resp.read().decode())
             ids = [m.get("id", "") for m in payload.get("data", [])]
             present = self.model in ids if ids else True
@@ -534,7 +535,7 @@ class OpenAICompatChat(ChatContract):
             url, data=body, headers=self._headers(), method="POST"
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -580,7 +581,7 @@ class OpenAICompatChat(ChatContract):
             url, data=data, headers=self._headers(), method="POST"
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -624,7 +625,7 @@ class OpenAIChat(ChatContract):
             req = urllib.request.Request(
                 "https://api.openai.com/v1/models", headers=self._headers()
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with http_urlopen(req, timeout=10) as resp:
                 payload = json.loads(resp.read().decode())
             ids = [m.get("id", "") for m in payload.get("data", [])]
             present = any(self.model in m for m in ids)
@@ -649,7 +650,7 @@ class OpenAIChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -692,7 +693,7 @@ class OpenAIChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(ok=False, status="unavailable", warnings=[f"openai: {e}"])
@@ -774,7 +775,7 @@ class AnthropicChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -888,7 +889,7 @@ class AnthropicChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(ok=False, status="unavailable", warnings=[f"anthropic: {e}"])
@@ -948,7 +949,7 @@ class OpenCodeChat(ChatContract):
 
     def observe(self) -> Result:
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `opencode` is the operator's own CLI on PATH
                 ["opencode", "models"],
                 capture_output=True,
                 text=True,
@@ -982,7 +983,7 @@ class OpenCodeChat(ChatContract):
         prompt = "\n\n".join(prompt_parts)
 
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `opencode` is the operator's own CLI on PATH
                 ["opencode", "run", "--model", self.model, "--format", "json"],
                 input=prompt,
                 capture_output=True,
@@ -1024,8 +1025,6 @@ class OpenCodeChat(ChatContract):
                 text = event.get("part", {}).get("text", "")
                 if text:
                     reply += text
-            elif event.get("type") == "step_finish":
-                tokens = event.get("part", {}).get("tokens", {})
 
         reply = reply.strip()
         if not reply:

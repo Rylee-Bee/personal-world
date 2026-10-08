@@ -1,11 +1,10 @@
 """Acceptance tests for personal_world.worlds.config_store (C1 store behaviour)."""
-import os
 import stat
 
 import pytest
 import yaml
 
-from personal_world.worlds.config_store import ConfigStore, ConfigInvalid, EtagMismatch
+from personal_world.worlds.config_store import ConfigInvalid, ConfigStore, EtagMismatch
 from personal_world.worlds.models import Action, Board, Card, Provider, Request
 
 

@@ -13,7 +13,6 @@ focus behavior, touch targets, or the accessibility contract.
 
 import json
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -85,7 +84,7 @@ class ThemePackRegistry:
                     data = json.loads(manifest_path.read_text())
                     pack = ThemePack.model_validate(data)
                     self._packs[pack.name] = pack
-                except Exception:
+                except Exception:  # nosec B112  # skip this pack file, load the rest
                     continue
         self._loaded = True
 

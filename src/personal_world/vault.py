@@ -119,7 +119,7 @@ class Vault:
                 encrypted = payload["data"].encode()
                 decrypted = self._fernet.decrypt(encrypted)
                 self._secrets = json.loads(decrypted)
-            except (InvalidToken, json.JSONDecodeError) as e:
+            except (InvalidToken, json.JSONDecodeError):
                 return fail(
                     "unauthorized",
                     warnings=["wrong passphrase or corrupt vault"],
@@ -246,10 +246,10 @@ class SOPSVaultAdapter(VaultContract):
     def _load(self) -> None:
         if self._loaded:
             return
-        import subprocess
+        import subprocess  # nosec B404  # drives the operator's own `sops` CLI, argument-list form only
 
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `sops` is the operator's own binary on PATH
                 ["sops", "-d", str(self.sops_file)],
                 capture_output=True,
                 text=True,

@@ -7,11 +7,11 @@ Proves:
 """
 
 import pytest
+
 from personal_world.envelope import Result
 from personal_world.tool_registry import (
-    _proposals,
     _execute_approved_write,
-    approve_proposal,
+    _proposals,
 )
 
 

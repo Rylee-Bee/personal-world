@@ -16,13 +16,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from personal_world.app import build_registry  # noqa: E402
-from personal_world.cli import main as cli_main  # noqa: E402
-from personal_world.init import init_world  # noqa: E402
 from personal_world.model import ProviderMode  # noqa: E402
 from personal_world.providers.registry import Registry  # noqa: E402
 from personal_world.source_control import (  # noqa: E402

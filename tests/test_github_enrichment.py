@@ -14,11 +14,9 @@ Contract under test:
 """
 
 import subprocess
-from pathlib import Path
 
 import pytest
 
-from personal_world.envelope import Result
 from personal_world.providers.github import GitHubEnrichment, _gh_binary
 
 
@@ -235,6 +233,7 @@ class TestEndpoint:
     def client(self, tmp_path, monkeypatch):
         monkeypatch.setenv("PW_API_TOKEN", "t")
         from fastapi.testclient import TestClient
+
         from personal_world.api import create_app
         repo = tmp_path / "someworld"
         repo.mkdir()
@@ -258,6 +257,7 @@ class TestEndpoint:
     def test_requires_auth(self, tmp_path, monkeypatch):
         monkeypatch.setenv("PW_API_TOKEN", "t")
         from fastapi.testclient import TestClient
+
         from personal_world.api import create_app
         c = TestClient(create_app(tmp_path, tmp_path))
         r = c.get("/api/source-control/enrichment?repo=x")
@@ -305,6 +305,7 @@ class TestNoSecondCredentialSystem:
     def _code_lines(self):
         import ast
         import inspect
+
         from personal_world.providers import github as mod
         tree = ast.parse(inspect.getsource(mod))
         docstrings = set()

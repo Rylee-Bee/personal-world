@@ -8,12 +8,11 @@ Proves:
 - existing secret-name-only audit behavior preserved
 """
 
-import pytest
 from unittest.mock import patch
-from pathlib import Path
 
-from personal_world.vault import Vault, _HAS_CRYPTO
+import pytest
 
+from personal_world.vault import _HAS_CRYPTO, Vault
 
 pytestmark = pytest.mark.skipif(
     not _HAS_CRYPTO,

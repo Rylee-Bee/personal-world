@@ -6,8 +6,17 @@ import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from personal_world.worlds.authn import (ABSOLUTE_SECONDS, CSRF_COOKIE, IDLE_SECONDS, SESSION_COOKIE, Auth, Principal, load_key,
-                                         load_csrf_key, principal_dependency)
+from personal_world.worlds.authn import (
+    ABSOLUTE_SECONDS,
+    CSRF_COOKIE,
+    IDLE_SECONDS,
+    SESSION_COOKIE,
+    Auth,
+    Principal,
+    load_csrf_key,
+    load_key,
+    principal_dependency,
+)
 from personal_world.worlds.db import Database
 
 ORIGIN = "https://worlds.example.test"
@@ -116,7 +125,7 @@ def test_session_expiry_idle_and_absolute(env):
     assert c.get("/own").status_code == 200
     clock.t += IDLE_SECONDS + 1
     assert c.get("/own").status_code == 401
-    sid = login(auth, c)
+    login(auth, c)
     for _ in range(int(ABSOLUTE_SECONDS // 3600) + 2):  # keep it active, absolute cap still applies
         clock.t += 3600
         c.get("/own")
@@ -150,7 +159,7 @@ def test_agent_token_scopes_and_owner_only_routes(env):
 def test_bad_tokens_never_authenticate_and_never_fall_back_to_cookie(env):
     auth, c, clock, _ = env
     tid, token = auth.tokens.create("a", ["x"], ttl_s=60)
-    sid = login(auth, c)
+    login(auth, c)
     cases = [token + "x", token[:-3], "pwa_" + tid + "_wrong", "pwa_unknown_" + token.split("_", 2)[2], "", "nope",
              token.replace("pwa_", "pwb_")]
     for t in cases:
@@ -223,7 +232,6 @@ def test_database_files_and_directory_are_private(tmp_path):
 
 
 def test_key_creation_is_race_free_private_and_leaves_no_temp_files(tmp_path):
-    import multiprocessing as mp
     import threading
     out = []
     ts = [threading.Thread(target=lambda: out.append(load_key(tmp_path / "d", "oidc-flow.key"))) for _ in range(24)]
@@ -236,7 +244,8 @@ def test_key_creation_is_race_free_private_and_leaves_no_temp_files(tmp_path):
 
 
 def test_key_creation_across_processes(tmp_path):
-    import subprocess, sys
+    import subprocess
+    import sys
     code = ("import sys; from personal_world.worlds.authn import load_key; "
             "sys.stdout.write(load_key(sys.argv[1], 'csrf.key').hex())")
     procs = [subprocess.Popen([sys.executable, "-c", code, str(tmp_path / "x")], stdout=subprocess.PIPE) for _ in range(8)]

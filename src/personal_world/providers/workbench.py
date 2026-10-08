@@ -34,7 +34,7 @@ import json
 import os
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own container/agent tooling, argument-list form only
 import uuid
 from typing import Any
 
@@ -221,7 +221,7 @@ class WorkbenchPodman(StatusContract):
                 "unavailable", f"'{self.podman_bin}' not found on PATH"
             )
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603  # argument list, no shell; `binary` was resolved with shutil.which
                 [binary, "ps", "--format", "json"],
                 capture_output=True,
                 text=True,
@@ -341,7 +341,7 @@ class WorkbenchPodman(StatusContract):
         try:
             # env=dict(self.exec_env) — explicitly empty by default.
             # No shell=True anywhere, ever.
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603  # argument list, no shell (never shell=True); each part is allow-listed above
                 cmd,
                 capture_output=True,
                 text=True,
