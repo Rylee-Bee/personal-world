@@ -42,6 +42,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
+from .url_safety import http_urlopen
+
 _logger = logging.getLogger("personal_world.setup_wizard")
 
 SETUP_MARKER = "setup-complete"
@@ -208,7 +210,7 @@ def test_oidc_discovery(issuer_url: str) -> dict:
     discovery = f"{url}/.well-known/openid-configuration"
     try:
         req = urllib.request.Request(discovery, headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with http_urlopen(req, timeout=10) as resp:
             body = resp.read()
     except urllib.error.HTTPError as exc:
         return {
@@ -636,8 +638,8 @@ def register_setup_wizard(
         _require_first_run()
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         issuer = (body or {}).get("issuer_url", "")
         result = await run_in_threadpool(test_oidc_discovery, issuer)
         return {"ok": result["status"] == "reachable", "data": result}
@@ -648,8 +650,8 @@ def register_setup_wizard(
         _require_first_run()
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
         try:
@@ -672,8 +674,8 @@ def register_setup_wizard(
         _require_first_run()
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             body = {}
         try:
@@ -705,8 +707,8 @@ def register_setup_wizard(
         _require_first_run()
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
         try:

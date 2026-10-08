@@ -2,7 +2,6 @@
 from pathlib import Path
 
 import pytest
-import yaml
 
 from personal_world.worlds.recipes import load_recipe
 

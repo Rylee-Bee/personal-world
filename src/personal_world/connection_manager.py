@@ -13,7 +13,6 @@ from typing import Any
 
 from .secret_resolver import resolve_secrets
 
-
 # ── Canonical config resolver ──
 #
 # The Connections UI saves flat key-value pairs with `_adapter` as the

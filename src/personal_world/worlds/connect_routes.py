@@ -25,8 +25,8 @@ from pydantic import ValidationError
 
 from .authn import Principal
 from .cards import CardService
-from .confinement import ConfinementError, RawResponse, confined_request
 from .config_store import ConfigStore, _describe
+from .confinement import ConfinementError, RawResponse, confined_request
 from .models import Card, Provider, Request
 from .secrets import resolve_secret_ref
 from .suggest import SAMPLE_BYTES, redact_sample, scrub_text, suggest_fields

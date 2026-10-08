@@ -8,7 +8,14 @@ import threading
 import pytest
 
 from personal_world.worlds.db import Database
-from personal_world.worlds.memory_store import (Locked, MemoryError_, MemoryStore, NotFound, NotPermitted_, restore_backup)
+from personal_world.worlds.memory_store import (
+    Locked,
+    MemoryError_,
+    MemoryStore,
+    NotFound,
+    NotPermitted_,
+    restore_backup,
+)
 
 NOW = 4_000_000.0
 
@@ -648,7 +655,7 @@ def test_backup_files_stay_private_for_their_whole_lifetime(ms, tmp_path):
     import os
     before = os.umask(0o022)
     try:
-        path = ms.backup(tmp_path / "bk2")
+        ms.backup(tmp_path / "bk2")
         assert os.umask(0o022) == 0o022                        # the process umask is put back
     finally:
         os.umask(before)

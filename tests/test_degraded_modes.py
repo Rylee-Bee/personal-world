@@ -42,7 +42,6 @@ from personal_world.api import create_app  # noqa: E402
 from personal_world.chat_registry import ChatContract  # noqa: E402
 from personal_world.envelope import Result, fail, ok  # noqa: E402
 
-
 TOKEN = "degraded-matrix-token-1"  # pw-safety: synthetic
 
 

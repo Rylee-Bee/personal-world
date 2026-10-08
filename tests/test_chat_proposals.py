@@ -18,15 +18,14 @@ Contract under test:
 """
 
 import json
-from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
 
 from personal_world.chat import (
     PROPOSAL_HEADER,
-    extract_proposal,
     build_chat_messages,
+    extract_proposal,
 )
 from personal_world.journal import Journal
 
@@ -164,9 +163,8 @@ class TestEndpointProposalValidation:
     def client(self, tmp_path, monkeypatch):
         monkeypatch.setenv("PW_API_TOKEN", "t")
         from personal_world.api import create_app
-        from personal_world.providers.registry import Registry, Provider
         from personal_world.chat import ChatContract
-        from personal_world.envelope import Result, ok
+        from personal_world.envelope import ok
 
         class FixtureProvider(ChatContract):
             def __init__(self, reply_text):
@@ -179,8 +177,6 @@ class TestEndpointProposalValidation:
                 return ok("healthy", data={})
 
         # a real journal entry so the proposal target resolves
-        app = None
-
         conn = tmp_path / "connections.json"
         conn.write_text(json.dumps({
             "connections": [{

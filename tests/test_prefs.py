@@ -285,6 +285,7 @@ class TestApiPrefs:
     @pytest.fixture()
     def client(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
+
         from personal_world.api import create_app
         monkeypatch.setenv("PW_API_TOKEN", "t")
         app = create_app(tmp_path, tmp_path)
@@ -332,6 +333,7 @@ class TestApiPrefs:
 
     def test_prefs_require_auth(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
+
         from personal_world.api import create_app
         monkeypatch.setenv("PW_API_TOKEN", "t")
         c = TestClient(create_app(tmp_path, tmp_path))

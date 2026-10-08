@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from pydantic import ValidationError
 
 from personal_world.worlds.config_store import ConfigStore
 from personal_world.worlds.recipes import RecipeError, install, list_recipes, load_recipe
@@ -64,7 +65,7 @@ def test_a_planned_recipe_lists_but_does_not_install(tmp_path):
 
 def test_a_bad_secret_ref_or_name_is_refused(tmp_path):
     make(tmp_path)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         install(ConfigStore(tmp_path / "cfg"), load_recipe("thing", tmp_path), base_url="http://thing.home.test:1234", secret_ref="literal-key-value")
     with pytest.raises(RecipeError):
         load_recipe("../etc", tmp_path)

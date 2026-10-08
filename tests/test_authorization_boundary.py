@@ -12,18 +12,15 @@ These tests verify:
 """
 
 import pytest
+
 from personal_world.envelope import Result
 from personal_world.tool_registry import (
-    ToolRegistry,
     Tool,
-    build_default_tools,
+    ToolRegistry,
     _proposals,
-    _proposal_counter,
+    _propose_journal_write,
     approve_proposal,
     reject_proposal,
-    list_proposals,
-    get_proposal,
-    _propose_journal_write,
 )
 
 

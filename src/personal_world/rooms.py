@@ -902,7 +902,7 @@ def _action_form(schema: Any) -> tuple[list[dict[str, Any]] | None, bool]:
                 "kind": "choices" if kind == "array" else "choice",
                 "label": label,
                 "required": name in required,
-                "options": [{"value": v, "label": _clip(n, 40)} for v, n in zip(enum, names)],
+                "options": [{"value": v, "label": _clip(n, 40)} for v, n in zip(enum, names, strict=True)],
             }
             if kind == "array":
                 most = spec.get("maxItems")

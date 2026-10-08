@@ -5,13 +5,13 @@ configured -> protected routes 503; wrong token -> 401. The token is
 compared with hmac.compare_digest and never logged.
 """
 
-import datetime as _dt
 import asyncio
+import datetime as _dt
 import json
 import logging
+import os
 import re
 import secrets
-import os
 import threading
 import time
 import urllib.error
@@ -22,49 +22,48 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import export, prefs, records as records_mod, voice
-from .connection_manager import ConnectionManager
-from .provider_schemas import (
-    get_capability_schemas,
-    get_capability_schema,
-    CAPABILITY_SCHEMAS,
-)
+from . import crew, export, journal_gate, prefs, rooms_visits, voice
+from . import people as people_mod
+from . import records as records_mod
 from . import sections as sections_mod
-from .template_registry import TemplateRegistry
 from .app import build_registry, load_world, save_world
+from .briefing import SYSTEM_IDS, build_briefing
 from .chat import (
+    build_chat_messages,
     chat_once,
     chat_with_tools_loop,
-    build_chat_messages,
     extract_proposal,
 )
-from .chat_context import build_world_context, build_ui_context
+from .chat_context import build_ui_context, build_world_context
 from .chat_history import ChatHistory
+from .connection_manager import ConnectionManager
 from .envelope import Result
 from .journal import AuditRenderer, Journal
-from . import journal_gate
 from .loop import daily
-from .briefing import build_briefing, SYSTEM_IDS
+from .provider_schemas import (
+    CAPABILITY_SCHEMAS,
+    get_capability_schema,
+    get_capability_schemas,
+)
 from .providers.lab_state import DEFAULT_LAB, LabState
 from .providers.project_home import ProjectHomeSource
 from .providers.registry import Registry
-from .rooms import RoomsService, STATE_FILENAME as ROOMS_STATE_FILENAME
-from .rooms import REGISTRY_STATE_FILENAME as ROOMS_REGISTRY_STATE_FILENAME
-from .rooms import IDEMPOTENCY_HEADER as ROOMS_IDEMPOTENCY_HEADER
-from . import crew, rooms_visits
-from . import people as people_mod
 from .roles import PERMISSIONS, ROLES, can
+from .rooms import IDEMPOTENCY_HEADER as ROOMS_IDEMPOTENCY_HEADER
+from .rooms import REGISTRY_STATE_FILENAME as ROOMS_REGISTRY_STATE_FILENAME
+from .rooms import STATE_FILENAME as ROOMS_STATE_FILENAME
+from .rooms import RoomsService
 from .source_control import (
     discover_repositories,
     repository_history,
     repository_status,
     status_all,
 )
+from .template_registry import TemplateRegistry
 from .world import MutationDenied, World
-
 
 _logger = logging.getLogger("personal_world.api")
 
@@ -177,7 +176,7 @@ def _cached_file(
         )
     except OSError as exc:
         _logger.error("static file unreadable %s: %s", path.name, exc)
-        raise HTTPException(status_code=404, detail="file unavailable")
+        raise HTTPException(status_code=404, detail="file unavailable") from exc
     etag = response.headers.get("etag")
     if_none_match = request.headers.get("if-none-match")
     if etag and if_none_match:
@@ -494,11 +493,11 @@ async def _require_auth_base(request: Request) -> None:
     system: it lands on the same Principal a bearer request produces.
     """
     from .identity import (
-        resolve_principal,
-        resolve_session_principal,
         NoPrincipalError,
         dev_bypass_enabled,
         dev_bypass_principal,
+        resolve_principal,
+        resolve_session_principal,
     )
 
     identity = getattr(request.app.state, "identity", None)
@@ -520,8 +519,8 @@ async def _require_auth_base(request: Request) -> None:
                 principal = resolve_principal(
                     supplied, store, mode, instance_token, allow_read_only=True
                 )
-            except NoPrincipalError:
-                raise HTTPException(status_code=401, detail="unauthorized")
+            except NoPrincipalError as _err:
+                raise HTTPException(status_code=401, detail="unauthorized") from _err
             _set_principal(request, principal, principal.source)
             return
         # A bearer was presented but no credential store is configured:
@@ -535,8 +534,8 @@ async def _require_auth_base(request: Request) -> None:
             principal = resolve_session_principal(
                 session.principal_id, store, mode, session.auth_method
             )
-        except NoPrincipalError:
-            raise HTTPException(status_code=401, detail="unauthorized")
+        except NoPrincipalError as _err:
+            raise HTTPException(status_code=401, detail="unauthorized") from _err
         _set_principal(request, principal, principal.source)
         return
 
@@ -836,7 +835,6 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         return world, registry
 
     def _principal(request: Request):
-        from .identity import Principal
 
         return getattr(request.state, "principal", None)
 
@@ -1068,8 +1066,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         _require_person(getattr(request.state, "principal", None))
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
 
@@ -1147,8 +1145,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         _require_person(getattr(request.state, "principal", None))
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
         target_ts = str(body.get("supersedes") or "").strip()
@@ -1288,8 +1286,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             )
         try:
             body = await request.json()
-        except Exception:
-            raise HTTPException(status_code=422, detail="body must be JSON")
+        except Exception as _err:
+            raise HTTPException(status_code=422, detail="body must be JSON") from _err
         body = body or {}
         _, _, uj = _state_for(request)
         target = _journal_target(uj)
@@ -1379,7 +1377,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         try:
             dl = journal_gate.Denylist.model_validate(body or {})
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         journal_gate.save_denylist(_journal_gate_denylist_path(request), dl)
         return {"ok": True, "data": dl.model_dump()}
 
@@ -1563,8 +1561,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             return degrade
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
         if "title" not in body:
@@ -1583,7 +1581,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 source="records",
             )
         except records_mod.RecordError as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         save_world(_world, uw)
         _records_audit(uj, f"record updated in category '{rec['category']}'")
         return {"ok": True, "status": "healthy", "data": rec}
@@ -1604,8 +1602,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             return degrade
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
         rec = records_mod.set_pinned(
@@ -1631,8 +1629,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             return degrade
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
         slug = records_mod.category_slug(body.get("category"))
@@ -1662,8 +1660,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         body: dict
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         message = (body.get("message") or "").strip() if isinstance(body, dict) else ""
         if not message:
             raise HTTPException(status_code=400, detail="message is required")
@@ -2492,8 +2490,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         world, _, uj = _state_for(request)
         try:
             updates = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         _, crew_state = _crew_state(request)
         usable_ids = {
             entry["id"]
@@ -2503,9 +2501,9 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         try:
             data = prefs.set_prefs(world, updates, companion_ids=usable_ids)
         except prefs.UnknownCompanionId as e:
-            raise HTTPException(status_code=422, detail=str(e))
+            raise HTTPException(status_code=422, detail=str(e)) from e
         except prefs.PrefsValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
         uw, _uj = _user_paths(request)
         save_world(world, uw)
         return {"ok": True, "data": data}
@@ -2564,8 +2562,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         world, registry, uj = _state_for(request)
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="body must be an object")
         current = world.layout.get(sections_mod.LAYOUT_KEY) or {}
@@ -2665,8 +2663,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         and state bits only, no secrets, no filesystem paths)."""
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         repo = (body.get("repo") or "").strip() if isinstance(body, dict) else ""
         if not repo:
             raise HTTPException(status_code=400, detail="repo is required")
@@ -2980,8 +2978,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """One JSON object as the request body, or 422 (never a 500)."""
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=422, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=422, detail="body must be JSON") from _err
         if body is None:
             return {}
         if not isinstance(body, dict):
@@ -3587,8 +3585,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             raise HTTPException(status_code=422, detail="place payload exceeds 2048 bytes")
         try:
             body = json.loads(raw or b"{}")
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=422, detail="place body must be JSON")
+        except json.JSONDecodeError as _err:
+            raise HTTPException(status_code=422, detail="place body must be JSON") from _err
         if not isinstance(body, dict):
             raise HTTPException(status_code=422, detail="place body must be an object")
         system = body.get("system")
@@ -3612,11 +3610,11 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # --- Native Reconciler endpoints ---
 
     # --- Media endpoints ---
+    from .connection_manager import resolve_media_connections
     from .providers.native_media import (
         MEDIA_CONNECTION_TYPES,
         build_media_engine_from_connections,
     )
-    from .connection_manager import resolve_media_connections
 
     def _build_media_engine():
         """Build media engine from MERGED connection config through the
@@ -3750,8 +3748,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         """List secret names (never values). Requires unlocked vault."""
         try:
             return {"ok": True, "data": {"names": _vault.list_names()}}
-        except RuntimeError:
-            raise HTTPException(status_code=409, detail="vault is locked")
+        except RuntimeError as _err:
+            raise HTTPException(status_code=409, detail="vault is locked") from _err
 
     @app.post(
         "/api/vault/set", dependencies=[Depends(require_auth), Depends(require_step_up)]
@@ -3788,8 +3786,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         _require_person(principal)
         try:
             value = _vault.get(name)
-        except RuntimeError:
-            raise HTTPException(status_code=409, detail="vault is locked")
+        except RuntimeError as _err:
+            raise HTTPException(status_code=409, detail="vault is locked") from _err
         if value is None:
             raise HTTPException(status_code=404, detail=f"{name} not found")
         journal.record(
@@ -3871,8 +3869,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     # One scheduler lives per app (background thread + shared state);
     # per-request Scheduler instances would silently double-fire or
     # miss entirely. Started with the app; stops at FastAPI shutdown.
-    from .scheduler import Scheduler, Reminder
     from . import push as push_mod
+    from .scheduler import Reminder, Scheduler
 
     _push = push_mod.PushHub(data_dir, mode=_identity_mode)
     if _identity_mode == "multi":
@@ -4109,7 +4107,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         try:
             u = _identity_store.create_user(user_id, display, initial_plain_token=plain)
         except ValueError as e:
-            raise HTTPException(status_code=409, detail=str(e))
+            raise HTTPException(status_code=409, detail=str(e)) from e
         journal.record(
             kind=JournalKind.SETTINGS_CHANGE,
             summary=f"user provisioned: {user_id}",
@@ -4188,7 +4186,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 agent_id, principal.id, tuple(scopes), plain_token=plain
             )
         except ValueError as e:
-            raise HTTPException(status_code=409, detail=str(e))
+            raise HTTPException(status_code=409, detail=str(e)) from e
         journal.record(
             kind=JournalKind.SETTINGS_CHANGE,
             summary="agent registered: " + agent_id + " scopes=" + ",".join(scopes),
@@ -4256,7 +4254,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 viewer_id, principal.id, plain, label=label
             )
         except ValueError as e:
-            raise HTTPException(status_code=409, detail=str(e))
+            raise HTTPException(status_code=409, detail=str(e)) from e
         journal.record(
             kind=JournalKind.SETTINGS_CHANGE,
             summary="read-only viewer registered: " + viewer_id,
@@ -4405,7 +4403,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 str((body or {}).get("device_label") or ""),
             )
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         return {"ok": True, "data": {"id": sub_id, "created": created}}
 
     @app.get("/api/push/subscriptions", dependencies=[Depends(require_auth)])
@@ -4432,8 +4430,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         unread = request.query_params.get("unread", "") in ("1", "true", "yes")
         try:
             limit = int(request.query_params.get("limit") or 20)
-        except ValueError:
-            raise HTTPException(status_code=422, detail="limit must be a number")
+        except ValueError as _err:
+            raise HTTPException(status_code=422, detail="limit must be a number") from _err
         items = _push.list_notifications(caller, unread, limit)
         return {"ok": True, "data": items}
 
@@ -4453,7 +4451,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         try:
             prefs = _push.put_prefs(caller, body or {})
         except push_mod.PrefsError as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         return {"ok": True, "data": prefs}
 
     @app.post(
@@ -4540,7 +4538,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         try:
             link = push_mod.valid_same_origin_link((body or {}).get("link"))
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         dedupe = (body or {}).get("dedupe_key")
         if dedupe is not None:
             dedupe = str(dedupe)[:120] or None
@@ -4560,7 +4558,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 private=bool((body or {}).get("private")),
             )
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         return {"ok": True, "data": outcome}
 
     # --- Source control enrichment ---
@@ -4654,8 +4652,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         _require_person(p)
         try:
             body = await request.json()
-        except Exception:
-            raise HTTPException(status_code=400, detail="JSON body required")
+        except Exception as _err:
+            raise HTTPException(status_code=400, detail="JSON body required") from _err
         name = str((body or {}).get("display_name", "")).strip()
         if not name or len(name) > 80:
             raise HTTPException(
@@ -4824,8 +4822,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         _require_permission(principal, "manage_people")
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         role = (body or {}).get("role") if isinstance(body, dict) else None
         if not isinstance(role, str) or role not in ROLES:
             raise HTTPException(status_code=422, detail="unknown role")
@@ -4875,8 +4873,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
 
         try:
             body = await request.json()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="body must be JSON")
+        except ValueError as _err:
+            raise HTTPException(status_code=400, detail="body must be JSON") from _err
         to = str((body or {}).get("to") or "").strip() if isinstance(body, dict) else ""
         if not to or not _safe_pid.fullmatch(to):
             raise HTTPException(status_code=422, detail="to must be a valid id")
@@ -5092,10 +5090,10 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             )
             sign_in_key = secrets.token_urlsafe(32)
             _identity_store.attach_hashed_token(user_id, sign_in_key)
-        except ValueError:
+        except ValueError as _err:
             raise HTTPException(
                 status_code=409, detail="an account already exists for that invite"
-            )
+            ) from _err
         journal.record(
             JournalKind.SETTINGS_CHANGE,
             f"invite accepted: {user_id} joined as {role}",
@@ -5285,7 +5283,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         try:
             limits = people_mod.validate_limits(body.get("limits"))
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         record = _limits_store.set(user_id, limits, principal.id)
         journal.record(
             JournalKind.SETTINGS_CHANGE,
@@ -5332,8 +5330,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
         a crash — an unconfigured router answers not_configured with
         context, matching the -degradation contract."""
         from .providers.traefik_ingress import (
-            TraefikIngress,
             TRAEFIK_ENV,
+            TraefikIngress,
         )
 
         base_url = os.environ.get(TRAEFIK_ENV)
@@ -5514,7 +5512,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             sources.append({"kind": "journal", "text": ev.summary, "when": ev.ts.isoformat(),
                             "where": "Journal"})
         world = load_world(uw)
-        for key, lo in world.lore.items():
+        for lo in world.lore.values():
             v = lo.value if isinstance(lo.value, dict) else {"text": str(lo.value)}
             sources.append({"kind": "lore", "text": str(v.get("text", "")), "title": str(v.get("title", "")),
                             "when": lo.provenance.observed_at.isoformat(), "state": lo.state.value,
@@ -5808,8 +5806,8 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             raise HTTPException(status_code=404, detail="that sticker isn't in your album yet")
         try:
             x, y, r = (float(body.get("x", 0)), float(body.get("y", 0)), float(body.get("r", 0)))
-        except (TypeError, ValueError):
-            raise HTTPException(status_code=422, detail="x, y and r must be numbers")
+        except (TypeError, ValueError) as _err:
+            raise HTTPException(status_code=422, detail="x, y and r must be numbers") from _err
         data["placed"][k] = {"x": min(max(x, 0.0), 1.0), "y": min(max(y, 0.0), 1.0), "r": min(max(r, -30.0), 30.0)}
         stickers.save(path, data)
         return {"ok": True, "data": {"placed": data["placed"][k]}}
@@ -5851,17 +5849,17 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 effect=PolicyEffect(effect),
                 provenance=Provenance(source="dashboard-quick-action"),
             )
-        except ValueError:
+        except ValueError as _err:
             raise HTTPException(
                 status_code=400, detail="effect must be 'allow' or 'deny'"
-            )
+            ) from _err
         try:
             world.set_policy(policy)
         except MutationDenied as exc:
             # a cemented policy is only changeable by an explicit user
             # action through the CLI; the API reports the boundary, it
             # does not crash on it
-            raise HTTPException(status_code=409, detail=str(exc))
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         save_world(world, _user_paths(request)[0])
         return {"ok": True, "data": {"key": key, "effect": effect}}
 

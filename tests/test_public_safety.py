@@ -9,6 +9,8 @@ allowed everywhere (docs, tests, example files).
 """
 
 import json
+import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -144,9 +146,6 @@ def test_shipped_files_carry_no_private_endpoints(path):
 # and never match. Findings are reported redacted: the test must never
 # echo the very value it is guarding.
 # ---------------------------------------------------------------------------
-
-import re
-import subprocess
 
 SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
     "openai-style key (sk-…)": re.compile(r"\bsk-[A-Za-z0-9_\-]{16,}"),

@@ -30,8 +30,8 @@ AUTH = {"Authorization": f"Bearer {TOKEN}"}
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    from personal_world.api import create_app
     import personal_world.api as api_mod
+    from personal_world.api import create_app
 
     monkeypatch.delenv("PW_DEV_AUTH_BYPASS", raising=False)
     monkeypatch.delenv("PW_PROXY_STEPUP_SECRET", raising=False)

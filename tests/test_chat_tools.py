@@ -174,7 +174,7 @@ class TestToolLoopRoundTrip:
         )
         made = result.data["tool_calls_made"]
         assert len(made) == 2
-        findings = result.data["partial_findings"]
+        result.data["partial_findings"]
         # the partial findings are the REAL tool results, bounded
         assert len(made) == len(result.data["partial_findings"])
         assert all(f["tool"] == "echo_tool" for f in result.data["partial_findings"])

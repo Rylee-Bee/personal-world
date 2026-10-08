@@ -12,18 +12,16 @@
 
 from __future__ import annotations
 
-import time
 import ipaddress
 import logging
 from collections import deque
 from typing import Any, Callable
-from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from ..oidc import FLOW_COOKIE, OIDCError, OIDCLoginError
-from .authn import CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE, Auth
+from .authn import CSRF_COOKIE, SESSION_COOKIE, Auth
 from .owner import OwnerPolicy
 
 _log = logging.getLogger(__name__)

@@ -297,7 +297,7 @@ class CardService:
         keys = _field_keys(card)
         spoken = "; ".join(
             f"{field.label}: {values.get(key, _NO_MATCH)['text']}"
-            for field, key in zip(card.fields, keys)
+            for field, key in zip(card.fields, keys, strict=True)
         )
         meter: dict[str, Any] = {"type": card.meter.type, "text_equivalent": spoken}
         spec = card.meter
@@ -399,7 +399,7 @@ def _item_defs(card: Card, item: Any) -> dict[str, Any]:
         "view": card.view,
         "fields": [
             {"key": key, "label": f.label, "format": f.format, "unit": f.unit}
-            for f, key in zip(card.fields, _field_keys(card))
+            for f, key in zip(card.fields, _field_keys(card), strict=True)
         ],
         "meter_type": card.meter.type if card.meter else None,
     }

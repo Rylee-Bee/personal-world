@@ -10,8 +10,8 @@ no backup, no broker output is ever serialized into context.
 from pathlib import Path
 
 from .journal import Journal
-from .source_control import configured_search_paths, status_all
 from .providers.registry import Registry
+from .source_control import configured_search_paths, status_all
 from .world import World
 
 CONTEXT_HISTORY_EVENTS = 12
@@ -94,14 +94,14 @@ def build_world_context(
             parts.append(f"- {key}: {p.effect.value}{extra}")
 
     public_lore = [
-        (k, l) for k, l in sorted(world.lore.items())
-        if l.classification.value == "world"
+        (k, entry) for k, entry in sorted(world.lore.items())
+        if entry.classification.value == "world"
     ]
     if public_lore:
         parts.append("\n## Lore (world-classified only)")
-        for k, l in public_lore:
-            vs = l.value if isinstance(l.value, str) else str(l.value)
-            parts.append(f"- {k} [{l.state.value}]: {vs}")
+        for k, entry in public_lore:
+            vs = entry.value if isinstance(entry.value, str) else str(entry.value)
+            parts.append(f"- {k} [{entry.state.value}]: {vs}")
 
     if include_journal:
         events = journal.recent(CONTEXT_HISTORY_EVENTS)

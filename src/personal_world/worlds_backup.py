@@ -798,10 +798,10 @@ def register_worlds_backup(
 
         try:
             blob = _b64.b64decode(body.archive_b64, validate=True)
-        except Exception:
+        except Exception as _err:
             raise HTTPException(
                 status_code=400, detail="archive_b64 is not valid base64"
-            )
+            ) from _err
         fd, tmp_path = tempfile.mkstemp(prefix="pw-restore-", suffix=ARCHIVE_SUFFIX)
         try:
             with os.fdopen(fd, "wb") as fh:

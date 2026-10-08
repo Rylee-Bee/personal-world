@@ -128,7 +128,7 @@ class TestBypassBehavior:
         r = c.get("/api/status", headers={"Authorization": "Bearer real-token-1"})
         assert r.status_code == 200  # bearer path unchanged
         # wrong token still 401s: the bypass is not a credential pass
-        r2 = c.get("/api/status", headers={"Authorization": "Bearer bogus"})
+        c.get("/api/status", headers={"Authorization": "Bearer bogus"})
         # bogus bearer is simply not consulted: bypass already resolved.
         # The contract under test: bypass ON does not WEAKEN bearer for
         # non-loopback peers (loopback detection tested separately).

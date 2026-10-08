@@ -10,8 +10,8 @@ from fastapi.testclient import TestClient
 
 from personal_world.worlds.authn import CSRF_COOKIE, SESSION_COOKIE, Auth, load_csrf_key, principal_dependency
 from personal_world.worlds.companion_routes import register_companion_routes
-from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.config_store import ConfigStore
+from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.db import Database
 from personal_world.worlds.models import Provider
 from personal_world.worlds.secrets import resolve_secret_ref
@@ -337,7 +337,11 @@ class _Handler(BaseHTTPRequestHandler):
     def _answer(self):
         _Handler.log.append({"path": self.path, "method": self.command, "auth": self.headers.get("Authorization"), "len": int(self.headers.get("Content-Length") or 0)})
         body = json.dumps({"status": "ok", "commit": "abc", "sources": {"lore": "ok"}, "models": {}}).encode()
-        self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     do_GET = _answer
 

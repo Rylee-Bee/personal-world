@@ -335,6 +335,7 @@ def test_descriptor_is_unregistered_the_moment_its_stream_closes():
 
 def test_connect_gets_only_the_remaining_budget(monkeypatch):
     import httpcore
+
     from personal_world.worlds.confinement import Deadline, _WatchedBackend
     seen = {}
 
@@ -414,7 +415,10 @@ def test_pre_send_is_set_exactly_when_nothing_was_sent(monkeypatch):
     monkeypatch.setenv("NOPE_SECRET", "")
     q = p.model_copy(update={"auth": Auth(type="bearer", secret_ref="env:NOPE_SECRET")})
     assert confined_request(q, r, effect="read", resolver=lambda h, port: ["93.184.216.34"]).pre_send is True
-    s = _socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.close()
+    s = _socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
     lan = Provider(id="p", name="P", kind="http", base_url=f"http://127.0.0.1:{port}", network={"lan": True})
     refused = confined_request(lan, r, effect="read")
     assert refused.error_class == "connection" and refused.pre_send is False                              # we did try to connect

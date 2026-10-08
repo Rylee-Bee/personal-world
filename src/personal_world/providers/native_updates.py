@@ -12,6 +12,7 @@ import urllib.request
 
 from ..envelope import Result, fail, ok
 from ..status import Status
+from ..url_safety import http_urlopen
 from .registry import StatusContract
 
 
@@ -29,7 +30,7 @@ class GitHubReleasesAdapter:
                 "User-Agent": "ProjectWorlds/1.0",
                 "Accept": "application/vnd.github.v3+json",
             })
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with http_urlopen(req, timeout=15) as resp:
                 data = json.loads(resp.read())
             return {
                 "available": data.get("tag_name", ""),
@@ -53,7 +54,7 @@ class VersionUrlAdapter:
     def check(self) -> dict:
         try:
             req = urllib.request.Request(self.url, headers={"User-Agent": "ProjectWorlds/1.0"})
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with http_urlopen(req, timeout=15) as resp:
                 version = resp.read().decode().strip()
             return {
                 "available": version,

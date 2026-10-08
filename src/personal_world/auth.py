@@ -10,9 +10,9 @@ import logging
 import os
 import secrets
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-from dataclasses import dataclass, field
 
 _logger = logging.getLogger("personal_world.auth")
 
@@ -217,7 +217,7 @@ class AuthManager:
         the same Principal as a bearer request (in multi mode this is
         the user that owns the token, not a fixed string).
         """
-        from .identity import resolve_principal, NoPrincipalError
+        from .identity import NoPrincipalError, resolve_principal
 
         if self._identity is not None:
             store, mode, instance_token = self._seam()
@@ -334,7 +334,7 @@ class AuthManager:
         """
         if not token:
             return False
-        from .identity import resolve_principal, NoPrincipalError
+        from .identity import NoPrincipalError, resolve_principal
 
         if self._identity is not None:
             store, mode, instance_token = self._seam()

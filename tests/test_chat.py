@@ -227,7 +227,6 @@ class TestChatEndpoint:
         provider called, reply returned, journal recorded."""
         c, tmp_path = client
         import personal_world.api as api_mod
-        from personal_world.providers.registry import Registry
 
         fake = FakeChat(reply="all healthy, 0 facts")
 
@@ -270,8 +269,8 @@ class TestChatUiContext:
     def client(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
 
-        from personal_world.api import create_app
         import personal_world.api as api_mod
+        from personal_world.api import create_app
 
         monkeypatch.setenv("PW_API_TOKEN", "t")
         fake = FakeChat(reply="ctx ok")
@@ -368,8 +367,8 @@ class TestChatUiEntity:
     def client(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
 
-        from personal_world.api import create_app
         import personal_world.api as api_mod
+        from personal_world.api import create_app
 
         monkeypatch.setenv("PW_API_TOKEN", "t")
         fake = FakeChat(reply="entity ok")

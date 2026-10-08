@@ -17,8 +17,8 @@ The file holds no secret value. A missing or invalid file means nobody can sign 
 from __future__ import annotations
 
 import hashlib
-import re
 import hmac
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any

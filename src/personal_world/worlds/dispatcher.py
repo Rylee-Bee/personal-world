@@ -25,15 +25,13 @@ import logging
 import os
 import socket
 import sqlite3
-import threading
 import time
 import uuid
-from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Literal
 
 from .authn import Principal
-from .confinement import ConfinementError, RawResponse, confined_request
 from .config_store import ConfigStore
+from .confinement import ConfinementError, RawResponse, confined_request
 from .db import Database, register_migrations
 from .models import Action, Provider, Request, canonical_json
 from .runner import redact

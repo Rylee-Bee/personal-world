@@ -24,7 +24,7 @@ import secrets
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Callable, Iterable
 
 from fastapi import HTTPException, Request
 

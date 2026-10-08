@@ -25,17 +25,17 @@ Schema (from ROADMAP.md): the schema exists; this is the runner.
 import json
 import logging
 import os
-import time
 import threading
+import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 from pydantic import BaseModel, Field
 
 from .envelope import Result, fail, ok
 from .journal import Journal
-from .model import JournalKind, Provenance
+from .model import JournalKind
 
 # A notifier is any callable taking (title, body) and returning a
 # Result (or None when no transport is available). The scheduler never

@@ -9,8 +9,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .chat_registry import build_chat_provider
 from .model import (
-    Accessibility,
+    SCHEMA_VERSION,
     Capability,
     Fact,
     Intent,
@@ -19,9 +20,7 @@ from .model import (
     Policy,
     Provider,
     ProviderMode,
-    SCHEMA_VERSION,
 )
-from .chat_registry import build_chat_provider
 from .providers.adapters import (
     CandyDispenser,
     FakeSourceControl,
@@ -34,11 +33,10 @@ from .providers.lab_health import LabHealth
 from .providers.lab_resources import LabResources
 from .providers.lab_secrets import LabSecrets
 from .providers.lab_settings import LabSettings
-from .providers.registry import Contract, Registry, StatusContract
+from .providers.registry import Registry, StatusContract
 from .providers.workbench import WorkbenchPodman, workbench_enabled
 from .source_control import NativeGit, configured_search_paths
 from .world import World
-
 
 # key, description, native_baseline (framework Rule 2: does the core
 # itself give this capability useful local meaning with zero providers?)
@@ -64,7 +62,7 @@ STANDARD_CAPABILITIES: list[tuple[str, str, bool]] = [
 
 
 def define_standard_capabilities(registry: Registry) -> None:
-    for key, doc, _native in STANDARD_CAPABILITIES:
+    for key, _doc, _native in STANDARD_CAPABILITIES:
         registry.define_capability(key, StatusContract)
 
 
@@ -82,7 +80,7 @@ def save_world(world: World, path: Path) -> None:
         "facts": {k: f.model_dump(mode="json") for k, f in world.facts.items()},
         "intents": {k: i.model_dump(mode="json") for k, i in world.intents.items()},
         "policies": {k: p.model_dump(mode="json") for k, p in world.policies.items()},
-        "lore": {k: l.model_dump(mode="json") for k, l in world.lore.items()},
+        "lore": {k: entry.model_dump(mode="json") for k, entry in world.lore.items()},
         "capabilities": {
             k: c.model_dump(mode="json") for k, c in world.capabilities.items()
         },
@@ -433,8 +431,9 @@ def build_registry(
     )
 
     # content_db: cross-repo content database via agent-config's ContentMaster
-    from .providers.content_db import ContentDBProvider
     import os
+
+    from .providers.content_db import ContentDBProvider
 
     _master_db = Path(
         os.environ.get(
@@ -530,10 +529,6 @@ def build_registry(
             required=False,
         )
 
-    # Execution Viewer: captures bounded executions from providers/agents
-    from .execution_viewer import ExecutionViewer
-
-    execution_viewer = ExecutionViewer(data_dir or Path("./data"))
 
     # Chat/reasoning native baseline: absent a configured provider the
     # capability is not_configured (zero-AI boot is supported).

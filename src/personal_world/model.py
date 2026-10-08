@@ -10,7 +10,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from .classification import Classification, meta
+from .classification import Classification
 
 
 def now() -> datetime:

@@ -167,6 +167,7 @@ class TestTemplateRegistryApi:
     @pytest.fixture
     def client(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
+
         from personal_world.api import create_app
 
         monkeypatch.setenv("PW_API_TOKEN", "t")

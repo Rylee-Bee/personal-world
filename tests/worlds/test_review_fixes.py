@@ -1,16 +1,14 @@
 """Regression tests for the #233 review findings."""
 import json
-import time
 
 import pytest
-from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from personal_world.worlds import confinement
 from personal_world.worlds.config_store import ConfigStore, EtagMismatch
 from personal_world.worlds.confinement import ConfinementError
-from personal_world.worlds.mapping import MappingError, resolve
+from personal_world.worlds.mapping import resolve
 from personal_world.worlds.models import Assertion, Card, Provider, Request
 from personal_world.worlds.reference_provider import ReferenceServer, reference_send
 from personal_world.worlds.server import build_app
@@ -25,7 +23,8 @@ def test_production_app_uses_confined_request(tmp_path):
 
 
 def test_override_is_explicit_only(tmp_path):
-    marker = lambda *a, **k: None
+    def marker(*a, **k):
+        return None
     app = build_app(tmp_path / "cfg", principal_dependency=lambda: "owner", send_override=marker)
     assert app.state.runner._send is marker
 

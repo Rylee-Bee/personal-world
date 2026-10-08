@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import json
 import os
-import urllib.request
 
 from ..envelope import Result, fail, ok
+from ..url_safety import http_urlopen
 from .registry import StatusContract
 
 TRAEFIK_TIMEOUT = 8
@@ -36,7 +36,7 @@ class TraefikIngress(StatusContract):
 
     def _get(self, path: str):
         try:
-            with urllib.request.urlopen(
+            with http_urlopen(
                 self.base_url + path, timeout=TRAEFIK_TIMEOUT
             ) as resp:
                 return json.loads(resp.read().decode())
@@ -59,7 +59,7 @@ class TraefikIngress(StatusContract):
                 warning.append(f"{r.get('name','?')}: {status or 'no status'}")
         # TLS certs expiry needs the TLS overview; only ring if the data
         # is there, else leave warning list as-is.
-        certs = self._get("/api/http/routers")  # placeholder until cert info supported
+        _ = self._get("/api/http/routers")  # placeholder until cert info supported
         detail = {
             "routes": total,
             "enabled": healthy,

@@ -20,6 +20,7 @@ import urllib.request
 from typing import Any
 
 from .envelope import Result, fail, ok
+from .url_safety import http_urlopen
 
 CHAT_TIMEOUT_SECONDS = 120
 
@@ -376,7 +377,7 @@ class OllamaChat(ChatContract):
 
     def observe(self) -> Result:
         try:
-            with urllib.request.urlopen(f"{self.base_url}/api/tags", timeout=5) as resp:
+            with http_urlopen(f"{self.base_url}/api/tags", timeout=5) as resp:
                 payload = json.loads(resp.read().decode())
             models = [m.get("name", "") for m in payload.get("models", [])]
             present = any(
@@ -406,7 +407,7 @@ class OllamaChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -456,7 +457,7 @@ class OllamaChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -502,7 +503,7 @@ class OpenAICompatChat(ChatContract):
             else:
                 url = f"{base}/v1/models"
             req = urllib.request.Request(url, headers=self._headers())
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with http_urlopen(req, timeout=5) as resp:
                 payload = json.loads(resp.read().decode())
             ids = [m.get("id", "") for m in payload.get("data", [])]
             present = self.model in ids if ids else True
@@ -534,7 +535,7 @@ class OpenAICompatChat(ChatContract):
             url, data=body, headers=self._headers(), method="POST"
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -580,7 +581,7 @@ class OpenAICompatChat(ChatContract):
             url, data=data, headers=self._headers(), method="POST"
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -624,7 +625,7 @@ class OpenAIChat(ChatContract):
             req = urllib.request.Request(
                 "https://api.openai.com/v1/models", headers=self._headers()
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with http_urlopen(req, timeout=10) as resp:
                 payload = json.loads(resp.read().decode())
             ids = [m.get("id", "") for m in payload.get("data", [])]
             present = any(self.model in m for m in ids)
@@ -649,7 +650,7 @@ class OpenAIChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -692,7 +693,7 @@ class OpenAIChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(ok=False, status="unavailable", warnings=[f"openai: {e}"])
@@ -774,7 +775,7 @@ class AnthropicChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -888,7 +889,7 @@ class AnthropicChat(ChatContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with http_urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(ok=False, status="unavailable", warnings=[f"anthropic: {e}"])
@@ -1024,8 +1025,6 @@ class OpenCodeChat(ChatContract):
                 text = event.get("part", {}).get("text", "")
                 if text:
                     reply += text
-            elif event.get("type") == "step_finish":
-                tokens = event.get("part", {}).get("tokens", {})
 
         reply = reply.strip()
         if not reply:

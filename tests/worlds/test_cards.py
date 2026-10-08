@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.cards import CardService, home_board_defs
+from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.models import Board
 from personal_world.worlds.runner import Runner
 

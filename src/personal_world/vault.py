@@ -119,7 +119,7 @@ class Vault:
                 encrypted = payload["data"].encode()
                 decrypted = self._fernet.decrypt(encrypted)
                 self._secrets = json.loads(decrypted)
-            except (InvalidToken, json.JSONDecodeError) as e:
+            except (InvalidToken, json.JSONDecodeError):
                 return fail(
                     "unauthorized",
                     warnings=["wrong passphrase or corrupt vault"],

@@ -28,11 +28,8 @@ Proven here, against a REAL app booted with zero providers configured
 Fixtures mirror tests/test_records.py (same lane) idioms exactly.
 """
 
-import json
 import sys
 from pathlib import Path
-
-import pytest  # noqa: E402  (pytest collected via file)
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 

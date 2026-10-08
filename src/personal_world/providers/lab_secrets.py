@@ -5,7 +5,6 @@ Read-only: shells out to `lab secret audit --json`. Never exposes values.
 
 import json
 import subprocess
-from pathlib import Path
 
 from ..envelope import Result, fail, ok
 from .registry import StatusContract

@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from fastapi import Body, Depends, FastAPI, HTTPException, Request
+from fastapi import Body, Depends, FastAPI, HTTPException
 
 from .authn import Auth, Principal
-from .dispatcher import BadRequest, DispatchError, Dispatcher, NotConsumable, NotPermitted
+from .dispatcher import BadRequest, Dispatcher, DispatchError, NotConsumable, NotPermitted
 
 
 def _public_authorization(row: dict, *, owner: bool) -> dict:

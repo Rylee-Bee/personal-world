@@ -27,8 +27,12 @@ from fastapi.testclient import TestClient  # noqa: E402
 import personal_world.tool_registry as tr  # noqa: E402
 from personal_world.journal import Journal  # noqa: E402
 from personal_world.tool_registry import (  # noqa: E402
-    _proposals, _execute_approved_write, _propose_journal_write,
-    _propose_world_intent, approve_proposal, configure_proposal_store,
+    _execute_approved_write,
+    _proposals,
+    _propose_journal_write,
+    _propose_world_intent,
+    approve_proposal,
+    configure_proposal_store,
     reject_proposal,
 )
 

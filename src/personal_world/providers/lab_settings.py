@@ -7,7 +7,6 @@ Read-only: shells out to `lab settings status --json` and
 
 import json
 import subprocess
-from pathlib import Path
 
 from ..envelope import Result, fail, ok
 from .registry import StatusContract

@@ -6,9 +6,11 @@ No calendar server required. Supports ICS/iCal feeds and CalDAV.
 """
 
 import urllib.request
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
+
 from ..envelope import Result, fail, ok
 from ..status import Status
+from ..url_safety import http_urlopen
 from .registry import StatusContract
 
 
@@ -49,7 +51,7 @@ class ICSAdapter:
         """Fetch upcoming events from ICS feed."""
         try:
             req = urllib.request.Request(self.url, headers={"User-Agent": "ProjectWorlds/1.0"})
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with http_urlopen(req, timeout=30) as resp:
                 ics_data = resp.read().decode("utf-8", errors="replace")
             return self._parse_ics(ics_data)
         except Exception:
@@ -116,8 +118,6 @@ class NativeCalendarProvider(StatusContract):
     def upcoming(self, days=7) -> Result:
         """Get upcoming events."""
         try:
-            now = datetime.now(timezone.utc)
-            cutoff = now + timedelta(days=days)
             all_events = []
             for adapter in self._adapters:
                 events = adapter.fetch_events(days_ahead=days)

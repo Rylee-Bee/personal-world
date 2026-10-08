@@ -50,7 +50,7 @@ def _client(tmp_path, monkeypatch):
 def _lines(tmp_path):
     hits = list(tmp_path.rglob("journal-edit-pairs.ndjson"))
     assert len(hits) == 1, hits
-    return [json.loads(l) for l in hits[0].read_text().splitlines() if l], hits[0]
+    return [json.loads(line) for line in hits[0].read_text().splitlines() if line], hits[0]
 
 
 class TestEditPairs:

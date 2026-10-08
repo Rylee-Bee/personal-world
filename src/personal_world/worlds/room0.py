@@ -27,8 +27,8 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Callable
 from urllib.parse import quote
 
-from .confinement import ConfinementError, RawResponse, confined_request
 from .config_store import ConfigInvalid
+from .confinement import ConfinementError, RawResponse, confined_request
 from .models import Action, Provider, Request
 
 log = logging.getLogger(__name__)

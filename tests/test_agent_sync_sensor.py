@@ -31,11 +31,9 @@ from pathlib import Path
 
 import pytest
 
-from personal_world.envelope import Result
 from personal_world.providers.agent_sync import (
     SCHEMA,
     AgentSyncProjectSensor,
-    _sync_binary,
 )
 
 
@@ -318,7 +316,7 @@ class TestFreshness:
         assert f["age_seconds"] == 3000
 
     def test_exact_threshold_is_fresh(self):
-        from personal_world.providers.agent_sync import freshness, STALE_AFTER
+        from personal_world.providers.agent_sync import STALE_AFTER, freshness
         now = self._now()
         f = freshness("2026-09-12T14:30:00Z", now=now)  # exactly 30 min
         # exactly-at-threshold is NOT stale (strictly greater than)
@@ -416,6 +414,7 @@ class TestEndpoint:
 
     def _client(self, tmp_path, monkeypatch):
         from fastapi.testclient import TestClient
+
         from personal_world.api import create_app
         monkeypatch.setenv("PW_API_TOKEN", "t")
         return TestClient(create_app(tmp_path, tmp_path))

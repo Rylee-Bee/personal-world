@@ -13,7 +13,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from personal_world.classification import Classification  # noqa: E402
 from personal_world.envelope import Result  # noqa: E402
 from personal_world.model import (  # noqa: E402
     Capability,
@@ -21,16 +20,13 @@ from personal_world.model import (  # noqa: E402
     Policy,
     PolicyEffect,
     Provenance,
-    Provider,
 )
 from personal_world.providers.registry import (  # noqa: E402
-    Contract,
     Registry,
     StatusContract,
 )
 from personal_world.status import Status  # noqa: E402
 from personal_world.world import World  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # Capability fixtures

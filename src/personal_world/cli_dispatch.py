@@ -108,7 +108,6 @@ KNOWN LIMITS (stated, not hidden — see ``docs/CLI-REFERENCE.md``):
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import re
@@ -122,6 +121,7 @@ from typing import Any, Callable
 
 from .api_manifest import ENDPOINTS, GATES, KINDS, endpoint_manifest
 from .envelope import EXIT_ERROR, EXIT_OK, Result, fail, ok
+from .url_safety import http_urlopen
 
 # ── Exit codes ───────────────────────────────────────────────────────
 #: bad arguments (argparse uses 2 for a usage error; we agree with it)
@@ -819,7 +819,7 @@ class Ctx:
         )
         where = {"method": method.upper(), "path": path, "base": self.base_url}
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as resp:
+            with http_urlopen(request, timeout=self.timeout) as resp:
                 code = int(getattr(resp, "status", 200) or 200)
                 raw = resp.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as exc:

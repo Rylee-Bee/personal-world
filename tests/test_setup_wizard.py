@@ -349,9 +349,9 @@ class TestComfortAndFinish:
         assert _read_token(data_dir) not in r.text
         # The journal recorded the event.
         entries = [
-            json.loads(l)
-            for l in (data_dir / "journal.ndjson").read_text().splitlines()
-            if l
+            json.loads(line)
+            for line in (data_dir / "journal.ndjson").read_text().splitlines()
+            if line
         ]
         assert any("first-run setup completed" in e["summary"] for e in entries)
         # And the wizard now refuses to run again.

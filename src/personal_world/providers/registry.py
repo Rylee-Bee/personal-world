@@ -13,7 +13,7 @@ docs/NATIVE-BASELINE-AND-ENRICHMENT.md.
 from collections.abc import Callable
 from typing import Any
 
-from ..envelope import Result, fail, ok
+from ..envelope import Result, fail
 from ..model import Actor, Provider
 from ..status import Status
 

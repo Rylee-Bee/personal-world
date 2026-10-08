@@ -6,9 +6,20 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from personal_world.oidc import FLOW_COOKIE, OIDCLoginError, VerifiedIdentity
-from personal_world.worlds.auth_routes import (ESCAPE_SUCCESS_GAP, EVAL_GAP, FREE_FAILURES, FRESH_AUTH_SECONDS, GLOBAL_CEILING, GLOBAL_GAP, MAX_BACKOFF,
-                                               OIDC_LOGIN_KEY, client_key, parse_trusted_proxies, register_auth_routes)
-from personal_world.worlds.authn import CSRF_COOKIE, SESSION_COOKIE, Auth, load_csrf_key
+from personal_world.worlds.auth_routes import (
+    ESCAPE_SUCCESS_GAP,
+    EVAL_GAP,
+    FREE_FAILURES,
+    FRESH_AUTH_SECONDS,
+    GLOBAL_CEILING,
+    GLOBAL_GAP,
+    MAX_BACKOFF,
+    OIDC_LOGIN_KEY,
+    client_key,
+    parse_trusted_proxies,
+    register_auth_routes,
+)
+from personal_world.worlds.authn import SESSION_COOKIE, Auth, load_csrf_key
 from personal_world.worlds.db import Database
 from personal_world.worlds.owner import load_owner_policy
 
@@ -60,7 +71,8 @@ def write_policy(cfg, *, oidc=True, bootstrap=True):
 @pytest.fixture
 def env(tmp_path, monkeypatch):
     monkeypatch.setenv("PW_TEST_BOOTSTRAP", BOOT)
-    cfg = tmp_path / "cfg"; cfg.mkdir()
+    cfg = tmp_path / "cfg"
+    cfg.mkdir()
     write_policy(cfg)
     clock = Clock()
     db = Database.in_dir(tmp_path / "data")
@@ -339,7 +351,7 @@ def login_via_oidc(e):
 
 
 def test_oidc_owner_gets_a_session_and_redirect_uri_ignores_host_header(env):
-    r = env.c.get("/api/auth/oidc/login", headers={"Host": "evil.example"})
+    env.c.get("/api/auth/oidc/login", headers={"Host": "evil.example"})
     assert env.fake.redirect_uris == [f"{ORIGIN}/api/auth/oidc/callback"]
     cb = login_via_oidc(env)
     assert cb.status_code == 303 and cb.headers["location"] == "/"

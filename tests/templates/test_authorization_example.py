@@ -19,22 +19,18 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from personal_world.classification import Classification  # noqa: E402
 from personal_world.envelope import Result  # noqa: E402
 from personal_world.model import (  # noqa: E402
     Fact,
     Lore,
     LoreState,
-    Mutability,
     Override,
     Policy,
     PolicyEffect,
     Provenance,
 )
 from personal_world.providers.registry import Registry, StatusContract  # noqa: E402
-from personal_world.status import Status  # noqa: E402
 from personal_world.world import MutationDenied, UserAction, World  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # Hand-rolled fakes
@@ -95,7 +91,7 @@ class TestAllowedAction:
 
     def test_user_can_set_own_intent(self, world: World):
         prov = Provenance(source="user:action")
-        intent = world.set_intent(Fact(
+        world.set_intent(Fact(
             key="service.plex.version",
             value="1.40.0",
             provenance=prov,
@@ -170,11 +166,11 @@ class TestMalformedArguments:
 
     def test_fact_without_provenance_rejected(self, world: World):
         """Pydantic validation catches missing provenance at construction."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             Fact(key="x", value="y", provenance=None)  # type: ignore[arg-type]
 
     def test_policy_without_effect_rejected(self, world: World):
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             Policy(key="x", provenance=Provenance(source="test"))  # type: ignore[call-arg]
 
 

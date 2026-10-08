@@ -1071,7 +1071,7 @@ def test_keeper_never_greets_the_placeholder_owner_label():
 
 
 def test_estate_titles_fall_back_to_summary_then_evidence():
-    from personal_world.briefing import _observation_title, _observation_detail
+    from personal_world.briefing import _observation_detail, _observation_title
 
     assert _observation_title(
         {"concept": "review", "detail": None, "summary": "quota check failed: PermissionError"}

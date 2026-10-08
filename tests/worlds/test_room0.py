@@ -10,15 +10,24 @@ import yaml
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from personal_world.worlds.authn import Principal, SESSION_COOKIE
-from personal_world.worlds.confinement import confined_request
+from personal_world.worlds.authn import SESSION_COOKIE, Principal
 from personal_world.worlds.config_store import ConfigStore
+from personal_world.worlds.confinement import confined_request
 from personal_world.worlds.db import Database
 from personal_world.worlds.dispatcher import Dispatcher, NotPermitted
 from personal_world.worlds.models import Provider
 from personal_world.worlds.production import create_app
-from personal_world.worlds.room0 import (Room0Client, RoomService, card_defs, card_envelope, parse_action, parse_card, parse_changed,
-                                         parse_need, room_card_id, status_card_id, valid_link)
+from personal_world.worlds.room0 import (
+    Room0Client,
+    RoomService,
+    parse_action,
+    parse_card,
+    parse_changed,
+    parse_need,
+    room_card_id,
+    status_card_id,
+    valid_link,
+)
 
 ORIGIN = "https://worlds.example.test"
 BOOT = "open-sesame-correct-horse-1"  # pw-safety: synthetic
@@ -300,7 +309,9 @@ def test_unreachable_room_keeps_its_last_known_cards_marked_stale(env, room):
 
 def test_one_dead_room_never_blanks_the_others(env, room, tmp_path):
     store, client, svc, clock, _ = env
-    dead = FakeRoom(); dead_url = dead.base_url; dead.stop()
+    dead = FakeRoom()
+    dead_url = dead.base_url
+    dead.stop()
     store.save("provider", make_provider(room, id="gone", name="Gone", base_url=dead_url, principal_id=None))
     items = svc.home_items()
     assert {i["card"] for i in items} == {room_card_id("demo", "finds"), status_card_id("gone")}
@@ -594,7 +605,6 @@ def test_failures_are_cached_with_a_doubling_back_off_and_recover(env, room):
     room.stop()
     first = client.snapshot("demo")
     assert first.error_class == "connection"
-    seen = len(room.seen)
     clock["t"] += 10
     assert client.snapshot("demo") is first                                       # inside the 30 s back-off: no new attempt
     clock["t"] += 25
@@ -630,7 +640,8 @@ def test_a_card_request_asks_only_its_own_room(tmp_path, monkeypatch):
         assert b.seen == []                                                       # the other room was never contacted
         assert svc.card("r-nobody-finds-000000") is None and b.seen == []
     finally:
-        a.stop(); b.stop()
+        a.stop()
+        b.stop()
 
 
 def test_a_request_does_not_queue_behind_a_slow_fetch(env, room, monkeypatch):

@@ -16,17 +16,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from personal_world.classification import Classification  # noqa: E402
 from personal_world.model import (  # noqa: E402
-    Fact,
     Mutability,
     Override,
     Policy,
     PolicyEffect,
     Provenance,
 )
-from personal_world.world import MutationDenied, UserAction, World  # noqa: E402
-
+from personal_world.world import MutationDenied, World  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Filled-in example (not just comments)

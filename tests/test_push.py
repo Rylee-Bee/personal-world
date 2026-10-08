@@ -394,7 +394,8 @@ class TestNotify:
         assert third["state"] == "delivered" and third["id"] != first["id"]
 
     def test_rate_limit_is_thirty_a_minute_per_caller(self, hub):
-        limiter = lambda person: hub.rate_limited(f"agent:{person}")
+        def limiter(person):
+            return hub.rate_limited(f"agent:{person}")
         assert all(not limiter("kit") for _ in range(30))
         assert limiter("kit")  # 31st in the same minute
         assert not limiter("robin")  # a different caller has its own window

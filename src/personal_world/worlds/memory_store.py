@@ -28,14 +28,13 @@ import datetime as dt
 import json
 import os
 import re
-import shutil
 import sqlite3
 import time
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Iterator
 
-from .db import DB_NAME, Database, register_migrations
+from .db import Database, register_migrations
 
 __all__ = ["MemoryStore", "MemoryError_", "NotFound", "Locked", "NotPermitted_", "restore_backup"]
 

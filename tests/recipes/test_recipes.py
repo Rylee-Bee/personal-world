@@ -12,8 +12,8 @@ import pytest
 import yaml
 
 from personal_world.worlds.cards import CardService
-from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.config_store import ConfigStore
+from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.recipes import install, list_recipes, load_recipe, recipes_dir
 from personal_world.worlds.runner import Runner
 

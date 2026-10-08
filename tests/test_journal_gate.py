@@ -14,10 +14,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from personal_world.classification import Classification  # noqa: E402
 from personal_world.journal import Journal  # noqa: E402
 from personal_world.journal_gate import gate, mock_model, retrieve  # noqa: E402
 from personal_world.model import JournalKind, Provenance  # noqa: E402
-from personal_world.classification import Classification  # noqa: E402
 
 
 def _event(summary: str, days_ago: int, classification: Classification):
@@ -298,7 +298,7 @@ class TestRealModel:
 
         monkeypatch.setattr(jg._urlreq, "urlopen", lambda *a, **k: _FakeResp())
         j = _journal(tmp_path)
-        hits = retrieve("migraine medication", j, 7)
+        retrieve("migraine medication", j, 7)
         result = jg.gate(
             {"ask": "relates_to", "topic": "migraine medication", "window_days": 7},
             j,
@@ -315,7 +315,7 @@ class TestRealModel:
         from personal_world import journal_gate as jg
 
         j = _journal(tmp_path)
-        hits = retrieve("migraine medication", j, 7)
+        retrieve("migraine medication", j, 7)
         leaked = "Finally got the migraine to back off after the new"
 
         class _FakeResp:

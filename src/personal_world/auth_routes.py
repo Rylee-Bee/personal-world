@@ -11,13 +11,13 @@ cookie to set, and how to fail.
 """
 
 import logging
-import time
 import os
 import secrets
+import time
 from pathlib import Path
 
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from .auth import AuthManager
 from .identity import NoPrincipalError
@@ -378,19 +378,19 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
                     )
                 try:
                     auth.link_oidc(pending.link_to, identity.sub)
-                except ValueError:
+                except ValueError as _err:
                     raise OIDCLoginError(
                         "this sign-in is already linked to another account",
                         error_code="oidc_identity_in_use",
                         http_status=409,
-                    )
+                    ) from _err
             try:
                 session = auth.login_oidc(
                     identity.sub,
                     display_name=identity.display_name,
                     groups=identity.groups,
                 )
-            except NoPrincipalError:
+            except NoPrincipalError as _err:
                 # Verified by the IdP but not mapped onto a local
                 # principal: never silently mint an account. Fail closed
                 # with a reason the operator can act on.
@@ -398,7 +398,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
                     "this identity is not mapped to a local account",
                     error_code="oidc_identity_not_mapped",
                     http_status=403,
-                )
+                ) from _err
         except OIDCError as exc:
             return _failure_response(request, exc)
 

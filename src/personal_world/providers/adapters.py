@@ -19,6 +19,7 @@ from pathlib import Path
 
 from ..envelope import Result, fail, ok
 from ..status import Status
+from ..url_safety import http_urlopen
 from .registry import MemoryContract, SourceControlContract, StatusContract
 
 
@@ -33,7 +34,7 @@ class HttpStatus(StatusContract):
     def probe(self) -> Result:
         try:
             req = urllib.request.Request(self.url, method="GET")
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with http_urlopen(req, timeout=5) as resp:
                 code = resp.status
         except Exception as e:
             return Result(
@@ -72,7 +73,7 @@ class Gitea(SourceControlContract):
         token = os.environ.get(self.token_env)
         if token:
             req.add_header("Authorization", f"token {token}")
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with http_urlopen(req, timeout=5) as resp:
             return json.loads(resp.read().decode())
 
     def observe(self) -> Result:
@@ -125,7 +126,7 @@ class LangGraphMemory(MemoryContract):
 
     def health(self) -> bool:
         try:
-            with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as resp:
+            with http_urlopen(f"{self.base_url}/health", timeout=5) as resp:
                 return resp.status == 200
         except Exception:
             return False
@@ -148,7 +149,7 @@ class LangGraphMemory(MemoryContract):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with http_urlopen(req, timeout=15) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception as e:
             return Result(
@@ -177,7 +178,7 @@ class CandyDispenser(StatusContract):
 
     def health(self) -> Result:
         try:
-            with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as resp:
+            with http_urlopen(f"{self.base_url}/health", timeout=5) as resp:
                 if resp.status != 200:
                     return fail(
                         Status.NEEDS_ATTENTION.value,
@@ -198,7 +199,7 @@ class CandyDispenser(StatusContract):
 
     def observe(self) -> Result:
         try:
-            with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as resp:
+            with http_urlopen(f"{self.base_url}/health", timeout=5) as resp:
                 payload = json.loads(resp.read().decode())
         except Exception:
             return fail(

@@ -61,17 +61,17 @@ class TestDockerfile:
         # misconfiguration we want to hear about at boot, not serve. Asserted
         # here and behaviourally in test_safety.py::TestEntrypointTokenGuard.
         assert "FATAL: PW_API_TOKEN is empty or unset" in text
-        froms = [l for l in text.splitlines() if l.startswith("FROM ")]
+        froms = [line for line in text.splitlines() if line.startswith("FROM ")]
         assert len(froms) == 2
-        assert all("@sha256:" in l for l in froms), froms
+        assert all("@sha256:" in line for line in froms), froms
 
 
 class TestImageContents:
     def test_runtime_image_has_no_test_extra(self):
         text = _dockerfile_text()
-        sync = [l for l in text.splitlines() if "uv sync" in l]
-        assert sync and all("--extra test" not in l for l in sync), sync
-        assert any("--extra crypto" in l for l in sync)
+        sync = [line for line in text.splitlines() if "uv sync" in line]
+        assert sync and all("--extra test" not in line for line in sync), sync
+        assert any("--extra crypto" in line for line in sync)
 
 
 class TestDockerignore:

@@ -4,13 +4,22 @@ import sqlite3
 import threading
 
 import pytest
+from pydantic import ValidationError
 
 from personal_world.worlds.authn import Principal
-from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.config_store import ConfigStore
+from personal_world.worlds.confinement import ConfinementError, RawResponse
 from personal_world.worlds.db import Database
-from personal_world.worlds.dispatcher import (LEASE_RENEW_S, LEASE_TTL_S, BadRequest, DispatchError, Dispatcher, NotConsumable,
-                                              NotPermitted, classify_outcome)
+from personal_world.worlds.dispatcher import (
+    LEASE_RENEW_S,
+    LEASE_TTL_S,
+    BadRequest,
+    Dispatcher,
+    DispatchError,
+    NotConsumable,
+    NotPermitted,
+    classify_outcome,
+)
 from personal_world.worlds.models import Action, Provider, Request
 from personal_world.worlds.reference_provider import ReferenceServer, reference_send
 
@@ -48,7 +57,8 @@ class Sender:
         return r
 
 
-def owner(step_up=True, clock=Clock()):
+def owner(step_up=True, clock=None):
+    clock = Clock() if clock is None else clock
     return Principal("owner", "owner", session_hash="h", step_up_at=clock() if step_up else None, via="session")
 
 
@@ -390,7 +400,8 @@ def test_retry_is_a_new_authorization_with_a_warning(env):
     auto_first = d.execute(owner(), d.request_authorization(owner(), "auto")["id"])
     again = d.request_retry(owner(), auto_first["execution_id"])
     assert again["state"] == "pending"          # even "never" actions need a fresh approval to retry
-    failed = Sender(RawResponse(422)); d._send = failed
+    failed = Sender(RawResponse(422))
+    d._send = failed
     f = d.execute(owner(), approved(env)["id"])
     assert d.request_retry(owner(), f["execution_id"])["previous_may_have_run"] is False
 
@@ -456,7 +467,7 @@ def test_never_on_a_write_needs_the_owners_waiver_and_access_write(env, tmp_path
         store.save("action", Action(id="nope", request="ref.go", name="N", access="write", approval="never"))
     with pytest.raises(ConfigInvalid):                                   # access read must not point at a write request
         store.save("action", Action(id="mislabel", request="ref.go", name="M", access="read"))
-    with pytest.raises(Exception):                                       # a waiver without approval: never is meaningless
+    with pytest.raises(ValidationError):                                # a waiver without approval: never is meaningless
         Action(id="w", request="ref.go", name="W", owner_waives_approval=True)
     store.save("action", Action(id="waived", request="ref.go", name="W", access="write", approval="never",
                                 owner_waives_approval=True, exposed=True, scope="deploy.run"))
@@ -620,8 +631,10 @@ def test_a_different_live_process_on_the_same_boot_is_left_alone(env):
 
 
 def test_process_identity_is_boot_pid_start_host():
+    import os
+    import socket
+
     from personal_world.worlds.dispatcher import process_identity
-    import os, socket
     boot, pid, started, host = process_identity()
     assert pid == os.getpid() and boot and started and host == socket.gethostname()
 

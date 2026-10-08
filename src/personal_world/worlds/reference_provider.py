@@ -39,8 +39,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable, Iterable, Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
-import httpx
-
 from .confinement import ConfinementError, Deadline, RawResponse, perform
 from .models import Provider, Request
 

@@ -20,8 +20,10 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from personal_world import crew, prefs, voice  # noqa: E402
-from personal_world.chat import build_chat_messages  # noqa: E402
-from personal_world.chat import ChatContract  # noqa: E402
+from personal_world.chat import (
+    ChatContract,  # noqa: E402
+    build_chat_messages,  # noqa: E402
+)
 from personal_world.envelope import Result  # noqa: E402
 from personal_world.world import World  # noqa: E402
 
