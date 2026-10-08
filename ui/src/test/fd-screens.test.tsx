@@ -11,7 +11,12 @@ import { PrefsProvider } from "../fd/prefs";
 import { usePrefs } from "../fd/prefs-core";
 import { Settings } from "../fd/Settings";
 
-const server = setupServer(...fdHandlers);
+const server = setupServer(
+  ...fdHandlers,
+  http.get("/api/auth/session", () => HttpResponse.json({ authenticated: true, bootstrap_available: false, oidc_available: false })),
+  http.get("/api/push/public-key", () => HttpResponse.json({ detail: "not configured" }, { status: 409 })),
+  http.get("/api/push/subscriptions", () => HttpResponse.json({ ok: true, data: [] })),
+);
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => { cleanup(); server.resetHandlers(); });
 afterAll(() => server.close());

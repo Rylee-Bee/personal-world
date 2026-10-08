@@ -15,6 +15,20 @@ says `not_configured` and the rest of Worlds is untouched.
 *Sanitized: `<worlds-host>` and `mailto:you@example.invalid` are
 placeholders — substitute your own values.*
 
+## Front-door app (current implementation)
+
+**Status:** Web Push and its PWA shell are wired into the front-door app. With no VAPID configuration, the UI reports **not configured**; this does not mean a push delivery has been verified. The deployment remains a skeleton while Home is built.
+
+### Where the parts live
+
+- `src/personal_world/push.py` owns storage, VAPID, preferences, deduplication and delivery.
+- `src/personal_world/worlds/push_routes.py` owns the new app's notification API; `production.py` assembles it.
+- `src/personal_world/worlds/static_routes.py` serves the built SPA and root-scoped PWA files.
+- `ui/public/sw.js`, `manifest.webmanifest` and the icons are the PWA assets.
+- `ui/src/fd/Notifications.tsx` is the Settings device setup surface.
+
+Project Home publishes to `POST /api/notify`. An owner creates an agent token through `POST /api/agent-tokens` with scope `notify`; the token is shown once and must be kept secret. The agent sends `Authorization: Bearer <token>`. Each publish targets the one owner, has no `to` field, and should set `dedupe_key` to the Project Home need id. A saved notification is recorded even when push is not configured.
+
 ## The two keys (server side, once)
 
 Push messages are signed with a VAPID key pair. Generate one:
