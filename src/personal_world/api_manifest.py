@@ -1133,7 +1133,7 @@ def _route_index(routes: Iterable[Any]) -> dict[tuple[str, str], set[str]]:
         if dependant is not None:
             try:
                 walk(dependant, names)
-            except Exception:  # introspection must never break the manifest
+            except Exception:  # nosec B110  # introspection must never break the manifest
                 pass
         for method in methods:
             index.setdefault((method.upper(), path), set()).update(names)

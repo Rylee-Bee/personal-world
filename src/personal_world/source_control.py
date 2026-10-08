@@ -20,7 +20,7 @@ Safety contract:
 import json
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own `git`, argument-list form only
 from pathlib import Path
 
 from .envelope import Result, fail, ok
@@ -34,7 +34,7 @@ def _git(path: Path, *args: str) -> tuple[int, str, str]:
     stderr); returncode is -1 when the git binary is missing or the
     call times out. Never raises for git failures."""
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `git` is the operator's own binary on PATH
             ["git", "--no-pager", "-C", str(path), *args],
             capture_output=True,
             text=True,

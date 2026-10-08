@@ -134,7 +134,7 @@ ROOMS_ENV = "PW_ROOMS"
 #: bearer token (same indirection as ``PW_ROOM_<ID>_TOKEN_ENV``), and an
 #: optional "1" to accept a self-signed registry certificate.
 REGISTRY_URL_ENV = "PW_ROOMS_REGISTRY_URL"
-REGISTRY_TOKEN_ENV_ENV = "PW_ROOMS_REGISTRY_TOKEN_ENV"
+REGISTRY_TOKEN_ENV_ENV = "PW_ROOMS_REGISTRY_TOKEN_ENV"  # nosec B105  # the NAME of the env var holding the token
 REGISTRY_INSECURE_TLS_ENV = "PW_ROOMS_REGISTRY_INSECURE_TLS"
 
 #: Registry HTTP cache (rule: 60 s) and hard timeout (rule: 3 s).
@@ -148,8 +148,8 @@ REGISTRY_TIMEOUT_SECONDS = 3.0
 #: the *name* of the env var carrying the room's owner token (same
 #: indirection, optional); ``*_INSECURE_TLS`` is "1" to accept a
 #: self-signed LAN certificate.
-TOKEN_ENV_SUFFIX = "_TOKEN_ENV"
-OWNER_TOKEN_ENV_SUFFIX = "_OWNER_TOKEN_ENV"
+TOKEN_ENV_SUFFIX = "_TOKEN_ENV"  # nosec B105  # an env var NAME suffix, not a credential
+OWNER_TOKEN_ENV_SUFFIX = "_OWNER_TOKEN_ENV"  # nosec B105  # an env var NAME suffix, not a credential
 INSECURE_TLS_SUFFIX = "_INSECURE_TLS"
 
 #: Paths stay exactly these — there is no per-version path (rule 1).
@@ -511,7 +511,7 @@ def _parse_registry_entries(
         # honoured, so an entry can never make Worlds send PW_API_TOKEN or a
         # provider key to an arbitrary URL; anything else is ignored.
         if token_env_name and not _ROOM_TOKEN_ENV_RE.match(token_env_name):
-            token_env_name = ""
+            token_env_name = ""  # nosec B105  # an empty rejected value, not a credential
         token = (env.get(token_env_name) or "").strip() if token_env_name else ""
         # Same indirection, same allow-list rule, for the optional owner
         # token: only an owner-token-shaped env var NAME is honoured, so a
@@ -523,7 +523,7 @@ def _parse_registry_entries(
             continue
         owner_token_env_name = (owner_token_env_name or "").strip()
         if owner_token_env_name and not _ROOM_OWNER_TOKEN_ENV_RE.match(owner_token_env_name):
-            owner_token_env_name = ""
+            owner_token_env_name = ""  # nosec B105  # an empty rejected value, not a credential
         owner_token = (
             (env.get(owner_token_env_name) or "").strip()
             if owner_token_env_name

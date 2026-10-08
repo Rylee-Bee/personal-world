@@ -145,7 +145,7 @@ def _read_extra_config(config_dir: Path, key: str) -> dict:
                 if key in data:
                     raw = data[key]
                     break
-            except Exception:
+            except Exception:  # nosec B110  # probing each candidate source; a miss is the normal path
                 pass
     return resolve_native_config(raw, key)
 
@@ -225,7 +225,7 @@ def build_registry(
             mode=ProviderMode.NATIVE,
             required=False,
         )
-    except Exception:
+    except Exception:  # nosec B110  # an optional capability that is simply not configured
         pass
 
     for conn in connections:

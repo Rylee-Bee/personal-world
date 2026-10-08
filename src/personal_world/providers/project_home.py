@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own `lab` CLI, argument-list form only
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -33,7 +33,7 @@ TIMEOUT_SECONDS = 3
 
 CLI_ENV = "PW_PH_CLI"
 URL_ENV = "PW_PH_URL"
-TOKEN_ENV_ENV = "PW_PH_TOKEN_ENV"
+TOKEN_ENV_ENV = "PW_PH_TOKEN_ENV"  # nosec B105  # the NAME of the env var holding the token
 HTTP_PATH = "/api/home"
 SCHEMA = "ph-home/1"
 

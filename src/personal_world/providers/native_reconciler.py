@@ -110,13 +110,13 @@ class NativeSettingsReconciler(StatusContract):
                     import yaml
                     config = yaml.safe_load(f.read_text())
                     self._desired[f.stem] = DesiredState(f.stem, config, f)
-                except Exception:
+                except Exception:  # nosec B110  # one unparseable file must not hide the rest
                     pass
             for f in self.desired_path.glob("*.json"):
                 try:
                     config = json.loads(f.read_text())
                     self._desired[f.stem] = DesiredState(f.stem, config, f)
-                except Exception:
+                except Exception:  # nosec B110  # one unparseable file must not hide the rest
                     pass
 
     def desired_state(self, service: str) -> dict | None:

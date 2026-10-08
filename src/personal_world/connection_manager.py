@@ -33,7 +33,7 @@ _NATIVE_CONFIG_MAP: dict[str, dict[str, Any]] = {
         "wrapper_key": "targets",
         "adapter_to_type": {"webhook": "webhook", "ntfy": "ntfy"},
         "field_map": {"name": "name", "url": "url", "topic": "topic",
-                      "server": "server", "token": "token"},
+                      "server": "server", "token": "token"},  # nosec B105  # a config field-name map, not a credential
     },
     "updates": {
         "wrapper_key": "sources",

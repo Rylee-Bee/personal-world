@@ -5,7 +5,7 @@ Read-only: shells out to `lab deploy status --json` and
 """
 
 import json
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own `lab` CLI, argument-list form only
 
 from ..envelope import Result, fail, ok
 from .registry import StatusContract
@@ -21,7 +21,7 @@ class LabDeploy(StatusContract):
 
     def _run(self, *args: str) -> dict | None:
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603  # argument list, no shell; lab_path is an operator-configured absolute path
                 [self.lab_path, *args, "--json"],
                 capture_output=True, text=True, timeout=30, check=True,
             )

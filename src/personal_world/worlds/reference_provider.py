@@ -106,7 +106,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _cookie_read(self) -> None:
         """A read that only answers while the request carries a live session cookie."""
         owner = self._owner
-        token = ""
+        token = ""  # nosec B105  # an empty starting value, not a credential
         for part in (self.headers.get("Cookie") or "").split(";"):
             name, _, value = part.strip().partition("=")
             if name == owner.cookie_name:
@@ -148,7 +148,7 @@ class _Handler(BaseHTTPRequestHandler):
         with owner._lock:
             owner.valid_tokens.add(token)
             owner.issued_tokens.append(token)
-        self._json(200, {"access_token": token, "token_type": "Bearer"})
+        self._json(200, {"access_token": token, "token_type": "Bearer"})  # nosec B105  # "Bearer" is the OAuth token type, not a credential
 
     def _bearer_read(self) -> None:
         """A read that only answers while the request carries a bearer token this server issued."""

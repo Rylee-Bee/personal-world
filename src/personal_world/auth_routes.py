@@ -515,7 +515,7 @@ def register_auth_routes(app: FastAPI, auth: AuthManager):
         session_id = request.cookies.get(SESSION_COOKIE)
         if not session_id:
             raise HTTPException(401, "no session")
-        token = ""
+        token = ""  # nosec B105  # an empty starting value, not a credential
         header = request.headers.get("Authorization", "")
         if header.startswith("Bearer "):
             token = header.removeprefix("Bearer ").strip()

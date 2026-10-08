@@ -6,7 +6,7 @@ Read-only: shells out to `lab settings status --json` and
 """
 
 import json
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own `lab` CLI, argument-list form only
 
 from ..envelope import Result, fail, ok
 from .registry import StatusContract
@@ -22,7 +22,7 @@ class LabSettings(StatusContract):
 
     def observe(self) -> Result:
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603  # argument list, no shell; lab_path is an operator-configured absolute path
                 [self.lab_path, "settings", "status", "--json"],
                 capture_output=True, text=True, timeout=30, check=True,
             )
@@ -46,7 +46,7 @@ class LabSettings(StatusContract):
 
     def inspect(self, service: str) -> Result:
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603  # argument list, no shell; lab_path is an operator-configured absolute path
                 [self.lab_path, "settings", "inspect", service, "--json"],
                 capture_output=True, text=True, timeout=15, check=True,
             )
@@ -57,7 +57,7 @@ class LabSettings(StatusContract):
 
     def diff(self, service: str) -> Result:
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603  # argument list, no shell; lab_path is an operator-configured absolute path
                 [self.lab_path, "settings", "diff", service, "--json"],
                 capture_output=True, text=True, timeout=15, check=True,
             )

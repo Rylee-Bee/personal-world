@@ -44,9 +44,9 @@ def render_value(value: str, now: dt.datetime | None = None) -> str:
 
     def sub(m: re.Match[str]) -> str:
         token = m.group(1)
-        if token == "now":
+        if token == "now":  # nosec B105  # a template placeholder name, not a credential
             return when.strftime("%Y-%m-%dT%H:%M:%SZ")
-        if token == "today":
+        if token == "today":  # nosec B105  # a template placeholder name, not a credential
             return when.date().isoformat()
         shift = _SHIFT.match(token)
         assert shift is not None  # check_query_value ran at save time; a bad token never renders

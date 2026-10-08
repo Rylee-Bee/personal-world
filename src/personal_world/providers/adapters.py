@@ -13,7 +13,7 @@
 import json
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own `sops` CLI, argument-list form only
 import urllib.request
 from pathlib import Path
 
@@ -63,7 +63,7 @@ class Gitea(SourceControlContract):
     env indirection (token_env); if absent, only unauthenticated
     endpoints are used. Never writes."""
 
-    def __init__(self, base_url: str, token_env: str = "") -> None:
+    def __init__(self, base_url: str, token_env: str = "") -> None:  # nosec B107  # the default is an empty env var NAME, never a credential
         self.base_url = base_url.rstrip("/")
         self.token_env = token_env
 
@@ -242,7 +242,7 @@ class SopsBroker:
         if not self.available():
             return []
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `sops` is checked with shutil.which before this
                 ["sops", "-d", "--output-type", "json", str(self.bundle_path)],
                 capture_output=True,
                 text=True,
@@ -269,8 +269,8 @@ class SopsBroker:
                 warnings=["sops or bundle missing"],
             )
         try:
-            proc = subprocess.Popen(consumer, stdin=subprocess.PIPE)
-            subprocess.run(
+            proc = subprocess.Popen(consumer, stdin=subprocess.PIPE)  # nosec B603  # argument list, no shell; `consumer` is the caller's own command, never user input
+            subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `sops` is checked with shutil.which before this
                 ["sops", "-d", str(self.bundle_path)],
                 stdout=proc.stdin,
                 timeout=timeout,

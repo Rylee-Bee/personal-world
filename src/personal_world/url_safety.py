@@ -43,4 +43,4 @@ def http_urlopen(url_or_request: Any, *, timeout: float | None = None) -> Any:
     # The scheme is checked immediately above; this is the single place the
     # check lives, which is exactly what B310 asks for and cannot be
     # satisfied any closer to the call.
-    return urllib.request.urlopen(url_or_request, timeout=timeout)  # nosec B310 — scheme pinned by require_http_url above
+    return urllib.request.urlopen(url_or_request, timeout=timeout)  # nosec B310  # scheme pinned by require_http_url above

@@ -48,7 +48,7 @@ _logger = logging.getLogger("personal_world.setup_wizard")
 
 SETUP_MARKER = "setup-complete"
 CHOICES_FILE = "setup-choices.json"
-SECRET_ENV_DEFAULT = "PW_OIDC_CLIENT_SECRET"
+SECRET_ENV_DEFAULT = "PW_OIDC_CLIENT_SECRET"  # nosec B105  # the NAME of the env var holding the secret
 
 _ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 
@@ -132,12 +132,12 @@ def provision(data_dir: Path, config_dir: Path, journal=None) -> dict:
 
     # 1. Access token: file wins (matches boot reconciliation in
     #    api.py), then the live environment, then generate.
-    token_state = "already-present"
+    token_state = "already-present"  # nosec B105  # a state label, not a credential
     token = _read_env_token(env_file)
     if token is None:
         token = os.environ.get("PW_API_TOKEN") or None
         if token is not None:
-            token_state = "environment"
+            token_state = "environment"  # nosec B105  # a state label, not a credential
     if token is None:
         token = secrets.token_urlsafe(32)
         try:
@@ -175,7 +175,7 @@ def provision(data_dir: Path, config_dir: Path, journal=None) -> dict:
         )
 
     return {
-        "token_ready": True,
+        "token_ready": True,  # nosec B105  # a boolean readiness flag, not a credential
         "token_state": token_state,
         "stores_created": changed,
         "stores_already_present": skipped,

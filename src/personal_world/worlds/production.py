@@ -104,7 +104,7 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
                 dispatcher.heartbeat()
                 dispatcher.recover()
                 dispatcher.expire_due()
-            except Exception:  # never let housekeeping kill the process
+            except Exception:  # nosec B110  # never let housekeeping kill the process
                 pass
 
     threading.Thread(target=maintain, name="worlds-maintenance", daemon=True).start()

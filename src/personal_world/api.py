@@ -667,7 +667,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
     if _identity_mode == "multi":
         try:
             _identity_store.legacy_primary(_token())
-        except Exception:
+        except Exception:  # nosec B110  # legacy migration probe: never a reason to fail the request
             pass
 
     app.state.identity = {
@@ -819,7 +819,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 _logger.warning("vault init failed: %s", r.warnings)
         return {
             "ok": True,
-            "data": {"token_set": True, "vault_initialized": vault_initialized},
+            "data": {"token_set": True, "vault_initialized": vault_initialized},  # nosec B105  # "token_set" is a boolean flag, not a credential
         }
 
     def _state() -> tuple[World, Registry]:
@@ -5653,7 +5653,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 give("done-dusted")
             if len(memory.in_progress(later)) == 3:
                 give("juggler")
-        except Exception:  # noqa: BLE001 — a sticker never breaks the album
+        except Exception:  # noqa: BLE001  # nosec B110  # a sticker never breaks the album
             pass
         try:
             uw, uj = _user_paths(request)
@@ -5665,7 +5665,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 give("know-thyself")
             if any(e.supersedes is not None for e in _journal_target(uj).events()):
                 give("second-draft")
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  # nosec B110  # best-effort sticker award; the album still renders
             pass
         try:
             ld = learning.load(_scoped_path(principal, "learning"))
@@ -5678,7 +5678,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
                 give("frodis-friend")
             if any(len(set(c.get("projects") or [])) >= 2 for c in concepts.values()):
                 give("two-voices")
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  # nosec B110  # best-effort sticker award; the album still renders
             pass
         try:
             visits = rooms_visits.read_visits(_scoped_path(principal, "rooms_visits"))
@@ -5688,7 +5688,7 @@ def create_app(data_dir: Path | None = None, config_dir: Path | None = None) -> 
             configured = {r.get("id") for r in await _ROOMS.snapshot(os.environ) if isinstance(r, dict)}
             if configured and configured <= seen:
                 give("all-doors")
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  # nosec B110  # best-effort sticker award; the album still renders
             pass
         first = data["found"].get("worlds:first-light", {}).get("at", "")
         try:

@@ -734,7 +734,7 @@ class ProposalStore:
             return
         try:
             target.record(kind, summary, source="brain-proposal")
-        except Exception:
+        except Exception:  # nosec B110  # a journal hiccup must not lose the proposal itself
             pass
 
     def propose(

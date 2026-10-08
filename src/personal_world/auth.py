@@ -198,7 +198,7 @@ class AuthManager:
             try:
                 data = json.loads(oidc_path.read_text())
                 self._oidc_config = OIDCConfig(**data)
-            except Exception:
+            except Exception:  # nosec B110  # unreadable OIDC config means OIDC is simply off
                 pass
         self._bootstrap_token = os.environ.get("PW_API_TOKEN")
 

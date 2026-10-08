@@ -15,7 +15,7 @@ API. Preferences persist per-user.
 import json
 import os
 import re
-import subprocess
+import subprocess  # nosec B404  # drives the operator's own `opencode` CLI, argument-list form only
 import urllib.request
 from typing import Any
 
@@ -119,7 +119,7 @@ def _lenient_json_loads(raw: Any) -> Any:
             parsed = json.loads(candidate)
             if isinstance(parsed, dict):
                 return parsed
-        except Exception:
+        except Exception:  # nosec B112  # one more parse strategy; none parsed, so try the next
             continue
     # Last resort: python-ish literals (single quotes, True/None). ast is
     # safe here — it evaluates literals only, never expressions.
@@ -129,7 +129,7 @@ def _lenient_json_loads(raw: Any) -> Any:
         parsed = ast.literal_eval(_balance_json(text))
         if isinstance(parsed, dict):
             return parsed
-    except Exception:
+    except Exception:  # nosec B110  # a parse that did not yield an object is simply not JSON
         pass
     return None
 
@@ -949,7 +949,7 @@ class OpenCodeChat(ChatContract):
 
     def observe(self) -> Result:
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `opencode` is the operator's own CLI on PATH
                 ["opencode", "models"],
                 capture_output=True,
                 text=True,
@@ -983,7 +983,7 @@ class OpenCodeChat(ChatContract):
         prompt = "\n\n".join(prompt_parts)
 
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec  # B603 and B607 both apply to this call — argument list, no shell; `opencode` is the operator's own CLI on PATH
                 ["opencode", "run", "--model", self.model, "--format", "json"],
                 input=prompt,
                 capture_output=True,

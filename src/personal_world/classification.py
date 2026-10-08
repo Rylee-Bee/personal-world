@@ -6,7 +6,7 @@ from pydantic import Field
 class Classification(str, Enum):
     WORLD = "world"
     PRIVATE = "private"
-    SECRET = "secret"
+    SECRET = "secret"  # nosec B105  # the classification enum member, not a credential
 
 
 def meta(kind: str, exportable: bool = False) -> dict:
