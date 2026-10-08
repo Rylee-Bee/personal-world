@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { usePrefs } from "./prefs-core";
+import { Notifications } from "./Notifications";
 import type { Density, Pack, TextSize, Theme, Words } from "./types";
 import "./fd.css";
 
@@ -101,6 +102,7 @@ export function Settings() {
         <h2 className="fd-settings-section-title">Assistant</h2>
         <p className="fd-settings-value">Not installed</p>
       </section>
+      <Notifications />
     </div>
   );
 }

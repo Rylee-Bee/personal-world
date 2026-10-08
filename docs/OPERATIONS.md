@@ -188,13 +188,12 @@ edit the production Compose file.
 
 ### Production deployment (the transcode host)
 
-Production Worlds runs on the **transcode host** (a LAN machine) as a
-docker compose stack at `/opt/personal-world`, serving the owner's Worlds
-hostname through homelab Traefik. The Traefik route applies the `secure`
-headers middleware but **no Authelia forward-auth** — Worlds owns its own
-auth (bearer token, browser sign-in, optional OIDC used only as an
-identity provider). It is not on the workstation and not part of the
-homelab compose stacks.
+Production Worlds currently runs the existing application. The front-door
+rebuild is a separate, not-yet-cut-over code line. The front-door production
+entrypoint uses `$PW_CONFIG_DIR/owner.yaml` for owner sign-in policy; its
+static shell is served from `src/personal_world/static/app` (or `PW_STATIC_DIR`).
+Keep the instance gated at the network layer during build and test work. This
+documentation does not authorize production cutover or deployment.
 
 Images are built by the GitHub Actions `publish-image` workflow on `main`
 and pushed to `ghcr.io/rylee-bee/personal-world`; production pulls them:
@@ -211,9 +210,11 @@ app's deploy command — which backs up data, tags the old image
 `personal-world:pre-<stamp>` for rollback, pulls, restarts, and waits for
 healthy.
 
-Secrets and env live only in `/opt/personal-world/.env` (mode 600):
-`PW_API_TOKEN`, `OIDC_CLIENT_SECRET`, and any `PW_ROOM_*_TOKEN` values.
-This repo records names only, never values.
+Secrets and env live only in private runtime configuration. For the front-door
+app, configure its valid `owner.yaml`, and set `PW_VAPID_PRIVATE_KEY` plus
+`PW_VAPID_SUBJECT` in the runtime environment to enable Web Push. The private
+key is never stored in the repository or returned by an API. This repo records
+names only, never values.
 
 ### Optional homelab enrichment
 

@@ -689,6 +689,11 @@ html[data-pack="station"] .fd-home-section-title, html[data-pack="station"] .fd-
 @media (forced-colors: active) { .fd-companion, .fd-companion-you, .fd-companion-reply, .fd-companion-sees, .fd-companion-btn, .fd-companion-earlier-item { border: 1px solid CanvasText; } }
 
 .fd-row-meaning--plain { font-family: var(--font-body); font-weight: 400; color: var(--text-2); font-size: 0.9375rem; }
+.fd-notify-form, .fd-notify-devices { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-sm); }
+.fd-notify-form input { min-height: var(--target-min); width: min(100%, 28rem); padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--elevated); color: var(--text); font: inherit; }
+.fd-notify-devices { list-style: none; padding: 0; width: min(100%, 34rem); }
+.fd-notify-devices li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-sm); width: 100%; padding: var(--sp-sm); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.fd-notify-title { font-size: 1rem; }
 /* Home: "Home" is the h1 (a clear landmark for screen readers); the greeting leads visually */
 .fd-home-eyebrow { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .fd-home-greeting { margin: 0; font-family: var(--font-display); font-size: 1.75rem; line-height: 1.2; color: var(--text); text-wrap: balance; }

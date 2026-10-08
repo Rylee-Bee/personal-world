@@ -17,6 +17,7 @@ from urllib.parse import urlsplit
 from fastapi import FastAPI
 
 from ..oidc import OIDCService
+from ..push import PushHub
 from .actions_routes import register_action_routes
 from .auth_routes import parse_trusted_proxies, register_auth_routes
 from .authn import Auth, load_csrf_key, load_key, principal_dependency
@@ -27,8 +28,10 @@ from .dispatcher import LEASE_TTL_S, Dispatcher
 from .memory_routes import register_memory_routes
 from .memory_store import MemoryStore
 from .owner import load_owner_policy, strong_secret
+from .push_routes import register_push_routes
 from .room0 import Room0Client, RoomService
 from .room_routes import register_room_routes
+from .static_routes import register_static_routes
 from .secrets import resolve_secret_ref
 from .server import build_app
 
@@ -134,6 +137,9 @@ def create_app(config_dir: str | os.PathLike[str], data_dir: str | os.PathLike[s
                             secret_values=lambda: list(live))
     register_room_routes(app, holder["rooms"], owner=owner_dep)
     register_companion_routes(app, app.state.store, owner=owner_dep)   # owner session only; confined; whitelisted
+    register_push_routes(app, PushHub(data_dir, mode="single"), owner=owner_dep, anyone=anyone_dep)
+    # Must remain last: the SPA fallback must not capture API or health routes.
+    register_static_routes(app, os.environ.get("PW_STATIC_DIR", Path(__file__).parents[1] / "static" / "app"))
     return app
 
 
