@@ -42,7 +42,7 @@ jobs:
   # stated twice; the template verifies after checkout that the tree it fetched
   # really is this commit, and prints both.
   claims:
-    uses: Rylee-Bee/ci-harness/.github/workflows/reusable-claims-policy.yml@a0c82129374ab551cd4dee7efd7b46c04f1be5eb
+    uses: rylee-bee-labs/ci-harness/.github/workflows/reusable-claims-policy.yml@a0c82129374ab551cd4dee7efd7b46c04f1be5eb
     with:
       policy-revision: a0c82129374ab551cd4dee7efd7b46c04f1be5eb
       runs-on: ${{ vars.CI_RUNNER_LIGHT || vars.CI_RUNNER || 'ubuntu-latest' }}
