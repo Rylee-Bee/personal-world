@@ -22,6 +22,50 @@ Home · Connect · Memory · Settings
 
 Worlds owns meaning. Providers own mechanics.
 
+## What owns what
+
+- **Home** composes useful cards and attention.
+- **Connect** describes providers, mappings and requests in files.
+- **Memory** keeps durable personal state, deterministic local search,
+  history, export and restore.
+- **Settings** holds configuration and comfort.
+- **Companion** is presentation/conversation around the product, not a second
+  authority path.
+- External `room/0` systems continue as a provider kind. Worlds calls them
+  services and does not absorb their implementation.
+
+Provider API shapes do not become Worlds concepts.
+
+## Authority
+
+Consequential actions use one governed path:
+
+```text
+request
+→ approve
+→ durably consume authorization
+→ dispatch at most once
+→ SUCCEEDED | FAILED | UNKNOWN
+```
+
+A retry is a new action. Project Home stays canonical for operations it
+governs; other provider actions stay explicitly owner-authorized through
+Worlds' own boundary.
+
+## Memory baseline
+
+The rebuild treats Memory as durable product state from day one, and supports:
+
+- Kept
+- Later
+- Records
+- History
+- Find
+
+Local deterministic search works with providers and models off.
+Backup/restore is a current front-door path, not the retired old-app bundle
+format. See [`docs/rebuild/DURABILITY.md`](docs/rebuild/DURABILITY.md).
+
 ## Branches
 
 Two code lines are active for now:
@@ -95,6 +139,24 @@ A green source check is not runtime verification.
 
 Dated `.project/HANDOFF-*` files are history/evidence. They do not outrank
 current code, issues, ADRs or `.project/CURRENT.md`.
+
+## Checkouts and paths
+
+`personal-world` is worked in from more than one checkout: this repository has
+linked worktrees in use, and the estate also holds in-root checkouts of it. A
+worktree is a checkout of this repository, not a separate repository, and a
+repository is not a worktree.
+
+Before writing or checking any path, run from the repository root:
+
+```sh
+git worktree list
+```
+
+Every relative path in a document must resolve from the repository root. A
+path that only resolves from inside a worktree or a sibling directory is
+wrong. If a `cd` destination is written down, it must be right for someone
+who just cloned the repository and nothing else.
 
 ## Sources of truth
 

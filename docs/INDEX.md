@@ -91,7 +91,7 @@ are unchanged.)
 |---|---|
 | [AGENTS.md](../AGENTS.md) | Working-tree rules for agents and humans (worktrees, staging discipline). |
 | [safe-commit.sh](../scripts/safe-commit.sh) | Stages named paths only; refuses unrelated-file sweeps. |
-| [Validation commands](../README.md#validation) | `pytest`, `framework validate` — the canonical checks. |
+| [Validation commands](../AGENTS.md#checks) | `pytest`, `framework validate` — the canonical checks. |
 | [DEV-ENVIRONMENT.md](DEV-ENVIRONMENT.md) | Setting up to run, test, or contribute: prerequisites, verification commands, and environment hygiene. |
 
 ## Surfaces, inventories & history
