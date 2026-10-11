@@ -1,16 +1,17 @@
 # Current State — Worlds
 
-This file is the **current-state router** for the front-door rebuild.
+> **Live state** (last commit, CI on main, open PRs, recent merges, missions): `lab enter` at session start, or `now-block --print .` from this repo. This file keeps only what a command cannot tell you.
+
+This file is the **current-state router** for Worlds.
 
 Do not turn it into a session diary, test transcript or merge ledger. Git,
 GitHub, the running app, ADRs and focused docs own those facts.
 
-## This branch
+## Main is the front door
 
-`rebuild/front-door` is the active clean rebuild authorized by
-[ADR-0008](../docs/adr/0008-front-door.md).
-
-It is **not production**.
+`main` carries the front-door rebuild authorized by
+[ADR-0008](../docs/adr/0008-front-door.md). It was merged from
+`rebuild/front-door` in PR #277 (2026-10-06). That is a **source** cutover.
 
 The stable landmarks are:
 
@@ -37,38 +38,21 @@ The rebuild has landed the main foundation and experience lanes, including:
 - trimmed CLI and front-door container entrypoint,
 - durable Companion conversation identity.
 
-Those statements describe source progress, not a production cutover.
+Those statements describe source on `main`, not the running instance.
 
 ## Current work
 
-GitHub Issues is the durable queue:
-
-- **#262** — finish Phase 4 retirement and cutover readiness.
-- **#263** — reconcile applicable `main` maintenance into this branch before
-  cutover.
+Issues #262 (finish Phase 4 retirement and cutover readiness) and #263
+(main maintenance reconciliation) were closed as not planned on 2026-10-07.
+Their remainder is carried in [docs/BACKLOG.md](../docs/BACKLOG.md). #263 is
+largely overtaken by the merge of the rebuild into `main`.
 
 There are no routine session handoffs to resume.
 
-## Relationship to main
-
-`main` remains the default/pre-front-door application and maintenance line.
-
-Derive the relationship:
-
-```sh
-git fetch origin
-git rev-list --left-right --count origin/main...origin/rebuild/front-door
-```
-
-At the 2026-10-04 reconcile, this branch was 145 commits ahead and 3 commits
-behind `main`. Issue #263 preserves that dated observation and owns the
-meaningful reconciliation.
-
-Do not blindly merge old-app prose or compatibility into this clean rebuild.
-
 ## What is deployed
 
-The front-door rebuild has not been cut over.
+Merging to `main` publishes the image; it does not deploy. Deploying the
+front door is a deliberate manual step.
 
 A merge, CI run or published image is not proof of the running instance.
 Current runtime revision must come from the running application's `/healthz`
@@ -76,20 +60,20 @@ evidence through the private operator path.
 
 If that evidence has not been checked, runtime state is **UNKNOWN**.
 
-Production cutover requires explicit owner approval.
+Deploying to production requires explicit owner approval.
 
 ## Canonical routes
 
 | Need | Source |
 | --- | --- |
-| rebuild code truth | Git + GitHub on `rebuild/front-door` |
+| code truth | Git + GitHub on `main` |
 | live runtime revision | running `/healthz`, not prose |
 | architecture | `docs/adr/0008-front-door.md` |
 | rebuild contracts | `docs/rebuild/CONTRACTS.md` |
 | durability | `docs/rebuild/DURABILITY.md` |
 | product direction | `.project/PLAN.md` |
 | durable decisions | `.project/DECISIONS.md` + `docs/adr/` |
-| current work | GitHub Issues |
+| current work | GitHub Issues + `docs/BACKLOG.md` |
 | security/public boundary | `SECURITY.md` |
 | accessibility | `docs/accessibility/ACCESSIBILITY_CONTRACT.md` |
 | agent rules | `AGENT_POLICY.md` + `AGENT_CONTRACTS.md` + `AGENTS.md` |
@@ -105,11 +89,10 @@ They answer "how did we get here?", not "what should I do now?"
 ```sh
 git fetch origin
 git status --short
-git log --oneline --decorate -12 origin/rebuild/front-door
-git rev-list --left-right --count origin/main...origin/rebuild/front-door
-gh issue list --repo Rylee-Bee/personal-world --state open
+git log --oneline --decorate -12 origin/main
+gh issue list --repo rylee-bee-labs/personal-world --state open
 ```
 
-Then inspect #262 / #263 and the current branch code.
+Then read [docs/BACKLOG.md](../docs/BACKLOG.md) and the current code.
 
 If evidence is missing, say **UNKNOWN**.
